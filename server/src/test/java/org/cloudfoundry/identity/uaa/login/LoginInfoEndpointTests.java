@@ -102,7 +102,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(PollutionPreventionExtension.class)
 class LoginInfoEndpointTests {
 
-    private static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080/uaa";
+    private static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080";
     private static final Links DEFAULT_GLOBAL_LINKS = new Links().setSelfService(new Links.SelfService().setPasswd(null).setSignup(null));
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
@@ -658,7 +658,7 @@ class LoginInfoEndpointTests {
         MockHttpSession session = new MockHttpSession();
         SavedRequest savedRequest = mock(SavedRequest.class);
         when(savedRequest.getParameterValues("client_id")).thenReturn(new String[]{"client-id"});
-        when(savedRequest.getRedirectUrl()).thenReturn("http://localhost:8080/uaa");
+        when(savedRequest.getRedirectUrl()).thenReturn("http://localhost:8080");
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         request.setSession(session);
         // mock SamlIdentityProviderConfigurator
@@ -938,7 +938,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
+        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockOidcConfig.getEmailDomain()).thenReturn(singletonList("example.com"));
@@ -954,7 +954,7 @@ class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, startsWith("redirect:http://localhost:8080"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
         assertNull(extendedModelMap.get("login_hint"));
     }
@@ -1115,7 +1115,7 @@ class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, startsWith("redirect:http://localhost:8080"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
         assertNull(extendedModelMap.get("login_hint"));
     }
@@ -1296,7 +1296,7 @@ class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, startsWith("redirect:http://localhost:8080"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
     }
 
@@ -1336,7 +1336,7 @@ class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, startsWith("redirect:http://localhost:8080"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
     }
 
@@ -1357,7 +1357,7 @@ class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, startsWith("redirect:http://localhost:8080"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
         assertNull(extendedModelMap.get("login_hint"));
     }
@@ -1413,7 +1413,7 @@ class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, startsWith("redirect:http://localhost:8080"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
         assertFalse(extendedModelMap.containsKey("login_hint"));
     }
@@ -1485,7 +1485,7 @@ class LoginInfoEndpointTests {
         SavedRequest savedRequest = mock(SavedRequest.class);
         when(savedRequest.getParameterValues("client_id")).thenReturn(new String[]{"client-id"});
         when(savedRequest.getRedirectUrl())
-                .thenReturn("http://localhost:8080/uaa/oauth/authorize?client_id=identity&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
+                .thenReturn("http://localhost:8080/oauth/authorize?client_id=identity&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         request.setSession(session);
         return request;
@@ -1591,7 +1591,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
+        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);

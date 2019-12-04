@@ -1738,7 +1738,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals("zones.write", created.getAdditionalInformation().get(ClientConstants.CREATED_WITH));
         assertEquals(Collections.singletonList(UAA), created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
         assertEquals("bar", created.getAdditionalInformation().get("foo"));
-        checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener, id, "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener, id, "http://localhost:8080/oauth/token", "identity");
 
         for (String url : Arrays.asList("", "/")) {
             mockMvc.perform(
@@ -1753,7 +1753,7 @@ class IdentityZoneEndpointsMockMvcTests {
                         .accept(APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        checkAuditEventListener(1, AuditEventType.ClientDeleteSuccess, clientDeleteEventListener, id, "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(1, AuditEventType.ClientDeleteSuccess, clientDeleteEventListener, id, "http://localhost:8080/oauth/token", "identity");
     }
 
     @Test
@@ -1887,12 +1887,12 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZone identityZone = creationResult.getIdentityZone();
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
-        checkAuditEventListener(1, AuditEventType.GroupCreatedEvent, groupModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
-        checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener, identityZone.getId(), "http://localhost:8080/uaa/oauth/token", creationResult.getZoneAdminUser().getId());
+        checkAuditEventListener(1, AuditEventType.GroupCreatedEvent, groupModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/oauth/token", "identity");
+        checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener, identityZone.getId(), "http://localhost:8080/oauth/token", creationResult.getZoneAdminUser().getId());
 
         String scimAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,scim.read", subdomain);
         ScimUser user = createUser(scimAdminToken, subdomain);
-        checkAuditEventListener(1, AuditEventType.UserCreatedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/uaa/oauth/token", "admin");
+        checkAuditEventListener(1, AuditEventType.UserCreatedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/oauth/token", "admin");
 
         user.setUserName("updated-username@test.com");
         MockHttpServletRequestBuilder put = put("/Users/" + user.getId())
@@ -1907,7 +1907,7 @@ class IdentityZoneEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.userName").value(user.getUserName()))
                 .andReturn();
 
-        checkAuditEventListener(2, AuditEventType.UserModifiedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/uaa/oauth/token", "admin");
+        checkAuditEventListener(2, AuditEventType.UserModifiedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/oauth/token", "admin");
         user = JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
         List<ScimUser> users = getUsersInZone(subdomain, scimAdminToken);
         assertTrue(users.contains(user));
@@ -1924,7 +1924,7 @@ class IdentityZoneEndpointsMockMvcTests {
                 .andExpect(jsonPath("$.id").value(user.getId()))
                 .andReturn();
 
-        checkAuditEventListener(3, AuditEventType.UserDeletedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/uaa/oauth/token", "admin");
+        checkAuditEventListener(3, AuditEventType.UserDeletedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/oauth/token", "admin");
         users = getUsersInZone(subdomain, scimAdminToken);
         assertEquals(0, users.size());
     }
@@ -2252,7 +2252,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals(id.toLowerCase(), zone.getSubdomain());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
         assertEquals(JWT.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
-        checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/oauth/token", "identity");
 
         //validate that default groups got created
         ScimGroupProvisioning groupProvisioning = webApplicationContext.getBean(ScimGroupProvisioning.class);
@@ -2386,7 +2386,7 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     private <T extends AbstractUaaEvent> void checkZoneAuditEventInUaa(int eventCount, AuditEventType eventType) {
-        checkAuditEventListener(eventCount, eventType, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
+        checkAuditEventListener(eventCount, eventType, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/oauth/token", "identity");
     }
 
     private <T extends AbstractUaaEvent> void checkAuditEventListener(int eventCount, AuditEventType eventType, TestApplicationEventListener<T> eventListener, String identityZoneId, String issuer, String subject) {

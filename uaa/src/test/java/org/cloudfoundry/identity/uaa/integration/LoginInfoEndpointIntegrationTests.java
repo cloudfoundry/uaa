@@ -60,7 +60,7 @@ public class LoginInfoEndpointIntegrationTests {
         String body = response.getBody();
         // System.err.println(body);
         assertNotNull(body);
-        assertTrue("Wrong body: " + body, body.contains("<form action=\"/uaa/login.do\" method=\"post\" novalidate=\"novalidate\" accept-charset=\"UTF-8\">"));
+        assertTrue("Wrong body: " + body, body.contains("<form action=\"/login.do\" method=\"post\" novalidate=\"novalidate\" accept-charset=\"UTF-8\">"));
 
     }
 

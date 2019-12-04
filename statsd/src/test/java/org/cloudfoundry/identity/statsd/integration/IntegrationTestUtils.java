@@ -8,7 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class IntegrationTestUtils {
 
-    static final String UAA_BASE_URL = "http://localhost:8080/uaa";
+    static final String UAA_BASE_URL = "http://localhost:8080";
     static final String TEST_USERNAME = "marissa";
     static final String TEST_PASSWORD = "koala";
 

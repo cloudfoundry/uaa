@@ -185,8 +185,8 @@ public class CreateAccountIT {
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setName("oidc_provider").setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
         oidcProvider.getConfig().setAuthUrl(new URL("http://example.com"));
         oidcProvider.getConfig().setShowLinkText(false);
-        oidcProvider.getConfig().setTokenUrl(new URL("http://localhost:8080/uaa/idp_login"));
-        oidcProvider.getConfig().setTokenKeyUrl(new URL("http://localhost:8080/uaa/idp_login"));
+        oidcProvider.getConfig().setTokenUrl(new URL("http://localhost:8080/idp_login"));
+        oidcProvider.getConfig().setTokenKeyUrl(new URL("http://localhost:8080/idp_login"));
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
         oidcProvider.getConfig().setRelyingPartyId("client_id");
         oidcProvider.getConfig().setRelyingPartySecret("client_secret");

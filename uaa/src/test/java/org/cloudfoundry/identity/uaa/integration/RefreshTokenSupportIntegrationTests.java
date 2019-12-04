@@ -178,7 +178,7 @@ public class RefreshTokenSupportIntegrationTests {
         RestTemplate identityClient = IntegrationTestUtils
             .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
                     new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
-        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080");
 
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "refresh_token");

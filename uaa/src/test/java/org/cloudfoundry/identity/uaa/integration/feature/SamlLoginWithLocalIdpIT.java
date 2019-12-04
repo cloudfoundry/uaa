@@ -249,7 +249,7 @@ public class SamlLoginWithLocalIdpIT {
         postBody.add("client_secret", "secret");
         postBody.add("assertion", samlTestUtils.mockAssertionEncoded(IDP_ENTITY_ID,
                                                                      "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-                                                                     "Saml2BearerIntegrationUser", "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
+                                                                     "Saml2BearerIntegrationUser", "http://localhost:8080/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
 
         ResponseEntity<CompositeToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
                                                                              HttpMethod.POST, new HttpEntity<>(postBody, headers),
@@ -1015,9 +1015,9 @@ public class SamlLoginWithLocalIdpIT {
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId) {
         String url;
         if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals("uaa")) {
-            url = "http://" + zoneId + ".localhost:8080/uaa/saml/idp/metadata";
+            url = "http://" + zoneId + ".localhost:8080/saml/idp/metadata";
         } else {
-            url = "http://localhost:8080/uaa/saml/idp/metadata";
+            url = "http://localhost:8080/saml/idp/metadata";
         }
         String idpMetaData = getIdpMetadata(url);
         return SamlTestUtils.createLocalSamlIdpDefinition(alias, zoneId, idpMetaData);
@@ -1037,9 +1037,9 @@ public class SamlLoginWithLocalIdpIT {
 
         String url;
         if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals("uaa")) {
-            url = "http://" + zoneId + ".localhost:8080/uaa/saml/metadata/alias/" + zoneId + "." + alias;
+            url = "http://" + zoneId + ".localhost:8080/saml/metadata/alias/" + zoneId + "." + alias;
         } else {
-            url = "http://localhost:8080/uaa/saml/metadata/alias/" + alias;
+            url = "http://localhost:8080/saml/metadata/alias/" + alias;
         }
 
         String spMetaData = getIdpMetadata(url);

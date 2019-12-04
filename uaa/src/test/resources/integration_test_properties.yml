@@ -17,13 +17,13 @@ jwt:
 
 uaa:
   # The hostname of the UAA that this login server will connect to
-  url: http://localhost:8080/uaa
+  url: http://localhost:8080
   token:
-    url: http://localhost:8080/uaa/oauth/token
+    url: http://localhost:8080/oauth/token
   approvals:
-    url: http://localhost:8080/uaa/approvals
+    url: http://localhost:8080/approvals
   login:
-    url: http://localhost:8080/uaa/authenticate
+    url: http://localhost:8080/authenticate
   limitedFunctionality:
     enabled: false
     whitelist:
@@ -104,7 +104,7 @@ oauth:
     - uaa.offline_token
 
 issuer:
-  uri: http://localhost:8080/uaa
+  uri: http://localhost:8080
 
 
 login:
@@ -146,8 +146,8 @@ login:
     KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
     RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
     -----END CERTIFICATE-----
-  url: http://localhost:8080/uaa
-  entityBaseURL: http://localhost:8080/uaa
+  url: http://localhost:8080
+  entityBaseURL: http://localhost:8080
   entityID: cloudfoundry-saml-login
   saml:
     #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
@@ -170,7 +170,7 @@ login:
       # URL metadata fetch - read timeout
       soTimeout: 10000
   authorize:
-    url: http://localhost:8080/uaa/oauth/authorize
+    url: http://localhost:8080/oauth/authorize
 
 
 ldap:

@@ -34,7 +34,7 @@ import static org.mockito.Mockito.when;
 class ExpiringUrlCacheTests {
 
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
-    private static final String uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
+    private static final String uri = "http://localhost:8080/.well-known/openid-configuration";
     private static final byte[] content;
 
     private ExpiringUrlCache cache;

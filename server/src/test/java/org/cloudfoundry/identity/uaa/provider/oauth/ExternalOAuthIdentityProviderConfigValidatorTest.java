@@ -33,7 +33,7 @@ public class ExternalOAuthIdentityProviderConfigValidatorTest {
         definition.setTokenUrl(null);
         definition.setTokenKeyUrl(null);
         definition.setTokenKey(null);
-        ((OIDCIdentityProviderDefinition)definition).setDiscoveryUrl(new URL("http://localhost:8080/uaa/.well-known/openid-configuration"));
+        ((OIDCIdentityProviderDefinition)definition).setDiscoveryUrl(new URL("http://localhost:8080/.well-known/openid-configuration"));
         validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }

@@ -412,7 +412,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         samlTestUtils.initializeSimple();
 
         String subdomain = generator.generate().toLowerCase();
-        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        //all our SAML defaults use :8080 so we have to use that here too
         String host = subdomain + ".localhost";
         String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
         String origin = subdomain + ".cloudfoundry-saml-login";
@@ -438,7 +438,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
                 "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                 "Saml2BearerIntegrationUser",
-                "http://" + subdomain + ".localhost:8080/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
+                "http://" + subdomain + ".localhost:8080/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
                 subdomain + ".cloudfoundry-saml-login"
         );
 

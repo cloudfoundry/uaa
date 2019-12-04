@@ -18,7 +18,7 @@ Please refer to 'https://accounts.google.com/.well-known/openid-configuration' f
           tokenUrl: https://www.googleapis.com/oauth2/v4/token
           tokenKeyUrl: https://www.googleapis.com/oauth2/v3/certs
           issuer: https://accounts.google.com
-          redirectUrl: http://localhost:8080/uaa
+          redirectUrl: http://localhost:8080
           scopes:
             - openid
             - email

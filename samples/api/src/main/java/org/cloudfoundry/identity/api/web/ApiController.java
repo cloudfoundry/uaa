@@ -24,8 +24,8 @@ import java.util.Map;
 public class ApiController {
 
     private String infoResource;
-    private String loginUrl = "http://localhost:8080/uaa";
-    private String uaaUrl = "http://localhost:8080/uaa";
+    private String loginUrl = "http://localhost:8080";
+    private String uaaUrl = "http://localhost:8080";
 
     /**
      * @param loginUrl the loginUrl to set

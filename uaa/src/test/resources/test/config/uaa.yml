@@ -1,7 +1,7 @@
 uaa:
-  url: http://localhost:8080/uaa
+  url: http://localhost:8080
 issuer:
-  uri: http://localhost:8080/uaa
+  uri: http://localhost:8080
 encryption:
   active_key_label: key-1
   encryption_keys:

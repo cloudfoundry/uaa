@@ -68,7 +68,7 @@ class ZoneAwareIdpMetadataGeneratorTest {
         extendedMetadata.setAlias("entityAlias");
         extendedMetadata.setSignMetadata(true);
         zoneAwareIdpMetadataGenerator.setExtendedMetadata((IdpExtendedMetadata) extendedMetadata);
-        zoneAwareIdpMetadataGenerator.setEntityBaseURL("http://localhost:8080/uaa");
+        zoneAwareIdpMetadataGenerator.setEntityBaseURL("http://localhost:8080");
         keyManager = new ZoneAwareKeyManager();
         zoneAwareIdpMetadataGenerator.setKeyManager(keyManager);
     }

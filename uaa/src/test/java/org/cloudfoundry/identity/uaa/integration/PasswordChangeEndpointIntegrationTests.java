@@ -106,7 +106,7 @@ public class PasswordChangeEndpointIntegrationTests {
     // curl -v -H "Content-Type: application/json" -X PUT -H
     // "Accept: application/json" --data
     // "{\"password\":\"newpassword\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/uaa/User/{id}/password
+    // http://localhost:8080/User/{id}/password
     @Test
     @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
     public void testChangePasswordSucceeds() {

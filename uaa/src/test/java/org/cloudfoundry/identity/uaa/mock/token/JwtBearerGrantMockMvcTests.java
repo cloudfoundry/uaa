@@ -167,7 +167,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     void createProvider(IdentityZone theZone, String verificationKey) throws Exception {
         createOIDCProvider(theZone,
                 verificationKey,
-                "http://" + originZone.getIdentityZone().getSubdomain() + ".localhost:8080/uaa/oauth/token",
+                "http://" + originZone.getIdentityZone().getSubdomain() + ".localhost:8080/oauth/token",
                 originClient.getClientId());
     }
 

@@ -44,7 +44,7 @@ public class HttpHeadersFilterRequestWrapperTest {
 
     @Before
     public void setUp() {
-        mock = new MockHttpServletRequest(HttpMethod.GET.name(), "http://localhost:8080/uaa/login");
+        mock = new MockHttpServletRequest(HttpMethod.GET.name(), "http://localhost:8080/login");
         mock.addHeader("X-Forwarded-For", "proxy-ip");
         mock.addHeader("X-Forwarded-Host", "proxy-host");
         mock.addHeader("X-Forwarded-Proto", "proxy-host");

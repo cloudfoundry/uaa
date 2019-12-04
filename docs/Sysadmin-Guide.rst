@@ -301,7 +301,7 @@ cf and uaac each need a target. cf points to a cloud controller and uaac to a ua
     cf target api.cf116.dev.las01.vcsops.com
     uaac target uaa.cf116.dev.las01.vcsops.com # dev deployment
     uaac target uaa.cfpartners.cloudfoundry.com # production
-    uaac target localhost:8080/uaa # local dev
+    uaac target localhost:8080 # local dev
 
 uaac context will contain clients or an end user id. These are added to
 your context after authenticating.

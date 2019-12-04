@@ -8,7 +8,7 @@
 
     window.onload = function () {
       sessionFrame = document.getElementById('sessionFrame');
-      sessionFrame.src = "http://localhost:8080/uaa/session?clientId=testClient&messageOrigin=" + encodeURIComponent(window.location.origin);
+      sessionFrame.src = "http://localhost:8080/session?clientId=testClient&messageOrigin=" + encodeURIComponent(window.location.origin);
       messageDiv = document.getElementById('message');
     };
 

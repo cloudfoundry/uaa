@@ -96,7 +96,7 @@ class PasswordGrantAuthenticationManagerTest {
         when(idp.getConfig()).thenReturn(idpConfig);
         when(idp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
-        when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
+        when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/oauth/token"));
         when(idpConfig.getRelyingPartyId()).thenReturn("identity");
         when(idpConfig.getRelyingPartySecret()).thenReturn("identitysecret");
 
@@ -170,7 +170,7 @@ class PasswordGrantAuthenticationManagerTest {
         instance.authenticate(auth);
 
         ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
         ArgumentCaptor<ExternalOAuthCodeToken> tokenArgumentCaptor = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(tokenArgumentCaptor.capture());
         verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
@@ -222,7 +222,7 @@ class PasswordGrantAuthenticationManagerTest {
         instance.authenticate(auth);
 
         ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
         ArgumentCaptor<ExternalOAuthCodeToken> tokenArgumentCaptor = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(tokenArgumentCaptor.capture());
         verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
@@ -471,7 +471,7 @@ class PasswordGrantAuthenticationManagerTest {
         instance.authenticate(auth);
 
         ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
         ArgumentCaptor<ExternalOAuthCodeToken> tokenArgumentCaptor = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(tokenArgumentCaptor.capture());
         verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
@@ -601,7 +601,7 @@ class PasswordGrantAuthenticationManagerTest {
         instance.authenticate(auth);
 
         ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
-        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
         ArgumentCaptor<ExternalOAuthCodeToken> tokenArgumentCaptor = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(tokenArgumentCaptor.capture());
         verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
@@ -647,7 +647,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         instance.authenticate(auth);
 
-        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(any(ExternalOAuthCodeToken.class));
         verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
     }
@@ -691,7 +691,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         instance.authenticate(auth);
 
-        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class),eq(new ParameterizedTypeReference<Map<String,String>>(){}));
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(any(ExternalOAuthCodeToken.class));
         verify(zoneAwareAuthzAuthenticationManager, times(0)).authenticate(any());
     }
