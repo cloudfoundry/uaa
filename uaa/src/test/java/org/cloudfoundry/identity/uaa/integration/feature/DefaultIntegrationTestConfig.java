@@ -40,7 +40,8 @@ import java.util.logging.Level;
 public class DefaultIntegrationTestConfig {
 
     @Bean
-    public IntegrationTestRule integrationTestRule(@Value("${integration.test.uaa_url}") String baseUrl, Environment environment) {
+    public IntegrationTestRule integrationTestRule(
+            final @Value("${integration.test.base_url}") String baseUrl) {
         return new IntegrationTestRule(baseUrl);
     }
 
@@ -80,7 +81,6 @@ public class DefaultIntegrationTestConfig {
         return driver;
     }
 
-
     @Bean(destroyMethod = "stop")
     public SimpleSmtpServer simpleSmtpServer(@Value("${smtp.port}") int port) {
         return SimpleSmtpServer.start(port);
@@ -93,9 +93,8 @@ public class DefaultIntegrationTestConfig {
 
     @Bean
     public TestClient testClient(RestTemplate restTemplate,
-                                 @Value("${integration.test.uaa_url}") String baseUrl,
-                                 @Value("${integration.test.uaa_url}") String uaaUrl) {
-        return new TestClient(restTemplate, baseUrl, uaaUrl);
+                                 final @Value("${integration.test.base_url}") String baseUrl) {
+        return new TestClient(restTemplate, baseUrl);
     }
 
     @Bean
