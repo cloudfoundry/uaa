@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -47,7 +48,7 @@ public class ClientInfoEndpointTests {
 
     @Test
     public void testClientinfo() {
-        Mockito.when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(foo);
+        Mockito.when(clientDetailsService.loadClientByClientId("foo", IdentityZoneHolder.get().getId())).thenReturn(foo);
         ClientDetails client = endpoint.clientinfo(new UsernamePasswordAuthenticationToken("foo", "<NONE>"));
         assertEquals("foo", client.getClientId());
         assertNull(client.getClientSecret());
