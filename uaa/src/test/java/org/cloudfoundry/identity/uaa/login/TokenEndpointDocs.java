@@ -414,7 +414,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         String subdomain = generator.generate().toLowerCase();
         //all our SAML defaults use :8080 so we have to use that here too
         String host = subdomain + ".localhost";
-        String fullPath = "/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
+        String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
         String origin = subdomain + ".cloudfoundry-saml-login";
 
         MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, this.webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
@@ -447,7 +447,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER + ",password,refresh_token", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
 
 
-        //String fullPath = "/oauth/token";
+        //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
                 .with(request -> {
                     request.setServerPort(8080);
@@ -455,6 +455,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                     request.setServerName(host);
                     return request;
                 })
+                .contextPath("/uaa")
                 .accept(APPLICATION_JSON)
                 .header(HOST, host)
                 .contentType(APPLICATION_FORM_URLENCODED)
