@@ -140,12 +140,12 @@ public class OIDCLoginIT {
         adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         String zoneHost = zone.getSubdomain() + ".localhost";
-        zoneUrl = "http://" + zoneHost + ":8080";
+        zoneUrl = "http://" + zoneHost + ":8080/uaa";
 
         String createdGroupName = new RandomValueStringGenerator(10).generate() + ".created.scope";
 
 
-        String urlBase = "http://localhost:8080";
+        String urlBase = "http://localhost:8080/uaa";
         identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);

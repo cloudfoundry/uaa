@@ -126,7 +126,7 @@ class AccountsControllerTest {
             .param("client_id", "app")
             .param("redirect_uri", "http://example.com/redirect");
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
-        oidcProvider.getConfig().setAuthUrl(new URL("http://localhost:8080/idp_login"));
+        oidcProvider.getConfig().setAuthUrl(new URL("http://localhost:8080/uaa/idp_login"));
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
         when(identityProviderProvisioning.retrieveAll(true, OriginKeys.UAA)).thenReturn(Collections.singletonList(oidcProvider));
 

@@ -73,7 +73,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
 
     private static String DEFAULT_HOST = "localhost";
 
-    private static final String DEFAULT_AUTH_SERVER_ROOT = "/";
+    private static final String DEFAULT_AUTH_SERVER_ROOT = "/uaa";
 
     private String authServerRoot = DEFAULT_AUTH_SERVER_ROOT;
 
@@ -121,7 +121,7 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
     public Statement apply(Statement base, FrameworkMethod method, Object target) {
         try {
             RestTemplate client = new RestTemplate();
-            client.getForEntity(new UriTemplate(getUrl("/login", uaaPort)).toString(), String.class);
+            client.getForEntity(new UriTemplate(getUrl("/uaa/login", uaaPort)).toString(), String.class);
             client.getForEntity(new UriTemplate(getUrl("/api/index.html")).toString(), String.class);
             logger.debug("Basic connectivity test passed");
         } catch (RestClientException e) {

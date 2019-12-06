@@ -210,7 +210,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         RestTemplate identityClient = IntegrationTestUtils
                 .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
                         new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
-        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080");
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 

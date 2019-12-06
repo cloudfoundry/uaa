@@ -653,9 +653,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void test_saml_bearer_grant() throws Exception {
         String subdomain = generator.generate().toLowerCase();
-        //all our SAML defaults use :8080/ so we have to use that here too
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
         String host = subdomain + ".localhost";
-        String fullPath = "/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
+        String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
         String origin = subdomain + ".cloudfoundry-saml-login";
 
         MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
@@ -683,7 +683,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
                 "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                 "Saml2BearerIntegrationUser",
-                "http://" + subdomain + ".localhost:8080/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
+                "http://" + subdomain + ".localhost:8080/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
                 subdomain + ".cloudfoundry-saml-login"
         );
 
@@ -700,6 +700,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                     request.setServerName(host);
                     return request;
                 })
+                .contextPath("/uaa")
                 .accept(APPLICATION_JSON)
                 .header(HOST, host)
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -724,8 +725,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void test_two_zone_saml_bearer_grant() throws Exception {
         String subdomain = generator.generate().toLowerCase();
-        //all our SAML defaults use :8080/ so we have to use that here too
-        String spInvocationEndpoint = "/oauth/token/alias/cloudfoundry-saml-login";
+        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+        String spInvocationEndpoint = "/uaa/oauth/token/alias/cloudfoundry-saml-login";
         String idpOrigin = subdomain + ".cloudfoundry-saml-login";
 
         //create an zone - that zone will be our IDP
@@ -754,7 +755,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
                 "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                 "Saml2BearerIntegrationUser",
-                "http://localhost:8080/oauth/token/alias/cloudfoundry-saml-login",
+                "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login",
                 "cloudfoundry-saml-login"
         );
 
@@ -770,7 +771,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                     request.setServerName("localhost");
                     return request;
                 })
-                .contextPath("")
+                .contextPath("/uaa")
                 .accept(APPLICATION_JSON)
                 .header(HOST, "localhost")
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -3590,7 +3591,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andReturn();
         String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
         Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
-        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/oauth/token");
+        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
         assertThat(claims.getScope(), containsInAnyOrder("openid", "custom.default.group"));
     }
 
@@ -3612,7 +3613,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andReturn();
         String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
         Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
-        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/oauth/token");
+        assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
     }
 
     @Test
@@ -3974,7 +3975,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 JsonUtils.readValue(accessTokenHeaderJson, new TypeReference<Map<String, Object>>() {
                 });
 
-        assertThat(headerMap.get("jku"), is("https://localhost:8080/token_keys"));
+        assertThat(headerMap.get("jku"), is("https://localhost:8080/uaa/token_keys"));
         // `enc` and `iv` are not required by JWT or OAuth spec, so should not be set and thus not returned in the token's header
         assertThat(headerMap, not(hasKey("enc")));
         assertThat(headerMap, not(hasKey("iv")));
@@ -4005,7 +4006,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 JsonUtils.readValue(refreshTokenHeaderJson, new TypeReference<Map<String, Object>>() {
                 });
 
-        assertThat(headerMap.get("jku"), is("https://localhost:8080/token_keys"));
+        assertThat(headerMap.get("jku"), is("https://localhost:8080/uaa/token_keys"));
         // `enc` and `iv` are not required by JWT or OAuth spec, so should not be set and thus not returned in the token's header
         assertThat(headerMap, not(hasKey("enc")));
         assertThat(headerMap, not(hasKey("iv")));
@@ -4037,7 +4038,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 JsonUtils.readValue(idTokenHeaderJson, new TypeReference<Map<String, Object>>() {
                 });
 
-        assertThat(headerMap.get("jku"), is("https://localhost:8080/token_keys"));
+        assertThat(headerMap.get("jku"), is("https://localhost:8080/uaa/token_keys"));
         // `enc` and `iv` are not required by JWT or OAuth spec, so should not be set and thus not returned in the token's header
         assertThat(headerMap, not(hasKey("enc")));
         assertThat(headerMap, not(hasKey("iv")));

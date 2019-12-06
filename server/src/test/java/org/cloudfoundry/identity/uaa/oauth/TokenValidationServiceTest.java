@@ -74,7 +74,7 @@ public class TokenValidationServiceTest {
                 tokenEndpointBuilder,
                 userDatabase,
                 mockMultitenantClientServices,
-                new KeyInfoService("http://localhost:8080")
+                new KeyInfoService("http://localhost:8080/uaa")
         );
     }
 

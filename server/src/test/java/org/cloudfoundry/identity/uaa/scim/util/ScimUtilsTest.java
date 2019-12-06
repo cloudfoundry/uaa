@@ -79,7 +79,7 @@ class ScimUtilsTest {
             request.setScheme("http");
             request.setServerName("localhost");
             request.setServerPort(8080);
-            request.setContextPath("/");
+            request.setContextPath("/uaa");
 
             ServletRequestAttributes attrs = new ServletRequestAttributes(request);
 
@@ -101,7 +101,7 @@ class ScimUtilsTest {
             void getVerificationURL() throws MalformedURLException {
                 URL actual = ScimUtils.getVerificationURL(mockExpiringCode, IdentityZone.getUaa());
 
-                URL expected = new URL("http://localhost:8080/verify_user?code=code");
+                URL expected = new URL("http://localhost:8080/uaa/verify_user?code=code");
 
                 assertThat(actual.toString(), is(expected.toString()));
             }
@@ -118,7 +118,7 @@ class ScimUtilsTest {
 
                 URL actual = ScimUtils.getVerificationURL(mockExpiringCode, mockIdentityZone);
 
-                URL expected = new URL("http://subdomain.localhost:8080/verify_user?code=code");
+                URL expected = new URL("http://subdomain.localhost:8080/uaa/verify_user?code=code");
 
                 assertThat(actual.toString(), is(expected.toString()));
             }

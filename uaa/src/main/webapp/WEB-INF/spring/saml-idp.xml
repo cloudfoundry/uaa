@@ -107,7 +107,7 @@
         <property name="wantAuthnRequestSigned"
                   value="${login.saml.wantAuthnRequestSigned:false}"/>
         <property name="entityBaseURL"
-                  value="${login.entityBaseURL:http://localhost:8080}"/>
+                  value="${login.entityBaseURL:http://localhost:8080/uaa}"/>
         <property name="entityId" ref="samlIdpEntityID"/>
         <property name="samlWebSSOFilter" ref="samlIdpWebSsoProcessingFilter"/>
         <property name="keyManager" ref="idpZoneAwareSamlKeyManager"/>

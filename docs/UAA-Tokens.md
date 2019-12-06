@@ -21,7 +21,7 @@ This step requires that you have Java 1.7 or higher installed.
 You now have a UAA server running. There is a Ruby gem called cf-uaac, that one can use to communicate with the UAA.
 But for sake of clarity, we will use ```curl``` commands.
 
-    curl -v -d"username=marissa&password=koala&client_id=app&grant_type=password" -u "app:appclientsecret" http://localhost:8080/oauth/token
+    curl -v -d"username=marissa&password=koala&client_id=app&grant_type=password" -u "app:appclientsecret" http://localhost:8080/uaa/oauth/token
 
 This yields a return token
 
@@ -46,7 +46,7 @@ More on Tokens can be found [here](https://developers.google.com/accounts/docs/O
         "user_id": "7f791ea9-99b9-423d-988b-931f0222a79f", 
         "sub": "7f791ea9-99b9-423d-988b-931f0222a79f", 
         "cid": "app", 
-        "iss": "http://localhost:8080/oauth/token",
+        "iss": "http://localhost:8080/uaa/oauth/token", 
         "jti": "bc3e7456-91f5-4961-b88d-db705626ba77", 
         "client_id": "app", 
         "iat": 1406568935, 

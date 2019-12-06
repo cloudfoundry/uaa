@@ -174,7 +174,7 @@ public class ImplicitTokenGrantIntegrationTests {
         RestTemplate identityClient = IntegrationTestUtils
                 .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
                         new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
-        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080");
+        IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
 
         ResponseEntity<Void> result = serverRunning.getForResponse(implicitUrl().replace("localhost", "testzoneinactive.localhost"), new HttpHeaders());
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());

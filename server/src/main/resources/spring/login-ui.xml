@@ -30,7 +30,7 @@
 
     <authentication-manager xmlns="http://www.springframework.org/schema/security"/>
 
-    <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/oauth/token}"
+    <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials"/>
 
     <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate"/>
@@ -468,7 +468,7 @@
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0"
                          ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
-        <constructor-arg index="1" value="${login.url:http://localhost:8080}"/>
+        <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
         <constructor-arg index="2" value="${smtp.from_address:}"/>
     </bean>
 

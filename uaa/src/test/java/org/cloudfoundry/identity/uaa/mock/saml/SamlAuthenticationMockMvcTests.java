@@ -135,8 +135,8 @@ class SamlAuthenticationMockMvcTests {
 
         String idpEntityId = idpZone.getSubdomain() + ".cloudfoundry-saml-login";
         MvcResult mvcResult = mockMvc.perform(
-                get("/saml/discovery")
-                        .contextPath("")
+                get("/uaa/saml/discovery")
+                        .contextPath("/uaa")
                         .header(HOST, spZone.getSubdomain() + ".localhost:8080")
                         .param("returnIDParam", "idp")
                         .param("entityID", spZoneEntityId)
@@ -148,7 +148,7 @@ class SamlAuthenticationMockMvcTests {
 
         mvcResult = mockMvc.perform(
                 get(mvcResult.getResponse().getRedirectedUrl())
-                        .contextPath("")
+                        .contextPath("/uaa")
                         .header(HOST, spZone.getSubdomain() + ".localhost:8080")
                         .session((MockHttpSession) mvcResult.getRequest().getSession())
 
@@ -161,14 +161,14 @@ class SamlAuthenticationMockMvcTests {
         String relayState = extractRelayState(body);
         String samlRequest = extractSamlRequest(body);
         mockMvc.perform(
-                post("/saml/idp/SSO/alias/" + idpEntityId)
-                        .contextPath("")
+                post("/uaa/saml/idp/SSO/alias/" + idpEntityId)
+                        .contextPath("/uaa")
                         .header(HOST, idpZone.getSubdomain() + ".localhost:8080")
                         .param("RelayState", relayState)
                         .param("SAMLRequest", samlRequest)
         )
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://" + idpZone.getSubdomain() + ".localhost:8080/login"));
+                .andExpect(redirectedUrl("http://" + idpZone.getSubdomain() + ".localhost:8080/uaa/login"));
     }
 
     @Test
@@ -216,8 +216,8 @@ class SamlAuthenticationMockMvcTests {
         testLogger.reset();
 
         mockMvc.perform(
-                post("/saml/SSO/alias/" + spZoneEntityId)
-                        .contextPath("")
+                post("/uaa/saml/SSO/alias/" + spZoneEntityId)
+                        .contextPath("/uaa")
                         .header(HOST, subdomain + ".localhost:8080")
                         .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         .param("SAMLResponse", xml)
@@ -270,8 +270,8 @@ class SamlAuthenticationMockMvcTests {
         String samlResponse = performIdpAuthentication(samlAuthorityNamesForMockAuthentication);
         String xml = extractAssertion(samlResponse, false);
         MockHttpSession session = (MockHttpSession) mockMvc.perform(
-                post("/saml/SSO/alias/" + spZoneEntityId)
-                        .contextPath("")
+                post("/uaa/saml/SSO/alias/" + spZoneEntityId)
+                        .contextPath("/uaa")
                         .header(HOST, spZoneHost)
                         .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         .param("SAMLResponse", xml)

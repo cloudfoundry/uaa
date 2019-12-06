@@ -160,7 +160,7 @@ public class TokenValidationTest {
                 entry("rev_sig", "fa1c787d"),
                 entry("iat", 1458953932),
                 entry("exp", 1458997132),
-                entry("iss", "http://localhost:8080/oauth/token"),
+                entry("iss", "http://localhost:8080/uaa/oauth/token"),
                 entry("zid", "uaa"),
                 entry("aud", Arrays.asList("app", "acme")),
                 entry("revocable", true)
@@ -333,7 +333,7 @@ public class TokenValidationTest {
     @Test
     public void checking_token_happy_case() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkIssuer("http://localhost:8080/oauth/token")
+                .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
@@ -379,7 +379,7 @@ public class TokenValidationTest {
         buildAccessTokenValidator(
                 getToken(Arrays.asList(EMAIL, USER_NAME)), new KeyInfoService("https://localhost"))
                 .checkSignature(verifier)
-                .checkIssuer("http://localhost:8080/oauth/token")
+                .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
                 .checkUser((uid) -> userDb.retrieveUserById(uid))
@@ -444,7 +444,7 @@ public class TokenValidationTest {
         TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
-        validation.checkIssuer("http://localhost:8080/oauth/token");
+        validation.checkIssuer("http://localhost:8080/uaa/oauth/token");
     }
 
     @Test

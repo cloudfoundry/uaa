@@ -66,7 +66,7 @@ Configure and start UAA
 Configure OpenAM to have UAA as a service that wishes to authenticate
 
   - a) Click 'register a service provider'
-  - b) Put the 'http://localhost:8080/saml/metadata' as the URL
+  - b) Put the 'http://localhost:8080/uaa/saml/metadata' as the URL
   - c) Click 'Configure'
 
 ###Step 7
@@ -83,6 +83,6 @@ Create a SAML user
 ###Step 8
 Test SAML Authentication
 
-  - a) Go to http://localhost:8080
+  - a) Go to http://localhost:8080/uaa
   - b) Click "Use your corporate credentials" (or the link name you configured in login.yml)
   - c) Sign in with the user you created
