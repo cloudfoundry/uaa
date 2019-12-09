@@ -387,7 +387,7 @@ public class DeprecatedUaaTokenServicesTests {
         IdentityZone identityZone = getIdentityZone(subdomain);
         identityZone.setConfig(
           JsonUtils.readValue(
-            "{\"issuer\": \"http://uaamaster:8080\"}",
+            "{\"issuer\": \"http://uaamaster:8080/uaa\"}",
             IdentityZoneConfiguration.class
           )
         );
@@ -402,12 +402,12 @@ public class DeprecatedUaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
-        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://uaaslave:8080"));
+        tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://uaaslave:8080/uaa"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         assertCommonClientAccessTokenProperties(accessToken);
         assertThat(accessToken, validFor(is(tokenSupport.accessTokenValidity)));
-        assertThat(accessToken, issuerUri(is("http://uaamaster:8080/oauth/token")));
+        assertThat(accessToken, issuerUri(is("http://uaamaster:8080/uaa/oauth/token")));
         assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
         validateExternalAttributes(accessToken);
@@ -511,7 +511,7 @@ public class DeprecatedUaaTokenServicesTests {
 
         this.assertCommonClientAccessTokenProperties(accessToken);
         assertThat(accessToken, validFor(is(3600)));
-        assertThat(accessToken, issuerUri(is("http://" + subdomain + ".localhost:8080/oauth/token")));
+        assertThat(accessToken, issuerUri(is("http://" + subdomain + ".localhost:8080/uaa/oauth/token")));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
         validateExternalAttributes(accessToken);
 
@@ -750,7 +750,7 @@ public class DeprecatedUaaTokenServicesTests {
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken, CLIENT_ID);
-        assertThat(refreshedAccessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/oauth/token")));
+        assertThat(refreshedAccessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
         assertThat(refreshedAccessToken, scope(is(tokenSupport.requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(3600)));
         validateExternalAttributes(accessToken);
@@ -1156,14 +1156,14 @@ public class DeprecatedUaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         this.assertCommonUserAccessTokenProperties(accessToken, CLIENT_ID);
-        assertThat(accessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/oauth/token")));
+        assertThat(accessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
         assertThat(accessToken, scope(is(tokenSupport.requestedAuthScopes)));
         assertThat(accessToken, validFor(is(3600)));
         assertThat(accessToken.getRefreshToken(), is(not(nullValue())));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is("http://test-zone-subdomain.localhost:8080/oauth/token")));
+        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
         assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(9600)));
 
         this.assertCommonEventProperties(accessToken, tokenSupport.userId, buildJsonString(tokenSupport.requestedAuthScopes));

@@ -22,7 +22,7 @@ import java.security.Principal;
 @Controller
 public class HomeController {
 
-    private String userAuthorizationUri = "http://localhost:8080/oauth/authorize";
+    private String userAuthorizationUri = "http://localhost:8080/uaa/oauth/authorize";
 
     private String dataUri = "http://localhost:8080/api/apps";
 

@@ -285,7 +285,7 @@ public class CheckTokenEndpointTests {
                 .setStatus(ApprovalStatus.APPROVED)
                 .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
 
-        defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080");
+        defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
         clientDetailsStore =
                 Collections.singletonMap(
                         "client",
@@ -294,9 +294,9 @@ public class CheckTokenEndpointTests {
         clientDetailsService.setClientDetailsStore(zone.getId(), clientDetailsStore);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
 
-        tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost:8080");
+        tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost:8080/uaa");
         userDatabase = mock(UaaUserDatabase.class);
-        KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080");
+        KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
         ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
         tokenServices = new UaaTokenServices(
@@ -341,7 +341,7 @@ public class CheckTokenEndpointTests {
     public void testClientWildcard() throws Exception {
         BaseClientDetails client =
                 new BaseClientDetails("client", "zones", "zones.*.admin", "authorization_code, password",
-                        "scim.read, scim.write", "http://localhost:8080");
+                        "scim.read, scim.write", "http://localhost:8080/uaa");
         client.setAutoApproveScopes(Collections.singletonList("zones.*.admin"));
         Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", client);
 
@@ -552,7 +552,7 @@ public class CheckTokenEndpointTests {
     @Test(expected = InvalidTokenException.class)
     public void revokingScopesFromClient_invalidatesToken() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        defaultClient = new BaseClientDetails("client", "scim, cc", "write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080");
+        defaultClient = new BaseClientDetails("client", "scim, cc", "write", "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Collections.singletonMap("client", defaultClient);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
 
@@ -561,7 +561,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void revokingAuthoritiesFromClients_invalidatesToken() throws Exception {
-        defaultClient = new BaseClientDetails("client", "scim, cc", "write,read", "authorization_code, password", "scim.write", "http://localhost:8080");
+        defaultClient = new BaseClientDetails("client", "scim, cc", "write,read", "authorization_code, password", "scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Collections.singletonMap(
                 "client",
                 defaultClient
@@ -900,7 +900,7 @@ public class CheckTokenEndpointTests {
     @Test(expected = InvalidTokenException.class)
     public void testExpiredToken() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc", "read, write",
-                "authorization_code, password", "scim.read, scim.write", "http://localhost:8080");
+                "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
         Integer validitySeconds = 1;
         clientDetails.setAccessTokenValiditySeconds(validitySeconds);
         Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);

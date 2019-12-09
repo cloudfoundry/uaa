@@ -121,7 +121,7 @@ public class ScimUserEndpointsIntegrationTests {
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/User
+    // http://localhost:8080/uaa/User
     @Test
     public void createUserSucceeds() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
@@ -138,7 +138,7 @@ public class ScimUserEndpointsIntegrationTests {
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/User
+    // http://localhost:8080/uaa/User
     @Test
     public void createUserSucceedsWithVerifiedIsFalse() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", false);
@@ -155,7 +155,7 @@ public class ScimUserEndpointsIntegrationTests {
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/User
+    // http://localhost:8080/uaa/User
     @Test
     public void verifyUser() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", false);
@@ -175,7 +175,7 @@ public class ScimUserEndpointsIntegrationTests {
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/User
+    // http://localhost:8080/uaa/User
     @Test
     public void verifyUserNotFound() {
         HttpHeaders headers = new HttpHeaders();
@@ -223,7 +223,7 @@ public class ScimUserEndpointsIntegrationTests {
     // curl -v -H "Content-Type: application/json" -X PUT -H
     // "Accept: application/json" --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/User
+    // http://localhost:8080/uaa/User
     @Test
     public void updateUserSucceeds() {
         ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
@@ -344,7 +344,7 @@ public class ScimUserEndpointsIntegrationTests {
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // -H 'If-Match: "0"' --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/User
+    // http://localhost:8080/uaa/User
     @Test
     public void createUserTwiceFails() {
         ScimUser user = new ScimUser();
@@ -400,7 +400,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // -X DELETE
-    // -H "If-Match: 0" http://localhost:8080/User/joel
+    // -H "If-Match: 0" http://localhost:8080/uaa/User/joel
     @Test
     public void deleteUserWithWrongIdFails() {
         @SuppressWarnings("rawtypes")
@@ -414,7 +414,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // -X DELETE
-    // http://localhost:8080/User/joel
+    // http://localhost:8080/uaa/User/joel
     @Test
     public void deleteUserWithNoEtagSucceeds() {
         ScimUser deleteMe = createUser(DELETE_ME, "Delete", "Me", "deleteme@blah.com").getBody();

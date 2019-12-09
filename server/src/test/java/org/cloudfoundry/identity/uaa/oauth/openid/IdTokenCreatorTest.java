@@ -71,8 +71,8 @@ class IdTokenCreatorTest {
 
     @BeforeEach
     void setup() throws Exception {
-        issuerUrl = "http://localhost:8080/oauth/token";
-        uaaUrl = "http://localhost:8080";
+        issuerUrl = "http://localhost:8080/uaa/oauth/token";
+        uaaUrl = "http://localhost:8080/uaa";
         clientId = "clientId";
         clientsecret = "clientsecret";
         tokensalt = "tokensalt";
@@ -378,6 +378,6 @@ class IdTokenCreatorTest {
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
-        assertThat(idToken.iss, is("http://myzone.localhost:8080/oauth/token"));
+        assertThat(idToken.iss, is("http://myzone.localhost:8080/uaa/oauth/token"));
     }
 }

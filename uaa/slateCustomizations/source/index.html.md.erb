@@ -316,7 +316,7 @@ The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
 
 This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
 The endpoint of the bearer assertion is `/oauth/token/alias/<endityid>` so the Recipient attribute in
-the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/oauth/token/alias/cloudfoundry-saml-login.
+the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login.
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md') %>
@@ -724,7 +724,7 @@ _Error Codes_
 >Sequential example of creating a zone and creating an admin client in that zone:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -736,7 +736,7 @@ uaac -t curl -XPOST -H"Content-Type:application/json" -H"Accept:application/json
 
 uaac -t curl -H"X-Identity-Zone-Id:testzone1" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "adminsecret", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
 
-uaac target http://testzone1.localhost:8080
+uaac target http://testzone1.localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1224,7 +1224,7 @@ Obtaining the UAA SAML IdP metadata:
 
 In order to establish trust, a SAML IdP and SAML SP exchange SAML metadata which contains pulbic certificates as well as the endpoints used to communicate amongst each other. Your SAML SP will likely require the UAA SAML IdP metadata in order to make authentication requests to UAA. You can obtain this metadata by making a GET request to the /saml/idp/metadata endpoint.
 
-GET http://localhost:8080/saml/idp/metadata
+GET http://localhost:8080/uaa/saml/idp/metadata
 
 ## Initiate IDP Login Flow
 
@@ -1531,7 +1531,7 @@ _Error Codes_
 >Example using uaac to get users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1571,7 +1571,7 @@ _Error Codes_
 >Example using uaac to view users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1631,7 +1631,7 @@ _Error Codes_
 >Example using uaac to view users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1672,7 +1672,7 @@ _Error Codes_
 >Example using uaac to view users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1713,7 +1713,7 @@ _Error Codes_
 >Example using uaac to patch users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1746,7 +1746,7 @@ _Error Codes_
 >Example using uaac to delete users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
 
@@ -1780,7 +1780,7 @@ _Error Codes_
 >Example using uaac to view user info:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token authcode get admin -s adminsecret
 
@@ -1818,7 +1818,7 @@ _Error Codes_
 >Example using uaac to view users:
 
 ```bash
-uaac target http://localhost:8080
+uaac target http://localhost:8080/uaa
 
 uaac token owner get cf testuser -s "" -p "secret"
 

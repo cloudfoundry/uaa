@@ -909,7 +909,7 @@ class AuditCheckMockMvcTests {
 
     @Test
     void generateUserCreatedEvent_DuringLoginServerAuthorize() throws Exception {
-        clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login", "http://localhost:8080"));
+        clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login", "http://localhost:8080/uaa"));
         String username = "jacob" + new RandomValueStringGenerator().generate();
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(
                 "login",
@@ -932,7 +932,7 @@ class AuditCheckMockMvcTests {
                 .param("external_id", "jacob")
                 .param("response_type", "code")
                 .param("client_id", "login")
-                .param("redirect_uri", "http://localhost:8080")
+                .param("redirect_uri", "http://localhost:8080/uaa")
                 .param("state", "erw342");
 
         mockMvc.perform(userPost)

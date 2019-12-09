@@ -87,7 +87,7 @@ public class TokenTestSupport {
     public static final String CLIENT_ID_NO_REFRESH_TOKEN_GRANT = "client_without_refresh_grant";
     public static final String GRANT_TYPE = "grant_type";
     public static final String CLIENT_AUTHORITIES = "read,update,write,openid";
-    public static final String ISSUER_URI = "http://localhost:8080/oauth/token";
+    public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
     public static final String READ = "read";
     public static final String WRITE = "write";
     public static final String DELETE = "delete";
@@ -97,7 +97,7 @@ public class TokenTestSupport {
     public static final String OPENID = "openid";
     public static final String ROLES = "roles";
     public static final String PROFILE = "profile";
-    public static final String DEFAULT_ISSUER = "http://localhost:8080";
+    public static final String DEFAULT_ISSUER = "http://localhost:8080/uaa";
 
     String userId = "12345";
     String username = "jdsa";

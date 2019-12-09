@@ -275,7 +275,7 @@ class MfaUiRequiredFilterTests {
     @Test
     void do_filter_mfa_completed_with_saved_request() throws Exception {
         SavedRequest savedRequest = mock(SavedRequest.class);
-        String redirect = "http://localhost:8080/oauth/authorize";
+        String redirect = "http://localhost:8080/uaa/oauth/authorize";
         when(savedRequest.getRedirectUrl()).thenReturn(redirect);
         when(requestCache.getRequest(same(request), same(response))).thenReturn(savedRequest);
         request.setContextPath("/uaa");

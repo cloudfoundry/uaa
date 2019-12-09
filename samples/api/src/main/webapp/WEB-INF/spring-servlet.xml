@@ -98,8 +98,8 @@
     </bean>
 
     <bean class="org.cloudfoundry.identity.api.web.ApiController">
-        <property name="uaaUrl" value="${uaa.url:http://localhost:8080}" />
-        <property name="loginUrl" value="${login.url:http://localhost:8080}" />
+        <property name="uaaUrl" value="${uaa.url:http://localhost:8080/uaa}" />
+        <property name="loginUrl" value="${login.url:http://localhost:8080/uaa}" />
         <property name="info" value="classpath:/info.tmpl" />
     </bean>
 

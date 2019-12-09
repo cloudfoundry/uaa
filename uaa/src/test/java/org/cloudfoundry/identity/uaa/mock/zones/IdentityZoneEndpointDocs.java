@@ -159,7 +159,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String MFA_CONFIG_IDENTITY_PROVIDER_DESC = "Only trigger MFA when user is using an identity provider whose origin key matches one of these values";
     private static final String ZONE_ISSUER_DESC = "Issuer of this zone. Must be a valid URL.";
     private static final String DEFAULT_IDP_DESC = "This value can be set to the origin key of an identity provider. If set, the user will be directed to this identity provider automatically if no other identity provider is discovered or selected via login_hint.";
-    private static final String DEFAULT_ISSUER_URI = "http://localhost:8080";
+    private static final String DEFAULT_ISSUER_URI = "http://localhost:8080/uaa";
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");

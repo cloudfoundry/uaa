@@ -57,7 +57,7 @@ class UaaUrlUtilsTest {
     private List<String> validUrls = Arrays.asList(
             "http://localhost",
             "http://localhost:8080",
-            "http://localhost:8080",
+            "http://localhost:8080/uaa",
             "http://valid.com",
             "http://sub.valid.com",
             "http://valid.com/with/path",
@@ -100,7 +100,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void getParameterMapFromQueryString() {
-        String url = "http://localhost:8080/oauth/authorize?client_id=app-addnew-false4cEsLB&response_type=code&redirect_uri=http%3A%2F%2Fnosuchhostname%3A0%2Fnosuchendpoint";
+        String url = "http://localhost:8080/uaa/oauth/authorize?client_id=app-addnew-false4cEsLB&response_type=code&redirect_uri=http%3A%2F%2Fnosuchhostname%3A0%2Fnosuchendpoint";
         Map<String, String[]> map = UaaUrlUtils.getParameterMap(url);
         assertNotNull(map);
         assertEquals("app-addnew-false4cEsLB", map.get("client_id")[0]);
@@ -144,12 +144,12 @@ class UaaUrlUtilsTest {
         request.setScheme("http");
         request.setServerName("localhost");
         request.setServerPort(8080);
-        request.setRequestURI("/something");
+        request.setRequestURI("/uaa/something");
         request.setServletPath("/something");
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
 
-        assertEquals("http://localhost:8080", UaaUrlUtils.getBaseURL(request));
+        assertEquals("http://localhost:8080/uaa", UaaUrlUtils.getBaseURL(request));
     }
 
     @Test
@@ -219,14 +219,14 @@ class UaaUrlUtilsTest {
         request.setScheme("http");
         request.setServerName("localhost");
         request.setServerPort(8080);
-        request.setContextPath("/");
+        request.setContextPath("/uaa");
 
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
 
         RequestContextHolder.setRequestAttributes(attrs);
 
         String url = UaaUrlUtils.getUaaUrl("/something", IdentityZone.getUaa());
-        assertThat(url, is("http://localhost:8080/something"));
+        assertThat(url, is("http://localhost:8080/uaa/something"));
     }
 
     @Test

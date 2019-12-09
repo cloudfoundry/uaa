@@ -18,7 +18,7 @@ The authentication service is `uaa`. It's a plain Spring MVC webapp.
 Deploy as normal in Tomcat or your container of choice, or execute
 `./gradlew run` to run it directly from `uaa` directory in the source
 tree. When running with gradle it listens on port 8080 and the URL is
-`http://localhost:8080`
+`http://localhost:8080/uaa`
 
 The UAA Server supports the APIs defined in the UAA-APIs document. To summarise:
 
@@ -82,7 +82,7 @@ If this works you are in business:
     
     
 The apps all work together with the apps running on the same port
-(8080) as [`/uaa`](http://localhost:8080), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
+(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
 
 UAA will log to a file called `uaa.log` which can be found using the following command:-
 
@@ -101,7 +101,7 @@ First run the UAA server as described above:
 From another terminal you can use curl to verify that UAA has started by
 requesting system information:
 
-    $ curl -H "Accept: application/json" localhost:8080/login
+    $ curl -H "Accept: application/json" localhost:8080/uaa/login
     {
       "timestamp":"2012-03-28T18:25:49+0100",
       "commit_id":"111274e",

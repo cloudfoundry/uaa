@@ -33,8 +33,8 @@ public class IdentityZoneNotAvailableIT {
     @Parameterized.Parameters(name = "{index}: zoneUrl[{0}];")
     public static List<Object[]> data() {
         return Arrays.asList(new Object[][]{
-                {"http://testzonedoesnotexist.localhost:8080"},
-                {"http://testzoneinactive.localhost:8080"}
+                {"http://testzonedoesnotexist.localhost:8080/uaa"},
+                {"http://testzoneinactive.localhost:8080/uaa"}
         });
     }
 
@@ -45,7 +45,7 @@ public class IdentityZoneNotAvailableIT {
     @Before
     public void setUp() {
         String[] scope = {"uaa.admin"};
-        String baseUrl = "http://localhost:8080";
+        String baseUrl = "http://localhost:8080/uaa";
         ClientCredentialsResourceDetails adminResource = IntegrationTestUtils.getClientCredentialsResource(baseUrl, scope, "admin", "adminsecret");
         restTemplate = IntegrationTestUtils.getClientCredentialsTemplate(
                 adminResource);
