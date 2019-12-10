@@ -34,18 +34,21 @@
         <property name="url" value="#{@databaseUrlModifier.getUrl()}"/>
         <property name="username" value="${database.username}"/>
         <property name="password" value="${database.password}"/>
-        <property name="validationInterval" value="5000"/>
+        <property name="validationInterval" value="${database.validationinterval:5000}"/>
         <property name="validationQuery" value="#{@validationQuery}"/>
         <property name="testOnBorrow" value="true"/>
+        <property name="testWhileIdle" value="${database.testwhileidle:false}"/>
         <property name="minIdle" value="${database.minidle:0}"/>
         <property name="maxActive" value="${database.maxactive:100}"/>
         <property name="maxIdle" value="${database.maxidle:10}"/>
+        <property name="maxWait" value="${database.maxwait:30000}"/>
         <property name="initialSize" value="${database.initialsize:10}"/>
         <property name="validationQueryTimeout" value="${database.validationquerytimeout:10}"/>
         <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
         <property name="logAbandoned" value="${database.logabandoned:true}"/>
         <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
         <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
+        <property name="minEvictableIdleTimeMillis" value="${database.minevictionidlems:60000}"/>
         <property name="jdbcInterceptors" value="org.cloudfoundry.identity.uaa.metrics.QueryFilter(threshold=3000)"/>
     </bean>
 
