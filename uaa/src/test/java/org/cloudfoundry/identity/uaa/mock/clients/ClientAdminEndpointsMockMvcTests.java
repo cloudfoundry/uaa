@@ -1188,7 +1188,8 @@ public class ClientAdminEndpointsMockMvcTests {
                     .content(JsonUtils.writeValueAsString(request));
             mockMvc.perform(modifyClientsPost)
                     .andExpect(status().isBadRequest())
-                    .andExpect(content().json("{\"error\":\"invalid_client\",\"error_description\":\"Bad request. Not permitted to change another client's secret\"}"));
+                    .andExpect(content().contentType(APPLICATION_JSON))
+                    .andExpect(content().string("{\"error\":\"invalid_client\",\"error_description\":\"Bad request. Not permitted to change another client's secret\"}"));
         }
     }
 

@@ -73,10 +73,7 @@ public class OpenIdTokenGrantsIT {
     WebDriver webDriver;
 
     @Value("${integration.test.base_url}")
-    String loginUrl;
-
-    @Value("${integration.test.uaa_url}")
-    String uaaUrl;
+    String baseUrl;
 
     @Value("${integration.test.app_url}")
     String appUrl;
@@ -108,12 +105,10 @@ public class OpenIdTokenGrantsIT {
     @After
     public void logout_and_clear_cookies() {
         try {
-            webDriver.get(loginUrl + "/logout.do");
-            webDriver.get(uaaUrl + "/logout.do");
+            webDriver.get(baseUrl + "/logout.do");
         }catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
-            webDriver.get(loginUrl + "/logout.do");
-            webDriver.get(uaaUrl + "/logout.do");
+            webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl+"/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
@@ -121,12 +116,12 @@ public class OpenIdTokenGrantsIT {
 
     private ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId,
                                                                          String clientSecret) {
-        return IntegrationTestUtils.getClientCredentialsResource(uaaUrl,scope,clientId,clientSecret);
+        return IntegrationTestUtils.getClientCredentialsResource(baseUrl,scope,clientId,clientSecret);
     }
 
     private ScimUser createUser(String username, String firstName, String lastName,
                                                 String email, boolean verified) {
-        return IntegrationTestUtils.createUser(client, uaaUrl, username, firstName, lastName, email, verified);
+        return IntegrationTestUtils.createUser(client, baseUrl, username, firstName, lastName, email, verified);
     }
 
     @Test
@@ -143,7 +138,7 @@ public class OpenIdTokenGrantsIT {
         postBody.add("password", secret);
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(
-            loginUrl + "/oauth/authorize",
+            baseUrl + "/oauth/authorize",
             HttpMethod.POST,
             new HttpEntity<>(postBody, headers),
             Void.class
@@ -206,7 +201,7 @@ public class OpenIdTokenGrantsIT {
         postBody.add("username", user.getUserName());
         postBody.add("password", secret);
 
-        ResponseEntity<Map> responseEntity = restOperations.exchange(loginUrl + "/oauth/token",
+        ResponseEntity<Map> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
             HttpMethod.POST,
             new HttpEntity<>(postBody, headers),
             Map.class);
@@ -268,7 +263,7 @@ public class OpenIdTokenGrantsIT {
         String clientId = "app";
         String clientSecret = "appclientsecret";
         String redirectUri = "http://localhost:8080/app/";
-        String uri = loginUrl +
+        String uri = baseUrl +
                      "/oauth/authorize?response_type={response_type}&"+
                      "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";
 
@@ -316,7 +311,7 @@ public class OpenIdTokenGrantsIT {
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         // Should be redirected to the original URL, but now authenticated
-        result = restOperations.exchange(loginUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
+        result = restOperations.exchange(baseUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
         cookies.clear();
@@ -347,7 +342,7 @@ public class OpenIdTokenGrantsIT {
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
-            result = restOperations.exchange(loginUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
+            result = restOperations.exchange(baseUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         }
@@ -370,7 +365,7 @@ public class OpenIdTokenGrantsIT {
         tokenHeaders.set("Authorization", basicDigestHeaderValue);
 
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> tokenResponse = restOperations.exchange(loginUrl+"/oauth/token", HttpMethod.POST, new HttpEntity<>(formData, tokenHeaders), Map.class);
+        ResponseEntity<Map> tokenResponse = restOperations.exchange(baseUrl+"/oauth/token", HttpMethod.POST, new HttpEntity<>(formData, tokenHeaders), Map.class);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> body = tokenResponse.getBody();

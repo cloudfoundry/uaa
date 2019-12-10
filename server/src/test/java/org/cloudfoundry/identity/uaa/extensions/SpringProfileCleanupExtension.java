@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.impl.config;
+package org.cloudfoundry.identity.uaa.extensions;
 
 import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;

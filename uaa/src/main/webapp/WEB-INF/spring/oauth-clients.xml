@@ -187,6 +187,36 @@
                             <entry key="use-bcrypt-prefix" value="true"/>
                         </map>
                     </entry>
+                    <entry key="jku_test">
+                        <map>
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password,client_credentials,refresh_token,authorization_code"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="scope" value="openid,oauth.approvals,user_attributes"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
+                        </map>
+                    </entry>
+                    <entry key="jku_test_without_autoapprove">
+                        <map>
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password,client_credentials,refresh_token,authorization_code"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="false"/>
+                            <entry key="scope" value="openid,oauth.approvals,user_attributes"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
+                        </map>
+                    </entry>
+                    <entry key="client_without_openid">
+                        <map>
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password,client_credentials,refresh_token,authorization_code"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="scope" value="password.write"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
+                        </map>
+                    </entry>
                 </map>
             </constructor-arg>
         </bean>

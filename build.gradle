@@ -61,6 +61,8 @@ subprojects {
         exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
         exclude group: "org.apache.directory.server", module: "apacheds-core"
         exclude group: "org.apache.directory.server", module: "apacheds-protocol-ldap"
+        exclude group: "org.skyscreamer", module: "jsonassert"
+        exclude group: "com.vaadin.external.google", module: "android-json"
     }
 
     dependencies {
