@@ -8,6 +8,9 @@
       <Valve className='org.cloudfoundry.tomcat.logging.access.CloudFoundryAccessLoggingValve'
              pattern='[ACCESS] %{org.apache.catalina.AccessLog.RemoteAddr}r %l %t %D %F %B %S vcap_request_id:%{X-Vcap-Request-Id}i'
              enabled='${access.logging.enabled}'/>
+      <Valve className="org.apache.catalina.valves.ErrorReportValve"
+             showReport="false"
+             showServerInfo="false"/>
       <Host name='localhost'
             failCtxIfServletStartFails='true'>
         <Listener className='org.cloudfoundry.tomcat.lifecycle.ApplicationStartupFailureDetectingLifecycleListener'/>
