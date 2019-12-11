@@ -618,13 +618,15 @@ class LegacyRedirectResolverTest {
         @Test
         void matchesEmptyPortWithWildcardPort() {
             final String clientRedirectUri = "https://example.com:*/";
-            assertTrue(resolver.redirectMatches("https://example.com/", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("https://example.com:80/", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("https://example.com/", clientRedirectUri));
         }
 
         @Test
         void matchesEmptyPortWithWildcardPortAndPath() {
             final String clientRedirectUri = "https://example.com:*/**";
-            assertTrue(resolver.redirectMatches("https://example.com/path1/path2/path3", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("https://example.com:80/path1/path2/path3", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("https://example.com/path1/path2/path3", clientRedirectUri));
         }
     }
 
@@ -708,25 +710,5 @@ class LegacyRedirectResolverTest {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton(allowedRedirectUri));
         }
     }
-
-    @Nested
-    @DisplayName("matching http://example.com")
-    class ResolveDefaultPorts {
-        private final String clientRedirectUri = "http://example.com:*/whatever";
-        private final String anotherClientRedirectUri = "http://example.com:*";
-        private final String defaultPortClientRedirectUri = "http://example.com";
-        private final String defaultSecurePortClientRedirectUri = "https://example.com";
-
-        @Test
-        void defaultPortRedirectUri() {
-            assertFalse(resolver.redirectMatches("http://example.com:10", defaultPortClientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://example.com:80", defaultPortClientRedirectUri));
-            assertFalse(resolver.redirectMatches("https://example.com:8443", defaultSecurePortClientRedirectUri));
-            assertTrue(resolver.redirectMatches("https://example.com:443", defaultSecurePortClientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://example.com:8080/whatever", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://example.com:80/whatever", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://example.com:8080", anotherClientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://example.com:80", anotherClientRedirectUri));
-        }
-    }
+    
 }

@@ -127,7 +127,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             throw new IllegalArgumentException("URI host and scheme must not be null");
         }
 
-        return uriComponentsBuilder.build().toString();
+        return uriComponentsBuilder.build().toString().replace(":99999", ":*");
     }
 
     private static String redactSensitiveInformation(String uri) {
