@@ -710,5 +710,4 @@ class LegacyRedirectResolverTest {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton(allowedRedirectUri));
         }
     }
-    
 }
