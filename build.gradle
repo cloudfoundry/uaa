@@ -101,8 +101,6 @@ subprojects {
     }
 
     task integrationTest(type: Test) {
-        dependsOn rootProject.cargoStartLocal
-
         useJUnitPlatform()
 
         testLogging {
@@ -240,9 +238,7 @@ task cleanCargoConfDir {
 }
 
 task integrationTest(dependsOn: subprojects.integrationTest) {
-    finalizedBy cargoStopLocal
 }
-
 
 // task dependencies
 assemble.dependsOn subprojects.assemble
