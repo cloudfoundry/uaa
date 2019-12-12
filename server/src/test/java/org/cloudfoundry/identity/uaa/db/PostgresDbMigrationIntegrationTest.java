@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -44,7 +43,6 @@ public class PostgresDbMigrationIntegrationTest extends DbMigrationIntegrationTe
         }
     }
 
-    @Ignore("Ignored temporarily to unblock other work. Ignore will be reverted following unblock.")
     @Test
     public void mfaTableAddsTwoNewColumns() {
         MigrationTest migrationTest = new MigrationTest() {
