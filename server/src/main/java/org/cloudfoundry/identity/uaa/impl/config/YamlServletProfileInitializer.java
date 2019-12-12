@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
 import static org.springframework.util.StringUtils.hasText;
@@ -77,13 +77,10 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         List<Resource> resources = new ArrayList<>();
 
         // add default locations first
-        final Set<String> defaultLocation = Set.of("uaa.yml", "login.yml");
-        for (final String location : defaultLocation) {
-            final Resource defaultResource = new ClassPathResource(location);
-            if (defaultResource.exists()) {
-                resources.add(defaultResource);
-            }
-        }
+        Stream.of("uaa.yml", "login.yml")
+                .map(ClassPathResource::new)
+                .filter(ClassPathResource::exists)
+                .forEach(resources::add);
 
         resources.addAll(getResource(applicationContext, locations));
 
