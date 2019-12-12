@@ -76,14 +76,12 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         String locations = "${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
         List<Resource> resources = new ArrayList<>();
 
-        //add default locations first
-        Set<String> defaultLocation = StringUtils.commaDelimitedListToSet("uaa.yml,login.yml");
-        if (defaultLocation != null && defaultLocation.size() > 0) {
-            for (String s : defaultLocation) {
-                Resource defaultResource = new ClassPathResource(s);
-                if (defaultResource.exists()) {
-                    resources.add(defaultResource);
-                }
+        // add default locations first
+        final Set<String> defaultLocation = Set.of("uaa.yml", "login.yml");
+        for (final String location : defaultLocation) {
+            final Resource defaultResource = new ClassPathResource(location);
+            if (defaultResource.exists()) {
+                resources.add(defaultResource);
             }
         }
 
