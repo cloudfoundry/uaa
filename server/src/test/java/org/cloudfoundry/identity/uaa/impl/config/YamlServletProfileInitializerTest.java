@@ -5,7 +5,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -33,6 +32,7 @@ import java.io.PrintStream;
 import java.net.URI;
 import java.util.Enumeration;
 
+import static org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer.YML_ENV_VAR_NAME;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -44,7 +44,6 @@ import static org.mockito.Mockito.description;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(SpringProfileCleanupExtension.class)
@@ -205,23 +204,11 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void readingYamlFromEnvironment_WithNullVariableName() {
-        readingYamlFromEnvironment(null);
-    }
-
-    @Test
-    void readingYamlFromEnvironment_WithNonNullVariableName() {
-        readingYamlFromEnvironment("Renaming environment variable");
-    }
-
-    private void readingYamlFromEnvironment(String variableName) {
-        if (hasText(variableName)) {
-            initializer.setYamlEnvironmentVariableName(variableName);
-        }
+    void readingYamlFromEnvironment() {
         SystemEnvironmentAccessor env = new SystemEnvironmentAccessor() {
             @Override
             public String getEnvironmentVariable(String name) {
-                return name.equals(initializer.getYamlEnvironmentVariableName()) ?
+                return name.equals(YML_ENV_VAR_NAME) ?
                         "uaa.url: http://uaa.test.url/\n" +
                                 "login.url: http://login.test.url/\n" +
                                 "smtp:\n" +
