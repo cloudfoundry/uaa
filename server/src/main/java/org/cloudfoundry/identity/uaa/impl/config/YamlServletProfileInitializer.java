@@ -73,7 +73,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
 
-        String locations = "${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
+        final String locations =
+                "${LOGIN_CONFIG_URL}" +
+                ",file:${LOGIN_CONFIG_PATH}/login.yml" +
+                ",file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml" +
+                ",${UAA_CONFIG_URL}" +
+                ",file:${UAA_CONFIG_FILE}" +
+                ",file:${UAA_CONFIG_PATH}/uaa.yml" +
+                ",file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
         List<Resource> resources = new ArrayList<>();
 
         // add default locations first
@@ -91,7 +98,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         if (resources.isEmpty()) {
             System.out.println("No YAML environment properties from servlet.  Defaulting to servlet context.");
-            locations = "${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
             resources.addAll(getResource(applicationContext, locations));
         }
 
