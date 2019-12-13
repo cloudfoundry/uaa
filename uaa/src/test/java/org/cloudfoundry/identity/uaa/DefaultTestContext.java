@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         SpringServletTestConfig.class,
-        TestClientAndMockMvcTestConfig.class
+        TestClientAndMockMvcTestConfig.class,
 })
 public @interface DefaultTestContext {
 }

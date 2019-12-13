@@ -9,7 +9,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportResource;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -26,7 +25,6 @@ import java.util.Arrays;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@Configuration
 @ImportResource(locations = {
         "classpath:spring/env.xml",
         "classpath:spring/use_uaa_db_in_mysql_url.xml", // adds this one
@@ -41,7 +39,7 @@ class TableAndColumnNormalizationTestConfiguration {
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         TableAndColumnNormalizationTestConfiguration.class,
-        PasswordEncoderConfig.class
+        PasswordEncoderConfig.class,
 })
 class TableAndColumnNormalizationTest {
 
