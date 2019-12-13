@@ -23,9 +23,10 @@ import java.lang.annotation.Target;
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         DatabaseOnlyConfiguration.class,
-        PasswordEncoderConfig.class
+        PasswordEncoderConfig.class,
 })
 public @interface WithDatabaseContext {
+
 }
 
 @Configuration
@@ -34,4 +35,5 @@ public @interface WithDatabaseContext {
         "classpath:spring/data-source.xml"
 })
 class DatabaseOnlyConfiguration {
+
 }
