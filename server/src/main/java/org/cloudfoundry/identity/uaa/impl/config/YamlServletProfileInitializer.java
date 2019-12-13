@@ -48,10 +48,6 @@ import static org.springframework.util.StringUtils.isEmpty;
  */
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
 
-    private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[]{
-            "${APPLICATION_CONFIG_URL}",
-            "file:${APPLICATION_CONFIG_FILE}"};
-
     private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
 
     static final String YML_ENV_VAR_NAME = "UAA_CONFIG_YAML";
@@ -97,11 +93,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             resources.add(yamlFromEnv);
         }
 
-        if (resources.isEmpty()) {
-            System.out.println("No YAML environment properties from servlet.  Defaulting to servlet context.");
-            resources.addAll(getResource(applicationContext));
-        }
-
         try {
             System.out.println("Loading YAML environment properties from location: " + resources.toString());
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
@@ -136,9 +127,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
     private List<Resource> getResource(ConfigurableWebApplicationContext applicationContext) {
         List<Resource> resources = new LinkedList<>();
-        String[] configFileLocations = FILE_CONFIG_LOCATIONS == null
-                ? DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS
-                : StringUtils.commaDelimitedListToStringArray(FILE_CONFIG_LOCATIONS);
+        String[] configFileLocations = StringUtils.commaDelimitedListToStringArray(FILE_CONFIG_LOCATIONS);
         for (String location : configFileLocations) {
             location = applicationContext.getEnvironment().resolvePlaceholders(location);
             System.out.println("Testing for YAML resources at: " + location);
