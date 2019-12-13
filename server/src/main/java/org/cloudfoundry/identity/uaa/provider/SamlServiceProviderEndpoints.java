@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +39,8 @@ public class SamlServiceProviderEndpoints {
     private final SamlServiceProviderConfigurator samlConfigurator;
 
     public SamlServiceProviderEndpoints(
-            final SamlServiceProviderProvisioning serviceProviderProvisioning,
-            final SamlServiceProviderConfigurator samlConfigurator) {
+            final @Qualifier("serviceProviderProvisioning") SamlServiceProviderProvisioning serviceProviderProvisioning,
+            final @Qualifier("spMetaDataProviders") SamlServiceProviderConfigurator samlConfigurator) {
         this.serviceProviderProvisioning = serviceProviderProvisioning;
         this.samlConfigurator = samlConfigurator;
     }

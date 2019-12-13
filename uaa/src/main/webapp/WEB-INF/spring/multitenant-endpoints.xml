@@ -204,10 +204,7 @@
     </bean>
 
     <bean id="serviceProviderEndpoints"
-          class="org.cloudfoundry.identity.uaa.provider.SamlServiceProviderEndpoints">
-        <constructor-arg ref="serviceProviderProvisioning"/>
-        <constructor-arg ref="spMetaDataProviders"/>
-    </bean>
+          class="org.cloudfoundry.identity.uaa.provider.SamlServiceProviderEndpoints" />
 
     <http name="serviceProviderSecurity" pattern="/saml/service-providers/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
