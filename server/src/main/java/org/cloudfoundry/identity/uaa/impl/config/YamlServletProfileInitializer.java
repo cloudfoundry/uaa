@@ -59,6 +59,15 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     private SystemEnvironmentAccessor environmentAccessor = new SystemEnvironmentAccessor() {
     };
 
+    private static final String FILE_CONFIG_LOCATIONS =
+            "${LOGIN_CONFIG_URL}" +
+            ",file:${LOGIN_CONFIG_PATH}/login.yml" +
+            ",file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml" +
+            ",${UAA_CONFIG_URL}" +
+            ",file:${UAA_CONFIG_FILE}" +
+            ",file:${UAA_CONFIG_PATH}/uaa.yml" +
+            ",file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
+
     @Override
     public void initialize(ConfigurableWebApplicationContext applicationContext) {
 
@@ -73,14 +82,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
 
-        final String locations =
-                "${LOGIN_CONFIG_URL}" +
-                ",file:${LOGIN_CONFIG_PATH}/login.yml" +
-                ",file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml" +
-                ",${UAA_CONFIG_URL}" +
-                ",file:${UAA_CONFIG_FILE}" +
-                ",file:${UAA_CONFIG_PATH}/uaa.yml" +
-                ",file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
         List<Resource> resources = new ArrayList<>();
 
         // add default locations first
@@ -89,7 +90,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 .filter(ClassPathResource::exists)
                 .forEach(resources::add);
 
-        resources.addAll(getResource(applicationContext, locations));
+        resources.addAll(getResource(applicationContext));
 
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
         if (yamlFromEnv != null) {
@@ -98,7 +99,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         if (resources.isEmpty()) {
             System.out.println("No YAML environment properties from servlet.  Defaulting to servlet context.");
-            resources.addAll(getResource(applicationContext, locations));
+            resources.addAll(getResource(applicationContext));
         }
 
         try {
@@ -133,11 +134,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         return null;
     }
 
-    private List<Resource> getResource(ConfigurableWebApplicationContext applicationContext,
-                                       String locations) {
+    private List<Resource> getResource(ConfigurableWebApplicationContext applicationContext) {
         List<Resource> resources = new LinkedList<>();
-        String[] configFileLocations = locations == null ? DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS : StringUtils
-                .commaDelimitedListToStringArray(locations);
+        String[] configFileLocations = FILE_CONFIG_LOCATIONS == null
+                ? DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS
+                : StringUtils.commaDelimitedListToStringArray(FILE_CONFIG_LOCATIONS);
         for (String location : configFileLocations) {
             location = applicationContext.getEnvironment().resolvePlaceholders(location);
             System.out.println("Testing for YAML resources at: " + location);
