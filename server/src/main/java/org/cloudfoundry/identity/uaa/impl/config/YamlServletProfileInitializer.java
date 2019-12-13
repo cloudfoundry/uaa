@@ -24,9 +24,10 @@ import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
@@ -55,14 +56,18 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     private SystemEnvironmentAccessor environmentAccessor = new SystemEnvironmentAccessor() {
     };
 
-    private static final String FILE_CONFIG_LOCATIONS =
-            "${LOGIN_CONFIG_URL}" +
-            ",file:${LOGIN_CONFIG_PATH}/login.yml" +
-            ",file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml" +
-            ",${UAA_CONFIG_URL}" +
-            ",file:${UAA_CONFIG_FILE}" +
-            ",file:${UAA_CONFIG_PATH}/uaa.yml" +
-            ",file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml";
+    private static final List<String> FILE_CONFIG_LOCATIONS;
+
+    static {
+        FILE_CONFIG_LOCATIONS = List.of(
+                "${LOGIN_CONFIG_URL}",
+                "file:${LOGIN_CONFIG_PATH}/login.yml",
+                "file:${CLOUDFOUNDRY_CONFIG_PATH}/login.yml",
+                "${UAA_CONFIG_URL}",
+                "file:${UAA_CONFIG_FILE}",
+                "file:${UAA_CONFIG_PATH}/uaa.yml",
+                "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml");
+    }
 
     @Override
     public void initialize(ConfigurableWebApplicationContext applicationContext) {
@@ -126,17 +131,19 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     }
 
     private List<Resource> getResource(ConfigurableWebApplicationContext applicationContext) {
-        List<Resource> resources = new LinkedList<>();
-        String[] configFileLocations = StringUtils.commaDelimitedListToStringArray(FILE_CONFIG_LOCATIONS);
-        for (String location : configFileLocations) {
-            location = applicationContext.getEnvironment().resolvePlaceholders(location);
-            System.out.println("Testing for YAML resources at: " + location);
-            Resource resource = applicationContext.getResource(location);
-            if (resource != null && resource.exists()) {
-                resources.add(resource);
-            }
-        }
-        return resources;
+        final List<String> resolvedLocations = FILE_CONFIG_LOCATIONS.stream()
+                .map(applicationContext.getEnvironment()::resolvePlaceholders)
+                .collect(Collectors.toList());
+
+        resolvedLocations.stream()
+                .map(location -> String.format("Testing for YAML resources at: %s", location))
+                .forEach(System.out::println);
+
+        return resolvedLocations.stream()
+                .map(applicationContext::getResource)
+                .filter(Objects::nonNull)
+                .filter(Resource::exists)
+                .collect(Collectors.toList());
     }
 
     private void applyLog4jConfiguration(ConfigurableEnvironment environment, String contextPath) {
