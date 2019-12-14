@@ -58,13 +58,6 @@ class TableAndColumnNormalizationTest {
         );
     }
 
-    public String[] getWebApplicationContextConfigFiles() {
-        return new String[]{
-                "classpath:spring/env.xml",
-                "classpath:spring/data-source.xml"
-        };
-    }
-
     @Test
     void checkTables() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
