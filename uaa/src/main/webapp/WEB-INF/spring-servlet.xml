@@ -11,6 +11,9 @@
        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
+    <context:annotation-config />
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa"/>
+
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
         <constructor-arg name="maxEntries" value="10000"/>
@@ -43,7 +46,9 @@
         <property name="order" value="1"/>
     </bean>
 
-    <bean name="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+    <bean name="contentNegotiationManager"
+          primary="true"
+          class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
         <property name="favorPathExtension" value="false"/>
         <property name="favorParameter" value="true"/>
         <property name="mediaTypes">
@@ -351,7 +356,6 @@
     <import resource="spring/codestore-endpoints.xml"/>
     <import resource="spring/authentication.xml"/>
     <import resource="spring/identity-zones.xml"/>
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.web.beans"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">
@@ -439,11 +443,6 @@
     </bean>
 
     <!--Basic application beans. -->
-    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint" />
-
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.health" />
-    <context:annotation-config/>
-
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>

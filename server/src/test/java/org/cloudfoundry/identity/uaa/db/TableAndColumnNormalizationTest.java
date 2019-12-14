@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @ImportResource(locations = {
         "classpath:spring/env.xml",
         "classpath:spring/use_uaa_db_in_mysql_url.xml", // adds this one
+        "classpath:spring/jdbc-test-base-add-flyway.xml",
         "classpath:spring/data-source.xml",
 })
 class TableAndColumnNormalizationTestConfiguration {

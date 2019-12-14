@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.annotations;
 
+import org.cloudfoundry.identity.uaa.db.beans.FlywayConfiguration;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,6 +24,7 @@ import java.lang.annotation.Target;
 @ContextConfiguration(classes = {
         DatabaseOnlyConfiguration.class,
         PasswordEncoderConfig.class,
+        FlywayConfiguration.class,
 })
 public @interface WithDatabaseContext {
 
