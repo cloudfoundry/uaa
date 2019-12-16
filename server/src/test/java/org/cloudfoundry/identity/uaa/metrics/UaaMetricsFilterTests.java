@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.metrics;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -24,13 +24,13 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
@@ -41,7 +41,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class UaaMetricsFilterTests {
+class UaaMetricsFilterTests {
 
     private UaaMetricsFilter filter;
     private MockHttpServletRequest request;
@@ -49,8 +49,8 @@ public class UaaMetricsFilterTests {
     private FilterChain chain;
     private NotificationPublisher publisher;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() throws Exception {
         filter = spy(new UaaMetricsFilter());
         filter.setEnabled(true);
         request = new MockHttpServletRequest();
@@ -61,7 +61,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void group_static_content() {
+    void group_static_content() {
         for (String path : Arrays.asList("/vendor/test", "/resources/test")) {
             setRequestData(path);
             assertEquals("/static-content", filter.getUriGroup(request).getGroup());
@@ -70,20 +70,20 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void enabled_by_default() throws Exception {
+    void enabled_by_default() throws Exception {
         filter = new UaaMetricsFilter();
         assertTrue(filter.isEnabled());
     }
 
     @Test
-    public void per_request_disabled_by_default() throws Exception {
+    void per_request_disabled_by_default() throws Exception {
         assertFalse(filter.isPerRequestMetrics());
         performTwoSimpleRequests();
         verify(filter, never()).sendRequestTime(anyString(), anyLong());
     }
 
     @Test
-    public void per_request_enabled() throws Exception {
+    void per_request_enabled() throws Exception {
         filter.setPerRequestMetrics(true);
         assertTrue(filter.isPerRequestMetrics());
         performTwoSimpleRequests();
@@ -92,7 +92,7 @@ public class UaaMetricsFilterTests {
 
 
     @Test
-    public void url_groups_loaded() throws Exception {
+    void url_groups_loaded() throws Exception {
         List<UrlGroup> urlGroups = filter.getUrlGroups();
         assertNotNull(urlGroups);
         assertThat(urlGroups.size(), greaterThan(0));
@@ -104,7 +104,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void disabled() throws Exception {
+    void disabled() throws Exception {
         filter.setEnabled(false);
         performTwoSimpleRequests();
         MetricsQueue queue = JsonUtils.readValue(filter.getGlobals(), MetricsQueue.class);
@@ -112,7 +112,7 @@ public class UaaMetricsFilterTests {
         assertEquals(0, queue.getTotals().getCount());
     }
 
-    public String performTwoSimpleRequests() throws ServletException, IOException {
+    String performTwoSimpleRequests() throws ServletException, IOException {
         String path = "/authenticate/test";
         setRequestData(path);
         for (int status : Arrays.asList(200, 500)) {
@@ -123,7 +123,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void happy_path() throws Exception {
+    void happy_path() throws Exception {
         filter.setPerRequestMetrics(true);
         String path = performTwoSimpleRequests();
         Map<String, String> summary = filter.getSummary();
@@ -132,10 +132,10 @@ public class UaaMetricsFilterTests {
         assertEquals(2, summary.size());
         for (String uri : Arrays.asList(path, MetricsUtil.GLOBAL_GROUP)) {
             MetricsQueue totals = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
-            assertNotNull("URI:" + uri, totals);
+            assertNotNull(totals, "URI:" + uri);
             for (StatusCodeGroup status : Arrays.asList(StatusCodeGroup.SUCCESS, StatusCodeGroup.SERVER_ERROR)) {
                 RequestMetricSummary total = totals.getDetailed().get(status);
-                assertEquals("URI:" + uri, 1, total.getCount());
+                assertEquals(1, total.getCount(), "URI:" + uri);
             }
         }
         assertNull(MetricsAccessor.getCurrent());
@@ -148,7 +148,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void intolerable_request() throws Exception {
+    void intolerable_request() throws Exception {
         TimeService slowRequestTimeService = new TimeService() {
             long now = System.currentTimeMillis();
 
@@ -181,7 +181,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void idle_counter() throws Exception {
+    void idle_counter() throws Exception {
         IdleTimer mockIdleTimer = mock(IdleTimer.class);
         setRequestData("/oauth/token");
         final FilterChain chain = mock(FilterChain.class);
@@ -196,7 +196,7 @@ public class UaaMetricsFilterTests {
         verify(mockIdleTimer, times(1)).endRequest();
     }
 
-    public void setRequestData(String requestURI) {
+    void setRequestData(String requestURI) {
         request.setRequestURI("/uaa" + requestURI);
         request.setPathInfo(requestURI);
         request.setContextPath("/uaa");
@@ -204,7 +204,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void deserialize_summary() throws Exception {
+    void deserialize_summary() throws Exception {
         String path = "/some/path";
         setRequestData(path);
         for (int status : Arrays.asList(200, 500)) {
@@ -217,7 +217,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void url_groups() {
+    void url_groups() {
         request.setServerName("localhost:8080");
         setRequestData("/uaa/authenticate");
         request.setPathInfo("/authenticate");
@@ -226,7 +226,7 @@ public class UaaMetricsFilterTests {
     }
 
     @Test
-    public void uri_groups_when_fails_to_load() {
+    void uri_groups_when_fails_to_load() {
         ReflectionTestUtils.setField(filter, "urlGroups", null);
         request.setContextPath("");
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
@@ -265,14 +265,14 @@ public class UaaMetricsFilterTests {
                 entry -> {
                     for (String s : entry.getValue()) {
                         setRequestData(s);
-                        assertEquals("Testing URL: " + s, FALLBACK.getGroup(), filter.getUriGroup(request).getGroup());
+                        assertEquals(FALLBACK.getGroup(), filter.getUriGroup(request).getGroup(), "Testing URL: " + s);
                     }
                 }
         );
     }
 
     @Test
-    public void validate_matcher() {
+    void validate_matcher() {
         //validates that patterns that end with /** still match at parent level
         setRequestData("/some/path");
         AntPathRequestMatcher matcher = new AntPathRequestMatcher("/some/path/**");
