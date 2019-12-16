@@ -1,20 +1,6 @@
-/*
- * ******************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * ******************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -36,8 +22,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.user.VerifiableUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanNameAware;
@@ -186,7 +170,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             authentication.setAuthenticationMethods(new HashSet<>());
         }
         authentication.getAuthenticationMethods().add("ext");
-        if (authentication.getUserAttributes()!=null && authentication.getUserAttributes().size()>0 && getProviderProvisioning()!=null) {
+        if ((hasUserAttributes(authentication) || hasExternalGroups(authentication)) && getProviderProvisioning() != null) {
             IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (provider.getConfig()!=null && provider.getConfig().isStoreCustomAttributes()) {
                 logger.debug("Storing custom attributes for user_id:"+authentication.getPrincipal().getId());
@@ -196,6 +180,14 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
                 getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), userInfo);
             }
         }
+    }
+
+    private boolean hasExternalGroups(UaaAuthentication authentication) {
+        return authentication.getExternalGroups() != null && !authentication.getExternalGroups().isEmpty();
+    }
+
+    private boolean hasUserAttributes(UaaAuthentication authentication) {
+        return authentication.getUserAttributes() != null && !authentication.getUserAttributes().isEmpty();
     }
 
     protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException{

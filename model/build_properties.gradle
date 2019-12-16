@@ -8,7 +8,7 @@ buildscript {
   }
 
   dependencies {
-    classpath group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '3.4.1.201406201815-r'
+    classpath libraries.eclipseJgit
   }
 }
 

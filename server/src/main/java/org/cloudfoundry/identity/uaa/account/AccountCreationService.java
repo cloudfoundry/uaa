@@ -3,16 +3,14 @@ package org.cloudfoundry.identity.uaa.account;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
-import java.io.IOException;
-
 public interface AccountCreationService {
     void beginActivation(String email, String password, String clientId, String redirectUri);
 
-    AccountCreationResponse completeActivation(String code) throws IOException;
+    AccountCreationResponse completeActivation(String code);
 
     ScimUser createUser(String username, String password, String origin);
 
-    String getDefaultRedirect() throws IOException;
+    String getDefaultRedirect();
 
     class AccountCreationResponse {
         @JsonProperty("user_id")

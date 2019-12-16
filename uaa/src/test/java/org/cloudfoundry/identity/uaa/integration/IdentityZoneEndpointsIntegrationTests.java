@@ -35,7 +35,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -65,23 +64,23 @@ public class IdentityZoneEndpointsIntegrationTests {
     private String zoneId;
 
     @Before
-    public void createRestTemplate() throws Exception {
+    public void createRestTemplate() {
         client = (OAuth2RestTemplate) serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         RestTemplate client = IntegrationTestUtils.getClientCredentialsTemplate(
           IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
@@ -91,7 +90,7 @@ public class IdentityZoneEndpointsIntegrationTests {
     }
 
     @Test
-    public void testCreateZone() throws Exception {
+    public void testCreateZone() {
         zoneId = UUID.randomUUID().toString();
         String requestBody = "{\"id\":\""+ zoneId +"\", \"subdomain\":\""+ zoneId +"\", \"name\":\"testCreateZone() "+ zoneId +"\"}";
 
@@ -144,7 +143,7 @@ public class IdentityZoneEndpointsIntegrationTests {
     }
 
     @Test
-    public void testCreateZoneWithClient() throws IOException {
+    public void testCreateZoneWithClient() {
         IdentityZone idZone = new IdentityZone();
         String id = UUID.randomUUID().toString();
         idZone.setId(id);

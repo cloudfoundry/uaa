@@ -25,7 +25,9 @@ public class MigrationTestRunner {
             public void afterEachMigrate(Connection connection, MigrationInfo info) {
                 super.afterEachMigrate(connection, info);
                 try {
-                    connection.commit();
+                    if (!connection.getAutoCommit()) {
+                        connection.commit();
+                    }
                 } catch (SQLException e) {
                     Assert.fail(e.getMessage());
                 }

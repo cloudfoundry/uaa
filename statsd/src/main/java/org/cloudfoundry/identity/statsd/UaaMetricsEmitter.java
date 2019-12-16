@@ -29,7 +29,11 @@ import org.springframework.util.ReflectionUtils;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
 import javax.management.NotificationEmitter;
-import java.lang.management.*;
+import com.sun.management.*;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.lang.reflect.Method;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.util.HashMap;
@@ -37,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.ReflectionUtils.findMethod;
@@ -45,11 +48,10 @@ import static org.springframework.util.ReflectionUtils.findMethod;
 public class UaaMetricsEmitter {
     private static Logger logger = LoggerFactory.getLogger(UaaMetricsEmitter.class);
 
-    private static final RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0l, 0d, 0l, 0d, 0l, 0d, 0l, 0d);
+    private static final RequestMetricSummary MISSING_METRICS = new RequestMetricSummary(0L, 0d, 0L, 0d, 0L, 0d, 0L, 0d);
     private final StatsDClient statsDClient;
     private final MBeanServerConnection server;
     private final MetricsUtils metricsUtils;
-    private NotificationEmitter emitter;
     private boolean notificationsEnabled;
     private ConcurrentMap<String, Long> delta = new ConcurrentHashMap<>();
 
@@ -147,44 +149,33 @@ public class UaaMetricsEmitter {
 
     @Scheduled(fixedRate = 5000, initialDelay = 2000)
     public void emitVmVitals() {
-        OperatingSystemMXBean mbean = ManagementFactory.getOperatingSystemMXBean();
+        OperatingSystemMXBean mbean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
         String prefix = "vitals.vm.";
         statsDClient.gauge(prefix + "cpu.count", mbean.getAvailableProcessors());
         statsDClient.gauge(prefix + "cpu.load", (long)(mbean.getSystemLoadAverage()*100));
-        invokeIfPresent(prefix + "memory.total", mbean, "getTotalPhysicalMemorySize");
-        invokeIfPresent(prefix + "memory.committed", mbean, "getCommittedVirtualMemorySize");
-        invokeIfPresent(prefix + "memory.free", mbean, "getFreePhysicalMemorySize");
+        statsDClient.gauge(prefix + "memory.total", mbean.getTotalPhysicalMemorySize());
+        statsDClient.gauge(prefix + "memory.committed", mbean.getCommittedVirtualMemorySize());
+        statsDClient.gauge(prefix + "memory.free", mbean.getFreePhysicalMemorySize());
     }
 
     @Scheduled(fixedRate = 5000, initialDelay = 3000)
     public void emitJvmVitals() {
-        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
-        ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
+        OperatingSystemMXBean osBean = (OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
+        ThreadMXBean threadBean = (ThreadMXBean) ManagementFactory.getThreadMXBean();
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         String prefix = "vitals.jvm.";
-        invokeIfPresent(prefix + "cpu.load", osBean, "getProcessCpuLoad", d -> (long)(d.doubleValue()*100));
+        statsDClient.gauge(prefix + "cpu.load", (long) (((Number) osBean.getProcessCpuLoad()).doubleValue() * 100));
         statsDClient.gauge(prefix + "thread.count", threadBean.getThreadCount());
         Map<String, MemoryUsage> memory = new HashMap<>();
         memory.put("heap", memoryBean.getHeapMemoryUsage());
         memory.put("non-heap", memoryBean.getNonHeapMemoryUsage());
-        memory.entrySet().stream().forEach(m -> {
-            statsDClient.gauge(prefix + m.getKey() + ".init", m.getValue().getInit());
-            statsDClient.gauge(prefix + m.getKey() + ".committed", m.getValue().getCommitted());
-            statsDClient.gauge(prefix + m.getKey() + ".used", m.getValue().getUsed());
-            statsDClient.gauge(prefix + m.getKey() + ".max", m.getValue().getMax());
+        memory.forEach((key, value) -> {
+            statsDClient.gauge(prefix + key + ".init", value.getInit());
+            statsDClient.gauge(prefix + key + ".committed", value.getCommitted());
+            statsDClient.gauge(prefix + key + ".used", value.getUsed());
+            statsDClient.gauge(prefix + key + ".max", value.getMax());
         });
 
-    }
-
-    public void invokeIfPresent(String metric, Object mbean, String getter) {
-        invokeIfPresent(metric, mbean, getter, v -> (Long)v);
-    }
-    public void invokeIfPresent(String metric, Object mbean, String getter, Function<Number, Long> valueModifier) {
-        Number value = getValueFromBean(mbean, getter);
-        if (value.doubleValue() >= 0) {
-
-            statsDClient.gauge(metric, valueModifier.apply(value));
-        }
     }
 
     public void throwIfOtherThanNotFound(Exception x) throws Exception {
@@ -224,7 +215,7 @@ public class UaaMetricsEmitter {
     public void enableNotification() {
         try {
             logger.debug("Trying to enable notification");
-            emitter = metricsUtils.getUaaMetricsSubscriber(server);
+            NotificationEmitter emitter = metricsUtils.getUaaMetricsSubscriber(server);
             emitter.addNotificationListener((notification, handback) -> {
                 String key = notification.getType();
                 String prefix = key.startsWith("/") ? key.substring(1) : key;
@@ -263,18 +254,18 @@ public class UaaMetricsEmitter {
 
         private final Map<String, ?> target;
 
-        public MapWrapper(Map<String, ?> target) throws Exception {
+        public MapWrapper(Map<String, ?> target) {
             this.target = target;
             context = new StandardEvaluationContext();
             context.addPropertyAccessor(new MapAccessor());
             parser = new SpelExpressionParser();
         }
 
-        public Object get(String expression) throws Exception {
+        public Object get(String expression) {
             return get(expression, Object.class);
         }
 
-        public <T> T get(String expression, Class<T> type) throws Exception {
+        public <T> T get(String expression, Class<T> type) {
             return parser.parseExpression(expression).getValue(context, target, type);
         }
 

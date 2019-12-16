@@ -16,13 +16,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.hasProperty;
@@ -218,7 +216,7 @@ class UaaAuthorizationEndpointMockMvcTest {
         );
     }
 
-    private MockHttpServletRequestBuilder implicitGrantAuthorizeRequest(String redirectUri) throws UnsupportedEncodingException {
+    private MockHttpServletRequestBuilder implicitGrantAuthorizeRequest(String redirectUri) {
         return get("/oauth/authorize")
                 .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                 .param(RESPONSE_TYPE, "token")
@@ -228,7 +226,7 @@ class UaaAuthorizationEndpointMockMvcTest {
                 .session(session);
     }
 
-    private MockHttpServletRequestBuilder authCodeAuthorizeRequest(String redirectUri) throws UnsupportedEncodingException {
+    private MockHttpServletRequestBuilder authCodeAuthorizeRequest(String redirectUri) {
         return get("/oauth/authorize")
                 .headers(zoneSeeder.getZoneSubdomainRequestHeader())
                 .param(RESPONSE_TYPE, "code")

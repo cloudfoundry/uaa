@@ -43,6 +43,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
@@ -67,7 +68,7 @@ import static org.mockito.Mockito.when;
 
 public class TotpMfaEndpointTest {
     private String userId;
-    private TotpMfaEndpoint endpoint = new TotpMfaEndpoint();
+    private TotpMfaEndpoint endpoint;
     private UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private UaaAuthentication uaaAuthentication;
@@ -102,10 +103,6 @@ public class TotpMfaEndpointTest {
         otherMfaProvider.setConfig(new GoogleMfaProviderConfig());
         otherMfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
 
-
-        endpoint.setUserGoogleMfaCredentialsProvisioning(userGoogleMfaCredentialsProvisioning);
-        endpoint.setMfaProviderProvisioning(mfaProviderProvisioning);
-
         mockSuccessHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
 
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
@@ -118,10 +115,13 @@ public class TotpMfaEndpointTest {
         mockMfaPolicy = mock(CommonLoginPolicy.class);
         when(mockMfaPolicy.isAllowed(anyString())).thenReturn(new LoginPolicy.Result(true, 0));
 
-
+        endpoint = new TotpMfaEndpoint(
+                userGoogleMfaCredentialsProvisioning,
+                mfaProviderProvisioning,
+                "/login/mfa/completed",
+                userDb,
+                mockMfaPolicy);
         endpoint.setApplicationEventPublisher(publisher);
-        endpoint.setUserDatabase(userDb);
-        endpoint.setMfaPolicy(mockMfaPolicy);
     }
 
     @After
@@ -200,6 +200,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             Integer.toString(code),
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus);
 
         assertEquals("/login/mfa/completed", ((RedirectView)returnView.getView()).getUrl());
@@ -220,6 +221,7 @@ public class TotpMfaEndpointTest {
         endpoint.validateCode(mock(Model.class),
                               Integer.toString(code),
                               mock(UserGoogleMfaCredentials.class),
+                              new MockHttpServletRequest(),
                               sessionStatus
         );
         verify(userGoogleMfaCredentialsProvisioning).saveUserCredentials(ArgumentMatchers.any(UserGoogleMfaCredentials.class));
@@ -240,6 +242,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             Integer.toString(code),
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
 
@@ -267,6 +270,7 @@ public class TotpMfaEndpointTest {
           mock(Model.class),
           Integer.toString(code),
           mock(UserGoogleMfaCredentials.class),
+          new MockHttpServletRequest(),
           sessionStatus
         );
 
@@ -287,6 +291,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             Integer.toString(code),
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
 
@@ -306,6 +311,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             "",
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
         assertEquals("mfa/enter_code", returnView.getViewName());
@@ -324,6 +330,7 @@ public class TotpMfaEndpointTest {
             mock(Model.class),
             "asdf123",
             mock(UserGoogleMfaCredentials.class),
+            new MockHttpServletRequest(),
             sessionStatus
         );
         assertEquals("mfa/enter_code", returnView.getViewName());

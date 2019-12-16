@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -22,7 +23,7 @@ public class MfaConfig {
         return "MfaConfig: {" +
                 "enabled:" + enabled +
                 ", providerName:\"" + providerName + '\"' +
-                ", identityProviders:" + Arrays.toString(identityProviders.stream().toArray()) +
+                ", identityProviders:" + Arrays.toString(identityProviders.toArray()) +
                 '}';
     }
 
@@ -34,7 +35,7 @@ public class MfaConfig {
         MfaConfig that = (MfaConfig) o;
 
         if (enabled != that.enabled) return false;
-        return providerName != null ? providerName.equals(that.providerName) : that.providerName == null;
+        return Objects.equals(providerName, that.providerName);
     }
 
     @Override

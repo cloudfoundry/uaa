@@ -21,18 +21,18 @@ public class UaaIdentityProviderConfigValidatorTest {
     }
 
     @Test
-    public void nullConfigIsAllowed() throws Exception {
+    public void nullConfigIsAllowed() {
         configValidator.validate((AbstractIdentityProviderDefinition) null);
     }
 
     @Test
-    public void nullLockoutPolicy_isAllowed() throws Exception {
+    public void nullLockoutPolicy_isAllowed() {
         uaaIdentityProviderDef.setLockoutPolicy(null);
         configValidator.validate(uaaIdentityProviderDef);
     }
 
     @Test
-    public void nullPasswordPolicy_isAllowed() throws Exception {
+    public void nullPasswordPolicy_isAllowed() {
         uaaIdentityProviderDef.setPasswordPolicy(null);
         configValidator.validate(uaaIdentityProviderDef);
     }

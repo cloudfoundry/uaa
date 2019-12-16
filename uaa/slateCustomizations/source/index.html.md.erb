@@ -8,6 +8,12 @@ toc_footers:
 
 ---
 
+<%
+  def render(doc_relative_path)
+    ERB.new(File.read('../../build/generated-snippets/' + doc_relative_path)).result(binding)
+  end
+%>
+
 # Overview
 
 The User Account and Authentication Service (UAA):
@@ -27,27 +33,27 @@ The User Account and Authentication Service (UAA):
 
 ### Browser flow
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/browserCodeRequest/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/browserCodeRequest/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/browserCodeRequest/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/browserCodeRequest/request-parameters.md') %>
 
 ### Api flow
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/apiCodeRequest/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/apiCodeRequest/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/apiCodeRequest/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/apiCodeRequest/request-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-headers.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/apiCodeRequest/request-headers.md') %>
 
 <aside class="notice">
   The client must have autoapprove=true, or you will not get a code back.<br/>
@@ -57,31 +63,31 @@ _Request Headers_
 
 ## Implicit Grant
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/request-parameters.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md') %>
 
 ## Implicit Grant with prompt
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/request-parameters.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/response-headers.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/response-headers.md') %>
 
 ## OpenID Connect flow
 
@@ -89,64 +95,64 @@ _Response Headers_
 
 An OpenID Provider Configuration Document MUST be queried using an HTTP GET request at the previously specified path.
 
-<%= ERB.new(File.read("../../build/generated-snippets/OpenIdConnectEndpointDocs/getWellKnownOpenidConf/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/OpenIdConnectEndpointDocs/getWellKnownOpenidConf/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/OpenIdConnectEndpointDocs/getWellKnownOpenidConf/http-response.md")).result(binding) %>
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/curl-request.md') %>
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/http-request.md') %>
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/http-response.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/OpenIdConnectEndpointDocs/getWellKnownOpenidConf/response-fields.md")).result(binding) %>
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/response-fields.md') %>
 
 #### ID token
 
   The authorization request may specify a response type of id_token, and an ID token as defined
   by OpenID Connect will be included in the fragment of the redirect URL.
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdToken/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/getIdToken/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/getIdToken/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdToken/request-parameters.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/response-headers.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdToken/response-headers.md') %>
 
 #### ID token and Access token
 
   The request may specify that the client expects an ID token as defined by OpenID Connect, and this
   ID token will be included alongside the access token.
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/request-parameters.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/response-headers.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/response-headers.md') %>
 
 ### Hybrid flow
 
   The request may specify that the client expects an ID token as defined by OpenID Connect, and this
   ID token will be included alongside the authorization code.
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-response.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/curl-request.md') %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/http-request.md') %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/request-parameters.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/request-parameters.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/response-headers.md")).result(binding) %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/response-headers.md') %>
 
 # Token
 
@@ -156,70 +162,70 @@ names.
 
 ## Authorization Code Grant
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/response-fields.md') %>
 
 ## Client Credentials Grant
 
 ### Without Authorization
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md') %>
 
 ### With Authorization
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-response.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/response-fields.md') %>
 
 
 ## Password Grant
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md') %>
 
 ### Password Grant with MFA
 
@@ -230,35 +236,35 @@ _Response Fields_
 A password grant can be completed when multi-factor authentication is enabled.
 
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingMfaPasswordGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/response-fields.md') %>
 
 ### One-time Passcode
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/http-response.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/response-fields.md') %>
 
 <aside class="notice">
   The client-id and client-secret can also be included in the header as Basic Authorization for all grant types.
@@ -279,17 +285,17 @@ the approval process when the client needs the access token.
 
 The `refresh_token` that results from this grant, is opaque, and can only be exchanged by the client it was intended for.
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/response-fields.md') %>
 
 <aside class="notice">
   This grant type is custom to the Cloud Foundry UAA.
@@ -312,17 +318,17 @@ This grant enables an App2App mechanism with SSO. Typical scenarios are applicat
 The endpoint of the bearer assertion is `/oauth/token` so the Recipient attribute in
 the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token.
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getTokenUsingSaml2BearerGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/response-fields.md') %>
 
 ## JWT Bearer Token Grant
 
@@ -337,51 +343,51 @@ In addition the requesting client must either allow the IDP in `allowedproviders
 The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
 UAA database. If multiple providers exists that have the same issuer, the grant will fail.
 
-<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/http-response.md")).result(binding) %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/curl-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/http-request.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/request-headers.md")).result(binding) %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/request-parameters.md")).result(binding) %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/response-fields.md")).result(binding) %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/response-fields.md') %>
 
 ## Refresh Token
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/refreshToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/refreshToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/refreshToken/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/refreshToken/curl-request.md') %>
+<%= render('TokenEndpointDocs/refreshToken/http-request.md') %>
+<%= render('TokenEndpointDocs/refreshToken/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/refreshToken/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/refreshToken/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/refreshToken/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/refreshToken/response-fields.md') %>
 
 ## OpenID Connect
 
 The token endpoint can provide an ID token as defined by OpenID Connect.
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/curl-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-request.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/request-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/response-fields.md') %>
 
 ## Revoke tokens
 
@@ -391,59 +397,59 @@ _Response Fields_
 
 ### Revoke all tokens for a user
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUser/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUser/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUser/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUser/curl-request.md') %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUser/http-request.md') %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUser/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUser/path-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUser/path-parameters.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUser/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUser/request-headers.md') %>
 
 ### Revoke all tokens for a client
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAClient/curl-request.md') %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAClient/http-request.md') %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAClient/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/path-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAClient/path-parameters.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAClient/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAClient/request-headers.md') %>
 
 ### Revoke all tokens for a user and client combination
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/curl-request.md') %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-request.md') %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/path-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/path-parameters.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeAllTokens_forAUserClientCombination/request-headers.md') %>
 
 ### Revoke a single token
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeSingleToken/curl-request.md') %>
+<%= render('TokenEndpointDocs/revokeSingleToken/http-request.md') %>
+<%= render('TokenEndpointDocs/revokeSingleToken/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/path-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeSingleToken/path-parameters.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/revokeSingleToken/request-headers.md') %>
 
 
 ## List tokens
@@ -458,86 +464,89 @@ The `/oauth/token/list/user/{userId}` will return all the tokens that match the 
 This token requires the `tokens.list` scope.
 
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_user/curl-request.md') %>
+<%= render('TokenEndpointDocs/listTokens_user/http-request.md') %>
+<%= render('TokenEndpointDocs/listTokens_user/http-response.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_user/request-headers.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/path-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_user/path-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_user/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_user/response-fields.md') %>
 
 ### List all tokens for a client
 
 The `/oauth/token/list/client/{clientId}` will return all the tokens that match the client_id in the path parameter.
 This token requires the `tokens.list` scope.
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_client/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_client/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_client/http-response.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_client/curl-request.md') %>
+<%= render('TokenEndpointDocs/listTokens_client/http-request.md') %>
+<%= render('TokenEndpointDocs/listTokens_client/http-response.md') %>
 
 _Request Header_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_client/request-headers.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_client/request-headers.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_client/path-parameters.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_client/path-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenEndpointDocs/listTokens_client/response-fields.md")).result(binding) %>
-
-# Check Token
-
-<%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/http-response.md")).result(binding) %>
-
-_Request Headers_
-
-<%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/request-headers.md")).result(binding) %>
-
-_Request Parameters_
-
-<%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/request-parameters.md")).result(binding) %>
-
-_Response Fields_
-
-<%= ERB.new(File.read("../../build/generated-snippets/CheckTokenEndpointDocs/checkToken/response-fields.md")).result(binding) %>
+<%= render('TokenEndpointDocs/listTokens_client/response-fields.md') %>
 
 # Introspect Token
 
-<aside class="success">
-  Added in UAA 4.9.0
+<aside class="notice">
+  New in UAA 74.2.0: `/introspect` will now accept a client_credentials access_token with `uaa.resource` scope
 </aside>
 
-Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) Complaint. Active flag is responsible for showing the validity of the token and not the HTTP status code.
+Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) compliant. Active flag is responsible for showing the validity of the token and not the HTTP status code.
 Status code will be 200 OK for both valid and invalid tokens.
 
-<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/http-response.md")).result(binding) %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/curl-request.md') %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/http-request.md') %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/request-headers.md")).result(binding) %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/request-parameters.md")).result(binding) %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IntrospectTokenEndpointDocs/introspectToken/response-fields.md")).result(binding) %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/response-fields.md') %>
 
+# Check Token
+
+<aside class="warning">
+  The `/check_token` endpoint is deprecated since version 74.2.0 and will be removed in a future release.  Please use `/introspect` instead.
+</aside>
+
+<%= render('CheckTokenEndpointDocs/checkToken/curl-request.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/http-request.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/http-response.md') %>
+
+_Request Headers_
+
+<%= render('CheckTokenEndpointDocs/checkToken/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('CheckTokenEndpointDocs/checkToken/request-parameters.md') %>
+
+_Response Fields_
+
+<%= render('CheckTokenEndpointDocs/checkToken/response-fields.md') %>
 
 # Token Key(s)
 
@@ -545,25 +554,25 @@ _Response Fields_
 
 An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see [RFC 7517](https://tools.ietf.org/html/rfc7517). In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
-JWT signing keys are specified via the identity zone configuration (see [/identity-zones](#identity-zones)). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the `activeKeyId` to use it to sign all new tokens. [/check_token](#check-token) will continue to verify tokens signed with the previous signing key for as long as it is present in the `keys` of the identity zone's token policy. Remove it to invalidate all those tokens.
+JWT signing keys are specified via the identity zone configuration (see [/identity-zones](#identity-zones)). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the `activeKeyId` to use it to sign all new tokens. [/introspect](#introspect) will continue to verify tokens signed with the previous signing key for as long as it is present in the `keys` of the identity zone's token policy. Remove it to invalidate all those tokens.
 
 ### Asymmetric
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/http-response.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/curl-request.md') %>
+<%= render('TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/http-request.md') %>
+<%= render('TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/request-headers.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/request-headers.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-headers.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-fields.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-fields.md') %>
 
 _Error Codes_
 
@@ -573,17 +582,17 @@ _Error Codes_
 
 ### Symmetric
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/http-response.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/curl-request.md') %>
+<%= render('TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/http-request.md') %>
+<%= render('TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/request-headers.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/response-fields.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/response-fields.md') %>
 
 _Error Codes_
 
@@ -596,21 +605,21 @@ _Error Codes_
 
 An endpoint which returns the list of JWT keys. To support key rotation, this list specifies the IDs of all currently valid keys. JWT tokens issued by the UAA contain a `kid` field, indicating which key should be used for verification of the token.
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/http-response.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/checkTokenKeysValues/curl-request.md') %>
+<%= render('TokenKeyEndpointDocs/checkTokenKeysValues/http-request.md') %>
+<%= render('TokenKeyEndpointDocs/checkTokenKeysValues/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/request-headers.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/checkTokenKeysValues/request-headers.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/response-headers.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/checkTokenKeysValues/response-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/response-fields.md")).result(binding) %>
+<%= render('TokenKeyEndpointDocs/checkTokenKeysValues/response-fields.md') %>
 
 _Error Codes_
 
@@ -634,17 +643,17 @@ The recommendation for application authors is to:
 
 If the chosen redirect URI is not whitelisted, users will land on the UAA login page. This is a security feature intended to prevent open redirects as per [RFC 6749](https://tools.ietf.org/html/rfc6749#section-10.15).
 
-<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/http-response.md")).result(binding) %>
+<%= render('LogoutInfoEndpointDocs/logout/curl-request.md') %>
+<%= render('LogoutInfoEndpointDocs/logout/http-request.md') %>
+<%= render('LogoutInfoEndpointDocs/logout/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/request-parameters.md")).result(binding) %>
+<%= render('LogoutInfoEndpointDocs/logout/request-parameters.md') %>
 
 _Response Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LogoutInfoEndpointDocs/logout/response-headers.md")).result(binding) %>
+<%= render('LogoutInfoEndpointDocs/logout/response-headers.md') %>
 
 # Identity Zones
 
@@ -687,21 +696,21 @@ The UAA supports multi tenancy. This is referred to as **identity zones**. An id
 An identity zone is created using a `POST` with an `IdentityZone` object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the `subdomain` field of the identity zone.
 When an Identity Zone is created, an internal Identity Provider is automatically created with the default password policy.
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/http-response.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/createIdentityZone/curl-request.md') %>
+<%= render('IdentityZoneEndpointDocs/createIdentityZone/http-request.md') %>
+<%= render('IdentityZoneEndpointDocs/createIdentityZone/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/request-headers.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/createIdentityZone/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/request-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/createIdentityZone/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/response-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/createIdentityZone/response-fields.md') %>
 
 _Error Codes_
 
@@ -736,21 +745,21 @@ uaac token decode
 
 ## Retrieving an identity zone
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/http-response.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getIdentityZone/curl-request.md') %>
+<%= render('IdentityZoneEndpointDocs/getIdentityZone/http-request.md') %>
+<%= render('IdentityZoneEndpointDocs/getIdentityZone/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/path-parameters.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getIdentityZone/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/request-headers.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getIdentityZone/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/response-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getIdentityZone/response-fields.md') %>
 
 _Error Codes_
 
@@ -763,17 +772,17 @@ _Error Codes_
 
 ## Retrieving all identity zones
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/http-response.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getAllIdentityZones/curl-request.md') %>
+<%= render('IdentityZoneEndpointDocs/getAllIdentityZones/http-request.md') %>
+<%= render('IdentityZoneEndpointDocs/getAllIdentityZones/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/request-headers.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getAllIdentityZones/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/response-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/getAllIdentityZones/response-fields.md') %>
 
 _Error Codes_
 
@@ -785,25 +794,25 @@ _Error Codes_
 
 ## Updating an Identity Zone
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/http-response.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md') %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/http-request.md') %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/path-parameters.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/request-headers.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/request-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/response-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/updateIdentityZone/response-fields.md') %>
 
 _Error Codes_
 
@@ -817,21 +826,21 @@ _Error Codes_
 
 ## Deleting an Identity Zone
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/http-response.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/deleteIdentityZone/curl-request.md') %>
+<%= render('IdentityZoneEndpointDocs/deleteIdentityZone/http-request.md') %>
+<%= render('IdentityZoneEndpointDocs/deleteIdentityZone/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/path-parameters.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/deleteIdentityZone/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/request-headers.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/deleteIdentityZone/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/response-fields.md")).result(binding) %>
+<%= render('IdentityZoneEndpointDocs/deleteIdentityZone/response-fields.md') %>
 
 _Error Codes_
 
@@ -849,29 +858,29 @@ _Error Codes_
 
 ### SAML
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/http-response.md') %>
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProviderMetadataUrl/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProviderMetadataUrl/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProviderMetadataUrl/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProviderMetadataUrl/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProviderMetadataUrl/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProviderMetadataUrl/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-parameters.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createSAMLIdentityProvider/response-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -898,25 +907,25 @@ Group integration also supports different strategies
  * LDAP groups contain scopes - an entry in the LDAP record contains UAA scope names
 
 #### LDAP Simple Bind
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-parameters.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-fields.md') %>
 
 _Error Codes_
 
@@ -930,25 +939,25 @@ _Error Codes_
 
 #### LDAP Search and Bind
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-parameters.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md') %>
 
 _Error Codes_
 
@@ -962,25 +971,25 @@ _Error Codes_
 
 #### LDAP Search and Compare
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-parameters.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md') %>
 
 _Error Codes_
 
@@ -998,25 +1007,25 @@ _Error Codes_
   Added in UAA 3.3.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-parameters.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-fields.md') %>
 
 _Error Codes_
 
@@ -1032,25 +1041,25 @@ _Error Codes_
   Added in UAA 3.3.0, Discovery URL added in UAA 3.10.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/request-parameters.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/createOidcIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/request-fields.md') %>
 
 _Error Codes_
 
@@ -1063,21 +1072,21 @@ _Error Codes_
 
 ## Retrieve All
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getAllIdentityProviders/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getAllIdentityProviders/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getAllIdentityProviders/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getAllIdentityProviders/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getAllIdentityProviders/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getAllIdentityProviders/response-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/response-fields.md') %>
 
 _Error Codes_
 
@@ -1087,25 +1096,25 @@ _Error Codes_
 
 ## Retrieve
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/path-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/getIdentityProvider/response-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1115,21 +1124,21 @@ _Error Codes_
 
 ## Update
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/path-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/request-parameters.md') %>
 
 <aside class="notice">
   This example is for updating the internal (uaa) identity provider. <br/>
@@ -1139,7 +1148,7 @@ _Request Parameters_
 
 _Request and Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/updateIdentityProvider/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/request-fields.md') %>
 
 _Error Codes_
 
@@ -1150,25 +1159,25 @@ _Error Codes_
 
 ## Delete
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/path-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/request-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/deleteIdentityProvider/response-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1178,17 +1187,17 @@ _Error Codes_
 | 422        | Unprocessable Entity                                                  |
 
 ## Force password change for Users
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/patchIdentityProviderStatus/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/patchIdentityProviderStatus/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/patchIdentityProviderStatus/http-response.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/patchIdentityProviderStatus/path-parameters.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/patchIdentityProviderStatus/request-headers.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/request-headers.md') %>
 
 <aside class="notice">
   This example is for updating the internal (uaa) identity provider only. <br/>
@@ -1197,7 +1206,7 @@ _Request Headers_
 
 _Request and Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/IdentityProviderEndpointDocs/patchIdentityProviderStatus/request-fields.md")).result(binding) %>
+<%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/request-fields.md') %>
 
 _Error Codes_
 
@@ -1222,13 +1231,13 @@ GET http://localhost:8080/uaa/saml/idp/metadata
 When the UAA is an IdP, you can initiate the login flow to the Service Provider, SP, by using the `initiate` endpoint
 This is a browser flow.
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/document_idp_initiated_flow/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/document_idp_initiated_flow/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/document_idp_initiated_flow/response-body.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/curl-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/http-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/response-body.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/document_idp_initiated_flow/request-parameters.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/request-parameters.md') %>
 
 _Error Codes_
 
@@ -1239,17 +1248,17 @@ _Error Codes_
 
 ## List
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getAllServiceProviders/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getAllServiceProviders/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getAllServiceProviders/http-response.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/curl-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/http-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getAllServiceProviders/request-headers.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getAllServiceProviders/response-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/response-fields.md') %>
 
 _Error Codes_
 
@@ -1259,21 +1268,21 @@ _Error Codes_
 
 ## Get
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getServiceProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getServiceProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getServiceProvider/http-response.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/curl-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/http-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getServiceProvider/request-headers.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/request-headers.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getServiceProvider/path-parameters.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/path-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/getServiceProvider/response-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1283,21 +1292,21 @@ _Error Codes_
 
 ## Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/createServiceProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/createServiceProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/createServiceProvider/http-response.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/curl-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/http-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/createServiceProvider/request-headers.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/createServiceProvider/request-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/createServiceProvider/response-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1310,25 +1319,25 @@ _Error Codes_
 
 ## Update
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/http-response.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/curl-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/http-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/request-headers.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/request-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/request-fields.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/path-parameters.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/path-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/updateServiceProvider/response-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1340,21 +1349,21 @@ _Error Codes_
 
 ## Delete
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/deleteServiceProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/deleteServiceProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/deleteServiceProvider/http-response.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/curl-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/http-request.md') %>
+<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/deleteServiceProvider/request-headers.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/request-headers.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/deleteServiceProvider/path-parameters.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/path-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UaaSamlIDPEndpointDocs/deleteServiceProvider/response-fields.md")).result(binding) %>
+<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1371,22 +1380,22 @@ _Error Codes_
   Added in UAA 4.13.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testCreateGoogleMfaProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-response.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/curl-request.md') %>
+<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-request.md') %>
+<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-headers.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-fields.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-fields.md') %>
 
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testCreateGoogleMfaProvider/response-fields.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1420,17 +1429,17 @@ _Error Codes_
   Added in UAA 4.13.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testGetMfaProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testGetMfaProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testGetMfaProvider/http-response.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testGetMfaProvider/curl-request.md') %>
+<%= render('MfaProviderEndpointDocs/testGetMfaProvider/http-request.md') %>
+<%= render('MfaProviderEndpointDocs/testGetMfaProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testGetMfaProvider/request-headers.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testGetMfaProvider/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testGetMfaProvider/response-fields.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testGetMfaProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1447,17 +1456,17 @@ _Error Codes_
   Added in UAA 4.13.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testDeleteMfaProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testDeleteMfaProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testDeleteMfaProvider/http-response.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/curl-request.md') %>
+<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/http-request.md') %>
+<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testDeleteMfaProvider/request-headers.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testDeleteMfaProvider/response-fields.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/response-fields.md') %>
 
 _Error Codes_
 
@@ -1473,17 +1482,17 @@ _Error Codes_
   Added in UAA 4.13.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testListMfaProviders/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testListMfaProviders/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testListMfaProviders/http-response.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testListMfaProviders/curl-request.md') %>
+<%= render('MfaProviderEndpointDocs/testListMfaProviders/http-request.md') %>
+<%= render('MfaProviderEndpointDocs/testListMfaProviders/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testListMfaProviders/request-headers.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testListMfaProviders/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/MfaProviderEndpointDocs/testListMfaProviders/response-fields.md")).result(binding) %>
+<%= render('MfaProviderEndpointDocs/testListMfaProviders/response-fields.md') %>
 
 _Error Codes_
 
@@ -1498,17 +1507,17 @@ Users can be queried, created and updated via the `/Users` endpoint.
 
 ## Get
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Get_User/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Get_User/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Get_User/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Get_User/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Get_User/response-fields.md') %>
 
 _Error Codes_
 
@@ -1535,21 +1544,21 @@ Listing users supports <a href="http://www.simplecloud.info/specs/draft-scim-api
 By default users are returned with their group memberships and approvals, a rather expensive operation.
 To avoid this, perform the search by including the `attributes` parameter to reduce the results.
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_Users/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Find_Users/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Find_Users/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_Users/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/request-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_Users/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_Users/response-fields.md') %>
 
 _Error Codes_
 
@@ -1576,39 +1585,39 @@ When users are searched we can return only selected amount of data using filteri
 The attribute `groups` will cause the UAA to query the group memberships and include them in the result making the operation more expensive.
 The attribute `approvals` will cause the UAA to query the user approvals and include them in the result making the operation more expensive.
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_With_Attributes_Users/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_With_Attributes_Users/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_With_Attributes_Users/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_With_Attributes_Users/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_With_Attributes_Users/request-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Find_With_Attributes_Users/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/response-fields.md') %>
 
 ## Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Create_User/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Create_User/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Create_User/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Create_User/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/request-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Create_User/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Create_User/response-fields.md') %>
 
 _Error Codes_
 
@@ -1635,21 +1644,21 @@ uaac user add testuser --given_name About --family_name Schmidt --emails testuse
   Users can only be updated when internal user management is enabled.
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Update_User/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Update_User/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Update_User/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Update_User/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/request-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Update_User/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Update_User/response-fields.md') %>
 
 _Error Codes_
 
@@ -1676,21 +1685,21 @@ uaac user update testuser --given_name About --family_name Schmidt --emails test
   Users can only be patched when internal user management is enabled.
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Patch_User/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Patch_User/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Patch_User/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Patch_User/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/request-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Patch_User/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Patch_User/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Patch_User/response-fields.md') %>
 
 _Error Codes_
 
@@ -1713,17 +1722,17 @@ uaac user update testuser --given_name About --family_name Schmidt --emails test
 
 ## Delete
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Delete_User/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Delete_User/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Delete_User/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Delete_User/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Delete_User/response-fields.md') %>
 
 _Error Codes_
 
@@ -1748,17 +1757,17 @@ uaac user delete testuser
 
 An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/http-response.md")).result(binding) %>
+<%= render('UserInfoEndpointDocs/test_Get_UserInfo/curl-request.md') %>
+<%= render('UserInfoEndpointDocs/test_Get_UserInfo/http-request.md') %>
+<%= render('UserInfoEndpointDocs/test_Get_UserInfo/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/request-headers.md")).result(binding) %>
+<%= render('UserInfoEndpointDocs/test_Get_UserInfo/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/response-fields.md")).result(binding) %>
+<%= render('UserInfoEndpointDocs/test_Get_UserInfo/response-fields.md') %>
 
 _Error Codes_
 
@@ -1781,21 +1790,21 @@ uaac curl -X GET /userinfo -k
 
 ## Change user password
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Change_Password/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Change_Password/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_Change_Password/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Change_Password/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/request-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Change_Password/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_Change_Password/response-fields.md') %>
 
 _Error Codes_
 
@@ -1822,25 +1831,25 @@ uaac password change -o secret -p newsecret
   Added in UAA 3.7.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/path-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/request-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_unlock_user/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_unlock_user/response-fields.md') %>
 
 _Error Codes_
 
@@ -1857,25 +1866,25 @@ _Error Codes_
   Added in UAA 3.9.0
 </aside>
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/path-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/request-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/test_status_password_expire_user/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/test_status_password_expire_user/response-fields.md') %>
 
 _Error Codes_
 
@@ -1888,25 +1897,25 @@ _Error Codes_
 
 ## Get user verification link
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/http-request.md') %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/path-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/request-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/response-fields.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/response-fields.md') %>
 
 _Error Codes_
 
@@ -1917,17 +1926,17 @@ _Error Codes_
 
 ## Verify user
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/directlyVerifyUser/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/directlyVerifyUser/http-request.md') %>
+<%= render('ScimUserEndpointDocs/directlyVerifyUser/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/path-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/directlyVerifyUser/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/directlyVerifyUser/request-headers.md') %>
 
 _Error Codes_
 
@@ -1939,17 +1948,17 @@ _Error Codes_
 
 ## Delete MFA registration
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/http-response.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/deleteMfaRegistration/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/deleteMfaRegistration/http-request.md') %>
+<%= render('ScimUserEndpointDocs/deleteMfaRegistration/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/path-parameters.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/deleteMfaRegistration/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimUserEndpointDocs/deleteMfaRegistration/request-headers.md")).result(binding) %>
+<%= render('ScimUserEndpointDocs/deleteMfaRegistration/request-headers.md') %>
 
 _Error Codes_
 
@@ -1960,21 +1969,21 @@ _Error Codes_
 
 ## Lookup User IDs/Usernames
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/http-response.md")).result(binding) %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/curl-request.md') %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/http-request.md') %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/request-headers.md")).result(binding) %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/request-parameters.md")).result(binding) %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/response-fields.md")).result(binding) %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/response-fields.md') %>
 
 _Error Codes_
 
@@ -1985,25 +1994,25 @@ _Error Codes_
 
 ## Invite users
 
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/http-response.md")).result(binding) %>
+<%= render('InvitationsEndpointDocs/inviteUsers/curl-request.md') %>
+<%= render('InvitationsEndpointDocs/inviteUsers/http-request.md') %>
+<%= render('InvitationsEndpointDocs/inviteUsers/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/request-headers.md")).result(binding) %>
+<%= render('InvitationsEndpointDocs/inviteUsers/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/request-fields.md")).result(binding) %>
+<%= render('InvitationsEndpointDocs/inviteUsers/request-fields.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/request-parameters.md")).result(binding) %>
+<%= render('InvitationsEndpointDocs/inviteUsers/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/response-fields.md")).result(binding) %>
+<%= render('InvitationsEndpointDocs/inviteUsers/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2013,21 +2022,21 @@ _Response Fields_
 
 ## Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/createScimGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/createScimGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/createScimGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/createScimGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/createScimGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/createScimGroup/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/createScimGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/createScimGroup/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/createScimGroup/request-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/createScimGroup/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/createScimGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/createScimGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2036,21 +2045,21 @@ _Response Fields_
 
 ## Retrieve
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/retrieveScimGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/retrieveScimGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/retrieveScimGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/retrieveScimGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/retrieveScimGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/retrieveScimGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/retrieveScimGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/retrieveScimGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/retrieveScimGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/retrieveScimGroup/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/retrieveScimGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/retrieveScimGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2058,25 +2067,25 @@ _Response Fields_
 
 ## Update
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/request-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/updateScimGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/updateScimGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2089,25 +2098,25 @@ _Response Fields_
 Updating partial elements of a group is documented at
 [SCIM Specification](http://www.simplecloud.info/specs/draft-scim-api-01.html#edit-resource-with-patch)
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/request-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/patchScimGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/patchScimGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2118,21 +2127,21 @@ _Response Fields_
 
 ## Delete
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/deleteScimGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/deleteScimGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/deleteScimGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/deleteScimGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/deleteScimGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/deleteScimGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/deleteScimGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/deleteScimGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/deleteScimGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/deleteScimGroup/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/deleteScimGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/deleteScimGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2142,17 +2151,21 @@ _Response Fields_
 
 ## List
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listScimGroups/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listScimGroups/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listScimGroups/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listScimGroups/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/listScimGroups/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/listScimGroups/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listScimGroups/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listScimGroups/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('ScimGroupEndpointDocs/listScimGroups/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listScimGroups/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listScimGroups/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2161,21 +2174,21 @@ _Response Fields_
 
 ## Check Membership
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/getMemberOfGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/getMemberOfGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/getMemberOfGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/getMemberOfGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/getMemberOfGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/getMemberOfGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/getMemberOfGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/getMemberOfGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/getMemberOfGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/getMemberOfGroup/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/getMemberOfGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/getMemberOfGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2185,25 +2198,25 @@ _Response Fields_
 
 ## Add Member
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/request-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/addMemberToGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/addMemberToGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2213,21 +2226,21 @@ _Response Fields_
 
 ## Remove Member
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/removeMemberFromGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/removeMemberFromGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/removeMemberFromGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/removeMemberFromGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/removeMemberFromGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/removeMemberFromGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/removeMemberFromGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/removeMemberFromGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/removeMemberFromGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/removeMemberFromGroup/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/removeMemberFromGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/removeMemberFromGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2238,25 +2251,25 @@ _Response Fields_
 
 ## List Members
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/http-response.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/curl-request.md') %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/http-request.md') %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/path-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/request-headers.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/request-parameters.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimGroupEndpointDocs/listMembersOfGroup/response-fields.md")).result(binding) %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2268,21 +2281,21 @@ _Response Fields_
 
 ### Map
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/http-response.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/curl-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/http-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/request-headers.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/request-fields.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/response-fields.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/createExternalGroupMapping/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2294,21 +2307,21 @@ _Response Fields_
 
 #### By group ID
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/http-response.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/curl-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/http-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/path-parameters.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/request-headers.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/response-fields.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMapping/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2317,21 +2330,21 @@ _Response Fields_
 
 #### By group display name
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/http-response.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/curl-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/http-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/path-parameters.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/request-headers.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/response-fields.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/deleteExternalGroupMappingUsingName/response-fields.md') %>
 
 | Error Code | Description                                                                |
 |------------|----------------------------------------------------------------------------|
@@ -2340,17 +2353,17 @@ _Response Fields_
 
 ### List
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/http-response.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/curl-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/http-request.md') %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/request-headers.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/response-fields.md")).result(binding) %>
+<%= render('ScimExternalGroupMappingsEndpointDocs/listExternalGroupMapping/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2362,225 +2375,225 @@ _Response Fields_
 
 ## Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClient/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClient/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClient/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClient/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/createClient/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/createClient/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClient/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClient/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClient/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClient/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClient/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClient/response-fields.md') %>
 
 ## Retrieve
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/retrieveClient/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/retrieveClient/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/retrieveClient/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/retrieveClient/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/retrieveClient/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/retrieveClient/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/retrieveClient/path-parameters.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/retrieveClient/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/retrieveClient/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/retrieveClient/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/retrieveClient/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/retrieveClient/response-fields.md') %>
 
 ## Update
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClient/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/updateClient/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/updateClient/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/path-parameters.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClient/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClient/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClient/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClient/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClient/response-fields.md') %>
 
 ## Delete
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClient/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClient/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClient/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClient/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/deleteClient/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/deleteClient/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClient/path-parameters.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClient/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClient/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClient/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClient/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClient/response-fields.md') %>
 
 ## Change Secret
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/changeClientSecret/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/changeClientSecret/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/changeClientSecret/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/changeClientSecret/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/changeClientSecret/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/changeClientSecret/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/changeClientSecret/path-parameters.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/changeClientSecret/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/changeClientSecret/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/changeClientSecret/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/changeClientSecret/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/changeClientSecret/request-fields.md') %>
 
 ## List
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/listClients/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/listClients/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/listClients/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/listClients/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/listClients/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/listClients/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/listClients/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/listClients/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/listClients/request-parameters.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/listClients/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/listClients/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/listClients/response-fields.md') %>
 
 ## Batch Create
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClientTx/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClientTx/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClientTx/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClientTx/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/createClientTx/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/createClientTx/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClientTx/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClientTx/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClientTx/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClientTx/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/createClientTx/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/createClientTx/response-fields.md') %>
 
 ## Batch Update
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClientTx/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClientTx/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClientTx/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClientTx/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/updateClientTx/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/updateClientTx/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClientTx/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClientTx/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClientTx/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClientTx/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/updateClientTx/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/updateClientTx/response-fields.md') %>
 
 ## Batch Secret Change
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/secretClientTx/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/secretClientTx/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/secretClientTx/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/secretClientTx/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/secretClientTx/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/secretClientTx/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/secretClientTx/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/secretClientTx/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/secretClientTx/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/secretClientTx/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/secretClientTx/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/secretClientTx/response-fields.md') %>
 
 ## Mixed Actions
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/modifyClientTx/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/modifyClientTx/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/modifyClientTx/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/modifyClientTx/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/modifyClientTx/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/modifyClientTx/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/modifyClientTx/response-fields.md') %>
 
 ## Batch Delete
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClientTx/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClientTx/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClientTx/http-response.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClientTx/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/deleteClientTx/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/deleteClientTx/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClientTx/request-headers.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClientTx/request-headers.md') %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClientTx/request-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClientTx/request-fields.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientAdminEndpointDocs/deleteClientTx/response-fields.md")).result(binding) %>
+<%= render('ClientAdminEndpointDocs/deleteClientTx/response-fields.md') %>
 
 ## Metadata
 
 ### Retrieve
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getClientMetadata/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getClientMetadata/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getClientMetadata/http-response.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getClientMetadata/curl-request.md') %>
+<%= render('ClientMetadataAdminEndpointDocs/getClientMetadata/http-request.md') %>
+<%= render('ClientMetadataAdminEndpointDocs/getClientMetadata/http-response.md') %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getClientMetadata/path-parameters.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getClientMetadata/path-parameters.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getClientMetadata/request-headers.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getClientMetadata/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getClientMetadata/response-fields.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getClientMetadata/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2588,31 +2601,31 @@ _Response Fields_
 
 ### List
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getAllClientMetadata/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getAllClientMetadata/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getAllClientMetadata/http-response.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getAllClientMetadata/curl-request.md') %>
+<%= render('ClientMetadataAdminEndpointDocs/getAllClientMetadata/http-request.md') %>
+<%= render('ClientMetadataAdminEndpointDocs/getAllClientMetadata/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getAllClientMetadata/request-headers.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getAllClientMetadata/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/getAllClientMetadata/response-fields.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/getAllClientMetadata/response-fields.md') %>
 
 ### Update
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/updateClientMetadata/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/updateClientMetadata/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/updateClientMetadata/http-response.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/updateClientMetadata/curl-request.md') %>
+<%= render('ClientMetadataAdminEndpointDocs/updateClientMetadata/http-request.md') %>
+<%= render('ClientMetadataAdminEndpointDocs/updateClientMetadata/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/updateClientMetadata/request-headers.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/updateClientMetadata/request-headers.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/ClientMetadataAdminEndpointDocs/updateClientMetadata/response-fields.md")).result(binding) %>
+<%= render('ClientMetadataAdminEndpointDocs/updateClientMetadata/response-fields.md') %>
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -2633,21 +2646,21 @@ This endpoint has two identical endpoints
 Both return the same result and both support both JSON and HTML output.
 The HTML output is intended for browser user agents to display a login page.
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/http-response.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/curl-request.md') %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/http-request.md') %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-headers.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-parameters.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/request-parameters.md') %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md') %>
 
 ## Passcode
 
@@ -2655,13 +2668,13 @@ A user that has been authenticated, can request a one time authentication code, 
 token password grant. Password grants are often used in non browser environments, and authenticating a user with SAML,
  may be difficult.
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-response.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/passcode_request/curl-request.md') %>
+<%= render('LoginInfoEndpointDocs/passcode_request/http-request.md') %>
+<%= render('LoginInfoEndpointDocs/passcode_request/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/request-headers.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/passcode_request/request-headers.md') %>
 
 ## Auto Login
 
@@ -2672,21 +2685,21 @@ during the generation of the temporary authentication code.
 The autologin authentication code can be used to log the user in with an HTTP redirect. The UAA will establish an authenticated
 server side session and expire the code. To generate the temporary authentication code, a POST against /autologin is required.
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/http-response.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/generate_auto_login_code/curl-request.md') %>
+<%= render('LoginInfoEndpointDocs/generate_auto_login_code/http-request.md') %>
+<%= render('LoginInfoEndpointDocs/generate_auto_login_code/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/request-headers.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/generate_auto_login_code/request-headers.md') %>
 
 _Request Body_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/request-fields.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/generate_auto_login_code/request-fields.md') %>
 
 _Response Body_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/response-fields.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/generate_auto_login_code/response-fields.md') %>
 
 ### Perform Login
 
@@ -2694,13 +2707,13 @@ To exchange the code for an authenticated session, simply issue a redirect to /a
 If successful the user will be redirected to the home page, unless the user had tried to access a protected URL
 and the UAA remembers the URL that was accessed.
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/http-response.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/perform_auto_login/curl-request.md') %>
+<%= render('LoginInfoEndpointDocs/perform_auto_login/http-request.md') %>
+<%= render('LoginInfoEndpointDocs/perform_auto_login/http-response.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/request-parameters.md")).result(binding) %>
+<%= render('LoginInfoEndpointDocs/perform_auto_login/request-parameters.md') %>
 
 # External Login Server
 
@@ -2715,17 +2728,17 @@ This endpoint returns an onetime code that can be used to change a user's passwo
 The actual password change can take place by invoking an API endpoint, `/password_change`, or by a UI flow through
 the `/reset_password` endpoint.
 
-<%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointDocs/document_password_reset/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointDocs/document_password_reset/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointDocs/document_password_reset/http-response.md")).result(binding) %>
+<%= render('PasswordEndpointDocs/document_password_reset/curl-request.md') %>
+<%= render('PasswordEndpointDocs/document_password_reset/http-request.md') %>
+<%= render('PasswordEndpointDocs/document_password_reset/http-response.md') %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointDocs/document_password_reset/request-headers.md")).result(binding) %>
+<%= render('PasswordEndpointDocs/document_password_reset/request-headers.md') %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointDocs/document_password_reset/request-parameters.md")).result(binding) %>
+<%= render('PasswordEndpointDocs/document_password_reset/request-parameters.md') %>
 
 _Request Body_
 
@@ -2733,4 +2746,4 @@ The required request body of this request is the user's username, typically an e
 
 _Response Body_
 
-<%= ERB.new(File.read("../../build/generated-snippets/PasswordEndpointDocs/document_password_reset/response-fields.md")).result(binding) %>
+<%= render('PasswordEndpointDocs/document_password_reset/response-fields.md') %>

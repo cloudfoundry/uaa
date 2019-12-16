@@ -36,7 +36,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
     private String authoritiesColumnName = "authorities";
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.profiles.active")!=null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
@@ -46,8 +46,7 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
 
     @Test
     public void test_That_authorites_and_scopes_are_extended() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             boolean foundColumnScope = false;
@@ -61,28 +60,22 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
                         || authoritiesColumnName.equalsIgnoreCase(rscolumnName))) {
                     assertTrue(String.format("Table: %s Column: %s should be over 4000 chars", rstableName, rscolumnName), columnSize > 4000);
                     foundTable = true;
-                    if(scopeColumnName.equalsIgnoreCase(rscolumnName)) {
+                    if (scopeColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnScope = true;
-                    }
-                    else if(authoritiesColumnName.equalsIgnoreCase(rscolumnName)) {
+                    } else if (authoritiesColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnAuthorities = true;
                     }
 
                     String columnType = rs.getString("TYPE_NAME");
                     assertNotNull(String.format("Table: %s Column: %s should have a column type", rstableName, rscolumnName), columnType);
-                    assertThat(String.format("Table: %s Column: %s should be text, longtext, nvarchar or clob", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("text","longtext","nvarchar","clob")));
-                } else {
-                    continue;
+                    assertThat(String.format("Table: %s Column: %s should be text, longtext, nvarchar or clob", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("text", "longtext", "nvarchar", "clob")));
                 }
             }
             rs.close();
 
             assertTrue("I was expecting to find table:" + tableName, foundTable);
-            assertTrue("I was expecting to find column: "+ scopeColumnName, foundColumnScope);
-            assertTrue("I was expecting to find column: "+ authoritiesColumnName, foundColumnAuthorities);
-
-        } finally {
-            connection.close();
+            assertTrue("I was expecting to find column: " + scopeColumnName, foundColumnScope);
+            assertTrue("I was expecting to find column: " + authoritiesColumnName, foundColumnAuthorities);
         }
     }
 }

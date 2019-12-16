@@ -63,13 +63,7 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
             request.setAttribute("error_message_code", "error.sso.supported.binding");
             response.setStatus(400);
             request.getRequestDispatcher("/saml_error").include(request, response);
-        } catch (SAMLException e1) {
-            logger.debug("Error initializing entry point", e1);
-            throw new ServletException(e1);
-        } catch (MetadataProviderException e1) {
-            logger.debug("Error initializing entry point", e1);
-            throw new ServletException(e1);
-        } catch (MessageEncodingException e1) {
+        } catch (SAMLException | MessageEncodingException | MetadataProviderException e1) {
             logger.debug("Error initializing entry point", e1);
             throw new ServletException(e1);
         }

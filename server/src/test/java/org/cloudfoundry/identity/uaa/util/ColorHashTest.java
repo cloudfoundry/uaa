@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 
 public class ColorHashTest {
     @Test
-    public void getColorResultIsConsistent() throws Exception {
+    public void getColorResultIsConsistent() {
         String input1 = "cat";
         String input2 = "dog";
 

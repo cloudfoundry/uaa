@@ -24,42 +24,42 @@ public class InMemoryUaaUserDatabaseTests {
 
 
     @Test
-    public void testRetrieveUserByName() throws Exception {
+    public void testRetrieveUserByName() {
         assertSame(user, db.retrieveUserByName(user.getUsername(), user.getOrigin()));
     }
 
     @Test(expected = UsernameNotFoundException.class)
-    public void testRetrieveUserByNameInvalidOrigin() throws Exception {
+    public void testRetrieveUserByNameInvalidOrigin() {
         db.retrieveUserByName(user.getUsername(), OriginKeys.LDAP);
     }
 
     @Test(expected = UsernameNotFoundException.class)
-    public void testRetrieveUserByNameInvalidUsername() throws Exception {
+    public void testRetrieveUserByNameInvalidUsername() {
         db.retrieveUserByName(user.getUsername() + "1", OriginKeys.UAA);
     }
 
     @Test
-    public void testRetrieveUserById() throws Exception {
+    public void testRetrieveUserById() {
         assertSame(user, db.retrieveUserById(user.getId()));
     }
 
     @Test(expected = UsernameNotFoundException.class)
-    public void testRetrieveUserByInvalidId() throws Exception {
+    public void testRetrieveUserByInvalidId() {
         db.retrieveUserById(user.getId() + "1");
     }
 
     @Test
-    public void retrieveUserByEmail() throws Exception {
+    public void retrieveUserByEmail() {
         assertSame(user, db.retrieveUserByEmail(user.getEmail(), OriginKeys.UAA));
     }
 
     @Test
-    public void retrieveUserByEmail_with_invalidEmail() throws Exception {
+    public void retrieveUserByEmail_with_invalidEmail() {
         assertNull(db.retrieveUserByEmail("invalid.email@wrong.no", OriginKeys.UAA));
     }
 
     @Test
-    public void testUpdateUser() throws Exception {
+    public void testUpdateUser() {
         assertSame(user, db.retrieveUserById(user.getId()));
         UaaUser newUser = new UaaUser(
             user.getId(),

@@ -29,38 +29,38 @@ public class SystemAuthenticationTest {
     private SystemAuthentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
 
     @Test
-    public void getAuthorities() throws Exception {
+    public void getAuthorities() {
         assertSame(emptyList(), auth.getAuthorities());
     }
 
     @Test
-    public void getCredentials() throws Exception {
+    public void getCredentials() {
         assertNull(auth.getCredentials());
     }
 
     @Test
-    public void getDetails() throws Exception {
+    public void getDetails() {
         assertEquals(PRINCIPAL, auth.getDetails());
     }
 
     @Test
-    public void getPrincipal() throws Exception {
+    public void getPrincipal() {
         assertEquals(PRINCIPAL, auth.getPrincipal());
     }
 
     @Test
-    public void isAuthenticated() throws Exception {
+    public void isAuthenticated() {
         assertTrue(auth.isAuthenticated());
     }
 
     @Test
-    public void setAuthenticated() throws Exception {
+    public void setAuthenticated() {
         auth.setAuthenticated(false);
         isAuthenticated();
     }
 
     @Test
-    public void getName() throws Exception {
+    public void getName() {
         assertEquals(PRINCIPAL, auth.getName());
     }
 

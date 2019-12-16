@@ -7,7 +7,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -24,10 +24,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
@@ -260,7 +257,7 @@ class LdapLoginAuthenticationManagerTests {
                    containsInAnyOrder()
         );
 
-        definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.1.a"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("ldap.role.1.a"));
         assertThat(am.getExternalUserAuthorities(authDetails),
                    containsInAnyOrder("ldap.role.1.a")
         );
@@ -271,7 +268,7 @@ class LdapLoginAuthenticationManagerTests {
         );
 
 
-        definition.setExternalGroupsWhitelist(Arrays.asList("ldap.role.*.*"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("ldap.role.*.*"));
         assertThat(am.getExternalUserAuthorities(authDetails),
                    containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.2.a", "ldap.role.2.b")
         );
@@ -281,7 +278,7 @@ class LdapLoginAuthenticationManagerTests {
                    containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
         );
 
-        definition.setExternalGroupsWhitelist(Arrays.asList("ldap*"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("ldap*"));
         assertThat(am.getExternalUserAuthorities(authDetails),
                    containsInAnyOrder("ldap.role.1.a", "ldap.role.1.b", "ldap.role.1", "ldap.role.2.a", "ldap.role.2.b", "ldap.role.2")
         );
@@ -311,7 +308,7 @@ class LdapLoginAuthenticationManagerTests {
 
             )
         );
-        definition.setExternalGroupsWhitelist(Arrays.asList("*"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("*"));
         when(auth.getPrincipal()).thenReturn(authDetails);
 
         UaaUserDatabase db = mock(UaaUserDatabase.class);

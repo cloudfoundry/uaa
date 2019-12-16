@@ -16,8 +16,8 @@ import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
 import static org.junit.Assert.assertEquals;
 
@@ -38,8 +38,9 @@ public class SessionPageIT {
     String testPage;
 
     @Before
-    public void setUp() throws UnsupportedEncodingException {
+    public void setUp() {
         testPage = "file://" + System.getProperty("user.dir") + "/src/test/resources/session_frame_test.html#~";
+        webDriver.manage().deleteAllCookies();
     }
 
     @After
@@ -48,7 +49,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsChangedWhenNoUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenNoUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("noUser")).click();
@@ -56,7 +57,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsUnchangedWhenSendingSameUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsUnchangedWhenSendingSameUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("sameUser")).click();
@@ -64,7 +65,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsUnchangedWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsUnchangedWhenSendingDifferentUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("differentUser")).click();
@@ -72,7 +73,7 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedIn() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedIn() {
         doLogin();
         webDriver.get(testPage);
         webDriver.findElement(By.id("wrongClient")).click();
@@ -80,28 +81,28 @@ public class SessionPageIT {
     }
 
     @Test
-    public void testFrameReportsChangedWhenNoUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenNoUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("noUser")).click();
         assertMessage("unchanged");
     }
 
     @Test
-    public void testFrameReportsChangedWhenSameUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenSameUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("sameUser")).click();
         assertMessage("unchanged");
     }
 
     @Test
-    public void testFrameReportsChangedWhenDifferentUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsChangedWhenDifferentUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("differentUser")).click();
         assertMessage("changed");
     }
 
     @Test
-    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedOut() throws UnsupportedEncodingException, InterruptedException {
+    public void testFrameReportsErrorWhenSendingDifferentUser_whenLoggedOut() {
         webDriver.get(testPage);
         webDriver.findElement(By.id("wrongClient")).click();
         assertMessage("error");
@@ -117,7 +118,7 @@ public class SessionPageIT {
         assertEquals(expected, webDriver.findElement(By.id("message")).getText());
     }
 
-    private void doLogin() throws UnsupportedEncodingException {
+    private void doLogin() {
 
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
@@ -125,7 +126,7 @@ public class SessionPageIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         Cookie currentUserCookie = webDriver.manage().getCookieNamed("Current-User");
-        CurrentUserInformation currentUserInformation = JsonUtils.readValue(URLDecoder.decode(currentUserCookie.getValue(), "UTF-8"), CurrentUserInformation.class);
+        CurrentUserInformation currentUserInformation = JsonUtils.readValue(URLDecoder.decode(currentUserCookie.getValue(), StandardCharsets.UTF_8), CurrentUserInformation.class);
 
         String userId = currentUserInformation.getUserId();
         testPage = "file://" + System.getProperty("user.dir") + "/src/test/resources/session_frame_test.html#" + userId;

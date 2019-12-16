@@ -1,0 +1,43 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uaa-service
+  labels:
+    app: uaa-deployment
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      name: http-uaa
+      targetPort: 8080
+      protocol: TCP
+      nodePort: 30000
+  selector:
+    app: uaa-deployment
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uaa
+spec:
+  selector:
+    matchLabels:
+      app: uaa-deployment
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: uaa-deployment
+    spec: # pod spec
+      containers:
+        - name: uaa
+          image: cfidentity/uaa@sha256:93b70b26fbb3de88d93728b0daf1ea7b001fde89a24e283c3db36bf4c6af087c
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: LOGIN_CONFIG_URL
+              value: "classpath:required_configuration.yml"
+            - name: spring_profiles
+              value: "default,hsqldb"

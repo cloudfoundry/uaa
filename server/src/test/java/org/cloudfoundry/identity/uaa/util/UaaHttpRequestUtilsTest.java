@@ -92,7 +92,7 @@ public class UaaHttpRequestUtilsTest {
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         httpsServer.stop(0);
         httpServer.stop(0);
     }
@@ -129,7 +129,7 @@ public class UaaHttpRequestUtilsTest {
         testHttpProxy("https://google.com:443/", httpServer.getAddress().getPort(), ip, false);
     }
 
-    public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) throws Exception {
+    public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
         HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true);
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
@@ -137,7 +137,7 @@ public class UaaHttpRequestUtilsTest {
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
             template.getForObject(url, String.class);
-        } catch (Exception e) {
+        } catch (Exception ignored) {
         }
         assertEquals(1, routePlanner.routes.size());
         assertEquals(expectedHost, routePlanner.routes.get(0).getProxyHost().getHostName());
@@ -149,10 +149,7 @@ public class UaaHttpRequestUtilsTest {
     public void skipSslValidation() {
         RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
-        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true, 10_000));
-        assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
     }
-
 
     @Test
     public void trustedOnly() {

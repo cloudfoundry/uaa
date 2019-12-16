@@ -79,12 +79,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpHeaders.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.util.Base64Utils.encode;
 
 @DefaultTestContext
 class AuditCheckMockMvcTests {
@@ -492,7 +492,7 @@ class AuditCheckMockMvcTests {
         assertEquals(username, event2.getName());
         assertFalse(event2.getAuditEvent().getOrigin().contains("sessionId=<SESSION>")); //PrincipalAuthenticationFailureEvent does not contain sessionId at all
 
-        String encodedUsername = Utf8.decode(org.springframework.security.crypto.codec.Base64.encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(username))));
+        String encodedUsername = Utf8.decode(encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(username))));
         assertLogMessageWithSession(testLogger.getMessageAtIndex(0), UserNotFound, encodedUsername, "");
         assertLogMessageWithoutSession(testLogger.getMessageAtIndex(1), PrincipalAuthenticationFailure, username, "null");
     }
@@ -638,7 +638,9 @@ class AuditCheckMockMvcTests {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         String expiringCode = requestExpiringCode(testUser.getUserName(), loginToken);
 
-        LostPasswordChangeRequest pwch = new LostPasswordChangeRequest(expiringCode, "Koala2");
+        LostPasswordChangeRequest pwch = new LostPasswordChangeRequest();
+        pwch.setChangeCode(expiringCode);
+        pwch.setNewPassword("Koala2");
 
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
                 .accept(APPLICATION_JSON_VALUE)
@@ -788,10 +790,9 @@ class AuditCheckMockMvcTests {
 
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
-        String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"created_by_client_id=%s\"]",
+        String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                 createdUser.getId(),
-                scimUser.getUserName(),
-                testAccounts.getAdminClientId());
+                scimUser.getUserName());
         assertLogMessageWithSession(testLogger.getLatestMessage(),
                 UserCreatedEvent, createdUser.getId(), logMessage);
     }
@@ -851,11 +852,9 @@ class AuditCheckMockMvcTests {
             ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(zoneSeeder.getIdentityZoneId())
                     .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
 
-            String logMessage = format(" ('[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"created_by_user_id=%s\",\"created_by_username=%s\"]'): ",
+            String logMessage = format(" ('[\"user_id=%s\",\"username=%s\"]'): ",
                     createdUser.getId(),
-                    scimUser.getUserName(),
-                    scimWriteUser.getId(),
-                    scimWriteUser.getUserName());
+                    scimUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
             assertThat(actualLogMessage, startsWith(UserCreatedEvent.toString() + " "));
             assertThat(actualLogMessage, containsString(format("principal=%s,", createdUser.getId())));
@@ -895,11 +894,9 @@ class AuditCheckMockMvcTests {
 
             assertNumberOfAuditEventsReceived(2);
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"deleted_by_user_id=%s\",\"deleted_by_username=%s\"]",
+            String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                     scimUser.getId(),
-                    scimUser.getUserName(),
-                    scimWriteUser.getId(),
-                    scimWriteUser.getUserName());
+                    scimUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
             assertThat(actualLogMessage, startsWith(UserDeletedEvent.toString() + " "));
             assertThat(actualLogMessage, containsString(format("principal=%s,", scimUser.getId())));
@@ -952,10 +949,9 @@ class AuditCheckMockMvcTests {
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
 
-        String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=login-server\",\"created_by_client_id=%s\"]",
+        String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                 createdUser.getId(),
-                username,
-                "login");
+                username);
 
         assertLogMessageWithSession(testLogger.getMessageAtIndex(0),
                 UserCreatedEvent, createdUser.getId(), logMessage);
@@ -1050,10 +1046,9 @@ class AuditCheckMockMvcTests {
             assertEquals(UserDeletedEvent, userDeletedEvent.getAuditEvent().getType());
             assertTrue(userDeletedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\",\"user_origin=uaa\",\"deleted_by_client_id=%s\"]",
+            String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
                     scimUser.getId(),
-                    scimUser.getUserName(),
-                    testAccounts.getAdminClientId());
+                    scimUser.getUserName());
             assertLogMessageWithSession(testLogger.getLatestMessage(),
                     UserDeletedEvent, scimUser.getId(), logMessage);
         }

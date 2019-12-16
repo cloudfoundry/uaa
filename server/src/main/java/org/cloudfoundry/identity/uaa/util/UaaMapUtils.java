@@ -113,7 +113,7 @@ public class UaaMapUtils {
         return new AbstractMap.SimpleEntry<>(key, value);
     }
 
-    public static <K extends Comparable<? super K>, V extends Object> Map<K, V> sortByKeys(Map<K,V> map) {
+    public static <K extends Comparable<? super K>, V> Map<K, V> sortByKeys(Map<K,V> map) {
         List<Entry<K, V>> sortedEntries = map
             .entrySet()
             .stream()
@@ -130,7 +130,7 @@ public class UaaMapUtils {
         return result;
     }
 
-    public static <K extends Comparable<? super K>, V extends Object> String prettyPrintYaml(Map<K,V> map) {
+    public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K,V> map) {
         DumperOptions dump = new DumperOptions();
         dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         dump.setPrettyFlow(true);
@@ -149,8 +149,7 @@ public class UaaMapUtils {
      * @return new properties with no plaintext passwords and secrets
      */
     public static Map<String, ?> redactValues(Map<String, ?> map) {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
-        result.putAll(map);
+        Map<String, Object> result = new LinkedHashMap<>(map);
         for (String key : map.keySet()) {
             Object value = map.get(key);
             if (value == null) {

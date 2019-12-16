@@ -42,13 +42,12 @@ public class UaaAuthentication implements Authentication, Serializable {
     private UaaPrincipal principal;
     private UaaAuthenticationDetails details;
     private boolean authenticated;
-    private long authenticatedTime = -1l;
-    private long expiresAt = -1l;
+    private long authenticatedTime = -1L;
+    private long expiresAt = -1L;
     private Set<String> externalGroups;
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
     private Long lastLoginSuccessTime;
-    private boolean requiresPasswordChange = false;
 
     private Map userAttributes;
 
@@ -239,14 +238,6 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     public void setAuthContextClassRef(Set<String> authContextClassRef) {
         this.authContextClassRef = authContextClassRef;
-    }
-
-    public boolean isRequiresPasswordChange() {
-        return requiresPasswordChange;
-    }
-
-    public void setRequiresPasswordChange(boolean requiresPasswordChange) {
-        this.requiresPasswordChange = requiresPasswordChange;
     }
 
     public void setAuthenticatedTime(long authenticatedTime) {

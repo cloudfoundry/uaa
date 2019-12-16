@@ -1,0 +1,13 @@
+/* jQuery.simpletreeview styles */
+ul.treeview, ul.treeview ul {
+	list-style-type: none;
+}
+ul.treeview span.handle {
+	cursor: pointer;
+}
+
+.treeview span.controls {
+	display: none;
+	background-color: #eee;
+	font-size: 0.85em;
+}

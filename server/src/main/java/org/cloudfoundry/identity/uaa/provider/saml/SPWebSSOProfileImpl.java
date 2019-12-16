@@ -37,10 +37,9 @@ public class SPWebSSOProfileImpl extends WebSSOProfileImpl {
      *
      * @param endpoint endpoint
      * @return true if endpoint is supported
-     * @throws MetadataProviderException in case system can't verify whether endpoint is supported or not
      */
     @Override
-    protected boolean isEndpointSupported(SingleSignOnService endpoint) throws MetadataProviderException {
+    protected boolean isEndpointSupported(SingleSignOnService endpoint) {
         return
             SAML2_POST_BINDING_URI.equals(endpoint.getBinding()) ||
             SAML2_REDIRECT_BINDING_URI.equals(endpoint.getBinding());

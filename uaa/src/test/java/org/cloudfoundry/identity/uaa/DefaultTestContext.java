@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa;
 
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,7 +20,7 @@ import java.lang.annotation.Target;
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         SpringServletTestConfig.class,
-        TestClientAndMockMvcTestConfig.class
+        TestClientAndMockMvcTestConfig.class,
 })
 public @interface DefaultTestContext {
 }

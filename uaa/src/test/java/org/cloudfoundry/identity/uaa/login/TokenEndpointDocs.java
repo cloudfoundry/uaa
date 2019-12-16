@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.ManualRestDocumentation;
@@ -41,13 +40,12 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -451,14 +449,11 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
-                .with(new RequestPostProcessor() {
-                    @Override
-                    public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-                        request.setServerPort(8080);
-                        request.setRequestURI(fullPath);
-                        request.setServerName(host);
-                        return request;
-                    }
+                .with(request -> {
+                    request.setServerPort(8080);
+                    request.setRequestURI(fullPath);
+                    request.setServerName(host);
+                    return request;
                 })
                 .contextPath("/uaa")
                 .accept(APPLICATION_JSON)
@@ -535,7 +530,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     void getTokenUsingPasscode() throws Exception {
         ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), null);
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal,
+                Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(

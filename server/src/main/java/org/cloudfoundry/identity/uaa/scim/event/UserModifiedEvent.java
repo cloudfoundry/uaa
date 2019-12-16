@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.scim.event;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
@@ -53,60 +52,6 @@ public class UserModifiedEvent extends AbstractUaaEvent {
     }
 
     private String[] buildDetails() {
-        if (AuditEventType.UserCreatedEvent.equals(this.eventType)) {
-
-            // Not authenticated, e.g. when saml login creates a shadow user
-            if (!getContextAuthentication().isAuthenticated()) {
-                return new String[]{
-                        "user_id=" + scimUser.getId(),
-                        "username=" + scimUser.getUserName(),
-                        "user_origin=" + scimUser.getOrigin()
-                };
-            }
-
-            // Authenticated as a user
-            if (getContextAuthentication().getPrincipal() instanceof UaaPrincipal) {
-                UaaPrincipal uaaPrincipal = (UaaPrincipal) getContextAuthentication().getPrincipal();
-
-                return new String[]{
-                        "user_id=" + scimUser.getId(),
-                        "username=" + scimUser.getUserName(),
-                        "user_origin=" + scimUser.getOrigin(),
-                        "created_by_user_id=" + uaaPrincipal.getId(),
-                        "created_by_username=" + uaaPrincipal.getName()
-                };
-            }
-
-            // Authenticated as a client
-            return new String[]{
-                    "user_id=" + scimUser.getId(),
-                    "username=" + scimUser.getUserName(),
-                    "user_origin=" + scimUser.getOrigin(),
-                    "created_by_client_id=" + getContextAuthentication().getPrincipal()
-            };
-        } else if (AuditEventType.UserDeletedEvent.equals(this.eventType)) {
-
-            // Authenticated as a user
-            if (getContextAuthentication().getPrincipal() instanceof UaaPrincipal) {
-                UaaPrincipal uaaPrincipal = (UaaPrincipal) getContextAuthentication().getPrincipal();
-
-                return new String[]{
-                        "user_id=" + scimUser.getId(),
-                        "username=" + scimUser.getUserName(),
-                        "user_origin=" + scimUser.getOrigin(),
-                        "deleted_by_user_id=" + uaaPrincipal.getId(),
-                        "deleted_by_username=" + uaaPrincipal.getName()
-                };
-            }
-
-            // Authenticated as a client
-            return new String[]{
-                    "user_id=" + scimUser.getId(),
-                    "username=" + scimUser.getUserName(),
-                    "user_origin=" + scimUser.getOrigin(),
-                    "deleted_by_client_id=" + getContextAuthentication().getPrincipal()
-            };
-        }
         return new String[]{
                 "user_id=" + scimUser.getId(),
                 "username=" + scimUser.getUserName()

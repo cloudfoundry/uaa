@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.integration;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -182,12 +182,12 @@ public class TotpMfaEndpointIntegrationTests {
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         return client;
@@ -235,7 +235,7 @@ public class TotpMfaEndpointIntegrationTests {
     }
 
     @Test
-    public void checkAccessForTotpPage() throws Exception {
+    public void checkAccessForTotpPage() {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl + "/login/mfa/register");
@@ -284,8 +284,8 @@ public class TotpMfaEndpointIntegrationTests {
 
     private void verifyCodeOnRegistration(String key, String expectedUrlPath) {
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        Integer verificationCode = authenticator.getTotpPassword(key);
-        webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
+        int verificationCode = authenticator.getTotpPassword(key);
+        webDriver.findElement(By.name("code")).sendKeys(Integer.toString(verificationCode));
         webDriver.findElement(By.cssSelector("form button")).click();
 
         assertEquals(zoneUrl + expectedUrlPath, webDriver.getCurrentUrl());
@@ -363,7 +363,7 @@ public class TotpMfaEndpointIntegrationTests {
         String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
         for(String param : qparams) {
             if(param.contains("issuer=")) {
-                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, "UTF-8"));
+                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, StandardCharsets.UTF_8));
                 break;
             }
         }

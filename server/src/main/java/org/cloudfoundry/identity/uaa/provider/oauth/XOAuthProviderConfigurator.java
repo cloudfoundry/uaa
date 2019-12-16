@@ -25,8 +25,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -59,31 +59,27 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     }
 
     public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
-        try {
-            String authUrlBase;
-            if (definition instanceof OIDCIdentityProviderDefinition) {
-                authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
-            } else {
-                authUrlBase = definition.getAuthUrl().toString();
-            }
-            String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-            List<String> query = new ArrayList<>();
-            query.add("client_id=" + definition.getRelyingPartyId());
-            query.add("response_type=" + URLEncoder.encode(definition.getResponseType(), "UTF-8"));
-            query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, "UTF-8"));
-            query.add("state=" + RandomStringUtils.randomAlphanumeric(10));
-            if (definition.getScopes() != null && !definition.getScopes().isEmpty()) {
-                query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
-            }
-            if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
-                final RandomValueStringGenerator nonceGenerator = new RandomValueStringGenerator(12);
-                query.add("nonce=" + nonceGenerator.generate());
-            }
-            String queryString = String.join("&", query);
-            return authUrlBase + queryAppendDelimiter + queryString;
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException(e);
+        String authUrlBase;
+        if (definition instanceof OIDCIdentityProviderDefinition) {
+            authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
+        } else {
+            authUrlBase = definition.getAuthUrl().toString();
         }
+        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
+        List<String> query = new ArrayList<>();
+        query.add("client_id=" + definition.getRelyingPartyId());
+        query.add("response_type=" + URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8));
+        query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, StandardCharsets.UTF_8));
+        query.add("state=" + RandomStringUtils.randomAlphanumeric(10));
+        if (definition.getScopes() != null && !definition.getScopes().isEmpty()) {
+            query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
+        }
+        if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
+            final RandomValueStringGenerator nonceGenerator = new RandomValueStringGenerator(12);
+            query.add("nonce=" + nonceGenerator.generate());
+        }
+        String queryString = String.join("&", query);
+        return authUrlBase + queryAppendDelimiter + queryString;
     }
 
     @Override

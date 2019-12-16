@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -44,12 +44,12 @@ public class ClientInfoEndpointIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Test
-    public void testGetClientInfo() throws Exception {
+    public void testGetClientInfo() {
 
         HttpHeaders headers = new HttpHeaders();
         AuthorizationCodeResourceDetails app = testAccounts.getDefaultAuthorizationCodeResource();
         headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), app.getClientSecret()));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
@@ -59,12 +59,12 @@ public class ClientInfoEndpointIntegrationTests {
     }
 
     @Test
-    public void testImplicitClientInfo() throws Exception {
+    public void testImplicitClientInfo() {
 
         HttpHeaders headers = new HttpHeaders();
         ImplicitResourceDetails app = testAccounts.getDefaultImplicitResource();
         headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), ""));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
@@ -74,12 +74,12 @@ public class ClientInfoEndpointIntegrationTests {
     }
 
     @Test
-    public void testUnauthenticated() throws Exception {
+    public void testUnauthenticated() {
 
         HttpHeaders headers = new HttpHeaders();
         ResourceOwnerPasswordResourceDetails app = testAccounts.getDefaultResourceOwnerPasswordResource();
         headers.set("Authorization", testAccounts.getAuthorizationHeader(app.getClientId(), "bogus"));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);

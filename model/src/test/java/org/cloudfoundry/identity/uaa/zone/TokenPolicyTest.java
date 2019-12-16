@@ -18,7 +18,7 @@ public class TokenPolicyTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Test
-    public void json_has_expected_properties() throws Exception {
+    public void json_has_expected_properties() {
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setAccessTokenValidity(1234);
         tokenPolicy.setRefreshTokenValidity(9876);
@@ -38,7 +38,7 @@ public class TokenPolicyTest {
     }
 
     @Test
-    public void test_default_values() throws Exception {
+    public void test_default_values() {
         TokenPolicy policy = new TokenPolicy();
         assertFalse(policy.isRefreshTokenUnique());
         assertFalse(policy.isJwtRevocable());
@@ -46,25 +46,25 @@ public class TokenPolicyTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void nullSigningKey() throws Exception {
+    public void nullSigningKey() {
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("key-id", null));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void emptySigningKey() throws Exception {
+    public void emptySigningKey() {
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap("key-id", "             "));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void nullKeyId() throws Exception {
+    public void nullKeyId() {
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap(null, "signing-key"));
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void emptyKeyId() throws Exception {
+    public void emptyKeyId() {
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap(" ", "signing-key"));
     }
@@ -77,7 +77,7 @@ public class TokenPolicyTest {
     }
 
     @Test
-    public void tokenPolicy_whenInvalidUniquenessValue_throwsException() throws Exception {
+    public void tokenPolicy_whenInvalidUniquenessValue_throwsException() {
 
         TokenPolicy tokenPolicy = new TokenPolicy();
         expectedException.expect(IllegalArgumentException.class);

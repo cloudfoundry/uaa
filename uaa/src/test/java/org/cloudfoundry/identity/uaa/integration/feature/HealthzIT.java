@@ -51,7 +51,7 @@ public class HealthzIT {
     }
 
     @Test
-    public void testHealthz() throws Exception {
+    public void testHealthz() {
         webDriver.get(baseUrl + "/healthz");
         Assert.assertEquals("ok", webDriver.findElement(By.tagName("body")).getText());
     }

@@ -30,7 +30,7 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
     MockHttpServletRequest request;
     UaaSavedRequestAwareAuthenticationSuccessHandler handler;
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         request = new MockHttpServletRequest();
         handler = new UaaSavedRequestAwareAuthenticationSuccessHandler();
     }

@@ -43,7 +43,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     "ORDER BY line";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         logger.info("[V1_5_4] Running SQL: " + colQuery);
         List<DatabaseInformation1_5_3.ColumnInfo> columns = jdbcTemplate.query(colQuery,
                         new DatabaseInformation1_5_3.ColumnMapper());

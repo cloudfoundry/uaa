@@ -5,7 +5,7 @@ import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,13 +15,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -45,6 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = HomeControllerViewTests.ContextConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class HomeControllerViewTests extends TestClassNullifier {
 
     private static final String base64EncodedImg = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAXRQTFRFAAAAOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ozk4Ojo6Ojk5NkZMFp/PFqDPNkVKOjo6Ojk5MFhnEq3nEqvjEqzjEbDpMFdlOjo5Ojo6Ojo6Ozg2GZ3TFqXeFKfgF6DVOjo6Ozg2G5jPGZ7ZGKHbGZvROjo6Ojo5M1FfG5vYGp3aM1BdOjo6Ojo6Ojk4KHWeH5PSHpTSKHSbOjk4Ojo6Ojs8IY/QIY/QOjs7Ojo6Ojo6Ozc0JYfJJYjKOzYyOjo5Ozc0KX7AKH/AOzUxOjo5Ojo6Ojo6Ojo6Ojs8LHi6LHi6Ojs7Ojo6Ojo6Ojo6Ojo6Ojo6L3K5L3S7LnW8LnS7Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6NlFvMmWeMmaeNVJwOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojk5Ojk4Ojk4Ojk5Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6FaXeFabfGZ/aGKDaHJnVG5rW////xZzURgAAAHV0Uk5TAAACPaXbAVzltTa4MykoM5HlPY/k5Iw85QnBs2D7+lzAtWD7+lyO6EKem0Ey47Mx2dYvtVZVop5Q2i4qlZAnBiGemh0EDXuddqypcHkShPJwYufmX2rvihSJ+qxlg4JiqP2HPtnW1NjZ2svRVAglGTi91RAXr3/WIQAAAAFiS0dEe0/StfwAAAAJcEhZcwAAAEgAAABIAEbJaz4AAADVSURBVBjTY2BgYGBkYmZhZWVhZmJkAANGNnYODk5ODg52NrAIIyMXBzcPLx8/NwcXIyNYQEBQSFhEVExcQgAiICklLSNbWiYnLy0lCRFQUFRSLq9QUVVUgAgwqqlraFZWaWmrqzFCTNXR1dM3MDQy1tWB2MvIaMJqamZuYWnCCHeIlbWNrZ0VG5QPFLF3cHRydoErcHVz9/D08nb3kYSY6evnHxAYFBwSGhYeAbbWNzIqOiY2Lj4hMckVoiQ5JTUtPSMzKzsH6pfcvPyCwqKc4pJcoAAA2pghnaBVZ0kAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTUtMTAtMDhUMTI6NDg6MDkrMDA6MDDsQS6eAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE1LTEwLTA4VDEyOjQ4OjA5KzAwOjAwnRyWIgAAAEZ0RVh0c29mdHdhcmUASW1hZ2VNYWdpY2sgNi43LjgtOSAyMDE0LTA1LTEyIFExNiBodHRwOi8vd3d3LmltYWdlbWFnaWNrLm9yZ9yG7QAAAAAYdEVYdFRodW1iOjpEb2N1bWVudDo6UGFnZXMAMaf/uy8AAAAYdEVYdFRodW1iOjpJbWFnZTo6aGVpZ2h0ADE5Mg8AcoUAAAAXdEVYdFRodW1iOjpJbWFnZTo6V2lkdGgAMTky06whCAAAABl0RVh0VGh1bWI6Ok1pbWV0eXBlAGltYWdlL3BuZz+yVk4AAAAXdEVYdFRodW1iOjpNVGltZQAxNDQ0MzA4NDg5qdC9PQAAAA90RVh0VGh1bWI6OlNpemUAMEJClKI+7AAAAFZ0RVh0VGh1bWI6OlVSSQBmaWxlOi8vL21udGxvZy9mYXZpY29ucy8yMDE1LTEwLTA4LzJiMjljNmYwZWRhZWUzM2ViNmM1Mzg4ODMxMjg3OTg1Lmljby5wbmdoJKG+AAAAAElFTkSuQmCC";
@@ -56,7 +57,6 @@ class HomeControllerViewTests extends TestClassNullifier {
     private MockMvc mockMvc;
 
     private IdentityZoneConfiguration originalConfiguration;
-    private Links originalGlobalLinks;
 
     @Autowired
     private HomeController homeController;
@@ -73,7 +73,6 @@ class HomeControllerViewTests extends TestClassNullifier {
         newConfiguration.getBranding().setFooterLegalText(customFooterText);
         newConfiguration.getBranding().setProductLogo(base64ProductLogo);
         IdentityZoneHolder.get().setConfig(newConfiguration);
-        originalGlobalLinks = homeController.getGlobalLinks();
     }
 
     @AfterEach
@@ -81,7 +80,6 @@ class HomeControllerViewTests extends TestClassNullifier {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         IdentityZoneHolder.get().setConfig(originalConfiguration);
-        homeController.setGlobalLinks(originalGlobalLinks);
     }
 
     @Test
@@ -154,7 +152,7 @@ class HomeControllerViewTests extends TestClassNullifier {
                 .andExpect(status().isOk());
 
         String globalHomePage = "http://{zone.subdomain}.custom.home/{zone.id}";
-        homeController.setGlobalLinks(new Links().setHomeRedirect(globalHomePage));
+        ReflectionTestUtils.setField(homeController, "globalLinks", new Links().setHomeRedirect(globalHomePage));
 
         //global home redirect configured
         mockMvc.perform(get("/home"))
@@ -184,7 +182,6 @@ class HomeControllerViewTests extends TestClassNullifier {
                 .andExpect(header().string("Location", customHomePage));
     }
 
-    @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration extends WebMvcConfigurerAdapter {
@@ -234,15 +231,13 @@ class HomeControllerViewTests extends TestClassNullifier {
         }
 
         @Bean
-        MockEnvironment environment() {
-            return new MockEnvironment();
-        }
-
-        @Bean
-        HomeController homeController(MockEnvironment environment) {
-            HomeController homeController = new HomeController(environment);
-            homeController.setUaaBaseUrl("http://uaa.example.com");
-            return homeController;
+        HomeController homeController(
+                final JdbcClientMetadataProvisioning clientMetadataProvisioning,
+                final BuildInfo buildInfo) {
+            return new HomeController(
+                    clientMetadataProvisioning,
+                    buildInfo,
+                    null);
         }
     }
 }

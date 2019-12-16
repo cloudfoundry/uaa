@@ -32,12 +32,12 @@ public class SamlAssertionBindingTests {
     private SamlAssertionBinding binding;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         binding = new SamlAssertionBinding(new BasicParserPool());
     }
 
     @Test
-    public void supports() throws Exception {
+    public void supports() {
         HTTPInTransport transport = mock(HTTPInTransport.class);
         assertFalse(binding.supports(transport));
 
@@ -49,7 +49,7 @@ public class SamlAssertionBindingTests {
     }
 
     @Test
-    public void getBindingURI() throws Exception {
+    public void getBindingURI() {
         assertEquals("urn:oasis:names:tc:SAML:2.0:bindings:URI", binding.getBindingURI());
     }
 

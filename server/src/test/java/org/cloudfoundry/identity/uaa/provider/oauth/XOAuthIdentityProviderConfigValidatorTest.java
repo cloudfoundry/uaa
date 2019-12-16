@@ -39,35 +39,35 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void configWithNullAuthUrl_ThrowsException() throws Exception {
+    public void configWithNullAuthUrl_ThrowsException() {
         definition.setAuthUrl(null);
         validator = new XOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void configWithNullTokenUrl_ThrowsException() throws Exception {
+    public void configWithNullTokenUrl_ThrowsException() {
         definition.setTokenUrl(null);
         validator = new XOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void configWithNullRelyingPartyId_ThrowsException() throws Exception {
+    public void configWithNullRelyingPartyId_ThrowsException() {
         definition.setRelyingPartyId(null);
         validator = new XOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void configWithNullRelyingPartySecret_ThrowsException() throws Exception {
+    public void configWithNullRelyingPartySecret_ThrowsException() {
         definition.setRelyingPartySecret(null);
         validator = new XOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void configWithShowLinkTextTrue_mustHaveLinkText() throws Exception {
+    public void configWithShowLinkTextTrue_mustHaveLinkText() {
         definition.setShowLinkText(true);
         definition.setLinkText(null);
         validator = new XOAuthIdentityProviderConfigValidator();
@@ -75,7 +75,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     }
 
     @Test
-    public void configWithShowLinkTextFalse_doesNotNeedLinkText() throws Exception {
+    public void configWithShowLinkTextFalse_doesNotNeedLinkText() {
         definition.setShowLinkText(false);
         definition.setLinkText(null);
         validator = new XOAuthIdentityProviderConfigValidator();
@@ -83,7 +83,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     }
 
     @Test
-    public void no_client_secret_needed_for_implicit() throws Exception {
+    public void no_client_secret_needed_for_implicit() {
         definition.setRelyingPartySecret(null);
         definition.setResponseType("code id_token");
         validator = new XOAuthIdentityProviderConfigValidator();
@@ -92,12 +92,12 @@ public class XOAuthIdentityProviderConfigValidatorTest {
 
 
     @Test(expected = IllegalArgumentException.class)
-    public void configCannotBeNull() throws Exception {
+    public void configCannotBeNull() {
         validator.validate((AbstractXOAuthIdentityProviderDefinition)null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void tokenKeyUrl_orTokenKeyMustBeSpecified() throws Exception {
+    public void tokenKeyUrl_orTokenKeyMustBeSpecified() {
         definition.setTokenKey(null);
         definition.setTokenKeyUrl(null);
         validator.validate(definition);

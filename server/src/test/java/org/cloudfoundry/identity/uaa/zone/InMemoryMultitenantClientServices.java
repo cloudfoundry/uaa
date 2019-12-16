@@ -7,12 +7,12 @@ import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
@@ -72,7 +72,7 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
 
     @Override
     public List<ClientDetails> listClientDetails(String zoneId) {
-        return getInMemoryService(zoneId).entrySet().stream().map(Map.Entry::getValue).collect(Collectors.toList());
+        return new ArrayList<>(getInMemoryService(zoneId).values());
     }
 
     @Override

@@ -45,7 +45,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     "ORDER BY 1,2";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         logger.info("[V1_5_4] Running SQL: " + colQuery);
         List<ColumnInfo> columns = jdbcTemplate.query(colQuery, new ColumnMapper());
         for (ColumnInfo column : columns) {

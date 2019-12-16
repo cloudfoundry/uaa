@@ -16,10 +16,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.web.accept.ContentNegotiationManager;
 
-@Configuration
 public class ThymeleafAdditional {
 
     @Bean

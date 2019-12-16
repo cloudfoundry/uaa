@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
@@ -115,7 +115,7 @@ class UaaPasswordPolicyValidatorTests {
     }
 
     @Test
-    void testValidateSpaceNotSpecialCharacter() throws Exception {
+    void testValidateSpaceNotSpecialCharacter() {
         validatePassword("Password123 ", "Password must contain at least 1 special characters.");
     }
 
@@ -131,8 +131,8 @@ class UaaPasswordPolicyValidatorTests {
             if (expectedErrors.length == 0) {
                 fail("Didn't expect InvalidPasswordException, but messages were " + e.getErrorMessages());
             }
-            for (int i = 0; i < expectedErrors.length; i++) {
-                assertTrue("Errors should contain:"+expectedErrors[i], e.getErrorMessages().contains(expectedErrors[i]));
+            for (String expectedError : expectedErrors) {
+                assertTrue("Errors should contain:" + expectedError, e.getErrorMessages().contains(expectedError));
             }
         }
     }

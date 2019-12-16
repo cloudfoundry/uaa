@@ -103,7 +103,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     public void setAdditionalInternalHostnames(Set<String> hostnames) {
         if (hostnames!=null) {
             hostnames
-                .stream()
                 .forEach(
                   entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
                  );
@@ -113,7 +112,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     public void setDefaultInternalHostnames(Set<String> hostnames) {
         if (hostnames!=null) {
             hostnames
-                .stream()
                 .forEach(
                         entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
                 );
@@ -124,7 +122,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         this.defaultZoneHostnames.clear();
         if (hostnames!=null) {
             hostnames
-                .stream()
                 .forEach(
                         entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
                 );

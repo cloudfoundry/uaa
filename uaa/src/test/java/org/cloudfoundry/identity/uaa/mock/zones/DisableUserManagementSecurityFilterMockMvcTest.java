@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,14 +21,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,19 +58,21 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+
+    @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
     private TestClient testClient;
+
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
 
     @Value("${disableInternalUserManagement:false}")
     private boolean disableInternalUserManagement;
 
     @BeforeEach
-    void setUp(@Autowired FilterChainProxy springSecurityFilterChain) throws Exception {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-        testClient = new TestClient(mockMvc);
-
+    void setUp() throws Exception {
         token = testClient.getClientCredentialsOAuthAccessToken(
                 "login",
                 "loginsecret",
@@ -85,7 +87,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void userEndpointCreateNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         result.andExpect(status().isForbidden())
                 .andExpect(content()
                         .string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -98,21 +100,21 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void userEndpointCreateAllowed_For_Origin_LDAP() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
-        ResultActions result = createUser(OriginKeys.LDAP);
+        ResultActions result = createUser(OriginKeys.LDAP, mockMvc, token);
         result.andExpect(status().isCreated());
     }
 
     @Test
     void userEndpointUpdateNotAllowed_For_Origin_UAA() throws Exception {
-        userEndpointUpdateNotAllowed_For_Origin_UAA(OriginKeys.UAA);
-        userEndpointUpdateNotAllowed_For_Origin_UAA("");
-        userEndpointUpdateNotAllowed_For_Origin_UAA(null);
+        userEndpointUpdateNotAllowed_For_Origin_UAA(OriginKeys.UAA, mockMvc, webApplicationContext, token);
+        userEndpointUpdateNotAllowed_For_Origin_UAA("", mockMvc, webApplicationContext, token);
+        userEndpointUpdateNotAllowed_For_Origin_UAA(null, mockMvc, webApplicationContext, token);
     }
 
     @Test
     void userEndpointUpdateAllowed_For_Origin_SAML() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser(OriginKeys.SAML);
+        ResultActions result = createUser(OriginKeys.SAML, mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -128,7 +130,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void userEndpointUpdatePasswordNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -152,7 +154,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void userEndpointDeleteNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -170,7 +172,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void userEndpointDeleteNotAllowed_For_Origin_LDAP() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser(OriginKeys.LDAP);
+        ResultActions result = createUser(OriginKeys.LDAP, mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -195,7 +197,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void userEndpointVerifyUsersNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -257,7 +259,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void accountsControllerVerifyUserNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         Map<String, String> codeData = new HashMap<>();
@@ -266,7 +268,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(get("/verify_user")
-                .param("code", getExpiringCode(codeData).getCode()))
+                .param("code", getExpiringCode(codeData, codeStore, identityZoneManager).getCode()))
                 .andExpect(status().isForbidden())
                 .andExpect(content()
                         .string(JsonObjectMatcherUtils.matchesJsonObject(
@@ -279,7 +281,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void changeEmailControllerChangeEmailPageNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockHttpSession userSession = getUserSession(createdUser.getUserName(), PASSWD);
@@ -300,7 +302,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void changeEmailControllerChangeEmailNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -323,14 +325,14 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void changeEmailControllerVerifyEmailNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         EmailChange change = new EmailChange();
         change.setClientId("login");
         change.setEmail(createdUser.getUserName());
         change.setUserId(createdUser.getId());
-        ExpiringCode code = getExpiringCode(change);
+        ExpiringCode code = getExpiringCode(change, codeStore, identityZoneManager);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(get("/verify_email")
@@ -349,7 +351,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     void changePasswordControllerChangePasswordPageNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
 
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
 
@@ -368,7 +370,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void changePasswordControllerChangePasswordNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
         MockHttpSession userSession = getUserSession(createdUser.getUserName(), PASSWD);
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
@@ -451,14 +453,14 @@ class DisableUserManagementSecurityFilterMockMvcTest {
     @Test
     void resetPasswordControllerResetPasswordNotAllowed() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser();
+        ResultActions result = createUser(mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         PasswordChange change = new PasswordChange(createdUser.getId(), createdUser.getUserName(), createdUser.getPasswordLastModified(), "", "");
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);
         mockMvc.perform(post("/reset_password.do")
-                .param("code", getExpiringCode(change).getCode())
+                .param("code", getExpiringCode(change, codeStore, identityZoneManager).getCode())
                 .param("email", createdUser.getUserName())
                 .param("password", "new-password")
 
@@ -474,12 +476,19 @@ class DisableUserManagementSecurityFilterMockMvcTest {
 
     }
 
-    private ExpiringCode getExpiringCode(Object data) {
-        Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis() + (1000 * 60 * 5));
-        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes, null, IdentityZoneHolder.get().getId());
+    private static ExpiringCode getExpiringCode(
+            final Object data,
+            final ExpiringCodeStore codeStore,
+            IdentityZoneManager identityZoneManager) {
+        Timestamp fiveMinutes = new Timestamp(Instant.now().plus(Duration.ofMinutes(5)).toEpochMilli());
+        return codeStore.generateCode(
+                JsonUtils.writeValueAsString(data),
+                fiveMinutes,
+                null,
+                identityZoneManager.getCurrentIdentityZoneId());
     }
 
-    private CookieCsrfPostProcessor cookieCsrf() {
+    private static CookieCsrfPostProcessor cookieCsrf() {
         return new CookieCsrfPostProcessor();
     }
 
@@ -501,11 +510,16 @@ class DisableUserManagementSecurityFilterMockMvcTest {
         return afterLoginSession;
     }
 
-    private ResultActions createUser() throws Exception {
-        return createUser(OriginKeys.UAA);
+    private static ResultActions createUser(
+            final MockMvc mockMvc,
+            final String token) throws Exception {
+        return createUser(OriginKeys.UAA, mockMvc, token);
     }
 
-    private ResultActions createUser(String origin) throws Exception {
+    private static ResultActions createUser(
+            final String origin,
+            final MockMvc mockMvc,
+            final String token) throws Exception {
         String id = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(id, id + "@example.com", "first-name", "family-name");
         user.setOrigin(origin);
@@ -521,9 +535,13 @@ class DisableUserManagementSecurityFilterMockMvcTest {
                 .content(JsonUtils.writeValueAsString(user)));
     }
 
-    private void userEndpointUpdateNotAllowed_For_Origin_UAA(String origin) throws Exception {
+    private static void userEndpointUpdateNotAllowed_For_Origin_UAA(
+            final String origin,
+            final MockMvc mockMvc,
+            final WebApplicationContext webApplicationContext,
+            final String token) throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, false);
-        ResultActions result = createUser(origin);
+        ResultActions result = createUser(origin, mockMvc, token);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(webApplicationContext, true);

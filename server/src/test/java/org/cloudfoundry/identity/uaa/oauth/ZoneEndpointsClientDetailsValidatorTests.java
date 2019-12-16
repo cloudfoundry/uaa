@@ -30,7 +30,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     private ZoneEndpointsClientDetailsValidator zoneEndpointsClientDetailsValidator;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator("zones.write");
         zoneEndpointsClientDetailsValidator.setClientSecretValidator(
                 new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6)));

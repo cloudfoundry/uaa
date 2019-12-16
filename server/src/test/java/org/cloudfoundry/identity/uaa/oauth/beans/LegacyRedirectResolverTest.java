@@ -25,6 +25,7 @@ import java.util.List;
 
 import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
@@ -604,6 +605,51 @@ class LegacyRedirectResolverTest {
     }
 
     @Nested
+    @DisplayName("with caps")
+    class RedirectMatchesCaps {
+        @Test
+        void withClientHostCaps() {
+            final String clientRedirectUri = "http://SubDomain.Domain.com";
+            final String clientRedirectUriPort = "http://SubDomain.Domain.com:8080";
+            final String clientRedirectUriPath = "http://SubDomain.Domain.com/bee/Bop";
+            final String clientRedirectUriQuery = "http://SubDomain.Domain.com?rock=Steady";
+            final String clientRedirectUriFragment = "http://SubDomain.Domain.com";
+
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com:8080", clientRedirectUriPort));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/bee/Bop", clientRedirectUriPath));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com?rock=Steady", clientRedirectUriQuery));
+            assertTrue(resolver.redirectMatches("http://subdomain.domain.com#Shredder", clientRedirectUriFragment));
+        }
+
+        @Test
+        void withRequestedHostCaps() {
+            final String clientRedirectUri = "http://subdomain.domain.com";
+            final String clientRedirectUriPort = "http://subdomain.domain.com:8080";
+            final String clientRedirectUriPath = "http://subdomain.domain.com/bee/Bop";
+            final String clientRedirectUriQuery = "http://subdomain.domain.com?rock=Steady";
+            final String clientRedirectUriFragment = "http://subdomain.domain.com";
+
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080", clientRedirectUriPort));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop", clientRedirectUriPath));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com?rock=Steady", clientRedirectUriQuery));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com#Shredder", clientRedirectUriFragment));
+        }
+
+        @Test
+        void withWildCardHostCaps() {
+            final String clientRedirectUri = "http://SubDomain.Domain.com/**";
+            final String clientRedirectUriPort = "http://SubDomain.Domain.com:8080/**";
+            final String clientRedirectUriPath = "http://SubDomain.Domain.com/bee/Bop/**";
+
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080/", clientRedirectUriPort));
+            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop/", clientRedirectUriPath));
+        }
+    }
+
+    @Nested
     class ResolveRedirect {
         private ClientDetails mockClientDetails;
 
@@ -617,10 +663,9 @@ class LegacyRedirectResolverTest {
         void clientMissingRedirectUri() {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(new HashSet<>());
 
-            RedirectMismatchException exception = assertThrows(RedirectMismatchException.class,
-                    () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails));
-
-            assertThat(exception.getMessage(), containsString("Client registration is missing redirect_uri"));
+            assertThrowsWithMessageThat(RedirectMismatchException.class,
+                    () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails),
+                    containsString("Client registration is missing redirect_uri"));
         }
 
         @Test

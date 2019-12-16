@@ -63,6 +63,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -915,7 +916,7 @@ public class IntegrationTestUtils {
         return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
     }
 
-    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -947,7 +948,7 @@ public class IntegrationTestUtils {
     }
 
     public static void updateIdentityProvider(
-            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) throws Exception {
+            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -1065,7 +1066,7 @@ public class IntegrationTestUtils {
                                        String password,
                                        String scopes) {
         RestTemplate template = new RestTemplate();
-        template.getMessageConverters().add(0, new StringHttpMessageConverter(java.nio.charset.Charset.forName("UTF-8")));
+        template.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -1117,7 +1118,7 @@ public class IntegrationTestUtils {
                                                   String clientId,
                                                   String clientSecret,
                                                   String username,
-                                                  String password) throws Exception {
+                                                  String password) {
 
         return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, username, password)
                 .get("access_token");

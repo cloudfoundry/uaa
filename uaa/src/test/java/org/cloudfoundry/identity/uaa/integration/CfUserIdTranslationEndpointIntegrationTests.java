@@ -35,7 +35,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
@@ -54,11 +53,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
 
     private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String userEndpoint = "/Users";
-
     private final String idsEndpoint = "/ids/Users";
-
-    private ScimUser joe;
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -84,10 +79,11 @@ public class CfUserIdTranslationEndpointIntegrationTests {
         user.setGroups(Arrays.asList(new Group(null, "uaa.user"), new Group(null, "orgs.foo")));
         user.setVerified(true);
 
+        String userEndpoint = "/Users";
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
                         ScimUser.class);
 
-        joe = newuser.getBody();
+        ScimUser joe = newuser.getBody();
         assertEquals(JOE, joe.getUserName());
 
         PasswordChangeRequest change = new PasswordChangeRequest();
@@ -112,18 +108,18 @@ public class CfUserIdTranslationEndpointIntegrationTests {
         ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
 
     @Test
-    public void findUsersWithExplicitFilterSucceeds() throws Exception {
+    public void findUsersWithExplicitFilterSucceeds() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=userName eq \"" + JOE + "\"",
                         Map.class);
@@ -134,7 +130,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersExplicitEmailFails() throws Exception {
+    public void findUsersExplicitEmailFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=emails.value sw \"joe\"",
                         Map.class);
@@ -145,7 +141,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersExplicitPresentFails() throws Exception {
+    public void findUsersExplicitPresentFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=pr userType", Map.class);
         @SuppressWarnings("unchecked")
@@ -155,7 +151,7 @@ public class CfUserIdTranslationEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersExplicitGroupFails() throws Exception {
+    public void findUsersExplicitGroupFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(idsEndpoint + "?filter=groups.display co \"foo\"",
                         Map.class);

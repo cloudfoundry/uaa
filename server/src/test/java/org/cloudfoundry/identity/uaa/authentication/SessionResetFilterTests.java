@@ -63,7 +63,7 @@ public class SessionResetFilterTests {
     UaaUser userWithNoPasswordModification;
 
     @Before
-    public void setUpFilter() throws Exception {
+    public void setUpFilter() {
 
         yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
 

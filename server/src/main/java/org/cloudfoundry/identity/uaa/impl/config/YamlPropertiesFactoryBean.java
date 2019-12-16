@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.springframework.beans.factory.FactoryBean;
 
-import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -80,12 +79,7 @@ public class YamlPropertiesFactoryBean extends YamlProcessor implements FactoryB
 
     private Properties doGetObject() {
         final Properties result = new Properties();
-        MatchCallback callback = new MatchCallback() {
-            @Override
-            public void process(Properties properties, Map<String, Object> map) {
-                result.putAll(properties);
-            }
-        };
+        MatchCallback callback = (properties, map) -> result.putAll(properties);
         process(callback);
         return result;
     }

@@ -8,8 +8,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import javax.xml.bind.ValidationException;
-
 import static org.junit.Assert.assertEquals;
 
 public class GeneralMfaProviderValidatorTest {
@@ -25,7 +23,7 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
-    public void validateProviderNullConfig() throws ValidationException {
+    public void validateProviderNullConfig() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider config is required");
         MfaProvider<GoogleMfaProviderConfig> provider = createValidGoogleMfaProvider()
@@ -34,7 +32,7 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
-    public void validateProviderConfigWithInvalidIssuer() throws ValidationException {
+    public void validateProviderConfigWithInvalidIssuer() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider config contains an invalid issuer. Issuer must not contain a colon");
         MfaProvider<GoogleMfaProviderConfig> provider = createValidGoogleMfaProvider()
@@ -43,14 +41,14 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
-    public void validateProviderConfigWithMissingIssuer() throws ValidationException {
+    public void validateProviderConfigWithMissingIssuer() {
         MfaProvider<GoogleMfaProviderConfig> provider = createValidGoogleMfaProvider()
                 .setConfig(createValidGoogleMfaConfig().setIssuer(null));
         validator.validate(provider);
     }
 
     @Test
-    public void validateProviderEmptyName() throws ValidationException {
+    public void validateProviderEmptyName() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider name is required");
         MfaProvider provider = createValidGoogleMfaProvider()
@@ -59,7 +57,7 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
-    public void validateProviderInvalidNameTooLong() throws ValidationException {
+    public void validateProviderInvalidNameTooLong() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider name cannot be longer than 256 characters");
         MfaProvider provider = createValidGoogleMfaProvider()
@@ -67,7 +65,7 @@ public class GeneralMfaProviderValidatorTest {
         validator.validate(provider);
     }
     @Test
-    public void validateProviderInvalidName() throws ValidationException {
+    public void validateProviderInvalidName() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider name is required");
         MfaProvider provider = createValidGoogleMfaProvider()
@@ -94,7 +92,7 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
-    public void validateProviderInvalidNameSpecialChars() throws ValidationException {
+    public void validateProviderInvalidNameSpecialChars() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider name must be alphanumeric");
         MfaProvider provider = createValidGoogleMfaProvider()
@@ -104,7 +102,7 @@ public class GeneralMfaProviderValidatorTest {
 
 
     @Test
-    public void validateProviderNullType() throws ValidationException {
+    public void validateProviderNullType() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider type is required. Must be one of " + MfaProvider.MfaProviderType.getStringValues());
         MfaProvider provider = createValidGoogleMfaProvider()
@@ -113,7 +111,7 @@ public class GeneralMfaProviderValidatorTest {
     }
 
     @Test
-    public void validateProviderEmptyZone() throws ValidationException {
+    public void validateProviderEmptyZone() {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider must belong to a zone");
         MfaProvider provider = createValidGoogleMfaProvider()

@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -29,23 +17,20 @@ import java.security.Principal;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 
-
 /**
  * Controller that sends user info to clients wishing to authenticate.
- *
- * @author Dave Syer
  */
 @Controller
 public class UserInfoEndpoint implements InitializingBean {
 
-    private UaaUserDatabase userDatabase;
+    private final UaaUserDatabase userDatabase;
 
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
+    public UserInfoEndpoint(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.state(userDatabase != null, "A user database must be provided");
     }
 
@@ -54,8 +39,8 @@ public class UserInfoEndpoint implements InitializingBean {
     public UserInfoResponse loginInfo(Principal principal) {
         OAuth2Authentication authentication = (OAuth2Authentication) principal;
         UaaPrincipal uaaPrincipal = extractUaaPrincipal(authentication);
-        boolean addCustomAttributes = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {USER_ATTRIBUTES});
-        boolean addRoles = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {ROLES});
+        boolean addCustomAttributes = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{USER_ATTRIBUTES});
+        boolean addRoles = OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{ROLES});
         return getResponse(uaaPrincipal, addCustomAttributes, addRoles);
     }
 
@@ -80,10 +65,10 @@ public class UserInfoEndpoint implements InitializingBean {
         response.setPreviousLogonSuccess(user.getPreviousLogonTime());
 
         UserInfo info = userDatabase.getUserInfo(user.getId());
-        if (addCustomAttributes && info!=null) {
+        if (addCustomAttributes && info != null) {
             response.setUserAttributes(info.getUserAttributes());
         }
-        if (addRoles && info!=null) {
+        if (addRoles && info != null) {
             response.setRoles(info.getRoles());
         }
         return response;

@@ -86,13 +86,13 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testParseMfaProviders() throws Exception {
+    public void testParseMfaProviders() {
         bootstrap.setMfaProviders(sampleData);
         assertThat(bootstrap.getMfaProviders(),  containsInAnyOrder(expectedGoogleProviders.toArray()));
     }
 
     @Test
-    public void testAfterPropertiesSet() throws Exception {
+    public void testAfterPropertiesSet() {
         bootstrap.setMfaProviders(sampleData);
         bootstrap.afterPropertiesSet();
         verify(provisioning).create(expectedGoogleProviders.get(0), "uaa");
@@ -100,7 +100,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void testBootstrapWithSomeExistingProviders() throws Exception {
+    public void testBootstrapWithSomeExistingProviders() {
         provisioning.create(expectedGoogleProviders.get(0), "uaa");
         reset(provisioning);
         bootstrap.setMfaProviders(parseMfaYaml(sampleMfaYaml.replace("mfa provider description", "new description")));
@@ -118,7 +118,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
         List<Resource> resources = new ArrayList<>();
         ByteArrayResource resource = new ByteArrayResource(sampleYaml.getBytes());
         resources.add(resource);
-        factory.setResources(resources.toArray(new Resource[resources.size()]));
+        factory.setResources(resources.toArray(new Resource[0]));
         Map<String, Object> tmpdata = factory.getObject();
         Map<String, Map<String, Object>> dataList = new HashMap<>();
         for (Map.Entry<String, Map<String, Object>> entry : ((Map<String, Map<String, Object>>)tmpdata.get("mfa-providers")).entrySet()) {

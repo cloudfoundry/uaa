@@ -13,7 +13,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 public class EncryptionService {
@@ -77,16 +77,16 @@ public class EncryptionService {
         }
     }
 
-    private byte[] generateRandomArray(int sizeInBytes) throws NoSuchAlgorithmException {
+    private byte[] generateRandomArray(int sizeInBytes) {
         final byte[] randomArray = new byte[sizeInBytes];
         random.nextBytes(randomArray);
         return randomArray;
     }
 
-    private byte[] generateKey(byte[] salt) throws UnsupportedEncodingException {
+    private byte[] generateKey(byte[] salt) {
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(new SHA256Digest());
 
-        gen.init(this.passphrase.getBytes("UTF-8"), salt, PBKDF2_ITERATIONS);
+        gen.init(this.passphrase.getBytes(StandardCharsets.UTF_8), salt, PBKDF2_ITERATIONS);
         return ((KeyParameter) gen.generateDerivedParameters(AES_KEY_LENGTH_BITS)).getKey();
     }
 }

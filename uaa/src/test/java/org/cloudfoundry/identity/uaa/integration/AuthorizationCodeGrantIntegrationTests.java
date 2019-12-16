@@ -98,7 +98,7 @@ public class AuthorizationCodeGrantIntegrationTests {
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
     }
 
-    public void testSuccessfulAuthorizationCodeFlow_Internal() throws Exception {
+    public void testSuccessfulAuthorizationCodeFlow_Internal() {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
         Map<String, String> body = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,

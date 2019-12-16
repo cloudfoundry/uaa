@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import org.apache.commons.lang.StringUtils;
-import org.cloudfoundry.identity.uaa.impl.config.SpringProfileCleanupExtension;
+import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -23,7 +23,7 @@ class LimitSqlAdapterFactoryTest {
     static class LimitSqlAdapterArgumentsProvider implements ArgumentsProvider {
 
         @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(null, HsqlDbLimitSqlAdapter.class),
                     Arguments.of(EMPTY_LIST, HsqlDbLimitSqlAdapter.class),

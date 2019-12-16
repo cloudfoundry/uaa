@@ -22,7 +22,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
@@ -49,7 +49,7 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void test_default_redirect_uri() throws Exception {
+    public void test_default_redirect_uri() {
         assertEquals("/login", handler.determineTargetUrl(request, response));
         assertEquals("/login", handler.determineTargetUrl(request, response));
         handler.setAlwaysUseDefaultTargetUrl(false);
@@ -57,8 +57,8 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void test_whitelist_reject() throws Exception {
-        handler.setWhitelist(Arrays.asList("http://testing.com"));
+    public void test_whitelist_reject() {
+        handler.setWhitelist(Collections.singletonList("http://testing.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://testing.com");
         assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
@@ -67,7 +67,7 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void test_open_redirect_no_longer_allowed() throws Exception {
+    public void test_open_redirect_no_longer_allowed() {
         handler.setWhitelist(null);
         handler.setAlwaysUseDefaultTargetUrl(false);
         handler.setDefaultTargetUrl("/login");
@@ -78,24 +78,24 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void test_whitelist_redirect() throws Exception {
-        handler.setWhitelist(Arrays.asList("http://somethingelse.com"));
+    public void test_whitelist_redirect() {
+        handler.setWhitelist(Collections.singletonList("http://somethingelse.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://somethingelse.com");
         assertEquals("http://somethingelse.com", handler.determineTargetUrl(request, response));
     }
 
     @Test
-    public void test_whitelist_redirect_with_wildcard() throws Exception {
-        handler.setWhitelist(Arrays.asList("http://*.somethingelse.com"));
+    public void test_whitelist_redirect_with_wildcard() {
+        handler.setWhitelist(Collections.singletonList("http://*.somethingelse.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://www.somethingelse.com");
         assertEquals("http://www.somethingelse.com", handler.determineTargetUrl(request, response));
     }
 
     @Test
-    public void test_client_redirect() throws Exception {
-        handler.setWhitelist(Arrays.asList("http://somethingelse.com"));
+    public void test_client_redirect() {
+        handler.setWhitelist(Collections.singletonList("http://somethingelse.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://testing.com");
         request.setParameter(CLIENT_ID, CLIENT_ID);
@@ -103,9 +103,9 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void client_not_found_exception() throws Exception {
+    public void client_not_found_exception() {
         when(clientDetailsService.loadClientByClientId("test", "uaa")).thenThrow(new NoSuchClientException("test"));
-        handler.setWhitelist(Arrays.asList("http://testing.com"));
+        handler.setWhitelist(Collections.singletonList("http://testing.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://notwhitelisted.com");
         request.setParameter(CLIENT_ID, "test");
@@ -113,8 +113,8 @@ public class WhitelistLogoutHandlerTest {
     }
 
     @Test
-    public void test_client_redirect_using_wildcard() throws Exception {
-        handler.setWhitelist(Arrays.asList("http://testing.com"));
+    public void test_client_redirect_using_wildcard() {
+        handler.setWhitelist(Collections.singletonList("http://testing.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter(CLIENT_ID, CLIENT_ID);
         request.setParameter("redirect", "http://www.testing.com");

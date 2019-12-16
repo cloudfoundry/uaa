@@ -22,7 +22,7 @@ public interface LoginPolicy {
     
     LockoutPolicyRetriever getLockoutPolicyRetriever();
     
-    public static class Result {
+    class Result {
         private final boolean isAllowed;
         private final int failureCount;
 

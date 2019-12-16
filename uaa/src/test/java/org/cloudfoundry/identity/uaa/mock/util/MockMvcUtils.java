@@ -66,6 +66,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -100,7 +101,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
@@ -257,7 +257,7 @@ public final class MockMvcUtils {
         return resultActions;
     }
 
-    public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) throws Exception {
+    public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) {
         String zoneId = zone.getId();
         MfaProvider provider = new MfaProvider();
         provider.setName(new RandomValueStringGenerator(5).generate().toLowerCase());
@@ -283,7 +283,7 @@ public final class MockMvcUtils {
         return tempFile;
     }
 
-    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) throws Exception {
+    public static void resetLimitedModeStatusFile(ApplicationContext context, File file) {
         context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
     }
 
@@ -408,7 +408,7 @@ public final class MockMvcUtils {
     }
 
 
-    public static String extractInvitationCode(String inviteLink) throws Exception {
+    public static String extractInvitationCode(String inviteLink) {
         Pattern p = Pattern.compile("accept\\?code=(.*)");
         Matcher m = p.matcher(inviteLink);
 
@@ -555,7 +555,7 @@ public final class MockMvcUtils {
         user.setPassword("password");
 
         ScimGroup group = new ScimGroup("scim.invite");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER)));
+        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId(), USER)));
 
         return new ZoneScimInviteData(
           adminToken,
@@ -847,7 +847,7 @@ public final class MockMvcUtils {
         user.setUserName(random + "@example.com");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(random + "@example.com");
-        user.setEmails(asList(email));
+        user.setEmails(Collections.singletonList(email));
         user.setPassword("secr3T");
         ScimUser createdUser = createUser(mockMvc, accessToken, user);
 
@@ -855,7 +855,7 @@ public final class MockMvcUtils {
             ScimGroup group = getGroup(mockMvc, accessToken, scope);
             if (group == null) {
                 group = new ScimGroup(null, scope, zoneId);
-                group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
+                group.setMembers(Collections.singletonList(new ScimGroupMember(createdUser.getId())));
                 createGroup(mockMvc, accessToken, group);
             } else {
                 List<ScimGroupMember> members = new LinkedList(group.getMembers());
@@ -978,8 +978,7 @@ public final class MockMvcUtils {
             .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
-    public static BaseClientDetails createClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)
-      throws Exception {
+    public static BaseClientDetails createClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone) {
 
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
         service.addClientDetails(clientDetails, zone.getId());
@@ -1011,13 +1010,11 @@ public final class MockMvcUtils {
         detailsModification.setAuthorizedGrantTypes(grantTypes);
         detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(authorities));
         detailsModification.setRegisteredRedirectUri(redirectUris);
-        ClientDetailsModification client = detailsModification;
-        client.setClientSecret(secret);
-        return client;
+        detailsModification.setClientSecret(secret);
+        return detailsModification;
     }
 
-    public static BaseClientDetails updateClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone)
-      throws Exception {
+    public static BaseClientDetails updateClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone) {
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
         service.updateClientDetails(clientDetails, zone.getId());
         return (BaseClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
@@ -1070,7 +1067,7 @@ public final class MockMvcUtils {
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup(null, scope, IdentityZone.getUaaZoneId());
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
+        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId())));
         MockMvcUtils.createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc,
           "identity",
@@ -1141,9 +1138,21 @@ public final class MockMvcUtils {
         return oauthToken.accessToken;
     }
 
-    public static String getClientOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String scope)
-      throws Exception {
-        return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null);
+    public static String getClientOAuthAccessToken(MockMvc mockMvc,
+                                                   String clientId,
+                                                   String clientSecret,
+                                                   String scope)
+            throws Exception {
+        return getClientOAuthAccessToken(mockMvc, clientId, clientSecret, scope, false);
+    }
+
+    public static String getClientOAuthAccessToken(MockMvc mockMvc,
+                                                   String clientId,
+                                                   String clientSecret,
+                                                   String scope,
+                                                   boolean opaque)
+            throws Exception {
+        return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null, opaque);
     }
 
     public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId) throws Exception {
@@ -1281,10 +1290,15 @@ public final class MockMvcUtils {
     }
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId) {
+        return getUaaSecurityContext(username, context, currentZoneId,
+                Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")));
+    }
+
+    public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId, Collection<? extends GrantedAuthority> authorities) {
         ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
         ScimUser user = userProvisioning.query("username eq \"" + username + "\" and origin eq \"uaa\"", currentZoneId).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), currentZoneId);
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, authorities, new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
         SecurityContext securityContext = new SecurityContextImpl();
         securityContext.setAuthentication(principal);
         return securityContext;
@@ -1361,7 +1375,7 @@ public final class MockMvcUtils {
             boolean replaced = false;
             for (int i = 0; i < cookies.length; i++) {
                 Cookie c = cookies[i];
-                if (cookie.getName() == c.getName()) {
+                if (cookie.getName().equals(c.getName())) {
                     cookies[i] = cookie;
                     replaced = true;
                 }

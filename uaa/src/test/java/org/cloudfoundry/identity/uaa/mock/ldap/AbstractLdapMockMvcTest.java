@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Sets;
-import org.apache.directory.server.core.security.TlsKeyGenerator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
@@ -15,11 +14,11 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -27,22 +26,18 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MfaConfig;
-import org.cloudfoundry.identity.uaa.zone.UserConfig;
-import org.junit.jupiter.api.AfterAll;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -57,8 +52,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.ldap.server.ApacheDsSSLContainer;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
@@ -72,69 +68,48 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
+import static com.beust.jcommander.internal.Lists.newArrayList;
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performMfaRegistrationInZone;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
-import static org.mockito.Mockito.atLeast;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.springframework.http.HttpHeaders.ACCEPT;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
-import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.springframework.http.HttpHeaders.HOST;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.mockito.Mockito.*;
+import static org.springframework.http.HttpHeaders.*;
+import static org.springframework.http.MediaType.*;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
 import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DefaultTestContext
+@ExtendWith(InMemoryLdapServer.LdapTrustStoreExtension.class)
 public abstract class AbstractLdapMockMvcTest {
-    private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
     private static final String REDIRECT_URI = "http://invitation.redirect.test";
+    static final File KEYSTORE;
 
-    private static int secondLdapServerPortRotation = 0;
-    private static String defaultTrustStore;
+    static {
+        ClassLoader classLoader = LdapSimpleBindTest.class.getClassLoader();
+        KEYSTORE = new File(classLoader.getResource("certs/valid-self-signed-ldap-cert.jks").getFile());
+    }
 
     private String ldapProfile;
     private String ldapGroup;
-    private String ldapBaseUrl;
     private String tlsConfig;
 
     private String host;
@@ -153,42 +128,21 @@ public abstract class AbstractLdapMockMvcTest {
         return webApplicationContext;
     }
 
-    private MockMvc getMockMvc() {
+    MockMvc getMockMvc() {
         return mockMvc;
     }
 
-    protected abstract void ensureLdapServerIsRunning() throws Exception;
+    protected abstract void ensureLdapServerIsRunning();
 
-    protected abstract void stopLdapServer() throws Exception;
+    protected abstract void stopLdapServer();
 
-    protected abstract int getLdapPort();
-
-    protected abstract int getLdapSPort();
+    protected abstract String getLdapOrLdapSBaseUrl();
 
     // Called by child classes. Allows this abstract parent class to act like a parameterized test.
-    AbstractLdapMockMvcTest(String ldapProfile, String ldapGroup, String baseUrl, String tlsConfig) {
+    AbstractLdapMockMvcTest(String ldapProfile, String ldapGroup, String tlsConfig) {
         this.ldapProfile = ldapProfile;
         this.ldapGroup = ldapGroup;
-        this.ldapBaseUrl = baseUrl;
         this.tlsConfig = tlsConfig;
-    }
-
-    @BeforeAll
-    static void trustOurCustomCA() {
-        ClassLoader classLoader = AbstractLdapMockMvcTest.class.getClassLoader();
-        File file = new File(classLoader.getResource("certs/truststore-containing-the-ldap-ca.jks").getFile());
-
-        defaultTrustStore = System.getProperty(JAVAX_NET_SSL_TRUST_STORE);
-        System.setProperty(JAVAX_NET_SSL_TRUST_STORE, file.getAbsolutePath());
-    }
-
-    @AfterAll
-    static void revertOurCustomCA() {
-        if (defaultTrustStore != null) {
-            System.setProperty(JAVAX_NET_SSL_TRUST_STORE, defaultTrustStore);
-        } else {
-            System.clearProperty(JAVAX_NET_SSL_TRUST_STORE);
-        }
     }
 
     @BeforeEach
@@ -209,10 +163,10 @@ public abstract class AbstractLdapMockMvcTest {
         definition.setLdapProfileFile("ldap/" + ldapProfile);
         definition.setLdapGroupFile("ldap/" + ldapGroup);
         definition.setMaxGroupSearchDepth(10);
-        definition.setBaseUrl(ldapBaseUrl);
+        definition.setBaseUrl(getLdapOrLdapSBaseUrl());
         definition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         definition.setBindPassword("adminsecret");
-        definition.setSkipSSLVerification(true);
+        definition.setSkipSSLVerification(false);
         definition.setTlsConfiguration(tlsConfig);
         definition.setMailAttributeName("mail");
         definition.setReferral("ignore");
@@ -296,7 +250,7 @@ public abstract class AbstractLdapMockMvcTest {
         code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
-        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(redirectUri);
+        String expectRedirectToLogin = "/login?success=invite_accepted&form_redirect_uri=" + URLEncoder.encode(redirectUri, Charset.defaultCharset());
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
                 .session(session)
                 .param("enterprise_username", "marissa2")
@@ -318,7 +272,7 @@ public abstract class AbstractLdapMockMvcTest {
         )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("form_redirect_uri")))
-                .andExpect(content().string(containsString(URLEncoder.encode(redirectUri, "UTF-8"))));
+                .andExpect(content().string(containsString(URLEncoder.encode(redirectUri, StandardCharsets.UTF_8))));
 
 
         getMockMvc().perform(
@@ -471,234 +425,6 @@ public abstract class AbstractLdapMockMvcTest {
         assertEquals("Marissa", getPhoneNumber(username));
         assertEquals("Marissa9", getGivenName(username));
         assertTrue(getVerified(username));
-    }
-
-    @Test
-    void testLdapConfigurationBeforeSave() throws Exception {
-        //we only need to test this once
-        assumeTrue("ldap-search-and-bind.xml".contains(ldapProfile));
-        assumeTrue("ldap-groups-map-to-scopes.xml".contains(ldapGroup));
-
-        String identityAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "identity", "identitysecret", "");
-        String adminAccessToken = MockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
-        IdentityZone zone = MockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityAccessToken);
-        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
-
-        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://localhost:" + getLdapPort(),
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-
-        IdentityProvider provider = new IdentityProvider();
-        provider.setOriginKey(LDAP);
-        provider.setName("Test ldap provider");
-        provider.setType(LDAP);
-        provider.setConfig(definition);
-        provider.setActive(true);
-        provider.setIdentityZoneId(zone.getId());
-
-        IdentityProviderValidationRequest.UsernamePasswordAuthentication token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", LDAP);
-
-        IdentityProviderValidationRequest request = new IdentityProviderValidationRequest(provider, token);
-        System.out.println("request = \n" + JsonUtils.writeValueAsString(request));
-        //Happy Day Scenario
-        MockHttpServletRequestBuilder post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        MvcResult result = getMockMvc().perform(post)
-                .andExpect(status().isOk())
-                .andReturn();
-
-        assertEquals("\"ok\"", result.getResponse().getContentAsString());
-
-        //Correct configuration, invalid credentials
-        token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", "koala");
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        result = getMockMvc().perform(post)
-                .andExpect(status().isExpectationFailed())
-                .andReturn();
-        assertEquals("\"bad credentials\"", result.getResponse().getContentAsString());
-
-        //Insufficent scope
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + identityAccessToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        getMockMvc().perform(post).andExpect(status().isForbidden()).andReturn();
-
-
-        //Invalid LDAP configuration - change the password of search user
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://localhost:33389",
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret23",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
-
-        //Invalid LDAP configuration - no ldap server
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://localhost:33388",
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
-
-        //Invalid LDAP configuration - invalid search base
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldap://localhost:33389",
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                ",,,,,dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                true
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
-
-        token = new IdentityProviderValidationRequest.UsernamePasswordAuthentication("marissa2", LDAP);
-
-        //SSL self signed cert problems
-        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                "ldaps://localhost:" + getLdapSPort(),
-                "cn=admin,ou=Users,dc=test,dc=com",
-                "adminsecret",
-                "dc=test,dc=com",
-                "cn={0}",
-                "ou=scopes,dc=test,dc=com",
-                "member={0}",
-                "mail",
-                null,
-                false,
-                true,
-                true,
-                10,
-                false
-        );
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-        result = getMockMvc().perform(post)
-                .andExpect(status().isBadRequest())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
-        definition.setSkipSSLVerification(true);
-        provider.setConfig(definition);
-        request = new IdentityProviderValidationRequest(provider, token);
-        post = post("/identity-providers/test")
-                .header("Accept", APPLICATION_JSON_VALUE)
-                .header("Content-Type", APPLICATION_JSON_VALUE)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(request))
-                .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
-
-        result = getMockMvc().perform(post)
-                .andExpect(status().isOk())
-                .andReturn();
-        assertThat(result.getResponse().getContentAsString(), containsString("\"ok\""));
     }
 
     @Test
@@ -892,8 +618,8 @@ public abstract class AbstractLdapMockMvcTest {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         List<AbstractUaaEvent> allValues = captor.getAllValues();
-        assertThat(allValues.get(4), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
-        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(4);
+        assertThat(allValues.get(5), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(5);
         assertEquals("marissa", event.getUsername());
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
 
@@ -907,7 +633,7 @@ public abstract class AbstractLdapMockMvcTest {
                 .stream().filter(dbUser -> dbUser.getUserName().equals("marissa2")).findFirst().get();
         String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
         String expectedMessage = String.format(
-                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa2\",\"user_origin=ldap\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
+                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa2\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
                 createdUser.getId(), createdUser.getId(), zoneId
         );
         assertThat(userCreatedLogMessage, is(expectedMessage));
@@ -915,31 +641,154 @@ public abstract class AbstractLdapMockMvcTest {
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         allValues = captor.getAllValues();
-        assertThat(allValues.get(12), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
-        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(12);
+        assertThat(allValues.get(13), instanceOf(IdentityProviderAuthenticationSuccessEvent.class));
+        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(13);
         assertEquals(OriginKeys.LDAP, successEvent.getAuthenticationType());
+    }
+
+    // see also similar test for SAML in SamlAuthenticationMockMvcTests.java
+    @Test
+    void passcodeGrantIdTokenContainsExternalGroupsAsRolesClaim() throws Exception {
+        assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml") || ldapGroup.equals("ldap-groups-map-to-scopes.xml"));
+
+        LdapIdentityProviderDefinition definition = provider.getConfig();
+        // External groups will only appear as roles if they are whitelisted
+        definition.setExternalGroupsWhitelist(newArrayList("*"));
+        // External groups are currently only stored in the db if StoreCustomAttributes is true
+        definition.setStoreCustomAttributes(true);
+        provider.setConfig(definition);
+        updateLdapProvider();
+
+        // This user, their password, and their group membership are all defined in ldap_init.ldif
+        String username = "marissa";
+        String password = "koala";
+        String[] expectedGroups = new String[]{"marissagroup1", "marissagroup2"};
+
+        // You need the openid scope in order to get an id_token,
+        // and you need the roles scope in order to have the "roles" claim included into the id_token,
+        // so we put both of these scopes on the client.
+        String clientId = "roles_test_client";
+        createClient(getWebApplicationContext(),
+                new BaseClientDetails(clientId, null, "roles,openid", "password,refresh_token", null),
+                zone.getZone().getIdentityZone()
+        );
+
+        // Log in to the UI to get a session cookie as the user
+        MockHttpSession session = (MockHttpSession) getMockMvc().perform(
+                post("/login.do").accept(TEXT_HTML_VALUE)
+                        .header(HOST, host)
+                        .with(cookieCsrf())
+                        .param("username", username)
+                        .param("password", password)
+        )
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/"))
+                .andExpect(authenticated())
+                .andReturn().getRequest().getSession(false);
+
+        // Using the user's session cookie, get a one-time passcode
+        String content = mockMvc.perform(
+                get("/passcode")
+                        .session(session)
+                        .header(HOST, host)
+                        .accept(APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String passcode = JsonUtils.readValue(content, String.class);
+
+        // Using the passcode, perform a password grant to get back tokens
+        String response = mockMvc.perform(
+                post("/oauth/token")
+                        .param("client_id", clientId)
+                        .param("client_secret", "")
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
+                        .param("passcode", passcode)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .header(HOST, host)
+        )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {
+        });
+
+        String accessToken = (String) tokens.get(ACCESS_TOKEN);
+        Jwt accessTokenJwt = JwtHelper.decode(accessToken);
+        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> accessTokenScopes = (List<String>) accessTokenClaims.get("scope");
+        // Check that the user had the roles scope, which is a pre-requisite for getting roles returned in the id_token
+        assertThat(accessTokenScopes, hasItem("roles"));
+
+        Jwt idTokenJwt = JwtHelper.decode((String) tokens.get("id_token"));
+        Map<String, Object> claims = JsonUtils.readValue(idTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> idTokenRoles = (List<String>) claims.get("roles");
+        assertThat(idTokenRoles, containsInAnyOrder(expectedGroups));
+
+        // As an aside, the /userinfo endpoint should also return the user's roles
+        String userInfoContent = mockMvc.perform(
+                get("/userinfo")
+                        .header(HOST, host)
+                        .header("Authorization", "Bearer " + accessToken)
+                        .accept(APPLICATION_JSON)
+        )
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        Map<String, Object> userInfo = JsonUtils.readValue(userInfoContent, new TypeReference<Map<String, Object>>() {
+        });
+        List<String> userInfoRoles = (List<String>) userInfo.get("roles");
+        assertThat(userInfoRoles, containsInAnyOrder(expectedGroups));
+
+        // We also got back a refresh token. When they use it, the refreshed id_token should also have the roles claim.
+        String refreshToken = (String) tokens.get(REFRESH_TOKEN);
+        String refreshTokenResponse = mockMvc.perform(
+                post("/oauth/token")
+                        .param("client_id", clientId)
+                        .param("client_secret", "")
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN)
+                        .param("refresh_token", refreshToken)
+                        .accept(APPLICATION_JSON)
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .header(HOST, host)
+        )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String, Object> refreshedTokens = JsonUtils.readValue(refreshTokenResponse, new TypeReference<Map<String, Object>>() {
+        });
+        Jwt refreshedIdTokenJwt = JwtHelper.decode((String) refreshedTokens.get("id_token"));
+        Map<String, Object> refreshedClaims = JsonUtils.readValue(refreshedIdTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> refreshedIdTokenRoles = (List<String>) refreshedClaims.get("roles");
+        assertThat(refreshedIdTokenRoles, containsInAnyOrder(expectedGroups));
     }
 
     @Test
     void testTwoLdapServers() throws Exception {
         // Setup second ldap server
-        int port = 33389 + 400 + (secondLdapServerPortRotation++);
-        int sslPort = 33636 + 400 + (secondLdapServerPortRotation++);
+        int port = 33000 + getRandomPortOffset();
+        int sslPort = 34000 + getRandomPortOffset();
 
-        ApacheDsSSLContainer secondLdapServer = ApacheDSHelper.start(port, sslPort);
+        InMemoryLdapServer secondLdapServer;
 
-        String originalUrl = ldapBaseUrl;
-        if (ldapBaseUrl.contains("ldap://")) {
-            ldapBaseUrl = ldapBaseUrl + " ldap://localhost:" + port;
+        String ldapBaseUrl;
+        if (getLdapOrLdapSBaseUrl().contains("ldap://")) {
+            ldapBaseUrl = getLdapOrLdapSBaseUrl() + " ldap://localhost:" + port;
+            secondLdapServer = InMemoryLdapServer.startLdap(port);
         } else {
-            ldapBaseUrl = ldapBaseUrl + " ldaps://localhost:" + sslPort;
+            ldapBaseUrl = getLdapOrLdapSBaseUrl() + " ldaps://localhost:" + sslPort;
+            secondLdapServer = InMemoryLdapServer.startLdapWithTls(port, sslPort, KEYSTORE);
         }
 
         provider.getConfig().setBaseUrl(ldapBaseUrl);
         updateLdapProvider();
 
         try {
-
             // Actually test it
             testSuccessfulLogin();
             stopLdapServer();
@@ -948,14 +797,13 @@ public abstract class AbstractLdapMockMvcTest {
             stopLdapServer(secondLdapServer);
 
         } finally {
-            ldapBaseUrl = originalUrl;
             stopLdapServer();
             stopLdapServer(secondLdapServer);
             Thread.sleep(1500);
         }
     }
 
-    private void stopLdapServer(ApacheDsSSLContainer ldapServer) {
+    private void stopLdapServer(InMemoryLdapServer ldapServer) {
         if (ldapServer.isRunning()) {
             ldapServer.stop();
         }
@@ -1082,8 +930,8 @@ public abstract class AbstractLdapMockMvcTest {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         List<AbstractUaaEvent> allValues = captor.getAllValues();
-        assertThat(allValues.get(3), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
-        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(3);
+        assertThat(allValues.get(4), instanceOf(IdentityProviderAuthenticationFailureEvent.class));
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(4);
         assertEquals("marissa3", event.getUsername());
         assertEquals(OriginKeys.LDAP, event.getAuthenticationType());
     }
@@ -1242,6 +1090,10 @@ public abstract class AbstractLdapMockMvcTest {
                 .andReturn();
     }
 
+    int getRandomPortOffset() {
+        return (int) (Math.random() * 10000);
+    }
+
     @Test
     void testLdapScopes() {
         assumeTrue(ldapGroup.equals("ldap-groups-as-scopes.xml"));
@@ -1358,7 +1210,7 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
-    void testNestedLdapGroupsMappedToScopesWithDefaultScopes() throws Exception {
+    void testNestedLdapGroupsMappedToScopesWithDefaultScopes() {
         String username = "marissa4";
         String password = "ldap4";
         String[] list = new String[]{
@@ -1371,7 +1223,7 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
-    void testNestedLdapGroupsMappedToScopesWithDefaultScopes2() throws Exception {
+    void testNestedLdapGroupsMappedToScopesWithDefaultScopes2() {
 
         String username = "marissa5";
         String password = "ldap5";
@@ -1383,7 +1235,7 @@ public abstract class AbstractLdapMockMvcTest {
     }
 
     @Test
-    void testNestedLdapGroupsMappedToScopesWithDefaultScopes3() throws Exception {
+    void testNestedLdapGroupsMappedToScopesWithDefaultScopes3() {
         String username = "marissa6";
         String password = "ldap6";
         String[] list = new String[]{
@@ -1405,11 +1257,6 @@ public abstract class AbstractLdapMockMvcTest {
             assertNotNull(user.getId());
             performAuthentication(userName, "n1cel0ngp455w0rd", HttpStatus.OK);
         }
-    }
-
-    @Test
-    void TlsKeyGenerator_mustBeAvailable_ForTheseTestsToWork() {
-        assertDoesNotThrow(TlsKeyGenerator::new);
     }
 
     void doTestNestedLdapGroupsMappedToScopesWithDefaultScopes(String username, String password, String[] expected) {

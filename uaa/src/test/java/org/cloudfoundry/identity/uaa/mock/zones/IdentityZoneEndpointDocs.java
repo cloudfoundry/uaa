@@ -171,9 +171,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 .retrieveAll()
                 .stream()
                 .filter(zone -> !IdentityZone.getUaaZoneId().equals(zone.getId()))
-                .forEach(zone -> {
-                    deleteMe.values().stream().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId()));
-                });
+                .forEach(zone -> deleteMe.values().forEach(deletable -> deletable.deleteByIdentityZone(zone.getId())));
     }
 
     @Test
@@ -370,7 +368,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].id").description(ID_DESC),
                 fieldWithPath("[].subdomain").description(SUBDOMAIN_DESC),
                 fieldWithPath("[].name").description(NAME_DESC),
-                fieldWithPath("[].description").description(DESCRIPTION_DESC),
+                fieldWithPath("[].description").optional().description(DESCRIPTION_DESC),
                 fieldWithPath("[].version").description(VERSION_DESC),
                 fieldWithPath("[].active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
@@ -388,13 +386,13 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.clientSecretPolicy.requireDigit").type(NUMBER).description(SECRET_POLICY_DIGIT).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
                 fieldWithPath("[].config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
-                fieldWithPath("[]config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
-                fieldWithPath("[].config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
+                fieldWithPath("[].config.samlConfig.entityID").optional().type(STRING).description(ENTITY_ID_DESC),
                 fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
 
                 fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
@@ -403,7 +401,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.samlConfig.keys.*.certificate").type(STRING).description(CERTIFICATE_DESC),
 
                 fieldWithPath("[].config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
-                fieldWithPath("[].config.links.homeRedirect").description(HOMEREDIRECT_URL_DESC),
+                fieldWithPath("[].config.links.homeRedirect").optional().description(HOMEREDIRECT_URL_DESC),
                 fieldWithPath("[].config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
                 fieldWithPath("[].config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
                 fieldWithPath("[].config.links.logout.whitelist").optional().type(ARRAY).description(WHITELIST_DESC),
@@ -415,56 +413,56 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC),
                 fieldWithPath("[].config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC),
                 fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
-                fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
+                fieldWithPath("[].config.branding.footerLinks").optional().description(BRANDING_FOOTER_LINKS_DESC),
 
-                fieldWithPath("[]config.branding.consent.text").description(BRANDING_CONSENT_TEXT_DESC),
-                fieldWithPath("[]config.branding.consent.link").description(BRANDING_CONSENT_LINK_DESC),
+                fieldWithPath("[].config.branding.consent.text").optional().description(BRANDING_CONSENT_TEXT_DESC),
+                fieldWithPath("[].config.branding.consent.link").optional().description(BRANDING_CONSENT_LINK_DESC),
 
-                fieldWithPath("[].config.prompts[]").type(OBJECT).description(PROMPTS_DESC),
+                fieldWithPath("[].config.prompts[]").type(ARRAY).description(PROMPTS_DESC),
                 fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
                 fieldWithPath("[].config.prompts[].type").description(PROMPTS_TYPE_DESC),
                 fieldWithPath("[].config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
                 fieldWithPath("[].config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
                 fieldWithPath("[].config.accountChooserEnabled").description(ACCOUNT_CHOOSER_ENABLED_FLAG),
-                fieldWithPath("[].config.issuer").description(ZONE_ISSUER_DESC),
+                fieldWithPath("[].config.issuer").optional().description(ZONE_ISSUER_DESC),
 
-                fieldWithPath("[].config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.footerLinks.*").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.companyName").optional().description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.productLogo").optional().description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.squareLogo").optional().description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.footerLegalText").optional().description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.footerLinks.*").optional().description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
 
-                fieldWithPath("[].config.branding.banner.text").description(BRANDING_BANNER_TEXT_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.banner.logo").description(BRANDING_BANNER_LOGO_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.banner.link").description(BRANDING_BANNER_LINK_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.banner.textColor").description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.branding.banner.backgroundColor").description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.banner.text").optional().description(BRANDING_BANNER_TEXT_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.banner.logo").optional().description(BRANDING_BANNER_LOGO_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.banner.link").optional().description(BRANDING_BANNER_LINK_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.banner.textColor").optional().description(BRANDING_BANNER_TEXT_COLOR_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.branding.banner.backgroundColor").optional().description(BRANDING_BANNER_BACKGROUND_COLOR_DESC).attributes(key("constraints").value("Optional")),
 
 
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedUris").description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedUriPatterns").description(CORS_XHR_URI_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedHeaders").description(CORS_XHR_HEADERS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedMethods").description(CORS_XHR_METHODS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.xhrConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOrigins").optional().description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedOriginPatterns").optional().description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedUris").optional().description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedUriPatterns").optional().description(CORS_XHR_URI_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedHeaders").optional().description(CORS_XHR_HEADERS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedMethods").optional().description(CORS_XHR_METHODS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.allowedCredentials").optional().description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.xhrConfiguration.maxAge").optional().description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedOrigins").description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedOriginPatterns").description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedUris").description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedUriPatterns").description(CORS_XHR_URI_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedHeaders").description(CORS_XHR_HEADERS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedMethods").description(CORS_XHR_METHODS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedCredentials").description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedOrigins").optional().description(CORS_XHR_ORIGINS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedOriginPatterns").optional().description(CORS_XHR_ORIGIN_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedUris").optional().description(CORS_XHR_URI_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedUriPatterns").optional().description(CORS_XHR_URI_PATTERNS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedHeaders").optional().description(CORS_XHR_HEADERS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedMethods").optional().description(CORS_XHR_METHODS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.allowedCredentials").optional().description(CORS_XHR_CREDENTIALS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.corsPolicy.defaultConfiguration.maxAge").optional().description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("[].config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
 
-                fieldWithPath("[].config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
-                fieldWithPath("[].config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
+                fieldWithPath("[].config.mfaConfig.enabled").optional().description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.mfaConfig.providerName").optional().description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
+                fieldWithPath("[].config.mfaConfig.identityProviders").optional().description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
                 fieldWithPath("[].created").ignored(),
                 fieldWithPath("[].last_modified").ignored()

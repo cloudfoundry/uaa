@@ -113,7 +113,7 @@ class MfaProviderEndpointDocs extends EndpointDocs {
     }
 
     private MfaProvider<GoogleMfaProviderConfig> getGoogleMfaProvider() {
-        return (MfaProvider<GoogleMfaProviderConfig>) new MfaProvider<GoogleMfaProviderConfig>()
+        return new MfaProvider<GoogleMfaProviderConfig>()
                 .setName("sampleGoogleMfaProvider" + new RandomValueStringGenerator(6).generate())
                 .setType(GOOGLE_AUTHENTICATOR)
                 .setConfig(new GoogleMfaProviderConfig().setProviderDescription("Google MFA for default zone"));
@@ -197,8 +197,7 @@ class MfaProviderEndpointDocs extends EndpointDocs {
                         .content(JsonUtils.writeValueAsString(mfaProvider))
                         .accept(APPLICATION_JSON)).andReturn().getResponse();
         assertThat(HttpStatus.CREATED.value(), is(createResponse.getStatus()));
-        MfaProvider createdMfaProvider = JsonUtils.readValue(createResponse.getContentAsString(), MfaProvider.class);
-        return createdMfaProvider;
+        return JsonUtils.readValue(createResponse.getContentAsString(), MfaProvider.class);
     }
 
 }

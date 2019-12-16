@@ -43,7 +43,7 @@ public class HttpHeadersFilterRequestWrapperTest {
     private HttpHeadersFilterRequestWrapper request;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         mock = new MockHttpServletRequest(HttpMethod.GET.name(), "http://localhost:8080/uaa/login");
         mock.addHeader("X-Forwarded-For", "proxy-ip");
         mock.addHeader("X-Forwarded-Host", "proxy-host");
@@ -55,18 +55,18 @@ public class HttpHeadersFilterRequestWrapperTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
     }
 
     @Test
-    public void filter_is_case_insensitive() throws Exception {
-        request = new HttpHeadersFilterRequestWrapper(Arrays.asList("x-forwarded-host"), mock);
+    public void filter_is_case_insensitive() {
+        request = new HttpHeadersFilterRequestWrapper(Collections.singletonList("x-forwarded-host"), mock);
         assertNull(request.getHeader("X-Forwarded-Host"));
         assertNotNull(request.getHeader("X-Forwarded-For"));
     }
 
     @Test
-    public void null_filter_list() throws Exception {
+    public void null_filter_list() {
         request = new HttpHeadersFilterRequestWrapper(null, mock);
         List<String> actual = Collections.list(request.getHeaderNames());
         List<String> wanted = new ArrayList<>(BAD_HEADERS);
@@ -75,15 +75,15 @@ public class HttpHeadersFilterRequestWrapperTest {
     }
 
     @Test
-    public void filtered_available_headers() throws Exception {
+    public void filtered_available_headers() {
         request = new HttpHeadersFilterRequestWrapper(BAD_HEADERS, mock);
         List<String> actual = Collections.list(request.getHeaderNames());
-        List<String> wanted = Arrays.asList("Other-header");
+        List<String> wanted = Collections.singletonList("Other-header");
         assertThat(actual, containsInAnyOrder(wanted.toArray()));
     }
 
     @Test
-    public void non_filtered_available_headers() throws Exception {
+    public void non_filtered_available_headers() {
         request = new HttpHeadersFilterRequestWrapper(Collections.emptyList(), mock);
         List<String> actual = Collections.list(request.getHeaderNames());
         List<String> wanted = new ArrayList<>(BAD_HEADERS);
@@ -92,14 +92,14 @@ public class HttpHeadersFilterRequestWrapperTest {
     }
 
     @Test
-    public void filtered_x_forwarded_headers_single_header() throws Exception {
+    public void filtered_x_forwarded_headers_single_header() {
         for (String header : BAD_HEADERS) {
             assertNull(String.format("Header %s should be filtered.", header), request.getHeader(header));
         }
     }
 
     @Test
-    public void non_filtered_x_forwarded_headers_single_header() throws Exception {
+    public void non_filtered_x_forwarded_headers_single_header() {
         request = new HttpHeadersFilterRequestWrapper(Collections.emptyList(), mock);
         for (String header : BAD_HEADERS) {
             assertNotNull(String.format("Header %s should be present.", header), request.getHeader(header));
@@ -107,7 +107,7 @@ public class HttpHeadersFilterRequestWrapperTest {
     }
 
     @Test
-    public void filtered_x_forwarded_headers_multi_header() throws Exception {
+    public void filtered_x_forwarded_headers_multi_header() {
         for (String header : BAD_HEADERS) {
             assertFalse(String.format("Header %s should return empty enumeration.", header), request.getHeaders(header).hasMoreElements());
             assertSame(
@@ -119,7 +119,7 @@ public class HttpHeadersFilterRequestWrapperTest {
     }
 
     @Test
-    public void non_filtered_x_forwarded_headers_multi_header() throws Exception {
+    public void non_filtered_x_forwarded_headers_multi_header() {
         request = new HttpHeadersFilterRequestWrapper(Collections.emptyList(), mock);
         for (String header : BAD_HEADERS) {
             assertTrue(String.format("Header %s should return empty enumeration.", header), request.getHeaders(header).hasMoreElements());
@@ -131,7 +131,7 @@ public class HttpHeadersFilterRequestWrapperTest {
     }
 
     @Test
-    public void filter_creates_wrapper() throws Exception {
+    public void filter_creates_wrapper() {
 
     }
 

@@ -16,8 +16,6 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -34,18 +32,17 @@ public enum UaaAuthority implements GrantedAuthority {
 
     UAA_INVITED("uaa.invited", 1), UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0), UAA_NONE("uaa.none", -1);
 
-    public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_ADMIN,
-                    UAA_USER));
+    public static final List<UaaAuthority> ADMIN_AUTHORITIES = List.of(UAA_ADMIN, UAA_USER);
 
-    public static final List<UaaAuthority> USER_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_USER));
+    public static final List<UaaAuthority> USER_AUTHORITIES = List.of(UAA_USER);
 
-    public static final List<UaaAuthority> NONE_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_NONE));
+    public static final List<UaaAuthority> NONE_AUTHORITIES = List.of(UAA_NONE);
 
     private final int value;
 
     private final String userType;
 
-    private UaaAuthority(String userType, int value) {
+    UaaAuthority(String userType, int value) {
         this.userType = userType;
         this.value = value;
     }

@@ -15,26 +15,16 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import java.util.concurrent.ConcurrentMap;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.concurrent.ConcurrentMap;
+
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 public class TimeBasedExpiringValueMapTest {
 
@@ -46,7 +36,7 @@ public class TimeBasedExpiringValueMapTest {
     private Object value1 = new Object(), value2 = new Object();
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         map = new TimeBasedExpiringValueMap<>(timeService, TIMEOUT);
     }
 
@@ -119,11 +109,11 @@ public class TimeBasedExpiringValueMapTest {
                 assertNotNull(map.get(key));
             });
         }
-        for (int i = 0; i < threads.length; i++) {
-            threads[i].start();
+        for (Thread thread : threads) {
+            thread.start();
         }
-        for (int i = 0; i < threads.length; i++) {
-            threads[i].join();
+        for (Thread thread : threads) {
+            thread.join();
         }
         assertThat(map.size(), greaterThan(0));
 

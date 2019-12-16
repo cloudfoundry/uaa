@@ -205,8 +205,8 @@ public class TokenTestSupport {
         SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
         requestedAuthScopes = Arrays.asList(READ, WRITE,OPENID);
         clientScopes = Arrays.asList(READ, WRITE,OPENID);
-        readScope = Arrays.asList(READ);
-        writeScope = Arrays.asList(WRITE);
+        readScope = Collections.singletonList(READ);
+        writeScope = Collections.singletonList(WRITE);
         expandedScopes = Arrays.asList(READ, WRITE, DELETE,OPENID);
         resourceIds = Arrays.asList(SCIM, CLIENTS);
         expectedJson = "[\""+READ+"\",\""+WRITE+"\",\""+OPENID+"\"]";
@@ -231,7 +231,8 @@ public class TokenTestSupport {
         clientDetailsMap.put(CLIENT_ID_NO_REFRESH_TOKEN_GRANT, clientWithoutRefreshToken);
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zone.getId());
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(zone);
 
         clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsMap);
@@ -268,9 +269,9 @@ public class TokenTestSupport {
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
         keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
-        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService), 12345, timeService);
-        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), 1234, timeService);
-        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>());
+        TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService, mockIdentityZoneManager), 12345, timeService);
+        TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, mockIdentityZoneManager), 1234, timeService);
+        IdTokenCreator idTokenCreator = new IdTokenCreator(tokenEndpointBuilder, timeService, accessTokenValidityResolver, userDatabase, clientDetailsService, new HashSet<>(), mockIdentityZoneManager);
         refreshTokenCreator = new RefreshTokenCreator(false, refreshTokenValidityResolver, tokenEndpointBuilder, timeService, keyInfoService);
         tokenServices = new UaaTokenServices(
                 idTokenCreator,
@@ -307,10 +308,9 @@ public class TokenTestSupport {
     public CompositeToken getCompositeAccessToken(List<String> scopes) {
         UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
-        Set<String> amr = new HashSet<>();
-        amr.addAll(Arrays.asList("ext", "mfa", "rba"));
+        Set<String> amr = new HashSet<>(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
-        userAuthentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(AuthnContext.PASSWORD_AUTHN_CTX)));
+        userAuthentication.setAuthContextClassRef(new HashSet<>(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX)));
 
         HashMap<String, String> requestParams = Maps.newHashMap();
         requestParams.put("grant_type", GRANT_TYPE_PASSWORD);

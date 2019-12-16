@@ -27,8 +27,8 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.net.ssl.SSLContext;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -69,11 +69,7 @@ public abstract class UaaHttpRequestUtils {
     private static SSLContext getNonValidatingSslContext() {
         try {
             return new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
-        } catch (KeyManagementException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (KeyStoreException e) {
+        } catch (KeyManagementException | KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
     }
@@ -85,11 +81,7 @@ public abstract class UaaHttpRequestUtils {
     }
 
     private static String encodeParameter(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     public static boolean isAcceptedInvitationAuthentication() {
@@ -98,7 +90,7 @@ public abstract class UaaHttpRequestUtils {
             if (attr!=null) {
                 Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
                 if (result!=null) {
-                    return result.booleanValue();
+                    return result;
                 }
             }
         } catch (IllegalStateException x) {

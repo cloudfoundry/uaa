@@ -18,9 +18,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -45,11 +43,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     private final IdentityZoneProvisioning dao;
     public static final String HEADER = "X-Identity-Zone-Id";
     public static final String SUBDOMAIN_HEADER = "X-Identity-Zone-Subdomain";
-    public static final List<String> zoneScopestoNotStripPrefix = Collections.unmodifiableList(
-         Arrays.asList(
-            "admin",
-            "read")
-            );
+    public static final List<String> zoneScopestoNotStripPrefix = List.of("admin", "read");
 
     protected OAuth2Authentication getAuthenticationForZone(String identityZoneId, HttpServletRequest servletRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -160,7 +154,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
     }
 
-    private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) throws IOException {
+    private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) {
         IdentityZone identityZone = null;
 
         try {
@@ -169,9 +163,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             } else {
                 identityZone = dao.retrieve(identityZoneId);
             }
-        } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ex) {
-        } catch (Exception ex) {
-            throw ex;
+        } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ignored) {
         }
         return identityZone;
     }

@@ -27,7 +27,7 @@ public class ChainedAuthenticationManagerTest {
     private AuthenticationManager loginAuthenticationManager;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         Authentication success = mock(Authentication.class);
         failure = mock(Authentication.class);
 

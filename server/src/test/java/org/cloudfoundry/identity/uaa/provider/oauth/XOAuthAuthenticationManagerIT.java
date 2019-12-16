@@ -70,6 +70,7 @@ import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
@@ -81,6 +82,7 @@ import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.not;
@@ -88,9 +90,6 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -174,7 +173,7 @@ public class XOAuthAuthenticationManagerIT {
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn(UAA_ISSUER_URL);
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn(UAA_ISSUER_URL);
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
                 new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
                 trustingRestTemplate,
@@ -262,7 +261,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void unknown_config_class() {
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> {
                     xoAuthAuthenticationManager.getResponseType(new AbstractXOAuthIdentityProviderDefinition() {
                         @Override
                         public URL getAuthUrl() {
@@ -270,17 +269,17 @@ public class XOAuthAuthenticationManagerIT {
                         }
                     });
                 },
-                "Unknown type for provider.");
+                is("Unknown type for provider."));
     }
 
     @Test
     public void verify_hmac_256_signature() throws Exception {
         String key = "key";
         String data = "data";
-        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+        SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(secretKey);
-        byte[] hmacData = mac.doFinal(data.getBytes("UTF-8"));
+        byte[] hmacData = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
         assertThat(new String(Base64.encodeBase64URLSafe(hmacData)), equalTo(xoAuthAuthenticationManager.hmacSignAndEncode(data, key)));
     }
 
@@ -348,9 +347,9 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void when_a_null_id_token_is_provided_resolveOriginProvider_should_throw_a_jwt_validation_exception() {
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.resolveOriginProvider(null),
-                "Unable to decode expected id_token");
+                is("Unable to decode expected id_token"));
     }
 
     @Test
@@ -360,9 +359,9 @@ public class XOAuthAuthenticationManagerIT {
         String zoneId = IdentityZoneHolder.get().getId();
         when(provisioning.retrieveAll(eq(true), eq(zoneId))).thenReturn(emptyList());
 
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                String.format("Unable to map issuer, %s , to a single registered provider", claims.get(ISS))
+                is(String.format("Unable to map issuer, %s , to a single registered provider", claims.get(ISS)))
         );
     }
 
@@ -372,9 +371,9 @@ public class XOAuthAuthenticationManagerIT {
         CompositeToken token = getCompositeAccessToken(Collections.singletonList(ISS));
         xCodeToken = new XOAuthCodeToken(null, null, null, token.getIdTokenValue(), null, null);
 
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                String.format("Issuer is missing in id_token")
+                is("Issuer is missing in id_token")
         );
     }
 
@@ -397,7 +396,7 @@ public class XOAuthAuthenticationManagerIT {
     public void when_unable_to_find_an_idp_that_matches_the_id_token_issuer() {
 
         String issuerURL = "http://issuer.url";
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://another-issuer.url");
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn("http://another-issuer.url");
         claims.put("iss", issuerURL);
         CompositeToken token = getCompositeAccessToken();
 
@@ -406,8 +405,7 @@ public class XOAuthAuthenticationManagerIT {
 
     @Test
     public void when_exchanging_an_id_token_retrieved_from_the_internal_uaa_idp_for_an_access_token_then_auth_data_should_contain_oidc_sub_claim() {
-        when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn("http://localhost/oauth/token");
 
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
@@ -432,8 +430,7 @@ public class XOAuthAuthenticationManagerIT {
     @ParameterizedTest
     @MethodSource("invalidOrigins")
     public void when_exchanging_an_id_token_issuedby_the_uaa_idp_but_not_uaa_origin(String origin) {
-        when(tokenEndpointBuilder.getIssuer()).thenReturn("http://localhost/oauth/token");
-        when(tokenEndpointBuilder.getTokenEndpoint()).thenReturn("http://localhost/oauth/token");
+        when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn("http://localhost/oauth/token");
 
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
@@ -857,9 +854,9 @@ public class XOAuthAuthenticationManagerIT {
         claims.remove("sub");
         mockToken();
 
-        assertThrows(InsufficientAuthenticationException.class,
+        assertThrowsWithMessageThat(InsufficientAuthenticationException.class,
                 () -> xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken),
-                String.format("Unable to map claim to a username")
+                is("Unable to map claim to a username")
         );
     }
 

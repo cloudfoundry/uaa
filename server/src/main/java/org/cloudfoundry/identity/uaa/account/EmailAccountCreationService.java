@@ -25,7 +25,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
-import org.thymeleaf.spring4.SpringTemplateEngine;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 
 import java.util.*;
 
@@ -74,7 +74,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
         } catch (ScimResourceAlreadyExistsException e) {
-            List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", identityZoneManager.getCurrentIdentityZoneId());
+            List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (users.size() > 0) {
                 if (users.get(0).isVerified()) {
                     throw new UaaException("User already active.", HttpStatus.CONFLICT.value());

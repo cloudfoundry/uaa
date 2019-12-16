@@ -27,7 +27,8 @@ import org.springframework.security.oauth2.client.token.grant.password.ResourceO
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 
@@ -57,7 +58,7 @@ public class NativeApplicationIntegrationTests {
      * profile).
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "password");
@@ -67,7 +68,7 @@ public class NativeApplicationIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization",
                         testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
@@ -76,15 +77,15 @@ public class NativeApplicationIntegrationTests {
      * tests that a client secret is required.
      */
     @Test
-    public void testSecretRequired() throws Exception {
+    public void testSecretRequired() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("grant_type", "password");
         formData.add("username", resource.getUsername());
         formData.add("password", resource.getPassword());
         formData.add("scope", "cloud_controller.read");
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes("UTF-8"))));
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.set("Authorization", "Basic " + new String(Base64.encode("no-such-client:".getBytes(StandardCharsets.UTF_8))));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
     }

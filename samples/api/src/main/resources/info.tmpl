@@ -1,0 +1,343 @@
+{
+  "name": "vcap",
+  "build": 2222,
+  "support": "http://support.cloudfoundry.com",
+  "version": "0.999",
+  "description": "VMware's Cloud Application Platform",
+  "allow_debug": true,
+  "authorization_endpoint": "${loginUrl}",
+  "token_endpoint": "${uaaUrl}",${user!=null?'
+  "user": "'+user+'",
+  ':'
+  '}"limits": {
+    "memory": 2048,
+    "app_uris": 4,
+    "services": 16,
+    "apps": 20
+  },
+  "usage": {
+    "memory": 128,
+    "apps": 1,
+    "services": 1
+  },
+  "frameworks": {
+    "otp_rebar": {
+      "name": "otp_rebar",
+      "runtimes": [
+        {
+          "name": "erlangR14B02",
+          "version": "R14B02",
+          "description": "Erlang R14B02"
+        }
+      ],
+      "appservers": [
+
+      ],
+      "detection": [
+        {
+          "releases/*/*.rel": "."
+        }
+      ]
+    },
+    "rails3": {
+      "name": "rails3",
+      "runtimes": [
+        {
+          "name": "ruby18",
+          "version": "1.8.7",
+          "description": "Ruby 1.8.7"
+        },
+        {
+          "name": "ruby19",
+          "version": "1.9.2p180",
+          "description": "Ruby 1.9.2"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "thin",
+          "description": "Thin"
+        }
+      ],
+      "detection": [
+        {
+          "config/application.rb": true
+        },
+        {
+          "config/environment.rb": true
+        }
+      ]
+    },
+    "php": {
+      "name": "php",
+      "runtimes": [
+        {
+          "name": "php",
+          "version": "5.3",
+          "description": "PHP 5"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "apache",
+          "description": "Apache"
+        }
+      ],
+      "detection": [
+        {
+          "*.php": true
+        }
+      ]
+    },
+    "spring": {
+      "name": "spring",
+      "runtimes": [
+        {
+          "name": "java",
+          "version": "1.6",
+          "description": "Java 6"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "tomcat",
+          "description": "Tomcat"
+        }
+      ],
+      "detection": [
+        {
+          "*.war": true
+        }
+      ]
+    },
+    "java_web": {
+      "name": "java_web",
+      "runtimes": [
+        {
+          "name": "java",
+          "version": "1.6",
+          "description": "Java 6"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "tomcat",
+          "description": "Tomcat"
+        }
+      ],
+      "detection": [
+        {
+          "*.war": true
+        }
+      ]
+    },
+    "django": {
+      "name": "django",
+      "runtimes": [
+        {
+          "name": "python2",
+          "version": "2.6.5",
+          "description": "Python 2.6.5"
+        }
+      ],
+      "appservers": [
+
+      ],
+      "detection": [
+        {
+          "*.py": "."
+        }
+      ]
+    },
+    "standalone": {
+      "name": "standalone",
+      "runtimes": [
+        {
+          "name": "python2",
+          "version": "2.6.5",
+          "description": "Python 2.6.5"
+        },
+        {
+          "name": "java",
+          "version": "1.6",
+          "description": "Java 6"
+        },
+        {
+          "name": "node",
+          "version": "0.4.12",
+          "description": "Node.js"
+        },
+        {
+          "name": "node06",
+          "version": "0.6.8",
+          "description": "Node.js"
+        },
+        {
+          "name": "erlangR14B02",
+          "version": "R14B02",
+          "description": "Erlang R14B02"
+        },
+        {
+          "name": "php",
+          "version": "5.3",
+          "description": "PHP 5"
+        },
+        {
+          "name": "ruby18",
+          "version": "1.8.7",
+          "description": "Ruby 1.8.7"
+        },
+        {
+          "name": "ruby19",
+          "version": "1.9.2p180",
+          "description": "Ruby 1.9.2"
+        }
+      ],
+      "appservers": [
+
+      ],
+      "detection": null
+    },
+    "grails": {
+      "name": "grails",
+      "runtimes": [
+        {
+          "name": "java",
+          "version": "1.6",
+          "description": "Java 6"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "tomcat",
+          "description": "Tomcat"
+        }
+      ],
+      "detection": [
+        {
+          "*.war": true
+        }
+      ]
+    },
+    "lift": {
+      "name": "lift",
+      "runtimes": [
+        {
+          "name": "java",
+          "version": "1.6",
+          "description": "Java 6"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "tomcat",
+          "description": "Tomcat"
+        }
+      ],
+      "detection": [
+        {
+          "*.war": true
+        }
+      ]
+    },
+    "wsgi": {
+      "name": "wsgi",
+      "runtimes": [
+        {
+          "name": "python2",
+          "version": "2.6.5",
+          "description": "Python 2.6.5"
+        }
+      ],
+      "appservers": [
+
+      ],
+      "detection": [
+        {
+          "*.py": "."
+        }
+      ]
+    },
+    "node": {
+      "name": "node",
+      "runtimes": [
+        {
+          "name": "node",
+          "version": "0.4.12",
+          "description": "Node.js"
+        },
+        {
+          "name": "node06",
+          "version": "0.6.8",
+          "description": "Node.js"
+        }
+      ],
+      "appservers": [
+
+      ],
+      "detection": [
+        {
+          "*.js": "."
+        }
+      ]
+    },
+    "sinatra": {
+      "name": "sinatra",
+      "runtimes": [
+        {
+          "name": "ruby18",
+          "version": "1.8.7",
+          "description": "Ruby 1.8.7"
+        },
+        {
+          "name": "ruby19",
+          "version": "1.9.2p180",
+          "description": "Ruby 1.9.2"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "thin",
+          "description": "Thin"
+        }
+      ],
+      "detection": [
+        {
+          "*.rb": "require 'sinatra'|require \"sinatra\""
+        },
+        {
+          "config/environment.rb": false
+        }
+      ]
+    },
+    "rack": {
+      "name": "rack",
+      "runtimes": [
+        {
+          "name": "ruby18",
+          "version": "1.8.7",
+          "description": "Ruby 1.8.7"
+        },
+        {
+          "name": "ruby19",
+          "version": "1.9.2p180",
+          "description": "Ruby 1.9.2"
+        }
+      ],
+      "appservers": [
+        {
+          "name": "thin",
+          "description": "Thin"
+        }
+      ],
+      "detection": [
+        {
+          "config.ru": true
+        },
+        {
+          "config/environment.rb": false
+        }
+      ]
+    }
+  }
+}

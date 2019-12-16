@@ -192,7 +192,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
     }
 
     public void setFixedHttpMetaDataProvider(FixedHttpMetaDataProvider fixedHttpMetaDataProvider) {

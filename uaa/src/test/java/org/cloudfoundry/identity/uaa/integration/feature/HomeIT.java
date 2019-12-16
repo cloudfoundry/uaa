@@ -68,12 +68,12 @@ public class HomeIT {
     }
 
     @Test
-    public void testMessage() throws Exception {
+    public void testMessage() {
         Assert.assertEquals("Where to?", webDriver.findElement(By.tagName("h1")).getText());
     }
 
     @Test
-    public void theHeaderDropdown() throws Exception {
+    public void theHeaderDropdown() {
         Assert.assertNotNull(asOnHomePage.getUsernameElement());
         Assert.assertFalse(asOnHomePage.getAccountSettingsElement().isDisplayed());
         Assert.assertFalse(asOnHomePage.getSignOutElement().isDisplayed());

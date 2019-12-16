@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en"
-      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3"
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},

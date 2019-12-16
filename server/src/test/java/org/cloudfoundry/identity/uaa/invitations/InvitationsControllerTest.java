@@ -33,7 +33,6 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -55,6 +54,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.net.URL;
@@ -129,7 +129,7 @@ public class InvitationsControllerTest {
     ScimUserProvisioning scimUserProvisioning;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .build();
@@ -178,7 +178,7 @@ public class InvitationsControllerTest {
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
-        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));;
+        when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
             .param("code", "the_secret_code");
@@ -297,7 +297,7 @@ public class InvitationsControllerTest {
         invitedUser.setPrimaryEmail("user@example.com");
 
         when(scimUserProvisioning.retrieve("user-id-001", IdentityZoneHolder.get().getId())).thenReturn(invitedUser);
-        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
@@ -394,7 +394,7 @@ public class InvitationsControllerTest {
 
         when(expiringCodeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(createCode(codeData), null);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(createCode(codeData));
-        when(invitationsService.acceptInvitation(anyString(), eq(""))).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(invitationsService.acceptInvitation(anyString(), eq(""))).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
@@ -527,7 +527,7 @@ public class InvitationsControllerTest {
             .thenReturn(thenewcode)
             .thenReturn(thenewcode2);
 
-        when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
+        when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new AcceptedInvitation("/home", user));
 
         MvcResult res = mockMvc.perform(post)
             .andExpect(status().isFound())
@@ -560,7 +560,7 @@ public class InvitationsControllerTest {
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
-        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new InvitationsService.AcceptedInvitation("valid.redirect.com", user));
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("valid.redirect.com", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
@@ -586,7 +586,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("thecode", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(IdentityZoneHolder.get().getId()))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
 
-        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("/home", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("code","thecode")
@@ -744,7 +744,7 @@ public class InvitationsControllerTest {
             .thenReturn(expiringCode);
 
         when(invitationsService.acceptInvitation(anyString(), anyString()))
-            .thenReturn(new InvitationsService.AcceptedInvitation(codeData.get("redirect_uri"), null));
+            .thenReturn(new AcceptedInvitation(codeData.get("redirect_uri"), null));
 
         MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password")
             .param("does_user_consent", "true"))
@@ -755,10 +755,9 @@ public class InvitationsControllerTest {
         defaultZone.getConfig().setBranding(null);
     }
 
-    @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
-    static class ContextConfiguration extends WebMvcConfigurerAdapter {
+    static class ContextConfiguration implements WebMvcConfigurer {
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
@@ -802,22 +801,22 @@ public class InvitationsControllerTest {
         }
 
         @Bean
-        InvitationsController invitationsController(InvitationsService invitationsService,
-                                                    ExpiringCodeStore codeStore,
-                                                    PasswordValidator passwordPolicyValidator,
-                                                    IdentityProviderProvisioning providerProvisioning,
-                                                    UaaUserDatabase userDatabase,
-                                                    ScimUserProvisioning provisioning,
-                                                    DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
-            InvitationsController result = new InvitationsController(invitationsService);
-            result.setExpiringCodeStore(codeStore);
-            result.setPasswordValidator(passwordPolicyValidator);
-            result.setProviderProvisioning(providerProvisioning);
-            result.setUserDatabase(userDatabase);
-            result.setSpEntityID("sp-entity-id");
-            result.setZoneAwareAuthenticationManager(zoneAwareAuthenticationManager);
-            result.setUserProvisioning(provisioning);
-            return result;
+        InvitationsController invitationsController(final InvitationsService invitationsService,
+                                                    final ExpiringCodeStore codeStore,
+                                                    final PasswordValidator passwordPolicyValidator,
+                                                    final IdentityProviderProvisioning providerProvisioning,
+                                                    final UaaUserDatabase userDatabase,
+                                                    final ScimUserProvisioning provisioning,
+                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+            return new InvitationsController(
+                    invitationsService,
+                    codeStore,
+                    passwordPolicyValidator,
+                    providerProvisioning,
+                    zoneAwareAuthenticationManager,
+                    userDatabase,
+                    "sp-entity-id",
+                    provisioning);
         }
 
         @Bean

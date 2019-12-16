@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
@@ -20,7 +8,7 @@ import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.*;
@@ -33,7 +21,6 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -54,9 +41,6 @@ import java.sql.Timestamp;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -69,7 +53,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebAppConfiguration
 @ContextConfiguration(classes = ResetPasswordControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class ResetPasswordControllerTest extends TestClassNullifier {
+class ResetPasswordControllerTest extends TestClassNullifier {
     private MockMvc mockMvc;
     private String companyName = "Best Company";
 
@@ -92,10 +76,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Autowired
     UaaUserDatabase userDatabase;
 
-    private AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
-
     @BeforeEach
-    public void setUp() throws Exception {
+    void setUp() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.set(IdentityZone.getUaa());
 
@@ -104,13 +86,13 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.set(IdentityZone.getUaa());
     }
 
     @Test
-    public void testForgotPasswordPage() throws Exception {
+    void testForgotPasswordPage() throws Exception {
         mockMvc.perform(get("/forgot_password")
             .param("client_id", "example")
             .param("redirect_uri", "http://example.com"))
@@ -121,7 +103,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testForgotPasswordWithSelfServiceDisabled() throws Exception {
+    void testForgotPasswordWithSelfServiceDisabled() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
@@ -135,12 +117,12 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtml() throws Exception {
+    void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtml() throws Exception {
         forgotPasswordWithConflict(null, companyName);
     }
 
     @Test
-    public void forgotPassword_ConflictInOtherZone_SendsEmailWithUnavailableEmailHtml() throws Exception {
+    void forgotPassword_ConflictInOtherZone_SendsEmailWithUnavailableEmailHtml() throws Exception {
         String subdomain = "testsubdomain";
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", subdomain));
         forgotPasswordWithConflict(subdomain, "The Twiglet Zone");
@@ -188,7 +170,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void forgotPassword_DoesNotSendEmail_UserNotFound() throws Exception {
+    void forgotPassword_DoesNotSendEmail_UserNotFound() throws Exception {
         when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new NotFoundException());
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
@@ -201,12 +183,12 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void forgotPassword_Successful() throws Exception {
+    void forgotPassword_Successful() throws Exception {
         forgotPasswordSuccessful("http://localhost/reset_password?code=code1");
     }
 
     @Test
-    public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
+    void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
         ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
@@ -216,14 +198,14 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void forgotPassword_SuccessfulInOtherZone() throws Exception {
+    void forgotPassword_SuccessfulInOtherZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
         IdentityZoneHolder.set(zone);
         forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1", "The Twiglet Zone");
     }
 
     @Test
-    public void forgotPasswordPostWithSelfServiceDisabled() throws Exception {
+    void forgotPasswordPostWithSelfServiceDisabled() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
@@ -279,14 +261,15 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testInstructions() throws Exception {
+    void testInstructions() throws Exception {
         mockMvc.perform(get("/email_sent").param("code", "reset_password"))
             .andExpect(status().isOk())
+            .andExpect(header().string("Content-Security-Policy", "frame-ancestors 'none'"))
             .andExpect(model().attribute("code", "reset_password"));
     }
 
     @Test
-    public void testResetPasswordPage() throws Exception {
+    void testResetPasswordPage() throws Exception {
         ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
             .andExpect(status().isOk())
@@ -299,7 +282,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testResetPasswordPageDuplicate() throws Exception {
+    void testResetPasswordPageDuplicate() throws Exception {
         ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
             .andExpect(status().isOk())
@@ -310,15 +293,13 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testResetPasswordPageWhenExpiringCodeNull() throws Exception {
+    void testResetPasswordPageWhenExpiringCodeNull() throws Exception {
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "code1"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))
             .andExpect(model().attribute("message_code", "bad_code"));
     }
 
-
-    @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration extends WebMvcConfigurerAdapter {
@@ -368,8 +349,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                                                         TemplateEngine mailTemplateEngine,
                                                         ExpiringCodeStore codeStore,
                                                         UaaUserDatabase userDatabase) {
-            ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
-            return controller;
+            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
         }
     }
 

@@ -495,6 +495,8 @@ ldap:
 In the above example, the user `marissa`'s  UAA email always become `generated-marissa@company.example.com`.
 
 
+# Samples
+
 # Configuration References
 
 * <a name="#ldap.profiles.file">`ldap.profiles.file`</a> 

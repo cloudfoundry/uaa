@@ -134,8 +134,7 @@ public class UaaTestAccounts implements TestAccounts {
     }
 
     public String getJsonCredentials(String username, String password) {
-        String credentials = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
-        return credentials;
+        return String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
     }
 
     public ClientCredentialsResourceDetails getAdminClientCredentialsResource() {
@@ -269,17 +268,31 @@ public class UaaTestAccounts implements TestAccounts {
         return result;
     }
 
-    public static final String INSERT_BARE_BONE_USER = "insert into users (id, username, password, email, identity_zone_id) values (?,?,?,?,?)";
-    public String addRandomUser(JdbcTemplate jdbcTemplate) {
-        String id = UUID.randomUUID().toString();
-        return addRandomUser(jdbcTemplate, id);
+    public String addUser(
+            final JdbcTemplate jdbcTemplate,
+            final String id,
+            final String zoneId) {
+        return addUser(
+                jdbcTemplate,
+                id,
+                zoneId,
+                OriginKeys.UAA
+        );
     }
-    public String addRandomUser(JdbcTemplate jdbcTemplate, String id) {
-        return addRandomUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());
-    }
-    public String addRandomUser(JdbcTemplate jdbcTemplate, String id, String zoneId) {
+
+    public String addUser(
+            final JdbcTemplate jdbcTemplate,
+            final String id,
+            final String zoneId,
+            final String origin) {
         String username = id + "-testuser";
-        jdbcTemplate.update(INSERT_BARE_BONE_USER, id, username, "password", username+"@test.com", zoneId);
+        jdbcTemplate.update("insert into users (id, username, password, email, identity_zone_id, origin) values (?,?,?,?,?,?)",
+                id,
+                username,
+                "password",
+                username+"@test.com",
+                zoneId,
+                origin);
         return id;
     }
 }

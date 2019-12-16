@@ -196,7 +196,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
 
     @BeforeClass
-    public static void addBCProvider() throws Exception {
+    public static void addBCProvider() {
         try {
             Security.addProvider(new BouncyCastleProvider());
         } catch (SecurityException e) {
@@ -210,7 +210,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     IdentityZone zone;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         IdentityZoneHolder.clear();
         samlConfig = new SamlConfig();
         samlConfig.setPrivateKey(legacyKey);
@@ -231,7 +231,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         IdentityZoneHolder.clear();
     }
 

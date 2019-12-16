@@ -16,7 +16,7 @@ public class UaaTestAccountsTest {
     private String originalUaaTestPassword;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         testAccounts = UaaTestAccounts.standard(null);
         originalUaaTestUsername = System.getProperty(UAA_TEST_USERNAME);
         originalUaaTestPassword = System.getProperty(UAA_TEST_PASSWORD);

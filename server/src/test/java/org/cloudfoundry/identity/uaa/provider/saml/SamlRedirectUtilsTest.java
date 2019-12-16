@@ -23,7 +23,7 @@ import org.junit.Test;
 public class SamlRedirectUtilsTest {
 
     @Test
-    public void testGetIdpRedirectUrl() throws Exception {
+    public void testGetIdpRedirectUrl() {
         SamlIdentityProviderDefinition definition =
             new SamlIdentityProviderDefinition()
                 .setMetaDataLocation("http://some.meta.data")
