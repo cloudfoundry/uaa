@@ -265,10 +265,7 @@
                 value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
-    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
-        <property name="enabled" value="${metrics.enabled:true}"/>
-        <property name="perRequestMetrics" value="${metrics.perRequestMetrics:false}"/>
-    </bean>
+    <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter" />
 
     <bean id="userManagementSecurityFilter"
           class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter"/>

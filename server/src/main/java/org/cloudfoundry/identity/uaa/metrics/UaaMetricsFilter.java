@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -47,12 +48,17 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private IdleTimer inflight = new IdleTimer();
     private Map<String, MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
     private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
-    private boolean enabled = true;
-    private boolean perRequestMetrics = false;
+    private final boolean enabled;
+    private final boolean perRequestMetrics;
 
     private NotificationPublisher notificationPublisher;
 
-    public UaaMetricsFilter() throws IOException {
+    public UaaMetricsFilter(
+            final @Value("${metrics.enabled:true}") boolean enabled,
+            final @Value("${metrics.perRequestMetrics:false}") boolean perRequestMetrics
+    ) throws IOException {
+        this.enabled = enabled;
+        this.perRequestMetrics = perRequestMetrics;
         perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
         urlGroups = new LinkedHashMap<>();
         List<UrlGroup> groups = getUrlGroups();
@@ -60,7 +66,6 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
                 group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
         );
     }
-
 
     @Override
     protected void doFilterInternal(
@@ -78,7 +83,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
                 MetricsAccessor.clear();
                 inflight.endRequest();
                 metric.stop(response.getStatus(), timeService.getCurrentTimeMillis());
-                if (isPerRequestMetrics()) {
+                if (perRequestMetrics) {
                     sendRequestTime(uriGroup.getGroup(), metric.getRequestCompleteTime() - metric.getRequestStartTime());
                 }
                 for (String group : Arrays.asList(uriGroup.getGroup(), MetricsUtil.GLOBAL_GROUP)) {
@@ -89,14 +94,6 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         } else {
             filterChain.doFilter(request, response);
         }
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 
     protected MetricsQueue getMetricsQueue(String uri) {
@@ -184,14 +181,6 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     @Override
     public void setNotificationPublisher(final @NonNull NotificationPublisher notificationPublisher) {
         this.notificationPublisher = notificationPublisher;
-    }
-
-    public boolean isPerRequestMetrics() {
-        return perRequestMetrics;
-    }
-
-    public void setPerRequestMetrics(boolean perRequestMetrics) {
-        this.perRequestMetrics = perRequestMetrics;
     }
 
     public void setInflight(IdleTimer inflight) {
