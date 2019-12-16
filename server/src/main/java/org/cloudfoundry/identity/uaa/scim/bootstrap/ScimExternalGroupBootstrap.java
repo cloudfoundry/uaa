@@ -79,7 +79,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         for (String origin : externalGroupMaps.keySet()) {
             Map<String, List> externalGroupMappingsByOrigin = externalGroupMaps.get(origin);
             if (externalGroupMappingsByOrigin != null) {

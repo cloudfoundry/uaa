@@ -48,12 +48,12 @@ public class IdentityZoneModifiedEventTest {
     }
 
     @Test
-    public void identityZoneCreated() throws Exception {
+    public void identityZoneCreated() {
         evaluteZoneAuditData(IdentityZoneModifiedEvent.identityZoneCreated(zone));
     }
 
     @Test
-    public void identityZoneModified() throws Exception {
+    public void identityZoneModified() {
         evaluteZoneAuditData(IdentityZoneModifiedEvent.identityZoneModified(zone));
     }
 

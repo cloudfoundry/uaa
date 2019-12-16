@@ -1,29 +1,20 @@
-/*******************************************************************************
-*     Cloud Foundry
-*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
-*
-*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
-*     You may not use this product except in compliance with the License.
-*
-*     This product includes a number of subcomponents with
-*     separate copyright notices and license terms. Your use of these
-*     subcomponents is subject to the terms and conditions of the
-*     subcomponent's license, as noted in the LICENSE file.
-*******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,25 +22,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
-
-    private JdbcScimGroupProvisioning gDB;
+@WithDatabaseContext
+class ScimExternalGroupBootstrapTests {
 
     private ScimGroupExternalMembershipManager eDB;
 
     private ScimExternalGroupBootstrap bootstrap;
 
-    @Before
-    public void initScimExternalGroupBootstrapTests() {
+    @BeforeEach
+    void setUp(
+            @Autowired JdbcTemplate jdbcTemplate,
+            @Autowired LimitSqlAdapter limitSqlAdapter
+    ) {
         IdentityZone zone = new IdentityZone();
         zone.setId(RandomStringUtils.randomAlphabetic(10));
         IdentityZoneHolder.set(zone);
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+        JdbcScimGroupProvisioning gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
@@ -61,7 +54,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void canAddExternalGroups() throws Exception {
+    void canAddExternalGroups() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
@@ -80,7 +73,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatDoNotExist() throws Exception {
+    void cannotAddExternalGroupsThatDoNotExist() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
@@ -99,7 +92,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatMapToNull() throws Exception {
+    void cannotAddExternalGroupsThatMapToNull() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", null);
@@ -111,7 +104,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddOriginMapToNull() throws Exception {
+    void cannotAddOriginMapToNull() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         originMap.put(OriginKeys.LDAP, null);
         bootstrap.setExternalGroupMaps(originMap);

@@ -15,8 +15,13 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:tx="http://www.springframework.org/schema/tx"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd
+       http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
 
     <bean id="databaseUrlModifier" class="org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier">
         <constructor-arg name="databaseType" value="#{@platform}"/>
@@ -25,22 +30,25 @@
     </bean>
 
     <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
-        <property name="driverClassName" value="${database.driverClassName}" />
-        <property name="url" value="#{@databaseUrlModifier.getUrl()}" />
-        <property name="username" value="${database.username}" />
-        <property name="password" value="${database.password}" />
-        <property name="validationInterval" value="5000" />
-        <property name="validationQuery" value="#{@validationQuery}" />
-        <property name="testOnBorrow" value="true" />
+        <property name="driverClassName" value="${database.driverClassName}"/>
+        <property name="url" value="#{@databaseUrlModifier.getUrl()}"/>
+        <property name="username" value="${database.username}"/>
+        <property name="password" value="${database.password}"/>
+        <property name="validationInterval" value="${database.validationinterval:5000}"/>
+        <property name="validationQuery" value="#{@validationQuery}"/>
+        <property name="testOnBorrow" value="true"/>
+        <property name="testWhileIdle" value="${database.testwhileidle:false}"/>
         <property name="minIdle" value="${database.minidle:0}"/>
         <property name="maxActive" value="${database.maxactive:100}"/>
         <property name="maxIdle" value="${database.maxidle:10}"/>
+        <property name="maxWait" value="${database.maxwait:30000}"/>
         <property name="initialSize" value="${database.initialsize:10}"/>
         <property name="validationQueryTimeout" value="${database.validationquerytimeout:10}"/>
         <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
         <property name="logAbandoned" value="${database.logabandoned:true}"/>
         <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
         <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
+        <property name="minEvictableIdleTimeMillis" value="${database.minevictionidlems:60000}"/>
         <property name="jdbcInterceptors" value="org.cloudfoundry.identity.uaa.metrics.QueryFilter(threshold=3000)"/>
     </bean>
 
@@ -48,42 +56,30 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
 
-    <bean id="flyway" class="org.flywaydb.core.Flyway" init-method="migrate" depends-on="dataSourceAccessor">
-        <property name="baselineOnMigrate" value="true" />
-        <property name="dataSource" ref="dataSource" />
-        <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/" />
-        <property name="baselineVersion">
-            <bean class="org.flywaydb.core.api.MigrationVersion" factory-method="fromVersion">
-                <constructor-arg value="#{@scriptsversion}"/>
-            </bean>
-        </property>
-        <property name="target">
-            <bean class="org.flywaydb.core.api.MigrationVersion" factory-method="fromVersion">
-                <constructor-arg value="${db.target:9223372036854775807}"/>
-            </bean>
-        </property>
-        <property name="validateOnMigrate" value="false"/>
-    </bean>
+    <context:component-scan base-package="org.cloudfoundry.identity.uaa.db.beans"/>
 
     <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
-        <property name="dataSource" ref="dataSource" />
+        <property name="dataSource" ref="dataSource"/>
     </bean>
 
     <tx:annotation-driven transaction-manager="transactionManager"/>
 
     <bean class="org.springframework.jmx.export.MBeanExporter">
-        <property name="server" ref="mbeanServer" />
-        <property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING" />
+        <property name="server" ref="mbeanServer"/>
+        <property name="registrationPolicy">
+            <util:constant static-field="org.springframework.jmx.support.RegistrationPolicy.REPLACE_EXISTING"/>
+        </property>
         <property name="beans">
             <map>
-                <entry key="spring.application:type=DataSource,name=dataSource" value-ref="dataSource" />
+                <entry key="spring.application:type=DataSource,name=dataSource" value-ref="dataSource"/>
             </map>
         </property>
         <property name="assembler">
             <bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
                 <property name="methodMappings">
                     <map>
-                        <entry key="spring.application:type=DataSource,name=dataSource" value="getMaxIdle,getMaxActive,getNumIdle,getNumActive" />
+                        <entry key="spring.application:type=DataSource,name=dataSource"
+                               value="getMaxIdle,getMaxActive,getNumIdle,getNumActive"/>
                     </map>
                 </property>
             </bean>
@@ -91,15 +87,16 @@
     </bean>
 
     <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" depends-on="flyway">
-        <property name="dataSource" ref="dataSource" />
+        <property name="dataSource" ref="dataSource"/>
     </bean>
 
     <bean id="jdbcPagingListFactory" class="org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory">
-        <constructor-arg ref="jdbcTemplate" />
-        <constructor-arg ref="limitSqlAdapter" />
+        <constructor-arg ref="jdbcTemplate"/>
+        <constructor-arg ref="limitSqlAdapter"/>
     </bean>
 
     <bean id="useCaseInsensitiveQueries" class="java.lang.Boolean" factory-method="valueOf">
-        <constructor-arg value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
+        <constructor-arg
+                value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
     </bean>
 </beans>

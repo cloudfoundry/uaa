@@ -53,7 +53,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
     private JdbcTemplate template;
 
     @Before
-    public void createService() throws Exception {
+    public void createService() {
         template = spy(jdbcTemplate);
         auditService = new JdbcUnsuccessfulLoginCountingAuditService(template);
         jdbcTemplate.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
@@ -73,7 +73,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
     }
 
     @Test
-    public void userAuthenticationFailureDeletesOldData() throws Exception {
+    public void userAuthenticationFailureDeletesOldData() {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
@@ -85,7 +85,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
     }
 
     @Test
-    public void delete_happens_single_thread_on_intervals() throws Exception {
+    public void delete_happens_single_thread_on_intervals() {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
@@ -101,7 +101,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
     }
 
     @Test
-    public void periodic_delete_works() throws Exception {
+    public void periodic_delete_works() {
         for (int i=0; i<5; i++) {
             auditService.periodicDelete();
         }
@@ -121,7 +121,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
     }
 
     @Test
-    public void userAuthenticationSuccessResetsData() throws Exception {
+    public void userAuthenticationSuccessResetsData() {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
         auditService.log(getAuditEvent(UserAuthenticationSuccess, "1", "joe"), getAuditEvent(UserAuthenticationSuccess, "1", "joe").getIdentityZoneId());
@@ -129,7 +129,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
     }
 
     @Test
-    public void userPasswordChangeSuccessResetsData() throws Exception {
+    public void userPasswordChangeSuccessResetsData() {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
         auditService.log(getAuditEvent(PasswordChangeSuccess, "1", "joe"), getAuditEvent(PasswordChangeSuccess, "1", "joe").getIdentityZoneId());

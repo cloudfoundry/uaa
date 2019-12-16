@@ -18,10 +18,18 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 
+import java.util.List;
+
 
 public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser> {
 
     ScimUser createUser(ScimUser user, String password, String zoneId) throws InvalidPasswordException, InvalidScimResourceException;
+
+    List<ScimUser> retrieveByEmailAndZone(String email, String origin, String zoneId);
+
+    List<ScimUser> retrieveByUsernameAndZone(String username, String zoneId);
+
+    List<ScimUser> retrieveByUsernameAndOriginAndZone(String username, String origin, String zoneId);
 
     void changePassword(String id, String oldPassword, String newPassword, String zoneId) throws ScimResourceNotFoundException;
 

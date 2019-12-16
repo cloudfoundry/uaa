@@ -33,7 +33,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
@@ -86,7 +86,7 @@ public class ResetPasswordIT {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         SecureRandom secureRandom = new SecureRandom();
 
         scimClientId = "scim" + secureRandom.nextInt();
@@ -98,25 +98,25 @@ public class ResetPasswordIT {
         testClient.createScimClient(adminAccessToken, scimClientId);
         BaseClientDetails authCodeClient = new BaseClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "http://example.redirect.com");
         authCodeClient.setClientSecret("scimsecret");
-        authCodeClient.setAutoApproveScopes(Arrays.asList(new String[] {"uaa.user"}));
+        authCodeClient.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         IntegrationTestUtils.createClient(adminAccessToken, baseUrl, authCodeClient);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         testClient.createUser(scimAccessToken, username, email, "secr3T", true);
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         webDriver.get(baseUrl + "/logout.do");
     }
 
     @Test
-    public void resettingAPasswordWithUsername() throws Exception {
+    public void resettingAPasswordWithUsername() {
         beginPasswordReset(username);
         finishPasswordReset(username, email);
     }
 
     @Test
-    public void resettingAPasswordWithPrimaryEmail() throws Exception {
+    public void resettingAPasswordWithPrimaryEmail() {
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         beginPasswordReset(email);
@@ -125,7 +125,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resetPassword_with_clientRedirect() throws Exception {
+    public void resetPassword_with_clientRedirect() {
         webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
         Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
 
@@ -199,7 +199,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resettingAPasswordForANonExistentUser() throws Exception {
+    public void resettingAPasswordForANonExistentUser() {
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         beginPasswordReset("nonexistent_user");
@@ -208,7 +208,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resettingAPasswordWithInvalidPassword() throws Exception {
+    public void resettingAPasswordWithInvalidPassword() {
         // Go to Forgot Password page
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
@@ -222,7 +222,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void codesCanOnlyBeUsedOnce() throws Exception {
+    public void codesCanOnlyBeUsedOnce() {
         // Go to Forgot Password page
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
@@ -235,7 +235,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() throws Exception {
+    public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() {
         String newPassword = new RandomValueStringGenerator(260).generate();
         beginPasswordReset(username);
 
@@ -249,7 +249,7 @@ public class ResetPasswordIT {
     }
 
     @Test
-    public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() throws Exception {
+    public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() {
         beginPasswordReset(username);
         String link = getPasswordResetLink(email);
         webDriver.get(link);

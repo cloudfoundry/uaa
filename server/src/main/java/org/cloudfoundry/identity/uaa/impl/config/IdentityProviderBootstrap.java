@@ -31,7 +31,6 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -245,7 +244,7 @@ public class IdentityProviderBootstrap
     public IdentityProvider getProviderByOriginIgnoreActiveFlag(String origin, String zoneId) {
         try {
             return provisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
-        }catch (EmptyResultDataAccessException x){
+        }catch (EmptyResultDataAccessException ignored){
         }
         return null;
 
@@ -273,7 +272,7 @@ public class IdentityProviderBootstrap
         }
     }
 
-    protected void updateDefaultZoneUaaIDP() throws JSONException {
+    protected void updateDefaultZoneUaaIDP() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider internalIDP = getProviderByOriginIgnoreActiveFlag(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);

@@ -59,7 +59,7 @@ public class XFrameOptionsIT {
     }
 
     @Test
-    public void testHeaderOnLogin() throws Exception {
+    public void testHeaderOnLogin() {
         ResponseEntity<Void> response = restOperations.getForEntity(baseUrl + "/login", Void.class);
         List<String> xFrameOptionsHeaders = response.getHeaders().get("X-Frame-Options");
         assertThat(xFrameOptionsHeaders, contains("DENY"));

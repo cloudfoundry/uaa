@@ -1,636 +1,568 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.Set;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.*;
 
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-public class UserManagedAuthzApprovalHandlerTests extends JdbcTestBase {
+@WithDatabaseContext
+class UserManagedAuthzApprovalHandlerTests {
 
-    private final UserManagedAuthzApprovalHandler handler = new UserManagedAuthzApprovalHandler();
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+    private UserManagedAuthzApprovalHandler handler;
 
-    private ApprovalStore approvalStore = null;
+    private ApprovalStore approvalStore;
+    private BaseClientDetails mockBaseClientDetails;
 
-    private String userId = null;
-    private TestAuthentication userAuthentication;
+    private String userId;
 
-    @Before
-    public void initUserManagedAuthzApprovalHandlerTests() {
-        approvalStore = new JdbcApprovalStore(jdbcTemplate);
-        handler.setApprovalStore(approvalStore);
-        handler.setClientDetailsService(
-            mockClientDetailsService(
-                "foo",
-                new String[]{
-                    "cloud_controller.read",
-                    "cloud_controller.write",
-                    "openid",
-                    "space.*.developer"
-                },
-                Collections.emptySet()
-            )
-        );
-        userId = new RandomValueStringGenerator().generate();
-        testAccounts.addRandomUser(jdbcTemplate, userId);
-        userAuthentication = new TestAuthentication(userId, testAccounts.getUserName(), true);
+    private interface AuthenticationWithGetId extends Authentication {
+        String getId();
     }
 
-    private QueryableResourceManager<ClientDetails> mockClientDetailsService(String id, String[] scope, Set<String> autoApprovedScopes) {
-        @SuppressWarnings("unchecked")
-        QueryableResourceManager<ClientDetails> service = mock(QueryableResourceManager.class);
-        BaseClientDetails details = mock(BaseClientDetails.class);
-        Mockito.when(service.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(details);
-        Mockito.when(details.getScope()).thenReturn(new HashSet<>(Arrays.asList(scope)));
-        Mockito.when(details.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
-        return service;
+    private AuthenticationWithGetId mockAuthentication;
+    private Date nextWeek;
+    private String currentIdentityZoneId;
+
+    @BeforeEach
+    void setUp(@Autowired JdbcTemplate jdbcTemplate) {
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        currentIdentityZoneId = "currentIdentityZoneId-" + generator.generate();
+        approvalStore = new JdbcApprovalStore(jdbcTemplate);
+
+        QueryableResourceManager<ClientDetails> mockClientDetailsService = mock(QueryableResourceManager.class);
+        mockBaseClientDetails = mock(BaseClientDetails.class);
+        when(mockClientDetailsService.retrieve("foo",
+                currentIdentityZoneId)).thenReturn(mockBaseClientDetails);
+        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid",
+                "space.*.developer")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(Collections.emptySet());
+
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+
+        handler = new UserManagedAuthzApprovalHandler(approvalStore, mockClientDetailsService, mockIdentityZoneManager);
+
+        userId = "userId-" + generator.generate();
+        mockAuthentication = mock(AuthenticationWithGetId.class);
+        when(mockAuthentication.isAuthenticated()).thenReturn(true);
+        when(mockAuthentication.getId()).thenReturn(userId);
+
+        nextWeek = new Date(LocalDateTime
+                .now()
+                .plus(Duration.ofDays(7))
+                .atZone(ZoneId.systemDefault()).toEpochSecond() * 1000);
+    }
+
+    @AfterEach
+    void tearDown(@Autowired JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("delete from authz_approvals");
     }
 
     @Test
-    public void testNoScopeApproval() {
-        AuthorizationRequest request = new AuthorizationRequest("testclient", Collections.<String>emptySet());
+    void noScopeApproval() {
+        AuthorizationRequest request = new AuthorizationRequest("testclient", Collections.emptySet());
         request.setApproved(true);
         // The request is approved but does not request any scopes. The user has
         // also not approved any scopes. Approved.
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
-    public void testNoPreviouslyApprovedScopes() {
+    void noPreviouslyApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList("cloud_controller.read", "cloud_controller.write")
-            )
+                "foo",
+                new HashSet<>(
+                        Arrays.asList("cloud_controller.read", "cloud_controller.write")
+                )
         );
         request.setApproved(false);
         // The request needs user approval for scopes. The user has also not
         // approved any scopes prior to this request.
         // Not approved.
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
-    public void testAuthzApprovedButNoPreviouslyApprovedScopes() {
+    void authzApprovedButNoPreviouslyApprovedScopes() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList("cloud_controller.read", "cloud_controller.write")
-            )
+                "foo",
+                new HashSet<>(
+                        Arrays.asList("cloud_controller.read", "cloud_controller.write")
+                )
         );
         request.setApproved(true);
         // The request needs user approval for scopes. The user has also not
         // approved any scopes prior to this request.
         // Not approved.
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
-    public void testNoRequestedScopesButSomeApprovedScopes() {
-        AuthorizationRequest request = new AuthorizationRequest("foo", new HashSet<String>());
+    void noRequestedScopesButSomeApprovedScopes() {
+        AuthorizationRequest request = new AuthorizationRequest("foo", new HashSet<>());
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has not requested any scopes
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertEquals(0, request.getScope().size());
     }
 
     @Test
-    public void testRequestedScopesDontMatchApprovalsAtAll() {
+    void requestedScopesDontMatchApprovalsAtAll() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList("openid")
-            )
+                "foo",
+                new HashSet<>(
+                        Collections.singletonList("openid")
+                )
         );
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has not yet approved the
         // scopes requested
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
-    public void testOnlySomeRequestedScopeMatchesApproval() {
+    void onlySomeRequestedScopeMatchesApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList("openid", "cloud_controller.read")
-            )
-        );
-        request.setApproved(false);
-
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
-        approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
-        approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
-
-        // The request is not approved because the user has not yet approved all
-        // the scopes requested
-        assertFalse(handler.isApproved(request, userAuthentication));
-    }
-
-    @Test
-    public void testOnlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
-        AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList("openid", "cloud_controller.read")
-            )
-        );
-        request.setApproved(false);
-
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
-        handler.setClientDetailsService(
-            mockClientDetailsService(
                 "foo",
-                new String[]{
-                    "cloud_controller.read",
-                    "cloud_controller.write",
-                    "openid"
-                    },
-                singleton("true")
-            )
-        );
-
-        approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
-        approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
-
-        assertTrue(handler.isApproved(request, userAuthentication));
-        assertEquals(new HashSet<>(Arrays.asList(new String[]{"cloud_controller.read", "openid"})),request.getScope());
-    }
-
-    @Test
-    public void testRequestedScopesMatchApprovalButAdditionalScopesRequested() {
-        AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList(
-                    "openid",
-                    "cloud_controller.read",
-                    "cloud_controller.write"
+                new HashSet<>(
+                        Arrays.asList("openid", "cloud_controller.read")
                 )
-            )
         );
         request.setApproved(false);
 
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
-
         approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userAuthentication.getId())
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has not yet approved all
         // the scopes requested
-        assertFalse(handler.isApproved(request, userAuthentication));
+        assertFalse(handler.isApproved(request, mockAuthentication));
     }
 
     @Test
-    public void testAllRequestedScopesMatchApproval() {
+    void onlySomeRequestedScopeMatchesDeniedApprovalButScopeAutoApproved() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList(
-                    "openid",
-                    "cloud_controller.read",
-                    "cloud_controller.write"
+                "foo",
+                new HashSet<>(
+                        Arrays.asList("openid", "cloud_controller.read")
                 )
-            )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
+
+        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "openid")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
+
+        assertTrue(handler.isApproved(request, mockAuthentication));
+        assertEquals(new HashSet<>(Arrays.asList("cloud_controller.read", "openid")), request.getScope());
+    }
+
+    @Test
+    void requestedScopesMatchApprovalButAdditionalScopesRequested() {
+        AuthorizationRequest request = new AuthorizationRequest(
+                "foo",
+                new HashSet<>(
+                        Arrays.asList(
+                                "openid",
+                                "cloud_controller.read",
+                                "cloud_controller.write"
+                        )
+                )
+        );
+        request.setApproved(false);
+
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
+        approvalStore.addApproval(new Approval()
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
+
+        // The request is not approved because the user has not yet approved all
+        // the scopes requested
+        assertFalse(handler.isApproved(request, mockAuthentication));
+    }
+
+    @Test
+    void allRequestedScopesMatchApproval() {
+        AuthorizationRequest request = new AuthorizationRequest(
+                "foo",
+                new HashSet<>(
+                        Arrays.asList(
+                                "openid",
+                                "cloud_controller.read",
+                                "cloud_controller.write"
+                        )
+                )
+        );
+        request.setApproved(false);
+
+        approvalStore.addApproval(new Approval()
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
+        approvalStore.addApproval(new Approval()
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
+        approvalStore.addApproval(new Approval()
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has approved all the scopes
         // requested
-        assertTrue(handler.isApproved(request, userAuthentication));
-        assertEquals(new HashSet<>(Arrays.asList(new String[]{"openid", "cloud_controller.read","cloud_controller.write"})), request.getScope());
+        assertTrue(handler.isApproved(request, mockAuthentication));
+        assertEquals(new HashSet<>(Arrays.asList("openid", "cloud_controller.read", "cloud_controller.write")), request.getScope());
     }
 
     @Test
-    public void testRequestedScopesMatchApprovalButSomeDenied() {
+    void requestedScopesMatchApprovalButSomeDenied() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList(
-                    "openid",
-                    "cloud_controller.read",
-                    "cloud_controller.write"
+                "foo",
+                new HashSet<>(
+                        Arrays.asList(
+                                "openid",
+                                "cloud_controller.read",
+                                "cloud_controller.write"
+                        )
                 )
-            )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has acted on all requested
         // scopes
-        assertTrue(handler.isApproved(request, userAuthentication));
-        assertEquals(new HashSet<>(Arrays.asList(new String[]{"openid", "cloud_controller.read"})),request.getScope());
+        assertTrue(handler.isApproved(request, mockAuthentication));
+        assertEquals(new HashSet<>(Arrays.asList("openid", "cloud_controller.read")), request.getScope());
     }
 
     @Test
-    public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
+    void requestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApproved() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList(
-                    "openid",
-                    "cloud_controller.read",
-                    "cloud_controller.write"
+                "foo",
+                new HashSet<>(
+                        Arrays.asList(
+                                "openid",
+                                "cloud_controller.read",
+                                "cloud_controller.write"
+                        )
                 )
-            )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
-        handler.setClientDetailsService(mockClientDetailsService(
-            "foo",
-            new String[]{
+        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
                 "cloud_controller.read",
                 "cloud_controller.write",
-                "openid"
-            },
-            singleton("cloud_controller.write")));
+                "openid")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("cloud_controller.write"));
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertThat(
-            request.getScope(),
-            Matchers.containsInAnyOrder(new String[]{"openid", "cloud_controller.read","cloud_controller.write"})
+                request.getScope(),
+                Matchers.containsInAnyOrder("openid", "cloud_controller.read", "cloud_controller.write")
         );
     }
 
     @Test
-    public void testRequestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApprovedByWildcard() {
+    void requestedScopesMatchApprovalSomeDeniedButDeniedScopesAutoApprovedByWildcard() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList(
-                    "openid",
-                    "cloud_controller.read",
-                    "cloud_controller.write",
-                    "space.1.developer",
-                    "space.2.developer"
+                "foo",
+                new HashSet<>(
+                        Arrays.asList(
+                                "openid",
+                                "cloud_controller.read",
+                                "cloud_controller.write",
+                                "space.1.developer",
+                                "space.2.developer"
+                        )
                 )
-            )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
         Set<String> autoApprovedScopes = new HashSet<>();
         autoApprovedScopes.add("space.*.developer");
         autoApprovedScopes.add("cloud_controller.write");
 
-        handler.setClientDetailsService(mockClientDetailsService(
-            "foo",
-            new String[]{
-                "cloud_controller.read",
-                "cloud_controller.write",
-                "openid",
-                "space.*.developer"
-            },autoApprovedScopes));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("space.1.developer")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("space.1.developer")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertThat(
-            request.getScope(),
-            Matchers.containsInAnyOrder(new String[]{"openid", "cloud_controller.read","cloud_controller.write","space.1.developer", "space.2.developer"})
+                request.getScope(),
+                Matchers.containsInAnyOrder("openid", "cloud_controller.read", "cloud_controller.write", "space.1.developer", "space.2.developer")
         );
     }
 
     @Test
-    public void testRequestedScopesMatchByWildcard() {
+    void requestedScopesMatchByWildcard() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(
-                Arrays.asList(
-                    "openid",
-                    "cloud_controller.read",
-                    "cloud_controller.write",
-                    "space.1.developer"
+                "foo",
+                new HashSet<>(
+                        Arrays.asList(
+                                "openid",
+                                "cloud_controller.read",
+                                "cloud_controller.write",
+                                "space.1.developer"
+                        )
                 )
-            )
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
-        handler.setClientDetailsService(mockClientDetailsService(
-            "foo",
-            new String[]{
-                "cloud_controller.read",
-                "cloud_controller.write",
-                "openid",
-                "space.*.developer"
-            },
-            singleton("true")));
+        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("space.1.developer")
-            .setExpiresAt(nextWeek)
-            .setStatus(DENIED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("space.1.developer")
+                .setExpiresAt(nextWeek)
+                .setStatus(DENIED),
+                currentIdentityZoneId);
 
         // The request is not approved because the user has denied some of the
         // scopes requested
-        assertTrue(handler.isApproved(request, userAuthentication));
+        assertTrue(handler.isApproved(request, mockAuthentication));
         assertThat(
-            request.getScope(),
-            Matchers.containsInAnyOrder(new String[]{"openid", "cloud_controller.read","cloud_controller.write","space.1.developer"})
+                request.getScope(),
+                Matchers.containsInAnyOrder("openid", "cloud_controller.read", "cloud_controller.write", "space.1.developer")
         );
     }
 
     @Test
-    public void testSomeRequestedScopesMatchApproval() {
+    void someRequestedScopesMatchApproval() {
         AuthorizationRequest request = new AuthorizationRequest(
-            "foo",
-            new HashSet<>(Arrays.asList("openid"))
+                "foo",
+                new HashSet<>(Collections.singletonList("openid"))
         );
         request.setApproved(false);
-        long theFuture = System.currentTimeMillis() + (86400 * 7 * 1000);
-        Date nextWeek = new Date(theFuture);
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("openid")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("openid")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("foo")
-            .setScope("cloud_controller.write")
-            .setExpiresAt(nextWeek)
-            .setStatus(APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("foo")
+                .setScope("cloud_controller.write")
+                .setExpiresAt(nextWeek)
+                .setStatus(APPROVED),
+                currentIdentityZoneId);
 
         // The request is approved because the user has approved all the scopes
         // requested
-        assertTrue(handler.isApproved(request, userAuthentication));
-        assertEquals(new HashSet<>(Arrays.asList(new String[]{"openid"})), request.getScope());
-    }
-
-    @After
-    public void cleanupDataSource() throws Exception {
-        TestUtils.deleteFrom(jdbcTemplate, "authz_approvals");
-        assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals", Integer.class), is(0));
-    }
-
-    @SuppressWarnings("serial")
-    protected static class TestAuthentication extends AbstractAuthenticationToken {
-        private final String principal;
-
-        private String name;
-        private String id;
-
-        public TestAuthentication(String id, String name, boolean authenticated) {
-            super(null);
-            setAuthenticated(authenticated);
-            this.principal = name;
-            this.name = name;
-            this.id = id;
-        }
-
-        @Override
-        public Object getCredentials() {
-            return null;
-        }
-
-        @Override
-        public String getPrincipal() {
-            return this.principal;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        public void setName(String name) {
-            this.name = name;
-        }
-
-        public String getId() {
-            return id;
-        }
-
+        assertTrue(handler.isApproved(request, mockAuthentication));
+        assertEquals(new HashSet<>(Collections.singletonList("openid")), request.getScope());
     }
 
 }

@@ -75,7 +75,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
 
     @Override
     @SuppressWarnings("unchecked")
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
 
         Assert.state(yaml != null, "Yaml document should not be null");
 
@@ -118,7 +118,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
     }
 
     @Override
-    public T getObject() throws Exception {
+    public T getObject() {
         if (configuration == null) {
             afterPropertiesSet();
         }

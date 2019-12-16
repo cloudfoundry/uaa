@@ -42,13 +42,13 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -315,12 +315,12 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         client.setErrorHandler(new ResponseErrorHandler() {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         return client;
@@ -374,14 +374,11 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
                             first = false;
                         }
                         for (String value : params.get(key)) {
-                            builder.append(key + "=" + UriUtils.encodeQueryParam(value, "UTF-8"));
+                            builder.append(key).append("=").append(UriUtils.encodeQueryParam(value, UTF_8));
                         }
                     }
                 }
                 return new URI(builder.toString());
-            } catch (UnsupportedEncodingException ex) {
-                // should not happen, UTF-8 is always supported
-                throw new IllegalStateException(ex);
             } catch (URISyntaxException ex) {
                 throw new IllegalArgumentException("Could not create URI from [" + builder + "]: " + ex, ex);
             }

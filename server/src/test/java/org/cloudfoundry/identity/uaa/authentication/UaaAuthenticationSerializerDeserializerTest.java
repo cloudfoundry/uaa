@@ -14,7 +14,7 @@ import static org.junit.Assert.assertEquals;
 public class UaaAuthenticationSerializerDeserializerTest {
 
     @Test
-    public void serializeUaaAuthentication() throws Exception {
+    public void serializeUaaAuthentication() {
         UaaPrincipal p = new UaaPrincipal("user-id", "username", "user@example.com", OriginKeys.UAA, "", IdentityZoneHolder.get().getId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN,"sessionId"));
         auth.setAuthenticationMethods(Collections.singleton("pwd"));

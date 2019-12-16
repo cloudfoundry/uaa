@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.AuthenticationException;
@@ -34,7 +36,7 @@ import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
-import java.util.Arrays;
+import java.util.Collections;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
@@ -69,7 +71,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private TokenTestSupport support;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
 
         passwordAuthManager = mock(AuthenticationManager.class);
         requestFactory = mock(OAuth2RequestFactory.class);
@@ -94,7 +96,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         ofNullable(support).ifPresent(TokenTestSupport::clear);
@@ -104,7 +106,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     public void password_expired() throws Exception {
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         when(uaaAuthentication.isAuthenticated()).thenReturn(true);
-        when(uaaAuthentication.isRequiresPasswordChange()).thenReturn(true);
+        MockHttpSession httpSession = new MockHttpSession();
+        SessionUtils.setPasswordChangeRequired(httpSession, true);
+        request.setSession(httpSession);
         when(passwordAuthManager.authenticate(any())).thenReturn(uaaAuthentication);
         request.addParameter(GRANT_TYPE, "password");
         request.addParameter("username", "marissa");
@@ -156,7 +160,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     @Test
     public void attempt_jwt_token_authentication() throws Exception {
         support = new TokenTestSupport(null);
-        String idToken = support.getIdTokenAsString(Arrays.asList(OPENID));
+        String idToken = support.getIdTokenAsString(Collections.singletonList(OPENID));
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         request.addParameter("assertion", idToken);
         filter.doFilter(request, response, chain);

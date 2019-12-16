@@ -20,11 +20,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.validation.AbstractBindingResult;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -37,7 +33,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
     public WebApplicationContext webApplicationContext;
 
     @BeforeEach
-    void populateDataUsingEndpoints() throws Exception {
+    void populateDataUsingEndpoints() {
 
         RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
 
@@ -83,7 +79,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
                     users.add(user);
                     ScimGroupMember member = new ScimGroupMember(user.getId());
                     ScimGroup group = webApplicationContext.getBean(ScimGroupEndpoints.class).getGroup(zone.getValue().get(i).getId(), new MockHttpServletResponse());
-                    group.setMembers(Arrays.asList(member));
+                    group.setMembers(Collections.singletonList(member));
                     webApplicationContext.getBean(ScimGroupEndpoints.class).updateGroup(group, group.getId(),String.valueOf(group.getVersion()), new MockHttpServletResponse());
                 }finally {
                     IdentityZoneHolder.clear();
@@ -95,7 +91,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
     }
 
     @Test
-    void test_Ensure_That_New_Fields_NotNull() throws Exception {
+    void test_Ensure_That_New_Fields_NotNull() {
         assertThat(webApplicationContext.getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class), is(0));
         assertThat(webApplicationContext.getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL", Integer.class), is(0));
     }

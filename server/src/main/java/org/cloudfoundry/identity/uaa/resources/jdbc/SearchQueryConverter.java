@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.springframework.util.MultiValueMap;
 
 import java.util.List;
@@ -61,9 +60,7 @@ public interface SearchQueryConverter {
         }
     }
 
-    ProcessedFilter convert(String filter, String sortBy, boolean ascending);
-
-    ProcessedFilter convert(String filter, String sortBy, boolean ascending, AttributeNameMapper mapper);
+    ProcessedFilter convert(String filter, String sortBy, boolean ascending, String zoneId);
 
     MultiValueMap<String,Object> getFilterValues(String filter, List<String> validAttributes) throws IllegalArgumentException;
 

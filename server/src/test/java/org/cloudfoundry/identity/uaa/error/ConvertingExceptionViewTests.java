@@ -43,7 +43,7 @@ public class ConvertingExceptionViewTests {
     private MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Test
-    public void testGetContentType() throws Exception {
+    public void testGetContentType() {
         RuntimeException e = new RuntimeException("Unexpected error");
         view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
                         HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);

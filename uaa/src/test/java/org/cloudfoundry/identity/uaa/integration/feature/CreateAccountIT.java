@@ -86,7 +86,7 @@ public class CreateAccountIT {
     }
 
     @Test
-    public void testUserInitiatedSignup() throws Exception {
+    public void testUserInitiatedSignup() {
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
         String userEmail = startCreateUserFlow(SECRET);
 
@@ -117,7 +117,7 @@ public class CreateAccountIT {
     }
 
     @Test
-    public void testClientInitiatedSignup() throws Exception {
+    public void testClientInitiatedSignup() {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
 
         webDriver.get(baseUrl + "/create_account?client_id=app");

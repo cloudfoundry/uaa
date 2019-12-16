@@ -41,6 +41,24 @@ class RedirectResolverTest {
     }
 
     @Test
+    void resolveWithDifferentHostCase() {
+        mockRegisteredRedirectUri("http://ALL.CAPS.example.com");
+
+        assertResolveRedirect("http://all.caps.example.com",
+                is("http://all.caps.example.com"),
+                is("http://ALL.CAPS.example.com"));
+    }
+
+    @Test
+    void resolveWithDifferentSchemeCase() {
+        mockRegisteredRedirectUri("HTTP://example.com");
+
+        assertResolveRedirect("http://example.com",
+                is("http://example.com"),
+                is("HTTP://example.com"));
+    }
+
+    @Test
     void resolveClientWithUrlWhichHasNoWildcardsAndDoesNotEndInSlash() {
         mockRegisteredRedirectUri("http://uaa.com");
 
@@ -93,6 +111,19 @@ class RedirectResolverTest {
         assertResolveRedirect("http://uaa.com/a/b/c/../c", shouldThrow());
         assertResolveRedirect("http://uaa.com/a/b/../b/c", shouldThrow());
         assertResolveRedirect("http://uaa.com/a/b/c", shouldThrow());
+    }
+
+    @Test
+    void allSubpathsMatchUsingLegacyMatcher() {
+        mockRegisteredRedirectUri("http://example.com/foo");
+
+        assertResolveRedirect("http://example.com/foo", is("http://example.com/foo"));
+        assertResolveRedirect("http://example.com/foo/", is("http://example.com/foo/"), shouldThrow());
+        assertResolveRedirect("http://example.com/foo/bar", is("http://example.com/foo/bar"), shouldThrow());
+        assertResolveRedirect("http://example.com/foo/bar/baz", is("http://example.com/foo/bar/baz"), shouldThrow());
+        assertResolveRedirect("http://example.com/foo/../foo/../foo", is("http://example.com/foo/../foo/../foo"), is("http://example.com/foo"));
+        assertResolveRedirect("http://example.com/foo/..", shouldThrow());
+        assertResolveRedirect("http://example.com/bar", shouldThrow());
     }
 
     @Test

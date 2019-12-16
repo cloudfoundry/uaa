@@ -20,12 +20,9 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -38,15 +35,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static junit.framework.TestCase.assertNotSame;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpMethod.GET;
 
@@ -158,7 +152,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void issuer_not_found() throws Exception {
+    public void issuer_not_found() {
         String issuer = "https://accounts.google.com";
         exception.expect(IncorrectResultSizeDataAccessException.class);
         exception.expectMessage(String.format("Active provider with issuer[%s] not found", issuer));
@@ -218,14 +212,14 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getParameterizedClass() throws Exception {
+    public void getParameterizedClass() {
         assertEquals(OIDCIdentityProviderDefinition.class, oidc.getParameterizedClass());
         assertEquals(RawXOAuthIdentityProviderDefinition.class, oauth.getParameterizedClass());
     }
 
 
     @Test
-    public void getCompleteAuthorizationURI_includesNonceOnOIDC() throws UnsupportedEncodingException {
+    public void getCompleteAuthorizationURI_includesNonceOnOIDC() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
 
         Map<String, String> queryParams =
@@ -234,7 +228,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() throws UnsupportedEncodingException {
+    public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth);
 
         Map<String, String> queryParams =

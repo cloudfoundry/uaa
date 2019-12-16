@@ -65,8 +65,7 @@ public class LoginServerTokenEndpointFilter extends TokenEndpointAuthenticationF
                     loginInfo.put(p, value);
                 }
             }
-            Authentication result = new AuthzAuthenticationRequest(loginInfo,new UaaAuthenticationDetails(request));
-            return result;
+            return new AuthzAuthenticationRequest(loginInfo,new UaaAuthenticationDetails(request));
         }
         return null;
     }

@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -55,7 +54,7 @@ public class XOAuthIdentityProviderConfigValidator extends BaseIdentityProviderV
 
 
         if (!errors.isEmpty()) {
-            String errorMessages = errors.stream().collect(Collectors.joining(","));
+            String errorMessages = String.join(",", errors);
             throw new IllegalArgumentException("Invalid config for Identity Provider " + errorMessages);
         }
     }

@@ -30,14 +30,14 @@ public class ExtendedLdapUserMapperTest  {
     private String UAA_MANAGER;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         attrs = new NameAwareAttributes();
         authorities = Collections.<GrantedAuthority>emptyList();
         mapper = new ExtendedLdapUserMapper();
     }
 
     @Test
-    public void testConfigureMailAttribute() throws Exception {
+    public void testConfigureMailAttribute() {
         ExtendedLdapUserMapper mapper = new ExtendedLdapUserMapper();
         mapper.setMailAttributeName("mail");
         mapper.setMailSubstitute("{0}@substitute.org");

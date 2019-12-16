@@ -82,7 +82,7 @@ public class NotificationsServiceTest {
     }
 
     @Test
-    public void testSendingMessageToEmailAddress() throws Exception {
+    public void testSendingMessageToEmailAddress() {
 
         mockNotificationsServer.expect(requestTo("http://notifications.example.com/emails"))
             .andExpect(method(POST))
@@ -98,7 +98,7 @@ public class NotificationsServiceTest {
     }
 
     @Test
-    public void testSendingMessageInAnotherZoneResets() throws Exception {
+    public void testSendingMessageInAnotherZoneResets() {
         IdentityZone zone = MultitenancyFixture.identityZone("zone", "zone");
         IdentityZoneHolder.set(zone);
 
@@ -116,7 +116,7 @@ public class NotificationsServiceTest {
     }
 
     @Test
-    public void testSendingMessageInAnotherZoneResetsWhenError() throws Exception {
+    public void testSendingMessageInAnotherZoneResetsWhenError() {
         IdentityZone zone = MultitenancyFixture.identityZone("zone", "zone");
         IdentityZoneHolder.set(zone);
 
@@ -129,7 +129,7 @@ public class NotificationsServiceTest {
         try {
             notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
             fail();
-        } catch (HttpClientErrorException x) {
+        } catch (HttpClientErrorException ignored) {
         }
 
         mockNotificationsServer.verify();

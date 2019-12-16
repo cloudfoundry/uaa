@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.lang.reflect.ParameterizedType;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AbstractXOAuthIdentityProviderDefinition<T extends AbstractXOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
@@ -172,18 +173,18 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
         if (showLinkText != that.showLinkText) return false;
         if (skipSslValidation != that.skipSslValidation) return false;
-        if (authUrl != null ? !authUrl.equals(that.authUrl) : that.authUrl != null) return false;
-        if (tokenUrl != null ? !tokenUrl.equals(that.tokenUrl) : that.tokenUrl != null) return false;
-        if (tokenKeyUrl != null ? !tokenKeyUrl.equals(that.tokenKeyUrl) : that.tokenKeyUrl != null) return false;
-        if (tokenKey != null ? !tokenKey.equals(that.tokenKey) : that.tokenKey != null) return false;
-        if (linkText != null ? !linkText.equals(that.linkText) : that.linkText != null) return false;
-        if (relyingPartyId != null ? !relyingPartyId.equals(that.relyingPartyId) : that.relyingPartyId != null)
+        if (!Objects.equals(authUrl, that.authUrl)) return false;
+        if (!Objects.equals(tokenUrl, that.tokenUrl)) return false;
+        if (!Objects.equals(tokenKeyUrl, that.tokenKeyUrl)) return false;
+        if (!Objects.equals(tokenKey, that.tokenKey)) return false;
+        if (!Objects.equals(linkText, that.linkText)) return false;
+        if (!Objects.equals(relyingPartyId, that.relyingPartyId))
             return false;
-        if (relyingPartySecret != null ? !relyingPartySecret.equals(that.relyingPartySecret) : that.relyingPartySecret != null)
+        if (!Objects.equals(relyingPartySecret, that.relyingPartySecret))
             return false;
-        if (scopes != null ? !scopes.equals(that.scopes) : that.scopes != null) return false;
-        if (issuer != null ? !issuer.equals(that.issuer) : that.issuer != null) return false;
-        return responseType != null ? responseType.equals(that.responseType) : that.responseType == null;
+        if (!Objects.equals(scopes, that.scopes)) return false;
+        if (!Objects.equals(issuer, that.issuer)) return false;
+        return Objects.equals(responseType, that.responseType);
 
     }
 

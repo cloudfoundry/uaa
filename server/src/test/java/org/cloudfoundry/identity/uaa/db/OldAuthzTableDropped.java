@@ -28,7 +28,7 @@ public class OldAuthzTableDropped extends JdbcTestBase {
     private String tableName = "authz_approvals_old";
 
     @Override
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         if (System.getProperty("spring.active.profiles")!=null) {
             environment.setActiveProfiles(System.getProperty("spring.active.profiles"));

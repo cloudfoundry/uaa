@@ -27,11 +27,13 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -76,9 +78,9 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrant() throws Exception {
+    public void testUserLoginViaPasswordGrant() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -95,9 +97,9 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintUaa() throws Exception {
+    public void testUserLoginViaPasswordGrantLoginHintUaa() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -115,16 +117,16 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() throws Exception {
+    public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("grant_type", "password");
         postBody.add("username", testAccounts.getUserName());
         postBody.add("password", testAccounts.getPassword());
-        postBody.add("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"));
+        postBody.add("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8));
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
                 HttpMethod.POST,
@@ -138,43 +140,10 @@ public class PasswordGrantIT {
     public void testUserLoginViaPasswordGrantLoginHintOidc() throws Exception {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         try {
-            IdentityProvider identityProvider = new IdentityProvider<>();
-            identityProvider.setName("my oidc provider");
-            identityProvider.setIdentityZoneId(OriginKeys.UAA);
-            OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
-            config.setClientAuthInBody(false);
-            config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-            config.addAttributeMapping("given_name", "user_name");
-            config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
-            config.addAttributeMapping("external_groups", "scope");
-
-            config.setStoreCustomAttributes(true);
-
-            config.addWhiteListedGroup("*");
-
-            config.setAuthUrl(new URL(baseUrl + "/oauth/authorize"));
-            config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
-            config.setTokenKeyUrl(new URL(baseUrl + "/token_key"));
-            config.setIssuer(baseUrl + "/oauth/token");
-            config.setUserInfoUrl(new URL(baseUrl + "/userinfo"));
-
-            config.setShowLinkText(true);
-            config.setLinkText("My OIDC Provider");
-            config.setSkipSslValidation(true);
-            config.setRelyingPartyId("identity");
-            config.setRelyingPartySecret("identitysecret");
-            config.setPasswordGrantEnabled(true);
-            List<String> requestedScopes = new ArrayList<>();
-            requestedScopes.add("openid");
-            requestedScopes.add("cloud_controller.read");
-            config.setScopes(requestedScopes);
-            identityProvider.setConfig(config);
-            identityProvider.setOriginKey("puppy");
-            identityProvider.setIdentityZoneId("uaa");
-            IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
+            createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
-            headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
             headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -195,9 +164,40 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantInvalidLoginHint() throws Exception {
+    public void testUserLoginViaPasswordGrantLoginHintOidcFails() throws Exception {
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        try {
+            createOidcProvider(clientCredentialsToken);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+
+            LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+            postBody.add("grant_type", "password");
+            postBody.add("username", testAccounts.getUserName());
+            postBody.add("password", "invalidPassword");
+            postBody.add("login_hint", "{\"origin\":\"puppy\"}");
+
+            try {
+                ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
+                        HttpMethod.POST,
+                        new HttpEntity<>(postBody, headers),
+                        Void.class);
+            } catch (HttpClientErrorException e) {
+                Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            }
+            //Check Audit events?
+
+        } finally {
+            IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
+        }
+    }
+
+    @Test
+    public void testUserLoginViaPasswordGrantInvalidLoginHint() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -222,7 +222,7 @@ public class PasswordGrantIT {
         String userEmail = createUnverifiedUser();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
@@ -241,7 +241,7 @@ public class PasswordGrantIT {
 
     }
 
-    private String createUnverifiedUser() throws Exception {
+    private String createUnverifiedUser() {
         int randomInt = new SecureRandom().nextInt();
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
@@ -255,5 +255,42 @@ public class PasswordGrantIT {
         testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", false);
 
         return userEmail;
+    }
+
+    private void createOidcProvider(String clientCredentialsToken) throws MalformedURLException {
+        IdentityProvider identityProvider = new IdentityProvider<>();
+        identityProvider.setName("my oidc provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
+        config.setClientAuthInBody(false);
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
+        config.addAttributeMapping("given_name", "user_name");
+        config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
+        config.addAttributeMapping("external_groups", "scope");
+
+        config.setStoreCustomAttributes(true);
+
+        config.addWhiteListedGroup("*");
+
+        config.setAuthUrl(new URL(baseUrl + "/oauth/authorize"));
+        config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
+        config.setTokenKeyUrl(new URL(baseUrl + "/token_key"));
+        config.setIssuer(baseUrl + "/oauth/token");
+        config.setUserInfoUrl(new URL(baseUrl + "/userinfo"));
+
+        config.setShowLinkText(true);
+        config.setLinkText("My OIDC Provider");
+        config.setSkipSslValidation(true);
+        config.setRelyingPartyId("identity");
+        config.setRelyingPartySecret("identitysecret");
+        config.setPasswordGrantEnabled(true);
+        List<String> requestedScopes = new ArrayList<>();
+        requestedScopes.add("openid");
+        requestedScopes.add("cloud_controller.read");
+        config.setScopes(requestedScopes);
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey("puppy");
+        identityProvider.setIdentityZoneId("uaa");
+        IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
     }
 }

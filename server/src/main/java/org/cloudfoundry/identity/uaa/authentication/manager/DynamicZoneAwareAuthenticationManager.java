@@ -125,7 +125,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         }
 
         ChainedAuthenticationManager result = new ChainedAuthenticationManager();
-        result.setDelegates(delegates.toArray(new AuthenticationManagerConfiguration[delegates.size()]));
+        result.setDelegates(delegates.toArray(new AuthenticationManagerConfiguration[0]));
         return result;
     }
 
@@ -135,7 +135,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             if (result!=null) {
                 return result;
             }
-        } catch (EmptyResultDataAccessException noLdapProviderFound) {
+        } catch (EmptyResultDataAccessException ignored) {
         }
         IdentityProvider provider = new IdentityProvider();
         provider.setOriginKey(origin);

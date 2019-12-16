@@ -56,11 +56,11 @@ public class KeyWithCert {
         String privateKeyAlgorithm = privateKey.getAlgorithm();
         String publicKeyAlgorithm = publicKey.getAlgorithm();
 
-        if (privateKeyAlgorithm == "EC") {
+        if (privateKeyAlgorithm.equals("EC")) {
             privateKeyAlgorithm = "ECDSA";
         }
 
-        if (publicKeyAlgorithm == "EC") {
+        if (publicKeyAlgorithm.equals("EC")) {
             publicKeyAlgorithm = "ECDSA";
         }
 
@@ -82,12 +82,10 @@ public class KeyWithCert {
     }
 
     private PrivateKey loadPrivateKey(String encodedPrivateKey, String passphrase) throws CertificateException {
-        PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedPrivateKey.getBytes())));
-        JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
-
         PrivateKey privateKey = null;
+        try (PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedPrivateKey.getBytes())))) {
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
 
-        try {
             Object object = pemParser.readObject();
 
             if (object instanceof PEMEncryptedKeyPair) {
@@ -103,12 +101,6 @@ public class KeyWithCert {
             }
         } catch (IOException ex) {
             throw new CertificateException("Failed to read private key.", ex);
-        } finally {
-            try {
-                pemParser.close();
-            } catch (IOException e) {
-                throw new CertificateException("Failed to close key reader", e);
-            }
         }
 
         if (privateKey == null) {
@@ -119,11 +111,9 @@ public class KeyWithCert {
     }
 
     private X509Certificate loadCertificate(String encodedCertificate) throws CertificateException {
-        PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedCertificate.getBytes())));
-
         X509Certificate certificate;
 
-        try {
+        try (PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedCertificate.getBytes())))) {
             Object object = pemParser.readObject();
             if (object instanceof X509CertificateHolder) {
                 certificate = new JcaX509CertificateConverter().setProvider("BC").getCertificate((X509CertificateHolder) object);
@@ -132,12 +122,6 @@ public class KeyWithCert {
             }
         } catch (IOException ex) {
             throw new CertificateException("Failed to read certificate.", ex);
-        } finally {
-            try {
-                pemParser.close();
-            } catch (IOException e) {
-                throw new CertificateException("Failed to close certificate reader.", e);
-            }
         }
 
         if (certificate == null) {

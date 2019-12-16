@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.stereotype.Component;
 
@@ -19,7 +18,7 @@ public class RedirectResolverFactoryBean implements FactoryBean<RedirectResolver
 
     @Override
     public RedirectResolver getObject() {
-        DefaultRedirectResolver defaultRedirectResolver = new DefaultRedirectResolver();
+        NormalizedRedirectResolver defaultRedirectResolver = new NormalizedRedirectResolver();
         defaultRedirectResolver.setMatchSubdomains(false);
         return allowUnsafeMatching ? new LegacyRedirectResolver() : defaultRedirectResolver;
     }

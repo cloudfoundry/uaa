@@ -1,8 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone.beans;
 
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ class IdentityZoneManagerImplTest {
     void setUp() {
         identityZoneManager = new IdentityZoneManagerImpl();
         mockIdentityZone = mock(IdentityZone.class);
-        IdentityZoneHolder.set(mockIdentityZone);
+        identityZoneManager.setCurrentIdentityZone(mockIdentityZone);
     }
 
     @Test

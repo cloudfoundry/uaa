@@ -53,7 +53,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
-    public void initJdbcScimUserProvisioningTests() throws Exception {
+    public void initJdbcScimUserProvisioningTests() {
         activeKeyLabel = "key-1";
         inactiveKeyLabel = "key-2";
 
@@ -72,7 +72,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     }
 
     @After
-    public void clear() throws Exception {
+    public void clear() {
         jdbcTemplate.execute("delete from user_google_mfa_credentials");
     }
 
@@ -172,7 +172,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveExistingWithANonActiveEncryptionKey() throws EncryptionServiceException {
+    public void testRetrieveExistingWithANonActiveEncryptionKey() {
         encryptionKeyService = new EncryptionKeyService(inactiveKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate,
           encryptionKeyService);

@@ -40,7 +40,7 @@ public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvc
     }
 
     @AfterEach
-    public void tearDown() throws Exception {
+    public void tearDown() {
         resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 }

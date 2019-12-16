@@ -38,7 +38,7 @@ public class YamlProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(YamlProcessor.class);
 
-    public static enum ResolutionMethod {
+    public enum ResolutionMethod {
         OVERRIDE, OVERRIDE_AND_IGNORE, FIRST_FOUND
     }
 

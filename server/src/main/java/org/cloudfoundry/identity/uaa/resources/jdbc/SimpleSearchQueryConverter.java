@@ -1,12 +1,13 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
+import com.unboundid.scim.sdk.AttributePath;
 import com.unboundid.scim.sdk.InvalidResourceException;
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -15,69 +16,72 @@ import org.springframework.util.StringUtils;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static com.unboundid.scim.sdk.SCIMException.createException;
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
+import static org.springframework.util.StringUtils.hasText;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     //LOWER
-    private static final List<String> VALID_ATTRIBUTE_NAMES = Collections.unmodifiableList(
-            Arrays.asList(
-                    "id",
-                    "created",
-                    "lastmodified",
-                    "version",
-                    "username",
-                    "password",
-                    "email",
-                    "givenname",
-                    "familyname",
-                    "name.familyname",
-                    "name.givenname",
-                    "active",
-                    "phonenumber",
-                    "verified",
-                    "origin",
-                    "identity_zone_id",
-                    "passwd_lastmodified",
-                    "passwd_change_required",
-                    "last_logon_success_time",
-                    "previous_logon_success_time",
-                    "displayname",
-                    "scope",
-                    "group_id",
-                    "member_id",
-                    "member_type",
-                    "description",
-                    "client_id",
-                    "authorized_grant_types",
-                    "web_server_redirect_uri",
-                    "redirect_uri",
-                    "access_token_validity",
-                    "refresh_token_validity",
-                    "autoapprove",
-                    "show_on_home_page",
-                    "created_by",
-                    "required_user_groups",
-                    "user_id",
-                    "meta.lastmodified",
-                    "meta.created",
-                    "meta.location",
-                    "meta.resourcetype",
-                    "meta.version",
-                    "emails.value",
-                    "groups.display",
-                    "phonenumbers.value",
-                    "gm.external_group",
-                    "gm.origin",
-                    "g.displayname",
-                    "g.id"
-            )
-    );
+    private static final List<String> VALID_ATTRIBUTE_NAMES = List.of(
+            "id",
+            "created",
+            "lastmodified",
+            "version",
+            "username",
+            "password",
+            "email",
+            "givenname",
+            "familyname",
+            "name.familyname",
+            "name.givenname",
+            "active",
+            "phonenumber",
+            "verified",
+            "origin",
+            "identity_zone_id",
+            "passwd_lastmodified",
+            "passwd_change_required",
+            "last_logon_success_time",
+            "previous_logon_success_time",
+            "displayname",
+            "scope",
+            "group_id",
+            "member_id",
+            "member_type",
+            "description",
+            "client_id",
+            "authorized_grant_types",
+            "web_server_redirect_uri",
+            "redirect_uri",
+            "access_token_validity",
+            "refresh_token_validity",
+            "autoapprove",
+            "show_on_home_page",
+            "created_by",
+            "required_user_groups",
+            "user_id",
+            "meta.lastmodified",
+            "meta.created",
+            "meta.location",
+            "meta.resourcetype",
+            "meta.version",
+            "emails.value",
+            "groups.display",
+            "phonenumbers.value",
+            "gm.external_group",
+            "gm.origin",
+            "g.displayname",
+            "g.id");
 
     private static Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
@@ -100,16 +104,11 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     @Override
-    public ProcessedFilter convert(String filter, String sortBy, boolean ascending) {
-        return convert(filter, sortBy, ascending, mapper);
-    }
-
-    @Override
-    public ProcessedFilter convert(String filter, String sortBy, boolean ascending, AttributeNameMapper mapper) {
+    public ProcessedFilter convert(String filter, String sortBy, boolean ascending, String zoneId) {
         String paramPrefix = generateParameterPrefix(filter);
         Map<String, Object> values = new HashMap<>();
-        String where = StringUtils.hasText(filter) ? getWhereClause(filter, sortBy, ascending, values, mapper, paramPrefix) : null;
-        ProcessedFilter pf = new ProcessedFilter(where, values, StringUtils.hasText(sortBy));
+        String where = getWhereClause(filter, sortBy, ascending, values, mapper, paramPrefix, zoneId);
+        ProcessedFilter pf = new ProcessedFilter(where, values, hasText(sortBy));
         pf.setParamPrefix(paramPrefix);
         return pf;
     }
@@ -123,21 +122,38 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
-    private String getWhereClause(String filter, String sortBy, boolean ascending, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
+    private String getWhereClause(
+            final String filter,
+            final String sortBy,
+            final boolean ascending,
+            final Map<String, Object> values,
+            final AttributeNameMapper mapper,
+            final String paramPrefix,
+            final String zoneId) {
 
         try {
-            SCIMFilter scimFilter = scimFilter(filter);
-            String whereClause = createFilter(scimFilter, values, mapper, paramPrefix);
+            final SCIMFilter zoneIdFilter = SCIMFilter.createEqualityFilter(
+                    AttributePath.parse("identity_zone_id"),
+                    zoneId);
+            SCIMFilter fullFilter;
+            if (hasText(filter)) {
+                fullFilter = SCIMFilter.createAndFilter(asList(scimFilter(filter), zoneIdFilter));
+            } else {
+                fullFilter = zoneIdFilter;
+            }
+
+            String whereClause = whereClauseFromFilter(fullFilter, values, mapper, paramPrefix);
             if (sortBy != null) {
-                sortBy = mapper.mapToInternal(sortBy);
+                final String internalSortBy = mapper.mapToInternal(sortBy);
                 // Need to add "asc" or "desc" explicitly to ensure that the pattern
                 // splitting below works
-                whereClause += ORDER_BY + sortBy + (ascending ? " ASC" : " DESC");
+                whereClause += ORDER_BY + internalSortBy + (ascending ? " ASC" : " DESC");
             }
+
             return whereClause;
         } catch (SCIMException e) {
             logger.debug("Unable to parse " + filter, e);
-            throw new IllegalArgumentException("Invalid SCIM Filter:" + filter + " Message:" + e.getMessage());
+            throw new IllegalArgumentException("Invalid SCIM Filter: " + filter + "; Message: " + e.getMessage());
         }
     }
 
@@ -154,7 +170,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
-    SCIMFilter scimFilter(String filter) throws SCIMException {
+    private SCIMFilter scimFilter(String filter) throws SCIMException {
         SCIMFilter scimFilter;
         try {
             scimFilter = SCIMFilter.parse(filter);
@@ -222,12 +238,12 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
-    private String createFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
+    private String whereClauseFromFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
         switch (filter.getFilterType()) {
             case AND:
-                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " AND " + createFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+                return "(" + whereClauseFromFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
             case OR:
-                return "(" + createFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " OR " + createFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+                return "(" + whereClauseFromFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
             case EQUALITY:
                 return comparisonClause(filter, "=", values, "", "", paramPrefix);
             case CONTAINS:
@@ -300,7 +316,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private String getAttributeName(SCIMFilter filter, AttributeNameMapper mapper) {
         String name = filter.getFilterAttribute().getAttributeName();
         String subName = filter.getFilterAttribute().getSubAttributeName();
-        if (StringUtils.hasText(subName)) {
+        if (hasText(subName)) {
             name = name + "." + subName;
         }
         name = mapper.mapToInternal(name);
@@ -322,6 +338,6 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     @Override
     public String map(String attribute) {
-        return StringUtils.hasText(attribute) ? mapper.mapToInternal(attribute) : attribute;
+        return hasText(attribute) ? mapper.mapToInternal(attribute) : attribute;
     }
 }

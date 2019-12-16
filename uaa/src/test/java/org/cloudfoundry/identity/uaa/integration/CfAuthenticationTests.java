@@ -17,7 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -56,7 +56,7 @@ public class CfAuthenticationTests {
         params.set("redirect_uri", resource.getRedirectUri(new DefaultAccessTokenRequest()));
         params.set("response_type", "token");
         headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     }
 
     @Test

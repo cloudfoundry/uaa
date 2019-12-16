@@ -16,37 +16,37 @@ public class TestUaaUrlBuilderTest {
     }
 
     @Test(expected = RuntimeException.class)
-    public void informativeError_whenNoSystemDomain() throws Exception {
+    public void informativeError_whenNoSystemDomain() {
         ReflectionTestUtils.setField(builder, "systemDomain", "");
         builder.build();
     }
 
     @Test
-    public void build_returnsUaaUrl() throws Exception {
+    public void build_returnsUaaUrl() {
         String url = builder.build();
         Assert.assertEquals("https://uaa.foo.cf.com/", url);
     }
 
     @Test
-    public void setScheme_canChangeScheme() throws Exception {
+    public void setScheme_canChangeScheme() {
         String url = builder.withScheme("http").build();
         Assert.assertEquals("http://uaa.foo.cf.com/", url);
     }
 
     @Test
-    public void setPath_canAddPathStuff() throws Exception {
+    public void setPath_canAddPathStuff() {
         String url = builder.withPath("/oauth/authorize").build();
         Assert.assertEquals("https://uaa.foo.cf.com/oauth/authorize", url);
     }
 
     @Test
-    public void setSubdomain_canAddSubdomain() throws Exception {
+    public void setSubdomain_canAddSubdomain() {
         String url = builder.withSubdomain("my-zone").build();
         Assert.assertEquals("https://my-zone.uaa.foo.cf.com/", url);
     }
 
     @Test
-    public void stringingItAllTogether() throws Exception {
+    public void stringingItAllTogether() {
         String url = builder.withScheme("http")
                             .withPath("/oauth/authorize")
                             .withSubdomain("my-zone").build();
@@ -55,7 +55,7 @@ public class TestUaaUrlBuilderTest {
 
 
     @Test
-    public void handlesExtraSlashesProperly() throws Exception {
+    public void handlesExtraSlashesProperly() {
         ReflectionTestUtils.setField(builder, "systemDomain", "foo.cf.com/");
         String url = builder.withPath("/oauth/authorize").build();
         Assert.assertEquals("https://uaa.foo.cf.com/oauth/authorize", url);

@@ -1,8 +1,8 @@
-description = 'CloudFoundry Identity Metrics Data Jar'
+description = "CloudFoundry Identity Metrics Data Jar"
 
 dependencies {
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
+  compile libraries.jacksonDatabind
+  compile libraries.jacksonAnnotations
 }
 
 processResources {

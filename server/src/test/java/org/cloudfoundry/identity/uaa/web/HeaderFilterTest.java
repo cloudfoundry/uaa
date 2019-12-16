@@ -42,7 +42,7 @@ public class HeaderFilterTest {
     }
 
     @Test
-    public void allows_null_argument() throws Exception {
+    public void allows_null_argument() {
         HeaderFilter filter = new HeaderFilter(null);
         assertNotNull(filter.getFilteredHeaderNames());
     }

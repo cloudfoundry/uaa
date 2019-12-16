@@ -24,7 +24,7 @@ public class ErrorRoutingIT {
     String baseUrl;
 
     @Test
-    public void testMethodNotAllowedRoutedToErrorPage() throws Exception {
+    public void testMethodNotAllowedRoutedToErrorPage() {
         webDriver.get(baseUrl + "/authenticate");
 
         Assert.assertTrue("Check if on the error page", webDriver.findElement(By.tagName("h2")).getText().contains("Uh oh."));

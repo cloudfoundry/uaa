@@ -43,7 +43,7 @@ public class QueryFilterTests {
 
 
     @Test
-    public void reportUnsuccessfulQuery() throws Exception {
+    public void reportUnsuccessfulQuery() {
         long start = System.currentTimeMillis();
         filter.reportFailedQuery("query", null, "name", start, null);
         assertNotNull(metric.getQueries());
@@ -54,7 +54,7 @@ public class QueryFilterTests {
     }
 
     @Test
-    public void reportQuery() throws Exception {
+    public void reportQuery() {
         filter.reportQuery("query", null, "name", 0, 1);
         assertNotNull(metric.getQueries());
         assertEquals(1, metric.getQueries().size());
@@ -65,7 +65,7 @@ public class QueryFilterTests {
     }
 
     @Test
-    public void reportSlowQuery() throws Exception {
+    public void reportSlowQuery() {
         long delta = filter.getThreshold() + 10;
         filter.reportSlowQuery("query", null, "name", 0, delta);
         assertNotNull(metric.getQueries());

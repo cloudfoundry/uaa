@@ -53,14 +53,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
 
-    private String scopes = "test.scope1,test.scope2,test.scope3";
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private ScimUser user1;
     private ClientDetails client1;
 
     @BeforeEach
     public void createData() {
-        user1 = syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaaZoneId()));
+        String scopes = "test.scope1,test.scope2,test.scope3";
+        user1 = syncGroups(setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaaZoneId()));
         client1 = setUpClients(generator.generate(), null, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
     }
 

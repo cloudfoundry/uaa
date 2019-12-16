@@ -49,9 +49,7 @@ public class TestSchemaValidation extends JdbcTestBase {
 
 
     public void validate_index_existence(String[] tableNames, String lookupIndexName) throws Exception {
-
-        Connection connection = dataSource.getConnection();
-        try {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundIndex = false;
             for (String tableName : tableNames) {
@@ -67,9 +65,7 @@ public class TestSchemaValidation extends JdbcTestBase {
                     break;
                 }
             }
-            assertTrue("I was expecting to find index "+ lookupIndexName, foundIndex);
-        } finally {
-            connection.close();
+            assertTrue("I was expecting to find index " + lookupIndexName, foundIndex);
         }
     }
 }

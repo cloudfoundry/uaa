@@ -101,7 +101,6 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String userLastLogonTimeDescription = "The unix epoch timestamp in milliseconds of when the user last authenticated. This field will be omitted from the response if the user has never authenticated.";
     private final String userPreviousLogonTimeDescription = "The unix epoch timestamp in milliseconds of 2nd to last successful user authentication. This field will only be included in the response once the user has authenticated two or more times.";
 
-    private final String scimWriteOrUaaAdminRequired = "Access token with `scim.write` or `uaa.admin` required";
     private final String requiredUserUpdateScopes = "Access token with `scim.write`, `uaa.admin`, or `openid` required. The `openid` scope only allows the user to update their **own** first and last name, when `origin` is `uaa`.";
 
     private FieldDescriptor[] searchResponseFields = {
@@ -295,8 +294,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
 
     private ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
             searchUsersParameters,
-            new ParameterDescriptor[]{parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING))}
-    );
+            parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING)));
 
     private FieldDescriptor[] searchWithAttributesResponseFields = {
             fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
@@ -476,7 +474,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus))
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessRequest(prettyPrint()),
@@ -508,7 +507,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus))
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessRequest(prettyPrint()),
@@ -627,7 +627,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 preprocessResponse(prettyPrint()),
                                 pathParameters(parameterWithName("userId").description(userIdDescription)),
                                 requestHeaders(
-                                        headerWithName("Authorization").description(scimWriteOrUaaAdminRequired),
+                                        headerWithName("Authorization").description("Access token with `scim.write` or `uaa.admin` required"),
                                         headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER

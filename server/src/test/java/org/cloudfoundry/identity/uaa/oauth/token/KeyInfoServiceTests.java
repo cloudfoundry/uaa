@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -98,9 +98,8 @@ class KeyInfoServiceTests {
 
     @Test
     void testSignedProviderAsymmetricKeysShouldAddKeyURL() {
-        String signingKey = SIGNING_KEY;
         String keyId = generator.generate();
-        configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
+        configureDefaultZoneKeys(Collections.singletonMap(keyId, SIGNING_KEY));
 
         KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
@@ -111,7 +110,6 @@ class KeyInfoServiceTests {
 
     @Test
     void testSignedProviderAsymmetricKeysShouldAddKeyURL_ForCorrectZone() {
-        String signingKey = SIGNING_KEY;
         String keyId = generator.generate();
         IdentityZoneHolder.clear();
         IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
@@ -122,7 +120,7 @@ class KeyInfoServiceTests {
 
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         TokenPolicy tokenPolicy = new TokenPolicy();
-        tokenPolicy.setKeys(Collections.singletonMap(keyId, signingKey));
+        tokenPolicy.setKeys(Collections.singletonMap(keyId, SIGNING_KEY));
         config.setTokenPolicy(tokenPolicy);
         zone.setConfig(config);
         when(provisioning.retrieve("uaa")).thenReturn(zone);

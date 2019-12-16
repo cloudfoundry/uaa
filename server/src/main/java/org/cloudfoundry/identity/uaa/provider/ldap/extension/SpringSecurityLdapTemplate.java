@@ -97,16 +97,14 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
 
                 NamingEnumeration<SearchResult> results = ctx.search(dn, comparisonFilter, new Object[] {value}, ctls);
 
-                Boolean match = Boolean.valueOf(results.hasMore());
+                Boolean match = results.hasMore();
                 LdapUtils.closeEnumeration(results);
 
                 return match;
             }
         }
 
-        Boolean matches = (Boolean) executeReadOnly(new LdapCompareCallback());
-
-        return matches.booleanValue();
+        return (Boolean) executeReadOnly(new LdapCompareCallback());
     }
 
     /**

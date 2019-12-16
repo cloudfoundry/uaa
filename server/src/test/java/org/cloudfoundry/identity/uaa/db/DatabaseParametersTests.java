@@ -38,7 +38,7 @@ public class DatabaseParametersTests extends JdbcTestBase {
 
     @Override
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("database.initialsize", "0");
         environment.setProperty("database.validationquerytimeout", "5");
@@ -51,12 +51,12 @@ public class DatabaseParametersTests extends JdbcTestBase {
     }
 
     @Test
-    public void initial_size() throws Exception {
+    public void initial_size() {
         assertEquals(0, getDataSource().getInitialSize());
     }
 
     @Test
-    public void validation_query_timeout() throws Exception {
+    public void validation_query_timeout() {
         assertEquals(5, getDataSource().getValidationQueryTimeout());
     }
 
@@ -81,7 +81,7 @@ public class DatabaseParametersTests extends JdbcTestBase {
         return (DataSource)dataSource;
     }
 
-    public String getUrlParameter(String name) throws URISyntaxException {
+    public String getUrlParameter(String name) {
         String dburl = getDataSource().getUrl();
         URI uri = URI.create("http://localhost" + dburl.substring(dburl.indexOf("?")));
         List<NameValuePair> pairs = URLEncodedUtils.parse(uri, StandardCharsets.UTF_8);

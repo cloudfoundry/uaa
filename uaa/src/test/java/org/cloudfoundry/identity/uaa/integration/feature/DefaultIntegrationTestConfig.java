@@ -22,10 +22,8 @@ import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.core.env.Environment;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.web.client.RestTemplate;
@@ -35,12 +33,12 @@ import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-@Configuration
 @PropertySource("classpath:integration.test.properties")
 public class DefaultIntegrationTestConfig {
 
     @Bean
-    public IntegrationTestRule integrationTestRule(@Value("${integration.test.uaa_url}") String baseUrl, Environment environment) {
+    public IntegrationTestRule integrationTestRule(
+            final @Value("${integration.test.base_url}") String baseUrl) {
         return new IntegrationTestRule(baseUrl);
     }
 
@@ -80,7 +78,6 @@ public class DefaultIntegrationTestConfig {
         return driver;
     }
 
-
     @Bean(destroyMethod = "stop")
     public SimpleSmtpServer simpleSmtpServer(@Value("${smtp.port}") int port) {
         return SimpleSmtpServer.start(port);
@@ -93,9 +90,8 @@ public class DefaultIntegrationTestConfig {
 
     @Bean
     public TestClient testClient(RestTemplate restTemplate,
-                                 @Value("${integration.test.uaa_url}") String baseUrl,
-                                 @Value("${integration.test.uaa_url}") String uaaUrl) {
-        return new TestClient(restTemplate, baseUrl, uaaUrl);
+                                 final @Value("${integration.test.base_url}") String baseUrl) {
+        return new TestClient(restTemplate, baseUrl);
     }
 
     @Bean

@@ -24,6 +24,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUri;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver {
@@ -38,21 +39,24 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     @Override
     protected boolean redirectMatches(String requestedRedirect, String clientRedirect) {
         try {
-            URI requestedRedirectURI = URI.create(requestedRedirect);
-            ClientRedirectUriPattern clientRedirectUri = new ClientRedirectUriPattern(clientRedirect);
+            String normalizedRequestedRedirect = normalizeUri(requestedRedirect);
+            String normalizedClientRedirect = normalizeUri(clientRedirect);
+
+            URI requestedRedirectURI = URI.create(normalizedRequestedRedirect);
+            ClientRedirectUriPattern clientRedirectUri = new ClientRedirectUriPattern(normalizedClientRedirect);
 
             if (!clientRedirectUri.isValidRedirect()) {
-                logger.error(String.format("Invalid redirect uri: %s", clientRedirect));
+                logger.error(String.format("Invalid redirect uri: %s", normalizedClientRedirect));
                 return false;
             }
 
-            if (clientRedirectUri.isWildcard(clientRedirect) &&
+            if (clientRedirectUri.isWildcard(normalizedClientRedirect) &&
                     clientRedirectUri.isSafeRedirect(requestedRedirectURI) &&
                     clientRedirectUri.match(requestedRedirectURI)) {
                 return true;
             }
 
-            return super.redirectMatches(requestedRedirect, clientRedirect);
+            return super.redirectMatches(normalizedRequestedRedirect, normalizedClientRedirect);
         } catch (IllegalArgumentException e) {
             logger.error(
                     String.format("Could not validate whether requestedRedirect (%s) matches clientRedirectUri (%s)",
@@ -120,7 +124,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                 .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").collect(toList())))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        builder.queryParams(new LinkedMultiValueMap<>(redactedParams));
+        builder.replaceQueryParams(new LinkedMultiValueMap<>(redactedParams));
     }
 
     private static void redactUserInfo(UriComponentsBuilder builder) {

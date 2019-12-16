@@ -14,10 +14,9 @@ package org.cloudfoundry.identity.statsd;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import sun.management.LazyCompositeData;
 
 import javax.management.*;
-import javax.management.openmbean.CompositeDataSupport;
+import javax.management.openmbean.CompositeData;
 import javax.management.openmbean.TabularDataSupport;
 import java.util.*;
 
@@ -27,8 +26,6 @@ public class MBeanMap extends AbstractMap<String, Object>{
 	private static Logger logger = LoggerFactory.getLogger(MBeanMap.class);
 
 	private Map<String, Object> map = new HashMap<>();
-
-	private boolean initialized = false;
 
 	private final MBeanInfo info;
 
@@ -61,6 +58,7 @@ public class MBeanMap extends AbstractMap<String, Object>{
 
 	@Override
 	public Set<java.util.Map.Entry<String, Object>> entrySet() {
+		boolean initialized = false;
 		if (!initialized && info != null) {
 			MBeanAttributeInfo[] attributes = info.getAttributes();
 			for (MBeanAttributeInfo attribute : attributes) {
@@ -97,17 +95,9 @@ public class MBeanMap extends AbstractMap<String, Object>{
 	}
 
 	private Object getCompositeWrapper(Object value, boolean prettifyKeys) {
-		if (value instanceof CompositeDataSupport) {
-			Map<Object, Object> map = new HashMap<Object, Object>();
-			CompositeDataSupport composite = (CompositeDataSupport) value;
-			for (String key : composite.getCompositeType().keySet()) {
-				safePut(map, key, composite.get(key));
-			}
-			return map;
-		}
-		if (value instanceof LazyCompositeData) {
-			Map<Object, Object> map = new HashMap<Object, Object>();
-			LazyCompositeData composite = (LazyCompositeData) value;
+		if (value instanceof CompositeData) {
+			Map<Object, Object> map = new HashMap<>();
+			CompositeData composite = (CompositeData) value;
 			for (String key : composite.getCompositeType().keySet()) {
 				safePut(map, key, composite.get(key));
 			}
@@ -149,7 +139,7 @@ public class MBeanMap extends AbstractMap<String, Object>{
 		safePut(map, key, value, true);
 	}
 
-	private void verySafePut(Map<? extends Object, Object> map, Object key, Object value) {
+	private void verySafePut(Map<?, Object> map, Object key, Object value) {
 		@SuppressWarnings("unchecked")
 		Map<Object, Object> target = (Map<Object, Object>) map;
 		safePut(target, key, value);
@@ -185,10 +175,7 @@ public class MBeanMap extends AbstractMap<String, Object>{
 		if (map.size() > 2) {
 			return false;
 		}
-		if (map.containsKey("key") && map.containsKey("value")) {
-			return true;
-		}
-		return false;
+		return map.containsKey("key") && map.containsKey("value");
 	}
 
 }

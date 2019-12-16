@@ -227,6 +227,22 @@ description: uaa.admin,cloud_controller.read
 member: cn=admin,ou=Users,dc=test,dc=com
 member: cn=marissa3,ou=Users,dc=test,dc=com
 
+dn: cn=marissagroup1,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissagroup1
+description: foobar # the description field is required for ldap-groups-as-scopes.xml, but not for ldap-groups-map-to-scopes.xml
+member: cn=marissa,ou=Users,dc=test,dc=com
+
+dn: cn=marissagroup2,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissagroup2
+description: foobar # the description field is required for ldap-groups-as-scopes.xml, but not for ldap-groups-map-to-scopes.xml
+member: cn=marissa,ou=Users,dc=test,dc=com
+
 #This groups contains scope as the cn attribute
 dn: cn=uaa.admin,ou=scopes,dc=test,dc=com
 changetype: add

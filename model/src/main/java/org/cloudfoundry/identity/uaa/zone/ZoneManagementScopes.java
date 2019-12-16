@@ -16,8 +16,6 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -45,8 +43,7 @@ public class ZoneManagementScopes {
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.invite"
     };
 
-    public static final List<String> UAA_SCOPES = Collections.unmodifiableList(
-        Arrays.asList(
+    public static final List<String> UAA_SCOPES = List.of(
             ZONES_ZONE_ID_PREFIX + "read",
             ZONES_ZONE_ID_PREFIX + "write",
             ZONES_ZONE_ID_PREFIX + "*.admin",
@@ -77,9 +74,7 @@ public class ZoneManagementScopes {
             "groups.update",
             "password.write",
             "oauth.login",
-            "uaa.admin"
-        )
-    );
+            "uaa.admin");
 
     public static List<String> getSystemScopes() {
         return UAA_SCOPES

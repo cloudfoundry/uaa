@@ -26,7 +26,7 @@ public class MapWrapper {
 
     private Object target;
 
-    public MapWrapper(Object target) throws Exception {
+    public MapWrapper(Object target) {
         this.target = target;
         context = new StandardEvaluationContext();
         context.addPropertyAccessor(new MapAccessor());
@@ -42,7 +42,7 @@ public class MapWrapper {
         return get(expression, Object.class);
     }
 
-    public <T> T get(String expression, Class<T> type) throws Exception {
+    public <T> T get(String expression, Class<T> type) {
         return parser.parseExpression(expression).getValue(context, target,
                         type);
     }

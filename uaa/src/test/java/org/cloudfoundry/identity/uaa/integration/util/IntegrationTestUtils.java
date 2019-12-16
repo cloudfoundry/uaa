@@ -63,6 +63,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -118,6 +119,8 @@ public class IntegrationTestUtils {
             "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
             "  </md:ContactPerson>\n" +
             "</md:EntityDescriptor>\n";
+
+    public static final String OIDC_ACCEPTANCE_URL = "https://oidc10.uaa-acceptance.cf-app.com/";
 
     public static void updateUserToForcePasswordChange(RestTemplate restTemplate, String baseUrl, String adminToken, String userId) {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminToken, userId, null);
@@ -894,9 +897,9 @@ public class IntegrationTestUtils {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.uaa-acceptance.cf-app.com/token_key"));
+        config.setAuthUrl(new URL(OIDC_ACCEPTANCE_URL + "oauth/authorize"));
+        config.setTokenUrl(new URL(OIDC_ACCEPTANCE_URL + "oauth/token"));
+        config.setTokenKeyUrl(new URL(OIDC_ACCEPTANCE_URL + "token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);
@@ -913,7 +916,7 @@ public class IntegrationTestUtils {
         return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
     }
 
-    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -945,7 +948,7 @@ public class IntegrationTestUtils {
     }
 
     public static void updateIdentityProvider(
-            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) throws Exception {
+            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -1063,7 +1066,7 @@ public class IntegrationTestUtils {
                                        String password,
                                        String scopes) {
         RestTemplate template = new RestTemplate();
-        template.getMessageConverters().add(0, new StringHttpMessageConverter(java.nio.charset.Charset.forName("UTF-8")));
+        template.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -1115,7 +1118,7 @@ public class IntegrationTestUtils {
                                                   String clientId,
                                                   String clientSecret,
                                                   String username,
-                                                  String password) throws Exception {
+                                                  String password) {
 
         return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, username, password)
                 .get("access_token");

@@ -72,7 +72,7 @@ Security OAuth that can do the heavy lifting if your client is Java.
 ## Quick Start
 
 Requirements:
-* Java 8
+* Java 11
 
 If this works you are in business:
 
@@ -128,6 +128,10 @@ The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 To run the unit tests with docker:
 
     $ run-unit-tests.sh <dbtype>
+    
+### Building war file
+
+    $ ./gradlew :clean :assemble -Pversion=${UAA_VERSION}
 
 ## Inventory
 

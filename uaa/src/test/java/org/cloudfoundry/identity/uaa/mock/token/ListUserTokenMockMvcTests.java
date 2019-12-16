@@ -46,7 +46,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     private ClientDetails client1withTokensListScope, client2,client3;
-    private ScimUser user1withTokensListScope, user2, user3;
+    private ScimUser user1withTokensListScope;
+    private ScimUser user2;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private MultiValueMap<String, String> tokensPerUser = new LinkedMultiValueMap<>();
     private MultiValueMap<String, String> tokensPerClient = new LinkedMultiValueMap<>();
@@ -55,9 +56,9 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @BeforeEach
     void createUsersAndClients() throws Exception {
-        user1withTokensListScope = setUpUser(generator.generate(), "tokens.list,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        user2 = setUpUser(generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        user3 = setUpUser(generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        user1withTokensListScope = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "tokens.list,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        user2 = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
+        ScimUser user3 = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), "scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaaZoneId());
         client1withTokensListScope = setUpClients(generator.generate(), "", "tokens.list,scim.read", "password,refresh_token", false);
         client2 = setUpClients(generator.generate(), "", "scim.read","password,refresh_token", false);
         client3 = setUpClients(generator.generate(), "", "scim.read","password,refresh_token", false);
@@ -119,8 +120,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     List<String> getTokenIds(List<RevocableToken> tokens) {
-        List<String> accessTokens = tokens.stream().map(RevocableToken::getTokenId).collect(Collectors.toList());
-        return accessTokens;
+        return tokens.stream().map(RevocableToken::getTokenId).collect(Collectors.toList());
 
     }
 
@@ -214,7 +214,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         if (result.getResponse().getStatus() == 200) {
             String response = result.getResponse().getContentAsString();
             List<RevocableToken> tokenList = JsonUtils.readValue(response, new TypeReference<List<RevocableToken>>() {});
-            tokenList.stream().forEach(t -> assertNull(t.getValue()));
+            tokenList.forEach(t -> assertNull(t.getValue()));
             return tokenList;
         } else {
             return emptyList();

@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -44,18 +44,17 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertFalse;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -102,12 +101,12 @@ public class LoginServerSecurityIntegrationTests {
         ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
     }
@@ -159,7 +158,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAuthenticateReturnsUserID() throws Exception {
+    public void testAuthenticateReturnsUserID() {
         params.set("username", JOE);
         params.set("password", "Passwo3d");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -171,7 +170,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAuthenticateMarissaReturnsUserID() throws Exception {
+    public void testAuthenticateMarissaReturnsUserID() {
         params.set("username", testAccounts.getUserName());
         params.set("password", testAccounts.getPassword());
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -183,7 +182,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAuthenticateMarissaFails() throws Exception {
+    public void testAuthenticateMarissaFails() {
         params.set("username", testAccounts.getUserName());
         params.set("password", "");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -191,7 +190,7 @@ public class LoginServerSecurityIntegrationTests {
     }
 
     @Test
-    public void testAuthenticateDoesNotReturnsUserID() throws Exception {
+    public void testAuthenticateDoesNotReturnsUserID() {
         params.set("username", testAccounts.getUserName());
         params.set("password", testAccounts.getPassword());
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
@@ -203,7 +202,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserForCf() throws Exception {
+    public void testLoginServerCanAuthenticateUserForCf() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         params.set("client_id", resource.getClientId());
         params.set("username", userForLoginServer.getUserName());
@@ -217,12 +216,12 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         String results = response.getHeaders().getLocation().toString();
-        assertNotNull("There should be scopes: " + results, results.contains("#access_token"));
+        assertTrue("There should be an access token: " + results, results.contains("access_token"));
     }
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserForAuthorizationCode() throws Exception {
+    public void testLoginServerCanAuthenticateUserForAuthorizationCode() {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
         params.set("username", userForLoginServer.getUserName());
@@ -238,7 +237,7 @@ public class LoginServerSecurityIntegrationTests {
     }
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCanAuthenticateUserWithIDForAuthorizationCode() throws Exception {
+    public void testLoginServerCanAuthenticateUserWithIDForAuthorizationCode() {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
         params.set("user_id", userForLoginServer.getId());
@@ -255,7 +254,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testMissingUserInfoIsError() throws Exception {
+    public void testMissingUserInfoIsError() {
         params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
         params.remove("username");
         @SuppressWarnings("rawtypes")
@@ -263,12 +262,12 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertNotNull("There should be an error: " + results, results.containsKey("error"));
+        assertTrue("There should be an error: " + results, results.containsKey("error"));
     }
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testMissingUsernameIsError() throws Exception {
+    public void testMissingUsernameIsError() {
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
@@ -280,12 +279,12 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertNotNull("There should be an error: " + results, results.containsKey("error"));
+        assertTrue("There should be an error: " + results, results.containsKey("error"));
     }
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testWrongUsernameIsErrorAddNewEnabled() throws Exception {
+    public void testWrongUsernameIsErrorAddNewEnabled() {
 
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
@@ -308,7 +307,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testWrongUsernameIsErrorAddNewDisabled() throws Exception {
+    public void testWrongUsernameIsErrorAddNewDisabled() {
 
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
@@ -326,12 +325,12 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertNotNull("There should be an error: " + results, results.containsKey("error"));
+        assertTrue("There should be an error: " + results, results.containsKey("error"));
     }
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testAddNewUserWithWrongEmailFormat() throws Exception {
+    public void testAddNewUserWithWrongEmailFormat() {
         ((RestTemplate) serverRunning.getRestTemplate())
                         .setRequestFactory(new HttpComponentsClientHttpRequestFactory());
         params.set("client_id", testAccounts.getDefaultImplicitResource().getClientId());
@@ -355,7 +354,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCfPasswordToken() throws Exception {
+    public void testLoginServerCfPasswordToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -380,7 +379,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerWithoutBearerToken() throws Exception {
+    public void testLoginServerWithoutBearerToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -401,7 +400,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
-    public void testLoginServerCfInvalidClientPasswordToken() throws Exception {
+    public void testLoginServerCfInvalidClientPasswordToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -423,7 +422,7 @@ public class LoginServerSecurityIntegrationTests {
 
     @Test
     @OAuth2ContextConfiguration(AppClient.class)
-    public void testLoginServerCfInvalidClientToken() throws Exception {
+    public void testLoginServerCfInvalidClientToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept",MediaType.APPLICATION_JSON_VALUE);
@@ -447,8 +446,7 @@ public class LoginServerSecurityIntegrationTests {
     private String getAuthorizationEncodedValue(String username, String password) {
         String auth = username + ":" + password;
         byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(Charset.forName("US-ASCII")));
-        String authHeader = "Basic " + new String( encodedAuth );
-        return authHeader;
+        return "Basic " + new String( encodedAuth );
     }
 
 

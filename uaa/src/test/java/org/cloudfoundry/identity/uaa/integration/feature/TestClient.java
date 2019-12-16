@@ -34,15 +34,14 @@ public class TestClient {
 
     private final RestTemplate restTemplate;
     private final String baseUrl;
-    private final String uaaUrl;
 
-    public TestClient(RestTemplate restTemplate, String baseUrl, String uaaUrl ) {
+    public TestClient(final RestTemplate restTemplate,
+                      final String baseUrl) {
         this.restTemplate = restTemplate;
         this.baseUrl = baseUrl;
-        this.uaaUrl = uaaUrl;
     }
 
-    public String getBasicAuthHeaderValue(String username, String password) {
+    String getBasicAuthHeaderValue(String username, String password) {
         return "Basic " + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
     }
 
@@ -65,15 +64,15 @@ public class TestClient {
         return exchange.getBody().get("access_token").toString();
     }
 
-    public void createClient(String adminAccessToken, BaseClientDetails clientDetails) throws Exception {
+    public void createClient(String adminAccessToken, BaseClientDetails clientDetails) {
         restfulCreate(
             adminAccessToken,
             JsonUtils.writeValueAsString(clientDetails),
-            uaaUrl + "/oauth/clients"
+            baseUrl + "/oauth/clients"
         );
     }
 
-    public void createScimClient(String adminAccessToken, String clientId) throws Exception {
+    public void createScimClient(String adminAccessToken, String clientId) {
         restfulCreate(
                 adminAccessToken,
                 "{" +
@@ -85,11 +84,11 @@ public class TestClient {
                         "\"redirect_uri\":[\"http://example.redirect.com\"]," +
                         "\"authorities\":[\"password.write\",\"scim.write\",\"scim.read\",\"oauth.approvals\"]" +
                         "}",
-                uaaUrl + "/oauth/clients"
+                baseUrl + "/oauth/clients"
         );
     }
 
-    public void createUser(String scimAccessToken, String userName, String email, String password, Boolean verified) throws Exception {
+    public void createUser(String scimAccessToken, String userName, String email, String password, Boolean verified) {
 
         restfulCreate(
                 scimAccessToken,
@@ -103,7 +102,7 @@ public class TestClient {
                         "\"verified\":" + verified + "," +
                         "\"schemas\":[\"urn:scim:schemas:core:1.0\"]" +
                         "}",
-                uaaUrl + "/Users"
+                baseUrl + "/Users"
         );
     }
 
@@ -117,7 +116,6 @@ public class TestClient {
         ResponseEntity<Void> exchange = restTemplate.exchange(url, HttpMethod.POST, requestEntity, Void.class);
         Assert.assertEquals(HttpStatus.CREATED, exchange.getStatusCode());
     }
-
 
     public String extractLink(String messageBody) {
         Pattern linkPattern = Pattern.compile("<a href=\"(.*?)\">.*?</a>");

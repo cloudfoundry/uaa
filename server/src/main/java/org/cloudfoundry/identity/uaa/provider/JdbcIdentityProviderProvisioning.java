@@ -21,12 +21,10 @@ import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -72,8 +70,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider retrieve(String id, String zoneId) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
-        return identityProvider;
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
     }
 
     @Override
@@ -92,14 +89,12 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE, mapper, origin, zoneId, true);
-        return identityProvider;
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE, mapper, origin, zoneId, true);
     }
 
     @Override
     public IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
-        IdentityProvider identityProvider = jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin, zoneId);
-        return identityProvider;
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_ORIGIN_QUERY, mapper, origin, zoneId);
     }
 
     @Override
@@ -107,21 +102,18 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         validate(identityProvider);
         final String id = UUID.randomUUID().toString();
         try {
-            jdbcTemplate.update(CREATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setString(pos++, id);
-                ps.setInt(pos++, identityProvider.getVersion());
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                ps.setString(pos++, identityProvider.getName());
-                ps.setString(pos++, identityProvider.getOriginKey());
-                ps.setString(pos++, identityProvider.getType());
-                ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
-                ps.setString(pos++, zoneId);
-                ps.setBoolean(pos++, identityProvider.isActive());
-                }
+            jdbcTemplate.update(CREATE_IDENTITY_PROVIDER_SQL, ps -> {
+            int pos = 1;
+            ps.setString(pos++, id);
+            ps.setInt(pos++, identityProvider.getVersion());
+            ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+            ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+            ps.setString(pos++, identityProvider.getName());
+            ps.setString(pos++, identityProvider.getOriginKey());
+            ps.setString(pos++, identityProvider.getType());
+            ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
+            ps.setString(pos++, zoneId);
+            ps.setBoolean(pos++, identityProvider.isActive());
             });
         } catch (DuplicateKeyException e) {
             throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -132,19 +124,16 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     @Override
     public IdentityProvider update(final IdentityProvider identityProvider, String zoneId) {
         validate(identityProvider);
-        jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-            int pos = 1;
-            ps.setInt(pos++, identityProvider.getVersion() + 1);
-            ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
-            ps.setString(pos++, identityProvider.getName());
-            ps.setString(pos++, identityProvider.getType());
-            ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
-            ps.setBoolean(pos++, identityProvider.isActive());
-            ps.setString(pos++, identityProvider.getId().trim());
-            ps.setString(pos++, zoneId);
-            }
+        jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, ps -> {
+        int pos = 1;
+        ps.setInt(pos++, identityProvider.getVersion() + 1);
+        ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+        ps.setString(pos++, identityProvider.getName());
+        ps.setString(pos++, identityProvider.getType());
+        ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
+        ps.setBoolean(pos++, identityProvider.isActive());
+        ps.setString(pos++, identityProvider.getId().trim());
+        ps.setString(pos++, zoneId);
         });
         return retrieve(identityProvider.getId(), zoneId);
     }

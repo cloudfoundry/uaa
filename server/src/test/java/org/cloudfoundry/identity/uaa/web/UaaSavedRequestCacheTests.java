@@ -128,7 +128,7 @@ public class UaaSavedRequestCacheTests {
     }
 
     @Test
-    public void saveClientRedirect_On_Regular_Get() throws Exception {
+    public void saveClientRedirect_On_Regular_Get() {
         request.setSession(session);
         request.setScheme("http");
         request.setServerName("localhost");
@@ -140,7 +140,7 @@ public class UaaSavedRequestCacheTests {
 
 
     @Test
-    public void saveFormRedirectRequest_GET_Method() throws Exception {
+    public void saveFormRedirectRequest_GET_Method() {
         request.setSession(session);
         request.setParameter(FORM_REDIRECT_PARAMETER, "http://login");
         request.setMethod(HttpMethod.GET.name());
@@ -161,7 +161,7 @@ public class UaaSavedRequestCacheTests {
     }
 
     @Test
-    public void do_not_save_form() throws Exception {
+    public void do_not_save_form() {
         request.setSession(session);
         spy.saveRequest(request, new MockHttpServletResponse());
         verify(spy, never()).saveClientRedirect(request, request.getParameter(FORM_REDIRECT_PARAMETER));

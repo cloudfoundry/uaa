@@ -22,10 +22,6 @@
   limit: 10000
   category: API
   group: /api
-- pattern: /password/score/**
-  limit: 10000
-  category: API
-  group: /api
 - pattern: /oauth/clients/*/secret/**
   limit: 10000
   category: API

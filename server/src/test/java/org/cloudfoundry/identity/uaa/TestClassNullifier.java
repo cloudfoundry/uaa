@@ -41,7 +41,7 @@ public class TestClassNullifier {
         System.gc();
     }
 
-    public InternalResourceViewResolver getResolver() {
+    public static InternalResourceViewResolver getResolver() {
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
         viewResolver.setSuffix(".jsp");

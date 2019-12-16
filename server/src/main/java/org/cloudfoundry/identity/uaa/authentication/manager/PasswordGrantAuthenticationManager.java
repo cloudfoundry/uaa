@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -15,6 +16,9 @@ import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -35,16 +39,13 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-public class PasswordGrantAuthenticationManager implements AuthenticationManager {
+public class PasswordGrantAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
     private DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -52,6 +53,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private MultitenantClientServices clientDetailsService;
     private XOAuthProviderConfigurator xoauthProviderProvisioning;
+    private ApplicationEventPublisher eventPublisher;
 
     public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, MultitenantClientServices clientDetailsService, XOAuthProviderConfigurator xoauthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
@@ -139,11 +141,16 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         String auth = clientId + ":" + clientSecret;
         headers.add("Authorization","Basic "+Base64Utils.encodeToString(auth.getBytes()));
-
+        if (config.isSetForwardHeader() && authentication.getDetails() != null &&authentication.getDetails() instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails details = (UaaAuthenticationDetails) authentication.getDetails();
+            if (details.getOrigin() != null) {
+                headers.add("X-Forwarded-For", details.getOrigin());
+            }
+        }
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", GRANT_TYPE_PASSWORD);
         params.add("response_type","id_token");
@@ -182,15 +189,16 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
                 idToken = body.get("id_token");
             }
         } catch (HttpClientErrorException e) {
+            publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));
             throw new BadCredentialsException(e.getResponseBodyAsString(), e);
         }
 
         if (idToken == null) {
+            publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));
             throw new BadCredentialsException("Could not obtain id_token from external OpenID Connect provider.");
         }
         XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, idToken, null, null);
-        Authentication authResult = xoAuthAuthenticationManager.authenticate(token);
-        return authResult;
+        return xoAuthAuthenticationManager.authenticate(token);
     }
 
     private boolean providerSupportsPasswordGrant(IdentityProvider provider) {
@@ -212,7 +220,17 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
         String clientId = clientAuth.getName();
         ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-        List<String> allowedProviders = (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        return allowedProviders;
+        return (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+    }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.eventPublisher = applicationEventPublisher;
+    }
+
+    protected void publish(ApplicationEvent event) {
+        if (eventPublisher != null) {
+            eventPublisher.publishEvent(event);
+        }
     }
 }

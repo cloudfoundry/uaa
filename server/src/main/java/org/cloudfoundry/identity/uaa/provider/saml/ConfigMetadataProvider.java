@@ -25,7 +25,7 @@ public class ConfigMetadataProvider extends AbstractMetadataProvider implements 
         this.zoneId = zoneId;
     }
 
-    public byte[] fetchMetadata() throws MetadataProviderException {
+    public byte[] fetchMetadata() {
         return metadata.getBytes(StandardCharsets.UTF_8);
     }
 

@@ -32,7 +32,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
     private List<Map<String, Object>> list;
 
     @Before
-    public void initJdbcPagingListTests() throws Exception {
+    public void initJdbcPagingListTests() {
 
         jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.execute("create table foo (id integer primary key, name varchar(10) not null)");
@@ -45,12 +45,12 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @After
-    public void dropFoo() throws Exception {
+    public void dropFoo() {
         jdbcTemplate.execute("drop table foo");
     }
 
     @Test
-    public void testIterationOverPages() throws Exception {
+    public void testIterationOverPages() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                         Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         assertEquals(5, list.size());
@@ -71,7 +71,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @Test
-    public void testIterationWithDeletedElements() throws Exception {
+    public void testIterationWithDeletedElements() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                         Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
@@ -86,7 +86,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @Test
-    public void testOrderBy() throws Exception {
+    public void testOrderBy() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo order by id asc",
                         Collections.<String, Object> singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         assertEquals(5, list.size());
@@ -100,7 +100,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @Test
-    public void testJumpOverPages() throws Exception {
+    public void testJumpOverPages() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                         new ColumnMapRowMapper(), 3);
         Map<String, Object> map = list.get(3);
@@ -108,7 +108,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @Test
-    public void testIterationOverSubList() throws Exception {
+    public void testIterationOverSubList() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                         new ColumnMapRowMapper(), 3);
         list = list.subList(1, 4);
@@ -122,7 +122,7 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @Test
-    public void testIterationOverSubListWithSameSize() throws Exception {
+    public void testIterationOverSubListWithSameSize() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                         new ColumnMapRowMapper(), 3);
         list = list.subList(0, 5);
@@ -136,14 +136,14 @@ public class JdbcPagingListTests extends JdbcTestBase {
     }
 
     @Test(expected = IndexOutOfBoundsException.class)
-    public void testSubListExtendsBeyondSize() throws Exception {
+    public void testSubListExtendsBeyondSize() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                         new ColumnMapRowMapper(), 3);
         list.subList(1, 40);
     }
 
     @Test
-    public void testSubListFromDeletedElements() throws Exception {
+    public void testSubListFromDeletedElements() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                         new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");

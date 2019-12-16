@@ -103,7 +103,7 @@ public class CfScimUserEndpointIntegrationTests {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(
             new UaaOauth2ErrorHandler(context.getResource(), HttpStatus.Series.SERVER_ERROR)
         );
@@ -118,7 +118,7 @@ public class CfScimUserEndpointIntegrationTests {
     }
 
     @Test
-    public void changePasswordSucceeds() throws Exception {
+    public void changePasswordSucceeds() {
 
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("Passwo3d");
@@ -135,7 +135,7 @@ public class CfScimUserEndpointIntegrationTests {
     }
 
     @Test
-    public void userInfoSucceeds() throws Exception {
+    public void userInfoSucceeds() {
 
         HttpHeaders headers = new HttpHeaders();
         RestOperations client = serverRunning.getRestTemplate();
@@ -146,7 +146,7 @@ public class CfScimUserEndpointIntegrationTests {
     }
 
     @Test
-    public void deleteUserFails() throws Exception {
+    public void deleteUserFails() {
         RestOperations client = serverRunning.getRestTemplate();
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = deleteUser(client, joe.getId(), joe.getVersion());
@@ -158,7 +158,7 @@ public class CfScimUserEndpointIntegrationTests {
     }
 
     @Test
-    public void findUsersFails() throws Exception {
+    public void findUsersFails() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject(usersEndpoint, Map.class);
         @SuppressWarnings("unchecked")

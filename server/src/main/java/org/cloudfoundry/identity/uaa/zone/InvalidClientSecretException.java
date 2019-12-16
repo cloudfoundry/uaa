@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -14,7 +13,7 @@ public class InvalidClientSecretException extends InvalidClientDetailsException 
 
     public InvalidClientSecretException(String message) {
         super(message);
-        errorMessages = Arrays.asList(message);
+        errorMessages = Collections.singletonList(message);
     }
 
     public InvalidClientSecretException(List<String> errorMessages) {

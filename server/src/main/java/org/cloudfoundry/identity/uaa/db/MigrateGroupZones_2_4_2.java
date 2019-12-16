@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public class MigrateGroupZones_2_4_2 implements SpringJdbcMigration {
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
 
     }
 }

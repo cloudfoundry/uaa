@@ -43,7 +43,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -154,10 +154,11 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         zone = identityZoneProvisioning.update(zone);
 
         String clientId = "refreshclient";
-        client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA), 30 * 60, zone);
+        client = setUpClients(clientId, "uaa.resource", "uaa.user,openid", "client_credentials,password,refresh_token", true, TEST_REDIRECT_URI,
+                Collections.singletonList(OriginKeys.UAA), 30 * 60, zone);
 
         String username = "testuser";
-        user = setUpUser(username, "", OriginKeys.UAA, zone.getId());
+        user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, "", OriginKeys.UAA, zone.getId());
 
         refreshToken = getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone));
     }
@@ -376,7 +377,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     void refreshTokenGrantType_returnsIdToken_toOpenIdClients() throws Exception {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         client = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
-        user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
+        user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "openiduser", "", OriginKeys.UAA, "uaa");
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "jwt");
         String refreshToken = tokenResponse.getRefreshToken().getValue();
         String originalIdTokenJwt = tokenResponse.getIdTokenValue();
@@ -394,7 +395,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     void refreshTokenGrantType_returnsIdToken_toOpenIdClients_withOpaqueRefreshToken() throws Exception {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         client = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
-        user = setUpUser("openiduser", "", OriginKeys.UAA, "uaa");
+        user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "openiduser", "", OriginKeys.UAA, "uaa");
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "opaque");
         String refreshToken = tokenResponse.getRefreshToken().getValue();
         String originalIdTokenJwt = tokenResponse.getIdTokenValue();
@@ -477,7 +478,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     void refreshTokenGrantType_doesNotReturnIdToken_toNonOpenIdClients() throws Exception {
         client = setUpClients("nonopenidclient", "", "scim.me", "password,refresh_token", true);
-        user = setUpUser("joe-user", "", OriginKeys.UAA, "uaa");
+        user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "joe-user", "", OriginKeys.UAA, "uaa");
         String refreshToken = getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
 
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
@@ -491,7 +492,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     void refreshTokenGrantType_requiresAuthorizedGrantType() throws Exception {
         client = setUpClients("clientwithrefresh", "", "scim.me", "password,refresh_token", true);
         ClientDetails clientWithoutRefresh = setUpClients("passwordclient", "", "scim.me", "password", true);
-        user = setUpUser("joe-user", "", OriginKeys.UAA, "uaa");
+        user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "joe-user", "", OriginKeys.UAA, "uaa");
         String refreshToken = getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
 
         mockMvc.perform(

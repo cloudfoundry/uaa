@@ -6,7 +6,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 
 import static java.util.Optional.ofNullable;
@@ -24,7 +24,7 @@ public class LdapGroupsConfig {
     nestedLdapAuthoritiesPopulator.setConvertToUpperCase(false);
     nestedLdapAuthoritiesPopulator.setGroupSearchFilter(groupSearchFilter);
     nestedLdapAuthoritiesPopulator.setMaxSearchDepth(ofNullable(Integer.parseInt(environment.getProperty("ldap.groups.maxSearchDepth"))).orElse(10));
-    nestedLdapAuthoritiesPopulator.setAttributeNames(new HashSet<>(Arrays.asList("cn")));
+    nestedLdapAuthoritiesPopulator.setAttributeNames(new HashSet<>(Collections.singletonList("cn")));
     nestedLdapAuthoritiesPopulator.setIgnorePartialResultException(ofNullable(environment.getProperty("ldap.groups.ignorePartialResultException")).map(Boolean::parseBoolean).orElse(true));
     return nestedLdapAuthoritiesPopulator;
   }

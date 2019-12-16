@@ -19,14 +19,12 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.LinkedMultiValueMap;
@@ -39,10 +37,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -58,16 +53,8 @@ public class RefreshTokenSupportIntegrationTests {
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
-    private ResourceOwnerPasswordResourceDetails resource;
-
-    @Before
-    public void init() {
-        resource = testAccounts.getDefaultResourceOwnerPasswordResource();
-
-    }
-
     @Test
-    public void testTokenRefreshedCorrectFlow() throws Exception {
+    public void testTokenRefreshedCorrectFlow() {
         BasicCookieStore cookies = new BasicCookieStore();
 
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
@@ -171,8 +158,9 @@ public class RefreshTokenSupportIntegrationTests {
         } catch (IllegalArgumentException e) {
             fail("Refreshed token was not a JWT");
         }
-        assertFalse("New access token should be different to the old one.",
-                        newAccessToken.getValue().equals(accessToken.getValue()));
+        assertNotEquals("New access token should be different to the old one.",
+                newAccessToken.getValue(),
+                accessToken.getValue());
 
     }
 

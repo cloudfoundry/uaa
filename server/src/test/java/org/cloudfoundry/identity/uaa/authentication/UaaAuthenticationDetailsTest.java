@@ -1,16 +1,15 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.authentication.BadCredentialsException;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Base64;
 
-import static org.junit.Assert.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -24,23 +23,19 @@ class UaaAuthenticationDetailsTest {
         assertTrue(toString.contains("sessionId=<SESSION>"));
     }
 
-    private static String buildHttpBasic(String username, String password) {
-        return "Basic " + new String(Base64.getEncoder().encode((username + ":" + password).getBytes()));
-    }
-
     @Test
     void testBuildValidAuthenticationDetails() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", buildHttpBasic("a", "does not matter"));
+        request.setAttribute("clientId", "a");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
         assertEquals("a", details.getClientId());
     }
 
     @Test
-    void testBuildInvalidAuthenticationDetails() {
+    void testBuildWithoutAuthenticationDetails() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", buildHttpBasic("", ""));
-        assertThrows(BadCredentialsException.class, () -> new UaaAuthenticationDetails(request));
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request);
+        assertNull(details.getClientId());
     }
 
     @Test
@@ -50,5 +45,28 @@ class UaaAuthenticationDetailsTest {
 
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
         assertNull(details.getLoginHint());
+    }
+
+    @Test
+    void testSavesRequestParameters() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addParameter("key", "value");
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
+        assertEquals("value", details.getParameterMap().get("key")[0]);
+    }
+
+    @Test
+    void testDoesNotSaveUsernamePasswordRequestParameters() {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        String[] filteredKeys = {"Username", "username", "Password", "password", "Passcode", "passcode"};
+        for(String key : filteredKeys) {
+            request.addParameter(key, "value");
+        }
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
+        for(String key : filteredKeys) {
+            assertNull(details.getParameterMap().get(key));
+        }
     }
 }

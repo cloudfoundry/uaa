@@ -33,7 +33,7 @@ public class ZoneSeederExtension implements AfterEachCallback, ParameterResolver
     }
 
     @Override
-    public void beforeTestExecution(ExtensionContext extensionContext) {
+    public void beforeTestExecution(ExtensionContext extensionContext) throws Exception {
         Object testInstance = extensionContext.getTestInstance().get();
         ZoneSeeder zoneSeeder = zoneSeeders.get(testInstance);
         if (zoneSeeder != null) {

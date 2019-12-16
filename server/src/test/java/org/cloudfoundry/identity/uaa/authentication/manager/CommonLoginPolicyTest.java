@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -43,7 +43,7 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void test_is_disabled() throws Exception {
+    public void test_is_disabled() {
         commonLoginPolicy = spy(new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, timeService, false));
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
         assertTrue(result.isAllowed());
@@ -67,7 +67,7 @@ public class CommonLoginPolicyTest {
     public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyUnsuccessfulRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 1, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
-        List<AuditEvent> list = Arrays.asList(auditEvent);
+        List<AuditEvent> list = Collections.singletonList(auditEvent);
         String zoneId = IdentityZoneHolder.get().getId();
         when(auditService.find(eq("principal"), anyLong(), eq(zoneId))).thenReturn(list);
 
@@ -81,7 +81,7 @@ public class CommonLoginPolicyTest {
     public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsTrueIfNotTooManyUnsuccessfulRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 2, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
-        List<AuditEvent> list = Arrays.asList(auditEvent);
+        List<AuditEvent> list = Collections.singletonList(auditEvent);
         String zoneId = IdentityZoneHolder.get().getId();
         when(auditService.find(eq("principal"), anyLong(), eq(zoneId))).thenReturn(list);
 

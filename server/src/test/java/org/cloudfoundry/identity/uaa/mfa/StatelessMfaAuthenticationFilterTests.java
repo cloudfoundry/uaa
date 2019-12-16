@@ -18,7 +18,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -66,7 +65,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mfa.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
@@ -118,7 +116,7 @@ public class StatelessMfaAuthenticationFilterTests {
     }
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         zone = MultitenancyFixture.identityZone("id", "id");
         zone.getConfig().getMfaConfig().setEnabled(true).setProviderName("mfa-provider-name");
         IdentityZoneHolder.set(zone);
@@ -126,7 +124,7 @@ public class StatelessMfaAuthenticationFilterTests {
         storedOAuth2Request = mock(OAuth2Request.class);
         UaaPrincipal uaaPrincipal = new UaaPrincipal("1", "marissa", "marissa@test.org", OriginKeys.UAA, null, zone.getId());
         uaaAuthentication = new UaaAuthentication(uaaPrincipal, Collections.emptyList(), mock(UaaAuthenticationDetails.class));
-        uaaAuthentication.setAuthenticationMethods(new HashSet<>(asList("pwd")));
+        uaaAuthentication.setAuthenticationMethods(new HashSet<>(Collections.singletonList("pwd")));
         authentication = new OAuth2Authentication(storedOAuth2Request, uaaAuthentication);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -135,7 +133,7 @@ public class StatelessMfaAuthenticationFilterTests {
         when(googleAuthenticator.isValidCode(any(), eq(123456))).thenReturn(true);
         when(googleAuthenticator.isValidCode(any(), not(eq(123456)))).thenReturn(false);
         when(googleAuthenticator.getUserGoogleMfaCredentials(anyString(), anyString())).thenReturn(mock(UserGoogleMfaCredentials.class));
-        grantTypes = new HashSet<>(Arrays.asList("password"));
+        grantTypes = new HashSet<>(Collections.singletonList("password"));
 
         mfaProvider = mock(MfaProviderProvisioning.class);
         when(mfaProvider.retrieveByName(anyString(), anyString())).thenReturn(
@@ -202,7 +200,7 @@ public class StatelessMfaAuthenticationFilterTests {
         checkMfaCodeNoMfaInteraction();
     }
 
-    private void checkMfaCodeNoMfaInteraction() throws ServletException, IOException {
+    private void checkMfaCodeNoMfaInteraction() {
         try {
             filter.checkMfaCode(request);
         } catch (Exception e) {
@@ -262,7 +260,7 @@ public class StatelessMfaAuthenticationFilterTests {
     }
 
     @Test
-    public void invalid_mfa_code() throws Exception {
+    public void invalid_mfa_code() {
         request.setParameter(MFA_CODE, "54321");
         exception.expect(InvalidMfaCodeException.class);
         checkMfaCode();

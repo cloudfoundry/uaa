@@ -34,7 +34,7 @@ import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -122,14 +122,14 @@ public class SamlServiceProviderConfiguratorTest {
             sp.setIdentityZoneId(zoneId);
             IdentityZoneHolder.set(withId(zoneId));
             conf.validateSamlServiceProvider(sp);
-            when(providerProvisioning.retrieveActive(zoneId)).thenReturn(Arrays.asList(sp));
+            when(providerProvisioning.retrieveActive(zoneId)).thenReturn(Collections.singletonList(sp));
 
             String unwantedZoneId = UUID.randomUUID().toString();
             SamlServiceProvider unwantedSp = mockSamlServiceProviderForZone("uaa");
             unwantedSp.setIdentityZoneId(unwantedZoneId);
             IdentityZoneHolder.set(withId(unwantedZoneId));
             conf.validateSamlServiceProvider(unwantedSp);
-            when(providerProvisioning.retrieveActive(unwantedZoneId)).thenReturn(Arrays.asList(unwantedSp));
+            when(providerProvisioning.retrieveActive(unwantedZoneId)).thenReturn(Collections.singletonList(unwantedSp));
 
             IdentityZone zone = withId(zoneId);
 
@@ -173,15 +173,12 @@ public class SamlServiceProviderConfiguratorTest {
         conf.validateSamlServiceProvider(mockSamlServiceProviderForZone("uaa"));
         for (SamlServiceProviderHolder holder : conf.getSamlServiceProviders()) {
             SamlServiceProvider provider = holder.getSamlServiceProvider();
-            switch (provider.getEntityId()) {
-                case "cloudfoundry-saml-login": {
-                    ComparableProvider compProvider = (ComparableProvider) conf.getExtendedMetadataDelegate(provider)
-                      .getDelegate();
-                    assertEquals("cloudfoundry-saml-login", compProvider.getEntityID());
-                    break;
-                }
-                default:
-                    fail(String.format("Unknown provider %s", provider.getEntityId()));
+            if ("cloudfoundry-saml-login".equals(provider.getEntityId())) {
+                ComparableProvider compProvider = (ComparableProvider) conf.getExtendedMetadataDelegate(provider)
+                        .getDelegate();
+                assertEquals("cloudfoundry-saml-login", compProvider.getEntityID());
+            } else {
+                fail(String.format("Unknown provider %s", provider.getEntityId()));
             }
         }
     }

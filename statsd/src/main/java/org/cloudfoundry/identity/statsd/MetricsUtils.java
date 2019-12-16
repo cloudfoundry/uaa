@@ -39,7 +39,7 @@ public class MetricsUtils {
     public Map<String, ?> pullUpMap(String domain, String pattern, MBeanServerConnection server) throws Exception {
         @SuppressWarnings("unchecked")
         Map<String, ?> map = (Map<String, ?>) getMBeans(domain, pattern, server).get(domain);
-        return map == null ? Collections.<String, Object> emptyMap() : map;
+        return map == null ? Collections.emptyMap() : map;
     }
 
     public Map<String, ?> getMBeans(String domain, String pattern, MBeanServerConnection server) throws Exception {

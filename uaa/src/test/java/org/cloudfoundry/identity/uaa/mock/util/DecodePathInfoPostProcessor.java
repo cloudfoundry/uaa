@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,16 +34,7 @@ public class DecodePathInfoPostProcessor  implements RequestPostProcessor {
      */
     private String decodeRequestString(HttpServletRequest request, String source) {
         String enc = determineEncoding(request);
-        try {
-            return UriUtils.decode(source, enc);
-        }
-        catch (UnsupportedEncodingException ex) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Could not decode request string [" + source + "] with encoding '" + enc +
-                                "': falling back to platform default encoding; exception message: " + ex.getMessage());
-            }
-            return URLDecoder.decode(source);
-        }
+        return UriUtils.decode(source, enc);
     }
 
     /**

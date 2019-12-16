@@ -18,6 +18,6 @@ import java.util.Set;
 
 public interface ExternalGroupMappingAuthorizationManager {
 
-    public Set<? extends GrantedAuthority> findScopesFromAuthorities(Set<? extends GrantedAuthority> authorities);
+    Set<? extends GrantedAuthority> findScopesFromAuthorities(Set<? extends GrantedAuthority> authorities);
 
 }

@@ -24,14 +24,15 @@ import org.springframework.web.servlet.view.BeanNameViewResolver;
 import org.springframework.web.servlet.view.ContentNegotiatingViewResolver;
 import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
 import org.thymeleaf.dialect.IDialect;
-import org.thymeleaf.extras.springsecurity4.dialect.SpringSecurityDialect;
-import org.thymeleaf.spring4.SpringTemplateEngine;
-import org.thymeleaf.spring4.templateresolver.SpringResourceTemplateResolver;
-import org.thymeleaf.spring4.view.ThymeleafViewResolver;
+import org.thymeleaf.extras.springsecurity5.dialect.SpringSecurityDialect;
+import org.thymeleaf.spring5.SpringTemplateEngine;
+import org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver;
+import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -94,7 +95,7 @@ public class ThymeleafConfig  {
 
         MappingJackson2JsonView jackson2JsonView = new MappingJackson2JsonView();
         jackson2JsonView.setExtractValueFromSingleKeyModel(true);
-        resolver.setDefaultViews(Arrays.asList(jackson2JsonView));
+        resolver.setDefaultViews(Collections.singletonList(jackson2JsonView));
 
         resolver.setContentNegotiationManager(contentNegotiationManager);
         return resolver;

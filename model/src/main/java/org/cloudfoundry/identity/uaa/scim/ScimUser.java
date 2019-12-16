@@ -46,7 +46,7 @@ public class ScimUser extends ScimCore<ScimUser> {
 
         String display;
 
-        public static enum Type {
+        public enum Type {
             DIRECT, INDIRECT
         }
 
@@ -245,8 +245,8 @@ public class ScimUser extends ScimCore<ScimUser> {
             Email email = (Email) o;
 
             if (primary != email.primary) return false;
-            if (type != null ? !type.equals(email.type) : email.type != null) return false;
-            if (value != null ? !value.equals(email.value) : email.value != null) return false;
+            if (!Objects.equals(type, email.type)) return false;
+            if (!Objects.equals(value, email.value)) return false;
 
             return true;
         }

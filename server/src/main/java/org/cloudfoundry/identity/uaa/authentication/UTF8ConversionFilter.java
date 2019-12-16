@@ -39,7 +39,7 @@ public class UTF8ConversionFilter implements Filter {
     public static final String NULL_STRING = new String(new char[] {'\u0000'});
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
 
     }
 

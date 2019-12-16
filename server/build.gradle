@@ -1,116 +1,119 @@
-description = 'CloudFoundry Identity Server JAR'
+description = "CloudFoundry Identity Server JAR"
 
 dependencies {
 
-  compile project(':cloudfoundry-identity-model')
+    compile project(":cloudfoundry-identity-model")
 
-  compile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
-  provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
-  compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
+    compile libraries.tomcatJdbc
+    provided libraries.tomcatEmbed
+    compile libraries.javaxMail
 
-  compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
+    compile libraries.jsonPath
+    compile libraries.zxing
+    compile libraries.springBeans
+    compile libraries.springContext
+    compile libraries.springContextSupport
+    compile libraries.springTx
+    compile libraries.springJdbc
+    compile libraries.springWeb
+    compile libraries.springSecurityCore
+    compile libraries.springSecurityJwt
+    compile libraries.springSecurityWeb
+    compile libraries.springSecuritySaml
+    compile libraries.springSessionJdbc
 
-  compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
-  compile group: 'com.google.zxing', name: 'javase', version: parent.zxingVersion
+    compile(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
 
-  compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
-  compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
-  compile group: 'org.springframework', name: 'spring-tx', version: parent.springVersion
-  compile group: 'org.springframework', name: 'spring-jdbc', version: parent.springVersion
-  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
-  compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
-  compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
-  compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
-  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
-  compile group: 'org.springframework.security', name: 'spring-security-web', version: parent.springSecurityVersion
-  compile group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version: parent.springSecuritySamlVersion
+    compile libraries.bouncyCastleProv
+    compile libraries.bouncyCastlePkix
 
-  compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
-    exclude(module: 'commons-codec')
-    exclude(module: 'jackson-mapper-asl')
-    exclude(module: 'spring-security-web')
-  }
+    compile libraries.guava
 
-  compile group:'org.bouncycastle', name:'bcprov-jdk15on', version:parent.bouncyCastleVersion
-  compile group:'org.bouncycastle', name:'bcpkix-jdk15on', version:parent.bouncyCastleVersion
+    compile libraries.aspectJRt
+    compile libraries.aspectJWeaver
 
-  compile group: 'com.google.guava', name:'guava', version:parent.guavaVersion
+    compile libraries.thymeleafSpring5
+    compile libraries.thymeleafDialect
+    compile libraries.thymeleafExtrasSpringSecurity5
 
-  compile group: 'org.aspectj', name: 'aspectjrt', version: parent.aspectJVersion
-  compile group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
+    compile(libraries.unboundIdScimSdk) {
+        exclude(module: "servlet-api")
+        exclude(module: "commons-logging")
+        exclude(module: "httpclient")
+        exclude(module: "wink-client-apache-httpclient")
+    }
 
-  compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
-  compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
-  compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity4', version: parent.thymeleafExtrasVersion
-  compile group: 'org.codehaus.groovy', name: 'groovy', version: parent.codehausGroovyVersion
+    compile libraries.hibernateValidator
+    compile libraries.flywayCore
+    compile libraries.mariaJdbcDriver
+    compile libraries.hsqldb
 
-  compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
-    exclude(module: 'servlet-api')
-    exclude(module: 'commons-logging')
-    exclude(module: 'httpclient')
-    exclude(module: 'wink-client-apache-httpclient')
-  }
+    compile libraries.snakeyaml
 
-  compile group: 'org.hibernate', name: 'hibernate-validator', version: parent.hibernateValidatorVersion
-  compile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: parent.mariaDBClientVersion
-  compile group: 'org.hsqldb', name: 'hsqldb', version: parent.hsqldbVersion
+    compile libraries.springSecurityLdap
+    compile libraries.springLdapCore
+    compile libraries.springLdapCoreTiger
+    compile(libraries.apacheLdapApi) {
+        exclude(module: "slf4j-api")
+    }
 
-  compile group: 'org.yaml', name: 'snakeyaml', version: parent.snakeYamlVersion
+    compile libraries.passay
 
-  compile group: 'org.springframework.security', name: 'spring-security-ldap', version:parent.springSecurityVersion
-  compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version:parent.springSecurityLdapVersion
-  compile group: 'org.springframework.ldap', name: 'spring-ldap-core-tiger', version:parent.springSecurityLdapVersion
-  compile(group: 'org.apache.directory.api', name: 'api-ldap-model', version:parent.apacheLdapApiVersion) {
-    exclude(module: 'slf4j-api')
-  }
+    compile libraries.googleAuth
 
-  compile group: 'org.passay', name: 'passay', version: parent.passayVersion
+    compile libraries.slf4jImpl
+    compile libraries.log4jCore
 
-  compile group: 'com.warrenstrange', name:'googleauth', version: parent.googleauthVersion
-  
-  compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: parent.log4j2Version
-  compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: parent.log4j2Version
+    implementation libraries.javaxXmlBindApi
+    implementation libraries.javaxXmlBindCore
+    implementation libraries.javaxXmlBindImpl
 
-  compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    testCompile project(":cloudfoundry-identity-model").sourceSets.test.output
 
-  compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
+    testCompile libraries.springTest
 
-  testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
+    testCompile(libraries.junit)
+    testCompile(libraries.mockito)
 
-  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+    testCompile libraries.mockitoJunit5
 
-  testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
-    exclude(module: 'hamcrest-core')
-  }
-  testCompile (group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion)  {
-    exclude(module: 'hamcrest-core')
-  }
+    testCompile libraries.postgresql
 
-  testCompile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
-  testCompile group: 'org.postgresql', name: 'postgresql', version: parent.postgresqlVersion
+    testCompile libraries.tomcatElApi
+    testCompile libraries.tomcatJasperEl
+    testCompile libraries.tomcatJdbc
 
-  testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: parent.powermockVersion
-  testCompile group: 'org.powermock', name: 'powermock-api-mockito2', version: parent.powermockVersion
-
-  testCompile group: 'org.apache.tomcat', name: 'tomcat-el-api', version:parent.tomcatJdbcPoolVersion
-  testCompile group: 'org.apache.tomcat', name: 'tomcat-jasper-el', version:parent.tomcatJdbcPoolVersion
-  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
-
-  testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
-
+    testCompile libraries.jsonPathAssert
 }
 
 configurations.all {
-    exclude group: 'org.beanshell', module: 'bsh-core'
+    exclude group: "org.beanshell", module: "bsh-core"
+}
+
+jar {
+    exclude "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
 }
 
 processResources {
-  //maven replaces project.artifactId in the log4j.properties file
-  //https://www.pivotaltracker.com/story/show/74344574
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-server') : line }
+    //maven replaces project.artifactId in the log4j.properties file
+    //https://www.pivotaltracker.com/story/show/74344574
+    filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-server') : line }
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any
-  false
+    false
+}
+
+task tomcatListenerJar(type: Jar) {
+    archiveBaseName = "tomcat-listener"
+    from(sourceSets.main.output)
+    include "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+}
+
+artifacts {
+    archives tomcatListenerJar
 }

@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -23,7 +11,6 @@ import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
@@ -60,6 +47,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -75,6 +63,7 @@ import java.io.File;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -110,7 +99,6 @@ public class LoginMockMvcTests {
     private RandomValueStringGenerator generator;
 
     private IdentityZoneConfiguration identityZoneConfiguration;
-    private Links globalLinks;
     private IdentityZone identityZone;
     private MockMvc mockMvc;
     private File originalLimitedModeStatusFile;
@@ -121,13 +109,11 @@ public class LoginMockMvcTests {
             @Autowired WebApplicationContext webApplicationContext,
             @Autowired MockMvc mockMvc,
             @Autowired IdentityZoneProvisioning identityZoneProvisioning,
-            @Autowired @Qualifier("globalLinks") Links globalLinks,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     ) throws Exception {
         generator = new RandomValueStringGenerator();
         this.webApplicationContext = webApplicationContext;
         this.mockMvc = mockMvc;
-        this.globalLinks = globalLinks;
         this.limitedModeUaaFilter = limitedModeUaaFilter;
         SecurityContextHolder.clearContext();
 
@@ -159,12 +145,9 @@ public class LoginMockMvcTests {
     @AfterEach
     void resetGenerator(
             @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore,
-            @Autowired LoginInfoEndpoint loginInfoEndpoint,
-            @Autowired HomeController homeController
+            @Autowired LoginInfoEndpoint loginInfoEndpoint
     ) {
         jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
-        loginInfoEndpoint.setGlobalLinks(globalLinks);
-        homeController.setGlobalLinks(globalLinks);
     }
 
     @AfterEach
@@ -260,13 +243,11 @@ public class LoginMockMvcTests {
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
                 .andExpect(content().string(containsString("/create_account")));
 
-        loginInfoEndpoint.setGlobalLinks(
-                new Links().setSelfService(
-                        new Links.SelfService()
-                                .setPasswd("/passwd?id={zone.id}")
-                                .setSignup("/signup?subdomain={zone.subdomain}")
-                )
-        );
+        ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(
+                new Links.SelfService()
+                        .setPasswd("/passwd?id={zone.id}")
+                        .setSignup("/signup?subdomain={zone.subdomain}")
+        ));
 
         mockMvc.perform(
                 get("/login")
@@ -300,7 +281,7 @@ public class LoginMockMvcTests {
 
     @Test
     void global_zone_variable_home_redirect(
-            @Autowired HomeController homeController,
+            @Autowired @Qualifier("globalLinks") Links globalLinks,
             @Autowired ScimUserProvisioning scimUserProvisioning
     ) throws Exception {
 
@@ -315,9 +296,7 @@ public class LoginMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        homeController.setGlobalLinks(
-                new Links().setHomeRedirect("http://{zone.subdomain}.redirect.to/z/{zone.id}")
-        );
+        globalLinks.setHomeRedirect("http://{zone.subdomain}.redirect.to/z/{zone.id}");
 
         mockMvc.perform(
                 get("/")
@@ -336,7 +315,6 @@ public class LoginMockMvcTests {
         )
                 .andExpect(status().is3xxRedirection())
                 .andExpect(redirectedUrl("http://configured." + zone.getSubdomain() + ".redirect.to/z/" + zone.getId()));
-
     }
 
     @Test
@@ -407,8 +385,6 @@ public class LoginMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://localhost/login?error=invalid_login_request"));
-
-        jdbcScimUserProvisioning.query("username eq 'marissa'", IdentityZoneHolder.get().getId()).get(0);
 
         MockHttpServletRequestBuilder validPost = post("/uaa/login.do")
                 .session(session)
@@ -1195,7 +1171,6 @@ public class LoginMockMvcTests {
 
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
 
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
@@ -1243,7 +1218,6 @@ public class LoginMockMvcTests {
 
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
 
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
@@ -1308,7 +1282,6 @@ public class LoginMockMvcTests {
 
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
 
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
@@ -1462,8 +1435,6 @@ public class LoginMockMvcTests {
         MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-        identityZoneCreationResult.getZoneAdminToken();
-
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
@@ -1523,7 +1494,6 @@ public class LoginMockMvcTests {
 
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
 
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
@@ -1579,7 +1549,6 @@ public class LoginMockMvcTests {
 
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition3 = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://example3.com/saml/metadata"))
@@ -1676,7 +1645,6 @@ public class LoginMockMvcTests {
 
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
-        identityZoneCreationResult.getZoneAdminToken();
 
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
@@ -2585,7 +2553,7 @@ public class LoginMockMvcTests {
         Matcher matcher = pattern.matcher(html);
         assertTrue(matcher.find());
         String group = matcher.group(1);
-        assertEquals(expectedUrl, URLDecoder.decode(group, "UTF-8"));
+        assertEquals(expectedUrl, URLDecoder.decode(group, StandardCharsets.UTF_8));
     }
 
     private static MockHttpSession setUpClientAndProviderForIdpDiscovery(
@@ -2593,7 +2561,7 @@ public class LoginMockMvcTests {
             JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
             RandomValueStringGenerator generator,
             String originKey,
-            IdentityZone zone) throws Exception {
+            IdentityZone zone) {
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
             .setMetaDataLocation(metadata)
@@ -2635,6 +2603,38 @@ public class LoginMockMvcTests {
         identityProvider.setConfig(configMap);
 
         jdbcIdentityProviderProvisioning.update(identityProvider, zone.getId());
+    }
+
+    @Nested
+    @DefaultTestContext
+    class ErrorAndSuccessMessages {
+        @Test
+        void hasValidError() throws Exception {
+            mockMvc.perform(
+                    get("/login?error=login_failure"))
+                    .andExpect(content().string(containsString("Unable to verify email or password. Please try again.")));
+        }
+
+        @Test
+        void hasInvalidError() throws Exception {
+            mockMvc.perform(
+                    get("/login?error=foobar&error=login_failure"))
+                    .andExpect(content().string(containsString("Error!")));
+        }
+
+        @Test
+        void hasValidSuccess() throws Exception {
+            mockMvc.perform(
+                    get("/login?success=verify_success"))
+                    .andExpect(content().string(containsString("Verification successful. Login to access your account.")));
+        }
+
+        @Test
+        void hasInvalidSuccess() throws Exception {
+            mockMvc.perform(
+                    get("/login?success=foobar&success=verify_success"))
+                    .andExpect(content().string(containsString("Success!")));
+        }
     }
 
     private static void attemptUnsuccessfulLogin(MockMvc mockMvc, int numberOfAttempts, String username, String subdomain) throws Exception {
