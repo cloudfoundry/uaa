@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.metrics;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -40,8 +25,21 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.same;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class UaaMetricsFilterTests {
 
@@ -61,7 +59,6 @@ public class UaaMetricsFilterTests {
         filter.setNotificationPublisher(publisher);
         chain = mock(FilterChain.class);
     }
-
 
     @Test
     public void group_static_content() {
@@ -135,10 +132,10 @@ public class UaaMetricsFilterTests {
         assertEquals(2, summary.size());
         for (String uri : Arrays.asList(path, MetricsUtil.GLOBAL_GROUP)) {
             MetricsQueue totals = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
-            assertNotNull("URI:"+uri, totals);
+            assertNotNull("URI:" + uri, totals);
             for (StatusCodeGroup status : Arrays.asList(StatusCodeGroup.SUCCESS, StatusCodeGroup.SERVER_ERROR)) {
                 RequestMetricSummary total = totals.getDetailed().get(status);
-                assertEquals("URI:"+uri, 1, total.getCount());
+                assertEquals("URI:" + uri, 1, total.getCount());
             }
         }
         assertNull(MetricsAccessor.getCurrent());
@@ -147,13 +144,14 @@ public class UaaMetricsFilterTests {
         verify(publisher, times(2)).sendNotification(argumentCaptor.capture());
         List<Notification> capturedArg = argumentCaptor.getAllValues();
         assertEquals(2, capturedArg.size());
-        assertEquals("/api" , capturedArg.get(0).getType());
+        assertEquals("/api", capturedArg.get(0).getType());
     }
 
     @Test
     public void intolerable_request() throws Exception {
         TimeService slowRequestTimeService = new TimeService() {
             long now = System.currentTimeMillis();
+
             @Override
             public long getCurrentTimeMillis() {
                 now += 5000;
@@ -178,7 +176,7 @@ public class UaaMetricsFilterTests {
             ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
             verify(publisher).sendNotification(argumentCaptor.capture());
             Notification capturedArg = argumentCaptor.getValue();
-            assertEquals("/api" , capturedArg.getType());
+            assertEquals("/api", capturedArg.getType());
         }
     }
 
@@ -209,7 +207,7 @@ public class UaaMetricsFilterTests {
     public void deserialize_summary() throws Exception {
         String path = "/some/path";
         setRequestData(path);
-        for (int status : Arrays.asList(200,500)) {
+        for (int status : Arrays.asList(200, 500)) {
             response.setStatus(status);
             filter.doFilterInternal(request, response, chain);
         }
@@ -232,44 +230,44 @@ public class UaaMetricsFilterTests {
         ReflectionTestUtils.setField(filter, "urlGroups", null);
         request.setContextPath("");
         MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-        map.add("/oauth/token/list","/oauth/token/list");
-        map.add("/oauth/token/list","/oauth/token/list/some-value");
-        map.add("/oauth/token/revoke","/oauth/token/revoke");
-        map.add("/oauth/token/revoke","/oauth/token/revoke/some-value");
-        map.add("/oauth/token","/oauth/token");
-        map.add("/oauth/token","/oauth/token/some-value");
-        map.add("/oauth/authorize","/oauth/authorize");
-        map.add("/oauth/authorize","/oauth/authorize/some-value");
-        map.add("/Users","/Users");
-        map.add("/Users","/Users/some-value");
-        map.add("/oauth/clients/tx","/oauth/clients/tx");
-        map.add("/oauth/clients/tx","/oauth/clients/tx/some-value");
-        map.add("/oauth/clients","/oauth/clients");
-        map.add("/oauth/clients","/oauth/clients/some-value");
-        map.add("/Codes","/Codes");
-        map.add("/Codes","/Codes/some-value");
-        map.add("/approvals","/approvals");
-        map.add("/approvals","/approvals/some-value");
-        map.add("/login/callback","/login/callback");
-        map.add("/login/callback","/login/callback/some-value");
-        map.add("/identity-providers","/identity-providers");
-        map.add("/identity-providers","/identity-providers/some-value");
-        map.add("/saml/service-providers","/saml/service-providers");
-        map.add("/Groups/external","/Groups/external");
-        map.add("/Groups/external","/Groups/external/some-value");
-        map.add("/Groups/zones","/Groups/zones");
-        map.add("/Groups","/Groups");
-        map.add("/Groups","/Groups/some/value");
-        map.add("/identity-zones","/identity-zones");
-        map.add("/identity-zones","/identity-zones/some/value");
-        map.add("/saml/login","/saml/login/value");
+        map.add("/oauth/token/list", "/oauth/token/list");
+        map.add("/oauth/token/list", "/oauth/token/list/some-value");
+        map.add("/oauth/token/revoke", "/oauth/token/revoke");
+        map.add("/oauth/token/revoke", "/oauth/token/revoke/some-value");
+        map.add("/oauth/token", "/oauth/token");
+        map.add("/oauth/token", "/oauth/token/some-value");
+        map.add("/oauth/authorize", "/oauth/authorize");
+        map.add("/oauth/authorize", "/oauth/authorize/some-value");
+        map.add("/Users", "/Users");
+        map.add("/Users", "/Users/some-value");
+        map.add("/oauth/clients/tx", "/oauth/clients/tx");
+        map.add("/oauth/clients/tx", "/oauth/clients/tx/some-value");
+        map.add("/oauth/clients", "/oauth/clients");
+        map.add("/oauth/clients", "/oauth/clients/some-value");
+        map.add("/Codes", "/Codes");
+        map.add("/Codes", "/Codes/some-value");
+        map.add("/approvals", "/approvals");
+        map.add("/approvals", "/approvals/some-value");
+        map.add("/login/callback", "/login/callback");
+        map.add("/login/callback", "/login/callback/some-value");
+        map.add("/identity-providers", "/identity-providers");
+        map.add("/identity-providers", "/identity-providers/some-value");
+        map.add("/saml/service-providers", "/saml/service-providers");
+        map.add("/Groups/external", "/Groups/external");
+        map.add("/Groups/external", "/Groups/external/some-value");
+        map.add("/Groups/zones", "/Groups/zones");
+        map.add("/Groups", "/Groups");
+        map.add("/Groups", "/Groups/some/value");
+        map.add("/identity-zones", "/identity-zones");
+        map.add("/identity-zones", "/identity-zones/some/value");
+        map.add("/saml/login", "/saml/login/value");
         map.entrySet().forEach(
-            entry -> {
-                for (String s : entry.getValue()) {
-                    setRequestData(s);
-                    assertEquals("Testing URL: "+s, FALLBACK.getGroup(), filter.getUriGroup(request).getGroup());
+                entry -> {
+                    for (String s : entry.getValue()) {
+                        setRequestData(s);
+                        assertEquals("Testing URL: " + s, FALLBACK.getGroup(), filter.getUriGroup(request).getGroup());
+                    }
                 }
-            }
         );
     }
 

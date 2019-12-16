@@ -1,30 +1,16 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.export.notification.NotificationPublisher;
 import org.springframework.jmx.export.notification.NotificationPublisherAware;
+import org.springframework.lang.NonNull;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.yaml.snakeyaml.Yaml;
@@ -44,22 +30,22 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @ManagedResource(
-    objectName="cloudfoundry.identity:name=ServerRequests",
-    description = "UAA Performance Metrics"
+        objectName = "cloudfoundry.identity:name=ServerRequests",
+        description = "UAA Performance Metrics"
 )
 public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics, NotificationPublisherAware {
-    public static final int MAX_TIME = 3000;
+    private static final int MAX_TIME = 3000;
     public static final UrlGroup FALLBACK = new UrlGroup()
-        .setCategory("Unknown")
-        .setGroup("/unknown")
-        .setLimit(MAX_TIME)
-        .setPattern("/**");
+            .setCategory("Unknown")
+            .setGroup("/unknown")
+            .setLimit(MAX_TIME)
+            .setPattern("/**");
 
     private static Logger logger = LoggerFactory.getLogger(UaaMetricsFilter.class);
 
     private TimeService timeService = new TimeServiceImpl();
     private IdleTimer inflight = new IdleTimer();
-    private Map<String,MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
+    private Map<String, MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
     private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
     private boolean enabled = true;
     private boolean perRequestMetrics = false;
@@ -71,13 +57,16 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         urlGroups = new LinkedHashMap<>();
         List<UrlGroup> groups = getUrlGroups();
         groups.forEach(
-            group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
+                group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
         );
     }
 
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            final @NonNull HttpServletRequest request,
+            final @NonNull HttpServletResponse response,
+            final @NonNull FilterChain filterChain) throws ServletException, IOException {
         UrlGroup uriGroup = enabled ? getUriGroup(request) : null;
         if (uriGroup != null) {
             RequestMetric metric = RequestMetric.start(request.getRequestURI(), uriGroup, timeService.getCurrentTimeMillis());
@@ -118,12 +107,10 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     }
 
     /**
-     *
-     * @param request
      * @return null if this request should not be measured.
      */
-    protected UrlGroup getUriGroup(HttpServletRequest request) {
-        if (urlGroups!=null) {
+    protected UrlGroup getUriGroup(final HttpServletRequest request) {
+        if (urlGroups != null) {
             String uri = request.getRequestURI();
             for (Map.Entry<AntPathRequestMatcher, UrlGroup> entry : urlGroups.entrySet()) {
                 if (entry.getKey().matches(request)) {
@@ -181,12 +168,12 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     public List<UrlGroup> getUrlGroups() throws IOException {
         ClassPathResource resource = new ClassPathResource("performance-url-groups.yml");
         Yaml yaml = new Yaml();
-        List<Map<String,Object>> load = (List<Map<String, Object>>) yaml.load(resource.getInputStream());
+        List<Map<String, Object>> load = (List<Map<String, Object>>) yaml.load(resource.getInputStream());
         return load.stream().map(map -> UrlGroup.from(map)).collect(Collectors.toList());
     }
 
     public void sendRequestTime(String urlGroup, long time) {
-        if(notificationPublisher != null) {
+        if (notificationPublisher != null) {
             Notification note = new Notification(urlGroup, time, 0);
             notificationPublisher.sendNotification(note);
         } else {
@@ -195,7 +182,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     }
 
     @Override
-    public void setNotificationPublisher(NotificationPublisher notificationPublisher) {
+    public void setNotificationPublisher(final @NonNull NotificationPublisher notificationPublisher) {
         this.notificationPublisher = notificationPublisher;
     }
 
