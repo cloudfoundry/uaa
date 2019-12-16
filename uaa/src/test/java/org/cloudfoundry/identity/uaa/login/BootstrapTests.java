@@ -138,7 +138,7 @@ class BootstrapTests {
 
     @Test
     void legacySamlMetadataAsXml() throws Exception {
-        String metadataString = new Scanner(new File("./src/main/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
+        String metadataString = new Scanner(new File("./src/test/resources/sample-okta-localhost.xml")).useDelimiter("\\Z").next();
         System.setProperty(LOGIN_IDP_METADATA, metadataString);
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPData");
         context = getServletContext("default,saml,configMetadata", "uaa.yml");
