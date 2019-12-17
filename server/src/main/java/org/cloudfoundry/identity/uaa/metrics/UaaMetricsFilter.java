@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.metrics;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +35,7 @@ import java.util.stream.Collectors;
 )
 public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics, NotificationPublisherAware {
     private static final int MAX_TIME = 3000;
-    public static final UrlGroup FALLBACK = new UrlGroup()
+    static final UrlGroup FALLBACK = new UrlGroup()
             .setCategory("Unknown")
             .setGroup("/unknown")
             .setLimit(MAX_TIME)
@@ -44,10 +43,10 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
 
     private static Logger logger = LoggerFactory.getLogger(UaaMetricsFilter.class);
 
-    private TimeService timeService = new TimeServiceImpl();
-    private IdleTimer inflight = new IdleTimer();
-    private Map<String, MetricsQueue> perUriMetrics = new ConcurrentHashMap<>();
-    private LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
+    private final TimeService timeService;
+    private final IdleTimer inflight;
+    private final Map<String, MetricsQueue> perUriMetrics;
+    private final LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
     private final boolean enabled;
     private final boolean perRequestMetrics;
 
@@ -55,16 +54,20 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
 
     public UaaMetricsFilter(
             final @Value("${metrics.enabled:true}") boolean enabled,
-            final @Value("${metrics.perRequestMetrics:false}") boolean perRequestMetrics
+            final @Value("${metrics.perRequestMetrics:false}") boolean perRequestMetrics,
+            final TimeService timeService
     ) throws IOException {
         this.enabled = enabled;
         this.perRequestMetrics = perRequestMetrics;
-        perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
-        urlGroups = new LinkedHashMap<>();
+        this.timeService = timeService;
+        this.perUriMetrics = new ConcurrentHashMap<>();
+        this.perUriMetrics.put(MetricsUtil.GLOBAL_GROUP, new MetricsQueue());
+        this.urlGroups = new LinkedHashMap<>();
         List<UrlGroup> groups = getUrlGroups();
         groups.forEach(
                 group -> urlGroups.put(new AntPathRequestMatcher(group.getPattern()), group)
         );
+        this.inflight = new IdleTimer();
     }
 
     @Override
@@ -154,14 +157,6 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         return JsonUtils.writeValueAsString(perUriMetrics.get(MetricsUtil.GLOBAL_GROUP));
     }
 
-    public TimeService getTimeService() {
-        return timeService;
-    }
-
-    public void setTimeService(TimeService timeService) {
-        this.timeService = timeService;
-    }
-
     public List<UrlGroup> getUrlGroups() throws IOException {
         ClassPathResource resource = new ClassPathResource("performance-url-groups.yml");
         Yaml yaml = new Yaml();
@@ -181,9 +176,5 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     @Override
     public void setNotificationPublisher(final @NonNull NotificationPublisher notificationPublisher) {
         this.notificationPublisher = notificationPublisher;
-    }
-
-    public void setInflight(IdleTimer inflight) {
-        this.inflight = inflight;
     }
 }

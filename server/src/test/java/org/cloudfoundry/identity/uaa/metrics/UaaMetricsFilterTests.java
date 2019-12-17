@@ -51,7 +51,7 @@ class UaaMetricsFilterTests {
 
     @BeforeEach
     void setup() throws Exception {
-        filter = spy(new UaaMetricsFilter(true, false));
+        filter = spy(new UaaMetricsFilter(true, false, new TimeServiceImpl()));
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         publisher = mock(NotificationPublisher.class);
@@ -76,7 +76,7 @@ class UaaMetricsFilterTests {
 
     @Test
     void per_request_enabled() throws Exception {
-        filter = spy(new UaaMetricsFilter(true, true));
+        filter = spy(new UaaMetricsFilter(true, true, new TimeServiceImpl()));
         performTwoSimpleRequests();
         verify(filter, times(2)).sendRequestTime(anyString(), anyLong());
     }
@@ -95,7 +95,7 @@ class UaaMetricsFilterTests {
 
     @Test
     void disabled() throws Exception {
-        filter = spy(new UaaMetricsFilter(false, false));
+        filter = spy(new UaaMetricsFilter(false, false, new TimeServiceImpl()));
         performTwoSimpleRequests();
         MetricsQueue queue = JsonUtils.readValue(filter.getGlobals(), MetricsQueue.class);
         assertNotNull(queue);
@@ -114,7 +114,7 @@ class UaaMetricsFilterTests {
 
     @Test
     void happy_path() throws Exception {
-        filter = spy(new UaaMetricsFilter(true, true));
+        filter = spy(new UaaMetricsFilter(true, true, new TimeServiceImpl()));
         filter.setNotificationPublisher(publisher);
         String path = performTwoSimpleRequests();
         Map<String, String> summary = filter.getSummary();
@@ -151,8 +151,7 @@ class UaaMetricsFilterTests {
         };
         for (TimeService timeService : Arrays.asList(slowRequestTimeService, new TimeServiceImpl())) {
             reset(publisher);
-            filter = new UaaMetricsFilter(true, true);
-            filter.setTimeService(timeService);
+            filter = new UaaMetricsFilter(true, true, timeService);
             filter.setNotificationPublisher(publisher);
             String path = "/authenticate/test";
             setRequestData(path);
@@ -175,8 +174,8 @@ class UaaMetricsFilterTests {
         IdleTimer mockIdleTimer = mock(IdleTimer.class);
         setRequestData("/oauth/token");
         final FilterChain chain = mock(FilterChain.class);
-        final UaaMetricsFilter filter = new UaaMetricsFilter(true, false);
-        filter.setInflight(mockIdleTimer);
+        final UaaMetricsFilter filter = new UaaMetricsFilter(true, false, new TimeServiceImpl());
+        ReflectionTestUtils.setField(filter, "inflight", mockIdleTimer);
 
         filter.doFilterInternal(request, response, chain);
 
