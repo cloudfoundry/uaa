@@ -21,11 +21,9 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.List;
@@ -58,15 +56,11 @@ public class MfaProviderEndpointsMockMvcTests {
 
     private MfaProviderProvisioning mfaProviderProvisioning;
 
+    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
     void setup() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-
         TestClient testClient = new TestClient(mockMvc);
 
         mfaProviderProvisioning = webApplicationContext.getBean(JdbcMfaProviderProvisioning.class);
