@@ -33,6 +33,13 @@ statsd/logs
 server/logs
 uaa/logs
 
+src/github.com
+src/golang.org
+src/gopkg.in
+src/k8s.io
+src/sigs.k8s.io
+pkg
+
 uaa/node_modules
 # Docs
 uaa/slate/package-lock.json
