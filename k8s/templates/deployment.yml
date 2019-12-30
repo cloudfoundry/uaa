@@ -1,20 +1,5 @@
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: uaa-service
-  labels:
-    app: uaa-deployment
-spec:
-  type: NodePort
-  ports:
-    - port: 8080
-      name: http-uaa
-      targetPort: 8080
-      protocol: TCP
-      nodePort: 30000
-  selector:
-    app: uaa-deployment
+#@ load("@ytt:data", "data")
+#@yaml/text-templated-strings
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,10 +14,10 @@ spec:
     metadata:
       labels:
         app: uaa-deployment
-    spec: # pod spec
+    spec: #! pod spec
       containers:
         - name: uaa
-          image: cfidentity/uaa@sha256:93b70b26fbb3de88d93728b0daf1ea7b001fde89a24e283c3db36bf4c6af087c
+          image: "cfidentity/uaa@sha256:(@= data.values.image_sha @)"
           ports:
             - containerPort: 8080
               protocol: TCP
