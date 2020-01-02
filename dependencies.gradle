@@ -1,5 +1,5 @@
 ext {
-    tomcatVersion = "9.0.27"
+    tomcatVersion = "9.0.30"
     libraries = [:]
 }
 
