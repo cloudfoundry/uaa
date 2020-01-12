@@ -7,8 +7,6 @@ import (
 	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/gexec"
 	"github.com/onsi/gomega/types"
-	appV1 "k8s.io/api/apps/v1"
-	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"os/exec"
 )
@@ -28,11 +26,12 @@ func NewRenderingContext(templates ...string) RenderingContext {
 }
 
 type ProduceYAMLMatcher struct {
-	matcher types.GomegaMatcher
+	matcher  types.GomegaMatcher
+	rendered string
 }
 
 func ProduceYAML(matcher types.GomegaMatcher) *ProduceYAMLMatcher {
-	return &ProduceYAMLMatcher{matcher}
+	return &ProduceYAMLMatcher{matcher, ""}
 }
 
 func (matcher *ProduceYAMLMatcher) Match(actual interface{}) (bool, error) {
@@ -46,6 +45,7 @@ func (matcher *ProduceYAMLMatcher) Match(actual interface{}) (bool, error) {
 		return false, err
 	}
 
+	matcher.rendered = string(session.Out.Contents())
 	obj, err := parseYAML(session.Out)
 	if err != nil {
 		return false, err
@@ -55,11 +55,21 @@ func (matcher *ProduceYAMLMatcher) Match(actual interface{}) (bool, error) {
 }
 
 func (matcher *ProduceYAMLMatcher) FailureMessage(actual interface{}) string {
-	return matcher.matcher.FailureMessage(actual)
+	msg := fmt.Sprintf(
+		"There is a problem with this YAML:\n\n%s\n\n%s",
+		matcher.rendered,
+		matcher.matcher.FailureMessage(actual),
+	)
+	return msg
 }
 
 func (matcher *ProduceYAMLMatcher) NegatedFailureMessage(actual interface{}) string {
-	return matcher.matcher.NegatedFailureMessage(actual)
+	msg := fmt.Sprintf(
+		"There is a problem with this YAML:\n\n%s\n\n%s",
+		matcher.rendered,
+		matcher.matcher.NegatedFailureMessage(actual),
+	)
+	return msg
 }
 
 func renderWithData(templates []string, data map[string]string) (*gexec.Session, error) {
@@ -89,52 +99,4 @@ func parseYAML(yaml *gbytes.Buffer) (interface{}, error) {
 	}
 
 	return obj, nil
-}
-
-type ContainerExpectation func(coreV1.Container) error
-
-type RepresentingContainerMatcher struct {
-	name  string
-	tests []ContainerExpectation
-	err   error
-}
-
-func RepresentingContainer(name string) *RepresentingContainerMatcher {
-	return &RepresentingContainerMatcher{name, nil, nil}
-}
-
-func (matcher *RepresentingContainerMatcher) Match(actual interface{}) (bool, error) {
-	deployment, ok := actual.(*appV1.Deployment)
-	if !ok {
-		return false, fmt.Errorf("RepresentingContainer must be passed a deployment. Got\n%s", format.Object(actual, 1))
-	}
-
-	var selected *coreV1.Container
-	for _, c := range deployment.Spec.Template.Spec.Containers {
-		if c.Name == matcher.name {
-			selected = &c
-		}
-	}
-
-	if selected == nil {
-		matcher.err = fmt.Errorf("Expected container named %s, but did not find one", matcher.name)
-		return false, nil
-	}
-
-	for _, test := range matcher.tests {
-		if err := test(*selected); err != nil {
-			matcher.err = err
-			return false, nil
-		}
-	}
-
-	return true, nil
-}
-
-func (matcher *RepresentingContainerMatcher) FailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Container did not match expectation: %v", matcher.err)
-}
-
-func (matcher *RepresentingContainerMatcher) NegatedFailureMessage(actual interface{}) string {
-	return fmt.Sprintf("Container should not to match expectation: %v", matcher.err)
 }

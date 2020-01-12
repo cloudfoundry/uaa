@@ -14,9 +14,17 @@ var _ = Describe("Deployment", func() {
 		valuesPath = pathToTemplate(filepath.Join("values", "values.yml"))
 	})
 
-	It("Constructs the YAML from a set of files", func() {
+	It("Renders a deployment for the UAA", func() {
 		ctx := NewRenderingContext(deploymentPath, valuesPath)
 
-		Expect(ctx).To(ProduceYAML(RepresentingContainer("uaa")))
+		Expect(ctx).To(
+			ProduceYAML(
+				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
+					pod.WithContainerMatching(func(container *ContainerMatcher) {
+						container.WithName("uaa")
+					})
+				}),
+			),
+		)
 	})
 })
