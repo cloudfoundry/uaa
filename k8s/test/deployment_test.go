@@ -59,4 +59,21 @@ var _ = Describe("Deployment", func() {
 			)
 		})
 	})
+
+	It("Renders common labels for the deployment", func() {
+		ctx := NewRenderingContext(templates...).WithData(map[string]string{
+			"version": "1.0.0",
+		})
+
+		Expect(ctx).To(
+			ProduceYAML(RepresentingDeployment().WithLabels(map[string]string{
+				"app.kubernetes.io/name":       "uaa",
+				"app.kubernetes.io/instance":   "uaa-standalone",
+				"app.kubernetes.io/version":    "1.0.0",
+				"app.kubernetes.io/component":  "authorization server",
+				"app.kubernetes.io/part-of":    "uaa",
+				"app.kubernetes.io/managed-by": "kapp",
+			})),
+		)
+	})
 })
