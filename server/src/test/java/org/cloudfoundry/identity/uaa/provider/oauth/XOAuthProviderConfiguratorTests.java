@@ -1,21 +1,10 @@
-/*
- * ******************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- *  *******************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
@@ -27,7 +16,6 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -35,13 +23,32 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.GET;
 
 
@@ -54,7 +61,7 @@ public class XOAuthProviderConfiguratorTests {
     private RawXOAuthIdentityProviderDefinition oauth;
 
     private MockHttpServletRequest request;
-    XOAuthProviderConfigurator configurator;
+    private XOAuthProviderConfigurator configurator;
     private OidcMetadataFetcher oidcMetadataFetcher;
 
     private OIDCIdentityProviderDefinition config;
@@ -79,7 +86,7 @@ public class XOAuthProviderConfiguratorTests {
             def.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
             def.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
             def.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_keys"));
-            def.setScopes(Arrays.asList("openid","password.write"));
+            def.setScopes(Arrays.asList("openid", "password.write"));
             def.setRelyingPartyId("clientId");
             if (def == oidc) {
                 def.setResponseType("id_token code");
@@ -187,8 +194,8 @@ public class XOAuthProviderConfiguratorTests {
 
     @Test
     public void retrieveByOrigin() {
-        when(provisioning.retrieveByOrigin(eq(OIDC10),anyString())).thenReturn(oidcProvider);
-        when(provisioning.retrieveByOrigin(eq(OAUTH20),anyString())).thenReturn(oauthProvider);
+        when(provisioning.retrieveByOrigin(eq(OIDC10), anyString())).thenReturn(oidcProvider);
+        when(provisioning.retrieveByOrigin(eq(OAUTH20), anyString())).thenReturn(oauthProvider);
 
         assertNotNull(configurator.retrieveByOrigin(OIDC10, IdentityZone.getUaaZoneId()));
         verify(configurator, times(1)).overlay(eq(config));
@@ -265,7 +272,7 @@ public class XOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "id_token+code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+        assertThat(queryParams, hasEntry(is("state"), not(is(emptyOrNullString()))));
         assertThat(queryParams, hasKey("nonce"));
     }
 
@@ -285,7 +292,7 @@ public class XOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+        assertThat(queryParams, hasEntry(is("state"), not(is(emptyOrNullString()))));
     }
 
     @Test
