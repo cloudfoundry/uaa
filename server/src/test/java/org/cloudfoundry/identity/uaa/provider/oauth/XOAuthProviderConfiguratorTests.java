@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -64,6 +65,8 @@ class XOAuthProviderConfiguratorTests {
     private OidcMetadataFetcher mockOidcMetadataFetcher;
     @Mock
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
+    @Mock
+    private UaaRandomStringUtil mockUaaRandomStringUtil;
 
     private OIDCIdentityProviderDefinition config;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
@@ -84,7 +87,10 @@ class XOAuthProviderConfiguratorTests {
         oidc.setResponseType("id_token code");
         oauth.setResponseType("code");
 
-        configurator = spy(new XOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher));
+        configurator = spy(new XOAuthProviderConfigurator(
+                mockIdentityProviderProvisioning,
+                mockOidcMetadataFetcher,
+                mockUaaRandomStringUtil));
 
         config = new OIDCIdentityProviderDefinition();
         config.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
@@ -244,6 +250,8 @@ class XOAuthProviderConfiguratorTests {
 
     @Test
     void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOidc() {
+        when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-939b8307");
+
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UAA_BASE_URL, oidc);
 
         Map<String, String> queryParams =
@@ -254,12 +262,14 @@ class XOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "id_token+code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry(is("state"), not(is(emptyOrNullString()))));
+        assertThat(queryParams, hasEntry("state", "random-939b8307"));
         assertThat(queryParams, hasKey("nonce"));
     }
 
     @Test
     void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOauth() {
+        when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-451614ce");
+
         String authzUri = configurator.getCompleteAuthorizationURI(
                 "alias",
                 UAA_BASE_URL,
@@ -274,7 +284,7 @@ class XOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry(is("state"), not(is(emptyOrNullString()))));
+        assertThat(queryParams, hasEntry("state", "random-451614ce"));
     }
 
     @Test

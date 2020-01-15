@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.*;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -182,8 +183,8 @@ public class XOAuthAuthenticationManagerIT {
         xoAuthProviderConfigurator = spy(
                 new XOAuthProviderConfigurator(
                         provisioning,
-                        oidcMetadataFetcher
-                )
+                        oidcMetadataFetcher,
+                        mock(UaaRandomStringUtil.class))
         );
         xoAuthAuthenticationManager = spy(new XOAuthAuthenticationManager(xoAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL)));
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
