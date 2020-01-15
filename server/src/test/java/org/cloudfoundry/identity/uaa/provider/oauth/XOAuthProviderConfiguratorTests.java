@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -9,6 +10,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -39,7 +43,6 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -47,6 +50,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
 class XOAuthProviderConfiguratorTests {
 
     private final String UAA_BASE_URL = "https://localhost:8443/uaa";
@@ -55,10 +60,12 @@ class XOAuthProviderConfiguratorTests {
     private RawXOAuthIdentityProviderDefinition oauth;
 
     private XOAuthProviderConfigurator configurator;
+    @Mock
     private OidcMetadataFetcher mockOidcMetadataFetcher;
+    @Mock
+    private IdentityProviderProvisioning mockIdentityProviderProvisioning;
 
     private OIDCIdentityProviderDefinition config;
-    private IdentityProviderProvisioning mockIdentityProviderProvisioning;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
     private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
 
@@ -76,9 +83,6 @@ class XOAuthProviderConfiguratorTests {
         }
         oidc.setResponseType("id_token code");
         oauth.setResponseType("code");
-
-        mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
-        mockOidcMetadataFetcher = mock(OidcMetadataFetcher.class);
 
         configurator = spy(new XOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher));
 
@@ -101,11 +105,12 @@ class XOAuthProviderConfiguratorTests {
         oauthProvider = new IdentityProvider<>();
         oauthProvider.setType(OAUTH20);
         oauthProvider.setConfig(new RawXOAuthIdentityProviderDefinition());
-        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
     }
 
     @Test
     void retrieveAll() {
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+
         List<IdentityProvider> activeXOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
@@ -113,6 +118,8 @@ class XOAuthProviderConfiguratorTests {
 
     @Test
     void retrieveActive() {
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+
         List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaaZoneId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
@@ -121,6 +128,8 @@ class XOAuthProviderConfiguratorTests {
 
     @Test
     void retrieve_by_issuer() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+
         String issuer = "https://accounts.google.com";
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
@@ -270,6 +279,8 @@ class XOAuthProviderConfiguratorTests {
 
     @Test
     void excludeUnreachableOidcProvider() throws OidcMetadataFetchingException {
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+
         doThrow(new NullPointerException("")).when(mockOidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
