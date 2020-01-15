@@ -8,10 +8,8 @@ import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinitio
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -27,16 +25,18 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.emptyOrNullString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -51,11 +51,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.GET;
 
-
-public class XOAuthProviderConfiguratorTests {
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+class XOAuthProviderConfiguratorTests {
 
     private OIDCIdentityProviderDefinition oidc;
     private RawXOAuthIdentityProviderDefinition oauth;
@@ -70,8 +66,8 @@ public class XOAuthProviderConfiguratorTests {
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
     private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
 
-    @Before
-    public void setup() throws MalformedURLException {
+    @BeforeEach
+    void setup() throws MalformedURLException {
         discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
         oidc = new OIDCIdentityProviderDefinition();
         oauth = new RawXOAuthIdentityProviderDefinition();
@@ -127,14 +123,14 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void retrieveAll() {
+    void retrieveAll() {
         List<IdentityProvider> activeXOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
     }
 
     @Test
-    public void retrieveActive() {
+    void retrieveActive() {
         List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaaZoneId());
         assertEquals(2, activeXOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
@@ -142,7 +138,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void retrieve_by_issuer() throws Exception {
+    void retrieve_by_issuer() throws Exception {
         String issuer = "https://accounts.google.com";
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
@@ -159,23 +155,20 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void issuer_not_found() {
+    void issuer_not_found() {
         String issuer = "https://accounts.google.com";
-        exception.expect(IncorrectResultSizeDataAccessException.class);
-        exception.expectMessage(String.format("Active provider with issuer[%s] not found", issuer));
         reset(provisioning);
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oauthProvider, new IdentityProvider<>().setType(LDAP)));
-        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
-        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
-        verify(configurator, times(0)).overlay(eq(config));
-        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+        assertThrowsWithMessageThat(
+                IncorrectResultSizeDataAccessException.class,
+                () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
+                equalTo(String.format("Active provider with issuer[%s] not found", issuer))
+        );
     }
 
     @Test
-    public void duplicate_issuer_found() throws Exception {
+    void duplicate_issuer_found() throws Exception {
         String issuer = "https://accounts.google.com";
-        exception.expect(IncorrectResultSizeDataAccessException.class);
-        exception.expectMessage(String.format("Duplicate providers with issuer[%s] not found", issuer));
         reset(provisioning);
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
         doAnswer(invocation -> {
@@ -185,15 +178,15 @@ public class XOAuthProviderConfiguratorTests {
         }).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
-        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
-
-        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
-        verify(configurator, times(2)).overlay(eq(config));
-        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+        assertThrowsWithMessageThat(
+                IncorrectResultSizeDataAccessException.class,
+                () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
+                equalTo(String.format("Duplicate providers with issuer[%s] not found", issuer))
+        );
     }
 
     @Test
-    public void retrieveByOrigin() {
+    void retrieveByOrigin() {
         when(provisioning.retrieveByOrigin(eq(OIDC10), anyString())).thenReturn(oidcProvider);
         when(provisioning.retrieveByOrigin(eq(OAUTH20), anyString())).thenReturn(oauthProvider);
 
@@ -206,7 +199,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void retrieveById() {
+    void retrieveById() {
         when(provisioning.retrieve(eq(OIDC10), anyString())).thenReturn(oidcProvider);
         when(provisioning.retrieve(eq(OAUTH20), anyString())).thenReturn(oauthProvider);
 
@@ -219,14 +212,14 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getParameterizedClass() {
+    void getParameterizedClass() {
         assertEquals(OIDCIdentityProviderDefinition.class, oidc.getParameterizedClass());
         assertEquals(RawXOAuthIdentityProviderDefinition.class, oauth.getParameterizedClass());
     }
 
 
     @Test
-    public void getCompleteAuthorizationURI_includesNonceOnOIDC() {
+    void getCompleteAuthorizationURI_includesNonceOnOIDC() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
 
         Map<String, String> queryParams =
@@ -235,7 +228,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() {
+    void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth);
 
         Map<String, String> queryParams =
@@ -244,7 +237,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationURI_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException, OidcMetadataFetchingException {
+    void getCompleteAuthorizationURI_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException, OidcMetadataFetchingException {
         oidc.setDiscoveryUrl(new URL(discoveryUrl));
         oidc.setAuthUrl(null);
         doAnswer(invocation -> {
@@ -261,7 +254,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOidc() {
+    void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOidc() {
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
 
         Map<String, String> queryParams =
@@ -277,7 +270,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOauth() {
+    void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOauth() {
         String authzUri = configurator.getCompleteAuthorizationURI(
                 "alias",
                 UaaUrlUtils.getBaseURL(request),
@@ -296,7 +289,7 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void excludeUnreachableOidcProvider() throws OidcMetadataFetchingException {
+    void excludeUnreachableOidcProvider() throws OidcMetadataFetchingException {
         doThrow(new NullPointerException("")).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
