@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 )
 
+const UaaYmlConfigKey = "uaa.yml"
+
 var _ = Describe("Uaa ConfigMap", func() {
 	var configPath, uaaLibPath, valuesPath string
 	var database Database
@@ -24,7 +26,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 
 		Expect(ctx).To(
 			ProduceYAML(
-				RepresentingConfigMap().WithDataMatching(func(uaaYml *UaaYmlMatcher) {
+				RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
 					uaaYml.WithFields(Fields{
 						"LoginSecret": Equal("loginsecret"),
 						"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
@@ -48,7 +50,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 
 		Expect(ctx).To(
 			ProduceYAML(
-				RepresentingConfigMap().WithDataMatching(func(uaaYml *UaaYmlMatcher) {
+				RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
 					uaaYml.WithFields(Fields{
 						"LoginSecret": Equal("loginsecret"),
 						"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),

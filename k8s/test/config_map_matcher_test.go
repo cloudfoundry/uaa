@@ -7,21 +7,22 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-type DataMatcherConfig func(*UaaYmlMatcher)
+type DataMatcherConfig func(*DataFieldMatcher)
 
 type ConfigMapMatcher struct {
-	dataMatcher *UaaYmlMatcher
+	dataFields map[string]types.GomegaMatcher
 
 	executed types.GomegaMatcher
 }
 
-
 func RepresentingConfigMap() *ConfigMapMatcher {
-	return &ConfigMapMatcher{NewUaaYmlMatcher(), nil}
+	return &ConfigMapMatcher{map[string]types.GomegaMatcher{}, nil}
 }
 
-func (matcher *ConfigMapMatcher) WithDataMatching(config DataMatcherConfig) *ConfigMapMatcher {
-	config(matcher.dataMatcher)
+func (matcher *ConfigMapMatcher) WithDataFieldMatching(fieldName string, config DataMatcherConfig) *ConfigMapMatcher {
+	dataField := NewDataFieldMatcher(fieldName)
+	config(dataField)
+	matcher.dataFields[fieldName] = dataField
 
 	return matcher
 }
@@ -32,10 +33,15 @@ func (matcher *ConfigMapMatcher) Match(actual interface{}) (success bool, err er
 		return false, fmt.Errorf("Expected a ConfigMap. Got\n%s", format.Object(actual, 1))
 	}
 
-	matcher.executed = matcher.dataMatcher
-	pass, err := matcher.dataMatcher.Match(configMap.Data)
-	if !pass || err != nil {
-		return pass, err
+	for k, v := range matcher.dataFields {
+		data := configMap.Data[k]
+		matcher.executed = v
+
+
+		pass, err := v.Match(data)
+		if !pass || err != nil {
+			return pass, err
+		}
 	}
 
 	return true, nil
