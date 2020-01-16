@@ -64,6 +64,7 @@ database:
   removeabandoned: false
   logabandoned: true
   abandonedtimeout: 300
+  url: #@ data.values.database.url
   username: #@ data.values.database.username
   password: #@ data.values.database.password
 #@ end

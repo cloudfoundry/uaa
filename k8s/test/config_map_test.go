@@ -18,7 +18,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 		configPath = pathToTemplate("config.yml")
 		uaaLibPath = pathToTemplate("uaa.lib.yml")
 		valuesPath = pathToTemplate(filepath.Join("values", "values.yml"))
-		database = Database{Username: "uaa", Password: "password"}
+		database = Database{Username: "uaa", Password: "password", Url: "http://example.com"}
 	})
 
 	It("Renders a config map with default values", func() {
@@ -33,6 +33,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 						"Database": MatchFields(IgnoreExtras, Fields{
 							"Username": Equal(database.Username),
 							"Password": Equal(database.Password),
+							"Url":      Equal(database.Url),
 						}),
 					})
 				}),
@@ -57,6 +58,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 						"Database": MatchFields(IgnoreExtras, Fields{
 							"Username": Equal(database.Username),
 							"Password": Equal(database.Password),
+							"Url":      Equal(database.Url),
 						}),
 					})
 				}),
