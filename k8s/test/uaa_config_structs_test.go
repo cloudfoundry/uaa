@@ -34,12 +34,15 @@ type Login struct {
 }
 
 type Database struct {
-	MaxActive        int    `yaml:"maxactive"`
-	MaxIdle          int    `yaml:"maxidle"`
-	MinIdle          int    `yaml:"minidle"`
-	RemoveAbandoned  bool   `yaml:"removeabandoned"`
-	LogAbandoned     bool   `yaml:"logabandoned"`
-	AbandonedTimeout int    `yaml:"abandonedtimeout"`
-	Username         string `yaml:"username"`
-	Password         string `yaml:"password"`
+	MaxActive          int    `yaml:"maxactive"`
+	MaxIdle            int    `yaml:"maxidle"`
+	MinIdle            int    `yaml:"minidle"`
+	RemoveAbandoned    bool   `yaml:"removeabandoned"`
+	LogAbandoned       bool   `yaml:"logabandoned"`
+	AbandonedTimeout   int    `yaml:"abandonedtimeout"`
+	EvictionIntervalMs int    `yaml:"evictionintervalms"`
+	DriverClassName    string `yaml:"driverClassName"`
+	Url                string `yaml:"url"`
+	Username           string `yaml:"username"`
+	Password           string `yaml:"password"`
 }

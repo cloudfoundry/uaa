@@ -1,5 +1,6 @@
 #@data/values
 ---
 database:
+  url: http://example.com
   username: uaa
   password: password
