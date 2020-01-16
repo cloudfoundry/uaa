@@ -18,7 +18,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 		configPath = pathToTemplate("config.yml")
 		uaaLibPath = pathToTemplate("uaa.lib.yml")
 		valuesPath = pathToTemplate(filepath.Join("values", "values.yml"))
-		database = Database{Username: "uaa", Password: "password", Url: "http://example.com"}
+		database = Database{Username: "uaa", Password: "password", Url: "jdbc:postgresql://127.0.0.1:5432/uaa"}
 	})
 
 	It("Renders a config map with default values", func() {
@@ -43,10 +43,12 @@ var _ = Describe("Uaa ConfigMap", func() {
 	It("Can renders a config map with overriden values", func() {
 		database.Username = "database-username"
 		database.Password = "database-password"
+		database.Url = database.Url + "?sslmode=require"
 
 		ctx := NewRenderingContext(configPath, uaaLibPath, valuesPath).WithData(map[string]string{
 			"database.username": database.Username,
 			"database.password": database.Password,
+			"database.url": database.Url,
 		})
 
 		Expect(ctx).To(
