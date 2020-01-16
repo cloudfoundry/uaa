@@ -12,5 +12,6 @@ format:
 test:
 	go test -count=1 ./...
 
+.PHONY: render
 render:
 	@ytt -f templates

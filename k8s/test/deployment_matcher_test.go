@@ -31,7 +31,7 @@ func (matcher *DeploymentMatcher) Match(actual interface{}) (bool, error) {
 		return false, fmt.Errorf("Expected a deployment. Got\n%s", format.Object(actual, 1))
 	}
 
-	matcher.executed = matcher.pod
+	matcher.executed = matcher.pod // so we can have good pod-specific failure messages
 	if pass, err := matcher.pod.Match(deployment.Spec.Template); !pass || err != nil {
 		return pass, err
 	}

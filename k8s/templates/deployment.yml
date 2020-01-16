@@ -22,7 +22,14 @@ spec:
             - containerPort: 8080
               protocol: TCP
           env:
-            - name: LOGIN_CONFIG_URL
-              value: "classpath:required_configuration.yml"
             - name: spring_profiles
               value: "default,hsqldb"
+            - name: UAA_CONFIG_PATH
+              value: /etc/config
+          volumeMounts:
+          - name: uaa-config
+            mountPath: /etc/config
+      volumes:
+      - name: uaa-config
+        configMap:
+          name: uaa-config
