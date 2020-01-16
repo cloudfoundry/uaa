@@ -56,7 +56,7 @@ func (matcher *ProduceYAMLMatcher) Match(actual interface{}) (bool, error) {
 
 func (matcher *ProduceYAMLMatcher) FailureMessage(actual interface{}) string {
 	msg := fmt.Sprintf(
-		"There is a problem with this YAML:\n\n%s\n\n%s",
+		"FailureMessage: There is a problem with this YAML:\n\n%s\n\n%s",
 		matcher.rendered,
 		matcher.matcher.FailureMessage(actual),
 	)
@@ -65,7 +65,7 @@ func (matcher *ProduceYAMLMatcher) FailureMessage(actual interface{}) string {
 
 func (matcher *ProduceYAMLMatcher) NegatedFailureMessage(actual interface{}) string {
 	msg := fmt.Sprintf(
-		"There is a problem with this YAML:\n\n%s\n\n%s",
+		"NegatedFailureMessage: There is a problem with this YAML:\n\n%s\n\n%s",
 		matcher.rendered,
 		matcher.matcher.NegatedFailureMessage(actual),
 	)

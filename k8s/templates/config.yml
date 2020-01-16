@@ -1,0 +1,10 @@
+#@ load("@ytt:yaml", "yaml")
+#@ load("uaa.lib.yml", "config")
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: uaa-config
+data:
+  uaa.yml: #@ yaml.encode(config())
+
