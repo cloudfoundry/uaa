@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-def devcloudArtServer = Artifactory.server('devcloud')
+def buildGeArtServer = Artifactory.server('build.ge')
 
 library "security-ci-commons-shared-lib"
 def NODE = nodeDetails("uaa")
@@ -45,12 +45,12 @@ pipeline {
                             {
                                 "target": "deploy-workspace/",
                                 "flat": "true",
-                                "pattern": "MAAXA-MVN/builds/uaa/${APP_VERSION}/*.war"
+                                "pattern": "MAAXA/builds/uaa/${APP_VERSION}/*.war"
                             }
                         ]
                     }"""
                     sh 'pwd && ls -ltr'
-                    devcloudArtServer.download(downloadSpec)
+                    buildGeArtServer.download(downloadSpec)
                     sh "ls -ltr deploy-workspace/"
                 }
                 dir('uaa-cf-release') {
@@ -127,12 +127,12 @@ pipeline {
                         "files": [
                             {
                                 "pattern": "deploy-workspace/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                                "target": "MAAXA-MVN/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                                "target": "MAAXA/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
                             }
                         ]
                     }"""
-                    def buildInfo = devcloudArtServer.upload(uploadSpec)
-                    devcloudArtServer.publishBuildInfo(buildInfo)
+                    def buildInfo = buildGeArtServer.upload(uploadSpec)
+                    buildGeArtServer.publishBuildInfo(buildInfo)
                 }
             }
         }
