@@ -1,25 +1,13 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.home;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.WebAttributes;
@@ -28,7 +16,6 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +31,6 @@ public class HomeController {
     private final Links globalLinks;
 
     /**
-     *
      * @param buildInfo This is required for Thymeleaf templates
      */
     public HomeController(
@@ -60,13 +46,13 @@ public class HomeController {
         model.addAllAttributes(attributes);
     }
 
-    @RequestMapping(value = { "/", "/home" })
+    @RequestMapping(value = {"/", "/home"})
     public String home(Model model, Principal principal) {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         String homePage =
-            config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
-                globalLinks != null && globalLinks.getHomeRedirect() != null ?
-                    globalLinks.getHomeRedirect() : null;
+                config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
+                        globalLinks != null && globalLinks.getHomeRedirect() != null ?
+                                globalLinks.getHomeRedirect() : null;
         if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
             homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;
@@ -78,9 +64,9 @@ public class HomeController {
         List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
 
         clientMetadataList.stream()
-            .filter(this::shouldShowClient)
-            .map(this::tileDataForClient)
-            .forEach(tiles::add);
+                .filter(this::shouldShowClient)
+                .map(this::tileDataForClient)
+                .forEach(tiles::add);
 
         model.addAttribute("tiles", tiles);
 
@@ -99,10 +85,10 @@ public class HomeController {
         }
 
         return new TileData(
-            clientMetadata.getClientId(),
-            clientMetadata.getAppLaunchUrl().toString(),
-            "data:image/png;base64," + clientMetadata.getAppIcon(),
-            clientName
+                clientMetadata.getClientId(),
+                clientMetadata.getAppLaunchUrl().toString(),
+                "data:image/png;base64," + clientMetadata.getAppIcon(),
+                clientName
         );
     }
 

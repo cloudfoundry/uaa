@@ -86,9 +86,6 @@ public class InvitationsIT {
     @Autowired
     TestClient testClient;
 
-    @Value("${integration.test.uaa_url}")
-    String uaaUrl;
-
     @Value("${integration.test.base_url}")
     String baseUrl;
 
@@ -157,7 +154,7 @@ public class InvitationsIT {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(APPLICATION_JSON);
         HttpEntity<String> request = new HttpEntity<>("{\"emails\":[\"marissa@test.org\"]}", headers);
-        ResponseEntity<Void> response = uaaTemplate.exchange(uaaUrl + "/invite_users/?client_id=admin&redirect_uri={uri}", POST, request, Void.class, "https://www.google.com");
+        ResponseEntity<Void> response = uaaTemplate.exchange(baseUrl + "/invite_users/?client_id=admin&redirect_uri={uri}", POST, request, Void.class, "https://www.google.com");
         assertThat(response.getStatusCode(), is(HttpStatus.UNAUTHORIZED));
     }
 
@@ -280,7 +277,7 @@ public class InvitationsIT {
         String[] emailList = new String[]{"marissa@test.org"};
         body.setEmails(emailList);
         HttpEntity<InvitationsRequest> request = new HttpEntity<>(body, headers);
-        ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(uaaUrl + "/invite_users?client_id=app&redirect_uri=" + appUrl, POST, request, InvitationsResponse.class);
+        ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(baseUrl + "/invite_users?client_id=app&redirect_uri=" + appUrl, POST, request, InvitationsResponse.class);
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
 
         String userId = response.getBody().getNewInvites().get(0).getUserId();
@@ -306,10 +303,10 @@ public class InvitationsIT {
     }
 
     private String createInvitation(String username, String userEmail, String redirectUri, String origin) {
-        return createInvitation(baseUrl, uaaUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
+        return createInvitation(baseUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
     }
 
-    public static String createInvitation(String baseUrl, String uaaUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
+    public static String createInvitation(String baseUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + scimToken);
         RestTemplate uaaTemplate = new RestTemplate();
@@ -328,14 +325,14 @@ public class InvitationsIT {
         }
         if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
-            ResponseEntity<ScimUser> response = uaaTemplate.exchange(uaaUrl + "/Users", POST, request, ScimUser.class);
+            ResponseEntity<ScimUser> response = uaaTemplate.exchange(baseUrl + "/Users", POST, request, ScimUser.class);
             if (response.getStatusCode().value()!= HttpStatus.CREATED.value()) {
                 throw new IllegalStateException("Unable to create test user:"+scimUser);
             }
             userId = response.getBody().getId();
         } else {
             scimUser.setVerified(false);
-            IntegrationTestUtils.updateUser(scimToken, uaaUrl, scimUser);
+            IntegrationTestUtils.updateUser(scimToken, baseUrl, scimUser);
         }
 
         HttpHeaders invitationHeaders = new HttpHeaders();
@@ -344,7 +341,7 @@ public class InvitationsIT {
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
         ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
         HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
-        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
+        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(baseUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();
         return expiringCode.getCode();
     }

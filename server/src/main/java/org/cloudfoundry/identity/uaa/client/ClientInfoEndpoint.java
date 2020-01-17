@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -33,16 +33,20 @@ import java.util.Collections;
 public class ClientInfoEndpoint {
 
     private final MultitenantClientServices clientDetailsService;
+    private final IdentityZoneManager identityZoneManager;
 
-    public ClientInfoEndpoint(final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService) {
+    public ClientInfoEndpoint(
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.clientDetailsService = clientDetailsService;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @RequestMapping(value = "/clientinfo")
     @ResponseBody
     public ClientDetails clientinfo(Principal principal) {
         String clientId = principal.getName();
-        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId()));
+        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
         client.setClientSecret(null);
         client.setAdditionalInformation(Collections.<String, Object> emptyMap());
         return client;

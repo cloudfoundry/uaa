@@ -14,7 +14,11 @@ import static java.lang.System.getProperties;
 import static org.junit.Assume.assumeTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath*:/spring/data-source.xml", "classpath*:/spring/env.xml"})
+@ContextConfiguration(locations = {
+        "classpath:spring/env.xml",
+        "classpath:spring/jdbc-test-base-add-flyway.xml",
+        "classpath:spring/data-source.xml",
+})
 public abstract class DbMigrationIntegrationTestParent {
 
     @Autowired

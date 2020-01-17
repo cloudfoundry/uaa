@@ -1,37 +1,42 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.List;
 
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 
-public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
-    JdbcMfaProviderProvisioning mfaProviderProvisioning;
+@WithDatabaseContext
+class JdbcMfaProviderProvisioningTest {
+
+    private JdbcMfaProviderProvisioning mfaProviderProvisioning;
     private MfaProviderValidator mfaProviderValidator;
 
-    @Rule
-    public ExpectedException expection = ExpectedException.none();
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setUp() {
         mfaProviderValidator = mock(GeneralMfaProviderValidator.class);
         mfaProviderProvisioning = new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProviderValidator);
     }
 
     @Test
-    public void testCreateAndRetrieve() {
+    void createAndRetrieve() {
         MfaProvider mfaProvider = constructGoogleProvider();
         String zoneId = IdentityZoneHolder.get().getId();
         assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
@@ -47,42 +52,41 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testCreateDuplicate() {
-        MfaProvider mfaProvider = constructGoogleProvider();
-        String zoneId = IdentityZoneHolder.get().getId();
-        assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
-        doNothing().when(mfaProviderValidator);
-        expection.expect(MfaAlreadyExistsException.class);
-        expection.expectMessage("An MFA Provider with that name already exists.");
-        mfaProviderProvisioning.create(mfaProvider, zoneId);
-        mfaProviderProvisioning.create(mfaProvider, zoneId);
-
-    }
-
-    @Test
-    public void testCreateDuplicateWorksAcrossZones() {
+    void createDuplicate() {
         MfaProvider mfaProvider = constructGoogleProvider();
         String zoneId = IdentityZoneHolder.get().getId();
         assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
         doNothing().when(mfaProviderValidator);
         mfaProviderProvisioning.create(mfaProvider, zoneId);
-        mfaProviderProvisioning.create(mfaProvider, zoneId+"-other-zone");
-
+        assertThrowsWithMessageThat(MfaAlreadyExistsException.class,
+                () -> mfaProviderProvisioning.create(mfaProvider, zoneId),
+                is("An MFA Provider with that name already exists."));
     }
+
     @Test
-    public void testUpdateDuplicate() {
+    void createDuplicateWorksAcrossZones() {
+        MfaProvider mfaProvider = constructGoogleProvider();
+        String zoneId = IdentityZoneHolder.get().getId();
+        assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
+        doNothing().when(mfaProviderValidator);
+        mfaProviderProvisioning.create(mfaProvider, zoneId);
+        mfaProviderProvisioning.create(mfaProvider, zoneId + "-other-zone");
+    }
+
+    @Test
+    void updateDuplicate() {
         MfaProvider firstProvider = mfaProviderProvisioning.create(constructGoogleProvider(), IdentityZoneHolder.get().getId());
         MfaProvider secondProvider = mfaProviderProvisioning.create(constructGoogleProvider(), IdentityZoneHolder.get().getId());
 
         secondProvider.setName(firstProvider.getName());
 
-        expection.expect(MfaAlreadyExistsException.class);
-        expection.expectMessage("An MFA Provider with that name already exists.");
-        mfaProviderProvisioning.update(secondProvider, IdentityZoneHolder.get().getId());
+        assertThrowsWithMessageThat(MfaAlreadyExistsException.class,
+                () -> mfaProviderProvisioning.update(secondProvider, IdentityZoneHolder.get().getId()),
+                is("An MFA Provider with that name already exists."));
     }
 
     @Test
-    public void testCreateAndUpdate() {
+    void createAndUpdate() {
         MfaProvider mfaProvider = constructGoogleProvider();
         String zoneId = IdentityZoneHolder.get().getId();
         assertEquals(0, (int) jdbcTemplate.queryForObject("select count(*) from mfa_providers where identity_zone_id=? and name=?", new Object[]{zoneId, mfaProvider.getName()}, Integer.class));
@@ -104,7 +108,7 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveAll() {
+    void retrieveAll() {
         String zoneId = IdentityZoneHolder.get().getId();
         List<MfaProvider> providers = mfaProviderProvisioning.retrieveAll(zoneId);
         doNothing().when(mfaProviderValidator);
@@ -115,11 +119,11 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
 
         providers = mfaProviderProvisioning.retrieveAll(zoneId);
         int afterCount = providers.size();
-        assertEquals(1, afterCount-beforeCount);
+        assertEquals(1, afterCount - beforeCount);
     }
 
     @Test
-    public void testRetrieve() {
+    void retrieve() {
         MfaProvider mfaProvider = constructGoogleProvider();
         doNothing().when(mfaProviderValidator);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -127,17 +131,18 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
         assertEquals(mfaProvider.getName(), created.getName());
         assertNotNull(created.getId());
     }
+
     @Test
-    public void testRetrieveByName() {
+    void retrieveByName() {
         MfaProvider createdProvider = mfaProviderProvisioning.create(constructGoogleProvider(), IdentityZoneHolder.get().getId());
         assertEquals(
-            createdProvider.getId(),
-            mfaProviderProvisioning.retrieveByName(createdProvider.getName(), createdProvider.getIdentityZoneId()).getId()
+                createdProvider.getId(),
+                mfaProviderProvisioning.retrieveByName(createdProvider.getName(), createdProvider.getIdentityZoneId()).getId()
         );
     }
 
     @Test
-    public void testDelete() {
+    void delete() {
         String zoneId = IdentityZoneHolder.get().getId();
         doNothing().when(mfaProviderValidator);
         MfaProvider mfaProvider = mfaProviderProvisioning.create(constructGoogleProvider(), zoneId);
@@ -145,12 +150,12 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
 
         mfaProviderProvisioning.deleteByMfaProvider(mfaProvider.getId(), zoneId);
 
-        expection.expect(EmptyResultDataAccessException.class);
-        mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId);
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId));
     }
 
     @Test
-    public void testDeleteByIdentityZone() {
+    void deleteByIdentityZone() {
         String zoneId = IdentityZoneHolder.get().getId();
         doNothing().when(mfaProviderValidator);
         MfaProvider mfaProvider = mfaProviderProvisioning.create(constructGoogleProvider(), zoneId);
@@ -158,19 +163,16 @@ public class JdbcMfaProviderProvisioningTest extends JdbcTestBase {
 
         mfaProviderProvisioning.deleteByIdentityZone(zoneId);
 
-        expection.expect(EmptyResultDataAccessException.class);
-        mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId);
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> mfaProviderProvisioning.retrieve(mfaProvider.getId(), zoneId));
     }
 
-    private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
+    private static MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
         return new MfaProvider<GoogleMfaProviderConfig>()
                 .setName(new RandomValueStringGenerator(10).generate())
                 .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR)
                 .setIdentityZoneId(IdentityZoneHolder.get().getId())
-                .setConfig(constructGoogleProviderConfiguration());
+                .setConfig(new GoogleMfaProviderConfig());
     }
 
-    private GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
-        return new GoogleMfaProviderConfig();
-    }
 }

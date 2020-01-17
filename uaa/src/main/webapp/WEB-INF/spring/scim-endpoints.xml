@@ -138,10 +138,6 @@
         <entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
     </util:map>
 
-    <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints" />
-
-    <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints" />
-
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
@@ -182,8 +178,6 @@
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
-
-    <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints" />
 
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"
@@ -338,6 +332,7 @@
         <util:list id="defaultUsers">
             <value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
             <value>testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read</value>
+            <value>admin|admin|admin|||foo.bar,uaa.admin|uaa</value>
         </util:list>
         <util:list id="defaultMembers">
             <value>acme|acme.dev,acme.qa</value>

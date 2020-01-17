@@ -20,6 +20,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -30,6 +34,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -51,6 +59,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -61,6 +73,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -82,6 +98,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -92,6 +112,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -113,6 +137,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -123,6 +151,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -145,6 +177,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -155,6 +191,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -176,6 +216,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -186,6 +230,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -207,6 +255,10 @@
       <scope>compile</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -217,6 +269,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -235,9 +291,13 @@
     <dependency>
       <groupId>org.apache.tomcat.embed</groupId>
       <artifactId>tomcat-embed-core</artifactId>
-      <version>9.0.27</version>
+      <version>9.0.30</version>
       <scope>provided</scope>
       <exclusions>
+        <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
         <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
@@ -249,6 +309,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -270,6 +334,10 @@
       <scope>provided</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -280,6 +348,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -301,6 +373,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -311,6 +387,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -333,6 +413,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -343,6 +427,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -364,6 +452,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -374,6 +466,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -395,6 +491,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -405,6 +505,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -426,6 +530,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -436,6 +544,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -457,6 +569,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -467,6 +583,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -488,6 +608,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -498,6 +622,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
@@ -519,6 +647,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>jsonassert</artifactId>
+          <groupId>org.skyscreamer</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>hamcrest-all</artifactId>
           <groupId>org.hamcrest</groupId>
         </exclusion>
@@ -529,6 +661,10 @@
         <exclusion>
           <artifactId>spring-boot-starter-logging</artifactId>
           <groupId>org.springframework.boot</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>android-json</artifactId>
+          <groupId>com.vaadin.external.google</groupId>
         </exclusion>
         <exclusion>
           <artifactId>hamcrest-core</artifactId>
