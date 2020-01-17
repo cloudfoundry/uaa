@@ -14,4 +14,5 @@ test:
 
 .PHONY: render
 render:
-	@ytt -f templates
+	@ytt -f templates -f values/default-values.yml -f values/custom-values.yml
+

@@ -11,7 +11,7 @@ var _ = Describe("Deployment", func() {
 
 	BeforeEach(func() {
 		deploymentPath = pathToTemplate("deployment.yml")
-		valuesPath = pathToTemplate(filepath.Join("values", "values.yml"))
+		valuesPath = pathToTemplate(filepath.Join("..", "values", "default-values.yml"))
 	})
 
 	It("Renders a deployment for the UAA", func() {

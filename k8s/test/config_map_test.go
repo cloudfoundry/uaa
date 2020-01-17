@@ -17,7 +17,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 	BeforeEach(func() {
 		configPath = pathToTemplate("config.yml")
 		uaaLibPath = pathToTemplate("uaa.lib.yml")
-		valuesPath = pathToTemplate(filepath.Join("values", "values.yml"))
+		valuesPath = pathToTemplate(filepath.Join("..", "values", "default-values.yml"))
 		database = Database{Username: "uaa", Password: "password", Url: "jdbc:postgresql://127.0.0.1:5432/uaa"}
 	})
 
