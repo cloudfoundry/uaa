@@ -22,10 +22,8 @@ import org.openqa.selenium.logging.LoggingPreferences;
 import org.openqa.selenium.remote.CapabilityType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
-import org.springframework.core.env.Environment;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.web.client.RestTemplate;
@@ -35,7 +33,6 @@ import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-@Configuration
 @PropertySource("classpath:integration.test.properties")
 public class DefaultIntegrationTestConfig {
 

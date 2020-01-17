@@ -1,27 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns="http://www.springframework.org/schema/beans"
        xmlns:tx="http://www.springframework.org/schema/tx"
        xmlns:util="http://www.springframework.org/schema/util"
-       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="
        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd
-       http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd
-       http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+       http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd">
 
     <bean id="databaseUrlModifier" class="org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier">
         <constructor-arg name="databaseType" value="#{@platform}"/>
@@ -34,26 +19,27 @@
         <property name="url" value="#{@databaseUrlModifier.getUrl()}"/>
         <property name="username" value="${database.username}"/>
         <property name="password" value="${database.password}"/>
-        <property name="validationInterval" value="5000"/>
+        <property name="validationInterval" value="${database.validationinterval:5000}"/>
         <property name="validationQuery" value="#{@validationQuery}"/>
         <property name="testOnBorrow" value="true"/>
+        <property name="testWhileIdle" value="${database.testwhileidle:false}"/>
         <property name="minIdle" value="${database.minidle:0}"/>
         <property name="maxActive" value="${database.maxactive:100}"/>
         <property name="maxIdle" value="${database.maxidle:10}"/>
+        <property name="maxWait" value="${database.maxwait:30000}"/>
         <property name="initialSize" value="${database.initialsize:10}"/>
         <property name="validationQueryTimeout" value="${database.validationquerytimeout:10}"/>
         <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
         <property name="logAbandoned" value="${database.logabandoned:true}"/>
         <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
         <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
+        <property name="minEvictableIdleTimeMillis" value="${database.minevictionidlems:60000}"/>
         <property name="jdbcInterceptors" value="org.cloudfoundry.identity.uaa.metrics.QueryFilter(threshold=3000)"/>
     </bean>
 
     <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
         <property name="dataSource" ref="dataSource"/>
     </bean>
-
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.db.beans"/>
 
     <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
         <property name="dataSource" ref="dataSource"/>

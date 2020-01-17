@@ -49,5 +49,5 @@ olcTLSCertificateKeyFile: /etc/ssl/private/ldap01_slapd_key.pem" > /etc/ssl/cert
 
 fi
 
-sudo ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/src/main/resources/ldap_db_init.ldif
-sudo ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/src/main/resources/ldap_init.ldif
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/src/test/resources/ldap_db_init.ldif
+sudo ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/src/test/resources/ldap_init.ldif
