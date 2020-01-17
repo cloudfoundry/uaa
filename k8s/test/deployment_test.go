@@ -22,6 +22,8 @@ var _ = Describe("Deployment", func() {
 				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
+						container.WithEnvVar("spring_profiles", "default,hsqldb")
+						container.WithEnvVar("UAA_CONFIG_PATH", "/etc/config")
 					})
 				}),
 			),
