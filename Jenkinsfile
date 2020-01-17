@@ -4,10 +4,6 @@ def buildGeArtServer = Artifactory.server('build.ge')
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
 def NODE = nodeDetails("uaa")
 def APP_VERSION = 'UNKNOWN'
-def BINTRAY_LOCATION = 'UNKNOWN'
-def BINTRAY_ARTIFACT1 = 'UNKNOWN'
-def BINTRAY_ARTIFACT2 = 'UNKNOWN'
-def BINTRAY_JENKINSFILE = 'UNKNOWN'
 
 pipeline {
     agent none

@@ -74,6 +74,14 @@ allprojects {
             }
             url 'https://artifactory.build.ge.com/predix-virtual'
         }
+        // Repositories required to download jwt-bearer-key-provider
+        maven {
+            credentials {
+                username geArtifactoryReader
+                password geArtifactoryReaderPassword
+            }
+            url 'https://artifactory.build.ge.com/artifactory/MAAXA'
+        }
         maven { url 'https://artifacts.alfresco.com/nexus/content/repositories/public/' }
         maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
         maven { url 'https://repository.mulesoft.org/releases/' }
