@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xmlns:context="http://www.springframework.org/schema/context"
        xsi:schemaLocation="http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
-        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd">
+        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <http name="checkTokenSecurity" pattern="/check_token" create-session="stateless"
           entry-point-ref="basicAuthenticationEntryPoint"
@@ -51,13 +49,5 @@
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
-
-    <bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint" />
-
-    <bean id="introspectEndpoint" class="org.cloudfoundry.identity.uaa.oauth.IntrospectEndpoint" />
-
-    <context:component-scan base-package="org.cloudfoundry.identity.uaa.oauth.advice" />
-
-    <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint" />
 
 </beans>

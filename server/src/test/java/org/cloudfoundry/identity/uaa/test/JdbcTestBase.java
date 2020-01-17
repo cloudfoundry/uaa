@@ -57,7 +57,8 @@ public class JdbcTestBase extends TestClassNullifier {
     public String[] getWebApplicationContextConfigFiles() {
         return new String[]{
                 "classpath:spring/env.xml",
-                "classpath:spring/data-source.xml"
+                "classpath:spring/jdbc-test-base-add-flyway.xml",
+                "classpath:spring/data-source.xml",
         };
     }
 
