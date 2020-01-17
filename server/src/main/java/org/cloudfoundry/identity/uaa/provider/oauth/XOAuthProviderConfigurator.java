@@ -48,7 +48,10 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         }
     }
 
-    public String getCompleteAuthorizationURI(String alias, String baseURL, AbstractXOAuthIdentityProviderDefinition definition) {
+    public String getCompleteAuthorizationURI(
+            final String alias,
+            final String baseURL,
+            final AbstractXOAuthIdentityProviderDefinition definition) {
         String authUrlBase;
         if (definition instanceof OIDCIdentityProviderDefinition) {
             authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();

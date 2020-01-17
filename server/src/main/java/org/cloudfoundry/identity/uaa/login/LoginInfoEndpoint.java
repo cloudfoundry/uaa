@@ -813,7 +813,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/callback/{origin}")
-    public String handleXOAuthCallback(HttpSession session) {
+    public String handleXOAuthCallback(final HttpSession session) {
         String redirectLocation = "/home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
