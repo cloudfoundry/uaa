@@ -3,3 +3,4 @@
 database:
   url: jdbc:<postgresql|mysql>://<database-url>:<database-port>/uaa
   password: <database password>
+  username: <database username>
