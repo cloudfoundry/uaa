@@ -8,7 +8,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-
 type DataFieldMatcher struct {
 	fieldName    string
 	fields       map[string]types.GomegaMatcher

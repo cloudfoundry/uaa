@@ -10,7 +10,7 @@ import (
 )
 
 type ContainerMatcher struct {
-	fields map[string]types.GomegaMatcher
+	fields  map[string]types.GomegaMatcher
 	envVars Elements
 
 	container *coreV1.Container

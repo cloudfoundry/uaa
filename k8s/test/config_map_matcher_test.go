@@ -37,7 +37,6 @@ func (matcher *ConfigMapMatcher) Match(actual interface{}) (success bool, err er
 		data := configMap.Data[k]
 		matcher.executed = v
 
-
 		pass, err := v.Match(data)
 		if !pass || err != nil {
 			return pass, err
