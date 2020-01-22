@@ -1,5 +1,7 @@
 #@ load("@ytt:data", "data")
-#@yaml/text-templated-strings
+
+#@ load("deployment_functions.star", "spring_profiles")
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -23,7 +25,7 @@ spec:
               protocol: TCP
           env:
             - name: spring_profiles
-              value: "default,hsqldb"
+              value: #@ spring_profiles(data.values.database.scheme)
             - name: UAA_CONFIG_PATH
               value: /etc/config
           volumeMounts:

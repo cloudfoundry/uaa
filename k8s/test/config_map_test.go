@@ -18,7 +18,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 		configPath = pathToTemplate("config.yml")
 		uaaLibPath = pathToTemplate("uaa.lib.yml")
 		valuesPath = pathToTemplate(filepath.Join("..", "values", "default-values.yml"))
-		database = Database{Username: "uaa", Password: "password", Url: "jdbc:postgresql://127.0.0.1:5432/uaa"}
+		database = Database{Username: "sa", Password: "password", Url: "jdbc:postgresql://127.0.0.1:5432/uaa"}
 	})
 
 	It("Renders a config map with default values", func() {
