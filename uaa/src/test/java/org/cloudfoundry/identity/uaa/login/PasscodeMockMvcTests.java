@@ -98,6 +98,13 @@ class PasscodeMockMvcTests {
     }
 
     @Test
+    void testRedirectToPasscodePage() throws Exception {
+        mockMvc.perform(get("/pa"))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string("Location", "/passcode"));
+    }
+
+    @Test
     void testLoginUsingPasscodeWithSamlToken() throws Exception {
         ExpiringUsernameAuthenticationToken et = new ExpiringUsernameAuthenticationToken(USERNAME, null);
         UaaAuthentication auth = new LoginSamlAuthenticationToken(marissa, et).getUaaAuthentication(

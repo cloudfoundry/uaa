@@ -869,6 +869,19 @@ public class LoginInfoEndpoint {
         return PASSCODE;
     }
 
+    @RequestMapping(value = {
+        "/p",
+        "/pa",
+        "/pas",
+        "/pass",
+        "/passc",
+        "/passco",
+        "/passcod"
+    }, method = GET)
+    public String redirectToGeneratePasscode(Map<String, Object> model, Principal principal) {
+        return "redirect:/passcode";
+    }
+
     private Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
