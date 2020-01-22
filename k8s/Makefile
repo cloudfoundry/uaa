@@ -1,6 +1,6 @@
 GOFILES=`find . -type f -name '*.go'`
 
-.PHONY: format test render apply help
+.PHONY: clean format test render apply help
 
 clean:
 	go clean
