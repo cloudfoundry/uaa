@@ -2,5 +2,6 @@
 ---
 database:
   url: jdbc:<postgresql|mysql>://<database-url>:<database-port>/uaa
+  scheme: <postgresql|mysql|hsqldb>
   password: <database password>
   username: <database username>
