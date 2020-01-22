@@ -48,7 +48,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 		ctx := NewRenderingContext(configPath, uaaLibPath, valuesPath).WithData(map[string]string{
 			"database.username": database.Username,
 			"database.password": database.Password,
-			"database.url": database.Url,
+			"database.url":      database.Url,
 		})
 
 		Expect(ctx).To(
