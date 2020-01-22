@@ -142,7 +142,7 @@ public class ResetPasswordIT {
         assertEquals(email, message.getHeaderValue("To"));
         assertThat(message.getBody(), containsString("Reset your password"));
 
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        Assert.assertEquals("Please check your email for a reset password link. You may not receive an email if you are using Single Sign On or your email is not registered in the system.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
@@ -177,7 +177,7 @@ public class ResetPasswordIT {
         assertEquals(email, message.getHeaderValue("To"));
         assertThat(message.getBody(), containsString("Reset your password"));
 
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        Assert.assertEquals("Please check your email for a reset password link. You may not receive an email if you are using Single Sign On or your email is not registered in the system.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
@@ -279,7 +279,7 @@ public class ResetPasswordIT {
         assertEquals(email, message.getHeaderValue("To"));
         assertThat(message.getBody(), containsString("Reset your password"));
 
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        Assert.assertEquals("Please check your email for a reset password link. You may not receive an email if you are using Single Sign On or your email is not registered in the system.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
         // Extract link from email
         return testClient.extractLink(message.getBody());
