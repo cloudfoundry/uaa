@@ -1,4 +1,5 @@
 #@ load("@ytt:data", "data")
+#@ load("uaa.functions.lib.star", "signing_keys")
 #@ def config():
 ---
 issuer:
@@ -55,7 +56,7 @@ LOGIN_SECRET: loginsecret
 
 jwt:
   token:
-    signing-key: tokenKey
+    policy: #@ signing_keys(data.values.jwt.policy)
 
 database:
   maxactive: 100

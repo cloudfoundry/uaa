@@ -21,10 +21,21 @@ type Encryption struct {
 	} `yaml:"encryption_keys"`
 }
 
+type JwtTokenPolicySigningKey struct {
+	SigningKey string `yaml:"signingKey"`
+}
+
+type JwtTokenPolicy struct {
+	ActiveKeyId string `yaml:"activeKeyId"`
+	Keys map[string]JwtTokenPolicySigningKey `yaml:"keys"`
+}
+
+type JwtToken struct {
+	Policy JwtTokenPolicy `yaml:"policy"`
+}
+
 type Jwt struct {
-	Token struct {
-		SigningKey string `yaml:"signing-key"`
-	} `yaml:"token"`
+	Token JwtToken `yaml:"token"`
 }
 
 type Login struct {

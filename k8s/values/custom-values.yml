@@ -1,7 +1,17 @@
-#@data/values
 ---
 database:
   url: jdbc:<postgresql|mysql>://<database-url>:<database-port>/uaa
   scheme: <postgresql|mysql|hsqldb>
   password: <database password>
   username: <database username>
+
+jwt:
+  policy:
+    activeKeyId: <active key id>
+    keys:
+    - keyId: <active key id>
+      signingKey: |
+        <active private key>
+    - keyId: <other key id>
+      signingKey: |
+        <other private key>
