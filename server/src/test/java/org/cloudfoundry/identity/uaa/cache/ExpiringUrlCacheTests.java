@@ -36,7 +36,7 @@ class ExpiringUrlCacheTests {
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
     private ExpiringUrlCache cache;
     private TimeService mockTimeService;
-    private RestTemplate template;
+    private RestTemplate mockRestTemplate;
     private String uri;
     private byte[] content = new byte[1024];
 
@@ -46,35 +46,35 @@ class ExpiringUrlCacheTests {
         mockTimeService = mock(TimeService.class);
         when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
         cache = new ExpiringUrlCache(CACHE_EXPIRATION, mockTimeService, 2);
-        template = mock(RestTemplate.class);
-        when(template.getForObject(any(URI.class), any())).thenReturn(content, new byte[1024]);
+        mockRestTemplate = mock(RestTemplate.class);
+        when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content, new byte[1024]);
         uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
     }
 
     @Test
     void correct_method_invoked_on_rest_template() throws URISyntaxException {
-        cache.getUrlContent(uri, template);
-        verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
+        cache.getUrlContent(uri, mockRestTemplate);
+        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
     }
 
     @Test
     void incorrect_uri_throws_illegal_argument_exception() {
         uri = "invalid value";
-        assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent(uri, template));
+        assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent(uri, mockRestTemplate));
     }
 
     @Test
     void rest_client_exception_is_propagated() {
-        template = mock(RestTemplate.class);
-        when(template.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
-        assertThrows(RestClientException.class, () -> cache.getUrlContent(uri, template));
+        mockRestTemplate = mock(RestTemplate.class);
+        when(mockRestTemplate.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
+        assertThrows(RestClientException.class, () -> cache.getUrlContent(uri, mockRestTemplate));
     }
 
     @Test
     void calling_twice_uses_cache() throws Exception {
-        byte[] c1 = cache.getUrlContent(uri, template);
-        byte[] c2 = cache.getUrlContent(uri, template);
-        verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
+        byte[] c1 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(uri, mockRestTemplate);
+        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
         assertSame(c1, c2);
         assertEquals(1, cache.size());
     }
@@ -90,9 +90,9 @@ class ExpiringUrlCacheTests {
                                 .plus(CACHE_EXPIRATION)
                                 .toEpochMilli()
                 );
-        byte[] c1 = cache.getUrlContent(uri, template);
-        byte[] c2 = cache.getUrlContent(uri, template);
-        verify(template, times(2)).getForObject(eq(new URI(uri)), same(byte[].class));
+        byte[] c1 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(uri, mockRestTemplate);
+        verify(mockRestTemplate, times(2)).getForObject(eq(new URI(uri)), same(byte[].class));
         assertNotSame(c1, c2);
     }
 
@@ -109,15 +109,15 @@ class ExpiringUrlCacheTests {
         byte[] c1 = new byte[1024];
         byte[] c2 = new byte[1024];
         byte[] c3 = new byte[1024];
-        template = mock(RestTemplate.class);
-        when(template.getForObject(eq(new URI(uri1)), any())).thenReturn(c1);
-        when(template.getForObject(eq(new URI(uri2)), any())).thenReturn(c2);
-        when(template.getForObject(eq(new URI(uri3)), any())).thenReturn(c3);
+        mockRestTemplate = mock(RestTemplate.class);
+        when(mockRestTemplate.getForObject(eq(new URI(uri1)), any())).thenReturn(c1);
+        when(mockRestTemplate.getForObject(eq(new URI(uri2)), any())).thenReturn(c2);
+        when(mockRestTemplate.getForObject(eq(new URI(uri3)), any())).thenReturn(c3);
         for (String uri : Arrays.asList(uri1, uri1, uri2, uri2, uri3, uri3)) {
-            cache.getUrlContent(uri, template);
+            cache.getUrlContent(uri, mockRestTemplate);
         }
         for (String uri : Arrays.asList(uri1, uri2, uri3)) {
-            verify(template, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
+            verify(mockRestTemplate, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
         }
         assertEquals(2, cache.size());
     }
