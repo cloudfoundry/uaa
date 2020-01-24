@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -52,10 +53,18 @@ import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
@@ -76,6 +85,7 @@ public class InvitationsController {
     private final UaaUserDatabase userDatabase;
     private final String spEntityID;
     private final ScimUserProvisioning userProvisioning;
+    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
     public InvitationsController(
             final InvitationsService invitationsService,
@@ -85,7 +95,8 @@ public class InvitationsController {
             final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
             final UaaUserDatabase userDatabase,
             final @Qualifier("samlEntityID") String spEntityID,
-            final ScimUserProvisioning userProvisioning) {
+            final ScimUserProvisioning userProvisioning,
+            final @Qualifier("xoauthProviderConfigurator") XOAuthProviderConfigurator xoAuthProviderConfigurator) {
         this.invitationsService = invitationsService;
         this.expiringCodeStore = expiringCodeStore;
         this.passwordValidator = passwordValidator;
@@ -94,6 +105,7 @@ public class InvitationsController {
         this.userDatabase = userDatabase;
         this.spEntityID = spEntityID;
         this.userProvisioning = userProvisioning;
+        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
     }
 
     @RequestMapping(value = {"/sent", "/new", "/new.do"})
@@ -141,12 +153,7 @@ public class InvitationsController {
 
                 AbstractXOAuthIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), AbstractXOAuthIdentityProviderDefinition.class);
 
-                String scheme = request.getScheme();
-                String host = request.getHeader("Host");
-                String contextPath = request.getContextPath();
-                String resultPath = scheme + "://" + host + contextPath;
-                String redirect = "redirect:" + definition.getAuthUrl() + "?client_id=" + definition.getRelyingPartyId() + "&response_type=code" + "&redirect_uri=" + resultPath + "/login/callback/" + provider.getOriginKey();
-
+                String redirect = "redirect:" + xoAuthProviderConfigurator.getIdpAuthenticationUrl(definition, provider.getOriginKey(), request);
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s OIDC IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else {
