@@ -1,5 +1,11 @@
 #@data/values
 ---
+version: "74.12.0"
+labels:
+  instance: standalone
+  partOf: uaa
+  managedBy: kapp
+
 database:
   url: "jdbc:hsqldb:mem:uaa"
   scheme: hsqldb
