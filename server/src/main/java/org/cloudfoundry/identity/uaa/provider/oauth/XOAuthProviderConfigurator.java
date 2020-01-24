@@ -5,11 +5,15 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -48,31 +52,54 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         }
     }
 
-    public String getCompleteAuthorizationURI(
-            final String alias,
-            final String baseURL,
-            final AbstractXOAuthIdentityProviderDefinition definition) {
-        String authUrlBase;
-        if (definition instanceof OIDCIdentityProviderDefinition) {
-            authUrlBase = overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
-        } else {
-            authUrlBase = definition.getAuthUrl().toString();
+    public String getIdpAuthenticationUrl(
+            final AbstractXOAuthIdentityProviderDefinition definition,
+            final String idpOriginKey,
+            final HttpServletRequest request) {
+        var idpUrlBase = getIdpUrlBase(definition);
+        var callbackUrl = getCallbackUrlForIdp(idpOriginKey, UaaUrlUtils.getBaseURL(request));
+        var responseType = URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8);
+        var relyingPartyId = definition.getRelyingPartyId();
+
+        var state = generateStateParam();
+        saveStateParamForIdpToRequestSession(state, idpOriginKey, request);
+
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder
+                .fromUriString(idpUrlBase)
+                .queryParam("client_id", relyingPartyId)
+                .queryParam("response_type", responseType)
+                .queryParam("redirect_uri", callbackUrl)
+                .queryParam("state", state);
+
+        if (!CollectionUtils.isEmpty(definition.getScopes())) {
+            uriBuilder.queryParam("scope", URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
         }
-        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-        List<String> query = new ArrayList<>();
-        query.add("client_id=" + definition.getRelyingPartyId());
-        query.add("response_type=" + URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8));
-        query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, StandardCharsets.UTF_8));
-        query.add("state=" + uaaRandomStringUtil.getSecureRandom(10));
-        if (definition.getScopes() != null && !definition.getScopes().isEmpty()) {
-            query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
-        }
+
         if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
-            final RandomValueStringGenerator nonceGenerator = new RandomValueStringGenerator(12);
-            query.add("nonce=" + nonceGenerator.generate());
+            var nonceGenerator = new RandomValueStringGenerator(12);
+            uriBuilder.queryParam("nonce", nonceGenerator.generate());
         }
-        String queryString = String.join("&", query);
-        return authUrlBase + queryAppendDelimiter + queryString;
+
+        return uriBuilder.build().toUriString();
+    }
+
+    private void saveStateParamForIdpToRequestSession(String state, String idpOriginKey, HttpServletRequest request) {
+        request.getSession().setAttribute("xoauth-state-" + idpOriginKey, state);
+    }
+
+    private String generateStateParam() {
+        return uaaRandomStringUtil.getSecureRandom(10);
+    }
+
+    private String getCallbackUrlForIdp(String idpOriginKey, String uaaBaseUrl) {
+        return URLEncoder.encode(uaaBaseUrl + "/login/callback/" + idpOriginKey, StandardCharsets.UTF_8);
+    }
+
+    private String getIdpUrlBase(final AbstractXOAuthIdentityProviderDefinition definition) {
+        if (definition instanceof OIDCIdentityProviderDefinition) {
+            return overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
+        }
+        return definition.getAuthUrl().toString();
     }
 
     @Override

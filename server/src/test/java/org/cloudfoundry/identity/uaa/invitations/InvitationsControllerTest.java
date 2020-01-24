@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -55,7 +56,6 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.net.URL;
 import java.sql.Timestamp;
@@ -127,6 +127,9 @@ public class InvitationsControllerTest {
 
     @Autowired
     ScimUserProvisioning scimUserProvisioning;
+
+    @Autowired
+    XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
     @Before
     public void setUp() {
@@ -227,12 +230,14 @@ public class InvitationsControllerTest {
         provider.setConfig(definition);
         provider.setType(OriginKeys.OIDC10);
         when(providerProvisioning.retrieveByOrigin(eq("test-oidc"), anyString())).thenReturn(provider);
+        when(xoAuthProviderConfigurator.getIdpAuthenticationUrl(any(), any(), any())).thenReturn("http://example.com");
+
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
 
         MvcResult result = mockMvc.perform(get)
-                .andExpect(redirectedUrl("https://oidc10.auth.url?client_id=" + definition.getRelyingPartyId() + "&response_type=code&redirect_uri=http://null/login/callback/" + provider.getOriginKey()))
+                .andExpect(redirectedUrl("http://example.com"))
                 .andReturn();
 
         assertEquals(true, result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE"));
@@ -807,7 +812,8 @@ public class InvitationsControllerTest {
                                                     final IdentityProviderProvisioning providerProvisioning,
                                                     final UaaUserDatabase userDatabase,
                                                     final ScimUserProvisioning provisioning,
-                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
+                                                    final XOAuthProviderConfigurator xoAuthProviderConfigurator) {
             return new InvitationsController(
                     invitationsService,
                     codeStore,
@@ -816,7 +822,8 @@ public class InvitationsControllerTest {
                     zoneAwareAuthenticationManager,
                     userDatabase,
                     "sp-entity-id",
-                    provisioning);
+                    provisioning,
+                    xoAuthProviderConfigurator);
         }
 
         @Bean
@@ -846,6 +853,11 @@ public class InvitationsControllerTest {
         @Bean
         CookieBasedCsrfTokenRepository loginCookieCsrfRepository() {
             return mock(CookieBasedCsrfTokenRepository.class);
+        }
+
+        @Bean
+        XOAuthProviderConfigurator xoAuthProviderConfigurator() {
+            return mock(XOAuthProviderConfigurator.class);
         }
     }
 }
