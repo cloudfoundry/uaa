@@ -34,21 +34,25 @@ import static org.mockito.Mockito.when;
 class ExpiringUrlCacheTests {
 
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
+    private static final String uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
+    private static final byte[] content;
+
     private ExpiringUrlCache cache;
     private TimeService mockTimeService;
     private RestTemplate mockRestTemplate;
-    private String uri;
-    private byte[] content = new byte[1024];
+
+    static {
+        content = new byte[1024];
+        Arrays.fill(content, (byte) 1);
+    }
 
     @BeforeEach
     void setup() {
-        Arrays.fill(content, (byte) 1);
         mockTimeService = mock(TimeService.class);
         when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
         cache = new ExpiringUrlCache(CACHE_EXPIRATION, mockTimeService, 2);
         mockRestTemplate = mock(RestTemplate.class);
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content, new byte[1024]);
-        uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
     }
 
     @Test
@@ -59,13 +63,11 @@ class ExpiringUrlCacheTests {
 
     @Test
     void incorrect_uri_throws_illegal_argument_exception() {
-        uri = "invalid value";
-        assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent(uri, mockRestTemplate));
+        assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent("invalid value", mockRestTemplate));
     }
 
     @Test
     void rest_client_exception_is_propagated() {
-        mockRestTemplate = mock(RestTemplate.class);
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
         assertThrows(RestClientException.class, () -> cache.getUrlContent(uri, mockRestTemplate));
     }
