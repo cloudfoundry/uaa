@@ -1,6 +1,6 @@
 GOFILES=`find . -type f -name '*.go'`
 
-.PHONY: clean format test render apply help
+.PHONY: clean format template_test test render apply help
 
 clean:
 	go clean
@@ -8,8 +8,10 @@ clean:
 format:
 	gofmt -l -s -w ${GOFILES}
 
-test:
+template_test:
 	go test -count=1 ./test/...
+
+test: format template_test
 
 render:
 	@ytt -f templates -f values/default-values.yml
