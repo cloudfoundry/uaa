@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	. "github.com/cloudfoundry/uaa/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"path/filepath"

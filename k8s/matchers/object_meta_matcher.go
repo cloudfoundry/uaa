@@ -1,4 +1,4 @@
-package k8s_test
+package matchers
 
 import (
 	"fmt"

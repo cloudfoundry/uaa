@@ -1,4 +1,4 @@
-package k8s_test
+package matchers
 
 type UaaConfig struct {
 	Issuer      Issuer     `yaml:"issuer"`
@@ -26,8 +26,8 @@ type JwtTokenPolicySigningKey struct {
 }
 
 type JwtTokenPolicy struct {
-	ActiveKeyId string `yaml:"activeKeyId"`
-	Keys map[string]JwtTokenPolicySigningKey `yaml:"keys"`
+	ActiveKeyId string                              `yaml:"activeKeyId"`
+	Keys        map[string]JwtTokenPolicySigningKey `yaml:"keys"`
 }
 
 type JwtToken struct {

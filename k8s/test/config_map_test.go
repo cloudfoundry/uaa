@@ -1,6 +1,7 @@
 package k8s_test
 
 import (
+	. "github.com/cloudfoundry/uaa/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -66,7 +67,7 @@ waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==
 
 					uaaYml.WithFields(Fields{
 						"LoginSecret": Equal("loginsecret"),
-						"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa",}),
+						"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
 						"Database": MatchFields(IgnoreExtras, Fields{
 							"Username": Equal(database.Username),
 							"Password": Equal(database.Password),

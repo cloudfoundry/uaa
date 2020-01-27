@@ -9,7 +9,7 @@ format:
 	gofmt -l -s -w ${GOFILES}
 
 test:
-	go test -count=1 ./...
+	go test -count=1 ./test/...
 
 render:
 	@ytt -f templates -f values/default-values.yml
