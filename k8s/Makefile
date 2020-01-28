@@ -1,6 +1,6 @@
 GOFILES=`find . -type f -name '*.go'`
 
-.PHONY: clean format template_test test render apply help
+.PHONY: clean format template_test test render apply help docker-run
 
 clean:
 	go clean
@@ -21,3 +21,6 @@ apply:
 
 help:
 	@echo "With this makefile you can clean, format, test, render, or apply the UAA K8s templates"
+
+docker-run
+	docker run --detach --publish 8080:8080 --env UAA_CONFIG_URL=classpath:required_configuration.yml --env spring_profiles=default,hsqldb cfidentity/uaa
