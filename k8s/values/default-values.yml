@@ -7,8 +7,10 @@ labels:
   managedBy: kapp
 
 database:
-  url: "jdbc:hsqldb:mem:uaa"
   scheme: hsqldb
+  address: ~
+  port: ~
+  name: ~
   username: sa
   password: password
 

@@ -30,14 +30,16 @@ var _ = Describe("Uaa ConfigMap", func() {
 		}
 	})
 
-	It("Renders a config map with default values", func() {
-		ctx := NewRenderingContext(templates...)
+	Context("Renders a config map", func() {
+		Context("with default values", func() {
+			It("produces yml", func() {
+				ctx := NewRenderingContext(templates...)
 
-		Expect(ctx).To(
-			ProduceYAML(
-				RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
-					signingKey :=
-						`-----BEGIN RSA PRIVATE KEY-----
+				Expect(ctx).To(
+					ProduceYAML(
+						RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
+							signingKey :=
+								`-----BEGIN RSA PRIVATE KEY-----
 MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3
 AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU
 JN1i1aSUlunPS/NCz+BKwwKFP9Ss3rNImE9Uc2LMvGy153LHFVW2zrjhTwIDAQAB
@@ -54,55 +56,129 @@ waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==
 -----END RSA PRIVATE KEY-----
 `
 
-					jwt := Jwt{
-						Token: JwtToken{
-							Policy: JwtTokenPolicy{
-								ActiveKeyId: "sample_private_key_DO_NOT_USE",
-								Keys: map[string]JwtTokenPolicySigningKey{
-									"sample_private_key_DO_NOT_USE": {SigningKey: signingKey},
+							jwt := Jwt{
+								Token: JwtToken{
+									Policy: JwtTokenPolicy{
+										ActiveKeyId: "sample_private_key_DO_NOT_USE",
+										Keys: map[string]JwtTokenPolicySigningKey{
+											"sample_private_key_DO_NOT_USE": {SigningKey: signingKey},
+										},
+									},
 								},
-							},
-						},
-					}
+							}
 
-					uaaYml.WithFields(Fields{
-						"LoginSecret": Equal("loginsecret"),
-						"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
-						"Database": MatchFields(IgnoreExtras, Fields{
-							"Username": Equal(database.Username),
-							"Password": Equal(database.Password),
-							"Url":      Equal(database.Url),
+							uaaYml.WithFields(Fields{
+								"LoginSecret": Equal("loginsecret"),
+								"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
+								"Database": MatchFields(IgnoreExtras, Fields{
+									"Username": Equal(database.Username),
+									"Password": Equal(database.Password),
+									"Url":      Equal(database.Url),
+								}),
+								"Jwt": Equal(jwt),
+							})
 						}),
-						"Jwt": Equal(jwt),
-					})
-				}),
-			))
-	})
-
-	It("Can renders a config map with overriden values", func() {
-		database.Username = "database-username"
-		database.Password = "database-password"
-		database.Url = database.Url + "?sslmode=require"
-
-		ctx := NewRenderingContext(templates...).WithData(map[string]string{
-			"database.username": database.Username,
-			"database.password": database.Password,
-			"database.url":      database.Url,
+					))
+			})
 		})
+		Context("with overriden values", func() {
+			It("produces yaml", func() {
+				database.Username = "database-username"
+				database.Password = "database-password"
+				database.Url = "jdbc:postgres://127.0.0.1:9000/database-name"
 
-		Expect(ctx).To(
-			ProduceYAML(
-				RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
-					uaaYml.WithFields(Fields{
-						"LoginSecret": Equal("loginsecret"),
-						"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
-						"Database": MatchFields(IgnoreExtras, Fields{
-							"Username": Equal(database.Username),
-							"Password": Equal(database.Password),
-							"Url":      Equal(database.Url),
+				ctx := NewRenderingContext(templates...).WithData(map[string]string{
+					"database.username": database.Username,
+					"database.password": database.Password,
+					"database.scheme":   "postgres",
+					"database.address":  "127.0.0.1",
+					"database.port":     "9000",
+					"database.name":     "database-name",
+				})
+
+				Expect(ctx).To(
+					ProduceYAML(
+						RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
+							uaaYml.WithFields(Fields{
+								"LoginSecret": Equal("loginsecret"),
+								"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
+								"Database": MatchFields(IgnoreExtras, Fields{
+									"Username": Equal(database.Username),
+									"Password": Equal(database.Password),
+									"Url":      Equal(database.Url),
+								}),
+							})
 						}),
+					))
+			})
+
+			Context("with postgres database", func() {
+
+				It("renders database connection string", func() {
+					database.Url = "jdbc:postgresql://127.0.0.1:9000/database-name?sslmode=disable"
+
+					ctx := NewRenderingContext(templates...).WithData(map[string]string{
+						"database.scheme":  "postgresql",
+						"database.address": "127.0.0.1",
+						"database.port":    "9000",
+						"database.name":    "database-name",
 					})
-				}),
-			))
+
+					Expect(ctx).To(
+						ProduceYAML(
+							RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
+								uaaYml.WithFields(Fields{
+									"Database": MatchFields(IgnoreExtras, Fields{
+										"Url": Equal(database.Url),
+									}),
+								})
+							}),
+						))
+				})
+			})
+
+			Context("with mysql database", func() {
+				It("renders database connection string", func() {
+					database.Url = "jdbc:mysql://127.0.0.1:9000/database-name?useSSL=false"
+
+					ctx := NewRenderingContext(templates...).WithData(map[string]string{
+						"database.scheme":  "mysql",
+						"database.address": "127.0.0.1",
+						"database.port":    "9000",
+						"database.name":    "database-name",
+					})
+
+					Expect(ctx).To(
+						ProduceYAML(
+							RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
+								uaaYml.WithFields(Fields{
+									"Database": MatchFields(IgnoreExtras, Fields{
+										"Url": Equal(database.Url),
+									}),
+								})
+							}),
+						))
+				})
+			})
+
+			Context("with hsql database", func() {
+				It("renders database connection string", func() {
+					database.Url = "jdbc:hsqldb:mem:uaa"
+
+					ctx := NewRenderingContext(templates...).WithData(map[string]string{"database.scheme": "hsqldb"})
+
+					Expect(ctx).To(
+						ProduceYAML(
+							RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
+								uaaYml.WithFields(Fields{
+									"Database": MatchFields(IgnoreExtras, Fields{
+										"Url": Equal(database.Url),
+									}),
+								})
+							}),
+						))
+				})
+			})
+		})
 	})
 })

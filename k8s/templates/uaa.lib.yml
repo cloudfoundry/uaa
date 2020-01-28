@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("uaa.functions.lib.star", "signing_keys")
+#@ load("uaa.functions.lib.star", "signing_keys", "database_connection_string")
 #@ def config():
 ---
 issuer:
@@ -65,7 +65,7 @@ database:
   removeabandoned: false
   logabandoned: true
   abandonedtimeout: 300
-  url: #@ data.values.database.url
+  url: #@ database_connection_string(data.values.database)
   username: #@ data.values.database.username
   password: #@ data.values.database.password
 #@ end
