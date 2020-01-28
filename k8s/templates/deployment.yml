@@ -30,7 +30,8 @@ spec:
         - name: uaa
           image: "cfidentity/uaa@sha256:93b70b26fbb3de88d93728b0daf1ea7b001fde89a24e283c3db36bf4c6af087c"
           ports:
-            - containerPort: 8080
+            - name: http-uaa
+              containerPort: 8080
               protocol: TCP
           env:
             - name: spring_profiles
@@ -40,6 +41,21 @@ spec:
           volumeMounts:
           - name: uaa-config
             mountPath: /etc/config
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http-uaa
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http-uaa
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http-uaa
+            failureThreshold: 20
+            periodSeconds: 15
       volumes:
       - name: uaa-config
         configMap:
