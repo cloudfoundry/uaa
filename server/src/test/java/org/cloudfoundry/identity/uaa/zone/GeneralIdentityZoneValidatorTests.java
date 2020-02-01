@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
@@ -10,16 +9,21 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator.Mode.DELE
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator.Mode.MODIFY;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.same;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class GeneralIdentityZoneValidatorTests {
-
 
     GeneralIdentityZoneConfigurationValidator zoneConfigurationValidator = mock(GeneralIdentityZoneConfigurationValidator.class);
     GeneralIdentityZoneValidator validator = new GeneralIdentityZoneValidator(zoneConfigurationValidator);
 
     @Test
-    public void validate_right_mode() throws InvalidIdentityZoneDetailsException, InvalidIdentityZoneConfigurationException {
+    void validateRightMode() throws InvalidIdentityZoneDetailsException, InvalidIdentityZoneConfigurationException {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "domain");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         zone.setConfig(config);
@@ -27,7 +31,7 @@ public class GeneralIdentityZoneValidatorTests {
     }
 
     @Test
-    public void uaa_zone_inactive_fails() {
+    void uaaZoneInactiveFails() {
         IdentityZone uaaZone = IdentityZoneHolder.getUaaZone();
         uaaZone.setActive(false);
         for (IdentityZoneValidator.Mode mode : Arrays.asList(CREATE, MODIFY, DELETE)) {
@@ -41,7 +45,7 @@ public class GeneralIdentityZoneValidatorTests {
     }
 
     @Test
-    public void other_zone_inactive_succeeds() throws InvalidIdentityZoneConfigurationException, InvalidIdentityZoneDetailsException {
+    public void otherZoneInactiveSucceeds() throws InvalidIdentityZoneConfigurationException, InvalidIdentityZoneDetailsException {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "domain");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         zone.setConfig(config);
@@ -50,7 +54,7 @@ public class GeneralIdentityZoneValidatorTests {
     }
 
     private void checkValidationForModes(IdentityZone zone, IdentityZoneConfiguration config) throws InvalidIdentityZoneConfigurationException, InvalidIdentityZoneDetailsException {
-        for (IdentityZoneValidator.Mode  mode : Arrays.asList(CREATE, MODIFY, DELETE)) {
+        for (IdentityZoneValidator.Mode mode : Arrays.asList(CREATE, MODIFY, DELETE)) {
             reset(zoneConfigurationValidator);
             when(zoneConfigurationValidator.validate(any(), any())).thenReturn(config);
             validator.validate(zone, mode);
