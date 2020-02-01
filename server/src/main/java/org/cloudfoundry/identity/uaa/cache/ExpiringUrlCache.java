@@ -6,6 +6,8 @@ import com.google.common.cache.CacheBuilder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -15,12 +17,19 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
+@Component
 public class ExpiringUrlCache implements UrlContentCache {
     private static final Logger logger = LoggerFactory.getLogger(ExpiringUrlCache.class);
+    private static final int DEFAULT_MAX_ENTRIES = 10_000;
 
     private final Duration cacheExpiration;
     private final TimeService timeService;
     private final Cache<String, CacheEntry> cache;
+
+    @Autowired
+    public ExpiringUrlCache(final TimeService timeService) {
+        this(Duration.ofMinutes(10), timeService, DEFAULT_MAX_ENTRIES);
+    }
 
     public ExpiringUrlCache(
             final Duration cacheExpiration,
