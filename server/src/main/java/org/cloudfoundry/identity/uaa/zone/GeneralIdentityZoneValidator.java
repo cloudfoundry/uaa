@@ -1,15 +1,13 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+@Component
 public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     private final IdentityZoneConfigurationValidator configValidator;
 
-    public GeneralIdentityZoneValidator() {
-        this(new GeneralIdentityZoneConfigurationValidator());
-    }
-
-    public GeneralIdentityZoneValidator(IdentityZoneConfigurationValidator configValidator) {
+    public GeneralIdentityZoneValidator(final IdentityZoneConfigurationValidator configValidator) {
         this.configValidator = configValidator;
     }
 

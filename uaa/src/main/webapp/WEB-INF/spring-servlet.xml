@@ -21,10 +21,6 @@
         <property name="yaml" value="${environmentYamlKey}"/>
     </bean>
 
-    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
-        <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
-    </bean>
-
     <bean id="identityZoneConfigValidator"
           class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
         <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
