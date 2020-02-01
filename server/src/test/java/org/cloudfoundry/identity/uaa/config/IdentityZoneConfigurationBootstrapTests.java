@@ -89,8 +89,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         MfaConfigValidator mfaConfigValidator = new MfaConfigValidator();
         mfaConfigValidator.setMfaProviderProvisioning(mfaProvisoning);
 
-        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator();
-        configValidator.setMfaConfigValidator(mfaConfigValidator);
+        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator(mfaConfigValidator);
 
         validator = new GeneralIdentityZoneValidator(configValidator);
         bootstrap.setValidator(validator);
