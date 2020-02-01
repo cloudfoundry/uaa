@@ -1,6 +1,11 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 
@@ -10,17 +15,21 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator.Mode.MODI
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
 public class GeneralIdentityZoneValidatorTests {
 
-    GeneralIdentityZoneConfigurationValidator zoneConfigurationValidator = mock(GeneralIdentityZoneConfigurationValidator.class);
-    GeneralIdentityZoneValidator validator = new GeneralIdentityZoneValidator(zoneConfigurationValidator);
+    @Mock
+    GeneralIdentityZoneConfigurationValidator zoneConfigurationValidator;
+
+    @InjectMocks
+    GeneralIdentityZoneValidator validator;
 
     @Test
     void validateRightMode() throws InvalidIdentityZoneDetailsException, InvalidIdentityZoneConfigurationException {
