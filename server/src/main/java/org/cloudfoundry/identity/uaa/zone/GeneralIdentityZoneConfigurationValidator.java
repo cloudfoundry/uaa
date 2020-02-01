@@ -2,14 +2,20 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
 import java.util.Map;
 
+@Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
-    private MfaConfigValidator mfaConfigValidator;
+    private final MfaConfigValidator mfaConfigValidator;
+
+    public GeneralIdentityZoneConfigurationValidator(final MfaConfigValidator mfaConfigValidator) {
+        this.mfaConfigValidator = mfaConfigValidator;
+    }
 
     @Override
     public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
@@ -83,10 +89,5 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             return;
         }
         throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be udpated with partial Saml CertKey config.", null);
-    }
-
-    public GeneralIdentityZoneConfigurationValidator setMfaConfigValidator(MfaConfigValidator mfaConfigValidator) {
-        this.mfaConfigValidator = mfaConfigValidator;
-        return this;
     }
 }
