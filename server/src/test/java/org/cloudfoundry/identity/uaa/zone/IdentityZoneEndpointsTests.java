@@ -1,13 +1,17 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BindingResult;
 
 import java.util.List;
@@ -25,30 +29,35 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
 class IdentityZoneEndpointsTests {
 
-    private IdentityZoneEndpoints endpoints;
     private IdentityZone identityZone;
-    private IdentityZoneProvisioning mockIdentityZoneProvisioning = mock(IdentityZoneProvisioning.class);
-    private ScimGroupProvisioning mockScimGroupProvisioning = mock(ScimGroupProvisioning.class);
-    private IdentityZoneValidator mockIdentityZoneValidator = mock(IdentityZoneValidator.class);
 
-    @BeforeEach
-    void setup() throws InvalidIdentityZoneDetailsException {
-        endpoints = new IdentityZoneEndpoints(
-                mockIdentityZoneProvisioning,
-                mock(IdentityProviderProvisioning.class),
-                mock(IdentityZoneEndpointClientRegistrationService.class),
-                mockScimGroupProvisioning,
-                mockIdentityZoneValidator,
-                null);
-        when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
-        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
-        IdentityZoneHolder.clear();
-    }
+    @Mock
+    private IdentityZoneProvisioning mockIdentityZoneProvisioning;
+
+    @Mock
+    private ScimGroupProvisioning mockScimGroupProvisioning;
+
+    @Mock
+    private IdentityZoneValidator mockIdentityZoneValidator;
+
+    @Mock
+    private IdentityProviderProvisioning mockIdentityProviderProvisioning;
+
+    @Mock
+    private IdentityZoneEndpointClientRegistrationService mockIdentityZoneEndpointClientRegistrationService;
+
+    @InjectMocks
+    private IdentityZoneEndpoints endpoints;
 
     @Test
-    void create_zone() {
+    void create_zone() throws InvalidIdentityZoneDetailsException {
+        when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
+        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
+
         identityZone = createZone();
         endpoints.createIdentityZone(identityZone, mock(BindingResult.class));
         verify(mockIdentityZoneProvisioning, times(1)).create(same(identityZone));
@@ -72,7 +81,10 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void group_creation_called_on_create() {
+    void group_creation_called_on_create() throws InvalidIdentityZoneDetailsException {
+        when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
+        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
+
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         identityZone = createZone();
         spy.createIdentityZone(identityZone, mock(BindingResult.class));
@@ -80,7 +92,9 @@ class IdentityZoneEndpointsTests {
     }
 
     @Test
-    void group_creation_called_on_update() {
+    void group_creation_called_on_update() throws InvalidIdentityZoneDetailsException {
+        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
+
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
         identityZone = createZone();
         when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(identityZone.getId())).thenReturn(identityZone);
