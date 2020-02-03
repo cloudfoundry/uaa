@@ -47,17 +47,13 @@ spec:
             httpGet:
               path: /healthz
               port: http-uaa
-            failureThreshold: 5
+            failureThreshold: 25
+            initialDelaySeconds: 60
+            periodSeconds: 15
           readinessProbe:
             httpGet:
               path: /healthz
               port: http-uaa
-          startupProbe:
-            httpGet:
-              path: /healthz
-              port: http-uaa
-            failureThreshold: 20
-            periodSeconds: 15
       volumes:
       - name: uaa-config
         configMap:
