@@ -53,9 +53,9 @@ public class IdentityZoneEndpointsTests {
             zoneDao,
             mock(IdentityProviderProvisioning.class),
             mock(IdentityZoneEndpointClientRegistrationService.class),
-            groupProvisioning
-        );
-        endpoints.setValidator((config, mode) -> config);
+            groupProvisioning,
+            (config, mode) -> config,
+            null);
         when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
         IdentityZoneHolder.clear();
     }

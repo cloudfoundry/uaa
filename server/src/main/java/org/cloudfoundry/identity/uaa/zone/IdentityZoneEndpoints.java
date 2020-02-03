@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.MessageSource;
@@ -62,32 +61,30 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 @RequestMapping("/identity-zones")
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
-    @Autowired
-    private MessageSource messageSource;
-
-    private ApplicationEventPublisher publisher;
-
     private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
+
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
     private final ScimGroupProvisioning groupProvisioning;
+    private final IdentityZoneValidator validator;
+    private final MessageSource messageSource;
 
-    private IdentityZoneValidator validator;
+    private ApplicationEventPublisher publisher;
 
     public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
                                  final IdentityProviderProvisioning idpDao,
                                  final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
-                                 final ScimGroupProvisioning groupProvisioning) {
+                                 final ScimGroupProvisioning groupProvisioning,
+                                 final IdentityZoneValidator validator,
+                                 final MessageSource messageSource) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
         this.groupProvisioning = groupProvisioning;
-    }
-
-    public void setValidator(IdentityZoneValidator validator) {
         this.validator = validator;
+        this.messageSource = messageSource;
     }
 
     @Override
