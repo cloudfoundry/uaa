@@ -131,12 +131,8 @@
 
     <bean id="restTemplateConfig" class="org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig"/>
 
-    <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider">
-        <property name="trustingRestTemplate" ref="trustingRestTemplate"/>
-        <property name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
-        <property name="cache" ref="urlCache"/>
+    <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
 
-    </bean>
     <bean id="spMetaDataProviders"
           class="org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator">
         <property name="parserPool" ref="parserPool"/>
