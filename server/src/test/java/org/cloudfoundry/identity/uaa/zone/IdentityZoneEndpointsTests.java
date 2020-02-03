@@ -1,18 +1,3 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -50,12 +35,12 @@ public class IdentityZoneEndpointsTests {
     @Before
     public void setup() {
         endpoints = new IdentityZoneEndpoints(
-            zoneDao,
-            mock(IdentityProviderProvisioning.class),
-            mock(IdentityZoneEndpointClientRegistrationService.class),
-            groupProvisioning,
-            (config, mode) -> config,
-            null);
+                zoneDao,
+                mock(IdentityProviderProvisioning.class),
+                mock(IdentityZoneEndpointClientRegistrationService.class),
+                groupProvisioning,
+                (config, mode) -> config,
+                null);
         when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
         IdentityZoneHolder.clear();
     }
@@ -76,11 +61,11 @@ public class IdentityZoneEndpointsTests {
         verify(groupProvisioning, times(defaultGroups.size())).createOrGet(captor.capture(), eq(zone.getId()));
         assertEquals(defaultGroups.size(), captor.getAllValues().size());
         assertThat(defaultGroups,
-                   containsInAnyOrder(
-                           captor.getAllValues().stream().map(
-                                   ScimGroup::getDisplayName
-                           ).toArray(String[]::new)
-                   )
+                containsInAnyOrder(
+                        captor.getAllValues().stream().map(
+                                ScimGroup::getDisplayName
+                        ).toArray(String[]::new)
+                )
         );
     }
 
@@ -116,7 +101,23 @@ public class IdentityZoneEndpointsTests {
         });
     }
 
-    private IdentityZone createZone() {
+    @Test
+    public void restore_keys() {
+        remove_keys_from_map();
+        IdentityZone original = createZone();
+        endpoints.restoreSecretProperties(original, zone);
+
+
+        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
+        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
+        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+            assertNotNull(value.getKey());
+            assertNotNull(value.getPassphrase());
+        });
+
+    }
+
+    private static IdentityZone createZone() {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         IdentityZoneConfiguration config = zone.getConfig();
         assertNotNull(config);
@@ -132,21 +133,5 @@ public class IdentityZoneEndpointsTests {
             assertNotNull(value.getPassphrase());
         });
         return zone;
-    }
-
-    @Test
-    public void restore_keys() {
-        remove_keys_from_map();
-        IdentityZone original = createZone();
-        endpoints.restoreSecretProperties(original, zone);
-
-
-        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
-        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
-            assertNotNull(value.getKey());
-            assertNotNull(value.getPassphrase());
-        });
-
     }
 }
