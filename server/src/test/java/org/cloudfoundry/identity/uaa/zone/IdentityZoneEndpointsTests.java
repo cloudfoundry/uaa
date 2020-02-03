@@ -27,38 +27,40 @@ import static org.mockito.Mockito.when;
 
 class IdentityZoneEndpointsTests {
 
-    IdentityZoneEndpoints endpoints;
-    private IdentityZone zone;
-    private IdentityZoneProvisioning zoneDao = mock(IdentityZoneProvisioning.class);
-    private ScimGroupProvisioning groupProvisioning = mock(ScimGroupProvisioning.class);
+    private IdentityZoneEndpoints endpoints;
+    private IdentityZone identityZone;
+    private IdentityZoneProvisioning mockIdentityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+    private ScimGroupProvisioning mockScimGroupProvisioning = mock(ScimGroupProvisioning.class);
+    private IdentityZoneValidator mockIdentityZoneValidator = mock(IdentityZoneValidator.class);
 
     @BeforeEach
-    void setup() {
+    void setup() throws InvalidIdentityZoneDetailsException {
         endpoints = new IdentityZoneEndpoints(
-                zoneDao,
+                mockIdentityZoneProvisioning,
                 mock(IdentityProviderProvisioning.class),
                 mock(IdentityZoneEndpointClientRegistrationService.class),
-                groupProvisioning,
-                (config, mode) -> config,
+                mockScimGroupProvisioning,
+                mockIdentityZoneValidator,
                 null);
-        when(zoneDao.create(any())).then(invocation -> invocation.getArguments()[0]);
+        when(mockIdentityZoneProvisioning.create(any())).then(invocation -> invocation.getArgument(0));
+        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
         IdentityZoneHolder.clear();
     }
 
     @Test
     void create_zone() {
-        zone = createZone();
-        endpoints.createIdentityZone(zone, mock(BindingResult.class));
-        verify(zoneDao, times(1)).create(same(zone));
+        identityZone = createZone();
+        endpoints.createIdentityZone(identityZone, mock(BindingResult.class));
+        verify(mockIdentityZoneProvisioning, times(1)).create(same(identityZone));
     }
 
     @Test
     void groups_are_created() {
-        zone = createZone();
-        endpoints.createUserGroups(zone);
+        identityZone = createZone();
+        endpoints.createUserGroups(identityZone);
         ArgumentCaptor<ScimGroup> captor = ArgumentCaptor.forClass(ScimGroup.class);
-        List<String> defaultGroups = zone.getConfig().getUserConfig().getDefaultGroups();
-        verify(groupProvisioning, times(defaultGroups.size())).createOrGet(captor.capture(), eq(zone.getId()));
+        List<String> defaultGroups = identityZone.getConfig().getUserConfig().getDefaultGroups();
+        verify(mockScimGroupProvisioning, times(defaultGroups.size())).createOrGet(captor.capture(), eq(identityZone.getId()));
         assertEquals(defaultGroups.size(), captor.getAllValues().size());
         assertThat(defaultGroups,
                 containsInAnyOrder(
@@ -72,30 +74,30 @@ class IdentityZoneEndpointsTests {
     @Test
     void group_creation_called_on_create() {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
-        zone = createZone();
-        spy.createIdentityZone(zone, mock(BindingResult.class));
-        verify(spy, times(1)).createUserGroups(same(zone));
+        identityZone = createZone();
+        spy.createIdentityZone(identityZone, mock(BindingResult.class));
+        verify(spy, times(1)).createUserGroups(same(identityZone));
     }
 
     @Test
     void group_creation_called_on_update() {
         IdentityZoneEndpoints spy = Mockito.spy(endpoints);
-        zone = createZone();
-        when(zoneDao.retrieveIgnoreActiveFlag(zone.getId())).thenReturn(zone);
-        when(zoneDao.update(same(zone))).thenReturn(zone);
-        spy.updateIdentityZone(zone, zone.getId());
-        verify(spy, times(1)).createUserGroups(same(zone));
+        identityZone = createZone();
+        when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(identityZone.getId())).thenReturn(identityZone);
+        when(mockIdentityZoneProvisioning.update(same(identityZone))).thenReturn(identityZone);
+        spy.updateIdentityZone(identityZone, identityZone.getId());
+        verify(spy, times(1)).createUserGroups(same(identityZone));
     }
 
     @Test
     void remove_keys_from_map() {
-        zone = createZone();
+        identityZone = createZone();
 
-        endpoints.removeKeys(zone);
+        endpoints.removeKeys(identityZone);
 
-        assertNull(zone.getConfig().getSamlConfig().getPrivateKey());
-        assertNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+        assertNull(identityZone.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(identityZone.getConfig().getSamlConfig().getPrivateKeyPassword());
+        identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
             assertNull(value.getKey());
             assertNull(value.getPassphrase());
         });
@@ -105,12 +107,12 @@ class IdentityZoneEndpointsTests {
     void restore_keys() {
         remove_keys_from_map();
         IdentityZone original = createZone();
-        endpoints.restoreSecretProperties(original, zone);
+        endpoints.restoreSecretProperties(original, identityZone);
 
 
-        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKey());
-        assertNotNull(zone.getConfig().getSamlConfig().getPrivateKeyPassword());
-        zone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+        assertNotNull(identityZone.getConfig().getSamlConfig().getPrivateKey());
+        assertNotNull(identityZone.getConfig().getSamlConfig().getPrivateKeyPassword());
+        identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
             assertNotNull(value.getKey());
             assertNotNull(value.getPassphrase());
         });
