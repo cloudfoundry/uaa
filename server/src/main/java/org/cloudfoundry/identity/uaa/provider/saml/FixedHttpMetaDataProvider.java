@@ -9,9 +9,18 @@ import java.net.URISyntaxException;
 
 public class FixedHttpMetaDataProvider {
 
-    private RestTemplate trustingRestTemplate;
-    private RestTemplate nonTrustingRestTemplate;
-    private UrlContentCache cache;
+    private final RestTemplate trustingRestTemplate;
+    private final RestTemplate nonTrustingRestTemplate;
+    private final UrlContentCache cache;
+
+    public FixedHttpMetaDataProvider(
+            final RestTemplate trustingRestTemplate,
+            final RestTemplate nonTrustingRestTemplate,
+            final UrlContentCache cache) {
+        this.trustingRestTemplate = trustingRestTemplate;
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
+        this.cache = cache;
+    }
 
     public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException {
         validateMetadataURL(metadataURL);
@@ -30,15 +39,4 @@ public class FixedHttpMetaDataProvider {
         }
     }
 
-    public void setTrustingRestTemplate(RestTemplate trustingRestTemplate) {
-        this.trustingRestTemplate = trustingRestTemplate;
-    }
-
-    public void setNonTrustingRestTemplate(RestTemplate nonTrustingRestTemplate) {
-        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
-    }
-
-    public void setCache(UrlContentCache cache) {
-        this.cache = cache;
-    }
 }
