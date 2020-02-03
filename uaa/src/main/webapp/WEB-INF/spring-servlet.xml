@@ -409,7 +409,6 @@
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher" id="oidcMetadataFetcher">
-        <constructor-arg name="contentCache" ref="urlCache"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
     </bean>
