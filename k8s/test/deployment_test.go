@@ -13,7 +13,9 @@ var _ = Describe("Deployment", func() {
 	BeforeEach(func() {
 		templates = []string{
 			pathToTemplate("deployment.yml"),
-			pathToTemplate(filepath.Join("values", "default-values.yml")),
+			pathToTemplate(filepath.Join("values", "_values.yml")),
+			pathToTemplate(filepath.Join("values", "image.yml")),
+			pathToTemplate(filepath.Join("values", "version.yml")),
 			pathToTemplate("deployment_functions.star"),
 		}
 	})
@@ -26,8 +28,25 @@ var _ = Describe("Deployment", func() {
 				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
+						container.WithImageContaining("cfidentity/uaa@sha256:")
 						container.WithEnvVar("spring_profiles", "default,hsqldb")
 						container.WithEnvVar("UAA_CONFIG_PATH", "/etc/config")
+					})
+				}),
+			),
+		)
+	})
+
+	It("Renders a custom image for the UAA", func() {
+		ctx := NewRenderingContext(templates...).WithData(
+			map[string]string{"image": "image from testing"})
+
+		Expect(ctx).To(
+			ProduceYAML(
+				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
+					pod.WithContainerMatching(func(container *ContainerMatcher) {
+						container.WithName("uaa")
+						container.WithImage("image from testing")
 					})
 				}),
 			),

@@ -1,6 +1,7 @@
 #@data/values
 ---
-version: "74.12.0"
+version: ""
+image: ""
 labels:
   instance: standalone
   partOf: uaa

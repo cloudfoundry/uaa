@@ -15,7 +15,7 @@ var templateBasePath string
 func init() {
 	_, filename, _, ok := runtime.Caller(0)
 	if !ok {
-		panic("Could not initiaize k8s_test package: can't find location of this file")
+		panic("Could not initialize k8s_test package: can't find location of this file")
 	}
 
 	relative := filepath.Join(filepath.Dir(filename), "..", "templates")

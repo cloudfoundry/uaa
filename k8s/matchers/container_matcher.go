@@ -27,6 +27,18 @@ func (matcher *ContainerMatcher) WithName(name string) *ContainerMatcher {
 	return matcher
 }
 
+func (matcher *ContainerMatcher) WithImage(image string) *ContainerMatcher {
+	matcher.fields["Image"] = Equal(image)
+
+	return matcher
+}
+
+func (matcher *ContainerMatcher) WithImageContaining(image string) *ContainerMatcher {
+	matcher.fields["Image"] = ContainSubstring(image)
+
+	return matcher
+}
+
 func (matcher *ContainerMatcher) WithEnvVar(name, value string) *ContainerMatcher {
 	matcher.envVars[name] = MatchFields(IgnoreExtras, Fields{
 		"Value": Equal(value),

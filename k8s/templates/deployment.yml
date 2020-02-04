@@ -1,7 +1,6 @@
 #@ load("@ytt:data", "data")
 #@yaml/text-templated-strings
 #@ load("deployment_functions.star", "spring_profiles")
-
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,7 +27,7 @@ spec:
     spec: #! pod spec
       containers:
         - name: uaa
-          image: "cfidentity/uaa@sha256:739a18fe2369fcc44747f15c11bd9ec05947a855b90a3cada8b503e6d0558db2"
+          image: "(@= data.values.image @)"
           ports:
             - name: http-uaa
               containerPort: 8080
