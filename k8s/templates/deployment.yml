@@ -28,7 +28,7 @@ spec:
     spec: #! pod spec
       containers:
         - name: uaa
-          image: "cfidentity/uaa@sha256:93b70b26fbb3de88d93728b0daf1ea7b001fde89a24e283c3db36bf4c6af087c"
+          image: "cfidentity/uaa@sha256:a654df64919f8eef81ada74b5e82298305989a1d91006ca05ad6897794b4fcff"
           ports:
             - name: http-uaa
               containerPort: 8080
