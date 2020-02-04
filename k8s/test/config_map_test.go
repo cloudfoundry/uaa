@@ -20,7 +20,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 			pathToTemplate("config.yml"),
 			pathToTemplate("uaa.lib.yml"),
 			pathToTemplate("uaa.functions.lib.star"),
-			pathToTemplate(filepath.Join("..", "values", "default-values.yml")),
+			pathToTemplate(filepath.Join("values", "default-values.yml")),
 		}
 
 		database = Database{

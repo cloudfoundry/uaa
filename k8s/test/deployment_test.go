@@ -13,7 +13,7 @@ var _ = Describe("Deployment", func() {
 	BeforeEach(func() {
 		templates = []string{
 			pathToTemplate("deployment.yml"),
-			pathToTemplate(filepath.Join("..", "values", "default-values.yml")),
+			pathToTemplate(filepath.Join("values", "default-values.yml")),
 			pathToTemplate("deployment_functions.star"),
 		}
 	})

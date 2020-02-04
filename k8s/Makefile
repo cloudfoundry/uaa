@@ -14,10 +14,10 @@ template_test:
 test: format template_test
 
 render:
-	@ytt -f templates -f values/default-values.yml
+	@ytt -f templates
 
 apply:
-	@ytt -f templates -f values/default-values.yml | kubectl apply -f -
+	@ytt -f templates | kubectl apply -f -
 
 help:
 	@echo "With this makefile you can clean, format, test, render, or apply the UAA K8s templates"
