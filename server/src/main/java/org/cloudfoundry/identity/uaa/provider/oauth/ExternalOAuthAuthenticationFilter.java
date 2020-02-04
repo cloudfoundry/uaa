@@ -28,17 +28,17 @@ import java.nio.charset.StandardCharsets;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
-public class XOAuthAuthenticationFilter implements Filter {
+public class ExternalOAuthAuthenticationFilter implements Filter {
 
-    private static Logger logger = LoggerFactory.getLogger(XOAuthAuthenticationFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(ExternalOAuthAuthenticationFilter.class);
 
-    private final XOAuthAuthenticationManager xOAuthAuthenticationManager;
+    private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
     private final AccountSavingAuthenticationSuccessHandler successHandler;
 
-    public XOAuthAuthenticationFilter(
-            final XOAuthAuthenticationManager xOAuthAuthenticationManager,
+    public ExternalOAuthAuthenticationFilter(
+            final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
             final AccountSavingAuthenticationSuccessHandler successHandler) {
-        this.xOAuthAuthenticationManager = xOAuthAuthenticationManager;
+        this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
         this.successHandler = successHandler;
     }
 
@@ -71,7 +71,7 @@ public class XOAuthAuthenticationFilter implements Filter {
         if (session == null) {
             throw new HttpSessionRequiredException("An HTTP Session is required to process request.");
         }
-        final Object stateInSession = request.getSession().getAttribute("xoauth-state-" + originKey);
+        final Object stateInSession = request.getSession().getAttribute("external-oauth-state-" + originKey);
         final String stateFromParameters = request.getParameter("state");
         if (StringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
             throw new CsrfException("Invalid State Param in request.");
@@ -96,7 +96,7 @@ public class XOAuthAuthenticationFilter implements Filter {
         final String signedRequest = request.getParameter("signed_request");
 
         final String redirectUrl = request.getRequestURL().toString();
-        final XOAuthCodeToken codeToken = new XOAuthCodeToken(code,
+        final ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken(code,
                 origin,
                 redirectUrl,
                 idToken,
@@ -104,7 +104,7 @@ public class XOAuthAuthenticationFilter implements Filter {
                 signedRequest,
                 new UaaAuthenticationDetails(request));
         try {
-            final Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
+            final Authentication authentication = externalOAuthAuthenticationManager.authenticate(codeToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
             ofNullable(successHandler).ifPresent(handler ->
                     handler.setSavedAccountOptionCookie(request, response, authentication)
@@ -113,7 +113,7 @@ public class XOAuthAuthenticationFilter implements Filter {
         // should be an instance of AuthenticationException
         // but can we trust it?
         } catch (Exception ex) {
-            logger.error("XOauth Authentication exception", ex);
+            logger.error("ExternalOAuth Authentication exception", ex);
             String message = ex.getMessage();
             if (!hasText(message)) {
                 message = ex.getClass().getSimpleName();

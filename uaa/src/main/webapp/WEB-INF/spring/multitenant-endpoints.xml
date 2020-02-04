@@ -56,8 +56,8 @@
         <constructor-arg ref="approvalStore"/>
     </bean>
 
-    <bean id="xOAuthIdentityProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthIdentityProviderConfigValidator"/>
+    <bean id="externalOAuthIdentityProviderConfigValidator"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator"/>
     <bean id="uaaIdentityProviderConfigValidator"
           class="org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator"/>
     <bean id="ldapIdentityProviderConfigValidator"
@@ -69,7 +69,7 @@
         <property name="delegates">
             <util:map id="delegatesMap" key-type="java.lang.String"
                       value-type="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
-                <entry key="xoauth" value-ref="xOAuthIdentityProviderConfigValidator"/>
+                <entry key="externalOAuth" value-ref="externalOAuthIdentityProviderConfigValidator"/>
                 <entry key="uaa" value-ref="uaaIdentityProviderConfigValidator"/>
                 <entry key="ldap" value-ref="ldapIdentityProviderConfigValidator"/>
             </util:map>

@@ -29,11 +29,11 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -102,9 +102,9 @@ import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedI
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
-public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
+public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<ExternalOAuthAuthenticationManager.AuthenticationData> {
 
-    public static Logger logger = LoggerFactory.getLogger(XOAuthAuthenticationManager.class);
+    public static Logger logger = LoggerFactory.getLogger(ExternalOAuthAuthenticationManager.class);
 
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
@@ -115,11 +115,11 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
 
-    public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
-                                       RestTemplate trustingRestTemplate,
-                                       RestTemplate nonTrustingRestTemplate,
-                                       TokenEndpointBuilder tokenEndpointBuilder,
-                                       KeyInfoService keyInfoService) {
+    public ExternalOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
+                                              RestTemplate trustingRestTemplate,
+                                              RestTemplate nonTrustingRestTemplate,
+                                              TokenEndpointBuilder tokenEndpointBuilder,
+                                              KeyInfoService keyInfoService) {
         super(providerProvisioning);
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
@@ -148,7 +148,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             }
             //1. Check if issuer is registered provider
             try {
-                return ((XOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+                return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
             } catch (IncorrectResultSizeDataAccessException x) {
                 logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
@@ -183,7 +183,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     @Override
     public AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
         IdentityProvider provider = null;
-        XOAuthCodeToken codeToken = (XOAuthCodeToken) authentication;
+        ExternalOAuthCodeToken codeToken = (ExternalOAuthCodeToken) authentication;
 
         if (isEmpty(codeToken.getOrigin())) {
             provider = resolveOriginProvider(codeToken.getIdToken());
@@ -200,10 +200,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             }
         }
 
-        if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+        if (provider != null && provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
             AuthenticationData authenticationData = new AuthenticationData();
 
-            AbstractXOAuthIdentityProviderDefinition config = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+            AbstractExternalOAuthIdentityProviderDefinition config = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
             Map<String, Object> claims = getClaimsFromToken(codeToken, config);
 
             if (claims == null) {
@@ -228,7 +228,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
             authenticationData.setUsername(username);
 
-            List<? extends GrantedAuthority> authorities = extractXOAuthUserAuthorities(attributeMappings, claims);
+            List<? extends GrantedAuthority> authorities = extractExternalOAuthUserAuthorities(attributeMappings, claims);
             authorities = mapAuthorities(codeToken.getOrigin(), authorities);
             authenticationData.setAuthorities(authorities);
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
@@ -269,13 +269,13 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 }
             }
             MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
-            logger.debug("Mapping XOauth custom attributes");
+            logger.debug("Mapping ExternalOAuth custom attributes");
             for (Map.Entry<String, Object> entry : authenticationData.getAttributeMappings().entrySet()) {
                 if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
                     String key = entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length());
                     Object values = claims.get(entry.getValue());
                     if (values != null) {
-                        logger.debug(String.format("Mapped XOauth attribute %s to %s", key, values));
+                        logger.debug(String.format("Mapped ExternalOAuth attribute %s to %s", key, values));
                         if (values instanceof List) {
                             List list = (List)values;
                             List<String> strings = (List<String>) list.stream()
@@ -357,14 +357,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return null;
     }
 
-    private List<? extends GrantedAuthority> extractXOAuthUserAuthorities(Map<String, Object> attributeMappings, Map<String, Object> claims) {
+    private List<? extends GrantedAuthority> extractExternalOAuthUserAuthorities(Map<String, Object> attributeMappings, Map<String, Object> claims) {
         List<String> groupNames = new LinkedList<>();
         if (attributeMappings.get(GROUP_ATTRIBUTE_NAME) instanceof String) {
             groupNames.add((String) attributeMappings.get(GROUP_ATTRIBUTE_NAME));
         } else if (attributeMappings.get(GROUP_ATTRIBUTE_NAME) instanceof Collection) {
             groupNames.addAll((Collection) attributeMappings.get(GROUP_ATTRIBUTE_NAME));
         }
-        logger.debug("Extracting XOauth group names:"+groupNames);
+        logger.debug("Extracting ExternalOAuth group names:"+groupNames);
 
         Set<String> scopes = new HashSet<>();
         for (String g : groupNames) {
@@ -376,9 +376,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             }
         }
 
-        List<XOAuthUserAuthority> authorities = new ArrayList<>();
+        List<ExternalOAuthUserAuthority> authorities = new ArrayList<>();
         for (String scope : scopes) {
-            authorities.add(new XOAuthUserAuthority(scope));
+            authorities.add(new ExternalOAuthUserAuthority(scope));
         }
 
         return authorities;
@@ -389,10 +389,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         boolean userModified = false;
         boolean is_invitation_acceptance = isAcceptedInvitationAuthentication();
         String email = userFromRequest.getEmail();
-        logger.debug("XOAUTH user authenticated:"+email);
+        logger.debug("ExternalOAuth user authenticated:"+email);
         if (is_invitation_acceptance) {
             String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
-            logger.debug("XOAUTH user accepted invitation, user_id:"+invitedUserId);
+            logger.debug("ExternalOAuth user accepted invitation, user_id:"+invitedUserId);
             userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
             if (email != null) {
                 if (!email.equalsIgnoreCase(userFromDb.getEmail())) {
@@ -427,11 +427,11 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         if (!super.isAddNewShadowUser()) {
             return false;
         }
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
         return provider.getConfig().isAddShadowUserOnLogin();
     }
 
-    public RestTemplate getRestTemplate(AbstractXOAuthIdentityProviderDefinition config) {
+    public RestTemplate getRestTemplate(AbstractExternalOAuthIdentityProviderDefinition config) {
         if (config.isSkipSslValidation()) {
             return trustingRestTemplate;
         } else {
@@ -439,8 +439,8 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    protected String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
-        if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
+    protected String getResponseType(AbstractExternalOAuthIdentityProviderDefinition config) {
+        if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             if ("signed_request".equals(config.getResponseType()))
                 return "signed_request";
             else
@@ -452,14 +452,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    protected Map<String, Object> getClaimsFromToken(XOAuthCodeToken codeToken,
-                                                     AbstractXOAuthIdentityProviderDefinition config) {
+    protected Map<String, Object> getClaimsFromToken(ExternalOAuthCodeToken codeToken,
+                                                     AbstractExternalOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
         return getClaimsFromToken(idToken, config);
     }
 
     protected Map<String, Object> getClaimsFromToken(String idToken,
-                                                     AbstractXOAuthIdentityProviderDefinition config) {
+                                                     AbstractExternalOAuthIdentityProviderDefinition config) {
         logger.debug("Extracting claims from id_token");
         if (idToken == null) {
             logger.debug("id_token is null, no claims returned.");
@@ -510,7 +510,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
     }
 
-    private TokenValidation validateToken(String idToken, AbstractXOAuthIdentityProviderDefinition config) {
+    private TokenValidation validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
         logger.debug("Validating id_token");
 
         TokenValidation validation;
@@ -539,7 +539,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return key.startsWith("-----BEGIN");
     }
 
-    private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractXOAuthIdentityProviderDefinition config) {
+    private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
 
         String tokenKey = config.getTokenKey();
         if (StringUtils.hasText(tokenKey)) {
@@ -568,13 +568,13 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+    private String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
         if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
-            logger.debug("XOauthCodeToken contains id_token, not exchanging code.");
+            logger.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
         }
         if (StringUtils.hasText(codeToken.getSignedRequest()) && "signed_request".equals(getResponseType(config))) {
-            logger.debug("XOauthCodeToken contains signed_request, not exchanging code.");
+            logger.debug("ExternalOAuthCodeToken contains signed_request, not exchanging code.");
             return codeToken.getSignedRequest();
         }
         MultiValueMap<String, String> body = new LinkedMaskingMultiValueMap<>("code", "client_secret");
@@ -620,7 +620,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return responseEntity.getBody().get(getResponseType(config));
     }
 
-    private String getClientAuthHeader(AbstractXOAuthIdentityProviderDefinition config) {
+    private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
     }

@@ -11,13 +11,13 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
@@ -131,16 +131,16 @@ public class LoginInfoEndpoint {
     private final ExpiringCodeStore expiringCodeStore;
     private final MultitenantClientServices clientDetailsService;
     private final IdentityProviderProvisioning providerProvisioning;
-    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    private final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
     private final Links globalLinks;
     private final MfaChecker mfaChecker;
     private final String entityID;
 
     private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
-    private static final MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector =
+    private static final MapCollector<IdentityProvider, String, AbstractExternalOAuthIdentityProviderDefinition> idpsMapCollector =
             new MapCollector<>(
                     IdentityProvider::getOriginKey,
-                    idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig()
+                    idp -> (AbstractExternalOAuthIdentityProviderDefinition) idp.getConfig()
             );
 
     public LoginInfoEndpoint(
@@ -149,7 +149,7 @@ public class LoginInfoEndpoint {
             final @Value("${login.url:''}") String externalLoginUrl,
             final @Qualifier("uaaUrl") String baseUrl,
             final @Qualifier("mfaChecker") MfaChecker mfaChecker,
-            final @Qualifier("xoauthProviderConfigurator") XOAuthProviderConfigurator xoAuthProviderConfigurator,
+            final @Qualifier("externalOAuthProviderConfigurator") ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator,
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
             final @Qualifier("samlEntityID") String entityID,
             final @Qualifier("globalLinks") Links globalLinks,
@@ -160,7 +160,7 @@ public class LoginInfoEndpoint {
         this.externalLoginUrl = externalLoginUrl;
         this.baseUrl = baseUrl;
         this.mfaChecker = mfaChecker;
-        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
+        this.externalOAuthProviderConfigurator = externalOAuthProviderConfigurator;
         this.providerProvisioning = providerProvisioning;
         this.entityID = entityID;
         this.globalLinks = globalLinks;
@@ -274,7 +274,7 @@ public class LoginInfoEndpoint {
 
         Map<String, SamlIdentityProviderDefinition> samlIdentityProviders =
                 getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
-        Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders =
+        Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders =
                 getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
         Map<String, AbstractIdentityProviderDefinition> allIdentityProviders =
                 new HashMap<>() {{
@@ -407,7 +407,7 @@ public class LoginInfoEndpoint {
             HttpServletRequest request,
             String clientName,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
+            Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             boolean fieldUsernameShow,
             boolean linkCreateAccountShow
     ) {
@@ -419,7 +419,7 @@ public class LoginInfoEndpoint {
                 .filter(e -> e.getValue().isShowLinkText())
                 .forEach(e ->
                         oauthLinks.put(
-                                xoAuthProviderConfigurator.getIdpAuthenticationUrl(
+                                externalOAuthProviderConfigurator.getIdpAuthenticationUrl(
                                         e.getValue(),
                                         e.getKey(),
                                         request),
@@ -455,7 +455,7 @@ public class LoginInfoEndpoint {
     private Map.Entry<String, AbstractIdentityProviderDefinition> evaluateIdpDiscovery(
             Model model,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
+            Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
             List<String> allowedIdentityProviderKeys,
             Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect,
@@ -483,7 +483,7 @@ public class LoginInfoEndpoint {
             Model model,
             HttpSession session,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
+            Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
             List<String> allowedIdentityProviderKeys,
             HttpServletRequest request
@@ -566,16 +566,16 @@ public class LoginInfoEndpoint {
             if (idpForRedirect instanceof SamlIdentityProviderDefinition) {
                 String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idpForRedirect, entityID, IdentityZoneHolder.get());
                 return "redirect:/" + url;
-            } else if (idpForRedirect instanceof AbstractXOAuthIdentityProviderDefinition) {
-                String redirectUrl = getRedirectUrlForXOAuthIDP(request, idpOriginKey, (AbstractXOAuthIdentityProviderDefinition) idpForRedirect);
+            } else if (idpForRedirect instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                String redirectUrl = getRedirectUrlForExternalOAuthIDP(request, idpOriginKey, (AbstractExternalOAuthIdentityProviderDefinition) idpForRedirect);
                 return "redirect:" + redirectUrl;
             }
         }
         return null;
     }
 
-    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String idpOriginKey, AbstractXOAuthIdentityProviderDefinition definition) {
-        return xoAuthProviderConfigurator.getIdpAuthenticationUrl(definition, idpOriginKey, request);
+    private String getRedirectUrlForExternalOAuthIDP(HttpServletRequest request, String idpOriginKey, AbstractExternalOAuthIdentityProviderDefinition definition) {
+        return externalOAuthProviderConfigurator.getIdpAuthenticationUrl(definition, idpOriginKey, request);
     }
 
     private Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
@@ -583,10 +583,10 @@ public class LoginInfoEndpoint {
         return filteredIdps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getIdpEntityAlias, idp -> idp));
     }
 
-    protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
+    protected Map<String, AbstractExternalOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
 
         List<IdentityProvider> identityProviders =
-                xoAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
+                externalOAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
 
         return identityProviders.stream()
                 .filter(p -> allowedIdps == null || allowedIdps.contains(p.getOriginKey()))
@@ -631,7 +631,7 @@ public class LoginInfoEndpoint {
             List<String> exclude,
             String origin,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviders,
+            Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             List<String> excludedPrompts,
             boolean returnLoginPrompts
     ) {
@@ -643,7 +643,7 @@ public class LoginInfoEndpoint {
                 break;
             }
         }
-        for (AbstractXOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviders.values()) {
+        for (AbstractExternalOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviders.values()) {
             if (oauthIdp.isShowLinkText()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
                 noIdpsPresent = false;
@@ -839,7 +839,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/callback/{origin}")
-    public String handleXOAuthCallback(final HttpSession session) {
+    public String handleExternalOAuthCallback(final HttpSession session) {
         String redirectLocation = "/home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {

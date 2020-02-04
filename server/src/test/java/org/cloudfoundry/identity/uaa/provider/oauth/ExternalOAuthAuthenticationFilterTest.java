@@ -27,16 +27,16 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class XOAuthAuthenticationFilterTest {
+class ExternalOAuthAuthenticationFilterTest {
     private static final String ORIGIN_KEY = "the_origin";
     private static final String OAUTH_STATE = "the_state";
-    private XOAuthAuthenticationFilter xoAuthAuthenticationFilter;
-    private XOAuthAuthenticationManager xOAuthAuthenticationManager;
+    private ExternalOAuthAuthenticationFilter externalOAuthAuthenticationFilter;
+    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
     private FilterChain mockFilterChain;
 
     @BeforeEach
     void setUp() {
-        xOAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
+        externalOAuthAuthenticationManager = mock(ExternalOAuthAuthenticationManager.class);
         mockFilterChain = mock(FilterChain.class);
     }
 
@@ -46,7 +46,7 @@ class XOAuthAuthenticationFilterTest {
 
         @Test
         void itShouldCallTheNextFilter() throws IOException, ServletException {
-            xoAuthAuthenticationFilter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, null);
+            externalOAuthAuthenticationFilter = new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, null);
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, (request) -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
@@ -54,7 +54,7 @@ class XOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             verify(mockFilterChain).doFilter(mockRequest, mockResponse);
         }
 
@@ -62,9 +62,9 @@ class XOAuthAuthenticationFilterTest {
         void itCallsTheSuccessHandler() throws IOException, ServletException {
             AccountSavingAuthenticationSuccessHandler successHandler = mock(AccountSavingAuthenticationSuccessHandler.class);
             Authentication mockAuthentication = mock(Authentication.class);
-            when(xOAuthAuthenticationManager.authenticate(any())).thenReturn(mockAuthentication);
+            when(externalOAuthAuthenticationManager.authenticate(any())).thenReturn(mockAuthentication);
 
-            xoAuthAuthenticationFilter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, successHandler);
+            externalOAuthAuthenticationFilter = new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, successHandler);
             HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, (request) -> {
                 mockAuthenticationInRequest(request);
                 mockStateParamInRequest(request, OAUTH_STATE);
@@ -72,7 +72,7 @@ class XOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             verify(mockFilterChain).doFilter(mockRequest, mockResponse);
             verify(successHandler).setSavedAccountOptionCookie(mockRequest, mockResponse, mockAuthentication);
         }
@@ -83,8 +83,8 @@ class XOAuthAuthenticationFilterTest {
     class WhenAuthenticationFails {
         @BeforeEach
         void setUp() {
-            xoAuthAuthenticationFilter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, null);
-            when(xOAuthAuthenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("your credentials are bad yo"));
+            externalOAuthAuthenticationFilter = new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, null);
+            when(externalOAuthAuthenticationManager.authenticate(any())).thenThrow(new BadCredentialsException("your credentials are bad yo"));
         }
 
         @Test
@@ -96,7 +96,7 @@ class XOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
     }
@@ -106,7 +106,7 @@ class XOAuthAuthenticationFilterTest {
     class WhenValidatingStateParameter {
         @BeforeEach
         void setUp() {
-            xoAuthAuthenticationFilter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, null);
+            externalOAuthAuthenticationFilter = new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, null);
         }
 
         @Test
@@ -118,7 +118,7 @@ class XOAuthAuthenticationFilterTest {
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
             assertThrows(HttpSessionRequiredException.class, () -> {
-                xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+                externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             });
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
@@ -132,7 +132,7 @@ class XOAuthAuthenticationFilterTest {
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
             assertThrows(CsrfException.class, () -> {
-                xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+                externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             });
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
@@ -146,7 +146,7 @@ class XOAuthAuthenticationFilterTest {
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
             assertThrows(CsrfException.class, () -> {
-                xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+                externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             });
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
@@ -161,7 +161,7 @@ class XOAuthAuthenticationFilterTest {
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
             assertThrows(CsrfException.class, () -> {
-                xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+                externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             });
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
         }
@@ -172,7 +172,7 @@ class XOAuthAuthenticationFilterTest {
     class WhenNoCredentialsPresent {
         @BeforeEach
         void setUp() {
-            xoAuthAuthenticationFilter = new XOAuthAuthenticationFilter(xOAuthAuthenticationManager, null);
+            externalOAuthAuthenticationFilter = new ExternalOAuthAuthenticationFilter(externalOAuthAuthenticationManager, null);
         }
 
         @Test
@@ -186,7 +186,7 @@ class XOAuthAuthenticationFilterTest {
             });
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 
-            xoAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
             verify(mockRequestDispatcher).forward(mockRequest, mockResponse);
         }
@@ -219,6 +219,6 @@ class XOAuthAuthenticationFilterTest {
     }
 
     private void mockStateParamInSession(HttpSession session, String origin, String state) {
-        when(session.getAttribute("xoauth-state-" + origin)).thenReturn(state);
+        when(session.getAttribute("external-oauth-state-" + origin)).thenReturn(state);
     }
 }

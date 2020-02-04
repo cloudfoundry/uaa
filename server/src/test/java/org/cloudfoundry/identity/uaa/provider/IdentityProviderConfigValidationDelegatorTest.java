@@ -42,7 +42,7 @@ public class IdentityProviderConfigValidationDelegatorTest {
     private IdentityProviderConfigValidator uaaValidator;
     private IdentityProviderConfigValidator ldapValidator;
     private IdentityProvider<AbstractIdentityProviderDefinition> provider;
-    private IdentityProviderConfigValidator xoauthValidator;
+    private IdentityProviderConfigValidator externalOAuthValidator;
 
     @Before
     public void setup() {
@@ -50,8 +50,8 @@ public class IdentityProviderConfigValidationDelegatorTest {
         Map<String, IdentityProviderConfigValidator> delegates = new HashMap<>();
         uaaValidator = mock(IdentityProviderConfigValidator.class);
         delegates.put(UAA, uaaValidator);
-        xoauthValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put("xoauth", xoauthValidator);
+        externalOAuthValidator = mock(IdentityProviderConfigValidator.class);
+        delegates.put("externalOAuth", externalOAuthValidator);
         ldapValidator = mock(IdentityProviderConfigValidator.class);
         delegates.put(LDAP, ldapValidator);
         provider = new IdentityProvider<>();
@@ -74,7 +74,7 @@ public class IdentityProviderConfigValidationDelegatorTest {
         provider.setOriginKey(UAA);
         validator.validate(provider);
         verify(uaaValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(xoauthValidator);
+        verifyZeroInteractions(externalOAuthValidator);
         verifyZeroInteractions(ldapValidator);
     }
 
@@ -85,19 +85,19 @@ public class IdentityProviderConfigValidationDelegatorTest {
         validator.validate(provider);
         verify(ldapValidator, times(1)).validate(same(provider));
         verifyZeroInteractions(uaaValidator);
-        verifyZeroInteractions(xoauthValidator);
+        verifyZeroInteractions(externalOAuthValidator);
     }
 
     @Test
-    public void xoauth_validator_with_definition_is_invoked() {
+    public void externalOAuth_validator_with_definition_is_invoked() {
         for (String type : Arrays.asList(OAUTH20, OIDC10)) {
             provider.setType(type);
             provider.setOriginKey("any");
             validator.validate(provider);
-            verify(xoauthValidator, times(1)).validate(same(provider));
+            verify(externalOAuthValidator, times(1)).validate(same(provider));
             verifyZeroInteractions(uaaValidator);
             verifyZeroInteractions(ldapValidator);
-            Mockito.reset(xoauthValidator);
+            Mockito.reset(externalOAuthValidator);
         }
     }
 

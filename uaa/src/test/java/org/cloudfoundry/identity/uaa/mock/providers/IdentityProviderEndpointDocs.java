@@ -448,7 +448,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setType(OAUTH20);
         identityProvider.setName("UAA Provider");
         identityProvider.setOriginKey("my-oauth2-provider");
-        AbstractXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition();
+        AbstractExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
         definition.setTokenKey("token-key");

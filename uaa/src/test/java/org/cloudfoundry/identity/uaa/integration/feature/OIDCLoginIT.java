@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -117,7 +117,7 @@ public class OIDCLoginIT {
     private String adminToken;
     private String subdomain;
     private String zoneUrl;
-    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
+    private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider;
     private String clientCredentialsToken;
     private BaseClientDetails zoneClient;
     private ScimGroup createdGroup;

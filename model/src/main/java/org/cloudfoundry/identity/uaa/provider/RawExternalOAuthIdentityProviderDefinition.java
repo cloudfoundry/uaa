@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import java.net.URL;
 
-public class RawXOAuthIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<RawXOAuthIdentityProviderDefinition> {
+public class RawExternalOAuthIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<RawExternalOAuthIdentityProviderDefinition> {
 
     private URL checkTokenUrl;
 
@@ -10,7 +10,7 @@ public class RawXOAuthIdentityProviderDefinition extends AbstractXOAuthIdentityP
         return checkTokenUrl;
     }
 
-    public RawXOAuthIdentityProviderDefinition setCheckTokenUrl(URL checkTokenUrl) {
+    public RawExternalOAuthIdentityProviderDefinition setCheckTokenUrl(URL checkTokenUrl) {
         this.checkTokenUrl = checkTokenUrl;
         return this;
     }

@@ -16,8 +16,8 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -62,7 +62,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private AuthenticationManager passwordAuthManager;
     private OAuth2RequestFactory requestFactory;
     private SAMLProcessingFilter samlAuthFilter;
-    private XOAuthAuthenticationManager xoAuthAuthenticationManager;
+    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
     private BackwardsCompatibleTokenEndpointAuthenticationFilter filter;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
@@ -76,14 +76,14 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         passwordAuthManager = mock(AuthenticationManager.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         samlAuthFilter = mock(SAMLProcessingFilter.class);
-        xoAuthAuthenticationManager = mock(XOAuthAuthenticationManager.class);
+        externalOAuthAuthenticationManager = mock(ExternalOAuthAuthenticationManager.class);
 
         filter = spy(
             new BackwardsCompatibleTokenEndpointAuthenticationFilter(
                 passwordAuthManager,
                 requestFactory,
                 samlAuthFilter,
-                xoAuthAuthenticationManager
+                    externalOAuthAuthenticationManager
             )
         );
 
@@ -127,7 +127,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
         verifyZeroInteractions(samlAuthFilter);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
     }
 
 
@@ -139,7 +139,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(samlAuthFilter, times(1)).attemptAuthentication(same(request), same(response));
         verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
     }
 
     @Test
@@ -147,9 +147,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
         verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
         ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());
@@ -165,10 +165,10 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter("assertion", idToken);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        ArgumentCaptor<XOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(XOAuthCodeToken.class);
-        verify(xoAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
+        ArgumentCaptor<ExternalOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
+        verify(externalOAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
         verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
         assertEquals(idToken, authenticateData.getValue().getIdToken());
         assertNull(authenticateData.getValue().getOrigin());
     }
@@ -178,9 +178,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
         verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyZeroInteractions(externalOAuthAuthenticationManager);
         ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());

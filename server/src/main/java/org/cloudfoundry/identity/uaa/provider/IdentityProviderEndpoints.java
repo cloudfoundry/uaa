@@ -311,14 +311,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
                     if (definition.getRelyingPartySecret() == null) {
                         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
                         if (existing!=null &&
                             existing.getConfig()!=null &&
-                            existing.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-                            AbstractXOAuthIdentityProviderDefinition existingDefinition = (AbstractXOAuthIdentityProviderDefinition)existing.getConfig();
+                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                            AbstractExternalOAuthIdentityProviderDefinition existingDefinition = (AbstractExternalOAuthIdentityProviderDefinition)existing.getConfig();
                             definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                         }
                     }
@@ -346,9 +346,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
                     logger.debug("Removing relying secret from OAuth/OIDC provider id:"+provider.getId());
-                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
                     definition.setRelyingPartySecret(null);
                 }
                 break;

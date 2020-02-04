@@ -13,7 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -129,7 +129,7 @@ public class InvitationsControllerTest {
     ScimUserProvisioning scimUserProvisioning;
 
     @Autowired
-    XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
 
     @Before
     public void setUp() {
@@ -230,7 +230,7 @@ public class InvitationsControllerTest {
         provider.setConfig(definition);
         provider.setType(OriginKeys.OIDC10);
         when(providerProvisioning.retrieveByOrigin(eq("test-oidc"), anyString())).thenReturn(provider);
-        when(xoAuthProviderConfigurator.getIdpAuthenticationUrl(any(), any(), any())).thenReturn("http://example.com");
+        when(externalOAuthProviderConfigurator.getIdpAuthenticationUrl(any(), any(), any())).thenReturn("http://example.com");
 
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
@@ -813,7 +813,7 @@ public class InvitationsControllerTest {
                                                     final UaaUserDatabase userDatabase,
                                                     final ScimUserProvisioning provisioning,
                                                     final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
-                                                    final XOAuthProviderConfigurator xoAuthProviderConfigurator) {
+                                                    final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator) {
             return new InvitationsController(
                     invitationsService,
                     codeStore,
@@ -823,7 +823,7 @@ public class InvitationsControllerTest {
                     userDatabase,
                     "sp-entity-id",
                     provisioning,
-                    xoAuthProviderConfigurator);
+                    externalOAuthProviderConfigurator);
         }
 
         @Bean
@@ -856,8 +856,8 @@ public class InvitationsControllerTest {
         }
 
         @Bean
-        XOAuthProviderConfigurator xoAuthProviderConfigurator() {
-            return mock(XOAuthProviderConfigurator.class);
+        ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator() {
+            return mock(ExternalOAuthProviderConfigurator.class);
         }
     }
 }

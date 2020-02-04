@@ -19,7 +19,7 @@ import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
 
-public class XOAuthCodeToken implements Authentication {
+public class ExternalOAuthCodeToken implements Authentication {
     private String code;
     private String origin;
     private String redirectUrl;
@@ -29,20 +29,20 @@ public class XOAuthCodeToken implements Authentication {
     private String requestContextPath;
     private UaaAuthenticationDetails details;
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl) {
+    public ExternalOAuthCodeToken(String code, String origin, String redirectUrl) {
         this.code = code;
         this.origin = origin;
         this.redirectUrl = redirectUrl;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest) {
+    public ExternalOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest) {
         this(code, origin, redirectUrl);
         this.idToken = idToken;
         this.accessToken = accessToken;
         this.signedRequest = signedRequest;
     }
 
-    public XOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest, UaaAuthenticationDetails details) {
+    public ExternalOAuthCodeToken(String code, String origin, String redirectUrl, String idToken, String accessToken, String signedRequest, UaaAuthenticationDetails details) {
         this(code, origin, redirectUrl, idToken, accessToken, signedRequest);
         this.details = details;
     }

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.Before;
@@ -9,8 +9,8 @@ import org.junit.Test;
 import java.net.MalformedURLException;
 import java.net.URL;
 
-public class XOAuthIdentityProviderConfigValidatorTest {
-    private AbstractXOAuthIdentityProviderDefinition definition;
+public class ExternalOAuthIdentityProviderConfigValidatorTest {
+    private AbstractExternalOAuthIdentityProviderDefinition definition;
     private BaseIdentityProviderValidator validator;
 
     @Before
@@ -24,7 +24,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
         definition.setSkipSslValidation(true);
         definition.setRelyingPartyId("identity");
         definition.setRelyingPartySecret("identitysecret");
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
     }
 
     @Test
@@ -34,35 +34,35 @@ public class XOAuthIdentityProviderConfigValidatorTest {
         definition.setTokenKeyUrl(null);
         definition.setTokenKey(null);
         ((OIDCIdentityProviderDefinition)definition).setDiscoveryUrl(new URL("http://localhost:8080/uaa/.well-known/openid-configuration"));
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void configWithNullAuthUrl_ThrowsException() {
         definition.setAuthUrl(null);
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void configWithNullTokenUrl_ThrowsException() {
         definition.setTokenUrl(null);
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void configWithNullRelyingPartyId_ThrowsException() {
         definition.setRelyingPartyId(null);
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void configWithNullRelyingPartySecret_ThrowsException() {
         definition.setRelyingPartySecret(null);
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
@@ -70,7 +70,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     public void configWithShowLinkTextTrue_mustHaveLinkText() {
         definition.setShowLinkText(true);
         definition.setLinkText(null);
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
@@ -78,7 +78,7 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     public void configWithShowLinkTextFalse_doesNotNeedLinkText() {
         definition.setShowLinkText(false);
         definition.setLinkText(null);
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
@@ -86,14 +86,14 @@ public class XOAuthIdentityProviderConfigValidatorTest {
     public void no_client_secret_needed_for_implicit() {
         definition.setRelyingPartySecret(null);
         definition.setResponseType("code id_token");
-        validator = new XOAuthIdentityProviderConfigValidator();
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
 
 
     @Test(expected = IllegalArgumentException.class)
     public void configCannotBeNull() {
-        validator.validate((AbstractXOAuthIdentityProviderDefinition)null);
+        validator.validate((AbstractExternalOAuthIdentityProviderDefinition)null);
     }
 
     @Test(expected = IllegalArgumentException.class)

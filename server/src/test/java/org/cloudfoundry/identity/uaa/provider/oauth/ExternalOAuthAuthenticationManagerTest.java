@@ -29,9 +29,9 @@ import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class XOAuthAuthenticationManagerTest {
+public class ExternalOAuthAuthenticationManagerTest {
 
-    private XOAuthAuthenticationManager authManager;
+    private ExternalOAuthAuthenticationManager authManager;
     private String origin;
     private String zoneId;
 
@@ -109,7 +109,7 @@ public class XOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
-        authManager = new XOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl));
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl));
     }
 
     @After
@@ -133,7 +133,7 @@ public class XOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        XOAuthCodeToken oidcAuthentication = new XOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getExternalAuthenticationDetails(oidcAuthentication);
     }
 
@@ -154,7 +154,7 @@ public class XOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        XOAuthCodeToken oidcAuthentication = new XOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getExternalAuthenticationDetails(oidcAuthentication);
     }
 
@@ -175,7 +175,7 @@ public class XOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        XOAuthCodeToken oidcAuthentication = new XOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getExternalAuthenticationDetails(oidcAuthentication);
         // no exception expected
     }
@@ -198,7 +198,7 @@ public class XOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        XOAuthCodeToken oidcAuthentication = new XOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getExternalAuthenticationDetails(oidcAuthentication);
         // no exception expected
     }

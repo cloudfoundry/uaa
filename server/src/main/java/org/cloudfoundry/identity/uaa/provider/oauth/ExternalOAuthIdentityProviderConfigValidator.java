@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 
@@ -10,18 +10,18 @@ import java.util.List;
 
 import static org.springframework.util.StringUtils.hasText;
 
-public class XOAuthIdentityProviderConfigValidator extends BaseIdentityProviderValidator {
+public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityProviderValidator {
 
     @Override
     public void validate(AbstractIdentityProviderDefinition definition) {
         if (definition == null) {
             throw new IllegalArgumentException("Config cannot be null OAUTH2.0/OIDC1.0 provider");
         }
-        if (!(definition instanceof AbstractXOAuthIdentityProviderDefinition)) {
+        if (!(definition instanceof AbstractExternalOAuthIdentityProviderDefinition)) {
             throw new IllegalArgumentException("Config is of wrong type for OAUTH2.0/OIDC1.0 provider:" + definition.getClass().getName());
         }
 
-        AbstractXOAuthIdentityProviderDefinition def = (AbstractXOAuthIdentityProviderDefinition) definition;
+        AbstractExternalOAuthIdentityProviderDefinition def = (AbstractExternalOAuthIdentityProviderDefinition) definition;
 
         List<String> errors = new ArrayList<>();
         if (def instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) definition).getDiscoveryUrl() != null) {

@@ -65,7 +65,7 @@ public class IdentityProviderEndpointsTest {
                 new IdentityZoneManagerImpl());
     }
 
-    public IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getXOAuthProvider() {
+    public IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
         IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
@@ -132,7 +132,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     public IdentityProvider<LdapIdentityProviderDefinition> retrieve_oauth_provider_by_id(String id, String type) {
-        IdentityProvider provider = getXOAuthProvider();
+        IdentityProvider provider = getExternalOAuthProvider();
         provider.setType(type);
         when(identityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(provider);
         ResponseEntity<IdentityProvider> oauth = identityProviderEndpoints.retrieveIdentityProvider(id, true);
@@ -140,8 +140,8 @@ public class IdentityProviderEndpointsTest {
         assertEquals(200,oauth.getStatusCode().value());
         assertNotNull(oauth.getBody());
         assertNotNull(oauth.getBody().getConfig());
-        assertTrue(oauth.getBody().getConfig() instanceof AbstractXOAuthIdentityProviderDefinition);
-        assertNull(((AbstractXOAuthIdentityProviderDefinition)oauth.getBody().getConfig()).getRelyingPartySecret());
+        assertTrue(oauth.getBody().getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+        assertNull(((AbstractExternalOAuthIdentityProviderDefinition)oauth.getBody().getConfig()).getRelyingPartySecret());
         return oauth.getBody();
     }
 
@@ -172,9 +172,9 @@ public class IdentityProviderEndpointsTest {
     @Test
     public void remove_client_secret() {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            remove_sensitive_data(() -> getXOAuthProvider(),
+            remove_sensitive_data(() -> getExternalOAuthProvider(),
                                   type,
-                                  (spy) -> verify((AbstractXOAuthIdentityProviderDefinition)spy, times(1)).setRelyingPartySecret(isNull()));
+                                  (spy) -> verify((AbstractExternalOAuthIdentityProviderDefinition)spy, times(1)).setRelyingPartySecret(isNull()));
         }
     }
 
@@ -190,8 +190,8 @@ public class IdentityProviderEndpointsTest {
 
     @Test
     public void remove_client_secret_wrong_origin() {
-        IdentityProvider provider = getXOAuthProvider();
-        AbstractXOAuthIdentityProviderDefinition spy = Mockito.spy((AbstractXOAuthIdentityProviderDefinition) provider.getConfig());
+        IdentityProvider provider = getExternalOAuthProvider();
+        AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy((AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig());
         provider.setConfig(spy);
         provider.setType(UNKNOWN);
         identityProviderEndpoints.redactSensitiveData(provider);
@@ -225,17 +225,17 @@ public class IdentityProviderEndpointsTest {
     @Test
     public void patch_client_secret() {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = getXOAuthProvider();
-            AbstractXOAuthIdentityProviderDefinition def = provider.getConfig();
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
+            AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
             def.setRelyingPartySecret(null);
-            AbstractXOAuthIdentityProviderDefinition spy = Mockito.spy(def);
+            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
             provider.setConfig(spy);
             provider.setType(type);
             reset(identityProviderProvisioning);
             String zoneId = IdentityZone.getUaaZoneId();
-            when(identityProviderProvisioning.retrieve(eq(provider.getId()), eq(zoneId))).thenReturn(getXOAuthProvider());
+            when(identityProviderProvisioning.retrieve(eq(provider.getId()), eq(zoneId))).thenReturn(getExternalOAuthProvider());
             identityProviderEndpoints.patchSensitiveData(provider.getId(), provider);
-            verify(spy, times(1)).setRelyingPartySecret(eq(getXOAuthProvider().getConfig().getRelyingPartySecret()));
+            verify(spy, times(1)).setRelyingPartySecret(eq(getExternalOAuthProvider().getConfig().getRelyingPartySecret()));
         }
     }
 
@@ -252,7 +252,7 @@ public class IdentityProviderEndpointsTest {
     @Test
     public void retrieve_all_providers_redacts_data() {
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
-            .thenReturn(Arrays.asList(getLdapDefinition(), getXOAuthProvider()));
+            .thenReturn(Arrays.asList(getLdapDefinition(), getExternalOAuthProvider()));
         ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true);
         assertNotNull(ldapList);
         assertNotNull(ldapList.getBody());
@@ -263,10 +263,10 @@ public class IdentityProviderEndpointsTest {
         assertTrue(ldap.getConfig() instanceof LdapIdentityProviderDefinition);
         assertNull(ldap.getConfig().getBindPassword());
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauth = ldapList.getBody().get(1);
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> oauth = ldapList.getBody().get(1);
         assertNotNull(oauth);
         assertNotNull(oauth.getConfig());
-        assertTrue(oauth.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition);
+        assertTrue(oauth.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
         assertNull(oauth.getConfig().getRelyingPartySecret());
     }
 
@@ -340,17 +340,17 @@ public class IdentityProviderEndpointsTest {
     public void create_oauth_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            IdentityProvider<AbstractXOAuthIdentityProviderDefinition> xoauthDefinition = getXOAuthProvider();
-            assertNotNull(xoauthDefinition.getConfig().getRelyingPartySecret());
-            xoauthDefinition.setType(type);
-            when(identityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(xoauthDefinition);
-            ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(xoauthDefinition, true);
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> externalOAuthDefinition = getExternalOAuthProvider();
+            assertNotNull(externalOAuthDefinition.getConfig().getRelyingPartySecret());
+            externalOAuthDefinition.setType(type);
+            when(identityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(externalOAuthDefinition);
+            ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(externalOAuthDefinition, true);
             IdentityProvider created = response.getBody();
             assertNotNull(created);
             assertEquals(type, created.getType());
             assertNotNull(created.getConfig());
-            assertTrue(created.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition);
-            assertNull(((AbstractXOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret());
+            assertTrue(created.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+            assertNull(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret());
         }
     }
 

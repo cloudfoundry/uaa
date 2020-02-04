@@ -11,9 +11,9 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
@@ -50,18 +50,18 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager;
     private IdentityProviderProvisioning identityProviderProvisioning;
     private RestTemplateConfig restTemplateConfig;
-    private XOAuthAuthenticationManager xoAuthAuthenticationManager;
+    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
     private MultitenantClientServices clientDetailsService;
-    private XOAuthProviderConfigurator xoauthProviderProvisioning;
+    private ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning;
     private ApplicationEventPublisher eventPublisher;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, XOAuthAuthenticationManager xoAuthAuthenticationManager, MultitenantClientServices clientDetailsService, XOAuthProviderConfigurator xoauthProviderProvisioning) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager, MultitenantClientServices clientDetailsService, ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.restTemplateConfig = restTemplateConfig;
-        this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
+        this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
         this.clientDetailsService = clientDetailsService;
-        this.xoauthProviderProvisioning = xoauthProviderProvisioning;
+        this.externalOAuthProviderProvisioning = externalOAuthProviderProvisioning;
     }
 
     @Override
@@ -98,7 +98,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)xoauthProviderProvisioning.retrieveByOrigin(loginHintToUse.getOrigin(), IdentityZoneHolder.get().getId()).getConfig());
+            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)externalOAuthProviderProvisioning.retrieveByOrigin(loginHintToUse.getOrigin(), IdentityZoneHolder.get().getId()).getConfig());
         }
     }
 
@@ -197,8 +197,8 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));
             throw new BadCredentialsException("Could not obtain id_token from external OpenID Connect provider.");
         }
-        XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, idToken, null, null);
-        return xoAuthAuthenticationManager.authenticate(token);
+        ExternalOAuthCodeToken token = new ExternalOAuthCodeToken(null, null, null, idToken, null, null);
+        return externalOAuthAuthenticationManager.authenticate(token);
     }
 
     private boolean providerSupportsPasswordGrant(IdentityProvider provider) {

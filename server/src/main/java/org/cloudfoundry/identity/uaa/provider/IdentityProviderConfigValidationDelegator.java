@@ -37,7 +37,7 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
         switch (type) {
             case OAUTH20:
             case OIDC10:
-                delegates.get("xoauth").validate(provider);
+                delegates.get("externalOAuth").validate(provider);
                 break;
             case UAA:
                 delegates.get(UAA).validate(provider);

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public abstract class AbstractXOAuthIdentityProviderDefinition<T extends AbstractXOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
+public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends AbstractExternalOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
     private URL authUrl;
     private URL tokenUrl;
     private URL tokenKeyUrl;
@@ -169,7 +169,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
 
-        AbstractXOAuthIdentityProviderDefinition<?> that = (AbstractXOAuthIdentityProviderDefinition<?>) o;
+        AbstractExternalOAuthIdentityProviderDefinition<?> that = (AbstractExternalOAuthIdentityProviderDefinition<?>) o;
 
         if (showLinkText != that.showLinkText) return false;
         if (skipSslValidation != that.skipSslValidation) return false;

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -26,15 +26,15 @@ import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
-public class XOAuthProviderConfigurator implements IdentityProviderProvisioning {
+public class ExternalOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(XOAuthProviderConfigurator.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
 
     private final IdentityProviderProvisioning providerProvisioning;
     private final OidcMetadataFetcher oidcMetadataFetcher;
     private final UaaRandomStringUtil uaaRandomStringUtil;
 
-    public XOAuthProviderConfigurator(
+    public ExternalOAuthProviderConfigurator(
             final IdentityProviderProvisioning providerProvisioning,
             final OidcMetadataFetcher oidcMetadataFetcher,
             final UaaRandomStringUtil uaaRandomStringUtil) {
@@ -53,7 +53,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     }
 
     public String getIdpAuthenticationUrl(
-            final AbstractXOAuthIdentityProviderDefinition definition,
+            final AbstractExternalOAuthIdentityProviderDefinition definition,
             final String idpOriginKey,
             final HttpServletRequest request) {
         var idpUrlBase = getIdpUrlBase(definition);
@@ -84,7 +84,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
     }
 
     private void saveStateParamForIdpToRequestSession(String state, String idpOriginKey, HttpServletRequest request) {
-        request.getSession().setAttribute("xoauth-state-" + idpOriginKey, state);
+        request.getSession().setAttribute("external-oauth-state-" + idpOriginKey, state);
     }
 
     private String generateStateParam() {
@@ -95,7 +95,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         return URLEncoder.encode(uaaBaseUrl + "/login/callback/" + idpOriginKey, StandardCharsets.UTF_8);
     }
 
-    private String getIdpUrlBase(final AbstractXOAuthIdentityProviderDefinition definition) {
+    private String getIdpUrlBase(final AbstractExternalOAuthIdentityProviderDefinition definition) {
         if (definition instanceof OIDCIdentityProviderDefinition) {
             return overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
         }

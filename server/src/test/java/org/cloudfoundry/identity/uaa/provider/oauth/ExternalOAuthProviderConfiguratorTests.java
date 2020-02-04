@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
@@ -53,14 +53,14 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
-class XOAuthProviderConfiguratorTests {
+class ExternalOAuthProviderConfiguratorTests {
 
     private final String UAA_BASE_URL = "https://localhost:8443/uaa";
 
     private OIDCIdentityProviderDefinition oidc;
-    private RawXOAuthIdentityProviderDefinition oauth;
+    private RawExternalOAuthIdentityProviderDefinition oauth;
 
-    private XOAuthProviderConfigurator configurator;
+    private ExternalOAuthProviderConfigurator configurator;
     @Mock
     private OidcMetadataFetcher mockOidcMetadataFetcher;
     @Mock
@@ -70,16 +70,16 @@ class XOAuthProviderConfiguratorTests {
 
     private OIDCIdentityProviderDefinition config;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
-    private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
+    private IdentityProvider<RawExternalOAuthIdentityProviderDefinition> oauthProvider;
 
     private MockHttpServletRequest mockHttpServletRequest;
 
     @BeforeEach
     void setup() throws MalformedURLException {
         oidc = new OIDCIdentityProviderDefinition();
-        oauth = new RawXOAuthIdentityProviderDefinition();
+        oauth = new RawExternalOAuthIdentityProviderDefinition();
 
-        for (AbstractXOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
+        for (AbstractExternalOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
             def.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
             def.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
             def.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_keys"));
@@ -89,7 +89,7 @@ class XOAuthProviderConfiguratorTests {
         oidc.setResponseType("id_token code");
         oauth.setResponseType("code");
 
-        configurator = spy(new XOAuthProviderConfigurator(
+        configurator = spy(new ExternalOAuthProviderConfigurator(
                 mockIdentityProviderProvisioning,
                 mockOidcMetadataFetcher,
                 mockUaaRandomStringUtil));
@@ -112,7 +112,7 @@ class XOAuthProviderConfiguratorTests {
         oidcProvider.setOriginKey(OIDC10);
         oauthProvider = new IdentityProvider<>();
         oauthProvider.setType(OAUTH20);
-        oauthProvider.setConfig(new RawXOAuthIdentityProviderDefinition());
+        oauthProvider.setConfig(new RawExternalOAuthIdentityProviderDefinition());
 
         mockHttpServletRequest = new MockHttpServletRequest();
         mockHttpServletRequest.setRequestURI(UAA_BASE_URL);
@@ -122,8 +122,8 @@ class XOAuthProviderConfiguratorTests {
     void retrieveAll() {
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
 
-        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
-        assertEquals(2, activeXOAuthProviders.size());
+        List<IdentityProvider> activeExternalOAuthProviders = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
+        assertEquals(2, activeExternalOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
     }
 
@@ -131,8 +131,8 @@ class XOAuthProviderConfiguratorTests {
     void retrieveActive() {
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
 
-        List<IdentityProvider> activeXOAuthProviders = configurator.retrieveActive(IdentityZone.getUaaZoneId());
-        assertEquals(2, activeXOAuthProviders.size());
+        List<IdentityProvider> activeExternalOAuthProviders = configurator.retrieveActive(IdentityZone.getUaaZoneId());
+        assertEquals(2, activeExternalOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
     }
@@ -149,9 +149,9 @@ class XOAuthProviderConfiguratorTests {
         }).when(mockOidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
-        IdentityProvider<OIDCIdentityProviderDefinition> activeXOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
+        IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
 
-        assertEquals(issuer, activeXOAuthProvider.getConfig().getIssuer());
+        assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
         verify(configurator, times(1)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
     }
@@ -214,7 +214,7 @@ class XOAuthProviderConfiguratorTests {
     @Test
     void getParameterizedClass() {
         assertEquals(OIDCIdentityProviderDefinition.class, oidc.getParameterizedClass());
-        assertEquals(RawXOAuthIdentityProviderDefinition.class, oauth.getParameterizedClass());
+        assertEquals(RawExternalOAuthIdentityProviderDefinition.class, oauth.getParameterizedClass());
     }
 
     @Test

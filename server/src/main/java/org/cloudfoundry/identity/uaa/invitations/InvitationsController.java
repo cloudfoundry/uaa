@@ -7,12 +7,12 @@ import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuth
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -85,7 +85,7 @@ public class InvitationsController {
     private final UaaUserDatabase userDatabase;
     private final String spEntityID;
     private final ScimUserProvisioning userProvisioning;
-    private final XOAuthProviderConfigurator xoAuthProviderConfigurator;
+    private final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
 
     public InvitationsController(
             final InvitationsService invitationsService,
@@ -96,7 +96,7 @@ public class InvitationsController {
             final UaaUserDatabase userDatabase,
             final @Qualifier("samlEntityID") String spEntityID,
             final ScimUserProvisioning userProvisioning,
-            final @Qualifier("xoauthProviderConfigurator") XOAuthProviderConfigurator xoAuthProviderConfigurator) {
+            final @Qualifier("externalOAuthProviderConfigurator") ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator) {
         this.invitationsService = invitationsService;
         this.expiringCodeStore = expiringCodeStore;
         this.passwordValidator = passwordValidator;
@@ -105,7 +105,7 @@ public class InvitationsController {
         this.userDatabase = userDatabase;
         this.spEntityID = spEntityID;
         this.userProvisioning = userProvisioning;
-        this.xoAuthProviderConfigurator = xoAuthProviderConfigurator;
+        this.externalOAuthProviderConfigurator = externalOAuthProviderConfigurator;
     }
 
     @RequestMapping(value = {"/sent", "/new", "/new.do"})
@@ -151,9 +151,9 @@ public class InvitationsController {
             } else if (OIDC10.equals(provider.getType()) || OAUTH20.equals(provider.getType())) {
                 setRequestAttributes(request, newCode, user);
 
-                AbstractXOAuthIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), AbstractXOAuthIdentityProviderDefinition.class);
+                AbstractExternalOAuthIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), AbstractExternalOAuthIdentityProviderDefinition.class);
 
-                String redirect = "redirect:" + xoAuthProviderConfigurator.getIdpAuthenticationUrl(definition, provider.getOriginKey(), request);
+                String redirect = "redirect:" + externalOAuthProviderConfigurator.getIdpAuthenticationUrl(definition, provider.getOriginKey(), request);
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s OIDC IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else {

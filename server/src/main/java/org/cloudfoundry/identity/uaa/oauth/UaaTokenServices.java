@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthUserAuthority;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -663,7 +663,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Collection<GrantedAuthority> clientScopes;
         clientScopes = new ArrayList<>();
         for(String scope : client.getScope()) {
-            clientScopes.add(new XOAuthUserAuthority(scope));
+            clientScopes.add(new ExternalOAuthUserAuthority(scope));
         }
         return clientScopes;
     }

@@ -417,8 +417,8 @@
         </bean>
     </util:list>
 
-    <bean id="xoauthProviderConfigurator"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
+    <bean id="externalOAuthProviderConfigurator"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator">
         <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
     </bean>
