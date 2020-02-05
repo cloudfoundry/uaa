@@ -15,11 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -43,10 +43,12 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
 
     private final IdentityProviderProvisioning providerProvisioning;
     private OidcMetadataFetcher oidcMetadataFetcher;
+    private final UaaRandomStringUtil uaaRandomStringUtil;
 
-    public XOAuthProviderConfigurator(IdentityProviderProvisioning providerProvisioning, OidcMetadataFetcher oidcMetadataFetcher) {
+    public XOAuthProviderConfigurator(IdentityProviderProvisioning providerProvisioning, OidcMetadataFetcher oidcMetadataFetcher, UaaRandomStringUtil uaaRandomStringUtil) {
         this.providerProvisioning = providerProvisioning;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
+        this.uaaRandomStringUtil = uaaRandomStringUtil;
     }
 
     protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
@@ -70,7 +72,7 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         query.add("client_id=" + definition.getRelyingPartyId());
         query.add("response_type=" + URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8));
         query.add("redirect_uri=" + URLEncoder.encode(baseURL + "/login/callback/" + alias, StandardCharsets.UTF_8));
-        query.add("state=" + RandomStringUtils.randomAlphanumeric(10));
+        query.add("state=" + generateStateParam());
         if (definition.getScopes() != null && !definition.getScopes().isEmpty()) {
             query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
         }
@@ -80,6 +82,10 @@ public class XOAuthProviderConfigurator implements IdentityProviderProvisioning 
         }
         String queryString = String.join("&", query);
         return authUrlBase + queryAppendDelimiter + queryString;
+    }
+
+    private String generateStateParam() {
+        return uaaRandomStringUtil.getSecureRandom(10);
     }
 
     @Override

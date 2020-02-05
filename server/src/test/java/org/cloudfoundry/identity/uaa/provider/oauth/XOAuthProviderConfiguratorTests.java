@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
@@ -27,7 +28,6 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -56,6 +56,7 @@ public class XOAuthProviderConfiguratorTests {
     private MockHttpServletRequest request;
     XOAuthProviderConfigurator configurator;
     private OidcMetadataFetcher oidcMetadataFetcher;
+    private UaaRandomStringUtil mockUaaRandomStringUtil;
 
     private OIDCIdentityProviderDefinition config;
     private String discoveryUrl;
@@ -90,8 +91,9 @@ public class XOAuthProviderConfiguratorTests {
 
         provisioning = mock(IdentityProviderProvisioning.class);
         oidcMetadataFetcher = mock(OidcMetadataFetcher.class);
+        mockUaaRandomStringUtil = mock(UaaRandomStringUtil.class);
 
-        configurator = spy(new XOAuthProviderConfigurator(provisioning, oidcMetadataFetcher));
+        configurator = spy(new XOAuthProviderConfigurator(provisioning, oidcMetadataFetcher, mockUaaRandomStringUtil));
 
         config = new OIDCIdentityProviderDefinition();
         String discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
@@ -255,6 +257,8 @@ public class XOAuthProviderConfiguratorTests {
 
     @Test
     public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOidc() {
+        when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-939b8307");
+
         String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
 
         Map<String, String> queryParams =
@@ -265,12 +269,14 @@ public class XOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "id_token+code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+        assertThat(queryParams, hasEntry("state", "random-939b8307"));
         assertThat(queryParams, hasKey("nonce"));
     }
 
     @Test
     public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOauth() {
+        when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-451614ce");
+
         String authzUri = configurator.getCompleteAuthorizationURI(
                 "alias",
                 UaaUrlUtils.getBaseURL(request),
@@ -285,7 +291,7 @@ public class XOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry(is("state"), not(isEmptyOrNullString())));
+        assertThat(queryParams, hasEntry("state", "random-451614ce"));
     }
 
     @Test

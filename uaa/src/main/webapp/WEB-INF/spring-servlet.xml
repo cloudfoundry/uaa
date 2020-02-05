@@ -11,6 +11,8 @@
        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
+    <bean id="uaaRandomStringUtil" class="org.cloudfoundry.identity.uaa.util.UaaRandomStringUtilImpl" />
+
     <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
         <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
         <constructor-arg name="maxEntries" value="10000"/>

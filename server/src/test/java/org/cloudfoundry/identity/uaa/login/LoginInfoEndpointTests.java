@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.Before;
@@ -136,7 +137,7 @@ public class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         oidcMetadataFetcher = mock(OidcMetadataFetcher.class);
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
-        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, oidcMetadataFetcher);
+        configurator = new XOAuthProviderConfigurator(identityProviderProvisioning, oidcMetadataFetcher, mock(UaaRandomStringUtil.class));
         mfaChecker = spy(new MfaChecker(mock(IdentityZoneProvisioning.class)));
         model = new ExtendedModelMap();
     }
