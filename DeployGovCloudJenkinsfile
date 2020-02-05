@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-def devcloudArtServer = Artifactory.server('devcloud')
+def buildGeArtServer = Artifactory.server('build.ge')
 
 library "security-ci-commons-shared-lib"
 def NODE = nodeDetails("uaa-govcloud")
@@ -45,12 +45,12 @@ pipeline {
                             {
                                 "target": "deploy-workspace/",
                                 "flat": "true",
-                                "pattern": "MAAXA-MVN/builds/uaa/${APP_VERSION}/*.war"
+                                "pattern": "MAAXA/builds/uaa/${APP_VERSION}/*.war"
                             }
                         ]
                     }"""
                     sh 'pwd && ls -ltr'
-                    devcloudArtServer.download(downloadSpec)
+                    buildGeArtServer.download(downloadSpec)
                     sh "ls -ltr deploy-workspace/"
                     dir('uaa-cf-release') {
                         git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'

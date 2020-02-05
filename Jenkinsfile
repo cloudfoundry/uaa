@@ -1,5 +1,5 @@
 #!/usr/bin/env groovy
-def devcloudArtServer = Artifactory.server('devcloud')
+def buildGeArtServer = Artifactory.server('build.ge')
 
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
 def NODE = nodeDetails("uaa")
@@ -23,7 +23,7 @@ pipeline {
         booleanParam(name: 'MOCK_MVC_TESTS', defaultValue: true, description: 'Run Mock MVC tests')
         booleanParam(name: 'INTEGRATION_TESTS', defaultValue: true, description: 'Run Integration tests')
         booleanParam(name: 'DEGRADED_TESTS', defaultValue: true, description: 'Run degraded mode tests')
-        booleanParam(name: 'PUSH_TO_DEVCLOUD', defaultValue: false, description: 'Publish to build artifactory')
+        booleanParam(name: 'PUSH_TO_BUILD_GE', defaultValue: false, description: 'Publish to build artifactory')
     }
     stages {
         stage('Build and run Tests') {
@@ -399,7 +399,7 @@ pipeline {
                 label 'dind'
             }
             when {
-                expression { params.PUSH_TO_DEVCLOUD == true }
+                expression { params.PUSH_TO_BUILD_GE == true }
             }
             steps{
                 dir('uaa') {
@@ -422,12 +422,12 @@ pipeline {
                        "files": [
                            {
                                "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                               "target": "MAAXA-MVN/builds/uaa/${APP_VERSION}/"
+                               "target": "MAAXA/builds/uaa/${APP_VERSION}/"
                            }
                        ]
                     }"""
-                    def buildInfo = devcloudArtServer.upload(uploadSpec)
-                    devcloudArtServer.publishBuildInfo(buildInfo)
+                    def buildInfo = buildGeArtServer.upload(uploadSpec)
+                    buildGeArtServer.publishBuildInfo(buildInfo)
 
                     BINTRAY_LOCATION = "https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}"
                     echo "BINTRAY_LOCATION=${BINTRAY_LOCATION}"

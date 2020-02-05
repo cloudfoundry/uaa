@@ -71,14 +71,7 @@ allprojects {
                 username geArtifactoryReader
                 password geArtifactoryReaderPassword
             }
-            url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX'
-        }
-        maven {
-            credentials {
-              username geArtifactoryReader
-              password geArtifactoryReaderPassword
-            }
-            url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX-SNAPSHOT'
+            url 'https://artifactory.build.ge.com/predix-virtual'
         }
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
@@ -187,15 +180,7 @@ subprojects {
                 username geArtifactoryReader
                 password geArtifactoryReaderPassword
             }
-            url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX'
-        }
-
-        maven {
-            credentials {
-                username geArtifactoryReader
-                password geArtifactoryReaderPassword
-            }
-            url 'https://devcloud.swcoe.ge.com/artifactory/PREDIX-SNAPSHOT'
+            url 'https://artifactory.build.ge.com/predix-virtual'
         }
     }
 
