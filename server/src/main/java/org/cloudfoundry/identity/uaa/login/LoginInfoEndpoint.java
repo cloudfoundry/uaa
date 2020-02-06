@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -43,11 +41,13 @@ import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -466,10 +466,10 @@ public class LoginInfoEndpoint {
                 .filter(e -> e.getValue().isShowLinkText())
                 .forEach(e ->
                         oauthLinks.put(
-                                xoAuthProviderConfigurator.getCompleteAuthorizationURI(
+                                xoAuthProviderConfigurator.getIdpAuthenticationUrl(
+                                        e.getValue(),
                                         e.getKey(),
-                                        UaaUrlUtils.getBaseURL(request),
-                                        e.getValue()),
+                                        request),
                                 e.getValue().getLinkText()
                         )
                 );
@@ -621,8 +621,8 @@ public class LoginInfoEndpoint {
         return null;
     }
 
-    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) {
-        return xoAuthProviderConfigurator.getCompleteAuthorizationURI(alias, UaaUrlUtils.getBaseURL(request), definition);
+    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String idpOriginKey, AbstractXOAuthIdentityProviderDefinition definition) {
+        return xoAuthProviderConfigurator.getIdpAuthenticationUrl(definition, idpOriginKey, request);
     }
 
     protected Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {

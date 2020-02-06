@@ -37,6 +37,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
@@ -46,6 +47,8 @@ import static org.springframework.http.HttpMethod.GET;
 
 
 public class XOAuthProviderConfiguratorTests {
+
+    private final String UAA_BASE_URL = "https://localhost:8443/uaa";
 
     @Rule
     public ExpectedException exception = ExpectedException.none();
@@ -63,6 +66,8 @@ public class XOAuthProviderConfiguratorTests {
     private IdentityProviderProvisioning provisioning;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
     private IdentityProvider<RawXOAuthIdentityProviderDefinition> oauthProvider;
+
+    private MockHttpServletRequest mockHttpServletRequest;
 
     @Before
     public void setup() throws MalformedURLException {
@@ -118,6 +123,10 @@ public class XOAuthProviderConfiguratorTests {
         oauthProvider = new IdentityProvider<>();
         oauthProvider.setType(OAUTH20);
         oauthProvider.setConfig(new RawXOAuthIdentityProviderDefinition());
+
+        mockHttpServletRequest = new MockHttpServletRequest();
+        mockHttpServletRequest.setRequestURI(UAA_BASE_URL);
+
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
     }
 
@@ -221,8 +230,8 @@ public class XOAuthProviderConfiguratorTests {
 
 
     @Test
-    public void getCompleteAuthorizationURI_includesNonceOnOIDC() {
-        String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+    public void getIdpAuthenticationUrl_includesNonceOnOIDC() {
+        String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
@@ -230,8 +239,8 @@ public class XOAuthProviderConfiguratorTests {
     }
 
     @Test
-    public void getCompleteAuthorizationURI_doesNotIncludeNonceOnOAuth() {
-        String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oauth);
+    public void getIdpAuthenticationUrl_doesNotIncludeNonceOnOAuth() {
+        String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
 
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
@@ -249,7 +258,7 @@ public class XOAuthProviderConfiguratorTests {
         }).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
-        String authorizationURI = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+        String authorizationURI = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
         assertThat(authorizationURI, Matchers.startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
         verify(configurator).overlay(oidc);
@@ -259,7 +268,7 @@ public class XOAuthProviderConfiguratorTests {
     public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOidc() {
         when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-939b8307");
 
-        String authzUri = configurator.getCompleteAuthorizationURI("alias", UaaUrlUtils.getBaseURL(request), oidc);
+        String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
@@ -277,10 +286,10 @@ public class XOAuthProviderConfiguratorTests {
     public void getCompleteAuthorizationUri_hasAllRequiredQueryParametersForOauth() {
         when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-451614ce");
 
-        String authzUri = configurator.getCompleteAuthorizationURI(
+        String authzUri = configurator.getIdpAuthenticationUrl(
+                oauth,
                 "alias",
-                UaaUrlUtils.getBaseURL(request),
-                oauth
+                mockHttpServletRequest
         );
 
         Map<String, String> queryParams =

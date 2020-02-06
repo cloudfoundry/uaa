@@ -13,6 +13,8 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
+import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
+import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -22,6 +24,8 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
+import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtilImpl;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -59,6 +63,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.net.URL;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -128,6 +134,9 @@ public class InvitationsControllerTest {
 
     @Autowired
     ScimUserProvisioning scimUserProvisioning;
+
+    @Autowired
+    XOAuthProviderConfigurator xoAuthProviderConfigurator;
 
     @Before
     public void setUp() {
@@ -228,12 +237,13 @@ public class InvitationsControllerTest {
         provider.setConfig(definition);
         provider.setType(OriginKeys.OIDC10);
         when(providerProvisioning.retrieveByOrigin(eq("test-oidc"), anyString())).thenReturn(provider);
+        when(xoAuthProviderConfigurator.getIdpAuthenticationUrl(any(), any(), any())).thenReturn("http://example.com");
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
 
         MvcResult result = mockMvc.perform(get)
-                .andExpect(redirectedUrl("https://oidc10.auth.url?client_id=" + definition.getRelyingPartyId() + "&response_type=code&redirect_uri=http://null/login/callback/" + provider.getOriginKey()))
+                .andExpect(redirectedUrl("http://example.com"))
                 .andReturn();
 
         assertEquals(true, result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE"));
@@ -803,13 +813,19 @@ public class InvitationsControllerTest {
         }
 
         @Bean
+        XOAuthProviderConfigurator xoAuthProviderConfigurator() {
+            return mock(XOAuthProviderConfigurator.class);
+        }
+
+        @Bean
         InvitationsController invitationsController(final InvitationsService invitationsService,
                                                     final ExpiringCodeStore codeStore,
                                                     final PasswordValidator passwordPolicyValidator,
                                                     final IdentityProviderProvisioning providerProvisioning,
                                                     final UaaUserDatabase userDatabase,
                                                     final ScimUserProvisioning provisioning,
-                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
+                                                    final XOAuthProviderConfigurator xoauthProviderConfigurator) {
             return new InvitationsController(
                     invitationsService,
                     codeStore,
@@ -818,7 +834,8 @@ public class InvitationsControllerTest {
                     zoneAwareAuthenticationManager,
                     userDatabase,
                     "sp-entity-id",
-                    provisioning);
+                    provisioning,
+                    xoauthProviderConfigurator);
         }
 
         @Bean
