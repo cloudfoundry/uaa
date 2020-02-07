@@ -7,6 +7,9 @@ labels:
   partOf: uaa
   managedBy: kapp
 
+tomcat:
+  accessLoggingEnabled: "y"
+
 database:
   scheme: hsqldb
   address: ~

@@ -33,6 +33,8 @@ spec:
               containerPort: 8080
               protocol: TCP
           env:
+            - name: BPL_TOMCAT_ACCESS_LOGGING
+              value: "(@= data.values.tomcat.accessLoggingEnabled @)"
             - name: JAVA_OPTS
               value: "-Djava.security.egd=file:/dev/./urandom"
             - name: spring_profiles

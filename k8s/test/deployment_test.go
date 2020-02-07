@@ -31,6 +31,7 @@ var _ = Describe("Deployment", func() {
 						container.WithImageContaining("cfidentity/uaa@sha256:")
 						container.WithEnvVar("spring_profiles", "default,hsqldb")
 						container.WithEnvVar("UAA_CONFIG_PATH", "/etc/config")
+						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
 					})
 				}),
 			),
