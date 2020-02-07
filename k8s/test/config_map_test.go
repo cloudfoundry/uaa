@@ -32,7 +32,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 
 	Context("Renders a config map", func() {
 		Context("with default values", func() {
-			It("produces yml", func() {
+			XIt("produces yml", func() {
 				ctx := NewRenderingContext(templates...)
 
 				Expect(ctx).To(
