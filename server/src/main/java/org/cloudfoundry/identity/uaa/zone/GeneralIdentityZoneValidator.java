@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
-@Component
+@Component("identityZoneValidator")
 public class GeneralIdentityZoneValidator implements IdentityZoneValidator {
     private final IdentityZoneConfigurationValidator configValidator;
 
