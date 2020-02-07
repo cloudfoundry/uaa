@@ -17,53 +17,53 @@ import static org.mockito.Mockito.when;
 public class MfaConfigValidatorTests {
 
     @Rule
-    public ExpectedException expection = ExpectedException.none();
+    public ExpectedException exception = ExpectedException.none();
 
-    private MfaConfigValidator validator;
-    private MfaProviderProvisioning provisioning;
+    private MfaConfigValidator mfaConfigValidator;
+    private MfaProviderProvisioning mockJdbcMfaProviderProvisioning;
 
     @Before
     public void setup() {
-        validator = new MfaConfigValidator();
-        provisioning = mock(JdbcMfaProviderProvisioning.class);
-        validator.setMfaProviderProvisioning(provisioning);
+        mfaConfigValidator = new MfaConfigValidator();
+        mockJdbcMfaProviderProvisioning = mock(JdbcMfaProviderProvisioning.class);
+        mfaConfigValidator.setMfaProviderProvisioning(mockJdbcMfaProviderProvisioning);
     }
 
     @Test
-    public void validate_successful() throws InvalidIdentityZoneConfigurationException {
-        when(provisioning.retrieveByName(matches("some-provider"), anyString())).thenReturn(new MfaProvider());
+    public void validateSuccessful() throws InvalidIdentityZoneConfigurationException {
+        when(mockJdbcMfaProviderProvisioning.retrieveByName(matches("some-provider"), anyString())).thenReturn(new MfaProvider());
 
         MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderName("some-provider");
-        validator.validate(configuration, "some-zone");
+        mfaConfigValidator.validate(configuration, "some-zone");
     }
 
     @Test
-    public void validate_disabled_no_provider_id() throws InvalidIdentityZoneConfigurationException {
-        when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+    public void validateDisabledNoProviderId() throws InvalidIdentityZoneConfigurationException {
+        when(mockJdbcMfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
         MfaConfig configuration = new MfaConfig().setEnabled(false).setProviderName("");
 
-        validator.validate(configuration, "some-zone");
+        mfaConfigValidator.validate(configuration, "some-zone");
     }
 
     @Test
-    public void validate_disabled_invalid_provider() throws InvalidIdentityZoneConfigurationException {
-        when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+    public void validateDisabledInvalidProvider() throws InvalidIdentityZoneConfigurationException {
+        when(mockJdbcMfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
         MfaConfig configuration = new MfaConfig().setEnabled(false).setProviderName("some-provider");
 
-        expection.expect(InvalidIdentityZoneConfigurationException.class);
-        expection.expectMessage("Active MFA Provider not found with name: some-provider");
-        validator.validate(configuration, "some-zone");
+        exception.expect(InvalidIdentityZoneConfigurationException.class);
+        exception.expectMessage("Active MFA Provider not found with name: some-provider");
+        mfaConfigValidator.validate(configuration, "some-zone");
     }
 
     @Test
-    public void validate_no_available_providers() throws Exception {
-        when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+    public void validateNoAvailableProviders() throws Exception {
+        when(mockJdbcMfaProviderProvisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
         String providerName = "some-provider";
 
-        expection.expect(InvalidIdentityZoneConfigurationException.class);
-        expection.expectMessage("Active MFA Provider not found with name: " + providerName);
+        exception.expect(InvalidIdentityZoneConfigurationException.class);
+        exception.expectMessage("Active MFA Provider not found with name: " + providerName);
 
         MfaConfig configuration = new MfaConfig().setEnabled(true).setProviderName(providerName);
-        validator.validate(configuration, "some-zone");
+        mfaConfigValidator.validate(configuration, "some-zone");
     }
 }
