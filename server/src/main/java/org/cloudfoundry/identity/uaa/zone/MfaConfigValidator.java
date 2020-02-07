@@ -8,13 +8,11 @@ import org.springframework.util.StringUtils;
 
 public class MfaConfigValidator {
     private static Logger logger = LoggerFactory.getLogger(MfaConfigValidator.class);
-    private MfaProviderProvisioning mfaProviderProvisioning;
 
-    public MfaProviderProvisioning getMfaProviderProvisioning() {
-        return mfaProviderProvisioning;
-    }
+    private final MfaProviderProvisioning mfaProviderProvisioning;
 
-    public void setMfaProviderProvisioning(MfaProviderProvisioning mfaProviderProvisioning) {
+    public MfaConfigValidator(
+            final MfaProviderProvisioning mfaProviderProvisioning) {
         this.mfaProviderProvisioning = mfaProviderProvisioning;
     }
 

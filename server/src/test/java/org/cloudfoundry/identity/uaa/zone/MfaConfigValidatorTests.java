@@ -21,9 +21,8 @@ class MfaConfigValidatorTests {
 
     @BeforeEach
     void setup() {
-        mfaConfigValidator = new MfaConfigValidator();
         mockJdbcMfaProviderProvisioning = mock(JdbcMfaProviderProvisioning.class);
-        mfaConfigValidator.setMfaProviderProvisioning(mockJdbcMfaProviderProvisioning);
+        mfaConfigValidator = new MfaConfigValidator(mockJdbcMfaProviderProvisioning);
     }
 
     @Test
