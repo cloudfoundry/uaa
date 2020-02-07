@@ -21,8 +21,6 @@
         <property name="yaml" value="${environmentYamlKey}"/>
     </bean>
 
-    <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator" />
-
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
         <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
         <property name="useSuffixPatternMatch" value="false"/>
