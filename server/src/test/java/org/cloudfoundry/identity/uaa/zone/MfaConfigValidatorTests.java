@@ -14,7 +14,6 @@ import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class MfaConfigValidatorTests {
 
     @Rule
@@ -49,7 +48,7 @@ public class MfaConfigValidatorTests {
     @Test
     public void validate_disabled_invalid_provider() throws InvalidIdentityZoneConfigurationException {
         when(provisioning.retrieveByName(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
-        MfaConfig configuration  = new MfaConfig().setEnabled(false).setProviderName("some-provider");
+        MfaConfig configuration = new MfaConfig().setEnabled(false).setProviderName("some-provider");
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Active MFA Provider not found with name: some-provider");
