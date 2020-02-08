@@ -21,6 +21,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     private JdbcIdentityZoneProvisioning db;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+
     @Before
     public void createDatasource() {
         db = new JdbcIdentityZoneProvisioning(jdbcTemplate);
@@ -28,26 +29,26 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void test_delete_zone() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
         identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
 
         IdentityZone createdIdZone = db.create(identityZone);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {createdIdZone.getId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class), is(1));
         db.onApplicationEvent(new EntityDeletedEvent<>(identityZone, null, IdentityZoneHolder.getCurrentZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {createdIdZone.getId()}, Integer.class), is(0));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class), is(0));
     }
 
     @Test
     public void test_cannot_delete_uaa_zone() {
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {IdentityZone.getUaaZoneId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{IdentityZone.getUaaZoneId()}, Integer.class), is(1));
         db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null, IdentityZoneHolder.getCurrentZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[] {IdentityZone.getUaaZoneId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{IdentityZone.getUaaZoneId()}, Integer.class), is(1));
     }
 
     @Test
     public void testCreateIdentityZone() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
         identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
 
@@ -65,7 +66,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
     @Test
     public void testCreateIdentityZone_Subdomain_Becomes_LowerCase() {
         String subdomain = generator.generate().toUpperCase();
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),subdomain);
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), subdomain);
         identityZone.setId(generator.generate());
 
         identityZone.setSubdomain(subdomain);
@@ -109,7 +110,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testUpdateIdentityZone_SubDomain_Is_LowerCase() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
 
         IdentityZone createdIdZone = db.create(identityZone);
@@ -171,14 +172,14 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test(expected = ZoneDoesNotExistsException.class)
     public void testUpdateNonExistentIdentityZone() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
         db.update(identityZone);
     }
 
     @Test
     public void testCreateDuplicateIdentityZone() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one","there-can-be-only-one");
+        IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one", "there-can-be-only-one");
         identityZone.setId(generator.generate());
         db.create(identityZone);
         try {
@@ -191,7 +192,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testCreateDuplicateIdentityZoneSubdomain() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one","there-can-be-only-one");
+        IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one", "there-can-be-only-one");
         identityZone.setId(generator.generate());
         db.create(identityZone);
         try {
@@ -205,7 +206,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testGetIdentityZone() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
         db.create(identityZone);
 
@@ -222,7 +223,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testGetAllIdentityZones() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
         db.create(identityZone);
 
@@ -234,7 +235,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
 
     @Test
     public void testGetIdentityZoneBySubdomain() {
-        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
         identityZone.setId(generator.generate());
         db.create(identityZone);
 
