@@ -254,7 +254,6 @@
     <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter"/>
 
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
-        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="defaultInternalHostnames">
             <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
@@ -447,7 +446,6 @@
     <bean id="identityZoneConfigurationBootstrap"
           class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap"
           depends-on="mfaProviderBootstrap">
-        <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>

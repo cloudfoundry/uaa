@@ -20,7 +20,6 @@
           depends-on="identityZoneConfigurationBootstrap, setUpBouncyCastle"
           lazy-init="false"
           destroy-method="reset">
-        <constructor-arg ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager"
@@ -32,7 +31,6 @@
     </bean>
 
     <bean id="identityZoneEndpoints" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
-        <constructor-arg ref="identityZoneProvisioning"/>
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
         <constructor-arg ref="scimGroupProvisioning"/>

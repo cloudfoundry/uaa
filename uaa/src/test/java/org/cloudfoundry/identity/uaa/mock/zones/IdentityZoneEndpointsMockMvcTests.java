@@ -899,7 +899,7 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityProvider idp2 = idpp.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         assertNotEquals(idp1, idp2);
 
-        IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) webApplicationContext.getBean("identityZoneProvisioning");
+        IdentityZoneProvisioning identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
 
         assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(createdZone.getConfig()));
