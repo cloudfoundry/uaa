@@ -13,7 +13,6 @@
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
-        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="runtimeEnvironment" class="org.cloudfoundry.identity.uaa.util.RuntimeEnvironment"/>
