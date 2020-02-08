@@ -22,9 +22,6 @@
           destroy-method="reset">
     </bean>
 
-    <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager"
-          depends-on="identityZoneHolderInitializer"/>
-
     <bean id="identityProviderProvisioning"
           class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
