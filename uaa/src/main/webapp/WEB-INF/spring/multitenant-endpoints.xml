@@ -22,11 +22,6 @@
           destroy-method="reset">
     </bean>
 
-    <bean id="identityProviderProvisioning"
-          class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
-        <constructor-arg ref="jdbcTemplate"/>
-    </bean>
-
     <bean id="identityZoneEndpoints" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
