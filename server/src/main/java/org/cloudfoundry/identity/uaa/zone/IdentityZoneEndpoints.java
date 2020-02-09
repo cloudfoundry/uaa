@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.MessageSource;
@@ -74,7 +75,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private ApplicationEventPublisher publisher;
 
     public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
-                                 final JdbcIdentityProviderProvisioning idpDao,
+                                 final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning idpDao,
                                  final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
                                  final ScimGroupProvisioning groupProvisioning,
                                  final IdentityZoneValidator validator,

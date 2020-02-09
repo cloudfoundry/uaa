@@ -15,6 +15,7 @@ import org.passay.PasswordData;
 import org.passay.PropertiesMessageResolver;
 import org.passay.Rule;
 import org.passay.RuleResult;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -51,7 +52,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     }
 
     public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
-                                      final JdbcIdentityProviderProvisioning provisioning) {
+                                      final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }

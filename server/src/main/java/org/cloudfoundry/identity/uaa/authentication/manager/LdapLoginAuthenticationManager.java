@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -49,7 +50,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     protected static Logger logger = LoggerFactory.getLogger(LdapLoginAuthenticationManager.class);
 
-    public LdapLoginAuthenticationManager(final JdbcIdentityProviderProvisioning providerProvisioning) {
+    public LdapLoginAuthenticationManager(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning) {
         super(providerProvisioning);
     }
 

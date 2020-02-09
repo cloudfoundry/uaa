@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -86,7 +87,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     public IdentityProviderEndpoints(
-            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
             ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
             ScimGroupProvisioning scimGroupProvisioning,
             SamlIdentityProviderConfigurator samlConfigurator,

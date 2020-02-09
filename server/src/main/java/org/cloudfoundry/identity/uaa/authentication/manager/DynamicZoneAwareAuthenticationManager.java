@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -52,7 +53,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     private final LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
     private ApplicationEventPublisher eventPublisher;
 
-    public DynamicZoneAwareAuthenticationManager(final JdbcIdentityProviderProvisioning provisioning,
+    public DynamicZoneAwareAuthenticationManager(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
                                                  AuthenticationManager internalUaaAuthenticationManager,
                                                  ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
                                                  ScimGroupProvisioning scimGroupProvisioning,

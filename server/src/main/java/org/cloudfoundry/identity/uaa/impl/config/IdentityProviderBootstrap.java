@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
@@ -76,7 +77,7 @@ public class IdentityProviderBootstrap
     private ApplicationEventPublisher publisher;
 
     public IdentityProviderBootstrap(
-            final JdbcIdentityProviderProvisioning provisioning,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
             Environment environment) {
         if (provisioning==null) {
             throw new NullPointerException("Constructor argument can't be null.");

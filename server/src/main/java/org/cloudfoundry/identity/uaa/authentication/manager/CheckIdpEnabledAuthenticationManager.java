@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderNotFoundException;
@@ -31,7 +32,7 @@ public class CheckIdpEnabledAuthenticationManager implements AuthenticationManag
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final AuthenticationManager delegate;
 
-    public CheckIdpEnabledAuthenticationManager(AuthenticationManager delegate, String origin, final JdbcIdentityProviderProvisioning identityProviderProvisioning) {
+    public CheckIdpEnabledAuthenticationManager(AuthenticationManager delegate, String origin, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning) {
         this.origin = origin;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.delegate = delegate;
