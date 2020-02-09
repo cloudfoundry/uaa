@@ -22,6 +22,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -32,6 +33,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+@Component("identityProviderProvisioning")
 public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning, SystemDeletable {
 
     private static Logger logger = LoggerFactory.getLogger(JdbcIdentityProviderProvisioning.class);
