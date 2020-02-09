@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -73,7 +74,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private ApplicationEventPublisher publisher;
 
     public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
-                                 final IdentityProviderProvisioning idpDao,
+                                 final JdbcIdentityProviderProvisioning idpDao,
                                  final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
                                  final ScimGroupProvisioning groupProvisioning,
                                  final IdentityZoneValidator validator,

@@ -23,7 +23,6 @@
     </bean>
 
     <bean id="identityZoneEndpoints" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
-        <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
         <constructor-arg ref="scimGroupProvisioning"/>
     </bean>
@@ -62,7 +61,6 @@
     </bean>
 
     <bean id="identityProviderEndpoints" class="org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints">
-        <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
         <constructor-arg name="configValidator" ref="identityProviderConfigValidator"/>

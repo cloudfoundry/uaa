@@ -399,7 +399,6 @@
 
     <bean id="externalOAuthProviderConfigurator"
           class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator">
-        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
     </bean>
 
@@ -420,7 +419,6 @@
 
     <!--Basic application beans. -->
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
-        <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="userLockoutPolicy"/>
@@ -481,7 +479,6 @@
 
     <bean id="ldapLoginAuthenticationMgr"
           class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
-        <constructor-arg index="0" ref="identityProviderProvisioning"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="origin" value="ldap"/>
     </bean>

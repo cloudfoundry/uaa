@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
@@ -27,7 +28,7 @@ public class UserLockoutPolicyRetriever implements LockoutPolicyRetriever {
     
     private LockoutPolicy defaultLockoutPolicy;
     
-    public UserLockoutPolicyRetriever(IdentityProviderProvisioning providerProvisioning) {
+    public UserLockoutPolicyRetriever(final JdbcIdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
     }
 
