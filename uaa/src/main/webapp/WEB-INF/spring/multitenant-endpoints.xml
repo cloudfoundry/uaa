@@ -22,11 +22,6 @@
           destroy-method="reset">
     </bean>
 
-    <bean id="identityZoneEndpoints" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints">
-        <constructor-arg ref="zoneEndpointsClientRegistrationService"/>
-        <constructor-arg ref="scimGroupProvisioning"/>
-    </bean>
-
     <bean id="zoneEndpointsClientDetailsValidator"
           class="org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator">
         <constructor-arg value="zones.write"/>
