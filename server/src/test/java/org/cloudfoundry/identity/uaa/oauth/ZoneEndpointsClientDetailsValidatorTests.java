@@ -3,10 +3,14 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
@@ -23,17 +27,16 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
 
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(PollutionPreventionExtension.class)
 class ZoneEndpointsClientDetailsValidatorTests {
 
-    private ZoneEndpointsClientDetailsValidator zoneEndpointsClientDetailsValidator;
+    @Mock
+    private ClientSecretValidator mockClientSecretValidator;
 
-    @BeforeEach
-    void setUp() {
-        final ZoneAwareClientSecretPolicyValidator zoneAwareClientSecretPolicyValidator = mock(ZoneAwareClientSecretPolicyValidator.class);
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(zoneAwareClientSecretPolicyValidator);
-    }
+    @InjectMocks
+    private ZoneEndpointsClientDetailsValidator zoneEndpointsClientDetailsValidator;
 
     @Test
     void testCreateLimitedClient() {
