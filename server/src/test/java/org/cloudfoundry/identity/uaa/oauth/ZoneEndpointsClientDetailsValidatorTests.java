@@ -31,10 +31,8 @@ public class ZoneEndpointsClientDetailsValidatorTests {
 
     @Before
     public void setUp() {
-        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator("zones.write");
-        zoneEndpointsClientDetailsValidator.setClientSecretValidator(
-                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6)));
-
+        final ZoneAwareClientSecretPolicyValidator zoneAwareClientSecretPolicyValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
+        zoneEndpointsClientDetailsValidator = new ZoneEndpointsClientDetailsValidator(zoneAwareClientSecretPolicyValidator);
     }
 
     @Test

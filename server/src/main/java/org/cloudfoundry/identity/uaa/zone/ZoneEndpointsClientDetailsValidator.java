@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.stereotype.Component;
 
 import java.util.Collections;
 
@@ -20,14 +21,15 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 
+@Component("zoneEndpointsClientDetailsValidator")
 public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidator {
 
-    private final String requiredScope;
+    private final String REQUIRED_SCOPE = "zones.write";
+    private final ClientSecretValidator clientSecretValidator;
 
-    private ClientSecretValidator clientSecretValidator;
-
-    public ZoneEndpointsClientDetailsValidator(String requiredScope) {
-        this.requiredScope = requiredScope;
+    public ZoneEndpointsClientDetailsValidator(
+            final ClientSecretValidator clientSecretValidator) {
+        this.clientSecretValidator = clientSecretValidator;
     }
 
     @Override
@@ -63,13 +65,13 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             BaseClientDetails validatedClientDetails = new BaseClientDetails(clientDetails);
             validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());
             validatedClientDetails.setResourceIds(Collections.singleton("none"));
-            validatedClientDetails.addAdditionalInformation(ClientConstants.CREATED_WITH, requiredScope);
+            validatedClientDetails.addAdditionalInformation(ClientConstants.CREATED_WITH, REQUIRED_SCOPE);
             return validatedClientDetails;
         } else if (mode == Mode.MODIFY) {
             throw new IllegalStateException("This validator cannot be used for modification requests");
         } else if (mode == Mode.DELETE) {
-            if (!requiredScope.equals(clientDetails.getAdditionalInformation().get(ClientConstants.CREATED_WITH))) {
-                throw new InvalidClientDetailsException("client must have been " + ClientConstants.CREATED_WITH + " scope " + requiredScope);
+            if (!REQUIRED_SCOPE.equals(clientDetails.getAdditionalInformation().get(ClientConstants.CREATED_WITH))) {
+                throw new InvalidClientDetailsException("client must have been " + ClientConstants.CREATED_WITH + " scope " + REQUIRED_SCOPE);
             }
             return clientDetails;
         }
@@ -79,9 +81,5 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
     @Override
     public ClientSecretValidator getClientSecretValidator() {
         return this.clientSecretValidator;
-    }
-
-    public void setClientSecretValidator(ClientSecretValidator clientSecretValidator) {
-        this.clientSecretValidator = clientSecretValidator;
     }
 }
