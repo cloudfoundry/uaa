@@ -30,7 +30,6 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         this.requiredScope = requiredScope;
     }
 
-
     @Override
     public ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException {
 
@@ -46,12 +45,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             }
             checkRequestedGrantTypes(clientDetails.getAuthorizedGrantTypes());
             if (clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_CLIENT_CREDENTIALS) ||
-                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
-                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
-                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN) ||
-                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_SAML2_BEARER) ||
-                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_JWT_BEARER) ||
-                clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_PASSWORD)) {
+                    clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_AUTHORIZATION_CODE) ||
+                    clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_USER_TOKEN) ||
+                    clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN) ||
+                    clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_SAML2_BEARER) ||
+                    clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_JWT_BEARER) ||
+                    clientDetails.getAuthorizedGrantTypes().contains(GRANT_TYPE_PASSWORD)) {
                 if (StringUtils.isBlank(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client_secret cannot be blank");
                 }
@@ -60,7 +59,6 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             if (!Collections.singletonList(OriginKeys.UAA).equals(clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS))) {
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");
             }
-
 
             BaseClientDetails validatedClientDetails = new BaseClientDetails(clientDetails);
             validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());
@@ -71,13 +69,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             throw new IllegalStateException("This validator cannot be used for modification requests");
         } else if (mode == Mode.DELETE) {
             if (!requiredScope.equals(clientDetails.getAdditionalInformation().get(ClientConstants.CREATED_WITH))) {
-                throw new InvalidClientDetailsException("client must have been "+ClientConstants.CREATED_WITH+" scope "+requiredScope);
+                throw new InvalidClientDetailsException("client must have been " + ClientConstants.CREATED_WITH + " scope " + requiredScope);
             }
             return clientDetails;
         }
         throw new IllegalStateException("This validator must be called with a mode");
     }
-
 
     @Override
     public ClientSecretValidator getClientSecretValidator() {
