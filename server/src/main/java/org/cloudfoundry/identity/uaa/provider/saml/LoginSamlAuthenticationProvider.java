@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -51,6 +52,7 @@ import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
+import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
@@ -78,29 +80,28 @@ import static org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticatio
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 
+/**
+ * SAML Authentication Provider responsible for validating of received SAML messages
+ */
+@Component("samlAuthenticationProvider")
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
 
     private final static Logger logger = LoggerFactory.getLogger(LoginSamlAuthenticationProvider.class);
 
-    private UaaUserDatabase userDatabase;
+    private final IdentityZoneManager identityZoneManager;
+    private final UaaUserDatabase userDatabase;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+    private final ScimGroupExternalMembershipManager externalMembershipManager;
     private ApplicationEventPublisher eventPublisher;
-    private IdentityProviderProvisioning identityProviderProvisioning;
-    private ScimGroupExternalMembershipManager externalMembershipManager;
-    private IdentityZoneManager identityZoneManager;
 
-    public LoginSamlAuthenticationProvider(IdentityZoneManager identityZoneManager) {
+    public LoginSamlAuthenticationProvider(
+            final IdentityZoneManager identityZoneManager,
+            final UaaUserDatabase userDatabase,
+            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            final ScimGroupExternalMembershipManager externalMembershipManager) {
         this.identityZoneManager = identityZoneManager;
-    }
-
-    public void setIdentityProviderProvisioning(IdentityProviderProvisioning identityProviderProvisioning) {
-        this.identityProviderProvisioning = identityProviderProvisioning;
-    }
-
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
-    }
-
-    public void setExternalMembershipManager(ScimGroupExternalMembershipManager externalMembershipManager) {
+        this.identityProviderProvisioning = identityProviderProvisioning;
         this.externalMembershipManager = externalMembershipManager;
     }
 
