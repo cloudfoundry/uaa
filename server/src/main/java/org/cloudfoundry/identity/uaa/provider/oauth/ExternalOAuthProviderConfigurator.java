@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.CollectionUtils;
@@ -36,7 +37,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     private final UaaRandomStringUtil uaaRandomStringUtil;
 
     public ExternalOAuthProviderConfigurator(
-            final JdbcIdentityProviderProvisioning providerProvisioning,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
             final OidcMetadataFetcher oidcMetadataFetcher,
             final UaaRandomStringUtil uaaRandomStringUtil) {
         this.providerProvisioning = providerProvisioning;

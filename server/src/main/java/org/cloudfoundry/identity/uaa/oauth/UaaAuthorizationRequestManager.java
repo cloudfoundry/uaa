@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -93,7 +94,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     public UaaAuthorizationRequestManager(final MultitenantClientServices clientDetailsService,
                                           final SecurityContextAccessor securityContextAccessor,
                                           final UaaUserDatabase userDatabase,
-                                          final JdbcIdentityProviderProvisioning providerProvisioning) {
+                                          final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning) {
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
         this.uaaUserDatabase = userDatabase;

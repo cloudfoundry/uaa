@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 
 public class UserLockoutPolicyRetriever implements LockoutPolicyRetriever {
@@ -28,7 +29,7 @@ public class UserLockoutPolicyRetriever implements LockoutPolicyRetriever {
     
     private LockoutPolicy defaultLockoutPolicy;
     
-    public UserLockoutPolicyRetriever(final JdbcIdentityProviderProvisioning providerProvisioning) {
+    public UserLockoutPolicyRetriever(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
     }
 
