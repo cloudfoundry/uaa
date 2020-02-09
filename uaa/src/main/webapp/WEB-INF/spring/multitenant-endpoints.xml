@@ -22,13 +22,6 @@
           destroy-method="reset">
     </bean>
 
-    <bean id="zoneEndpointsClientRegistrationService"
-          class="org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpointClientRegistrationService">
-        <constructor-arg ref="jdbcClientDetailsService"/>
-        <constructor-arg ref="zoneEndpointsClientDetailsValidator"/>
-        <constructor-arg ref="approvalStore"/>
-    </bean>
-
     <bean id="externalOAuthIdentityProviderConfigValidator"
           class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator"/>
     <bean id="uaaIdentityProviderConfigValidator"
