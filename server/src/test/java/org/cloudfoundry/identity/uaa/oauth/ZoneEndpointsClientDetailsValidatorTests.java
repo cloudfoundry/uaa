@@ -8,13 +8,14 @@ import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.ZoneEndpointsClientDetailsValidator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
@@ -60,18 +61,25 @@ class ZoneEndpointsClientDetailsValidatorTests {
                 () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
     }
 
-    @Test
-    void testCreateClientNoSecretIsInvalid() {
-        for (String grantType : Arrays.asList("password", "client_credentials", GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_USER_TOKEN, GRANT_TYPE_REFRESH_TOKEN, GRANT_TYPE_SAML2_BEARER, GRANT_TYPE_JWT_BEARER)) {
-            BaseClientDetails clientDetails = new BaseClientDetails("client", null, "openid", grantType, "uaa.resource");
-            clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "password",
+            "client_credentials",
+            GRANT_TYPE_AUTHORIZATION_CODE,
+            GRANT_TYPE_USER_TOKEN,
+            GRANT_TYPE_REFRESH_TOKEN,
+            GRANT_TYPE_SAML2_BEARER,
+            GRANT_TYPE_JWT_BEARER,
+    })
+    void testCreateClientNoSecretIsInvalid(final String grantType) {
+        BaseClientDetails clientDetails = new BaseClientDetails("client", null, "openid", grantType, "uaa.resource");
+        clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
 
-            assertThrowsWithMessageThat(
-                    InvalidClientDetailsException.class,
-                    () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE),
-                    containsString("client_secret cannot be blank")
-            );
-        }
+        assertThrowsWithMessageThat(
+                InvalidClientDetailsException.class,
+                () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE),
+                containsString("client_secret cannot be blank")
+        );
     }
 
     @Test
