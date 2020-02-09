@@ -86,7 +86,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     public IdentityProviderEndpoints(
-            IdentityProviderProvisioning identityProviderProvisioning,
+            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
             ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
             ScimGroupProvisioning scimGroupProvisioning,
             SamlIdentityProviderConfigurator samlConfigurator,

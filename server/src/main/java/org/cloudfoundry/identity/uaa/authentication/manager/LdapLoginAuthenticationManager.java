@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
@@ -48,7 +49,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     protected static Logger logger = LoggerFactory.getLogger(LdapLoginAuthenticationManager.class);
 
-    public LdapLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
+    public LdapLoginAuthenticationManager(final JdbcIdentityProviderProvisioning providerProvisioning) {
         super(providerProvisioning);
     }
 

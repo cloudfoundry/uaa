@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -35,7 +36,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     private final UaaRandomStringUtil uaaRandomStringUtil;
 
     public ExternalOAuthProviderConfigurator(
-            final IdentityProviderProvisioning providerProvisioning,
+            final JdbcIdentityProviderProvisioning providerProvisioning,
             final OidcMetadataFetcher oidcMetadataFetcher,
             final UaaRandomStringUtil uaaRandomStringUtil) {
         this.providerProvisioning = providerProvisioning;

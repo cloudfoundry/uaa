@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.validate;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -49,7 +50,8 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
     }
 
-    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy, IdentityProviderProvisioning provisioning) {
+    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
+                                      final JdbcIdentityProviderProvisioning provisioning) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }
