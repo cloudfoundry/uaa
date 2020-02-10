@@ -22,13 +22,6 @@
           destroy-method="reset">
     </bean>
 
-    <bean id="identityProviderEndpoints" class="org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints">
-        <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
-        <constructor-arg name="configValidator" ref="identityProviderConfigValidator"/>
-        <constructor-arg ref="metaDataProviders"/>
-    </bean>
-
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"

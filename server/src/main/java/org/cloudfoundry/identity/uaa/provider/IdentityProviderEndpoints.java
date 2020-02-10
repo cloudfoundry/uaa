@@ -88,11 +88,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     public IdentityProviderEndpoints(
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
-            ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-            ScimGroupProvisioning scimGroupProvisioning,
-            SamlIdentityProviderConfigurator samlConfigurator,
-            IdentityProviderConfigValidator configValidator,
-            IdentityZoneManager identityZoneManager) {
+            final @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
+            final @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
+            final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator,
+            final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
+            final IdentityZoneManager identityZoneManager) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
