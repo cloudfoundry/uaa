@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.provider;
 
 import org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator;
@@ -34,12 +19,11 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
-@SuppressWarnings("ALL")
 public class IdentityProviderConfigValidationDelegatorTest {
 
-    IdentityProviderConfigValidationDelegator validator;
+    private IdentityProviderConfigValidationDelegator validator;
     private UaaIdentityProviderConfigValidator uaaValidator;
     private LdapIdentityProviderConfigValidator ldapValidator;
     private IdentityProvider<AbstractIdentityProviderDefinition> provider;
@@ -74,8 +58,8 @@ public class IdentityProviderConfigValidationDelegatorTest {
         provider.setOriginKey(UAA);
         validator.validate(provider);
         verify(uaaValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(externalOAuthValidator);
-        verifyZeroInteractions(ldapValidator);
+        verifyNoInteractions(externalOAuthValidator);
+        verifyNoInteractions(ldapValidator);
     }
 
     @Test
@@ -84,8 +68,8 @@ public class IdentityProviderConfigValidationDelegatorTest {
         provider.setOriginKey(LDAP);
         validator.validate(provider);
         verify(ldapValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(uaaValidator);
-        verifyZeroInteractions(externalOAuthValidator);
+        verifyNoInteractions(uaaValidator);
+        verifyNoInteractions(externalOAuthValidator);
     }
 
     @Test
@@ -95,11 +79,9 @@ public class IdentityProviderConfigValidationDelegatorTest {
             provider.setOriginKey("any");
             validator.validate(provider);
             verify(externalOAuthValidator, times(1)).validate(same(provider));
-            verifyZeroInteractions(uaaValidator);
-            verifyZeroInteractions(ldapValidator);
+            verifyNoInteractions(uaaValidator);
+            verifyNoInteractions(ldapValidator);
             Mockito.reset(externalOAuthValidator);
         }
     }
-
-
 }
