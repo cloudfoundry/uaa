@@ -7,12 +7,12 @@ import org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValid
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -76,16 +76,18 @@ class IdentityProviderConfigValidationDelegatorTest {
         verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
     }
 
-    @Test
-    void externalOAuth_validator_with_definition_is_invoked() {
-        for (String type : Arrays.asList(OAUTH20, OIDC10)) {
-            identityProvider.setType(type);
-            identityProvider.setOriginKey("any");
-            identityProviderConfigValidationDelegator.validate(identityProvider);
-            verify(mockExternalOAuthIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
-            verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
-            verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
-            Mockito.reset(mockExternalOAuthIdentityProviderConfigValidator);
-        }
+    @ParameterizedTest
+    @ValueSource(strings = {
+            OAUTH20,
+            OIDC10
+    })
+    void externalOAuth_validator_with_definition_is_invoked(final String type) {
+        identityProvider.setType(type);
+        identityProvider.setOriginKey("any");
+        identityProviderConfigValidationDelegator.validate(identityProvider);
+        verify(mockExternalOAuthIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
+        verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
+        verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
+        Mockito.reset(mockExternalOAuthIdentityProviderConfigValidator);
     }
 }
