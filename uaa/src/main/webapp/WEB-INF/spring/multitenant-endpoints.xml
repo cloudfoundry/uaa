@@ -114,19 +114,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <aop:config proxy-target-class="true">
-        <aop:aspect ref="denyAccessToUaaAdvice">
-            <aop:before method="checkIdentityZone"
-                        pointcut="execution(* *..IdentityZoneEndpoints+.updateIdentityZone(..)) and args(identityZone,*)"/>
-            <aop:before method="checkIdentityZoneId"
-                        pointcut="execution(* *..IdentityZoneEndpoints+.updateIdentityZone(..)) and args(*,identityZoneId)"/>
-            <aop:before method="checkIdentityZoneId"
-                        pointcut="execution(* *..IdentityZoneEndpoints+.createClient(..)) and args(identityZoneId,*)"/>
-            <aop:before method="checkIdentityZoneId"
-                        pointcut="execution(* *..IdentityZoneEndpoints+.deleteClient(..)) and args(identityZoneId,*)"/>
-        </aop:aspect>
-    </aop:config>
-
     <bean id="identityZoneEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.IdentityZoneEventPublisher"/>
 
     <aop:config proxy-target-class="true">
