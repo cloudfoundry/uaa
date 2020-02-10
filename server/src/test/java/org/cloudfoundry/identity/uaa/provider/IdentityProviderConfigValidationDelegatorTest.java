@@ -15,6 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
+import org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,8 +25,6 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -39,23 +40,22 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 public class IdentityProviderConfigValidationDelegatorTest {
 
     IdentityProviderConfigValidationDelegator validator;
-    private IdentityProviderConfigValidator uaaValidator;
-    private IdentityProviderConfigValidator ldapValidator;
+    private UaaIdentityProviderConfigValidator uaaValidator;
+    private LdapIdentityProviderConfigValidator ldapValidator;
     private IdentityProvider<AbstractIdentityProviderDefinition> provider;
-    private IdentityProviderConfigValidator externalOAuthValidator;
+    private ExternalOAuthIdentityProviderConfigValidator externalOAuthValidator;
 
     @Before
     public void setup() {
-        validator = new IdentityProviderConfigValidationDelegator();
-        Map<String, IdentityProviderConfigValidator> delegates = new HashMap<>();
-        uaaValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put(UAA, uaaValidator);
-        externalOAuthValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put("externalOAuth", externalOAuthValidator);
-        ldapValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put(LDAP, ldapValidator);
+        uaaValidator = mock(UaaIdentityProviderConfigValidator.class);
+        externalOAuthValidator = mock(ExternalOAuthIdentityProviderConfigValidator.class);
+        ldapValidator = mock(LdapIdentityProviderConfigValidator.class);
         provider = new IdentityProvider<>();
-        validator.setDelegates(delegates);
+        validator = new IdentityProviderConfigValidationDelegator(
+                externalOAuthValidator,
+                uaaValidator,
+                ldapValidator
+        );
     }
 
     @Rule

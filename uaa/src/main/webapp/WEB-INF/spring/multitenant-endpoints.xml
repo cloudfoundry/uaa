@@ -22,26 +22,6 @@
           destroy-method="reset">
     </bean>
 
-    <bean id="externalOAuthIdentityProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator"/>
-    <bean id="uaaIdentityProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator"/>
-    <bean id="ldapIdentityProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator"/>
-
-
-    <bean id="identityProviderConfigValidator"
-          class="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
-        <property name="delegates">
-            <util:map id="delegatesMap" key-type="java.lang.String"
-                      value-type="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
-                <entry key="externalOAuth" value-ref="externalOAuthIdentityProviderConfigValidator"/>
-                <entry key="uaa" value-ref="uaaIdentityProviderConfigValidator"/>
-                <entry key="ldap" value-ref="ldapIdentityProviderConfigValidator"/>
-            </util:map>
-        </property>
-    </bean>
-
     <bean id="identityProviderEndpoints" class="org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints">
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
