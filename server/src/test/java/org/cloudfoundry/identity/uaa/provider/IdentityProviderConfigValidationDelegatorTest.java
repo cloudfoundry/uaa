@@ -29,63 +29,63 @@ import static org.mockito.Mockito.verifyNoInteractions;
 class IdentityProviderConfigValidationDelegatorTest {
 
     @Mock
-    private UaaIdentityProviderConfigValidator uaaValidator;
+    private UaaIdentityProviderConfigValidator mockUaaIdentityProviderConfigValidator;
 
     @Mock
-    private LdapIdentityProviderConfigValidator ldapValidator;
+    private LdapIdentityProviderConfigValidator mockLdapIdentityProviderConfigValidator;
 
     @Mock
-    private ExternalOAuthIdentityProviderConfigValidator externalOAuthValidator;
+    private ExternalOAuthIdentityProviderConfigValidator mockExternalOAuthIdentityProviderConfigValidator;
 
     @InjectMocks
-    private IdentityProviderConfigValidationDelegator validator;
+    private IdentityProviderConfigValidationDelegator identityProviderConfigValidationDelegator;
 
-    private IdentityProvider<AbstractIdentityProviderDefinition> provider;
+    private IdentityProvider<AbstractIdentityProviderDefinition> identityProvider;
 
     @BeforeEach
     void setup() {
-        provider = new IdentityProvider<>();
+        identityProvider = new IdentityProvider<>();
     }
 
     @Test
     void null_identity_provider() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> validator.validate(null),
+                () -> identityProviderConfigValidationDelegator.validate(null),
                 org.hamcrest.Matchers.is("Provider cannot be null")
         );
     }
 
     @Test
     void uaa_validator_with_nodefinition_is_invoked() {
-        provider.setType(UAA);
-        provider.setOriginKey(UAA);
-        validator.validate(provider);
-        verify(uaaValidator, times(1)).validate(same(provider));
-        verifyNoInteractions(externalOAuthValidator);
-        verifyNoInteractions(ldapValidator);
+        identityProvider.setType(UAA);
+        identityProvider.setOriginKey(UAA);
+        identityProviderConfigValidationDelegator.validate(identityProvider);
+        verify(mockUaaIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
+        verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
+        verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
     }
 
     @Test
     void ldap_validator_with_definition_is_invoked() {
-        provider.setType(LDAP);
-        provider.setOriginKey(LDAP);
-        validator.validate(provider);
-        verify(ldapValidator, times(1)).validate(same(provider));
-        verifyNoInteractions(uaaValidator);
-        verifyNoInteractions(externalOAuthValidator);
+        identityProvider.setType(LDAP);
+        identityProvider.setOriginKey(LDAP);
+        identityProviderConfigValidationDelegator.validate(identityProvider);
+        verify(mockLdapIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
+        verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
+        verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
     }
 
     @Test
     void externalOAuth_validator_with_definition_is_invoked() {
         for (String type : Arrays.asList(OAUTH20, OIDC10)) {
-            provider.setType(type);
-            provider.setOriginKey("any");
-            validator.validate(provider);
-            verify(externalOAuthValidator, times(1)).validate(same(provider));
-            verifyNoInteractions(uaaValidator);
-            verifyNoInteractions(ldapValidator);
-            Mockito.reset(externalOAuthValidator);
+            identityProvider.setType(type);
+            identityProvider.setOriginKey("any");
+            identityProviderConfigValidationDelegator.validate(identityProvider);
+            verify(mockExternalOAuthIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
+            verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
+            verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
+            Mockito.reset(mockExternalOAuthIdentityProviderConfigValidator);
         }
     }
 }
