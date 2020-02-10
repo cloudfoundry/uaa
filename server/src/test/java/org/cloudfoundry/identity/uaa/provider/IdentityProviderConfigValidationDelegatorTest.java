@@ -1,11 +1,16 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 
@@ -15,30 +20,31 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
 class IdentityProviderConfigValidationDelegatorTest {
 
-    private IdentityProviderConfigValidationDelegator validator;
+    @Mock
     private UaaIdentityProviderConfigValidator uaaValidator;
+
+    @Mock
     private LdapIdentityProviderConfigValidator ldapValidator;
-    private IdentityProvider<AbstractIdentityProviderDefinition> provider;
+
+    @Mock
     private ExternalOAuthIdentityProviderConfigValidator externalOAuthValidator;
+
+    @InjectMocks
+    private IdentityProviderConfigValidationDelegator validator;
+
+    private IdentityProvider<AbstractIdentityProviderDefinition> provider;
 
     @BeforeEach
     void setup() {
-        uaaValidator = mock(UaaIdentityProviderConfigValidator.class);
-        externalOAuthValidator = mock(ExternalOAuthIdentityProviderConfigValidator.class);
-        ldapValidator = mock(LdapIdentityProviderConfigValidator.class);
         provider = new IdentityProvider<>();
-        validator = new IdentityProviderConfigValidationDelegator(
-                externalOAuthValidator,
-                uaaValidator,
-                ldapValidator
-        );
     }
 
     @Test
