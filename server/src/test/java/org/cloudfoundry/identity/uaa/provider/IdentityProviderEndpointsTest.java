@@ -1,12 +1,17 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -32,6 +37,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
@@ -39,25 +45,25 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
 class IdentityProviderEndpointsTest {
 
-    private IdentityProviderEndpoints identityProviderEndpoints;
+    @Mock
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
+
+    @Mock
     private IdentityProviderConfigValidationDelegator mockIdentityProviderConfigValidationDelegator;
+
+    @Mock
+    private IdentityZoneManager mockIdentityZoneManager;
+
+    @InjectMocks
+    private IdentityProviderEndpoints identityProviderEndpoints;
 
     @BeforeEach
     void setup() {
-        mockIdentityProviderConfigValidationDelegator = mock(IdentityProviderConfigValidationDelegator.class);
-        mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
-        final IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
-        identityProviderEndpoints = new IdentityProviderEndpoints(
-                mockIdentityProviderProvisioning,
-                null,
-                null,
-                null,
-                mockIdentityProviderConfigValidationDelegator,
-                mockIdentityZoneManager);
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        lenient().when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
     }
 
     IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
