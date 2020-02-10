@@ -114,8 +114,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean id="denyAccessToUaaAdvice" class="org.cloudfoundry.identity.uaa.zone.DenyAccessToUaaAdvice"/>
-
     <aop:config proxy-target-class="true">
         <aop:aspect ref="denyAccessToUaaAdvice">
             <aop:before method="checkIdentityZone"

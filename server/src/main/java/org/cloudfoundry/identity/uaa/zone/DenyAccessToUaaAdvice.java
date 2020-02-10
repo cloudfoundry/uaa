@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Component;
 
+@Component("denyAccessToUaaAdvice")
 public class DenyAccessToUaaAdvice {
     
     public void checkIdentityZone(IdentityZone identityZone) {
