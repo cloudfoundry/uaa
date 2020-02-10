@@ -11,7 +11,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -19,8 +18,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -59,20 +56,22 @@ class IdentityProviderConfigValidationDelegatorTest {
     @Test
     void uaa_validator_with_nodefinition_is_invoked() {
         identityProvider.setType(UAA);
-        identityProvider.setOriginKey(UAA);
+
         identityProviderConfigValidationDelegator.validate(identityProvider);
-        verify(mockUaaIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
-        verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
+
+        verify(mockUaaIdentityProviderConfigValidator).validate(identityProvider);
         verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
+        verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
     }
 
     @Test
     void ldap_validator_with_definition_is_invoked() {
         identityProvider.setType(LDAP);
-        identityProvider.setOriginKey(LDAP);
+
         identityProviderConfigValidationDelegator.validate(identityProvider);
-        verify(mockLdapIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
+
         verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
+        verify(mockLdapIdentityProviderConfigValidator).validate(identityProvider);
         verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
     }
 
@@ -83,11 +82,11 @@ class IdentityProviderConfigValidationDelegatorTest {
     })
     void externalOAuth_validator_with_definition_is_invoked(final String type) {
         identityProvider.setType(type);
-        identityProvider.setOriginKey("any");
+
         identityProviderConfigValidationDelegator.validate(identityProvider);
-        verify(mockExternalOAuthIdentityProviderConfigValidator, times(1)).validate(same(identityProvider));
+
         verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
         verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
-        Mockito.reset(mockExternalOAuthIdentityProviderConfigValidator);
+        verify(mockExternalOAuthIdentityProviderConfigValidator).validate(identityProvider);
     }
 }
