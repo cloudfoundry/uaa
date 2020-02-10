@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -49,13 +49,15 @@ public class IdentityProviderEndpointsTest {
     public void setup() {
         configValidator = mock(IdentityProviderConfigValidationDelegator.class);
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
+        final IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         identityProviderEndpoints = new IdentityProviderEndpoints(
                 identityProviderProvisioning,
                 null,
                 null,
                 null,
                 configValidator,
-                new IdentityZoneManagerImpl());
+                mockIdentityZoneManager);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
     }
 
     public IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
