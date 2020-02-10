@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.provider;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
@@ -23,10 +23,10 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -39,14 +39,14 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class IdentityProviderEndpointsTest {
+class IdentityProviderEndpointsTest {
 
     private IdentityProviderEndpoints identityProviderEndpoints;
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
     private IdentityProviderConfigValidationDelegator mockIdentityProviderConfigValidationDelegator;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         mockIdentityProviderConfigValidationDelegator = mock(IdentityProviderConfigValidationDelegator.class);
         mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         final IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
@@ -60,7 +60,7 @@ public class IdentityProviderEndpointsTest {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
     }
 
-    public IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
+    IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
         IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
@@ -96,7 +96,7 @@ public class IdentityProviderEndpointsTest {
     }
 
 
-    public IdentityProvider<LdapIdentityProviderDefinition> getLdapDefinition() {
+    IdentityProvider<LdapIdentityProviderDefinition> getLdapDefinition() {
         String ldapProfile = "ldap-search-and-bind.xml";
         //String ldapProfile = "ldap-search-and-compare.xml";
         String ldapGroup = "ldap-groups-null.xml";
@@ -121,12 +121,12 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void retrieve_oauth_provider_by_id_redacts_password() throws Exception {
+    void retrieve_oauth_provider_by_id_redacts_password() throws Exception {
         retrieve_oauth_provider_by_id("", OriginKeys.OAUTH20);
         retrieve_oauth_provider_by_id("", OriginKeys.OIDC10);
     }
 
-    public IdentityProvider<LdapIdentityProviderDefinition> retrieve_oauth_provider_by_id(String id, String type) {
+    IdentityProvider<LdapIdentityProviderDefinition> retrieve_oauth_provider_by_id(String id, String type) {
         IdentityProvider provider = getExternalOAuthProvider();
         provider.setType(type);
         when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(provider);
@@ -141,11 +141,11 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void retrieve_ldap_provider_by_id_redacts_password() throws Exception {
+    void retrieve_ldap_provider_by_id_redacts_password() throws Exception {
         retrieve_ldap_provider_by_id("");
     }
 
-    public IdentityProvider<LdapIdentityProviderDefinition> retrieve_ldap_provider_by_id(String id) {
+    IdentityProvider<LdapIdentityProviderDefinition> retrieve_ldap_provider_by_id(String id) {
         when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(getLdapDefinition());
         ResponseEntity<IdentityProvider> ldap = identityProviderEndpoints.retrieveIdentityProvider(id, true);
         assertNotNull(ldap);
@@ -158,14 +158,14 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void remove_bind_password() {
+    void remove_bind_password() {
         remove_sensitive_data(() -> getLdapDefinition(),
                 LDAP,
                 (spy) -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
     }
 
     @Test
-    public void remove_client_secret() {
+    void remove_client_secret() {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             remove_sensitive_data(() -> getExternalOAuthProvider(),
                     type,
@@ -173,7 +173,7 @@ public class IdentityProviderEndpointsTest {
         }
     }
 
-    public void remove_sensitive_data(Supplier<IdentityProvider> getProvider, String type, Consumer<AbstractIdentityProviderDefinition> validator) {
+    void remove_sensitive_data(Supplier<IdentityProvider> getProvider, String type, Consumer<AbstractIdentityProviderDefinition> validator) {
         IdentityProvider provider = getProvider.get();
         AbstractIdentityProviderDefinition spy = Mockito.spy(provider.getConfig());
         provider.setConfig(spy);
@@ -184,7 +184,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void remove_client_secret_wrong_origin() {
+    void remove_client_secret_wrong_origin() {
         IdentityProvider provider = getExternalOAuthProvider();
         AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy((AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig());
         provider.setConfig(spy);
@@ -194,7 +194,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void remove_bind_password_non_ldap() {
+    void remove_bind_password_non_ldap() {
         IdentityProvider provider = getLdapDefinition();
         LdapIdentityProviderDefinition spy = Mockito.spy((LdapIdentityProviderDefinition) provider.getConfig());
         provider.setConfig(spy);
@@ -204,7 +204,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void patch_bind_password() {
+    void patch_bind_password() {
         IdentityProvider provider = getLdapDefinition();
         LdapIdentityProviderDefinition def = (LdapIdentityProviderDefinition) provider.getConfig();
         def.setBindPassword(null);
@@ -218,7 +218,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void patch_client_secret() {
+    void patch_client_secret() {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
             AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
@@ -235,7 +235,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void patch_bind_password_non_ldap() {
+    void patch_bind_password_non_ldap() {
         IdentityProvider provider = getLdapDefinition();
         LdapIdentityProviderDefinition spy = Mockito.spy((LdapIdentityProviderDefinition) provider.getConfig());
         provider.setConfig(spy);
@@ -245,7 +245,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void retrieve_all_providers_redacts_data() {
+    void retrieve_all_providers_redacts_data() {
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
                 .thenReturn(Arrays.asList(getLdapDefinition(), getExternalOAuthProvider()));
         ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true);
@@ -266,7 +266,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void update_ldap_provider_patches_password() throws Exception {
+    void update_ldap_provider_patches_password() throws Exception {
         IdentityProvider<LdapIdentityProviderDefinition> provider = retrieve_ldap_provider_by_id("id");
         provider.getConfig().setBindPassword(null);
         LdapIdentityProviderDefinition spy = Mockito.spy(provider.getConfig());
@@ -291,7 +291,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void update_ldap_provider_takes_new_password() throws Exception {
+    void update_ldap_provider_takes_new_password() throws Exception {
         IdentityProvider<LdapIdentityProviderDefinition> provider = retrieve_ldap_provider_by_id("id");
         LdapIdentityProviderDefinition spy = Mockito.spy(provider.getConfig());
         provider.setConfig(spy);
@@ -317,7 +317,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void create_ldap_provider_removes_password() throws Exception {
+    void create_ldap_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider<LdapIdentityProviderDefinition> ldapDefinition = getLdapDefinition();
         assertNotNull(ldapDefinition.getConfig().getBindPassword());
@@ -332,7 +332,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void create_oauth_provider_removes_password() throws Exception {
+    void create_oauth_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> externalOAuthDefinition = getExternalOAuthProvider();
@@ -350,14 +350,14 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void testPatchIdentityProviderStatusInvalidPayload() {
+    void testPatchIdentityProviderStatusInvalidPayload() {
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
-    public void testPatchIdentityProviderStatusInvalidIDP() {
+    void testPatchIdentityProviderStatusInvalidIDP() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
@@ -370,7 +370,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void testPatchIdentityProviderStatusWithNoIDPDefinition() {
+    void testPatchIdentityProviderStatusWithNoIDPDefinition() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
@@ -383,7 +383,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void testPatchIdentityProviderStatusWithNoPasswordPolicy() {
+    void testPatchIdentityProviderStatusWithNoPasswordPolicy() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
@@ -396,7 +396,7 @@ public class IdentityProviderEndpointsTest {
     }
 
     @Test
-    public void testPatchIdentityProviderStatus() {
+    void testPatchIdentityProviderStatus() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         identityProviderStatus.setRequirePasswordChange(true);
