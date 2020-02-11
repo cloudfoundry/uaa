@@ -114,8 +114,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean id="idpEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.IdentityProviderEventPublisher"/>
-
     <aop:config proxy-target-class="true">
         <aop:aspect ref="idpEventPublisher">
             <aop:after-returning method="idpCreated"
