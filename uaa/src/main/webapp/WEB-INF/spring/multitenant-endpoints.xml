@@ -68,8 +68,6 @@
         </aop:aspect>
     </aop:config>
 
-    <bean id="identityZoneEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.IdentityZoneEventPublisher"/>
-
     <aop:config proxy-target-class="true">
         <aop:aspect ref="identityZoneEventPublisher">
             <aop:after-returning method="identityZoneCreated"
