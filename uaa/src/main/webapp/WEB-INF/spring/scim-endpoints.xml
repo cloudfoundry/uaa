@@ -181,12 +181,12 @@
 
     <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless"
           authentication-manager-ref="emptyAuthenticationManager"
-          entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-          use-expressions="false"
+          entry-point-ref="oauthAuthenticationEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY,scope=password.write"/>
-        <custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated() and #oauth2.hasAnyScope('password.write')"/>
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
 
@@ -242,9 +242,6 @@
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
-
-    <oauth:resource-server id="passwordResourceAuthenticationFilter" token-services-ref="tokenServices"
-                           resource-id="password" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
                            resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint"/>
