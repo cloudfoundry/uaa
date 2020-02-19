@@ -1,5 +1,6 @@
 #@data/values
 ---
+#! UAA Deployment Values
 version: ""
 image: ""
 labels:
@@ -7,9 +8,15 @@ labels:
   partOf: uaa
   managedBy: kapp
 
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 500m
+
 tomcat:
   accessLoggingEnabled: "y"
 
+#! UAA Application Values
 database:
   scheme: hsqldb
   address: ~

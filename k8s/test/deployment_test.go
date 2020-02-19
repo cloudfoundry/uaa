@@ -56,6 +56,25 @@ var _ = Describe("Deployment", func() {
 		)
 	})
 
+	It("Renders custom resource requests for the UAA", func() {
+		ctx := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"resources.requests.memory": "888Mi",
+				"resources.requests.cpu":    "999m",
+			})
+
+		Expect(ctx).To(
+			ProduceYAML(
+				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
+					pod.WithContainerMatching(func(container *ContainerMatcher) {
+						container.WithName("uaa")
+						container.WithResourceRequests("888Mi", "999m")
+					})
+				}),
+			),
+		)
+	})
+
 	When("provided with custom values", func() {
 		var (
 			databaseScheme string
