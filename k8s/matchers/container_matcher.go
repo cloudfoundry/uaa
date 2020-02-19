@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
 	coreV1 "k8s.io/api/core/v1"
+	k8sResource "k8s.io/apimachinery/pkg/api/resource"
 )
 
 type ContainerMatcher struct {
@@ -44,6 +45,16 @@ func (matcher *ContainerMatcher) WithEnvVar(name, value string) *ContainerMatche
 		"Value": Equal(value),
 	})
 
+	return matcher
+}
+
+func (matcher *ContainerMatcher) WithResourceRequests(memory, cpu string) *ContainerMatcher {
+	resourceList := coreV1.ResourceList{}
+	resourceList[coreV1.ResourceMemory] = k8sResource.MustParse(memory)
+	resourceList[coreV1.ResourceCPU] = k8sResource.MustParse(cpu)
+	matcher.fields["Resources"] = MatchFields(IgnoreExtras, Fields{
+		"Requests": Equal(resourceList),
+	})
 	return matcher
 }
 

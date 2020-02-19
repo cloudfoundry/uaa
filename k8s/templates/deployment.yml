@@ -25,6 +25,10 @@ spec:
       containers:
         - name: uaa
           image: #@ data.values.image
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
           ports:
             - name: http-uaa
               containerPort: 8080
