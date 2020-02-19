@@ -1,5 +1,4 @@
 #@ load("@ytt:data", "data")
-#@yaml/text-templated-strings
 #@ load("deployment_functions.star", "spring_profiles")
 ---
 apiVersion: apps/v1
@@ -8,11 +7,11 @@ metadata:
   name: uaa
   labels:
     app.kubernetes.io/name: "uaa"
-    app.kubernetes.io/instance: "uaa-(@= data.values.labels.instance @)"
-    app.kubernetes.io/version: "(@= data.values.version @)"
+    app.kubernetes.io/instance: #@ "uaa-" + data.values.labels.instance
+    app.kubernetes.io/version: #@ data.values.version
     app.kubernetes.io/component: "authorization-server"
-    app.kubernetes.io/part-of: "(@= data.values.labels.partOf @)"
-    app.kubernetes.io/managed-by: "(@= data.values.labels.managedBy @)"
+    app.kubernetes.io/part-of: #@ data.values.labels.partOf
+    app.kubernetes.io/managed-by: #@ data.values.labels.managedBy
 spec:
   selector:
     matchLabels:
@@ -25,14 +24,14 @@ spec:
     spec: #! pod spec
       containers:
         - name: uaa
-          image: "(@= data.values.image @)"
+          image: #@ data.values.image
           ports:
             - name: http-uaa
               containerPort: 8080
               protocol: TCP
           env:
             - name: BPL_TOMCAT_ACCESS_LOGGING
-              value: "(@= data.values.tomcat.accessLoggingEnabled @)"
+              value: #@ data.values.tomcat.accessLoggingEnabled
             - name: JAVA_OPTS
               value: "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties"
             - name: spring_profiles

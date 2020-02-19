@@ -1,7 +1,6 @@
 #@ load("@ytt:yaml", "yaml")
 #@ load("uaa.lib.yml", "config")
 #@ load("@ytt:data", "data")
-#@yaml/text-templated-strings
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -9,11 +8,11 @@ metadata:
   name: uaa-config
   labels:
     app.kubernetes.io/name: "uaa"
-    app.kubernetes.io/instance: "uaa-(@= data.values.labels.instance @)"
-    app.kubernetes.io/version: "(@= data.values.version @)"
+    app.kubernetes.io/instance: #@ "uaa-" + data.values.labels.instance
+    app.kubernetes.io/version: #@ data.values.version
     app.kubernetes.io/component: "authorization-server"
-    app.kubernetes.io/part-of: "(@= data.values.labels.partOf @)"
-    app.kubernetes.io/managed-by: "(@= data.values.labels.managedBy @)"
+    app.kubernetes.io/part-of: #@ data.values.labels.partOf
+    app.kubernetes.io/managed-by: #@ data.values.labels.managedBy
 data:
   uaa.yml: #@ yaml.encode(config())
   log4j2.properties: #@ data.read("log4j2.properties")
