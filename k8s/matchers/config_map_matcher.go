@@ -7,7 +7,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-type DataMatcherConfig func(*DataFieldMatcher)
+type DataFieldMatcherConfig func(*DataFieldMatcher)
+type DataValueMatcherConfig func(*DataValueMatcher)
 
 type ConfigMapMatcher struct {
 	dataFields map[string]types.GomegaMatcher
@@ -19,11 +20,18 @@ func RepresentingConfigMap() *ConfigMapMatcher {
 	return &ConfigMapMatcher{map[string]types.GomegaMatcher{}, nil}
 }
 
-func (matcher *ConfigMapMatcher) WithDataFieldMatching(fieldName string, config DataMatcherConfig) *ConfigMapMatcher {
+func (matcher *ConfigMapMatcher) WithDataFieldMatching(fieldName string, config DataFieldMatcherConfig) *ConfigMapMatcher {
 	dataField := NewDataFieldMatcher(fieldName)
 	config(dataField)
 	matcher.dataFields[fieldName] = dataField
 
+	return matcher
+}
+
+func (matcher *ConfigMapMatcher) WithDataValueMatching(fieldName string, config DataValueMatcherConfig) *ConfigMapMatcher {
+	dataField := NewDataValueMatcher(fieldName)
+	config(dataField)
+	matcher.dataFields[fieldName] = dataField
 	return matcher
 }
 

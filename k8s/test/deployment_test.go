@@ -12,11 +12,11 @@ var _ = Describe("Deployment", func() {
 
 	BeforeEach(func() {
 		templates = []string{
-			pathToTemplate("deployment.yml"),
-			pathToTemplate(filepath.Join("values", "_values.yml")),
-			pathToTemplate(filepath.Join("values", "image.yml")),
-			pathToTemplate(filepath.Join("values", "version.yml")),
-			pathToTemplate("deployment_functions.star"),
+			pathToFile("deployment.yml"),
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("values", "image.yml")),
+			pathToFile(filepath.Join("values", "version.yml")),
+			pathToFile("deployment_functions.star"),
 		}
 	})
 
@@ -32,6 +32,7 @@ var _ = Describe("Deployment", func() {
 						container.WithEnvVar("spring_profiles", "default,hsqldb")
 						container.WithEnvVar("UAA_CONFIG_PATH", "/etc/config")
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
+						container.WithEnvVar("JAVA_OPTS", "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties")
 					})
 				}),
 			),

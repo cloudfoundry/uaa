@@ -13,8 +13,6 @@ metadata:
     app.kubernetes.io/component: "authorization-server"
     app.kubernetes.io/part-of: "(@= data.values.labels.partOf @)"
     app.kubernetes.io/managed-by: "(@= data.values.labels.managedBy @)"
-
-
 spec:
   selector:
     matchLabels:
@@ -36,7 +34,7 @@ spec:
             - name: BPL_TOMCAT_ACCESS_LOGGING
               value: "(@= data.values.tomcat.accessLoggingEnabled @)"
             - name: JAVA_OPTS
-              value: "-Djava.security.egd=file:/dev/./urandom"
+              value: "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties"
             - name: spring_profiles
               value: #@ spring_profiles(data.values.database.scheme)
             - name: UAA_CONFIG_PATH
