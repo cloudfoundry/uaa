@@ -15,6 +15,7 @@ spec:
       labels:
         app: uaa-deployment
     spec: #! pod spec
+      serviceAccountName: uaa
       containers:
         - name: uaa
           image: #@ data.values.image

@@ -11,20 +11,27 @@ import (
 type ContainerMatcherConfig func(*ContainerMatcher)
 
 type PodMatcher struct {
-	containers []types.GomegaMatcher
-	meta       *ObjectMetaMatcher
+	containers     []types.GomegaMatcher
+	meta           *ObjectMetaMatcher
+	serviceAccount types.GomegaMatcher
 
 	executed types.GomegaMatcher
 }
 
 func NewPodMatcher() *PodMatcher {
-	return &PodMatcher{[]types.GomegaMatcher{}, NewObjectMetaMatcher(), nil}
+	return &PodMatcher{[]types.GomegaMatcher{}, NewObjectMetaMatcher(), nil, nil}
 }
 
 func (matcher *PodMatcher) WithContainerMatching(config ContainerMatcherConfig) *PodMatcher {
 	container := NewContainerMatcher()
 	config(container)
 	matcher.containers = append(matcher.containers, container)
+
+	return matcher
+}
+
+func (matcher *PodMatcher) WithServiceAccountMatching(serviceAccount string) *PodMatcher {
+	matcher.serviceAccount = gomega.Equal(serviceAccount)
 
 	return matcher
 }
@@ -39,6 +46,13 @@ func (matcher *PodMatcher) Match(actual interface{}) (bool, error) {
 	pod, ok := actual.(coreV1.PodTemplateSpec)
 	if !ok {
 		return false, fmt.Errorf("Expected pod. Got\n%s", format.Object(actual, 1))
+	}
+
+	if matcher.serviceAccount != nil {
+		matcher.executed = gomega.Equal(matcher.serviceAccount)
+		if pass, err := matcher.serviceAccount.Match(pod.Spec.ServiceAccountName); !pass || err != nil {
+			return pass, err
+		}
 	}
 
 	for _, container := range matcher.containers {

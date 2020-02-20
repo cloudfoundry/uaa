@@ -26,6 +26,7 @@ var _ = Describe("Deployment", func() {
 		Expect(ctx).To(
 			ProduceYAML(
 				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
+					pod.WithServiceAccountMatching("uaa")
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
 						container.WithImageContaining("cfidentity/uaa@sha256:")
