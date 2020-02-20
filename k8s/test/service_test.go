@@ -27,7 +27,7 @@ var _ = Describe("Service", func() {
 			"app.kubernetes.io/name":       "uaa",
 			"app.kubernetes.io/instance":   "uaa-standalone",
 			"app.kubernetes.io/version":    "version for service metadata label",
-			"app.kubernetes.io/component":  "authorization server",
+			"app.kubernetes.io/component":  "authorization_server",
 			"app.kubernetes.io/part-of":    "uaa",
 			"app.kubernetes.io/managed-by": "kubectl",
 		}

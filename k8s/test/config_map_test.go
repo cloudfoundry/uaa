@@ -128,7 +128,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 					"app.kubernetes.io/name":       "uaa",
 					"app.kubernetes.io/instance":   "uaa-standalone",
 					"app.kubernetes.io/version":    "some version",
-					"app.kubernetes.io/component":  "authorization server",
+					"app.kubernetes.io/component":  "authorization_server",
 					"app.kubernetes.io/part-of":    "uaa",
 					"app.kubernetes.io/managed-by": "kubectl",
 				}
