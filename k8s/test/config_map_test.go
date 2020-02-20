@@ -117,6 +117,25 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 						}),
 					))
 			})
+
+			It("Renders common labels for the deployment", func() {
+				templates = append(templates, pathToFile("metadata.yml"))
+				ctx := NewRenderingContext(templates...).WithData(map[string]string{
+					"version": "some version",
+				})
+
+				labels := map[string]string{
+					"app.kubernetes.io/name":       "uaa",
+					"app.kubernetes.io/instance":   "uaa-standalone",
+					"app.kubernetes.io/version":    "some version",
+					"app.kubernetes.io/component":  "authorization server",
+					"app.kubernetes.io/part-of":    "uaa",
+					"app.kubernetes.io/managed-by": "kubectl",
+				}
+				Expect(ctx).To(
+					ProduceYAML(RepresentingConfigMap().WithLabels(labels)),
+				)
+			})
 		})
 		Context("with overriden values", func() {
 			It("produces yaml", func() {

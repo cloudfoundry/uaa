@@ -12,18 +12,25 @@ type ContainerMatcherConfig func(*ContainerMatcher)
 
 type PodMatcher struct {
 	containers []types.GomegaMatcher
+	meta       *ObjectMetaMatcher
 
 	executed types.GomegaMatcher
 }
 
 func NewPodMatcher() *PodMatcher {
-	return &PodMatcher{[]types.GomegaMatcher{}, nil}
+	return &PodMatcher{[]types.GomegaMatcher{}, NewObjectMetaMatcher(), nil}
 }
 
 func (matcher *PodMatcher) WithContainerMatching(config ContainerMatcherConfig) *PodMatcher {
 	container := NewContainerMatcher()
 	config(container)
 	matcher.containers = append(matcher.containers, container)
+
+	return matcher
+}
+
+func (matcher *PodMatcher) WithLabels(labels map[string]string) *PodMatcher {
+	matcher.meta.WithLabels(labels)
 
 	return matcher
 }
@@ -41,6 +48,11 @@ func (matcher *PodMatcher) Match(actual interface{}) (bool, error) {
 		if pass, err := contains.Match(pod.Spec.Containers); !pass || err != nil {
 			return pass, err
 		}
+	}
+
+	matcher.executed = matcher.meta
+	if pass, err := matcher.meta.Match(pod.ObjectMeta); !pass || err != nil {
+		return pass, err
 	}
 
 	return true, nil

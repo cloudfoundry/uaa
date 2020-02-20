@@ -5,13 +5,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: uaa
-  labels:
-    app.kubernetes.io/name: "uaa"
-    app.kubernetes.io/instance: #@ "uaa-" + data.values.labels.instance
-    app.kubernetes.io/version: #@ data.values.version
-    app.kubernetes.io/component: "authorization-server"
-    app.kubernetes.io/part-of: #@ data.values.labels.partOf
-    app.kubernetes.io/managed-by: #@ data.values.labels.managedBy
 spec:
   selector:
     matchLabels:

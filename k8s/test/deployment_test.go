@@ -103,19 +103,26 @@ var _ = Describe("Deployment", func() {
 	})
 
 	It("Renders common labels for the deployment", func() {
+		templates = append(templates, pathToFile("metadata.yml"))
 		ctx := NewRenderingContext(templates...).WithData(map[string]string{
 			"version": "1.0.0",
 		})
 
+		labels := map[string]string{
+			"app.kubernetes.io/name":       "uaa",
+			"app.kubernetes.io/instance":   "uaa-standalone",
+			"app.kubernetes.io/version":    "1.0.0",
+			"app.kubernetes.io/component":  "authorization server",
+			"app.kubernetes.io/part-of":    "uaa",
+			"app.kubernetes.io/managed-by": "kubectl",
+		}
 		Expect(ctx).To(
-			ProduceYAML(RepresentingDeployment().WithLabels(map[string]string{
-				"app.kubernetes.io/name":       "uaa",
-				"app.kubernetes.io/instance":   "uaa-standalone",
-				"app.kubernetes.io/version":    "1.0.0",
-				"app.kubernetes.io/component":  "authorization-server",
-				"app.kubernetes.io/part-of":    "uaa",
-				"app.kubernetes.io/managed-by": "kapp",
-			})),
+			ProduceYAML(RepresentingDeployment().
+				WithLabels(labels).
+				WithPodMatching(func(pod *PodMatcher) {
+					pod.WithLabels(labels)
+				}),
+			),
 		)
 	})
 })

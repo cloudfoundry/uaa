@@ -41,8 +41,8 @@ func (matcher *ProduceYAMLMatcher) Match(actual interface{}) (bool, error) {
 	}
 
 	session, err := renderWithData(rendering.templates, rendering.data)
-	if err != nil {
-		return false, err
+	if err != nil || session.ExitCode() != 0 {
+		return false, fmt.Errorf("render error, exit status={%v}, command={%s}, error={%v}", session.ExitCode(), session.Command, err)
 	}
 
 	matcher.rendered = string(session.Out.Contents())

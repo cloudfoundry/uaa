@@ -6,7 +6,7 @@ image: ""
 labels:
   instance: standalone
   partOf: uaa
-  managedBy: kapp
+  managedBy: kubectl
 
 resources:
   requests:
