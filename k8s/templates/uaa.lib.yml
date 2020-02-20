@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("uaa.functions.lib.star", "signing_keys", "database_connection_string")
+#@ load("uaa.lib.star", "signing_keys", "database_connection_string")
 #@ def config():
 ---
 issuer:
