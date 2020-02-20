@@ -1,6 +1,6 @@
 GOFILES=`find . -type f -name '*.go'`
 
-.PHONY: clean format template_test test render apply help docker-run
+.PHONY: help clean format template_test test render apply docker-run docker-debug
 
 help:
 	@echo "With this makefile you can clean, format, test, render, or apply the UAA K8s templates"
