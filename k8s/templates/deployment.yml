@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("deployment_functions.star", "spring_profiles")
+#@ load("deployment.star", "spring_profiles")
 ---
 apiVersion: apps/v1
 kind: Deployment

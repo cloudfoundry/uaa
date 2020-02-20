@@ -16,7 +16,7 @@ var _ = Describe("Deployment", func() {
 			pathToFile(filepath.Join("values", "_values.yml")),
 			pathToFile(filepath.Join("values", "image.yml")),
 			pathToFile(filepath.Join("values", "version.yml")),
-			pathToFile("deployment_functions.star"),
+			pathToFile("deployment.star"),
 		}
 	})
 
