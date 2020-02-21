@@ -36,6 +36,11 @@ func (matcher *ObjectMetaMatcher) WithLabels(labels map[string]string) *ObjectMe
 	return matcher
 }
 
+func (matcher *ObjectMetaMatcher) WithNamespace(namespace string) *ObjectMetaMatcher {
+	matcher.fields["Namespace"] = gomega.Equal(namespace)
+	return matcher
+}
+
 func (matcher *ObjectMetaMatcher) Match(actual interface{}) (bool, error) {
 	meta, ok := actual.(metaV1.ObjectMeta)
 	if !ok {

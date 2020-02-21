@@ -23,6 +23,12 @@ func (matcher *ServiceMatcher) WithLabels(labels map[string]string) *ServiceMatc
 	return matcher
 }
 
+func (matcher *ServiceMatcher) WithNamespace(namespace string) *ServiceMatcher {
+	matcher.meta.WithNamespace(namespace)
+
+	return matcher
+}
+
 func (matcher *ServiceMatcher) Match(actual interface{}) (bool, error) {
 	service, ok := actual.(*coreV1.Service)
 	if !ok {

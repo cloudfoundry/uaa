@@ -14,6 +14,7 @@ app.kubernetes.io/managed-by: #@ data.values.labels.managedBy
 ---
 #@overlay/match-child-defaults missing_ok=True
 metadata:
+  namespace: #@ data.values.namespace
   labels: #@ metadata_labels()
 
 #@overlay/match by=overlay.subset({"kind":"Deployment"}),missing_ok=True
@@ -22,4 +23,5 @@ spec:
   #@overlay/match-child-defaults missing_ok=True
   template:
     metadata:
+      namespace: #@ data.values.namespace
       labels: #@ metadata_labels()

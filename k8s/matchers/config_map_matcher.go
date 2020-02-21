@@ -42,6 +42,12 @@ func (matcher *ConfigMapMatcher) WithLabels(labels map[string]string) *ConfigMap
 	return matcher
 }
 
+func (matcher *ConfigMapMatcher) WithNamespace(namespace string) *ConfigMapMatcher {
+	matcher.meta.WithNamespace(namespace)
+
+	return matcher
+}
+
 func (matcher *ConfigMapMatcher) Match(actual interface{}) (success bool, err error) {
 	configMap, ok := actual.(*v1.ConfigMap)
 	if !ok {
