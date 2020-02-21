@@ -6,12 +6,11 @@ metadata:
   labels:
     app: uaa-deployment
 spec:
-  type: NodePort
+  type: ClusterIP
   ports:
     - port: 8080
       name: http-uaa
       targetPort: 8080
       protocol: TCP
-      nodePort: 30000
   selector:
     app: uaa-deployment

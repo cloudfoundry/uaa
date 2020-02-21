@@ -1,6 +1,6 @@
 GOFILES=`find . -type f -name '*.go'`
 
-.PHONY: help clean format template_test test render apply docker-run docker-debug
+.PHONY: help clean format template_test test render apply minikube docker-run docker-debug
 
 help:
 	@echo "With this makefile you can clean, format, test, render, or apply the UAA K8s templates"
@@ -21,6 +21,9 @@ render:
 
 apply:
 	@ytt -f templates | kubectl apply -f -
+
+minikube:
+	@ytt -f templates -f addons | kubectl apply -f -
 
 docker-run:
 	docker pull cfidentity/uaa:latest \
