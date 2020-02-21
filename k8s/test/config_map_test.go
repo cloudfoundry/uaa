@@ -133,7 +133,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 					"app.kubernetes.io/managed-by": "kubectl",
 				}
 				Expect(ctx).To(
-					ProduceYAML(RepresentingConfigMap().WithLabels(labels)),
+					ProduceYAML(RepresentingConfigMap().WithLabels(labels).WithNamespace("default")),
 				)
 			})
 		})

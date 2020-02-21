@@ -32,7 +32,7 @@ var _ = Describe("Service", func() {
 			"app.kubernetes.io/managed-by": "kubectl",
 		}
 		Expect(ctx).To(
-			ProduceYAML(RepresentingService().WithLabels(labels)),
+			ProduceYAML(RepresentingService().WithLabels(labels).WithNamespace("default")),
 		)
 	})
 })

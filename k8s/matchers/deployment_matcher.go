@@ -32,6 +32,12 @@ func (matcher *DeploymentMatcher) WithLabels(labels map[string]string) *Deployme
 	return matcher
 }
 
+func (matcher *DeploymentMatcher) WithNamespace(namespace string) *DeploymentMatcher {
+	matcher.meta.WithNamespace(namespace)
+
+	return matcher
+}
+
 func (matcher *DeploymentMatcher) Match(actual interface{}) (bool, error) {
 	deployment, ok := actual.(*appV1.Deployment)
 	if !ok {

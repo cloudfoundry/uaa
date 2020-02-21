@@ -3,6 +3,7 @@
 #! UAA Deployment Values
 version: ""
 image: ""
+namespace: default
 labels:
   instance: standalone
   partOf: uaa
