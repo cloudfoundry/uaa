@@ -9,5 +9,5 @@ spec:
       paths:
       - path: /
         backend:
-          serviceName: uaa-service
+          serviceName: uaa
           servicePort: 8080
