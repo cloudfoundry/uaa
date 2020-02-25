@@ -350,17 +350,6 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void appliesDefaultClassPathLogProperties() throws Exception {
-        initializer.initialize(context);
-
-        LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
-
-        URI expectedUrl = ResourceUtils.toURI(ResourceUtils.getURL("classpath:log4j2.properties"));
-
-        assertThat(loggerContext.getConfigLocation(), is(expectedUrl));
-    }
-
-    @Test
     void appliesCustomClassPathLogProperties() throws Exception {
         File tempFile = File.createTempFile("prefix", "suffix.properties");
         File validLog4j2PropertyFile = new ClassPathResource("log4j2-test.properties").getFile();

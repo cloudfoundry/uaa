@@ -31,7 +31,7 @@ spec:
             - name: BPL_TOMCAT_ACCESS_LOGGING
               value: #@ data.values.tomcat.accessLoggingEnabled
             - name: JAVA_OPTS
-              value: "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties"
+              value: "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties -Dlog4j.configurationFile=/etc/config/log4j2.properties"
             - name: spring_profiles
               value: #@ spring_profiles(data.values.database.scheme)
             - name: UAA_CONFIG_PATH

@@ -177,7 +177,7 @@ cargo {
         startStopTimeout = 540000
         rmiPort = applicationPort + 1
         List activeProfiles = System.getProperty("spring.profiles.active", "").split(",")
-        jvmArgs = "-DLOGIN_CONFIG_URL=classpath:required_configuration.yml"
+        jvmArgs = "-DLOGIN_CONFIG_URL=classpath:required_configuration.yml -Dlog4j.configurationFile=" + file("log4j2.properties").getAbsolutePath()
         if (activeProfiles.contains("debug")) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
