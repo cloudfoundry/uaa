@@ -31,7 +31,7 @@ var _ = Describe("Deployment", func() {
 						container.WithName("uaa")
 						container.WithImageContaining("cfidentity/uaa@sha256:")
 						container.WithEnvVar("spring_profiles", "default,hsqldb")
-						container.WithEnvVar("UAA_CONFIG_PATH", "/etc/config")
+						container.WithEnvVar("CLOUDFOUNDRY_CONFIG_PATH", "/etc/config")
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
 						container.WithEnvVar("JAVA_OPTS", "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties -Dlog4j.configurationFile=/etc/config/log4j2.properties")
 						container.WithResourceRequests("512Mi", "500m")
