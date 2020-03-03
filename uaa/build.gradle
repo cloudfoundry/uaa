@@ -64,6 +64,7 @@ dependencies {
     testCompile libraries.mockito
     testCompile libraries.tomcatJdbc
     testCompile libraries.springRestdocs
+    testCompile "com.icegreen:greenmail:1.5.11"
 }
 
 node {
