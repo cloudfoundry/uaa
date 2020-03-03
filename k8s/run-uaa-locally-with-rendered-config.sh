@@ -9,10 +9,10 @@ if [[ "${CURRENT_DIR}" != "k8s" ]]; then
   exit 255
 fi
 
-TEMP_UAA_YML=$(mktemp)
+CLOUDFOUNDRY_CONFIG_PATH=$(mktemp -d)
 
-make render | yq r - "data[uaa.yml]" > "${TEMP_UAA_YML}"
+make render | yq r - "data[uaa.yml]" > "${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml"
 
 pushd ..
-  UAA_CONFIG_FILE="${TEMP_UAA_YML}" ./gradlew clean run
+  ./gradlew clean run
 popd
