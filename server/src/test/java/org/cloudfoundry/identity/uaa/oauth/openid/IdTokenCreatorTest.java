@@ -28,6 +28,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.TOKEN_SALT;
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -233,22 +234,36 @@ class IdTokenCreatorTest {
         scopes.clear();
         scopes.add("openid");
 
+        roles.clear();
+        roles.add("books.read");
+
+        userAuthenticationData = new UserAuthenticationData(
+                authTime,
+                amr,
+                acr,
+                scopes,
+                roles,
+                userAttributes,
+                nonce,
+                grantType,
+                jti);
+
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
-        assertThat(idToken.roles, nullValue());
+        assertThat(idToken.roles, hasSize(0));
     }
 
     @Test
-    void create_setsRolesToNullIfThereAreNoRoles() throws IdTokenCreationException {
+    void create_setsRolesEmptyIfThereAreNoRoles() throws IdTokenCreationException {
         roles.clear();
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
-        assertThat(idToken.roles, nullValue());
+        assertThat(idToken.roles, hasSize(0));
     }
 
     @Test
-    void create_setsRolesToNullIfRolesAreNull() throws IdTokenCreationException {
+    void create_setsRolesToEmptyIfRolesAreNull() throws IdTokenCreationException {
         userAuthenticationData = new UserAuthenticationData(
                 authTime,
                 amr,
@@ -262,7 +277,30 @@ class IdTokenCreatorTest {
 
         IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
 
-        assertThat(idToken.roles, nullValue());
+        assertThat(idToken.roles, hasSize(0));
+    }
+
+    @Test
+    void create_setsRolesIfRolesArePresentAndRoleScopeExists() throws IdTokenCreationException {
+        roles.clear();
+        roles.add("books.read");
+
+        assertThat(scopes, hasItem("roles"));
+
+        userAuthenticationData = new UserAuthenticationData(
+                authTime,
+                amr,
+                acr,
+                scopes,
+                roles,
+                userAttributes,
+                nonce,
+                grantType,
+                jti);
+
+        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+
+        assertThat(idToken.roles, hasItem("books.read"));
     }
 
     @Test

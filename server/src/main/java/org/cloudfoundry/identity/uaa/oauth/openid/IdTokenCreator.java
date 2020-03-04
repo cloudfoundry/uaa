@@ -1,8 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -11,9 +8,13 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -151,16 +152,15 @@ public class IdTokenCreator {
         return attributes;
     }
 
-    private Set<String> buildRoles(UserAuthenticationData userAuthenticationData, UaaUser user) {
-        boolean requestedRoles = userAuthenticationData.scopes.contains(ROLES_SCOPE);
-        Set<String> roles = null;
-        if (requestedRoles
-            && userAuthenticationData.roles != null
-            && !userAuthenticationData.roles.isEmpty()) {
-            roles = userAuthenticationData.roles;
-        }
+    private Set<String> buildRoles(UserAuthenticationData authData, UaaUser user) {
+        boolean rolesScopeRequested = authData.scopes.contains(ROLES_SCOPE);
+        boolean userHasRoles = authData.roles != null;
 
-        if (requestedRoles && roles == null) {
+        Set<String> roles = rolesScopeRequested && userHasRoles ?
+                authData.roles :
+                Collections.emptySet();
+
+        if (rolesScopeRequested && roles.isEmpty()) {
             logger.debug(String.format("Requested id_token containing user roles, but no saved roles available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
         }
 
