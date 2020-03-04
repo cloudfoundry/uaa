@@ -204,6 +204,41 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
+    void smtpFromUaaYmlWorks() {
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
+        when(context.getResource(ArgumentMatchers.eq("file:somewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala".getBytes()));
+        initializer.initialize(context);
+        assertEquals("marissa", environment.getProperty("smtp.user"));
+        assertEquals("koala", environment.getProperty("smtp.password"));
+    }
+
+    @Test
+    void smtpFromSecretsDirWorks() {
+        System.setProperty("SECRETS_DIR", "elsewhere");
+        when(context.getResource(ArgumentMatchers.eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: donkey\n  password: kong".getBytes()));
+        initializer.initialize(context);
+        assertEquals("donkey", environment.getProperty("smtp.user"));
+        assertEquals("kong", environment.getProperty("smtp.password"));
+    }
+
+    @Test
+    void smtpFromSecretsDirOverwrites() {
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
+        when(context.getResource(ArgumentMatchers.eq("file:somewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala".getBytes()));
+
+        System.setProperty("SECRETS_DIR", "elsewhere");
+        when(context.getResource(ArgumentMatchers.eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: donkey\n  password: kong".getBytes()));
+        initializer.initialize(context);
+
+        assertEquals("donkey", environment.getProperty("smtp.user"));
+        assertEquals("kong", environment.getProperty("smtp.password"));
+    }
+
+    @Test
     void readingYamlFromEnvironment() {
         SystemEnvironmentAccessor env = new SystemEnvironmentAccessor() {
             @Override
