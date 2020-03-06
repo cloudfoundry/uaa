@@ -16,16 +16,31 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.List;
+
 public class IntrospectionClaims extends Claims {
 
-    @JsonProperty("active")
-    private boolean active;
+	@JsonProperty("active")
+	private boolean active;
+	@JsonProperty("scope")
+	private String scopes;
 
-    public void setActive(boolean active) {
-        this.active = active;
-    }
+	public boolean isActive() {
+		return active;
+	}
 
-    public boolean isActive() {
-        return active;
-    }
+	public void setActive(boolean active) {
+		this.active = active;
+	}
+
+	public String getScopes() {
+		return this.scopes;
+	}
+
+	@JsonProperty("scope")
+	public void setScopes(List<String> scopes) {
+		if (scopes == null)
+			this.scopes = null;
+		this.scopes = String.join(" ", scopes);
+	}
 }
