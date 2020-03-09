@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("deployment.star", "spring_profiles")
+#@ load("deployment.star", "java_opts", "spring_profiles")
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -31,7 +31,7 @@ spec:
             - name: BPL_TOMCAT_ACCESS_LOGGING
               value: #@ data.values.tomcat.accessLoggingEnabled
             - name: JAVA_OPTS
-              value: "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties -Dlog4j.configurationFile=/etc/config/log4j2.properties"
+              value: #@ java_opts()
             - name: spring_profiles
               value: #@ spring_profiles(data.values.database.scheme)
             - name: CLOUDFOUNDRY_CONFIG_PATH
