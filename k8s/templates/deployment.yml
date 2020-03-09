@@ -36,9 +36,14 @@ spec:
               value: #@ spring_profiles(data.values.database.scheme)
             - name: CLOUDFOUNDRY_CONFIG_PATH
               value: /etc/config
+            - name: SECRETS_DIR
+              value: /etc/secrets
           volumeMounts:
           - name: uaa-config
             mountPath: /etc/config
+          - name: smtp-credentials-file
+            mountPath: "/etc/secrets"
+            readOnly: true
           livenessProbe:
             httpGet:
               path: /healthz
@@ -54,3 +59,6 @@ spec:
       - name: uaa-config
         configMap:
           name: uaa-config
+      - name: smtp-credentials-file
+        secret:
+          secretName: uaa-smtp-credentials

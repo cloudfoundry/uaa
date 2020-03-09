@@ -76,6 +76,7 @@ class YamlServletProfileInitializerTest {
     @AfterEach
     void cleanup() {
         System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
+        System.clearProperty("SECRETS_DIR");
     }
 
     @Test
@@ -236,6 +237,23 @@ class YamlServletProfileInitializerTest {
 
         assertEquals("donkey", environment.getProperty("smtp.user"));
         assertEquals("kong", environment.getProperty("smtp.password"));
+    }
+
+    @Test
+    void smtpMerges() {
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
+        when(context.getResource(ArgumentMatchers.eq("file:somewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala\n  host:\n    foo: bar".getBytes()));
+
+        System.setProperty("SECRETS_DIR", "elsewhere");
+        when(context.getResource(ArgumentMatchers.eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  host:\n    baz: foobar".getBytes()));
+        initializer.initialize(context);
+
+        assertEquals("marissa", environment.getProperty("smtp.user"));
+        assertEquals("koala", environment.getProperty("smtp.password"));
+        assertEquals("bar", environment.getProperty("smtp.host.foo"));
+        assertEquals("foobar", environment.getProperty("smtp.host.baz"));
     }
 
     @Test
