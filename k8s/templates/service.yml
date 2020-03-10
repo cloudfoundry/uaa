@@ -8,9 +8,9 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - port: 8080
-      name: http-uaa
-      targetPort: 8080
-      protocol: TCP
+  - port: 8080
+    name: http-uaa
+    targetPort: 8080
+    protocol: TCP
   selector:
     app: uaa-deployment
