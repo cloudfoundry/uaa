@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("deployment.star", "java_opts", "spring_profiles")
+#@ load("deployment.star", "java_opts", "spring_profiles", "config_dir")
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -35,12 +35,12 @@ spec:
         - name: spring_profiles
           value: #@ spring_profiles(data.values.database.scheme)
         - name: CLOUDFOUNDRY_CONFIG_PATH
-          value: /etc/config
+          value: #@ config_dir
         - name: SECRETS_DIR
           value: /etc/secrets
         volumeMounts:
         - name: uaa-config
-          mountPath: /etc/config
+          mountPath: #@ config_dir
         - name: smtp-credentials-file
           mountPath: "/etc/secrets"
           readOnly: true
