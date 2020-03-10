@@ -6,10 +6,12 @@ def spring_profiles(database_scheme):
   end
 end
 
+config_dir = "/etc/config"
+
 java_opts_list = [
   "-Djava.security.egd=file:/dev/./urandom",
-  "-Dlogging.config=/etc/config/log4j2.properties",
-  "-Dlog4j.configurationFile=/etc/config/log4j2.properties",
+  "-Dlogging.config={}/log4j2.properties".format(config_dir),
+  "-Dlog4j.configurationFile={}/log4j2.properties".format(config_dir),
 ]
 
 def java_opts():
