@@ -55,6 +55,8 @@ class YamlServletProfileInitializerTest {
     private StandardServletEnvironment environment;
     private ServletContext servletContext;
 
+    private static final String NEW_LINE = System.getProperty("line.separator");
+
     @BeforeEach
     void setup() {
         initializer = new YamlServletProfileInitializer();
@@ -254,6 +256,71 @@ class YamlServletProfileInitializerTest {
         assertEquals("koala", environment.getProperty("smtp.password"));
         assertEquals("bar", environment.getProperty("smtp.host.foo"));
         assertEquals("foobar", environment.getProperty("smtp.host.baz"));
+    }
+
+    @Nested
+    class DatabaseCredentials {
+
+        private ByteArrayResource uaa_yml;
+        private ByteArrayResource database_credentials_yml;
+
+        @BeforeEach
+        void setUp() {
+            uaa_yml = new ByteArrayResource(("database:" + NEW_LINE +
+                    "  username: default-username" + NEW_LINE +
+                    "  password: default-password" + NEW_LINE +
+                    "  url: jdbc://hostname").getBytes());
+
+            database_credentials_yml = new ByteArrayResource(("database:" + NEW_LINE +
+                    "  username: donkey" + NEW_LINE +
+                    "  password: kong").getBytes());
+        }
+
+        @AfterEach
+        void cleanup() {
+            System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
+            System.clearProperty("SECRETS_DIR");
+        }
+
+        @Test
+        void uaaYmlOnly() {
+            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
+            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
+                    .thenReturn(uaa_yml);
+
+            initializer.initialize(context);
+            assertEquals("default-username", environment.getProperty("database.username"));
+            assertEquals("default-password", environment.getProperty("database.password"));
+            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
+        }
+
+        @Test
+        void databaseCredentialsOnly() {
+            System.setProperty("SECRETS_DIR", "secretsdir");
+            when(context.getResource("file:secretsdir/database_credentials.yml"))
+                    .thenReturn(database_credentials_yml);
+
+            initializer.initialize(context);
+            assertEquals("donkey", environment.getProperty("database.username"));
+            assertEquals("kong", environment.getProperty("database.password"));
+        }
+
+        @Test
+        void databaseCredentialsOverridesUaaYml() {
+            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
+            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
+                    .thenReturn(uaa_yml);
+
+            System.setProperty("SECRETS_DIR", "secretsdir");
+            when(context.getResource("file:secretsdir/database_credentials.yml"))
+                    .thenReturn(database_credentials_yml);
+
+            initializer.initialize(context);
+            assertEquals("donkey", environment.getProperty("database.username"));
+            assertEquals("kong", environment.getProperty("database.password"));
+            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
+        }
+
     }
 
     @Test

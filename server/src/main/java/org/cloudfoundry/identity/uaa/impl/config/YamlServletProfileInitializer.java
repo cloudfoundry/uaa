@@ -67,7 +67,9 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 "file:${UAA_CONFIG_FILE}",
                 "file:${UAA_CONFIG_PATH}/uaa.yml",
                 "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml",
-                "file:${SECRETS_DIR}/smtp_credentials.yml");
+                "file:${SECRETS_DIR}/smtp_credentials.yml",
+                "file:${SECRETS_DIR}/database_credentials.yml"
+        );
     }
 
     @Override
