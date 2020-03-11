@@ -26,9 +26,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 		}
 
 		database = Database{
-			Username: "sa",
-			Password: "password",
-			Url:      "jdbc:hsqldb:mem:uaa",
+			Url: "jdbc:hsqldb:mem:uaa",
 		}
 	})
 
@@ -73,8 +71,8 @@ var _ = Describe("Uaa ConfigMap", func() {
 								"LoginSecret": Equal("loginsecret"),
 								"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
 								"Database": MatchFields(IgnoreExtras, Fields{
-									"Username": Equal(database.Username),
-									"Password": Equal(database.Password),
+									"Username": BeEmpty(),
+									"Password": BeEmpty(),
 									"Url":      Equal(database.Url),
 								}),
 								//"Jwt": Equal(jwt),
@@ -139,17 +137,13 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 		})
 		Context("with overriden values", func() {
 			It("produces yaml", func() {
-				database.Username = "database-username"
-				database.Password = "database-password"
 				database.Url = "jdbc:postgres://127.0.0.1:9000/database-name"
 
 				ctx := NewRenderingContext(templates...).WithData(map[string]string{
-					"database.username": database.Username,
-					"database.password": database.Password,
-					"database.scheme":   "postgres",
-					"database.address":  "127.0.0.1",
-					"database.port":     "9000",
-					"database.name":     "database-name",
+					"database.scheme":  "postgres",
+					"database.address": "127.0.0.1",
+					"database.port":    "9000",
+					"database.name":    "database-name",
 				})
 
 				Expect(ctx).To(
@@ -159,8 +153,8 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 								"LoginSecret": Equal("loginsecret"),
 								"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
 								"Database": MatchFields(IgnoreExtras, Fields{
-									"Username": Equal(database.Username),
-									"Password": Equal(database.Password),
+									"Username": BeEmpty(),
+									"Password": BeEmpty(),
 									"Url":      Equal(database.Url),
 								}),
 							})

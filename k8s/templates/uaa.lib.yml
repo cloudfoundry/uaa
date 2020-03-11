@@ -66,6 +66,4 @@ database:
   logabandoned: true
   abandonedtimeout: 300
   url: #@ database_connection_string(data.values.database)
-  username: #@ data.values.database.username
-  password: #@ data.values.database.password
 #@ end

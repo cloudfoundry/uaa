@@ -40,4 +40,53 @@ var _ = Describe("Secrets", func() {
 				WithStringData("smtp_credentials.yml", smtp_secrets)),
 		)
 	})
+
+	It("Renders with Database credentials", func() {
+		templates = []string{
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("secrets", "database_credentials.yml")),
+		}
+
+		renderingContext := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"database.username": "my database username",
+				"database.password": "my database password",
+			})
+
+		database_credentials := `database:
+  username: my database username
+  password: my database password
+`
+
+		Expect(renderingContext).To(
+			ProduceYAML(RepresentingASecret().
+				WithName("uaa-database-credentials").
+				WithStringData("database_credentials.yml", database_credentials)),
+		)
+	})
+
+	It("Renders with Different Database credentials", func() {
+		templates = []string{
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("secrets", "database_credentials.yml")),
+		}
+
+		renderingContext := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"database.username": "my other database username",
+				"database.password": "my other database password",
+			})
+
+		database_credentials := `database:
+  username: my other database username
+  password: my other database password
+`
+
+		Expect(renderingContext).To(
+			ProduceYAML(RepresentingASecret().
+				WithName("uaa-database-credentials").
+				WithStringData("database_credentials.yml", database_credentials)),
+		)
+	})
+
 })

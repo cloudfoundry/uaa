@@ -44,7 +44,12 @@ spec:
         - name: uaa-config
           mountPath: #@ config_dir
         - name: smtp-credentials-file
-          mountPath: #@ secrets_dir
+          mountPath: #@ "{}/smtp_credentials.yml".format(secrets_dir)
+          subPath: smtp_credentials.yml
+          readOnly: true
+        - name: database-credentials-file
+          mountPath: #@ "{}/database_credentials.yml".format(secrets_dir)
+          subPath: database_credentials.yml
           readOnly: true
         livenessProbe:
           httpGet:
@@ -64,3 +69,6 @@ spec:
       - name: smtp-credentials-file
         secret:
           secretName: uaa-smtp-credentials
+      - name: database-credentials-file
+        secret:
+          secretName: uaa-database-credentials

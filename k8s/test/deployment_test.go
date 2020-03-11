@@ -4,11 +4,18 @@ import (
 	. "github.com/cloudfoundry/uaa/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gstruct"
 	"path/filepath"
 )
 
 var _ = Describe("Deployment", func() {
 	var templates []string
+
+	databaseCredentialsMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+		"MountPath": Equal("/etc/secrets/database_credentials.yml"),
+		"SubPath":   Equal("database_credentials.yml"),
+		"ReadOnly":  Equal(true),
+	})
 
 	BeforeEach(func() {
 		templates = []string{
@@ -35,6 +42,7 @@ var _ = Describe("Deployment", func() {
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
 						container.WithEnvVar("JAVA_OPTS", "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties -Dlog4j.configurationFile=/etc/config/log4j2.properties")
 						container.WithEnvVar("SECRETS_DIR", "/etc/secrets")
+						container.WithVolumeMount("database-credentials-file", databaseCredentialsMatcher)
 						container.WithResourceRequests("512Mi", "500m")
 					})
 				}),

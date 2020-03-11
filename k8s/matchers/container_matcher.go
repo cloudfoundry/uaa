@@ -11,15 +11,22 @@ import (
 )
 
 type ContainerMatcher struct {
-	fields  map[string]types.GomegaMatcher
-	envVars Elements
+	fields       map[string]types.GomegaMatcher
+	envVars      Elements
+	volumeMounts Elements
 
 	container *coreV1.Container
 	executed  types.GomegaMatcher
 }
 
 func NewContainerMatcher() *ContainerMatcher {
-	return &ContainerMatcher{map[string]types.GomegaMatcher{}, Elements{}, nil, nil}
+	return &ContainerMatcher{
+		map[string]types.GomegaMatcher{},
+		Elements{},
+		Elements{},
+		nil,
+		nil,
+	}
 }
 
 func (matcher *ContainerMatcher) WithName(name string) *ContainerMatcher {
@@ -48,6 +55,12 @@ func (matcher *ContainerMatcher) WithEnvVar(name, value string) *ContainerMatche
 	return matcher
 }
 
+func (matcher *ContainerMatcher) WithVolumeMount(name string, volumeMountMatcher types.GomegaMatcher) *ContainerMatcher {
+	matcher.volumeMounts[name] = volumeMountMatcher
+
+	return matcher
+}
+
 func (matcher *ContainerMatcher) WithResourceRequests(memory, cpu string) *ContainerMatcher {
 	resourceList := coreV1.ResourceList{}
 	resourceList[coreV1.ResourceMemory] = k8sResource.MustParse(memory)
@@ -70,6 +83,11 @@ func (matcher *ContainerMatcher) Match(actual interface{}) (bool, error) {
 		return element.(coreV1.EnvVar).Name
 	}
 	matcher.fields["Env"] = MatchElements(identifyEnvVarByName, IgnoreExtras, matcher.envVars)
+
+	identifyVolumeMountByName := func(element interface{}) string {
+		return element.(coreV1.VolumeMount).Name
+	}
+	matcher.fields["VolumeMounts"] = MatchElements(identifyVolumeMountByName, IgnoreExtras, matcher.volumeMounts)
 
 	matcher.executed = MatchFields(IgnoreExtras, matcher.fields)
 	return matcher.executed.Match(container)
