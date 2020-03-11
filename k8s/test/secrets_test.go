@@ -14,7 +14,7 @@ var _ = Describe("Secrets", func() {
 	BeforeEach(func() {
 		templates = []string{
 			pathToFile(filepath.Join("values", "_values.yml")),
-			pathToFile("smtp_credentials.yml"),
+			pathToFile(filepath.Join("secrets", "smtp_credentials.yml")),
 		}
 	})
 
