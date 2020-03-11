@@ -33,7 +33,7 @@ jwt:
 
 smtp:
   host: ~
-  port: ~
+  port: 25
   user: ~
   password: ~
   starttls: ~
