@@ -11,18 +11,25 @@ import (
 
 type SecretMatcher struct {
 	stringData types.GomegaMatcher
+	meta       *ObjectMetaMatcher
 
 	executed types.GomegaMatcher
 }
 
 func RepresentingASecret() *SecretMatcher {
-	return &SecretMatcher{}
+	return &SecretMatcher{nil, NewObjectMetaMatcher(), nil}
 }
 
 func (matcher *SecretMatcher) WithStringData(name string, value string) types.GomegaMatcher {
 	matcher.stringData = MatchKeys(IgnoreExtras, Keys{
 		name: Equal(value),
 	})
+	return matcher
+}
+
+func (matcher *SecretMatcher) WithName(name string) *SecretMatcher {
+	matcher.meta.WithName(name)
+
 	return matcher
 }
 
@@ -38,6 +45,12 @@ func (matcher *SecretMatcher) Match(actual interface{}) (success bool, err error
 			return pass, err
 		}
 	}
+
+	matcher.executed = matcher.meta
+	if pass, err := matcher.meta.Match(secret.ObjectMeta); !pass || err != nil {
+		return pass, err
+	}
+
 	return true, nil
 }
 

@@ -38,6 +38,7 @@ var _ = Describe("Secrets", func() {
 
 		Expect(renderingContext).To(
 			ProduceYAML(RepresentingASecret().
+				WithName("uaa-smtp-credentials").
 				WithStringData("smtp_credentials.yml", smtp_secrets)),
 		)
 	})
