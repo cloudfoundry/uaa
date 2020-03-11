@@ -1,5 +1,7 @@
 #@ load("@ytt:data", "data")
 #@ load("deployment.star", "java_opts", "spring_profiles", "config_dir")
+
+#@ secrets_dir = "/etc/secrets"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,12 +39,12 @@ spec:
         - name: CLOUDFOUNDRY_CONFIG_PATH
           value: #@ config_dir
         - name: SECRETS_DIR
-          value: /etc/secrets
+          value: #@ secrets_dir
         volumeMounts:
         - name: uaa-config
           mountPath: #@ config_dir
         - name: smtp-credentials-file
-          mountPath: "/etc/secrets"
+          mountPath: #@ secrets_dir
           readOnly: true
         livenessProbe:
           httpGet:
