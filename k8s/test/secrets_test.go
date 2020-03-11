@@ -11,14 +11,12 @@ var _ = Describe("Secrets", func() {
 
 	var templates []string
 
-	BeforeEach(func() {
+	It("Renders with SMTP credentials", func() {
 		templates = []string{
 			pathToFile(filepath.Join("values", "_values.yml")),
 			pathToFile(filepath.Join("secrets", "smtp_credentials.yml")),
 		}
-	})
 
-	It("Renders with SMTP credentials", func() {
 		renderingContext := NewRenderingContext(templates...).WithData(
 			map[string]string{
 				"smtp.user":     "my smtp username",
