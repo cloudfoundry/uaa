@@ -258,6 +258,27 @@ class YamlServletProfileInitializerTest {
         assertEquals("foobar", environment.getProperty("smtp.host.baz"));
     }
 
+    @Test
+    void loadsAdminClient() {
+        System.setProperty("SECRETS_DIR", "foo");
+        String adminClientYaml = "---\n" +
+                "oauth:\n" +
+                "  clients:\n" +
+                "    admin:\n" +
+                "      authorized-grant-types: client_credentials\n" +
+                "      authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write\n" +
+                "      id: admin\n" +
+                "      secret: adminsecret";
+        when(context.getResource(ArgumentMatchers.eq("file:foo/admin_client.yml"))).thenReturn(new ByteArrayResource(adminClientYaml.getBytes()));
+
+        initializer.initialize(context);
+
+        assertEquals("admin", environment.getProperty("oauth.clients.admin.id"));
+        assertEquals("adminsecret", environment.getProperty("oauth.clients.admin.secret"));
+        assertEquals("client_credentials", environment.getProperty("oauth.clients.admin.authorized-grant-types"));
+        assertEquals("clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write", environment.getProperty("oauth.clients.admin.authorities"));
+    }
+
     @Nested
     class DatabaseCredentials {
 
