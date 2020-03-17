@@ -77,9 +77,10 @@ var _ = Describe("Uaa ConfigMap", func() {
 								}),
 								//"Jwt": Equal(jwt),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
-									"Host":     BeEmpty(),
-									"Port":     Equal("25"),
-									"Starttls": BeEmpty(),
+									"Host":        BeEmpty(),
+									"Port":        Equal("25"),
+									"Starttls":    BeEmpty(),
+									"FromAddress": BeEmpty(),
 								}),
 							})
 						}),
@@ -145,13 +146,14 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 				database.Url = "jdbc:postgres://127.0.0.1:9000/database-name"
 
 				ctx := NewRenderingContext(templates...).WithData(map[string]string{
-					"database.scheme":  "postgres",
-					"database.address": "127.0.0.1",
-					"database.port":    "9000",
-					"database.name":    "database-name",
-					"smtp.host":        "smtp host",
-					"smtp.port":        "smtp port",
-					"smtp.starttls":    "smtp starttls",
+					"database.scheme":   "postgres",
+					"database.address":  "127.0.0.1",
+					"database.port":     "9000",
+					"database.name":     "database-name",
+					"smtp.host":         "smtp host",
+					"smtp.port":         "smtp port",
+					"smtp.starttls":     "smtp starttls",
+					"smtp.from_address": "smtp from_address",
 				})
 
 				Expect(ctx).To(
@@ -166,9 +168,10 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 									"Url":      Equal(database.Url),
 								}),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
-									"Host":     Equal("smtp host"),
-									"Port":     Equal("smtp port"),
-									"Starttls": Equal("smtp starttls"),
+									"Host":        Equal("smtp host"),
+									"Port":        Equal("smtp port"),
+									"Starttls":    Equal("smtp starttls"),
+									"FromAddress": Equal("smtp from_address"),
 								}),
 							})
 						}),

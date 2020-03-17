@@ -37,3 +37,4 @@ smtp:
   user: ~
   password: ~
   starttls: ~
+  from_address: ~

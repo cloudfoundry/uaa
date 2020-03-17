@@ -60,7 +60,8 @@ type Database struct {
 }
 
 type Smtp struct {
-	Host     string `yaml:"host"`
-	Port     string `yaml:"port"`
-	Starttls string `yaml:"starttls"`
+	Host        string `yaml:"host"`
+	Port        string `yaml:"port"`
+	Starttls    string `yaml:"starttls"`
+	FromAddress string `yaml:"from_address"`
 }
