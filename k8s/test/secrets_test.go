@@ -35,6 +35,17 @@ var _ = Describe("Secrets", func() {
 		)
 	})
 
+	It("Does not render with empty SMTP credentials", func() {
+		templates = []string{
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("secrets", "smtp_credentials.yml")),
+		}
+
+		renderingContext := NewRenderingContext(templates...)
+
+		Expect(renderingContext).To(ProduceEmptyYAML())
+	})
+
 	It("Renders with Database credentials", func() {
 		templates = []string{
 			pathToFile(filepath.Join("values", "_values.yml")),
