@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
 	coreV1 "k8s.io/api/core/v1"
 )
@@ -14,12 +15,18 @@ type PodMatcher struct {
 	containers     []types.GomegaMatcher
 	meta           *ObjectMetaMatcher
 	serviceAccount types.GomegaMatcher
+	volumes        map[string]types.GomegaMatcher
 
 	executed types.GomegaMatcher
 }
 
 func NewPodMatcher() *PodMatcher {
-	return &PodMatcher{[]types.GomegaMatcher{}, NewObjectMetaMatcher(), nil, nil}
+	return &PodMatcher{
+		[]types.GomegaMatcher{},
+		NewObjectMetaMatcher(),
+		nil,
+		map[string]types.GomegaMatcher{},
+		nil}
 }
 
 func (matcher *PodMatcher) WithContainerMatching(config ContainerMatcherConfig) *PodMatcher {
@@ -38,6 +45,12 @@ func (matcher *PodMatcher) WithServiceAccountMatching(serviceAccount string) *Po
 
 func (matcher *PodMatcher) WithLabels(labels map[string]string) *PodMatcher {
 	matcher.meta.WithLabels(labels)
+
+	return matcher
+}
+
+func (matcher *PodMatcher) WithVolume(name string, volumeMatcher types.GomegaMatcher) *PodMatcher {
+	matcher.volumes[name] = volumeMatcher
 
 	return matcher
 }
@@ -66,6 +79,14 @@ func (matcher *PodMatcher) Match(actual interface{}) (bool, error) {
 
 	matcher.executed = matcher.meta
 	if pass, err := matcher.meta.Match(pod.ObjectMeta); !pass || err != nil {
+		return pass, err
+	}
+
+	identifyVolumeByName := func(element interface{}) string {
+		return element.(coreV1.Volume).Name
+	}
+	matcher.executed = gstruct.MatchElements(identifyVolumeByName, 0, matcher.volumes)
+	if pass, err := matcher.executed.Match(pod.Spec.Volumes); !pass || err != nil {
 		return pass, err
 	}
 

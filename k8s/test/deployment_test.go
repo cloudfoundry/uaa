@@ -11,7 +11,7 @@ import (
 var _ = Describe("Deployment", func() {
 	var templates []string
 
-	databaseCredentialsMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+	databaseVolumeMountMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
 		"MountPath": Equal("/etc/secrets/database_credentials.yml"),
 		"SubPath":   Equal("database_credentials.yml"),
 		"ReadOnly":  Equal(true),
@@ -42,9 +42,12 @@ var _ = Describe("Deployment", func() {
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
 						container.WithEnvVar("JAVA_OPTS", "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties -Dlog4j.configurationFile=/etc/config/log4j2.properties")
 						container.WithEnvVar("SECRETS_DIR", "/etc/secrets")
-						container.WithVolumeMount("database-credentials-file", databaseCredentialsMatcher)
+						container.WithVolumeMount("uaa-config", Not(BeNil()))
+						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						container.WithResourceRequests("512Mi", "500m")
 					})
+					pod.WithVolume("uaa-config", Not(BeNil()))
+					pod.WithVolume("database-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -60,7 +63,11 @@ var _ = Describe("Deployment", func() {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
 						container.WithImage("image from testing")
+						container.WithVolumeMount("uaa-config", Not(BeNil()))
+						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 					})
+					pod.WithVolume("uaa-config", Not(BeNil()))
+					pod.WithVolume("database-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -79,7 +86,11 @@ var _ = Describe("Deployment", func() {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
 						container.WithResourceRequests("888Mi", "999m")
+						container.WithVolumeMount("uaa-config", Not(BeNil()))
+						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 					})
+					pod.WithVolume("uaa-config", Not(BeNil()))
+					pod.WithVolume("database-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -94,7 +105,9 @@ var _ = Describe("Deployment", func() {
 		BeforeEach(func() {
 			databaseScheme = "postgresql"
 			ctx = NewRenderingContext(templates...).WithData(map[string]string{
-				"database.scheme": databaseScheme,
+				"database.scheme":   databaseScheme,
+				"database.username": "database username",
+				"database.password": "database password",
 			})
 		})
 
@@ -105,7 +118,11 @@ var _ = Describe("Deployment", func() {
 						pod.WithContainerMatching(func(container *ContainerMatcher) {
 							container.WithName("uaa")
 							container.WithEnvVar("spring_profiles", databaseScheme)
+							container.WithVolumeMount("uaa-config", Not(BeNil()))
+							container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						})
+						pod.WithVolume("uaa-config", Not(BeNil()))
+						pod.WithVolume("database-credentials-file", Not(BeNil()))
 					}),
 				),
 			)
@@ -132,6 +149,8 @@ var _ = Describe("Deployment", func() {
 				WithNamespace("default").
 				WithPodMatching(func(pod *PodMatcher) {
 					pod.WithLabels(labels)
+					pod.WithVolume("uaa-config", Not(BeNil()))
+					pod.WithVolume("database-credentials-file", Not(BeNil()))
 				}),
 			),
 		)

@@ -24,7 +24,7 @@ database:
   port: ~
   name: ~
   username: sa
-  password: password
+  password: ~
 
 jwt:
   policy:

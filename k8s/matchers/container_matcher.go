@@ -12,8 +12,8 @@ import (
 
 type ContainerMatcher struct {
 	fields       map[string]types.GomegaMatcher
-	envVars      Elements
-	volumeMounts Elements
+	envVars      map[string]types.GomegaMatcher
+	volumeMounts map[string]types.GomegaMatcher
 
 	container *coreV1.Container
 	executed  types.GomegaMatcher
@@ -22,8 +22,8 @@ type ContainerMatcher struct {
 func NewContainerMatcher() *ContainerMatcher {
 	return &ContainerMatcher{
 		map[string]types.GomegaMatcher{},
-		Elements{},
-		Elements{},
+		map[string]types.GomegaMatcher{},
+		map[string]types.GomegaMatcher{},
 		nil,
 		nil,
 	}
@@ -87,7 +87,7 @@ func (matcher *ContainerMatcher) Match(actual interface{}) (bool, error) {
 	identifyVolumeMountByName := func(element interface{}) string {
 		return element.(coreV1.VolumeMount).Name
 	}
-	matcher.fields["VolumeMounts"] = MatchElements(identifyVolumeMountByName, IgnoreExtras, matcher.volumeMounts)
+	matcher.fields["VolumeMounts"] = MatchElements(identifyVolumeMountByName, 0, matcher.volumeMounts)
 
 	matcher.executed = MatchFields(IgnoreExtras, matcher.fields)
 	return matcher.executed.Match(container)
