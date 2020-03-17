@@ -75,4 +75,5 @@ spec:
 #@ end
       - name: database-credentials-file
         secret:
+          optional: true
           secretName: uaa-database-credentials

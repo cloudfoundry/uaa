@@ -94,4 +94,15 @@ var _ = Describe("Secrets", func() {
 		)
 	})
 
+	It("Does Not Render with Missing Database credentials", func() {
+		templates = []string{
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("secrets", "database_credentials.yml")),
+		}
+
+		renderingContext := NewRenderingContext(templates...)
+
+		Expect(renderingContext).To(ProduceEmptyYAML())
+	})
+
 })
