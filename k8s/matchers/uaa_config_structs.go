@@ -7,6 +7,7 @@ type UaaConfig struct {
 	LoginSecret string     `yaml:"LOGIN_SECRET"`
 	Jwt         Jwt        `yaml:"jwt"`
 	Database    Database   `yaml:"database"`
+	Smtp        Smtp       `yaml:"smtp"`
 }
 
 type Issuer struct {
@@ -56,4 +57,10 @@ type Database struct {
 	Url                string `yaml:"url"`
 	Username           string `yaml:"username"`
 	Password           string `yaml:"password"`
+}
+
+type Smtp struct {
+	Host     string `yaml:"host"`
+	Port     string `yaml:"port"`
+	Starttls string `yaml:"starttls"`
 }

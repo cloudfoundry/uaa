@@ -76,6 +76,11 @@ var _ = Describe("Uaa ConfigMap", func() {
 									"Url":      Equal(database.Url),
 								}),
 								//"Jwt": Equal(jwt),
+								"Smtp": MatchFields(IgnoreExtras, Fields{
+									"Host":     BeEmpty(),
+									"Port":     Equal("25"),
+									"Starttls": BeEmpty(),
+								}),
 							})
 						}),
 					))
@@ -144,6 +149,9 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 					"database.address": "127.0.0.1",
 					"database.port":    "9000",
 					"database.name":    "database-name",
+					"smtp.host":        "smtp host",
+					"smtp.port":        "smtp port",
+					"smtp.starttls":    "smtp starttls",
 				})
 
 				Expect(ctx).To(
@@ -156,6 +164,11 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 									"Username": BeEmpty(),
 									"Password": BeEmpty(),
 									"Url":      Equal(database.Url),
+								}),
+								"Smtp": MatchFields(IgnoreExtras, Fields{
+									"Host":     Equal("smtp host"),
+									"Port":     Equal("smtp port"),
+									"Starttls": Equal("smtp starttls"),
 								}),
 							})
 						}),

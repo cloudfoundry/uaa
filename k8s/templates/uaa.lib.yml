@@ -66,4 +66,9 @@ database:
   logabandoned: true
   abandonedtimeout: 300
   url: #@ database_connection_string(data.values.database)
+
+smtp:
+  host: #@ data.values.smtp.host
+  port: #@ data.values.smtp.port
+  starttls: #@ data.values.smtp.starttls
 #@ end
