@@ -19,11 +19,11 @@ tomcat:
 
 #! UAA Application Values
 database:
-  scheme: hsqldb
+  scheme: ~
   address: ~
   port: ~
   name: ~
-  username: sa
+  username: ~
   password: ~
 
 jwt:

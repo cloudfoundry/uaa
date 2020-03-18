@@ -26,7 +26,7 @@ minikube:
 	@ytt -f templates -f addons | kubectl apply -f -
 
 kubectl-clean:
-	kubectl delete deployments,services,secrets,replicasets,services,pods --all
+	kubectl delete deployments,services,secrets,replicasets,services,pods,configmaps,serviceaccounts --all
 
 docker-run:
 	docker pull cfidentity/uaa:latest \

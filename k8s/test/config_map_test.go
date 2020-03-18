@@ -14,7 +14,7 @@ const Log4j2PropertiesKey = "log4j2.properties"
 
 var _ = Describe("Uaa ConfigMap", func() {
 	var templates []string
-	var database Database
+	var databaseUrl string
 
 	BeforeEach(func() {
 		templates = []string{
@@ -25,15 +25,15 @@ var _ = Describe("Uaa ConfigMap", func() {
 			pathToFile("log4j2.properties"),
 		}
 
-		database = Database{
-			Url: "jdbc:hsqldb:mem:uaa",
-		}
+		databaseUrl = "jdbc:hsqldb:mem:uaa"
 	})
 
 	Context("Renders a config map", func() {
 		Context("with default values", func() {
 			It("produces yml", func() {
-				ctx := NewRenderingContext(templates...)
+				ctx := NewRenderingContext(templates...).WithData(map[string]string{
+					"database.scheme": "hsqldb",
+				})
 
 				Expect(ctx).To(
 					ProduceYAML(
@@ -73,7 +73,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 								"Database": MatchFields(IgnoreExtras, Fields{
 									"Username": BeEmpty(),
 									"Password": BeEmpty(),
-									"Url":      Equal(database.Url),
+									"Url":      Equal(databaseUrl),
 								}),
 								//"Jwt": Equal(jwt),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
@@ -125,7 +125,8 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 			It("Renders common labels for the deployment", func() {
 				templates = append(templates, pathToFile("metadata.yml"))
 				ctx := NewRenderingContext(templates...).WithData(map[string]string{
-					"version": "some version",
+					"version":         "some version",
+					"database.scheme": "hsqldb",
 				})
 
 				labels := map[string]string{
@@ -143,7 +144,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 		})
 		Context("with overriden values", func() {
 			It("produces yaml", func() {
-				database.Url = "jdbc:postgres://127.0.0.1:9000/database-name"
+				databaseUrl = "jdbc:postgres://127.0.0.1:9000/database-name"
 
 				ctx := NewRenderingContext(templates...).WithData(map[string]string{
 					"database.scheme":   "postgres",
@@ -165,7 +166,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 								"Database": MatchFields(IgnoreExtras, Fields{
 									"Username": BeEmpty(),
 									"Password": BeEmpty(),
-									"Url":      Equal(database.Url),
+									"Url":      Equal(databaseUrl),
 								}),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
 									"Host":        Equal("smtp host"),
@@ -181,7 +182,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 			Context("with postgres database", func() {
 
 				It("renders database connection string", func() {
-					database.Url = "jdbc:postgresql://127.0.0.1:9000/database-name?sslmode=disable"
+					databaseUrl = "jdbc:postgresql://127.0.0.1:9000/database-name?sslmode=disable"
 
 					ctx := NewRenderingContext(templates...).WithData(map[string]string{
 						"database.scheme":  "postgresql",
@@ -195,7 +196,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 							RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
 								uaaYml.WithFields(Fields{
 									"Database": MatchFields(IgnoreExtras, Fields{
-										"Url": Equal(database.Url),
+										"Url": Equal(databaseUrl),
 									}),
 								})
 							}),
@@ -205,7 +206,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 
 			Context("with mysql database", func() {
 				It("renders database connection string", func() {
-					database.Url = "jdbc:mysql://127.0.0.1:9000/database-name?useSSL=false"
+					databaseUrl = "jdbc:mysql://127.0.0.1:9000/database-name?useSSL=false"
 
 					ctx := NewRenderingContext(templates...).WithData(map[string]string{
 						"database.scheme":  "mysql",
@@ -219,7 +220,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 							RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
 								uaaYml.WithFields(Fields{
 									"Database": MatchFields(IgnoreExtras, Fields{
-										"Url": Equal(database.Url),
+										"Url": Equal(databaseUrl),
 									}),
 								})
 							}),
@@ -229,7 +230,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 
 			Context("with hsql database", func() {
 				It("renders database connection string", func() {
-					database.Url = "jdbc:hsqldb:mem:uaa"
+					databaseUrl = "jdbc:hsqldb:mem:uaa"
 
 					ctx := NewRenderingContext(templates...).WithData(map[string]string{"database.scheme": "hsqldb"})
 
@@ -238,7 +239,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 							RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
 								uaaYml.WithFields(Fields{
 									"Database": MatchFields(IgnoreExtras, Fields{
-										"Url": Equal(database.Url),
+										"Url": Equal(databaseUrl),
 									}),
 								})
 							}),

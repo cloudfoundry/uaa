@@ -1,0 +1,5 @@
+#@data/values
+---
+database:
+  scheme: hsqldb
+  username: sa

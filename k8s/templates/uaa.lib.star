@@ -1,3 +1,5 @@
+load("@ytt:assert", "assert")
+
 def signing_keys(jwt_policy):
   keys = {}
   for k in jwt_policy.keys:
@@ -13,6 +15,9 @@ def signing_keys(jwt_policy):
 end
 
 def database_connection_string(database):
+    if not database or not database.scheme:
+        assert.fail("database.scheme is required")
+    end
     if database.scheme == "hsqldb":
         return "jdbc:hsqldb:mem:uaa"
     end
