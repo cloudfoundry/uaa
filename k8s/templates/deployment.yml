@@ -43,12 +43,10 @@ spec:
         volumeMounts:
         - name: uaa-config
           mountPath: #@ config_dir
-#@ if data.values.smtp.user or data.values.smtp.password:
         - name: smtp-credentials-file
           mountPath: #@ "{}/smtp_credentials.yml".format(secrets_dir)
           subPath: smtp_credentials.yml
           readOnly: true
-#@ end
         - name: database-credentials-file
           mountPath: #@ "{}/database_credentials.yml".format(secrets_dir)
           subPath: database_credentials.yml
@@ -68,11 +66,10 @@ spec:
       - name: uaa-config
         configMap:
           name: uaa-config
-#@ if data.values.smtp.user or data.values.smtp.password:
       - name: smtp-credentials-file
         secret:
+          optional: true
           secretName: uaa-smtp-credentials
-#@ end
       - name: database-credentials-file
         secret:
           optional: true
