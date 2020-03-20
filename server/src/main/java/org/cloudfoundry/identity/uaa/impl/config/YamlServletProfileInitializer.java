@@ -188,23 +188,24 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         MDC.put("context", contextPath); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
-    void applySpringProfiles(ConfigurableEnvironment environment) {
+    static void applySpringProfiles(ConfigurableEnvironment environment) {
         String systemProfiles = System.getProperty("spring.profiles.active");
         System.out.format("System property spring.profiles.active=[%s]%n", systemProfiles);
         environment.setDefaultProfiles(new String[0]);
         if (environment.containsProperty("spring_profiles")) {
-            String[] profiles = StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true);
-            System.out.println("Setting active profiles: " + Arrays.toString(profiles));
-            environment.setActiveProfiles(profiles);
+            setActiveProfiles(environment, StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true));
         } else if (isEmpty(systemProfiles)) {
-            String[] profiles = new String[]{"hsqldb"};
-            System.out.println("Setting active profiles: " + Arrays.toString(profiles));
-            environment.setActiveProfiles(profiles);
+            setActiveProfiles(environment, new String[]{"hsqldb"});
         } else {
-            String[] profiles = commaDelimitedListToStringArray(systemProfiles);
-            System.out.println("Setting active profiles: " + Arrays.toString(profiles));
-            environment.setActiveProfiles(profiles);
+            setActiveProfiles(environment, commaDelimitedListToStringArray(systemProfiles));
         }
+    }
+
+    private static void setActiveProfiles(
+            final ConfigurableEnvironment environment,
+            final String[] profiles) {
+        System.out.println("Setting active profiles: " + Arrays.toString(profiles));
+        environment.setActiveProfiles(profiles);
     }
 
     void setEnvironmentAccessor(SystemEnvironmentAccessor environmentAccessor) {
