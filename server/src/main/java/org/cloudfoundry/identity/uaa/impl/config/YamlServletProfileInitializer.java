@@ -189,16 +189,23 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     }
 
     static void applySpringProfiles(ConfigurableEnvironment environment) {
-        String systemProfiles = System.getProperty("spring.profiles.active");
-        System.out.format("System property spring.profiles.active=[%s]%n", systemProfiles);
         environment.setDefaultProfiles(new String[0]);
+
+        System.out.println(String.format("System property spring.profiles.active=[%s]", System.getProperty("spring.profiles.active")));
+        System.out.println(String.format("Environment property spring_profiles=[%s]", environment.getProperty("spring_profiles")));
+
         if (environment.containsProperty("spring_profiles")) {
             setActiveProfiles(environment, StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true));
-        } else if (isEmpty(systemProfiles)) {
-            setActiveProfiles(environment, new String[]{"hsqldb"});
-        } else {
-            setActiveProfiles(environment, commaDelimitedListToStringArray(systemProfiles));
+            return;
         }
+
+        String systemProfiles = System.getProperty("spring.profiles.active");
+        if (!isEmpty(systemProfiles)) {
+            setActiveProfiles(environment, commaDelimitedListToStringArray(systemProfiles));
+            return;
+        }
+
+        setActiveProfiles(environment, new String[]{"hsqldb"});
     }
 
     private static void setActiveProfiles(
