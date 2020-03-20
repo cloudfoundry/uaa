@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -192,15 +193,17 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         System.out.format("System property spring.profiles.active=[%s]%n", systemProfiles);
         environment.setDefaultProfiles(new String[0]);
         if (environment.containsProperty("spring_profiles")) {
-            String profiles = environment.getProperty("spring_profiles");
-            System.out.println("Setting active profiles: " + profiles);
-            environment.setActiveProfiles(StringUtils.tokenizeToStringArray(profiles, ",", true, true));
+            String[] profiles = StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true);
+            System.out.println("Setting active profiles: " + Arrays.toString(profiles));
+            environment.setActiveProfiles(profiles);
         } else if (isEmpty(systemProfiles)) {
-            System.out.println("Setting active profiles: [hsqldb]");
-            environment.setActiveProfiles("hsqldb");
+            String[] profiles = new String[]{"hsqldb"};
+            System.out.println("Setting active profiles: " + Arrays.toString(profiles));
+            environment.setActiveProfiles(profiles);
         } else {
-            System.out.format("Setting active profiles: [%s]%n", systemProfiles);
-            environment.setActiveProfiles(commaDelimitedListToStringArray(systemProfiles));
+            String[] profiles = commaDelimitedListToStringArray(systemProfiles);
+            System.out.println("Setting active profiles: " + Arrays.toString(profiles));
+            environment.setActiveProfiles(profiles);
         }
     }
 
