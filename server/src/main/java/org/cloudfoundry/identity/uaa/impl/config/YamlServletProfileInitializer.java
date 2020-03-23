@@ -96,8 +96,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 .filter(ClassPathResource::exists)
                 .forEach(resources::add);
 
-        resources.addAll(getResource(applicationContext));
-
+        resources.addAll(getResource(applicationContext, FILE_CONFIG_LOCATIONS));
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
         if (yamlFromEnv != null) {
             resources.add(yamlFromEnv);
@@ -135,8 +134,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         return null;
     }
 
-    private List<Resource> getResource(ConfigurableWebApplicationContext applicationContext) {
-        final List<String> resolvedLocations = FILE_CONFIG_LOCATIONS.stream()
+    private static List<Resource> getResource(
+            final ConfigurableWebApplicationContext applicationContext,
+            final List<String> fileConfigLocations
+    ) {
+        final List<String> resolvedLocations = fileConfigLocations.stream()
                 .map(applicationContext.getEnvironment()::resolvePlaceholders)
                 .collect(Collectors.toList());
 
