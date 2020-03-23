@@ -20,6 +20,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.ServletContext;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -31,6 +32,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -58,6 +60,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     };
 
     private static final List<String> FILE_CONFIG_LOCATIONS;
+    private static final String SECRETS_DIR_VAR = "${SECRETS_DIR}";
 
     static {
         FILE_CONFIG_LOCATIONS = List.of(
@@ -67,10 +70,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 "${UAA_CONFIG_URL}",
                 "file:${UAA_CONFIG_FILE}",
                 "file:${UAA_CONFIG_PATH}/uaa.yml",
-                "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml",
-                "file:${SECRETS_DIR}/smtp_credentials.yml",
-                "file:${SECRETS_DIR}/database_credentials.yml",
-                "file:${SECRETS_DIR}/admin_client.yml"
+                "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml"
         );
     }
 
@@ -97,6 +97,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 .forEach(resources::add);
 
         resources.addAll(getResource(applicationContext, FILE_CONFIG_LOCATIONS));
+        resources.addAll(getResource(applicationContext, getSecretsFiles(applicationContext)));
+
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
         if (yamlFromEnv != null) {
             resources.add(yamlFromEnv);
@@ -121,6 +123,29 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             System.err.println("Error loading YAML environment properties from location: " + resources.toString());
             e.printStackTrace();
         }
+    }
+
+    private static List<String> getSecretsFiles(
+            final ConfigurableWebApplicationContext applicationContext
+    ) {
+        final String resolvedSecretsLocation = applicationContext
+                .getEnvironment()
+                .resolvePlaceholders(SECRETS_DIR_VAR);
+
+        System.out.println(SECRETS_DIR_VAR + " resolves to " + resolvedSecretsLocation);
+
+        final File[] secretFiles =
+                ofNullable(new File(resolvedSecretsLocation).listFiles((dir, name) -> name != null && name.endsWith(".yml")))
+                        .orElse(new File[]{});
+
+        if (secretFiles.length == 0) {
+            System.out.println("Found no .yml files in " + SECRETS_DIR_VAR);
+        }
+
+        return Arrays.stream(secretFiles)
+                .map(File::getAbsolutePath)
+                .map(path -> String.format("file:%s", path))
+                .collect(Collectors.toList());
     }
 
     private Resource getYamlFromEnvironmentVariable() {

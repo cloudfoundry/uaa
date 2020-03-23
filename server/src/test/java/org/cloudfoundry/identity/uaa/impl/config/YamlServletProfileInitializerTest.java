@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
 import org.springframework.core.env.PropertySource;
@@ -20,6 +19,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
@@ -28,8 +28,11 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 
 import javax.servlet.ServletContext;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Enumeration;
 
 import static org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer.YML_ENV_VAR_NAME;
@@ -39,7 +42,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.description;
 import static org.mockito.Mockito.mock;
@@ -57,9 +63,11 @@ class YamlServletProfileInitializerTest {
     private ServletContext servletContext;
 
     private static final String NEW_LINE = System.getProperty("line.separator");
+    private Path tempDirectory;
+    private RandomValueStringGenerator randomValueStringGenerator;
 
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
         initializer = new YamlServletProfileInitializer();
         context = mock(ConfigurableWebApplicationContext.class);
         environment = new StandardServletEnvironment();
@@ -74,6 +82,10 @@ class YamlServletProfileInitializerTest {
             return null;
         }).when(servletContext).log(anyString());
         when(servletContext.getContextPath()).thenReturn("/context");
+        tempDirectory = Files.createTempDirectory("secrets-dir");
+        tempDirectory.toFile().deleteOnExit();
+        System.setProperty("SECRETS_DIR", tempDirectory.toString());
+        randomValueStringGenerator = new RandomValueStringGenerator(10);
     }
 
     @AfterEach
@@ -215,134 +227,6 @@ class YamlServletProfileInitializerTest {
         initializer.initialize(context);
         assertEquals("marissa", environment.getProperty("smtp.user"));
         assertEquals("koala", environment.getProperty("smtp.password"));
-    }
-
-    @Test
-    void smtpFromSecretsDirWorks() {
-        System.setProperty("SECRETS_DIR", "elsewhere");
-        when(context.getResource(eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
-                new ByteArrayResource("smtp:\n  user: donkey\n  password: kong".getBytes()));
-        initializer.initialize(context);
-        assertEquals("donkey", environment.getProperty("smtp.user"));
-        assertEquals("kong", environment.getProperty("smtp.password"));
-    }
-
-    @Test
-    void smtpFromSecretsDirOverwrites() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
-        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
-                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala".getBytes()));
-
-        System.setProperty("SECRETS_DIR", "elsewhere");
-        when(context.getResource(eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
-                new ByteArrayResource("smtp:\n  user: donkey\n  password: kong".getBytes()));
-        initializer.initialize(context);
-
-        assertEquals("donkey", environment.getProperty("smtp.user"));
-        assertEquals("kong", environment.getProperty("smtp.password"));
-    }
-
-    @Test
-    void smtpMerges() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
-        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
-                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala\n  host:\n    foo: bar".getBytes()));
-
-        System.setProperty("SECRETS_DIR", "elsewhere");
-        when(context.getResource(eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
-                new ByteArrayResource("smtp:\n  host:\n    baz: foobar".getBytes()));
-        initializer.initialize(context);
-
-        assertEquals("marissa", environment.getProperty("smtp.user"));
-        assertEquals("koala", environment.getProperty("smtp.password"));
-        assertEquals("bar", environment.getProperty("smtp.host.foo"));
-        assertEquals("foobar", environment.getProperty("smtp.host.baz"));
-    }
-
-    @Test
-    void loadsAdminClient() {
-        System.setProperty("SECRETS_DIR", "foo");
-        String adminClientYaml = "---\n" +
-                "oauth:\n" +
-                "  clients:\n" +
-                "    admin:\n" +
-                "      authorized-grant-types: client_credentials\n" +
-                "      authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write\n" +
-                "      id: admin\n" +
-                "      secret: adminsecret";
-        when(context.getResource(eq("file:foo/admin_client.yml"))).thenReturn(new ByteArrayResource(adminClientYaml.getBytes()));
-
-        initializer.initialize(context);
-
-        assertEquals("admin", environment.getProperty("oauth.clients.admin.id"));
-        assertEquals("adminsecret", environment.getProperty("oauth.clients.admin.secret"));
-        assertEquals("client_credentials", environment.getProperty("oauth.clients.admin.authorized-grant-types"));
-        assertEquals("clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write", environment.getProperty("oauth.clients.admin.authorities"));
-    }
-
-    @Nested
-    class DatabaseCredentials {
-
-        private ByteArrayResource uaa_yml;
-        private ByteArrayResource database_credentials_yml;
-
-        @BeforeEach
-        void setUp() {
-            uaa_yml = new ByteArrayResource(("database:" + NEW_LINE +
-                    "  username: default-username" + NEW_LINE +
-                    "  password: default-password" + NEW_LINE +
-                    "  url: jdbc://hostname").getBytes());
-
-            database_credentials_yml = new ByteArrayResource(("database:" + NEW_LINE +
-                    "  username: donkey" + NEW_LINE +
-                    "  password: kong").getBytes());
-        }
-
-        @AfterEach
-        void cleanup() {
-            System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
-            System.clearProperty("SECRETS_DIR");
-        }
-
-        @Test
-        void uaaYmlOnly() {
-            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
-            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
-                    .thenReturn(uaa_yml);
-
-            initializer.initialize(context);
-            assertEquals("default-username", environment.getProperty("database.username"));
-            assertEquals("default-password", environment.getProperty("database.password"));
-            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
-        }
-
-        @Test
-        void databaseCredentialsOnly() {
-            System.setProperty("SECRETS_DIR", "secretsdir");
-            when(context.getResource("file:secretsdir/database_credentials.yml"))
-                    .thenReturn(database_credentials_yml);
-
-            initializer.initialize(context);
-            assertEquals("donkey", environment.getProperty("database.username"));
-            assertEquals("kong", environment.getProperty("database.password"));
-        }
-
-        @Test
-        void databaseCredentialsOverridesUaaYml() {
-            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
-            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
-                    .thenReturn(uaa_yml);
-
-            System.setProperty("SECRETS_DIR", "secretsdir");
-            when(context.getResource("file:secretsdir/database_credentials.yml"))
-                    .thenReturn(database_credentials_yml);
-
-            initializer.initialize(context);
-            assertEquals("donkey", environment.getProperty("database.username"));
-            assertEquals("kong", environment.getProperty("database.password"));
-            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
-        }
-
     }
 
     @Test
@@ -511,5 +395,82 @@ class YamlServletProfileInitializerTest {
         assertThat(loggerContext.getConfigLocation(), is(expectedUrl));
 
         tempFile.delete();
+    }
+
+    @ExtendWith(PollutionPreventionExtension.class)
+    @ExtendWith(SpringProfileCleanupExtension.class)
+    @Nested
+    class WithArbitrarySecretYamlFiles {
+
+        @Test
+        void randomFileName() {
+            String fileName = createRandomSecretsFile();
+
+            ByteArrayResource byteArrayResource = new ByteArrayResource(("hocus:" + NEW_LINE +
+                    "  pocus: focus" + NEW_LINE +
+                    "  foo: bar").getBytes());
+
+            when(context.getResource(String.format("file:%s", fileName)))
+                    .thenReturn(byteArrayResource);
+
+            initializer.initialize(context);
+            assertEquals("focus", environment.getProperty("hocus.pocus"));
+            assertEquals("bar", environment.getProperty("hocus.foo"));
+        }
+
+        @Test
+        void mergesAndOverridesUaaYml() {
+            ByteArrayResource uaa_yml = new ByteArrayResource(("database:" + NEW_LINE +
+                    "  username: default-username" + NEW_LINE +
+                    "  password: default-password" + NEW_LINE +
+                    "  url: jdbc://hostname").getBytes());
+
+            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
+            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
+                    .thenReturn(uaa_yml);
+
+            ByteArrayResource database_credentials_yml = new ByteArrayResource(("database:" + NEW_LINE +
+                    "  username: donkey" + NEW_LINE +
+                    "  password: kong").getBytes());
+
+            String fileName = createSecretsFile("database_credentials.yml");
+
+            when(context.getResource(String.format("file:%s", fileName)))
+                    .thenReturn(database_credentials_yml);
+
+            initializer.initialize(context);
+            assertEquals("donkey", environment.getProperty("database.username"));
+            assertEquals("kong", environment.getProperty("database.password"));
+            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
+        }
+
+        @Test
+        void requiresYmlExtension() {
+            String validFileName = createRandomSecretsFile();
+            String inValidFileName = createSecretsFile("doesNotEndInYml");
+
+            when(context.getResource("file:" + validFileName)).thenReturn(new ByteArrayResource(("isValid: true").getBytes()));
+            when(context.getResource("file:" + inValidFileName)).thenReturn(new ByteArrayResource(("isNotValid: true").getBytes()));
+
+            initializer.initialize(context);
+            assertEquals("true", environment.getProperty("isValid"));
+            assertNull(environment.getProperty("isNotValid"));
+        }
+    }
+
+    private String createRandomSecretsFile() {
+        return createSecretsFile("fileName-" + randomValueStringGenerator.generate() + ".yml");
+    }
+
+    private String createSecretsFile(String fileName) {
+        File newFile = new File(tempDirectory.toAbsolutePath().toString(), fileName);
+        try {
+            newFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        newFile.deleteOnExit();
+        return newFile.getAbsolutePath();
     }
 }
