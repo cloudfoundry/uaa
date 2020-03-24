@@ -220,7 +220,7 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void smtpFromUaaYmlWorks() {
+    void loadsPropertiesFrom_CLOUDFOUNDRY_CONFIG_PATH() {
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
         when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
                 new ByteArrayResource("smtp:\n  user: marissa\n  password: koala".getBytes()));
@@ -403,7 +403,7 @@ class YamlServletProfileInitializerTest {
     class WithArbitrarySecretYamlFiles {
 
         @Test
-        void randomFileName() {
+        void loadsConfigurationFromFilesInThe_SECRETS_DIR_Variable() {
             String fileName = createRandomSecretsFile();
 
             ByteArrayResource byteArrayResource = new ByteArrayResource(("hocus:" + NEW_LINE +
