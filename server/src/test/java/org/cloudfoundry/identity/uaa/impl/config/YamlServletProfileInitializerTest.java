@@ -230,16 +230,6 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void smtpFromSecretsDirWorks() {
-        System.setProperty("SECRETS_DIR", "elsewhere");
-        when(context.getResource(eq("file:elsewhere/smtp_credentials.yml"))).thenReturn(
-                new ByteArrayResource("smtp:\n  user: donkey\n  password: kong".getBytes()));
-        initializer.initialize(context);
-        assertEquals("donkey", environment.getProperty("smtp.user"));
-        assertEquals("kong", environment.getProperty("smtp.password"));
-    }
-
-    @Test
     void filesListedLaterOverrideDuplicatedConfiguration() {
         System.setProperty("UAA_CONFIG_PATH", "somewhere");
         when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
@@ -269,92 +259,6 @@ class YamlServletProfileInitializerTest {
         assertEquals("koala", environment.getProperty("smtp.password"));
         assertEquals("bar", environment.getProperty("smtp.host.foo"));
         assertEquals("foobar", environment.getProperty("smtp.host.baz"));
-    }
-
-    @Test
-    void loadsAdminClient() {
-        System.setProperty("SECRETS_DIR", "foo");
-        String adminClientYaml = "---\n" +
-                "oauth:\n" +
-                "  clients:\n" +
-                "    admin:\n" +
-                "      authorized-grant-types: client_credentials\n" +
-                "      authorities: clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write\n" +
-                "      id: admin\n" +
-                "      secret: adminsecret";
-        when(context.getResource(eq("file:foo/admin_client.yml"))).thenReturn(new ByteArrayResource(adminClientYaml.getBytes()));
-
-        initializer.initialize(context);
-
-        assertEquals("admin", environment.getProperty("oauth.clients.admin.id"));
-        assertEquals("adminsecret", environment.getProperty("oauth.clients.admin.secret"));
-        assertEquals("client_credentials", environment.getProperty("oauth.clients.admin.authorized-grant-types"));
-        assertEquals("clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write", environment.getProperty("oauth.clients.admin.authorities"));
-    }
-
-    @Nested
-    class DatabaseCredentials {
-
-        private ByteArrayResource uaa_yml;
-        private ByteArrayResource database_credentials_yml;
-
-        @BeforeEach
-        void setUp() {
-            uaa_yml = new ByteArrayResource(("database:" + NEW_LINE +
-                    "  username: default-username" + NEW_LINE +
-                    "  password: default-password" + NEW_LINE +
-                    "  url: jdbc://hostname").getBytes());
-
-            database_credentials_yml = new ByteArrayResource(("database:" + NEW_LINE +
-                    "  username: donkey" + NEW_LINE +
-                    "  password: kong").getBytes());
-        }
-
-        @AfterEach
-        void cleanup() {
-            System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
-            System.clearProperty("SECRETS_DIR");
-        }
-
-        @Test
-        void uaaYmlOnly() {
-            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
-            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
-                    .thenReturn(uaa_yml);
-
-            initializer.initialize(context);
-            assertEquals("default-username", environment.getProperty("database.username"));
-            assertEquals("default-password", environment.getProperty("database.password"));
-            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
-        }
-
-        @Test
-        void databaseCredentialsOnly() {
-            System.setProperty("SECRETS_DIR", "secretsdir");
-            when(context.getResource("file:secretsdir/database_credentials.yml"))
-                    .thenReturn(database_credentials_yml);
-
-            initializer.initialize(context);
-            assertEquals("donkey", environment.getProperty("database.username"));
-            assertEquals("kong", environment.getProperty("database.password"));
-        }
-
-        @Test
-        void databaseCredentialsOverridesUaaYml() {
-            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
-            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
-                    .thenReturn(uaa_yml);
-
-            System.setProperty("SECRETS_DIR", "secretsdir");
-            when(context.getResource("file:secretsdir/database_credentials.yml"))
-                    .thenReturn(database_credentials_yml);
-
-            initializer.initialize(context);
-            assertEquals("donkey", environment.getProperty("database.username"));
-            assertEquals("kong", environment.getProperty("database.password"));
-            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
-        }
-
     }
 
     @Test
