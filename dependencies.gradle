@@ -3,8 +3,10 @@ ext {
     libraries = [:]
 }
 
-ext["mariadb.version"] = "2.2.0"
+
 ext["jackson.version"] = "2.10.3" //Can be removed when we bump to spring boot 2.2.0
+ext["mariadb.version"] = "2.6.0"
+
 
 def versions = [:]
 
