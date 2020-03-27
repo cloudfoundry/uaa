@@ -23,6 +23,13 @@ var _ = Describe("Deployment", func() {
 		"ReadOnly":  Equal(true),
 	})
 
+	adminCredentialsVolumeMountMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+		"Name":      Equal("admin-client-credentials-file"),
+		"MountPath": Equal("/etc/secrets/admin_client_credentials.yml"),
+		"SubPath":   Equal("admin_client_credentials.yml"),
+		"ReadOnly":  Equal(true),
+	})
+
 	BeforeEach(func() {
 		templates = []string{
 			pathToFile("deployment.yml"),
@@ -51,11 +58,13 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("uaa-config", Not(BeNil()))
 						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
+						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 						container.WithResourceRequests("512Mi", "500m")
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
 					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
+					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -74,10 +83,12 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("uaa-config", Not(BeNil()))
 						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
+						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
 					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
+					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -99,10 +110,12 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("uaa-config", Not(BeNil()))
 						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
+						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
 					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
+					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -133,10 +146,12 @@ var _ = Describe("Deployment", func() {
 							container.WithVolumeMount("uaa-config", Not(BeNil()))
 							container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 							container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
+							container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 						})
 						pod.WithVolume("uaa-config", Not(BeNil()))
 						pod.WithVolume("database-credentials-file", Not(BeNil()))
 						pod.WithVolume("smtp-credentials-file", Not(BeNil()))
+						pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 					}),
 				),
 			)
@@ -166,6 +181,7 @@ var _ = Describe("Deployment", func() {
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
 					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
+					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)

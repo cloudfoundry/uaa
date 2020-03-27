@@ -51,6 +51,10 @@ spec:
           mountPath: #@ "{}/database_credentials.yml".format(secrets_dir)
           subPath: database_credentials.yml
           readOnly: true
+        - name: admin-client-credentials-file
+          mountPath: #@ "{}/admin_client_credentials.yml".format(secrets_dir)
+          subPath: admin_client_credentials.yml
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /healthz
@@ -74,3 +78,6 @@ spec:
         secret:
           optional: true
           secretName: uaa-database-credentials
+      - name: admin-client-credentials-file
+        secret:
+          secretName: uaa-admin-client-credentials
