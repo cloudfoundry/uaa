@@ -59,37 +59,37 @@ class JdbcQueryableClientDetailsServiceTests {
     }
 
     private void addClients() {
-        addClient("cf", "secret", "cc", "cc.read,cc.write", "implicit", "myRedirectUri", "cc.read,cc.write", 100, 200);
-        addClient("scimadmin", "secret", "uaa,scim", "uaa.admin,scim.read,scim.write", "client_credentials",
-                "myRedirectUri", "scim.read,scim.write", 100, 200);
-        addClient("admin", "secret", "tokens,clients", "clients.read,clients.write,scim.read,scim.write",
-                "client_credentials", "myRedirectUri", "clients.read,clients.write,scim.read,scim.write", 100, 200);
-        addClient("app", "secret", "cc", "cc.read,scim.read,openid", GRANT_TYPE_AUTHORIZATION_CODE, "myRedirectUri",
-                "cc.read,scim.read,openid", 100, 500);
+        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "cf", "cc", "cc.read,cc.write", "implicit", "cc.read,cc.write", 200);
+        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "scimadmin", "uaa,scim", "uaa.admin,scim.read,scim.write", "client_credentials",
+                "scim.read,scim.write", 200);
+        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "admin", "tokens,clients", "clients.read,clients.write,scim.read,scim.write",
+                "client_credentials", "clients.read,clients.write,scim.read,scim.write", 200);
+        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "app", "cc", "cc.read,scim.read,openid", GRANT_TYPE_AUTHORIZATION_CODE,
+                "cc.read,scim.read,openid", 500);
     }
 
-    private void addClient(
+    private static void addClient(
+            final JdbcTemplate jdbcTemplate,
+            final String zoneId,
             final String id,
-            final String secret,
             final String resource,
             final String scope,
             final String grantType,
-            final String redirectUri,
             final String authority,
-            final long accessTokenValidity,
-            final long refreshTokenValidity) {
+            final long refreshTokenValidity
+    ) {
         jdbcTemplate.update(
                 INSERT_SQL,
                 id,
-                secret,
+                "secret",
                 resource,
                 scope,
                 grantType,
-                redirectUri,
+                "myRedirectUri",
                 authority,
-                accessTokenValidity,
+                (long) 100,
                 refreshTokenValidity,
-                IdentityZoneHolder.get().getId());
+                zoneId);
     }
 
     @Test
