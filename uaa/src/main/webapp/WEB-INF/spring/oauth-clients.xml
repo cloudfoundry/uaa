@@ -2,12 +2,6 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
        xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService">
-        <constructor-arg name="delegate" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory"/>
-    </bean>
-
     <bean id="jdbcClientMetadataProvisioning"
           class="org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning">
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
