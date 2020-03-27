@@ -38,3 +38,6 @@ smtp:
   password: ~
   starttls: ~
   from_address: ~
+
+admin:
+  client_secret: ~

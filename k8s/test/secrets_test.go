@@ -109,4 +109,28 @@ var _ = Describe("Secrets", func() {
 		Expect(renderingContext).To(ProduceEmptyYAML())
 	})
 
+	It("Renders with admin client credentials", func() {
+		templates = []string{
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("secrets", "admin_client_credentials.yml")),
+		}
+
+		renderingContext := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"admin.client_secret": "my admin client secret",
+			})
+
+		adminClientCredentials := `oauth:
+  clients:
+    admin:
+      secret: my admin client secret
+`
+
+		Expect(renderingContext).To(
+			ProduceYAML(RepresentingASecret().
+				WithName("uaa-admin-client-credentials").
+				WithStringData("admin_client_credentials.yml", adminClientCredentials)),
+		)
+	})
+
 })
