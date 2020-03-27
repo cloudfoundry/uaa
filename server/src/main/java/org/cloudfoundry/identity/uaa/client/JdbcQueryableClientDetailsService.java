@@ -1,26 +1,14 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,22 +22,22 @@ import java.util.List;
 import java.util.Map;
 
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
-                QueryableResourceManager<ClientDetails> {
+        QueryableResourceManager<ClientDetails> {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcQueryableClientDetailsService.class);
 
     private MultitenantJdbcClientDetailsService delegate;
 
     private static final String CLIENT_FIELDS = "client_id, client_secret, resource_ids, scope, "
-                    + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
-                    + "refresh_token_validity, additional_information, autoapprove, lastmodified";
+            + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
+            + "refresh_token_validity, additional_information, autoapprove, lastmodified";
 
     public static final String CLIENT_DETAILS_TABLE = "oauth_client_details";
     private static final String BASE_FIND_STATEMENT = "select " + CLIENT_FIELDS
-        + " from " + CLIENT_DETAILS_TABLE;
+            + " from " + CLIENT_DETAILS_TABLE;
 
     public JdbcQueryableClientDetailsService(MultitenantJdbcClientDetailsService delegate, JdbcTemplate jdbcTemplate,
-                    JdbcPagingListFactory pagingListFactory) {
+                                             JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ClientDetailsRowMapper());
         this.delegate = delegate;
     }
@@ -58,6 +46,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     protected String getBaseSqlQuery() {
         return BASE_FIND_STATEMENT;
     }
+
     @Override
     protected String getTableName() {
         return CLIENT_DETAILS_TABLE;
@@ -102,7 +91,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
         @Override
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
             BaseClientDetails details = new BaseClientDetails(rs.getString(1), rs.getString(3), rs.getString(4),
-                            rs.getString(5), rs.getString(7), rs.getString(6));
+                    rs.getString(5), rs.getString(7), rs.getString(6));
             details.setClientSecret(rs.getString(2));
             if (rs.getObject(8) != null) {
                 details.setAccessTokenValiditySeconds(rs.getInt(8));
