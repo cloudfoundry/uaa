@@ -68,39 +68,57 @@ class JdbcQueryableClientDetailsServiceTests {
                 "cc.read,scim.read,openid", 100, 500);
     }
 
-    private void addClient(String id, String secret, String resource, String scope, String grantType,
-                           String redirectUri, String authority, long accessTokenValidity, long refreshTokenValidity) {
-        jdbcTemplate.update(INSERT_SQL, id, secret, resource, scope, grantType, redirectUri, authority,
-                accessTokenValidity, refreshTokenValidity, IdentityZoneHolder.get().getId());
+    private void addClient(
+            final String id,
+            final String secret,
+            final String resource,
+            final String scope,
+            final String grantType,
+            final String redirectUri,
+            final String authority,
+            final long accessTokenValidity,
+            final long refreshTokenValidity) {
+        jdbcTemplate.update(
+                INSERT_SQL,
+                id,
+                secret,
+                resource,
+                scope,
+                grantType,
+                redirectUri,
+                authority,
+                accessTokenValidity,
+                refreshTokenValidity,
+                IdentityZoneHolder.get().getId());
     }
 
     @Test
-    void testQueryEquals() {
+    void queryEquals() {
         addClients();
         assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(2, service.query("authorized_grant_types eq \"client_credentials\"", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
-    void testQueryExists() {
+    void queryExists() {
         addClients();
         assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(4, service.query("scope pr", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
-    void testQueryEqualsInAnotherZone() {
-        testQueryEquals();
+    void queryEqualsInAnotherZone() {
+        queryEquals();
         IdentityZoneHolder.set(otherZone);
-        testQueryEquals();
+        queryEquals();
         assertEquals(8, delegate.getTotalCount());
     }
 
     @Test
-    void testQueryExistsInAnotherZone() {
-        testQueryExists();
+    void queryExistsInAnotherZone() {
+        queryExists();
         IdentityZoneHolder.set(otherZone);
-        testQueryExists();
+        queryExists();
         assertEquals(8, delegate.getTotalCount());
     }
 
