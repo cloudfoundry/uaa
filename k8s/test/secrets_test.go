@@ -133,4 +133,17 @@ var _ = Describe("Secrets", func() {
 		)
 	})
 
+	It("Admin client credentials are required", func() {
+		templates = []string{
+			pathToFile(filepath.Join("values", "_values.yml")),
+			pathToFile(filepath.Join("secrets", "admin_client_credentials.yml")),
+		}
+
+		renderingContext := NewRenderingContext(templates...)
+
+		Expect(renderingContext).To(
+			ThrowError("admin.client_secret is required"),
+		)
+	})
+
 })
