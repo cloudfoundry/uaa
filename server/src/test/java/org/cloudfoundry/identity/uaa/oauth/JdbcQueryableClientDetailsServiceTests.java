@@ -58,13 +58,16 @@ class JdbcQueryableClientDetailsServiceTests {
         TestUtils.restoreToDefaults(applicationContext);
     }
 
-    private void addClients() {
-        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "cf", "cc", "cc.read,cc.write", "implicit", "cc.read,cc.write", 200);
-        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "scimadmin", "uaa,scim", "uaa.admin,scim.read,scim.write", "client_credentials",
+    private static void addClients(
+            final JdbcTemplate jdbcTemplate,
+            final String zoneId
+    ) {
+        addClient(jdbcTemplate, zoneId, "cf", "cc", "cc.read,cc.write", "implicit", "cc.read,cc.write", 200);
+        addClient(jdbcTemplate, zoneId, "scimadmin", "uaa,scim", "uaa.admin,scim.read,scim.write", "client_credentials",
                 "scim.read,scim.write", 200);
-        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "admin", "tokens,clients", "clients.read,clients.write,scim.read,scim.write",
+        addClient(jdbcTemplate, zoneId, "admin", "tokens,clients", "clients.read,clients.write,scim.read,scim.write",
                 "client_credentials", "clients.read,clients.write,scim.read,scim.write", 200);
-        addClient(jdbcTemplate, IdentityZoneHolder.get().getId(), "app", "cc", "cc.read,scim.read,openid", GRANT_TYPE_AUTHORIZATION_CODE,
+        addClient(jdbcTemplate, zoneId, "app", "cc", "cc.read,scim.read,openid", GRANT_TYPE_AUTHORIZATION_CODE,
                 "cc.read,scim.read,openid", 500);
     }
 
@@ -94,14 +97,14 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @Test
     void queryEquals() {
-        addClients();
+        addClients(jdbcTemplate, IdentityZoneHolder.get().getId());
         assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(2, service.query("authorized_grant_types eq \"client_credentials\"", IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
     void queryExists() {
-        addClients();
+        addClients(jdbcTemplate, IdentityZoneHolder.get().getId());
         assertEquals(4, service.retrieveAll(IdentityZoneHolder.get().getId()).size());
         assertEquals(4, service.query("scope pr", IdentityZoneHolder.get().getId()).size());
     }
