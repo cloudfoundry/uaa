@@ -8,8 +8,8 @@ issuer:
 encryption:
   active_key_label: CHANGE-THIS-KEY
   encryption_keys:
-  - label: CHANGE-THIS-KEY
-    passphrase: CHANGEME
+    - label: CHANGE-THIS-KEY
+      passphrase: CHANGEME
 
 login:
   serviceProviderKey: |
@@ -72,4 +72,13 @@ smtp:
   port: #@ data.values.smtp.port
   starttls: #@ data.values.smtp.starttls
   from_address: #@ data.values.smtp.from_address
+
+oauth:
+  client:
+    override: true
+  clients:
+    admin:
+      authorized-grant-types: client_credentials
+      authorities: "clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write"
+
 #@ end

@@ -82,6 +82,17 @@ var _ = Describe("Uaa ConfigMap", func() {
 									"Starttls":    BeEmpty(),
 									"FromAddress": BeEmpty(),
 								}),
+								"Oauth": MatchFields(0, Fields{
+									"Client": MatchFields(0, Fields{
+										"Override": Equal(true),
+									}),
+									"Clients": MatchFields(0, Fields{
+										"Admin": MatchFields(0, Fields{
+											"AuthorizedGrantTypes": Equal("client_credentials"),
+											"Authorities":          Equal("clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write"),
+										}),
+									}),
+								}),
 							})
 						}),
 					))

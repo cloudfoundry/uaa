@@ -8,6 +8,7 @@ type UaaConfig struct {
 	Jwt         Jwt        `yaml:"jwt"`
 	Database    Database   `yaml:"database"`
 	Smtp        Smtp       `yaml:"smtp"`
+	Oauth       Oauth      `yaml:"oauth"`
 }
 
 type Issuer struct {
@@ -64,4 +65,22 @@ type Smtp struct {
 	Port        string `yaml:"port"`
 	Starttls    string `yaml:"starttls"`
 	FromAddress string `yaml:"from_address"`
+}
+
+type OauthClient struct {
+	Override bool `yaml:"override"`
+}
+
+type SingleOauthClient struct {
+	AuthorizedGrantTypes string `yaml:"authorized-grant-types"`
+	Authorities          string `yaml:"authorities"`
+}
+
+type OauthClients struct {
+	Admin SingleOauthClient `yaml:"admin"`
+}
+
+type Oauth struct {
+	Client  OauthClient  `yaml:"client"`
+	Clients OauthClients `yaml:"clients"`
 }
