@@ -1,6 +1,16 @@
 GOFILES=`find . -type f -name '*.go'`
 
-.PHONY: help clean format template_test test render apply minikube kubectl-clean docker-run docker-debug
+.PHONY: help
+.PHONY: clean
+.PHONY: format
+.PHONY: template_test
+.PHONY: test
+.PHONY: render
+.PHONY: apply
+.PHONY: minikube
+.PHONY: kubectl-clean
+.PHONY: docker-run
+.PHONY: docker-debug
 
 help:
 	@echo "With this makefile you can clean, format, test, render, or apply the UAA K8s templates"
