@@ -11,6 +11,7 @@ GOFILES=`find . -type f -name '*.go'`
 .PHONY: kubectl-clean
 .PHONY: docker-run
 .PHONY: docker-debug
+.PHONY: brew-cli
 
 help:
 	@echo "With this makefile you can clean, format, test, render, or apply the UAA K8s templates"
@@ -58,3 +59,6 @@ docker-debug:
 		--env spring_profiles=default,hsqldb \
 		--env JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Djava.security.egd=file:/dev/./urandom" \
 		cfidentity/uaa:latest
+
+brew-cli:
+	brew install cloudfoundry/tap/uaa-cli
