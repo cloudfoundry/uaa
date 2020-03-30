@@ -6,8 +6,6 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +29,6 @@ class JdbcQueryableClientDetailsServiceTests {
 
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, identity_zone_id) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
-    private IdentityZone otherZone;
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
 
     @Autowired
@@ -45,11 +42,16 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @BeforeEach
     void setUp() {
-        multitenantJdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, passwordEncoder);
-        jdbcQueryableClientDetailsService = new JdbcQueryableClientDetailsService(multitenantJdbcClientDetailsService, jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate,
-                limitSqlAdapter));
-
-        otherZone = MultitenancyFixture.identityZone("other-zone-id", "myzone");
+        multitenantJdbcClientDetailsService = new MultitenantJdbcClientDetailsService(
+                jdbcTemplate,
+                null,
+                passwordEncoder);
+        jdbcQueryableClientDetailsService = new JdbcQueryableClientDetailsService(
+                multitenantJdbcClientDetailsService,
+                jdbcTemplate,
+                new JdbcPagingListFactory(
+                        jdbcTemplate,
+                        limitSqlAdapter));
     }
 
     @AfterEach
@@ -96,32 +98,32 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @Test
     void queryEquals() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
     }
 
     @Test
     void queryExists() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
     }
 
     @Test
     void queryEqualsInAnotherZone() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, otherZone.getId());
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "otherZoneId");
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
     @Test
     void queryExistsInAnotherZone() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, otherZone.getId());
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "otherZoneId");
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
     @Test
     void throwsExceptionWhenSortByIncludesPrivateFieldClientSecret() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> jdbcQueryableClientDetailsService.query("client_id pr", "client_id,client_secret", true, IdentityZone.getUaaZoneId()).size(),
+                () -> jdbcQueryableClientDetailsService.query("client_id pr", "client_id,client_secret", true, "zoneOneId").size(),
                 is("Invalid sort field: client_secret")
         );
     }
@@ -143,6 +145,5 @@ class JdbcQueryableClientDetailsServiceTests {
         assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(zoneId).size());
         assertEquals(4, jdbcQueryableClientDetailsService.query("scope pr", zoneId).size());
     }
-
 
 }
