@@ -5,7 +5,7 @@
     <bean id="jdbcClientMetadataProvisioning"
           class="org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning">
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="template" ref="jdbcTemplate"/>
+        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
 
     </bean>
 
