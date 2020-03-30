@@ -53,6 +53,11 @@ class JdbcQueryableClientDetailsServiceTests {
         otherZone = MultitenancyFixture.identityZone("other-zone-id", "myzone");
     }
 
+    @AfterEach
+    void tearDown(@Autowired ApplicationContext applicationContext) {
+        TestUtils.restoreToDefaults(applicationContext);
+    }
+
     private static void addClients(
             final JdbcTemplate jdbcTemplate,
             final String zoneId
@@ -92,31 +97,27 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @Test
     void queryEquals() {
-        addClients(jdbcTemplate, IdentityZoneHolder.get().getId());
-        assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(IdentityZoneHolder.get().getId()).size());
-        assertEquals(2, jdbcQueryableClientDetailsService.query("authorized_grant_types eq \"client_credentials\"", IdentityZoneHolder.get().getId()).size());
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
     }
 
     @Test
     void queryExists() {
-        addClients(jdbcTemplate, IdentityZoneHolder.get().getId());
-        assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(IdentityZoneHolder.get().getId()).size());
-        assertEquals(4, jdbcQueryableClientDetailsService.query("scope pr", IdentityZoneHolder.get().getId()).size());
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
     }
 
     @Test
     void queryEqualsInAnotherZone() {
-        queryEquals();
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.set(otherZone);
-        queryEquals();
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
     @Test
     void queryExistsInAnotherZone() {
-        queryExists();
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
         IdentityZoneHolder.set(otherZone);
-        queryExists();
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
@@ -127,4 +128,24 @@ class JdbcQueryableClientDetailsServiceTests {
                 is("Invalid sort field: client_secret")
         );
     }
+
+    private static void verifyScimEquality(
+            final JdbcTemplate jdbcTemplate,
+            final JdbcQueryableClientDetailsService jdbcQueryableClientDetailsService,
+            final String zoneId) {
+        addClients(jdbcTemplate, zoneId);
+        assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(zoneId).size());
+        assertEquals(2, jdbcQueryableClientDetailsService.query("authorized_grant_types eq \"client_credentials\"", zoneId).size());
+    }
+
+    private static void verifyScimPresent(
+            final JdbcTemplate jdbcTemplate,
+            final JdbcQueryableClientDetailsService jdbcQueryableClientDetailsService,
+            final String zoneId) {
+        addClients(jdbcTemplate, zoneId);
+        assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(zoneId).size());
+        assertEquals(4, jdbcQueryableClientDetailsService.query("scope pr", zoneId).size());
+    }
+
+
 }
