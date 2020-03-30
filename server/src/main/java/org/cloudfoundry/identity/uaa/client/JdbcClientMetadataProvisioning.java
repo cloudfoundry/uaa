@@ -5,10 +5,12 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.Base64Utils;
 
@@ -23,6 +25,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.CLIENT_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
+@Component("jdbcClientMetadataProvisioning")
 public class JdbcClientMetadataProvisioning implements ClientMetadataProvisioning {
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcClientMetadataProvisioning.class);
@@ -38,7 +41,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     private final RowMapper<ClientMetadata> mapper = new ClientMetadataRowMapper();
 
     JdbcClientMetadataProvisioning(
-            final MultitenantClientServices clientDetailsService,
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             final JdbcTemplate jdbcTemplate) {
         Assert.notNull(jdbcTemplate);
         Assert.notNull(clientDetailsService);
