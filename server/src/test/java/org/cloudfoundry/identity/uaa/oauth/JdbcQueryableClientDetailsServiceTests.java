@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.AfterEach;
@@ -97,34 +96,32 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @Test
     void queryEquals() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
     }
 
     @Test
     void queryExists() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
     }
 
     @Test
     void queryEqualsInAnotherZone() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
-        IdentityZoneHolder.set(otherZone);
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
+        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, otherZone.getId());
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
     @Test
     void queryExistsInAnotherZone() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
-        IdentityZoneHolder.set(otherZone);
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZoneHolder.get().getId());
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, IdentityZone.getUaaZoneId());
+        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, otherZone.getId());
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
     @Test
     void throwsExceptionWhenSortByIncludesPrivateFieldClientSecret() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> jdbcQueryableClientDetailsService.query("client_id pr", "client_id,client_secret", true, IdentityZoneHolder.get().getId()).size(),
+                () -> jdbcQueryableClientDetailsService.query("client_id pr", "client_id,client_secret", true, IdentityZone.getUaaZoneId()).size(),
                 is("Invalid sort field: client_secret")
         );
     }
