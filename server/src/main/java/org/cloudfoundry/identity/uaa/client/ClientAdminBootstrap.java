@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -37,8 +39,10 @@ import org.springframework.security.oauth2.provider.ClientAlreadyExistsException
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+@Component("clientAdminBootstrap")
 public class ClientAdminBootstrap implements
         InitializingBean,
         ApplicationListener<ContextRefreshedEvent>,
@@ -71,13 +75,13 @@ public class ClientAdminBootstrap implements
      *                           into the client details store.
      */
     ClientAdminBootstrap(
-            final PasswordEncoder passwordEncoder,
+            final @Qualifier("nonCachingPasswordEncoder") PasswordEncoder passwordEncoder,
             final MultitenantClientServices clientRegistrationService,
             final ClientMetadataProvisioning clientMetadataProvisioning,
-            final boolean defaultOverride,
-            final Map<String, Map<String, Object>> clients,
-            final Collection<String> autoApproveClients,
-            final Collection<String> clientsToDelete,
+            final @Value("${oauth.client.override:true}") boolean defaultOverride,
+            final @Value("#{@config['oauth']==null ? null : @config['oauth']['clients']}") Map<String, Map<String, Object>> clients,
+            final @Value("#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}") Collection<String> autoApproveClients,
+            final @Value("#{@config['delete']==null ? null : @config['delete']['clients']}") Collection<String> clientsToDelete,
             final JdbcTemplate jdbcTemplate) {
         this.passwordEncoder = passwordEncoder;
         this.clientRegistrationService = clientRegistrationService;
