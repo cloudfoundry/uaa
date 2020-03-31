@@ -80,10 +80,6 @@ var _ = Describe("Deployment", func() {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
 						container.WithImage("image from testing")
-						container.WithVolumeMount("uaa-config", Not(BeNil()))
-						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
-						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
-						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
@@ -107,10 +103,6 @@ var _ = Describe("Deployment", func() {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
 						container.WithResourceRequests("888Mi", "999m")
-						container.WithVolumeMount("uaa-config", Not(BeNil()))
-						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
-						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
-						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
@@ -143,10 +135,6 @@ var _ = Describe("Deployment", func() {
 						pod.WithContainerMatching(func(container *ContainerMatcher) {
 							container.WithName("uaa")
 							container.WithEnvVar("spring_profiles", databaseScheme)
-							container.WithVolumeMount("uaa-config", Not(BeNil()))
-							container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
-							container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
-							container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 						})
 						pod.WithVolume("uaa-config", Not(BeNil()))
 						pod.WithVolume("database-credentials-file", Not(BeNil()))

@@ -87,7 +87,7 @@ func (matcher *ContainerMatcher) Match(actual interface{}) (bool, error) {
 	identifyVolumeMountByName := func(element interface{}) string {
 		return element.(coreV1.VolumeMount).Name
 	}
-	matcher.fields["VolumeMounts"] = MatchElements(identifyVolumeMountByName, 0, matcher.volumeMounts)
+	matcher.fields["VolumeMounts"] = MatchElements(identifyVolumeMountByName, IgnoreExtras, matcher.volumeMounts)
 
 	matcher.executed = MatchFields(IgnoreExtras, matcher.fields)
 	return matcher.executed.Match(container)
