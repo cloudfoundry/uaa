@@ -85,7 +85,7 @@ func (matcher *PodMatcher) Match(actual interface{}) (bool, error) {
 	identifyVolumeByName := func(element interface{}) string {
 		return element.(coreV1.Volume).Name
 	}
-	matcher.executed = gstruct.MatchElements(identifyVolumeByName, 0, matcher.volumes)
+	matcher.executed = gstruct.MatchElements(identifyVolumeByName, gstruct.IgnoreExtras, matcher.volumes)
 	if pass, err := matcher.executed.Match(pod.Spec.Volumes); !pass || err != nil {
 		return pass, err
 	}

@@ -81,10 +81,6 @@ var _ = Describe("Deployment", func() {
 						container.WithName("uaa")
 						container.WithImage("image from testing")
 					})
-					pod.WithVolume("uaa-config", Not(BeNil()))
-					pod.WithVolume("database-credentials-file", Not(BeNil()))
-					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
-					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -104,10 +100,6 @@ var _ = Describe("Deployment", func() {
 						container.WithName("uaa")
 						container.WithResourceRequests("888Mi", "999m")
 					})
-					pod.WithVolume("uaa-config", Not(BeNil()))
-					pod.WithVolume("database-credentials-file", Not(BeNil()))
-					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
-					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -136,10 +128,6 @@ var _ = Describe("Deployment", func() {
 							container.WithName("uaa")
 							container.WithEnvVar("spring_profiles", databaseScheme)
 						})
-						pod.WithVolume("uaa-config", Not(BeNil()))
-						pod.WithVolume("database-credentials-file", Not(BeNil()))
-						pod.WithVolume("smtp-credentials-file", Not(BeNil()))
-						pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 					}),
 				),
 			)
@@ -166,10 +154,6 @@ var _ = Describe("Deployment", func() {
 				WithNamespace("default").
 				WithPodMatching(func(pod *PodMatcher) {
 					pod.WithLabels(labels)
-					pod.WithVolume("uaa-config", Not(BeNil()))
-					pod.WithVolume("database-credentials-file", Not(BeNil()))
-					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
-					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 				}),
 			),
 		)
