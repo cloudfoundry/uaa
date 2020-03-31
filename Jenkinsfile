@@ -392,9 +392,6 @@ pipeline {
             }
         }
         stage('Upload Build Artifact') {
-            environment {
-                BINTRAY_CREDS = credentials("BINTRAY_CREDS")
-            }
             agent {
                 label 'dind'
             }
@@ -428,34 +425,6 @@ pipeline {
                     }"""
                     def buildInfo = buildGeArtServer.upload(uploadSpec)
                     buildGeArtServer.publishBuildInfo(buildInfo)
-
-                    BINTRAY_LOCATION = "https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}"
-                    echo "BINTRAY_LOCATION=${BINTRAY_LOCATION}"
-
-                    BINTRAY_ARTIFACT1="predix-uaa/cloudfoundry-identity-uaa-${APP_VERSION}.war"
-                    LOCAL_ARTIFACT1="build/cloudfoundry-identity-uaa-${APP_VERSION}.war"
-
-                    BINTRAY_ARTIFACT2="predix-uaa/ppc-uaa-deploy-${APP_VERSION}.tgz"
-                    LOCAL_ARTIFACT2="ppc-uaa-deploy-${APP_VERSION}.tgz"
-
-                    BINTRAY_JENKINSFILE="predix-uaa/PPCDeployJenkinsfile-${APP_VERSION}"
-                    LOCAL_JENKINSFILE="uaa/PPCDeployJenkinsfile"
-
-                    echo 'package offline install files to CLZ'
-                    sh """#!/bin/bash -ex
-                        # currently only pulls config for rosneft PPC, maybe parameterize per PPC later
-                        # TODO: compose .toml file and push along with tar and war
-                        tar -zcf $LOCAL_ARTIFACT2 uaa-cf-release
-    
-                        curl -vvv -T $LOCAL_ARTIFACT1 -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_ARTIFACT1?override=1
-                        
-                        curl -vvv -T $LOCAL_ARTIFACT2 -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_ARTIFACT2?override=1
-                        
-                        curl -vvv -T $LOCAL_JENKINSFILE -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_JENKINSFILE?override=1
-    
-                        echo 'publish file in bintray'
-                        curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/publish
-                    """
                 }
             }
             post {
@@ -467,16 +436,26 @@ pipeline {
                 }
             }
         }
-        stage('Updating manifest for cloudfoundry-identity-uaa.war') {
+
+        stage('Trigger publish to Bintray') {
+            when {
+                expression { params.PUSH_TO_BUILD_GE == true }
+            }
             steps {
-                PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT1}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");
+                script {
+                    build job: "PublishBintray/${env.BRANCH_NAME}",
+                    wait: false
+                }
+            }
+            post {
+                success {
+                    echo 'Trigger publishing to Bintray succeeded'
+                }
+                failure {
+                    echo 'Trigger publishing to Bintray failed'
+                }
             }
         }
-        stage('Updating manifest for ppc-uaa-deploy.tgz') {
-            steps {
-                PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT2}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");
-            }
-        }      
     }
     post {
         success {

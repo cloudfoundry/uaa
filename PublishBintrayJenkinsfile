@@ -1,0 +1,151 @@
+def artifactoryServer = Artifactory.server('build.ge')
+
+// Note underscore (_) is required if the line immediately after the @Library annotation is not an import statement.
+@Library('PPCmanifest')_
+
+pipeline {
+
+    agent {
+        label 'dind'
+    }
+
+    options {
+        skipDefaultCheckout()
+    }
+
+    environment {
+        BINTRAY_CREDS = credentials("BINTRAY_CREDS")
+        COMPLIANCEENABLED = true
+    }
+
+    stages {
+
+        stage('Checkout Git repositories') {
+            steps {
+
+                echo  'Downloading UAA Repo'
+
+                dir ('uaa'){
+                    checkout scm
+                }
+
+                sh 'echo Downloading UAA CI Repo'
+
+                dir('uaa-cf-release') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release-rosneft.git', branch: 'master'
+                }
+
+                sh "ls"
+            }
+            post {
+                success {
+                    echo 'Checkout of the Git repositories succeeded'
+                }
+                failure {
+                    echo 'Checkout of the Git repositories failed'
+                }
+            }
+        }
+
+        stage('Downloading deploy artifacts') {
+            steps {
+                script {
+                    APP_VERSION = sh (returnStdout: true, script: '''
+                        grep 'version' uaa/gradle.properties | sed 's/version=//'
+                        ''').trim()
+
+                    echo "Downloading UAA ${APP_VERSION} build from Artifactory"
+
+                    def downloadspec = """{
+                       "files": [
+                           {
+                               "pattern": "MAAXA/builds/uaa/${APP_VERSION}/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                               "target": "./build/",
+                               "flat": "true"
+                           }
+                       ]
+                    }"""
+                    artifactoryServer.download(downloadspec)
+                }
+            }
+            post {
+                success {
+                    echo 'Downloading deploy artifacts succeeded'
+                }
+                failure {
+                    echo 'Downloading deploy artifacts failed'
+                }
+            }
+        }
+
+        stage('Uploading deploy artifacts to Bintray') {
+            steps {
+                 script {
+                    echo "APP_VERSION = ${APP_VERSION}"
+
+                    BINTRAY_LOCATION = "https://api.bintray.com/content/gedigital/Rosneft/uaa/${APP_VERSION}"
+                    echo "BINTRAY_LOCATION=${BINTRAY_LOCATION}"
+
+                    BINTRAY_ARTIFACT1 = "predix-uaa/cloudfoundry-identity-uaa-${APP_VERSION}.war"
+                    LOCAL_ARTIFACT1 = "build/cloudfoundry-identity-uaa-${APP_VERSION}.war"
+
+                    BINTRAY_ARTIFACT2 = "predix-uaa/ppc-uaa-deploy-${APP_VERSION}.tgz"
+                    LOCAL_ARTIFACT2 = "ppc-uaa-deploy-${APP_VERSION}.tgz"
+
+                    BINTRAY_JENKINSFILE = "predix-uaa/PPCDeployJenkinsfile-${APP_VERSION}"
+                    LOCAL_JENKINSFILE = "uaa/PPCDeployJenkinsfile"
+
+                    sh """#!/bin/bash -ex
+                        echo 'package deploy dependencies'
+                        tar -zcf $LOCAL_ARTIFACT2 uaa-cf-release
+
+                        curl -T $LOCAL_ARTIFACT1 -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_ARTIFACT1?override=1
+                        
+                        curl -T $LOCAL_ARTIFACT2 -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_ARTIFACT2?override=1
+                        
+                        curl -T $LOCAL_JENKINSFILE -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW $BINTRAY_LOCATION/$BINTRAY_JENKINSFILE?override=1
+                        
+                        echo 'publish deploy dependencies to bintray'
+                        curl -X POST -u$BINTRAY_CREDS_USR:$BINTRAY_CREDS_PSW ${BINTRAY_LOCATION}/publish
+                    """
+                }                
+            }
+            post {
+                success {
+                    echo 'Uploading deploy artifacts to Bintray succeeded'
+                }
+                failure {
+                    echo 'Uploading deploy artifacts to Bintray failed'
+                }
+            }
+        }
+
+        stage('Updating manifest') {
+            steps {
+                echo "APP_VERSION = ${APP_VERSION}"
+                PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT1}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");
+                PPC_Update("Rosneft","uaa","${APP_VERSION}","uaa","${BINTRAY_ARTIFACT2}","artifact","snapshot","uaa/${APP_VERSION}/${BINTRAY_JENKINSFILE}");            
+            }
+            post {
+                success {
+                    echo 'Updating manifest succeeded'
+                }
+                failure {
+                    echo 'Updating manifest failed'
+                }
+            }
+        } 
+
+    }
+    post {
+        always {
+            deleteDir()
+        }
+        success {
+            echo 'All pipeline stages completed'
+        }
+        failure {
+            echo 'At least one of the pipeline stages failed'
+        }
+    }
+}
