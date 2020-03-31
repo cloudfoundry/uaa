@@ -1,11 +1,3 @@
-def spring_profiles(database_scheme):
-  if database_scheme in ["postgresql","mysql"]:
-    return database_scheme
-  else:
-    return "hsqldb"
-  end
-end
-
 config_dir = "/etc/config"
 
 java_opts_list = [
