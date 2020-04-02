@@ -2,11 +2,6 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
        xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
-        <constructor-arg ref="jdbcTemplate"/>
-        <constructor-arg ref="cachingPasswordEncoder"/>
-    </bean>
-
     <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService">
         <constructor-arg name="delegate" ref="jdbcClientDetailsService"/>
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
