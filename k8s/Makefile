@@ -33,32 +33,17 @@ render:
 apply:
 	@ytt -f templates | kubectl apply -f -
 
-minikube:
-	@ytt -f templates -f addons | kubectl apply -f -
+apply-dev:
+	@ytt -f templates -f addons -v include_default_profile=true | kubectl apply -f -
 
-kubectl-clean:
-	kubectl delete deployments,services,secrets,replicasets,services,pods,configmaps,serviceaccounts --all
+start-cluster:
+	./scripts/minikube-init.sh
+
+clean-cluster:
+	kubectl delete all,ingress --all
 
 docker-run:
-	docker pull cfidentity/uaa:latest \
-	&& docker run \
-		--detach \
-		--publish 8080:8080 \
-		--mount type=bind,source=${PWD}/../scripts/cargo/uaa.yml,target=/uaa.yml \
-		--env CLOUDFOUNDRY_CONFIG_PATH= \
-		--env spring_profiles=default,hsqldb \
-		cfidentity/uaa:latest
+	./scripts/docker-run.sh cfidentity/uaa:latest ${PWD}/../scripts/cargo/uaa.yml
 
 docker-debug:
-	docker run \
-		--detach \
-		--publish 8080:8080 \
-		--publish 5005:5005 \
-		--mount type=bind,source=${PWD}/../scripts/cargo/uaa.yml,target=/uaa.yml \
-		--env CLOUDFOUNDRY_CONFIG_PATH= \
-		--env spring_profiles=default,hsqldb \
-		--env JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Djava.security.egd=file:/dev/./urandom" \
-		cfidentity/uaa:latest
-
-brew-cli:
-	brew install cloudfoundry/tap/uaa-cli
+	./scripts/docker-run.sh -d cfidentity/uaa:latest ${PWD}/../scripts/cargo/uaa.yml
