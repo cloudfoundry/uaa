@@ -14,3 +14,11 @@ def java_opts():
   end
   return ret
 end
+
+def spring_profiles(database_scheme, include_default_profile):
+  if include_default_profile:
+    return "default," + database_scheme
+  end
+
+  return database_scheme
+end

@@ -18,6 +18,7 @@ tomcat:
   accessLoggingEnabled: "y"
 
 #! UAA Application Values
+include_default_profile: false
 database:
   scheme: ~
   address: ~

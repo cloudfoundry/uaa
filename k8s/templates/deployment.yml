@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("deployment.star", "java_opts", "config_dir")
+#@ load("deployment.star", "java_opts", "config_dir", "spring_profiles")
 
 #@ secrets_dir = "/etc/secrets"
 ---
@@ -35,7 +35,7 @@ spec:
         - name: JAVA_OPTS
           value: #@ java_opts()
         - name: spring_profiles
-          value: #@ data.values.database.scheme or "hsqldb"
+          value: #@ spring_profiles(data.values.database.scheme, data.values.include_default_profile) or "hsqldb"
         - name: CLOUDFOUNDRY_CONFIG_PATH
           value: #@ config_dir
         - name: SECRETS_DIR
