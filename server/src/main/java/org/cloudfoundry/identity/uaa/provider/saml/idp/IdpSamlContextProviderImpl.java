@@ -93,7 +93,7 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
             entityId = metadata.getEntityIdForAlias(localAlias);
 
             if (entityId == null) {
-                throw new MetadataProviderException("No local entity found for alias " + localAlias + ", verify your configuration.");
+                throw new MetadataProviderException("UAA CODE: No local entity found for alias " + localAlias + ", verify your configuration.");
             } else {
                 log.debug("Using IdP {} specified in request with alias {}", entityId, localAlias);
             }

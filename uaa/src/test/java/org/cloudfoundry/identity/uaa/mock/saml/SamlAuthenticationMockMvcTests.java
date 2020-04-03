@@ -1,6 +1,11 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LogEvent;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
@@ -24,6 +29,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +41,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.context.WebApplicationContext;
 import org.xml.sax.InputSource;
@@ -45,20 +52,18 @@ import javax.xml.xpath.XPathFactory;
 import java.io.StringReader;
 import java.util.*;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static com.beust.jcommander.internal.Lists.newArrayList;
+import static org.apache.logging.log4j.Level.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -211,17 +216,10 @@ class SamlAuthenticationMockMvcTests {
 
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, false);
-        String subdomain = spZone.getSubdomain();
 
         testLogger.reset();
 
-        mockMvc.perform(
-                post("/uaa/saml/SSO/alias/" + spZoneEntityId)
-                        .contextPath("/uaa")
-                        .header(HOST, subdomain + ".localhost:8080")
-                        .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .param("SAMLResponse", xml)
-        )
+        postSamlResponse(xml)
                 .andExpect(authenticated());
 
         assertThat(testLogger.getMessageCount(), is(3));
@@ -269,13 +267,7 @@ class SamlAuthenticationMockMvcTests {
         // Log in to get a session cookie as the user
         String samlResponse = performIdpAuthentication(samlAuthorityNamesForMockAuthentication);
         String xml = extractAssertion(samlResponse, false);
-        MockHttpSession session = (MockHttpSession) mockMvc.perform(
-                post("/uaa/saml/SSO/alias/" + spZoneEntityId)
-                        .contextPath("/uaa")
-                        .header(HOST, spZoneHost)
-                        .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .param("SAMLResponse", xml)
-        )
+        MockHttpSession session = (MockHttpSession) postSamlResponse(xml)
                 .andExpect(authenticated())
                 .andReturn().getRequest().getSession(false);
 
@@ -361,6 +353,70 @@ class SamlAuthenticationMockMvcTests {
         assertThat(refreshedIdTokenRoles, containsInAnyOrder(expectedExternalGroups));
     }
 
+    private ResultActions postSamlResponse(String xml) throws Exception {
+        return mockMvc.perform(
+                post("/uaa/saml/SSO/alias/" + spZoneEntityId)
+                        .contextPath("/uaa")
+                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
+                        .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param("SAMLResponse", xml)
+        );
+    }
+
+    @Nested
+    @DefaultTestContext
+    class WithCustomLogAppender {
+        private List<LogEvent> logEvents;
+        private AbstractAppender appender;
+
+        @BeforeEach
+        void setupLogger() throws Exception {
+            logEvents = new ArrayList<>();
+            appender = new AbstractAppender("", null, null) {
+                @Override
+                public void append(LogEvent event) {
+                    logEvents.add(event);
+                }
+            };
+            appender.start();
+
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+//            context.getRootLogger().setLevel(DEBUG);
+            context.getRootLogger().addAppender(appender);
+            createIdp();
+        }
+
+        @AfterEach
+        void removeAppender() {
+            LoggerContext context = (LoggerContext) LogManager.getContext(false);
+            context.getRootLogger().removeAppender(appender);
+        }
+
+        @Test
+        void malformedSamlRequestDoesALoggingThing() throws Exception {
+            performIdpAuthentication();
+//            String samlResponse = performIdpAuthentication();
+//            String xml = extractAssertion(samlResponse, false);
+
+            postSamlResponse(null);
+            assertThatMessageWasLogged(WARN, "Malformed SAML response. More details at logger level DEBUG.");
+            assertThatMessageWasLogged(DEBUG, "POST");
+        }
+
+        private void assertThatMessageWasLogged(Level level, String expectedMessage) {
+            assertThatLogs(logEvents -> logEvents.stream()
+                    .anyMatch(logEvent -> contains(logEvent, level, expectedMessage)));
+        }
+
+        private void assertThatLogs(Predicate<List<LogEvent>> logEventsPredicate) {
+            assertTrue(logEventsPredicate.test(logEvents));
+        }
+
+        private boolean contains(LogEvent logEvent, Level level, String expectedMessage) {
+            return level.equals(logEvent.getLevel()) && expectedMessage.equals(logEvent.getMessage().getFormattedMessage());
+        }
+    }
+
     private String performIdpAuthentication() throws Exception {
         return performIdpAuthentication(Collections.singletonList("uaa.user"));
     }
@@ -410,7 +466,7 @@ class SamlAuthenticationMockMvcTests {
         samlServiceProvider = spProvisioning.create(samlServiceProvider, idpZone.getId());
     }
 
-    private void createIdp() throws Exception {
+    void createIdp() throws Exception {
         createIdp(null);
     }
 

@@ -196,6 +196,7 @@
                 <ref bean="assertionBinding"/>
                 <ref bean="soapBinding"/>
                 <ref bean="paosBinding"/>
+                <ref bean="samlResponseLoggerBinding"/>
             </list>
         </constructor-arg>
     </bean>
@@ -270,6 +271,9 @@
 
     <bean id="paosBinding" class="org.springframework.security.saml.processor.HTTPPAOS11Binding">
         <constructor-arg ref="parserPool"/>
+    </bean>
+
+    <bean id="samlResponseLoggerBinding" class="org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding">
     </bean>
 
     <!-- Initialization of OpenSAML library -->
