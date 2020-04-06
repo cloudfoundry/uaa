@@ -22,7 +22,9 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.saml2.core.Assertion;
@@ -50,7 +52,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -60,7 +61,6 @@ import org.w3c.dom.Element;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.security.Security;
 import java.util.Collection;
 import java.util.Date;
@@ -83,7 +83,8 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
 
 public class Saml2TokenGranterTest {
 
-
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
 
     private Saml2TokenGranter granter;
     private Saml2TokenGranter mockedgranter;
@@ -155,6 +156,31 @@ public class Saml2TokenGranterTest {
         granter.validateRequest(tokenRequest);
     }
 
+    @Test
+    public void invalid_grant_type() {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        exception.expect(InvalidGrantException.class);
+        exception.expectMessage("Invalid grant type");
+        requestParameters.put(GRANT_TYPE, "password");
+        tokenRequest.setRequestParameters(requestParameters);
+        granter.validateRequest(tokenRequest);
+    }
+
+    @Test
+    public void test_no_user_authentication() {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        exception.expect(InvalidGrantException.class);
+        exception.expectMessage("User authentication not found");
+        DefaultSecurityContextAccessor mockSecurity = mock(DefaultSecurityContextAccessor.class);
+        granter = new Saml2TokenGranter(
+            tokenServices,
+            clientDetailsService,
+            requestFactory,
+            mockSecurity);
+        when(mockSecurity.isUser()).thenReturn(false);
+        granter.validateRequest(tokenRequest);
+    }
+
     @Test(expected = InvalidGrantException.class)
     public void test_no_grant_type() {
         missing_parameter(GRANT_TYPE);
@@ -173,22 +199,6 @@ public class Saml2TokenGranterTest {
     }
 
     @Test
-    public void test_getAccessToken() {
-        Collection me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");
-        OAuth2Request myReq = new OAuth2Request(requestParameters, receivingClient.getClientId(), receivingClient.getAuthorities(), true, receivingClient.getScope(), receivingClient.getResourceIds(), null, null, null);
-        requestingClient.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
-        when(userAuthentication.getAuthorities()).thenReturn(me);
-        tokenRequest.setClientId(receivingClient.getClientId());
-        when(authentication.isAuthenticated()).thenReturn(true);
-        when(authentication.getUserAuthentication()).thenReturn(null);
-        when(authentication.getUserAuthentication()).thenReturn(userAuthentication);
-        when(userAuthentication.isAuthenticated()).thenReturn(true);
-        when(requestFactory.createOAuth2Request(receivingClient, tokenRequest)).thenReturn(myReq);
-        ReflectionTestUtils.setField(granter, "requestFactory", requestFactory);
-        granter.getAccessToken(receivingClient, tokenRequest);
-    }
-
-    @Test
     public void test_grant() {
         tokenRequest.setGrantType(requestParameters.get(GRANT_TYPE));
         granter.grant(GRANT_TYPE, tokenRequest);
@@ -201,9 +211,7 @@ public class Saml2TokenGranterTest {
         List<String> allowedProviders = new LinkedList<String>();
         Map<String, Object> additionalInformation = new LinkedHashMap<>();
         Collection me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");
-        //when(new DefaultSecurityContextAccessor()).thenReturn((DefaultSecurityContextAccessor) securityContextAccessor);
         mockedgranter = mock(Saml2TokenGranter.class);
-        when(mockedgranter.getRequestFactory()).thenReturn(requestFactory);
         when(mockedgranter.validateRequest(tokenRequest)).thenReturn(userAuthentication);
         when(mockedgranter.getOAuth2Authentication(myClient, tokenRequest)).thenCallRealMethod();
         myClient.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
@@ -211,7 +219,7 @@ public class Saml2TokenGranterTest {
         myClient.setAdditionalInformation(additionalInformation);
         when(userAuthentication.getAuthorities()).thenReturn(me);
         when(requestFactory.createOAuth2Request(receivingClient, tokenRequest)).thenReturn(myReq);
-        mockedgranter.getOAuth2Authentication(myClient, tokenRequest);
+        granter.getOAuth2Authentication(myClient, tokenRequest);
     }
 
     @Test(expected = InvalidGrantException.class)
