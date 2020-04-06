@@ -2,7 +2,7 @@
 set -xeu
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-pushd $(dirname $SCRIPT_DIR)
+pushd ${SCRIPT_DIR}/../uaa
   npm install
   npm test
 popd
