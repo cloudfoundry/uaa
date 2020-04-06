@@ -8872,7 +8872,7 @@ input {
 
 .revocation-scrim {
   background-color: rgba(66, 66, 66, 0.7);
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100%;
