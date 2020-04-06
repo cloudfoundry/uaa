@@ -3,5 +3,6 @@ set -xeu
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 pushd $(dirname $SCRIPT_DIR)
-  ./gradlew jasmineTests
+  npm install
+  npm test
 popd
