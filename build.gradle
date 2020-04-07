@@ -59,24 +59,10 @@ subprojects {
     apply plugin: "java"
     apply plugin: "checkstyle"
 
-    task showClasspath {
-        doLast {
-
-            project.plugins.each {
-                println it
-            }
-            buildscript.configurations.classpath.each { println it.name }
-        }
-    }
-
     tasks.withType(Checkstyle) {
         reports {
             xml.enabled true
             html.enabled true
-
-            // e.g. ./gradlew checkstyleMain -PcheckstyleConfig=$PWD/config/checkstyle/google_checks.xml
-            if (project.hasProperty('checkstyleConfig'))
-                configFile=file("$checkstyleConfig")
         }
     }
 
