@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
@@ -37,6 +38,7 @@ import org.springframework.security.oauth2.provider.ClientAlreadyExistsException
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -59,6 +61,7 @@ import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
  */
+@Component("jdbcClientDetailsService")
 public class MultitenantJdbcClientDetailsService extends MultitenantClientServices implements
     ResourceMonitor<ClientDetails>,
     SystemDeletable {
@@ -115,7 +118,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     public MultitenantJdbcClientDetailsService(
             final JdbcTemplate jdbcTemplate,
             final IdentityZoneManager identityZoneManager,
-            final PasswordEncoder passwordEncoder) {
+            final @Qualifier("cachingPasswordEncoder") PasswordEncoder passwordEncoder) {
         super(identityZoneManager);
         Assert.notNull(jdbcTemplate, "JDbcTemplate required");
         this.jdbcTemplate = jdbcTemplate;

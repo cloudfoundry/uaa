@@ -5,18 +5,30 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -42,21 +54,50 @@ import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.*;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class LoginInfoEndpointTests {
@@ -71,7 +112,7 @@ class LoginInfoEndpointTests {
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
     private IdentityProvider uaaIdentityProvider;
     private IdentityZoneConfiguration originalConfiguration;
-    private XOAuthProviderConfigurator configurator;
+    private ExternalOAuthProviderConfigurator configurator;
     private MfaChecker spiedMfaChecker;
 
     @BeforeEach
@@ -93,7 +134,7 @@ class LoginInfoEndpointTests {
         originalConfiguration = IdentityZoneHolder.get().getConfig();
         OidcMetadataFetcher mockOidcMetadataFetcher = mock(OidcMetadataFetcher.class);
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
-        configurator = new XOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, mock(UaaRandomStringUtil.class));
+        configurator = new ExternalOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, mock(UaaRandomStringUtil.class));
         spiedMfaChecker = spy(new MfaChecker(mock(IdentityZoneProvisioning.class)));
         extendedModelMap = new ExtendedModelMap();
     }
@@ -775,7 +816,7 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
 
-        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) extendedModelMap.asMap().get("oauthLinks");
+        Map<String, AbstractExternalOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractExternalOAuthIdentityProviderDefinition>) extendedModelMap.asMap().get("oauthLinks");
         assertEquals(2, idpDefinitions.size());
     }
 
@@ -783,12 +824,12 @@ class LoginInfoEndpointTests {
     void oauth_provider_links_shown() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
-        RawXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition();
+        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
@@ -801,11 +842,11 @@ class LoginInfoEndpointTests {
     void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
-        RawXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition()
+        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
                 .setAuthUrl(new URL("http://auth.url"))
                 .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
@@ -819,17 +860,17 @@ class LoginInfoEndpointTests {
     void we_return_both_oauth_and_oidc_providers() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
-        RawXOAuthIdentityProviderDefinition oauthDefinition = new RawXOAuthIdentityProviderDefinition()
+        RawExternalOAuthIdentityProviderDefinition oauthDefinition = new RawExternalOAuthIdentityProviderDefinition()
                 .setAuthUrl(new URL("http://auth.url"))
                 .setTokenUrl(new URL("http://token.url"));
         OIDCIdentityProviderDefinition oidcDefinition = new OIDCIdentityProviderDefinition()
                 .setAuthUrl(new URL("http://auth.url"))
                 .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         oauthProvider.setConfig(oauthDefinition);
 
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
         oidcProvider.setConfig(oidcDefinition);
 
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
@@ -837,21 +878,21 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void xoauthCallback_redirectsToHomeIfNoSavedRequest() {
+    void externalOAuthCallback_redirectsToHomeIfNoSavedRequest() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         HttpSession session = new MockHttpSession();
-        String redirectUrl = endpoint.handleXOAuthCallback(session);
+        String redirectUrl = endpoint.handleExternalOAuthCallback(session);
         assertEquals("redirect:/home", redirectUrl);
     }
 
     @Test
-    void xoauthCallback_redirectsToSavedRequestIfPresent() {
+    void externalOAuthCallback_redirectsToSavedRequestIfPresent() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         HttpSession session = new MockHttpSession();
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getRedirectUrl()).thenReturn("/some.redirect.url");
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
-        String redirectUrl = endpoint.handleXOAuthCallback(session);
+        String redirectUrl = endpoint.handleExternalOAuthCallback(session);
         assertEquals("redirect:/some.redirect.url", redirectUrl);
     }
 
@@ -896,7 +937,7 @@ class LoginInfoEndpointTests {
         IdentityProvider mockProvider = mock(IdentityProvider.class);
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
-        AbstractXOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
+        AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
         when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
@@ -1524,7 +1565,7 @@ class LoginInfoEndpointTests {
     }
 
     private static IdentityProvider createOIDCIdentityProvider(String originKey) throws MalformedURLException {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcIdentityProvider = new IdentityProvider<>();
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> oidcIdentityProvider = new IdentityProvider<>();
         oidcIdentityProvider.setOriginKey(originKey);
         oidcIdentityProvider.setType(OriginKeys.OIDC10);
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
@@ -1549,7 +1590,7 @@ class LoginInfoEndpointTests {
         IdentityProvider mockProvider = mock(IdentityProvider.class);
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
-        AbstractXOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
+        AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
         when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getResponseType()).thenReturn("token");

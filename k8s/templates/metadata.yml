@@ -1,0 +1,27 @@
+#@ load("@ytt:overlay", "overlay")
+#@ load("@ytt:data", "data")
+
+#@ def metadata_labels():
+app.kubernetes.io/name: "uaa"
+app.kubernetes.io/instance: #@ "uaa-" + data.values.labels.instance
+app.kubernetes.io/version: #@ data.values.version
+app.kubernetes.io/component: "authorization_server"
+app.kubernetes.io/part-of: #@ data.values.labels.partOf
+app.kubernetes.io/managed-by: #@ data.values.labels.managedBy
+#@ end
+
+#@overlay/match by=overlay.all,expects="1+"
+---
+#@overlay/match-child-defaults missing_ok=True
+metadata:
+  namespace: #@ data.values.namespace
+  labels: #@ metadata_labels()
+
+#@overlay/match by=overlay.subset({"kind":"Deployment"}),missing_ok=True
+---
+spec:
+  #@overlay/match-child-defaults missing_ok=True
+  template:
+    metadata:
+      namespace: #@ data.values.namespace
+      labels: #@ metadata_labels()

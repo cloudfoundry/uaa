@@ -502,7 +502,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void validateOauthProviderConfigDuringCreate() throws Exception {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
         identityProvider.getConfig().setAuthUrl(null);
 
         mockMvc.perform(post("/identity-providers")
@@ -515,7 +515,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void validateOauthProviderConfigDuringUpdate() throws Exception {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
         identityProvider.getConfig().setClientAuthInBody(true);
         MvcResult mvcResult = mockMvc.perform(post("/identity-providers")
                 .header("Authorization", "bearer " + adminToken)
@@ -525,12 +525,12 @@ class IdentityProviderEndpointsMockMvcTests {
 
         String response = mvcResult.getResponse().getContentAsString();
         assertThat(response, not(containsString("relyingPartySecret")));
-        identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {
+        identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition>>() {
         });
         assertTrue(identityProvider.getConfig().isClientAuthInBody());
 
         assertTrue(
-                ((AbstractXOAuthIdentityProviderDefinition) webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId(), identityProvider.getIdentityZoneId()).getConfig())
+                ((AbstractExternalOAuthIdentityProviderDefinition) webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId(), identityProvider.getIdentityZoneId()).getConfig())
                         .isClientAuthInBody()
         );
 
@@ -543,11 +543,11 @@ class IdentityProviderEndpointsMockMvcTests {
         ).andExpect(status().isOk()).andReturn();
         response = mvcResult.getResponse().getContentAsString();
         assertThat(response, not(containsString("relyingPartySecret")));
-        identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {
+        identityProvider = JsonUtils.readValue(response, new TypeReference<IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition>>() {
         });
         assertFalse(identityProvider.getConfig().isClientAuthInBody());
         assertFalse(
-                ((AbstractXOAuthIdentityProviderDefinition) webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId(), identityProvider.getIdentityZoneId()).getConfig())
+                ((AbstractExternalOAuthIdentityProviderDefinition) webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).retrieve(identityProvider.getId(), identityProvider.getIdentityZoneId()).getConfig())
                         .isClientAuthInBody()
         );
 
@@ -579,8 +579,8 @@ class IdentityProviderEndpointsMockMvcTests {
         assertEquals(identityProviderStatus.getRequirePasswordChange(), updatedStatus.getRequirePasswordChange());
     }
 
-    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getOAuthProviderConfig() throws MalformedURLException {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+    private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getOAuthProviderConfig() throws MalformedURLException {
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();

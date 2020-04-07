@@ -158,6 +158,27 @@ In CloudFoundry terms
 * `app` is a webapp that needs single sign on and access to the `api`
   service on behalf of users.
 
+# Running the UAA on Kubernetes
+
+__Prerequisites__
+* [ytt](https://get-ytt.io/), tested with 0.24.0
+* [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)
+
+The Kubernetes deployment is in active development.  You should expect frequent (and possibly breaking) changes. This section will be updated as progress is made on this feature set. As of now:
+
+The [K8s directory](./k8s) contains `ytt` templates that can be rendered and applied to a K8s cluster.
+
+In development, [this Makefile](./k8s/Makefile) can be used for common rendering and deployment activities.
+
+In production, you'll most likely want to use ytt directly. Something like this should get you going:
+
+`$ ytt -f templates -f values/default-values.yml | kubectl apply -f -`
+
+If you'd like to overide some of those values, you can do so by taking advantage of YTT's [overlay functionality](https://get-ytt.io/#example:example-multiple-data-values).
+
+`$ ytt -f templates -f values/default-values.yml -f your-dir/production-values.yml | kubectl apply -f -`
+
+Of course, you can always abandon the default values altogether and provide your own values file.
 
 # Contributing to the UAA
 

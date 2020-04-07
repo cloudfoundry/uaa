@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.config;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
@@ -13,7 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean;
@@ -75,9 +75,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     private IdentityProviderProvisioning provisioning;
     private IdentityProviderBootstrap bootstrap;
     private MockEnvironment environment;
-    private AbstractXOAuthIdentityProviderDefinition oauthProvider;
-    private AbstractXOAuthIdentityProviderDefinition oidcProvider;
-    private HashMap<String, AbstractXOAuthIdentityProviderDefinition> oauthProviderConfig;
+    private AbstractExternalOAuthIdentityProviderDefinition oauthProvider;
+    private AbstractExternalOAuthIdentityProviderDefinition oidcProvider;
+    private HashMap<String, AbstractExternalOAuthIdentityProviderDefinition> oauthProviderConfig;
 
     @After
     public void clearIdentityHolder() {
@@ -101,7 +101,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         samlIdentityProviderDefinition1.setIdpEntityAlias("alias2");
         samlIdentityProviderDefinition1.setMetaDataLocation("http://location2");
 
-        oauthProvider = new RawXOAuthIdentityProviderDefinition();
+        oauthProvider = new RawExternalOAuthIdentityProviderDefinition();
         setCommonProperties(oauthProvider);
         oidcProvider = new OIDCIdentityProviderDefinition();
         setCommonProperties(oidcProvider);
@@ -318,7 +318,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         setOauthIDPWrappers();
         bootstrap.setOriginsToDelete(new LinkedList(oauthProviderConfig.keySet()));
         bootstrap.afterPropertiesSet();
-        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+        for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             try {
                 provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
                 fail(String.format("Provider '%s' should not exist.", provider.getKey()));
@@ -337,7 +337,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
                             IdentityProvider provider = new IdentityProvider();
                             if (p.getValue() instanceof OIDCIdentityProviderDefinition) {
                                 provider.setType(OIDC10);
-                            } else if (p.getValue() instanceof RawXOAuthIdentityProviderDefinition) {
+                            } else if (p.getValue() instanceof RawExternalOAuthIdentityProviderDefinition) {
                                 provider.setType(OAUTH20);
                             }
                             wrappers.add(
@@ -359,15 +359,15 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
 
-        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+        for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
             validateOauthOidcProvider(provider, bootstrapOauthProvider);
         }
 
         bootstrap.setOauthIdpDefinitions(null);
         bootstrap.afterPropertiesSet();
-        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+        for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
             assertNotNull(bootstrapOauthProvider);
             assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
             assertNotNull(bootstrapOauthProvider.getCreated());
@@ -378,7 +378,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     }
 
-    private void validateOauthOidcProvider(Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider, IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider) {
+    private void validateOauthOidcProvider(Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider, IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider) {
         assertNotNull(bootstrapOauthProvider);
         assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
         assertNotNull(bootstrapOauthProvider.getCreated());
@@ -398,8 +398,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         setOauthIDPWrappers();
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
-        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<AbstractXOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+        for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
             validateOauthOidcProvider(provider, bootstrapOauthProvider);
         }
     }
@@ -418,7 +418,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
     }
 
-    private AbstractXOAuthIdentityProviderDefinition setCommonProperties(AbstractXOAuthIdentityProviderDefinition definition) throws MalformedURLException {
+    private AbstractExternalOAuthIdentityProviderDefinition setCommonProperties(AbstractExternalOAuthIdentityProviderDefinition definition) throws MalformedURLException {
         return definition
                 .setAuthUrl(new URL("http://auth.url"))
                 .setLinkText("link text")

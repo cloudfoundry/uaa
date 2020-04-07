@@ -1,0 +1,43 @@
+#@data/values
+---
+#! UAA Deployment Values
+version: ""
+image: ""
+namespace: default
+labels:
+  instance: standalone
+  partOf: uaa
+  managedBy: kubectl
+
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 500m
+
+tomcat:
+  accessLoggingEnabled: "y"
+
+#! UAA Application Values
+database:
+  scheme: ~
+  address: ~
+  port: ~
+  name: ~
+  username: ~
+  password: ~
+
+jwt:
+  policy:
+    activeKeyId: ~
+    keys: []
+
+smtp:
+  host: ~
+  port: 25
+  user: ~
+  password: ~
+  starttls: ~
+  from_address: ~
+
+admin:
+  client_secret: ~

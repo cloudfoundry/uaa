@@ -27,7 +27,7 @@ func init() {
 	templateBasePath = abs
 }
 
-func pathToTemplate(name string) string {
+func pathToFile(name string) string {
 	return filepath.Join(templateBasePath, name)
 }
 

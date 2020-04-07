@@ -14,30 +14,11 @@
     <context:annotation-config />
     <context:component-scan base-package="org.cloudfoundry.identity.uaa"/>
 
-    <bean id="urlCache" class="org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache">
-        <constructor-arg name="cacheExpiration" value="#{T(java.time.Duration).ofMinutes(10)}"/>
-        <constructor-arg name="maxEntries" value="10000"/>
-        <constructor-arg name="timeService" ref="timeService"/>
-    </bean>
-
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
             <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor"/>
         </constructor-arg>
         <property name="yaml" value="${environmentYamlKey}"/>
-    </bean>
-
-    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator">
-        <constructor-arg name="configValidator" ref="identityZoneConfigValidator"/>
-    </bean>
-
-    <bean id="identityZoneConfigValidator"
-          class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator">
-        <property name="mfaConfigValidator" ref="mfaConfigValidator"/>
-    </bean>
-
-    <bean id="mfaConfigValidator" class="org.cloudfoundry.identity.uaa.zone.MfaConfigValidator">
-        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
     </bean>
 
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
@@ -273,7 +254,6 @@
     <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter"/>
 
     <bean id="identityZoneResolvingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter">
-        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="defaultInternalHostnames">
             <set>
                 <value>#{T(org.cloudfoundry.identity.uaa.util.UaaUrlUtils).getHostForURI(@uaaUrl)}</value>
@@ -417,14 +397,12 @@
         </bean>
     </util:list>
 
-    <bean id="xoauthProviderConfigurator"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthProviderConfigurator">
-        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
+    <bean id="externalOAuthProviderConfigurator"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator">
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher" id="oidcMetadataFetcher">
-        <constructor-arg name="contentCache" ref="urlCache"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
     </bean>
@@ -441,7 +419,6 @@
 
     <!--Basic application beans. -->
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
-        <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="userLockoutPolicy"/>
@@ -467,7 +444,6 @@
     <bean id="identityZoneConfigurationBootstrap"
           class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap"
           depends-on="mfaProviderBootstrap">
-        <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
@@ -503,7 +479,6 @@
 
     <bean id="ldapLoginAuthenticationMgr"
           class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
-        <constructor-arg index="0" ref="identityProviderProvisioning"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="origin" value="ldap"/>
     </bean>

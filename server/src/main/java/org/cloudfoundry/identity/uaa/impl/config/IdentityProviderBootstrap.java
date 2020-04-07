@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
@@ -74,7 +76,9 @@ public class IdentityProviderBootstrap
     private List<String> originsToDelete = null;
     private ApplicationEventPublisher publisher;
 
-    public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
+    public IdentityProviderBootstrap(
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
+            Environment environment) {
         if (provisioning==null) {
             throw new NullPointerException("Constructor argument can't be null.");
         }

@@ -17,11 +17,12 @@ buildscript {
         classpath libraries.gradleCargoPlugin
         classpath libraries.prodepsPlugin
         classpath libraries.asciidoctorGradlePlugin
-        classpath libraries.gradleNodePlugin
         classpath libraries.springDependencyMgmtPlugin
         classpath libraries.springBootGradlePlugin
     }
 }
+
+def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
 
 apply from: "dependencies.gradle"
 apply plugin: "com.bmuschko.cargo"
@@ -148,7 +149,7 @@ subprojects {
 
 cargo {
     containerId = "tomcat9x"
-    port = 8080
+    port = applicationPort
 
     deployable {
         file = file("statsd/build/libs/cloudfoundry-identity-statsd-" + version + ".war")
@@ -171,9 +172,11 @@ cargo {
     }
 
     local {
+        configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
         startStopTimeout = 540000
+        rmiPort = applicationPort + 1
         List activeProfiles = System.getProperty("spring.profiles.active", "").split(",")
-        jvmArgs = "-DLOGIN_CONFIG_URL=classpath:required_configuration.yml"
+        jvmArgs = "-DCLOUDFOUNDRY_CONFIG_PATH=" + file("scripts/cargo").getAbsolutePath() + " -Dlog4j.configurationFile=" + file("scripts/cargo/log4j2.properties").getAbsolutePath()
         if (activeProfiles.contains("debug")) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
@@ -185,10 +188,15 @@ cargo {
         }
 
         systemProperties {
+            property "SECRETS_DIR", System.getProperty("SECRETS_DIR", file("scripts/cargo").getAbsolutePath())
             property "spring.profiles.active", System.getProperty("spring.profiles.active", "default")
             property "metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true")
             property "smtp.host", "localhost"
             property "smtp.port", 2525
+        }
+
+        containerProperties {
+            property 'cargo.tomcat.ajp.port', applicationPort + 2
         }
 
         installer {
@@ -224,9 +232,9 @@ task manifests(dependsOn: assemble, type: Copy) {
 }
 
 task cleanCargoConfDir {
-    delete file(System.getProperty("java.io.tmpdir") + "/cargo/conf")
+    delete file(System.getProperty("java.io.tmpdir") + "/cargo/uaa-${applicationPort}")
     try {
-        Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/cargo"))
+        Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
     } catch (all) {
     }
 }

@@ -119,7 +119,7 @@ public class SamlAssertionDecoder extends BaseSAML2MessageDecoder {
 
         if (DatatypeHelper.isEmpty(encodedMessage)) {
             log.error("Request did not contain either a SAMLRequest or "
-                          + "SAMLResponse paramter.  Invalid request for SAML 2 HTTP POST binding.");
+                          + "SAMLResponse parameter.  Invalid request for SAML 2 HTTP POST binding.");
             throw new MessageDecodingException("No SAML message present in request");
         }
 
