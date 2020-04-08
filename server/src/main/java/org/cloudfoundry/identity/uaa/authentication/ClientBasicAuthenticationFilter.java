@@ -1,6 +1,8 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -40,6 +42,9 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
     private AuthenticationEntryPoint authenticationEntryPoint;
     private AuthenticationManager authenticationManager;
     private boolean enableUriEncodingCompatibilityMode;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     /**
      * Creates an instance which will authenticate against the supplied

@@ -327,43 +327,4 @@
     <util:list id="defaultExternalMembers">
         <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
     </util:list>
-
-    <beans profile="default">
-        <util:list id="defaultUsers">
-            <value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
-            <value>testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read</value>
-            <value>admin|admin|admin|||foo.bar,uaa.admin|uaa</value>
-        </util:list>
-        <util:list id="defaultMembers">
-            <value>acme|acme.dev,acme.qa</value>
-            <value>acme.dev|marissa</value>
-        </util:list>
-        <util:list id="defaultExternalMembers">
-            <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
-            <value>internal.read|cn=developers,ou=scopes,dc=test,dc=com</value>
-            <value>internal.write|cn=operators,ou=scopes,dc=test,dc=com</value>
-            <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
-            <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
-        </util:list>
-        <util:set id="nonDefaultUserGroups">
-            <value>scim.read</value>
-            <value>scim.write</value>
-            <value>scim.invite</value>
-            <value>uaa.resource</value>
-            <value>uaa.admin</value>
-            <value>clients.read</value>
-            <value>clients.write</value>
-            <value>clients.secret</value>
-            <value>cloud_controller.admin</value>
-            <value>clients.admin</value>
-            <value>zones.write</value>
-            <value>acme</value>
-            <value>acme.dev</value>
-            <value>acme.qa</value>
-            <value>organizations.acme</value>
-        </util:set>
-        <bean id="userIdsEnabled" class="java.lang.Boolean">
-            <constructor-arg value="${scim.userids_enabled:true}"/>
-        </bean>
-    </beans>
 </beans>

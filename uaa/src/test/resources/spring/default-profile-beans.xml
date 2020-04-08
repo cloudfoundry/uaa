@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
+
+    <util:set id="nonDefaultUserGroups">
+        <value>scim.read</value>
+        <value>scim.write</value>
+        <value>scim.invite</value>
+        <value>uaa.resource</value>
+        <value>uaa.admin</value>
+        <value>clients.read</value>
+        <value>clients.write</value>
+        <value>clients.secret</value>
+        <value>cloud_controller.admin</value>
+        <value>clients.admin</value>
+        <value>zones.write</value>
+        <value>acme</value>
+        <value>acme.dev</value>
+        <value>acme.qa</value>
+        <value>organizations.acme</value>
+    </util:set>
+
+    <util:list id="defaultExternalMembers">
+        <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
+        <value>internal.read|cn=developers,ou=scopes,dc=test,dc=com</value>
+        <value>internal.write|cn=operators,ou=scopes,dc=test,dc=com</value>
+        <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
+        <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
+    </util:list>
+
+</beans>

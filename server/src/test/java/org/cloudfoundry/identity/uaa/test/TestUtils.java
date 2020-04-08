@@ -109,13 +109,7 @@ public class TestUtils {
         tryCallAfterPropertiesSet(applicationContext, MfaProviderBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, ScimGroupBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, ScimUserBootstrap.class);
-
-        try {
-            ClientAdminBootstrap bootstrap = applicationContext.getBean("defaultClientAdminBootstrap", ClientAdminBootstrap.class);
-            bootstrap.afterPropertiesSet();
-        } catch (Exception ignored) {
-
-        }
+        tryCallAfterPropertiesSet(applicationContext, ClientAdminBootstrap.class);
     }
 
     private static <T extends InitializingBean> void tryCallAfterPropertiesSet(ApplicationContext applicationContext, Class<T> clazz) {

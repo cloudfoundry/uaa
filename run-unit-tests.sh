@@ -39,4 +39,4 @@ docker run --privileged -t -i --shm-size=1G \
   -v "${GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
   "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
+  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}"
