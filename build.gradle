@@ -63,6 +63,9 @@ subprojects {
         reports {
             xml.enabled true
             html.enabled true
+            if (project.hasProperty("checkstyleFail")) {
+                maxWarnings = 0
+            }
         }
     }
 
