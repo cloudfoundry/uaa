@@ -84,6 +84,19 @@ scim:
     uaa.admin: Act as an administrator throughout the UAA
     uaa.none: Forbid acting as a user
     uaa.offline_token: Allow offline access
+  users:
+    - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user
+    - testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read
+    - admin|admin|admin|||foo.bar,uaa.admin|uaa
+  group_membership:
+    - acme|acme.dev,acme.qa
+    - acme.dev|marissa
+  external_groups:
+    - organizations.acme|cn=test_org,ou=people,o=springsource,o=org
+    - internal.read|cn=developers,ou=scopes,dc=test,dc=com
+    - internal.write|cn=operators,ou=scopes,dc=test,dc=com
+    - internal.everything|cn=superusers,ou=scopes,dc=test,dc=com
+    - internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com
 
 oauth:
   user:
@@ -102,6 +115,69 @@ oauth:
     - roles
     - user_attributes
     - uaa.offline_token
+  clients:
+    admin:
+      authorized-grant-types: client_credentials
+      scope: uaa.none
+      authorities: uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin
+      secret: adminsecret
+    cf:
+      authorized-grant-types: implicit,password,refresh_token
+      scope: uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write
+      redirect-uri: http://localhost:8080/**,http://localhost:7000/**
+      authorities: uaa.none
+      autoapprove: true
+    app:
+      secret: appclientsecret
+      authorized-grant-types: password,implicit,authorization_code,client_credentials,refresh_token
+      scope: cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme
+      authorities: uaa.resource
+      autoapprove:
+      - openid
+      redirect-uri: http://localhost:8080/**,http://localhost:7000/**
+      signup_redirect_url: http://localhost:8080/app/
+      change_email_redirect_url: http://localhost:8080/app/
+      name: The Ultimate Oauth App
+    login:
+      secret: loginsecret
+      scope: openid,oauth.approvals
+      authorized-grant-types: client_credentials,authorization_code
+      redirect-uri: http://localhost/**
+      authorities: oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write
+      autoapprove: true
+    identity:
+      secret: identitysecret
+      authorized-grant-types: authorization_code,client_credentials,refresh_token,password
+      scope: cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write
+      authorities: scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write
+      autoapprove: true
+      redirect-uri: http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**
+    oauth_showcase_password_grant:
+      secret: secret
+      authorized-grant-types: password
+      scope: openid
+      authorities: uaa.resource
+    jku_test:
+      secret: secret
+      authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+      authorities: uaa.none
+      autoapprove: true
+      scope: openid,oauth.approvals,user_attributes
+      redirect-uri: http://localhost/**
+    jku_test_without_autoapprove:
+      secret: secret
+      authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+      authorities: uaa.none
+      autoapprove: false
+      scope: openid,oauth.approvals,user_attributes
+      redirect-uri: http://localhost/**
+    client_without_openid:
+      secret: secret
+      authorized-grant-types: password,client_credentials,refresh_token,authorization_code
+      authorities: uaa.none
+      autoapprove: true
+      scope: password.write
+      redirect-uri: http://localhost/**
 
 issuer:
   uri: http://localhost:8080/uaa

@@ -36,7 +36,6 @@ class TableAndColumnNormalizationTestConfiguration {
 
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
-@ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         TableAndColumnNormalizationTestConfiguration.class,

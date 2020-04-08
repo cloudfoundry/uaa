@@ -8,7 +8,6 @@ import org.springframework.context.annotation.ImportResource;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -25,7 +24,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
-@ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         SpringServletTestConfig.class,
@@ -34,7 +32,10 @@ import java.lang.annotation.Target;
 public @interface DefaultTestContext {
 }
 
-@ImportResource(locations = {"file:./src/main/webapp/WEB-INF/spring-servlet.xml"})
+@ImportResource(locations = {
+        "file:./src/main/webapp/WEB-INF/spring-servlet.xml",
+        "classpath:spring/default-profile-beans.xml",
+})
 @PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
 class SpringServletTestConfig {
     @Bean

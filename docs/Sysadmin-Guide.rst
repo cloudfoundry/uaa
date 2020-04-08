@@ -110,7 +110,7 @@ written as an environment variable. For a Cloud Foundry application this could l
         env:
           JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
           JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
-          SPRING_PROFILES_ACTIVE: hsqldb,default
+          SPRING_PROFILES_ACTIVE: hsqldb
           UAA_CONFIG_YAML: |
             uaa.url: http://standalone-uaa.cfapps.io
             login.url: http://standalone-uaa.cfapps.io
