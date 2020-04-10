@@ -20,7 +20,7 @@ versions.springSecurityOAuthVersion = "2.4.0.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.springVersion = "5.2.5.RELEASE"
 versions.tomcatVersion = "${tomcatVersion}"
-versions.xmlBind = "2.3.0"
+versions.xmlBind = "2.3.0.1"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.3"
