@@ -1,13 +1,5 @@
 package org.cloudfoundry.identity.uaa.account;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
-
-import java.util.List;
-import java.util.Map;
-
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
@@ -21,50 +13,56 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTR
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+import java.util.Map;
+import lombok.Data;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
 public class UserInfoResponse {
-    @JsonProperty(USER_ID)
-    public String userId;
 
-    @JsonProperty(USER_NAME)
-    public String userName;
+  @JsonProperty(USER_ID)
+  public String userId;
 
-    @JsonProperty(GIVEN_NAME)
-    public String givenName;
+  @JsonProperty(USER_NAME)
+  public String userName;
 
-    @JsonProperty(FAMILY_NAME)
-    public String familyName;
+  @JsonProperty(GIVEN_NAME)
+  public String givenName;
 
-    @JsonProperty(PHONE_NUMBER)
-    public String phoneNumber;
+  @JsonProperty(FAMILY_NAME)
+  public String familyName;
 
-    @JsonProperty(EMAIL)
-    public String email;
+  @JsonProperty(PHONE_NUMBER)
+  public String phoneNumber;
 
-    @JsonProperty(EMAIL_VERIFIED)
-    public boolean emailVerified;
+  @JsonProperty(EMAIL)
+  public String email;
 
-    @JsonInclude
-    @JsonProperty(PREVIOUS_LOGON_TIME)
-    public Long previousLogonSuccess;
+  @JsonProperty(EMAIL_VERIFIED)
+  public boolean emailVerified;
 
-    @JsonProperty(USER_ATTRIBUTES)
-    public Map<String, List<String>> userAttributes;
+  @JsonInclude
+  @JsonProperty(PREVIOUS_LOGON_TIME)
+  public Long previousLogonSuccess;
 
-    @JsonProperty(ROLES)
-    public List<String> roles;
+  @JsonProperty(USER_ATTRIBUTES)
+  public Map<String, List<String>> userAttributes;
 
-    @JsonProperty(NAME)
-    public String getFullName() {
-        return (givenName != null ? givenName : "")
-                + (familyName != null ? " " + familyName : "");
-    }
+  @JsonProperty(ROLES)
+  public List<String> roles;
 
-    @JsonProperty(SUB)
-    public String getSub() {
-        return userId;
-    }
+  @JsonProperty(NAME)
+  public String getFullName() {
+    return (givenName != null ? givenName : "") + (familyName != null ? " " + familyName : "");
+  }
 
+  @JsonProperty(SUB)
+  public String getSub() {
+    return userId;
+  }
 }

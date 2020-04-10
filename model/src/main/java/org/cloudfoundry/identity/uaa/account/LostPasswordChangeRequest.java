@@ -8,9 +8,9 @@ import lombok.Data;
 @Data
 public class LostPasswordChangeRequest {
 
-    @JsonProperty("code")
-    private String changeCode;
+  @JsonProperty("code")
+  private String changeCode;
 
-    @JsonProperty("new_password")
-    private String newPassword;
+  @JsonProperty("new_password")
+  private String newPassword;
 }

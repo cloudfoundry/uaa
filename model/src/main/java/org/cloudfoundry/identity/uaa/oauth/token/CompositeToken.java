@@ -11,6 +11,7 @@
  *      subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
+
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
@@ -22,26 +23,22 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 @JsonDeserialize(using = CompositeAccessTokenDeserializer.class)
 public class CompositeToken extends DefaultOAuth2AccessToken {
 
-    public static String ID_TOKEN = "id_token";
+  public static String ID_TOKEN = "id_token";
+  private String idTokenValue;
 
-    public String getIdTokenValue() {
-        return idTokenValue;
-    }
+  public CompositeToken(String accessTokenValue) {
+    super(accessTokenValue);
+  }
 
-    public void setIdTokenValue(String idTokenValue) {
-        this.idTokenValue = idTokenValue;
-    }
+  public CompositeToken(OAuth2AccessToken accessToken) {
+    super(accessToken);
+  }
 
-    private String idTokenValue;
+  public String getIdTokenValue() {
+    return idTokenValue;
+  }
 
-    public CompositeToken(String accessTokenValue) {
-        super(accessTokenValue);
-    }
-
-    public CompositeToken(OAuth2AccessToken accessToken) {
-        super(accessToken);
-    }
-
-
-
+  public void setIdTokenValue(String idTokenValue) {
+    this.idTokenValue = idTokenValue;
+  }
 }

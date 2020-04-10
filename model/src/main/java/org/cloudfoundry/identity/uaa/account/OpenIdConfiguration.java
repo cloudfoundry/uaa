@@ -8,63 +8,89 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class OpenIdConfiguration {
 
-    @JsonProperty("issuer")
-    private String issuer;
+  @JsonProperty("issuer")
+  private String issuer;
 
-    @JsonProperty("authorization_endpoint")
-    private String authUrl;
+  @JsonProperty("authorization_endpoint")
+  private String authUrl;
 
-    @JsonProperty("token_endpoint")
-    private String tokenUrl;
+  @JsonProperty("token_endpoint")
+  private String tokenUrl;
 
-    @JsonProperty("token_endpoint_auth_methods_supported")
-    private String[] tokenAMR = new String[]{"client_secret_basic", "client_secret_post"};
+  @JsonProperty("token_endpoint_auth_methods_supported")
+  private String[] tokenAMR = new String[] {"client_secret_basic", "client_secret_post"};
 
-    @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
-    private String[] tokenEndpointAuthSigningValues = new String[]{"RS256", "HS256"};
+  @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
+  private String[] tokenEndpointAuthSigningValues = new String[] {"RS256", "HS256"};
 
-    @JsonProperty("userinfo_endpoint")
-    private String userInfoUrl;
+  @JsonProperty("userinfo_endpoint")
+  private String userInfoUrl;
 
-    @JsonProperty("jwks_uri")
-    private String jwksUri;
+  @JsonProperty("jwks_uri")
+  private String jwksUri;
 
-    @JsonProperty("scopes_supported")
-    private String[] scopes = new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"};
+  @JsonProperty("scopes_supported")
+  private String[] scopes =
+      new String[] {"openid", "profile", "email", "phone", "roles", "user_attributes"};
 
-    @JsonProperty("response_types_supported")
-    private String[] responseTypes = new String[]{"code", "code id_token", "id_token", "token id_token"};
+  @JsonProperty("response_types_supported")
+  private String[] responseTypes =
+      new String[] {"code", "code id_token", "id_token", "token id_token"};
 
-    @JsonProperty("subject_types_supported")
-    private String[] subjectTypesSupported = new String[]{"public"};
+  @JsonProperty("subject_types_supported")
+  private String[] subjectTypesSupported = new String[] {"public"};
 
-    @JsonProperty("id_token_signing_alg_values_supported")
-    private String[] idTokenSigningAlgValues = new String[]{"RS256", "HS256"};
+  @JsonProperty("id_token_signing_alg_values_supported")
+  private String[] idTokenSigningAlgValues = new String[] {"RS256", "HS256"};
 
-    @JsonProperty("id_token_encryption_alg_values_supported")
-    private String[] requestObjectSigningAlgValues = new String[]{"none"};
+  @JsonProperty("id_token_encryption_alg_values_supported")
+  private String[] requestObjectSigningAlgValues = new String[] {"none"};
 
-    @JsonProperty("claim_types_supported")
-    private String[] claimTypesSupported = new String[]{"normal"};
+  @JsonProperty("claim_types_supported")
+  private String[] claimTypesSupported = new String[] {"normal"};
 
-    @JsonProperty("claims_supported")
-    private String[] claimsSupported = new String[]{"sub", "user_name", "origin", "iss", "auth_time", "amr", "acr", "client_id",
-            "aud", "zid", "grant_type", "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig", "cid", "given_name", "family_name", "phone_number", "email"};
+  @JsonProperty("claims_supported")
+  private String[] claimsSupported =
+      new String[] {
+          "sub",
+          "user_name",
+          "origin",
+          "iss",
+          "auth_time",
+          "amr",
+          "acr",
+          "client_id",
+          "aud",
+          "zid",
+          "grant_type",
+          "user_id",
+          "azp",
+          "scope",
+          "exp",
+          "iat",
+          "jti",
+          "rev_sig",
+          "cid",
+          "given_name",
+          "family_name",
+          "phone_number",
+          "email"
+      };
 
-    @JsonProperty("claims_parameter_supported")
-    private boolean claimsParameterSupported = false;
+  @JsonProperty("claims_parameter_supported")
+  private boolean claimsParameterSupported = false;
 
-    @JsonProperty("service_documentation")
-    private String serviceDocumentation = "http://docs.cloudfoundry.org/api/uaa/";
+  @JsonProperty("service_documentation")
+  private String serviceDocumentation = "http://docs.cloudfoundry.org/api/uaa/";
 
-    @JsonProperty("ui_locales_supported")
-    private String[] uiLocalesSupported = new String[]{"en-US"};
+  @JsonProperty("ui_locales_supported")
+  private String[] uiLocalesSupported = new String[] {"en-US"};
 
-    public OpenIdConfiguration(final String contextPath, final String issuer) {
-        this.issuer = issuer;
-        this.authUrl = contextPath + "/oauth/authorize";
-        this.tokenUrl = contextPath + "/oauth/token";
-        this.userInfoUrl = contextPath + "/userinfo";
-        this.jwksUri = contextPath + "/token_keys";
-    }
+  public OpenIdConfiguration(final String contextPath, final String issuer) {
+    this.issuer = issuer;
+    this.authUrl = contextPath + "/oauth/authorize";
+    this.tokenUrl = contextPath + "/oauth/token";
+    this.userInfoUrl = contextPath + "/userinfo";
+    this.jwksUri = contextPath + "/token_keys";
+  }
 }

@@ -6,6 +6,7 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 public class PasswordChangeRequest {
-    private String oldPassword;
-    private String password;
+
+  private String oldPassword;
+  private String password;
 }

@@ -4,13 +4,14 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class IdentityProviderStatus {
-    private Boolean requirePasswordChange;
 
-    public Boolean getRequirePasswordChange() {
-        return requirePasswordChange;
-    }
+  private Boolean requirePasswordChange;
 
-    public void setRequirePasswordChange(Boolean requirePasswordChange) {
-        this.requirePasswordChange = requirePasswordChange;
-    }
+  public Boolean getRequirePasswordChange() {
+    return requirePasswordChange;
+  }
+
+  public void setRequirePasswordChange(Boolean requirePasswordChange) {
+    this.requirePasswordChange = requirePasswordChange;
+  }
 }

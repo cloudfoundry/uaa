@@ -6,6 +6,7 @@ import lombok.Data;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Data
 public class UserAccountStatus {
-    private Boolean locked;
-    private Boolean passwordChangeRequired;
+
+  private Boolean locked;
+  private Boolean passwordChangeRequired;
 }

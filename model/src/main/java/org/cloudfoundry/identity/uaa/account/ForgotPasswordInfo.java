@@ -9,7 +9,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ForgotPasswordInfo {
-    private String userId;
-    private String email;
-    private ExpiringCode resetPasswordCode;
+
+  private String userId;
+  private String email;
+  private ExpiringCode resetPasswordCode;
 }

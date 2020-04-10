@@ -5,9 +5,12 @@ import lombok.Data;
 
 @Data
 public class EmailChangeResponse {
-    private String username;
-    private String userId;
-    @JsonProperty("redirect_url")
-    private String redirectUrl;
-    private String email;
+
+  private String username;
+  private String userId;
+
+  @JsonProperty("redirect_url")
+  private String redirectUrl;
+
+  private String email;
 }

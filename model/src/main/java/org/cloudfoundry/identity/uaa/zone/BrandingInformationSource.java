@@ -1,19 +1,19 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import java.util.Map;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 
-import java.util.Map;
-
 public interface BrandingInformationSource {
-    Banner getBanner();
 
-    String getCompanyName();
+  Banner getBanner();
 
-    String getProductLogo();
+  String getCompanyName();
 
-    String getSquareLogo();
+  String getProductLogo();
 
-    String getFooterLegalText();
+  String getSquareLogo();
 
-    Map<String, String> getFooterLinks();
+  String getFooterLegalText();
+
+  Map<String, String> getFooterLinks();
 }

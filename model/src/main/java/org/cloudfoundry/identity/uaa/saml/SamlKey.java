@@ -22,40 +22,40 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SamlKey {
 
-    private String key;
-    private String passphrase;
-    private String certificate;
+  private String key;
+  private String passphrase;
+  private String certificate;
 
-    public SamlKey() {
-    }
+  public SamlKey() {
+  }
 
-    public SamlKey(String key, String passphrase, String certificate) {
-        this.key = key;
-        this.passphrase = passphrase;
-        this.certificate = certificate;
-    }
+  public SamlKey(String key, String passphrase, String certificate) {
+    this.key = key;
+    this.passphrase = passphrase;
+    this.certificate = certificate;
+  }
 
-    public String getKey() {
-        return key;
-    }
+  public String getKey() {
+    return key;
+  }
 
-    public void setKey(String key) {
-        this.key = key;
-    }
+  public void setKey(String key) {
+    this.key = key;
+  }
 
-    public String getPassphrase() {
-        return passphrase;
-    }
+  public String getPassphrase() {
+    return passphrase;
+  }
 
-    public void setPassphrase(String passphrase) {
-        this.passphrase = passphrase;
-    }
+  public void setPassphrase(String passphrase) {
+    this.passphrase = passphrase;
+  }
 
-    public String getCertificate() {
-        return certificate;
-    }
+  public String getCertificate() {
+    return certificate;
+  }
 
-    public void setCertificate(String certificate) {
-        this.certificate = certificate;
-    }
+  public void setCertificate(String certificate) {
+    this.certificate = certificate;
+  }
 }
