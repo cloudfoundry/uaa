@@ -19,13 +19,13 @@ import java.util.Map;
 
 public interface UaaMetrics {
 
-    long getInflightCount();
+  long getInflightCount();
 
-    long getIdleTime();
+  long getIdleTime();
 
-    long getUpTime();
+  long getUpTime();
 
-    Map<String, String> getSummary();
+  Map<String, String> getSummary();
 
-    String getGlobals();
+  String getGlobals();
 }
