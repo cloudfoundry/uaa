@@ -23,7 +23,7 @@ class IdentityZoneTest {
     Calendar calendar = Calendar.getInstance();
     calendar.set(2000, Calendar.JANUARY, 1, 0, 0, 0);
     calendar.set(Calendar.MILLISECOND, 0);
-    Date expectedDate = calendar.getTime();
+    final Date expectedDate = calendar.getTime();
 
     IdentityZone actual = IdentityZone.getUaa();
 

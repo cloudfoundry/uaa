@@ -2,6 +2,9 @@ package org.cloudfoundry.identity.uaa.account;
 
 import static org.cloudfoundry.identity.uaa.test.JsonMatcher.isJsonFile;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.lang.reflect.Field;
@@ -9,10 +12,6 @@ import org.cloudfoundry.identity.uaa.test.JsonTranslation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 
 class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {

@@ -26,7 +26,12 @@ import org.junit.Test;
 
 public class ScimGroupTests {
   private static final String GROUP_BEFORE_DESCRIPTION =
-      "{\"meta\":{\"version\":0,\"created\":\"2016-01-13T09:01:33.909Z\"},\"zoneId\":\"zoneId\",\"displayName\":\"name\",\"schemas\":[\"urn:scim:schemas:core:1.0\"],\"id\":\"id\"}";
+      "{\"meta\":{\"version\":0,"
+          + "\"created\":\"2016-01-13T09:01:33.909Z\"},"
+          + "\"zoneId\":\"zoneId\","
+          + "\"displayName\":\"name\","
+          + "\"schemas\":[\"urn:scim:schemas:core:1.0\"],"
+          + "\"id\":\"id\"}";
   ScimGroup group;
   private ScimGroup patch;
   private ScimGroupMember member1;

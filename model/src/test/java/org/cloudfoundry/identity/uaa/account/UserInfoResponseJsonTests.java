@@ -1,14 +1,14 @@
 package org.cloudfoundry.identity.uaa.account;
 
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.CoreMatchers;
-import org.junit.jupiter.api.Test;
-
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.hamcrest.CoreMatchers;
+import org.junit.jupiter.api.Test;
 
 class UserInfoResponseJsonTests {
 
