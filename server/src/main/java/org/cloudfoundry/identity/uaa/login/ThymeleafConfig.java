@@ -1,5 +1,10 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import nz.net.ultraq.thymeleaf.LayoutDialect;
 import org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver;
 import org.springframework.context.ApplicationContext;
@@ -16,83 +21,79 @@ import org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring5.view.ThymeleafViewResolver;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 @Configuration
-public class ThymeleafConfig  {
+public class ThymeleafConfig {
 
-    @Bean
-    public ThymeleafViewResolver thymeleafViewResolver(ApplicationContext context) {
-        ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
-        viewResolver.setTemplateEngine(webTemplateEngine(context));
-        return viewResolver;
-    }
+  @Bean
+  public ThymeleafViewResolver thymeleafViewResolver(ApplicationContext context) {
+    ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
+    viewResolver.setTemplateEngine(webTemplateEngine(context));
+    return viewResolver;
+  }
 
-    @Bean
-    public SpringTemplateEngine webTemplateEngine(ApplicationContext context) {
-        SpringTemplateEngine springTemplateEngine = new SpringTemplateEngine();
+  @Bean
+  public SpringTemplateEngine webTemplateEngine(ApplicationContext context) {
+    SpringTemplateEngine springTemplateEngine = new SpringTemplateEngine();
 
-        springTemplateEngine.setTemplateResolver(webTemplateResolver(context));
+    springTemplateEngine.setTemplateResolver(webTemplateResolver(context));
 
-        Set<IDialect> additionalDialects = new HashSet<>();
-        additionalDialects.add(new LayoutDialect());
-        additionalDialects.add(new SpringSecurityDialect());
-        springTemplateEngine.setAdditionalDialects(additionalDialects);
+    Set<IDialect> additionalDialects = new HashSet<>();
+    additionalDialects.add(new LayoutDialect());
+    additionalDialects.add(new SpringSecurityDialect());
+    springTemplateEngine.setAdditionalDialects(additionalDialects);
 
-        return springTemplateEngine;
-    }
+    return springTemplateEngine;
+  }
 
-    @Bean
-    public ITemplateResolver webTemplateResolver(ApplicationContext context) {
-        SpringResourceTemplateResolver templateResolver = baseHtmlTemplateResolver(context);
-        templateResolver.setPrefix("classpath:/templates/web/");
-        return templateResolver;
-    }
+  @Bean
+  public ITemplateResolver webTemplateResolver(ApplicationContext context) {
+    SpringResourceTemplateResolver templateResolver = baseHtmlTemplateResolver(context);
+    templateResolver.setPrefix("classpath:/templates/web/");
+    return templateResolver;
+  }
 
-    @Bean
-    public SpringTemplateEngine mailTemplateEngine(ApplicationContext context) {
-        SpringTemplateEngine springTemplateEngine = new SpringTemplateEngine();
-        springTemplateEngine.setTemplateResolver(mailTemplateResolver(context));
-        return springTemplateEngine;
-    }
+  @Bean
+  public SpringTemplateEngine mailTemplateEngine(ApplicationContext context) {
+    SpringTemplateEngine springTemplateEngine = new SpringTemplateEngine();
+    springTemplateEngine.setTemplateResolver(mailTemplateResolver(context));
+    return springTemplateEngine;
+  }
 
-    @Bean
-    public ITemplateResolver mailTemplateResolver(ApplicationContext context) {
-        SpringResourceTemplateResolver templateResolver = baseHtmlTemplateResolver(context);
-        templateResolver.setPrefix("classpath:/templates/mail/");
-        return templateResolver;
-    }
+  @Bean
+  public ITemplateResolver mailTemplateResolver(ApplicationContext context) {
+    SpringResourceTemplateResolver templateResolver = baseHtmlTemplateResolver(context);
+    templateResolver.setPrefix("classpath:/templates/mail/");
+    return templateResolver;
+  }
 
-    @Bean
-    public org.springframework.web.servlet.view.ContentNegotiatingViewResolver viewResolver(ApplicationContext context,
-                                                                                            ContentNegotiationManager contentNegotiationManager) {
-        ContentNegotiatingViewResolver resolver = new ContentNegotiatingViewResolver();
-        ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
+  @Bean
+  public org.springframework.web.servlet.view.ContentNegotiatingViewResolver viewResolver(
+      ApplicationContext context, ContentNegotiationManager contentNegotiationManager) {
+    ContentNegotiatingViewResolver resolver = new ContentNegotiatingViewResolver();
+    ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
 
-        viewResolver.setCharacterEncoding(StandardCharsets.UTF_8.toString());
-        viewResolver.setTemplateEngine(webTemplateEngine(context));
-        ForwardAwareInternalResourceViewResolver forwardAwareInternalResourceViewResolver = new ForwardAwareInternalResourceViewResolver();
-        BeanNameViewResolver beanNameViewResolver = new BeanNameViewResolver();
-        resolver.setViewResolvers(Arrays.asList(viewResolver, forwardAwareInternalResourceViewResolver, beanNameViewResolver));
+    viewResolver.setCharacterEncoding(StandardCharsets.UTF_8.toString());
+    viewResolver.setTemplateEngine(webTemplateEngine(context));
+    ForwardAwareInternalResourceViewResolver forwardAwareInternalResourceViewResolver =
+        new ForwardAwareInternalResourceViewResolver();
+    BeanNameViewResolver beanNameViewResolver = new BeanNameViewResolver();
+    resolver.setViewResolvers(
+        Arrays.asList(
+            viewResolver, forwardAwareInternalResourceViewResolver, beanNameViewResolver));
 
-        MappingJackson2JsonView jackson2JsonView = new MappingJackson2JsonView();
-        jackson2JsonView.setExtractValueFromSingleKeyModel(true);
-        resolver.setDefaultViews(Collections.singletonList(jackson2JsonView));
+    MappingJackson2JsonView jackson2JsonView = new MappingJackson2JsonView();
+    jackson2JsonView.setExtractValueFromSingleKeyModel(true);
+    resolver.setDefaultViews(Collections.singletonList(jackson2JsonView));
 
-        resolver.setContentNegotiationManager(contentNegotiationManager);
-        return resolver;
-    }
+    resolver.setContentNegotiationManager(contentNegotiationManager);
+    return resolver;
+  }
 
-    private SpringResourceTemplateResolver baseHtmlTemplateResolver(ApplicationContext context) {
-        SpringResourceTemplateResolver templateResolver = new SpringResourceTemplateResolver();
-        templateResolver.setSuffix(".html");
-        templateResolver.setTemplateMode("HTML5");
-        templateResolver.setApplicationContext(context);
-        return templateResolver;
-    }
-
+  private SpringResourceTemplateResolver baseHtmlTemplateResolver(ApplicationContext context) {
+    SpringResourceTemplateResolver templateResolver = new SpringResourceTemplateResolver();
+    templateResolver.setSuffix(".html");
+    templateResolver.setTemplateMode("HTML5");
+    templateResolver.setApplicationContext(context);
+    return templateResolver;
+  }
 }

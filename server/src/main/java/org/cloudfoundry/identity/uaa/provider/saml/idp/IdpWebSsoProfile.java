@@ -1,4 +1,3 @@
-
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.opensaml.common.SAMLException;
@@ -16,9 +15,11 @@ import org.springframework.security.saml.context.SAMLMessageContext;
  */
 public interface IdpWebSsoProfile {
 
-    void sendResponse(Authentication authentication, SAMLMessageContext context, IdpWebSSOProfileOptions options)
-            throws SAMLException, MetadataProviderException, MessageEncodingException, SecurityException,
-            MarshallingException, SignatureException;
+  void sendResponse(
+      Authentication authentication, SAMLMessageContext context, IdpWebSSOProfileOptions options)
+      throws SAMLException, MetadataProviderException, MessageEncodingException, SecurityException,
+          MarshallingException, SignatureException;
 
-    AuthnRequest buildIdpInitiatedAuthnRequest(String nameIDFormat, String spEntityID, String assertionUrl);
+  AuthnRequest buildIdpInitiatedAuthnRequest(
+      String nameIDFormat, String spEntityID, String assertionUrl);
 }

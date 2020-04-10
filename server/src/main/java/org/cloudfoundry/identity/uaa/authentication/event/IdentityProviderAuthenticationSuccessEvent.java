@@ -7,26 +7,34 @@ import org.springframework.security.core.Authentication;
 import org.springframework.util.Assert;
 
 public class IdentityProviderAuthenticationSuccessEvent extends AbstractUaaAuthenticationEvent {
-    private final UaaUser user;
-    private final String authenticationType;
 
-    public IdentityProviderAuthenticationSuccessEvent(UaaUser user, Authentication authentication, String authenticationType, String zoneId) {
-        super(authentication, zoneId);
-        this.user = user;
-        this.authenticationType = authenticationType;
-    }
+  private final UaaUser user;
+  private final String authenticationType;
 
-    @Override
-    public AuditEvent getAuditEvent() {
-        Assert.notNull(user, "UaaUser cannot be null");
-        return createAuditRecord(user.getId(), AuditEventType.IdentityProviderAuthenticationSuccess,
-                getOrigin(getAuthenticationDetails()), user.getUsername(), authenticationType, null);
-    }
+  public IdentityProviderAuthenticationSuccessEvent(
+      UaaUser user, Authentication authentication, String authenticationType, String zoneId) {
+    super(authentication, zoneId);
+    this.user = user;
+    this.authenticationType = authenticationType;
+  }
 
-    public UaaUser getUser() {
-        return user;
-    }
+  @Override
+  public AuditEvent getAuditEvent() {
+    Assert.notNull(user, "UaaUser cannot be null");
+    return createAuditRecord(
+        user.getId(),
+        AuditEventType.IdentityProviderAuthenticationSuccess,
+        getOrigin(getAuthenticationDetails()),
+        user.getUsername(),
+        authenticationType,
+        null);
+  }
 
-    public String getAuthenticationType() { return authenticationType; }
+  public UaaUser getUser() {
+    return user;
+  }
 
+  public String getAuthenticationType() {
+    return authenticationType;
+  }
 }

@@ -7,63 +7,72 @@ import org.opensaml.xml.XMLObject;
 
 public interface ComparableProvider extends Comparable<ComparableProvider> {
 
-    String getAlias();
-    String getZoneId();
+  String getAlias();
 
-    XMLObject doGetMetadata() throws MetadataProviderException;
-    byte[] fetchMetadata();
+  String getZoneId();
 
-    default String getEntityID() throws MetadataProviderException {
-        fetchMetadata();
-        XMLObject metadata = doGetMetadata();
-        if (metadata instanceof EntityDescriptor) {
-            EntityDescriptor entityDescriptor = (EntityDescriptor) metadata;
-            return entityDescriptor.getEntityID();
-        } else if (metadata instanceof EntitiesDescriptor) {
-            EntitiesDescriptor desc = (EntitiesDescriptor)metadata;
-            if (desc.getEntityDescriptors().size()!=1) {
-                throw new MetadataProviderException("Invalid metadata. Number of descriptors must be 1, but is "+desc.getEntityDescriptors().size());
-            } else {
-                return desc.getEntityDescriptors().get(0).getEntityID();
-            }
-        } else {
-            throw new MetadataProviderException("Unknown descriptor class:"+metadata.getClass().getName());
-        }
+  XMLObject doGetMetadata() throws MetadataProviderException;
+
+  byte[] fetchMetadata();
+
+  default String getEntityID() throws MetadataProviderException {
+    fetchMetadata();
+    XMLObject metadata = doGetMetadata();
+    if (metadata instanceof EntityDescriptor) {
+      EntityDescriptor entityDescriptor = (EntityDescriptor) metadata;
+      return entityDescriptor.getEntityID();
+    } else if (metadata instanceof EntitiesDescriptor) {
+      EntitiesDescriptor desc = (EntitiesDescriptor) metadata;
+      if (desc.getEntityDescriptors().size() != 1) {
+        throw new MetadataProviderException(
+            "Invalid metadata. Number of descriptors must be 1, but is "
+                + desc.getEntityDescriptors().size());
+      } else {
+        return desc.getEntityDescriptors().get(0).getEntityID();
+      }
+    } else {
+      throw new MetadataProviderException(
+          "Unknown descriptor class:" + metadata.getClass().getName());
+    }
+  }
+
+  default int compareTo(ComparableProvider that) {
+    int result = 0;
+
+    if (this == that) {
+      return 0;
     }
 
-    default int compareTo(ComparableProvider that) {
-        int result = 0;
-
-        if (this == that) return 0;
-
-        if (this.getAlias() == null) {
-            if(that.getAlias() != null) {
-                return -1;
-            }
-        } else {
-            if(that.getAlias() == null) {
-                return 1;
-            }
-            result = this.getAlias().compareTo(that.getAlias());
-            if(0!=result) return result;
-        }
-
-        if (this.getZoneId() == null) {
-            if(that.getZoneId() != null) {
-                return -1;
-            }
-        } else {
-            if(that.getZoneId() == null) {
-                return 1;
-            }
-            result = this.getZoneId().compareTo(that.getZoneId());
-        }
+    if (this.getAlias() == null) {
+      if (that.getAlias() != null) {
+        return -1;
+      }
+    } else {
+      if (that.getAlias() == null) {
+        return 1;
+      }
+      result = this.getAlias().compareTo(that.getAlias());
+      if (0 != result) {
         return result;
+      }
     }
 
-    default int getHashCode() {
-        int result = getZoneId() !=null ? getZoneId().hashCode():0;
-        result = 31 * result + (getAlias() != null ? getAlias().hashCode():0);
-        return result;
+    if (this.getZoneId() == null) {
+      if (that.getZoneId() != null) {
+        return -1;
+      }
+    } else {
+      if (that.getZoneId() == null) {
+        return 1;
+      }
+      result = this.getZoneId().compareTo(that.getZoneId());
     }
+    return result;
+  }
+
+  default int getHashCode() {
+    int result = getZoneId() != null ? getZoneId().hashCode() : 0;
+    result = 31 * result + (getAlias() != null ? getAlias().hashCode() : 0);
+    return result;
+  }
 }

@@ -1,78 +1,78 @@
-
 package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import java.util.List;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.List;
-
 /**
- * The UAA only distinguishes 2 types of user for internal usage, denoted
- * <code>uaa.admin</code> and <code>uaa.user</code>. Other authorities might be
- * stored in the back end for the purposes of other resource servers,
- * so this enumeration has convenient methods for extracting the UAA user types
- * from authorities lists.
+ * The UAA only distinguishes 2 types of user for internal usage, denoted <code>uaa.admin</code> and
+ * <code>uaa.user</code>. Other authorities might be stored in the back end for the purposes of
+ * other resource servers, so this enumeration has convenient methods for extracting the UAA user
+ * types from authorities lists.
  *
  * @author Luke Taylor
  * @author Dave Syer
  */
 public enum UaaAuthority implements GrantedAuthority {
+  UAA_INVITED("uaa.invited", 1),
+  UAA_ADMIN("uaa.admin", 1),
+  UAA_USER("uaa.user", 0),
+  UAA_NONE("uaa.none", -1);
 
-    UAA_INVITED("uaa.invited", 1), UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0), UAA_NONE("uaa.none", -1);
+  public static final List<UaaAuthority> ADMIN_AUTHORITIES = List.of(UAA_ADMIN, UAA_USER);
 
-    public static final List<UaaAuthority> ADMIN_AUTHORITIES = List.of(UAA_ADMIN, UAA_USER);
+  public static final List<UaaAuthority> USER_AUTHORITIES = List.of(UAA_USER);
 
-    public static final List<UaaAuthority> USER_AUTHORITIES = List.of(UAA_USER);
+  public static final List<UaaAuthority> NONE_AUTHORITIES = List.of(UAA_NONE);
 
-    public static final List<UaaAuthority> NONE_AUTHORITIES = List.of(UAA_NONE);
+  private final int value;
 
-    private final int value;
+  private final String userType;
 
-    private final String userType;
+  UaaAuthority(String userType, int value) {
+    this.userType = userType;
+    this.value = value;
+  }
 
-    UaaAuthority(String userType, int value) {
-        this.userType = userType;
-        this.value = value;
-    }
+  @JsonCreator
+  public static UaaAuthority fromAuthorities(String authorities) {
+    String type = authorities == null ? "uaa.user" : authorities.toLowerCase();
+    return type.contains("uaa.admin") ? UAA_ADMIN : UAA_USER;
+  }
 
-    public int value() {
-        return value;
-    }
+  public static GrantedAuthority authority(String value) {
+    return value.equals("uaa.admin")
+        ? UAA_ADMIN
+        : value.contains("uaa.user") ? UAA_USER : new SimpleGrantedAuthority(value);
+  }
 
-    /**
-     * The name of the type of user, either "uaa.admin" or "uaa.user".
-     *
-     * @return a user type name
-     */
-    public String getUserType() {
-        return userType;
-    }
+  public int value() {
+    return value;
+  }
 
-    /**
-     * The authority granted by this value (same as user type).
-     *
-     * @return the name of the value (uaa.user, etc.)
-     * @see org.springframework.security.core.GrantedAuthority#getAuthority()
-     */
-    @Override
-    public String getAuthority() {
-        return userType;
-    }
+  /**
+   * The name of the type of user, either "uaa.admin" or "uaa.user".
+   *
+   * @return a user type name
+   */
+  public String getUserType() {
+    return userType;
+  }
 
-    @Override
-    public String toString() {
-        return userType;
-    }
+  /**
+   * The authority granted by this value (same as user type).
+   *
+   * @return the name of the value (uaa.user, etc.)
+   * @see org.springframework.security.core.GrantedAuthority#getAuthority()
+   */
+  @Override
+  public String getAuthority() {
+    return userType;
+  }
 
-    @JsonCreator
-    public static UaaAuthority fromAuthorities(String authorities) {
-        String type = authorities == null ? "uaa.user" : authorities.toLowerCase();
-        return type.contains("uaa.admin") ? UAA_ADMIN : UAA_USER;
-    }
-
-    public static GrantedAuthority authority(String value) {
-        return value.equals("uaa.admin") ? UAA_ADMIN : value.contains("uaa.user") ? UAA_USER
-                        : new SimpleGrantedAuthority(value);
-    }
+  @Override
+  public String toString() {
+    return userType;
+  }
 }

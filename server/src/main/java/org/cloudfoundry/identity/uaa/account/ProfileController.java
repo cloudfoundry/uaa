@@ -1,5 +1,14 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import static org.springframework.util.StringUtils.hasText;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
@@ -24,172 +33,165 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.springframework.util.StringUtils.hasText;
-
 @Controller
 public class ProfileController {
 
-    protected static Logger logger = LoggerFactory.getLogger(ProfileController.class);
+  protected static Logger logger = LoggerFactory.getLogger(ProfileController.class);
 
-    private final ApprovalStore approvalsService;
-    private final MultitenantClientServices clientDetailsService;
-    private final SecurityContextAccessor securityContextAccessor;
-    private final IdentityZoneManager identityZoneManager;
+  private final ApprovalStore approvalsService;
+  private final MultitenantClientServices clientDetailsService;
+  private final SecurityContextAccessor securityContextAccessor;
+  private final IdentityZoneManager identityZoneManager;
 
-    public ProfileController(final ApprovalStore approvalsService,
-                             final MultitenantClientServices clientDetailsService,
-                             final SecurityContextAccessor securityContextAccessor,
-                             final IdentityZoneManager identityZoneManager) {
-        this.approvalsService = approvalsService;
-        this.clientDetailsService = clientDetailsService;
-        this.securityContextAccessor = securityContextAccessor;
-        this.identityZoneManager = identityZoneManager;
-    }
+  public ProfileController(
+      final ApprovalStore approvalsService,
+      final MultitenantClientServices clientDetailsService,
+      final SecurityContextAccessor securityContextAccessor,
+      final IdentityZoneManager identityZoneManager) {
+    this.approvalsService = approvalsService;
+    this.clientDetailsService = clientDetailsService;
+    this.securityContextAccessor = securityContextAccessor;
+    this.identityZoneManager = identityZoneManager;
+  }
 
-    /**
-     * Display the current user's approvals
-     */
-    @RequestMapping(value = "/profile", method = RequestMethod.GET)
-    public String get(Authentication authentication, Model model) {
-        Map<String, List<DescribedApproval>> approvals = getCurrentApprovalsForUser(getCurrentUserId());
-        Map<String, String> clientNames = getClientNames(approvals);
-        model.addAttribute("clientnames", clientNames);
-        model.addAttribute("approvals", approvals);
-        extractUaaUserAttributes(authentication, model);
-        return "approvals";
-    }
+  /** Display the current user's approvals */
+  @RequestMapping(value = "/profile", method = RequestMethod.GET)
+  public String get(Authentication authentication, Model model) {
+    Map<String, List<DescribedApproval>> approvals = getCurrentApprovalsForUser(getCurrentUserId());
+    Map<String, String> clientNames = getClientNames(approvals);
+    model.addAttribute("clientnames", clientNames);
+    model.addAttribute("approvals", approvals);
+    extractUaaUserAttributes(authentication, model);
+    return "approvals";
+  }
 
-    /**
-     * Handle form post for revoking chosen approvals
-     */
-    @RequestMapping(value = "/profile", method = RequestMethod.POST)
-    public String post(@RequestParam(required = false) Collection<String> checkedScopes,
-                       @RequestParam(required = false) String update,
-                       @RequestParam(required = false) String delete,
-                       @RequestParam(required = false) String clientId) {
-        String userId = getCurrentUserId();
-        if (null != update) {
-            Map<String, List<DescribedApproval>> approvalsByClientId = getCurrentApprovalsForUser(userId);
+  /** Handle form post for revoking chosen approvals */
+  @RequestMapping(value = "/profile", method = RequestMethod.POST)
+  public String post(
+      @RequestParam(required = false) Collection<String> checkedScopes,
+      @RequestParam(required = false) String update,
+      @RequestParam(required = false) String delete,
+      @RequestParam(required = false) String clientId) {
+    String userId = getCurrentUserId();
+    if (null != update) {
+      Map<String, List<DescribedApproval>> approvalsByClientId = getCurrentApprovalsForUser(userId);
 
-            List<DescribedApproval> allApprovals = new ArrayList<>();
-            for (List<DescribedApproval> clientApprovals : approvalsByClientId.values()) {
-                allApprovals.addAll(clientApprovals);
-            }
+      List<DescribedApproval> allApprovals = new ArrayList<>();
+      for (List<DescribedApproval> clientApprovals : approvalsByClientId.values()) {
+        allApprovals.addAll(clientApprovals);
+      }
 
-            if (hasText(clientId)) {
-                allApprovals.removeIf(da -> !clientId.equals(da.getClientId()));
-            }
+      if (hasText(clientId)) {
+        allApprovals.removeIf(da -> !clientId.equals(da.getClientId()));
+      }
 
-            for (Approval approval : allApprovals) {
-                String namespacedScope = approval.getClientId() + "-" + approval.getScope();
-                if (checkedScopes != null && checkedScopes.contains(namespacedScope)) {
-                    approval.setStatus(Approval.ApprovalStatus.APPROVED);
-                } else {
-                    approval.setStatus(Approval.ApprovalStatus.DENIED);
-                }
-            }
-            updateApprovals(allApprovals);
-        } else if (null != delete) {
-            deleteApprovalsForClient(userId, clientId);
+      for (Approval approval : allApprovals) {
+        String namespacedScope = approval.getClientId() + "-" + approval.getScope();
+        if (checkedScopes != null && checkedScopes.contains(namespacedScope)) {
+          approval.setStatus(Approval.ApprovalStatus.APPROVED);
+        } else {
+          approval.setStatus(Approval.ApprovalStatus.DENIED);
         }
-
-        return "redirect:profile";
+      }
+      updateApprovals(allApprovals);
+    } else if (null != delete) {
+      deleteApprovalsForClient(userId, clientId);
     }
 
-    @ExceptionHandler
-    public View handleException(NoSuchClientException nsce) {
-        logger.debug("Unable to find client for approvals:" + nsce.getMessage());
-        return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
+    return "redirect:profile";
+  }
+
+  @ExceptionHandler
+  public View handleException(NoSuchClientException nsce) {
+    logger.debug("Unable to find client for approvals:" + nsce.getMessage());
+    return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
+  }
+
+  private Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
+    Map<String, String> clientNames = new LinkedHashMap<>();
+    for (String clientId : approvals.keySet()) {
+      ClientDetails details =
+          clientDetailsService.loadClientByClientId(
+              clientId, identityZoneManager.getCurrentIdentityZoneId());
+      String name = details.getClientId();
+      if (details.getAdditionalInformation() != null
+          && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME) != null) {
+        name = (String) details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
+      }
+      clientNames.put(clientId, name);
+    }
+    return clientNames;
+  }
+
+  private void extractUaaUserAttributes(Authentication authentication, Model model) {
+    if (authentication.getPrincipal() instanceof UaaPrincipal) {
+      UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+      boolean isUaaManagedUser = OriginKeys.UAA.equals(principal.getOrigin());
+      model.addAttribute("isUaaManagedUser", isUaaManagedUser);
+      if (isUaaManagedUser) {
+        model.addAttribute("email", principal.getEmail());
+      }
+      return;
     }
 
-    private Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
-        Map<String, String> clientNames = new LinkedHashMap<>();
-        for (String clientId : approvals.keySet()) {
-            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
-            String name = details.getClientId();
-            if (details.getAdditionalInformation() != null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME) != null) {
-                name = (String) details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
-            }
-            clientNames.put(clientId, name);
-        }
-        return clientNames;
+    model.addAttribute("isUaaManagedUser", false);
+  }
+
+  private Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
+    Map<String, List<DescribedApproval>> result = new HashMap<>();
+    List<Approval> approvalsResponse =
+        approvalsService.getApprovalsForUser(
+            userId, identityZoneManager.getCurrentIdentityZoneId());
+
+    List<DescribedApproval> approvals = new ArrayList<>();
+    for (Approval approval : approvalsResponse) {
+      DescribedApproval describedApproval = new DescribedApproval(approval);
+      approvals.add(describedApproval);
     }
 
-    private void extractUaaUserAttributes(Authentication authentication, Model model) {
-        if (authentication.getPrincipal() instanceof UaaPrincipal) {
-            UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-            boolean isUaaManagedUser = OriginKeys.UAA.equals(principal.getOrigin());
-            model.addAttribute("isUaaManagedUser", isUaaManagedUser);
-            if (isUaaManagedUser) {
-                model.addAttribute("email", principal.getEmail());
-            }
-            return;
-        }
+    for (DescribedApproval approval : approvals) {
+      List<DescribedApproval> clientApprovals =
+          result.computeIfAbsent(approval.getClientId(), k -> new ArrayList<>());
 
-        model.addAttribute("isUaaManagedUser", false);
+      String scope = approval.getScope();
+      if (!scope.contains(".")) {
+        approval.setDescription("Access your data with scope '" + scope + "'");
+        clientApprovals.add(approval);
+      } else {
+        String resource = scope.substring(0, scope.lastIndexOf("."));
+        String access = scope.substring(scope.lastIndexOf(".") + 1);
+        approval.setDescription(
+            "Access your '" + resource + "' resources with scope '" + access + "'");
+        clientApprovals.add(approval);
+      }
     }
-
-    private Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
-        Map<String, List<DescribedApproval>> result = new HashMap<>();
-        List<Approval> approvalsResponse = approvalsService.getApprovalsForUser(userId, identityZoneManager.getCurrentIdentityZoneId());
-
-        List<DescribedApproval> approvals = new ArrayList<>();
-        for (Approval approval : approvalsResponse) {
-            DescribedApproval describedApproval = new DescribedApproval(approval);
-            approvals.add(describedApproval);
-        }
-
-        for (DescribedApproval approval : approvals) {
-            List<DescribedApproval> clientApprovals = result.computeIfAbsent(
-                    approval.getClientId(),
-                    k -> new ArrayList<>()
-            );
-
-            String scope = approval.getScope();
-            if (!scope.contains(".")) {
-                approval.setDescription("Access your data with scope '" + scope + "'");
-                clientApprovals.add(approval);
-            } else {
-                String resource = scope.substring(0, scope.lastIndexOf("."));
-                String access = scope.substring(scope.lastIndexOf(".") + 1);
-                approval.setDescription("Access your '" + resource + "' resources with scope '" + access + "'");
-                clientApprovals.add(approval);
-            }
-        }
-        for (List<DescribedApproval> approvalList : result.values()) {
-            approvalList.sort(Comparator.comparing(Approval::getScope));
-        }
-        return result;
+    for (List<DescribedApproval> approvalList : result.values()) {
+      approvalList.sort(Comparator.comparing(Approval::getScope));
     }
+    return result;
+  }
 
-    private void updateApprovals(List<DescribedApproval> approvals) {
-        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
-        for (DescribedApproval approval : approvals) {
-            approvalsService.revokeApprovalsForClientAndUser(approval.getClientId(), approval.getUserId(), zoneId);
-        }
-        for (DescribedApproval approval : approvals) {
-            approvalsService.addApproval(approval, zoneId);
-        }
+  private void updateApprovals(List<DescribedApproval> approvals) {
+    String zoneId = identityZoneManager.getCurrentIdentityZoneId();
+    for (DescribedApproval approval : approvals) {
+      approvalsService.revokeApprovalsForClientAndUser(
+          approval.getClientId(), approval.getUserId(), zoneId);
     }
-
-    private void deleteApprovalsForClient(String userId, String clientId) {
-        clientDetailsService.loadClientByClientId(clientId);
-        approvalsService.revokeApprovalsForClientAndUser(clientId, userId, identityZoneManager.getCurrentIdentityZoneId());
+    for (DescribedApproval approval : approvals) {
+      approvalsService.addApproval(approval, zoneId);
     }
+  }
 
-    private String getCurrentUserId() {
-        if (!securityContextAccessor.isUser()) {
-            throw new AccessDeniedException("Approvals can only be managed by a user");
-        }
-        return securityContextAccessor.getUserId();
+  private void deleteApprovalsForClient(String userId, String clientId) {
+    clientDetailsService.loadClientByClientId(clientId);
+    approvalsService.revokeApprovalsForClientAndUser(
+        clientId, userId, identityZoneManager.getCurrentIdentityZoneId());
+  }
+
+  private String getCurrentUserId() {
+    if (!securityContextAccessor.isUser()) {
+      throw new AccessDeniedException("Approvals can only be managed by a user");
     }
-
+    return securityContextAccessor.getUserId();
+  }
 }

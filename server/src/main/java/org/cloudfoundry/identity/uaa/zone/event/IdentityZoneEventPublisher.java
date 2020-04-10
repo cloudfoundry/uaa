@@ -8,24 +8,25 @@ import org.springframework.stereotype.Component;
 
 @Component("identityZoneEventPublisher")
 public class IdentityZoneEventPublisher implements ApplicationEventPublisherAware {
-    private ApplicationEventPublisher publisher;
 
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.publisher = applicationEventPublisher;
-    }
+  private ApplicationEventPublisher publisher;
 
-    public void identityZoneCreated(IdentityZone identityZone) {
-        publish(IdentityZoneModifiedEvent.identityZoneCreated(identityZone));
-    }
+  @Override
+  public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+    this.publisher = applicationEventPublisher;
+  }
 
-    public void identityZoneModified(IdentityZone identityZone) {
-        publish(IdentityZoneModifiedEvent.identityZoneModified(identityZone));
-    }
+  public void identityZoneCreated(IdentityZone identityZone) {
+    publish(IdentityZoneModifiedEvent.identityZoneCreated(identityZone));
+  }
 
-    public void publish(ApplicationEvent event) {
-        if (publisher != null) {
-            publisher.publishEvent(event);
-        }
+  public void identityZoneModified(IdentityZone identityZone) {
+    publish(IdentityZoneModifiedEvent.identityZoneModified(identityZone));
+  }
+
+  public void publish(ApplicationEvent event) {
+    if (publisher != null) {
+      publisher.publishEvent(event);
     }
+  }
 }

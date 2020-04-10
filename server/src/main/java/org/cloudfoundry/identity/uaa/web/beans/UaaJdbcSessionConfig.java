@@ -18,26 +18,28 @@ import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessi
 @EnableJdbcHttpSession
 public class UaaJdbcSessionConfig extends UaaSessionConfig {
 
-    private final static Logger logger = LoggerFactory.getLogger(UaaJdbcSessionConfig.class);
+  private static final Logger logger = LoggerFactory.getLogger(UaaJdbcSessionConfig.class);
 
-    public static class DatabaseConfigured implements Condition {
-        @Override
-        public boolean matches(@NonNull ConditionContext context, @NonNull AnnotatedTypeMetadata metadata) {
-            String sessionStore = getSessionStore(context.getEnvironment());
-            validateSessionStore(sessionStore);
-            return DATABASE_SESSION_STORE_TYPE.equals(sessionStore);
-        }
-    }
+  @Autowired
+  public void customizeIdleTimeout(
+      final JdbcHttpSessionConfiguration jdbcHttpSessionConfiguration,
+      final @Value("${servlet.idle-timeout:1800}") int idleTimeout) {
+    jdbcHttpSessionConfiguration.setMaxInactiveIntervalInSeconds(idleTimeout);
+  }
 
-    @Autowired
-    public void customizeIdleTimeout(
-            final JdbcHttpSessionConfiguration jdbcHttpSessionConfiguration,
-            final @Value("${servlet.idle-timeout:1800}") int idleTimeout) {
-        jdbcHttpSessionConfiguration.setMaxInactiveIntervalInSeconds(idleTimeout);
-    }
+  @Autowired
+  void log() {
+    logger.info("Using JDBC session configuration");
+  }
 
-    @Autowired
-    void log() {
-        logger.info("Using JDBC session configuration");
+  public static class DatabaseConfigured implements Condition {
+
+    @Override
+    public boolean matches(
+        @NonNull ConditionContext context, @NonNull AnnotatedTypeMetadata metadata) {
+      String sessionStore = getSessionStore(context.getEnvironment());
+      validateSessionStore(sessionStore);
+      return DATABASE_SESSION_STORE_TYPE.equals(sessionStore);
     }
+  }
 }

@@ -1,176 +1,178 @@
-
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.ArrayUtils;
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
-import org.springframework.util.StringUtils;
-
-import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
+import org.apache.commons.lang.ArrayUtils;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.util.StringUtils;
 
 /**
- * Contains additional information about the authentication request which may be
- * of use in auditing etc.
+ * Contains additional information about the authentication request which may be of use in auditing
+ * etc.
  *
  * @author Luke Taylor
  * @author Dave Syer
  */
 public class UaaAuthenticationDetails implements Serializable {
 
-    public static final String ADD_NEW = "add_new";
+  public static final String ADD_NEW = "add_new";
 
-    public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
+  public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
 
-    private static final String[] filteredParamKeys = {"username", "password", "passcode"};
+  private static final String[] filteredParamKeys = {"username", "password", "passcode"};
+  private final String origin;
+  private UaaLoginHint loginHint;
+  private boolean addNew;
+  private String sessionId;
 
-    private UaaLoginHint loginHint;
+  private String clientId;
 
-    private boolean addNew;
+  @JsonIgnore private Map<String, String[]> parameterMap;
 
-    private final String origin;
+  private UaaAuthenticationDetails() {
+    this.origin = "unknown";
+    this.sessionId = "unknown";
+    this.clientId = "unknown";
+  }
 
-    private String sessionId;
+  public UaaAuthenticationDetails(HttpServletRequest request) {
+    this(request, null);
+  }
 
-    private String clientId;
+  public UaaAuthenticationDetails(HttpServletRequest request, String clientId) {
+    WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
+    this.origin = webAuthenticationDetails.getRemoteAddress();
+    this.sessionId = webAuthenticationDetails.getSessionId();
 
-    @JsonIgnore
-    private Map<String,String[]> parameterMap;
-
-    private UaaAuthenticationDetails() {
-        this.origin = "unknown";
-        this.sessionId = "unknown";
-        this.clientId = "unknown";
+    if (clientId == null) {
+      this.clientId = request.getParameter("client_id");
+      if (!StringUtils.hasText(this.clientId)) {
+        this.clientId = (String) request.getAttribute("clientId");
+      }
+    } else {
+      this.clientId = clientId;
     }
+    this.addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
+    this.loginHint = UaaLoginHint.parseRequestParameter(request.getParameter("login_hint"));
+    this.parameterMap =
+        request.getParameterMap().entrySet().stream()
+            .filter(
+                param -> ArrayUtils.indexOf(filteredParamKeys, param.getKey().toLowerCase()) == -1)
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+  }
 
-    public UaaAuthenticationDetails(HttpServletRequest request) {
-        this(request, null);
+  public UaaAuthenticationDetails(
+      @JsonProperty("addNew") boolean addNew,
+      @JsonProperty("clientId") String clientId,
+      @JsonProperty("origin") String origin,
+      @JsonProperty("sessionId") String sessionId) {
+    this.addNew = addNew;
+    this.clientId = clientId;
+    this.origin = origin;
+    this.sessionId = sessionId;
+  }
+
+  public String getOrigin() {
+    return origin;
+  }
+
+  public String getSessionId() {
+    return sessionId;
+  }
+
+  public String getClientId() {
+    return clientId;
+  }
+
+  public boolean isAddNew() {
+    return addNew;
+  }
+
+  public void setAddNew(boolean addNew) {
+    this.addNew = addNew;
+  }
+
+  public UaaLoginHint getLoginHint() {
+    return loginHint;
+  }
+
+  public void setLoginHint(UaaLoginHint loginHint) {
+    this.loginHint = loginHint;
+  }
+
+  public Map<String, String[]> getParameterMap() {
+    return new HashMap<>(parameterMap);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    if (origin != null) {
+      sb.append("remoteAddress=").append(origin);
     }
-    public UaaAuthenticationDetails(HttpServletRequest request, String clientId) {
-        WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
-        this.origin = webAuthenticationDetails.getRemoteAddress();
-        this.sessionId = webAuthenticationDetails.getSessionId();
-
-        if (clientId == null) {
-            this.clientId = request.getParameter("client_id");
-            if(!StringUtils.hasText(this.clientId)) {
-                this.clientId = (String) request.getAttribute("clientId");
-            }
-        } else {
-            this.clientId = clientId;
-        }
-        this.addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
-        this.loginHint = UaaLoginHint.parseRequestParameter(request.getParameter("login_hint"));
-        this.parameterMap = request.getParameterMap().entrySet().stream()
-                .filter(param -> ArrayUtils.indexOf(filteredParamKeys, param.getKey().toLowerCase()) == -1)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    if (clientId != null) {
+      if (sb.length() > 0) {
+        sb.append(", ");
+      }
+      sb.append("clientId=").append(clientId);
     }
-
-    public UaaAuthenticationDetails(@JsonProperty("addNew") boolean addNew,
-                                    @JsonProperty("clientId") String clientId,
-                                    @JsonProperty("origin") String origin,
-                                    @JsonProperty("sessionId") String sessionId) {
-        this.addNew = addNew;
-        this.clientId = clientId;
-        this.origin = origin;
-        this.sessionId = sessionId;
+    if (sessionId != null) {
+      if (sb.length() > 0) {
+        sb.append(", ");
+      }
+      sb.append("sessionId=<SESSION>");
     }
+    return sb.toString();
+  }
 
-    public String getOrigin() {
-        return origin;
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + ((clientId == null) ? 0 : clientId.hashCode());
+    result = prime * result + ((origin == null) ? 0 : origin.hashCode());
+    result = prime * result + ((sessionId == null) ? 0 : sessionId.hashCode());
+    return result;
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
     }
-
-    public String getSessionId() {
-        return sessionId;
+    if (obj == null) {
+      return false;
     }
-
-    public String getClientId() {
-        return clientId;
+    if (getClass() != obj.getClass()) {
+      return false;
     }
-
-    public boolean isAddNew() {
-        return addNew;
+    UaaAuthenticationDetails other = (UaaAuthenticationDetails) obj;
+    if (clientId == null) {
+      if (other.clientId != null) {
+        return false;
+      }
+    } else if (!clientId.equals(other.clientId)) {
+      return false;
     }
-
-    public void setAddNew(boolean addNew) {
-        this.addNew = addNew;
+    if (origin == null) {
+      if (other.origin != null) {
+        return false;
+      }
+    } else if (!origin.equals(other.origin)) {
+      return false;
     }
-
-    public UaaLoginHint getLoginHint() {
-        return loginHint;
+    if (sessionId == null) {
+      if (other.sessionId != null) {
+        return false;
+      }
+    } else if (!sessionId.equals(other.sessionId)) {
+      return false;
     }
-
-    public void setLoginHint(UaaLoginHint loginHint) {
-        this.loginHint = loginHint;
-    }
-
-    public Map<String, String[]> getParameterMap() {
-        return new HashMap<>(parameterMap);
-    }
-
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        if (origin != null) {
-            sb.append("remoteAddress=").append(origin);
-        }
-        if (clientId != null) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append("clientId=").append(clientId);
-        }
-        if (sessionId != null) {
-            if (sb.length() > 0) {
-                sb.append(", ");
-            }
-            sb.append("sessionId=<SESSION>");
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + ((clientId == null) ? 0 : clientId.hashCode());
-        result = prime * result + ((origin == null) ? 0 : origin.hashCode());
-        result = prime * result + ((sessionId == null) ? 0 : sessionId.hashCode());
-        return result;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        UaaAuthenticationDetails other = (UaaAuthenticationDetails) obj;
-        if (clientId == null) {
-            if (other.clientId != null)
-                return false;
-        }
-        else if (!clientId.equals(other.clientId))
-            return false;
-        if (origin == null) {
-            if (other.origin != null)
-                return false;
-        }
-        else if (!origin.equals(other.origin))
-            return false;
-        if (sessionId == null) {
-            if (other.sessionId != null)
-                return false;
-        }
-        else if (!sessionId.equals(other.sessionId))
-            return false;
-        return true;
-    }
-
+    return true;
+  }
 }

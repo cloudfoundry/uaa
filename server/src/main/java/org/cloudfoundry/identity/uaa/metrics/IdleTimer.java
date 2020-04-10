@@ -4,61 +4,58 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 
 /**
- * Calculates the time that a server is idle (no requests processing)
- * The idle time calculator starts as soon as this object is created.
+ * Calculates the time that a server is idle (no requests processing) The idle time calculator
+ * starts as soon as this object is created.
  */
 public class IdleTimer {
 
-    TimeService timeService = new TimeServiceImpl();
+  TimeService timeService = new TimeServiceImpl();
+  private final long startTime = timeService.getCurrentTimeMillis();
+  private long inflightRequests = 0;
+  private long idleTime = 0;
+  private long lastIdleStart = timeService.getCurrentTimeMillis();
+  private long requestCount = 0;
 
-    private long inflightRequests = 0;
-    private long idleTime = 0;
-
-    private long lastIdleStart = timeService.getCurrentTimeMillis();
-    private final long startTime = timeService.getCurrentTimeMillis();
-    private long requestCount = 0;
-
-    public synchronized void endRequest() {
-        switch ((int) --inflightRequests) {
-            case 0:
-                lastIdleStart = timeService.getCurrentTimeMillis();
-                break;
-            case -1:
-                throw new IllegalStateException("Illegal end request invocation, no request in flight");
-            default:
-                break;
-        }
-        requestCount++;
+  public synchronized void endRequest() {
+    switch ((int) --inflightRequests) {
+      case 0:
+        lastIdleStart = timeService.getCurrentTimeMillis();
+        break;
+      case -1:
+        throw new IllegalStateException("Illegal end request invocation, no request in flight");
+      default:
+        break;
     }
+    requestCount++;
+  }
 
-    public synchronized void startRequest() {
-        if ((int) ++inflightRequests == 1) {
-            idleTime += (timeService.getCurrentTimeMillis() - lastIdleStart);
-        }
+  public synchronized void startRequest() {
+    if ((int) ++inflightRequests == 1) {
+      idleTime += (timeService.getCurrentTimeMillis() - lastIdleStart);
     }
+  }
 
+  public long getInflightRequests() {
+    return inflightRequests;
+  }
 
-    public long getInflightRequests() {
-        return inflightRequests;
+  public synchronized long getIdleTime() {
+    if (inflightRequests == 0) {
+      return (timeService.getCurrentTimeMillis() - lastIdleStart) + idleTime;
+    } else {
+      return idleTime;
     }
+  }
 
-    public synchronized long getIdleTime() {
-        if (inflightRequests == 0) {
-            return (timeService.getCurrentTimeMillis() - lastIdleStart) + idleTime;
-        } else {
-            return idleTime;
-        }
-    }
+  public long getRunTime() {
+    return timeService.getCurrentTimeMillis() - startTime;
+  }
 
-    public long getRunTime() {
-        return timeService.getCurrentTimeMillis() - startTime;
-    }
+  protected long getRequestCount() {
+    return requestCount;
+  }
 
-    protected long getRequestCount() {
-        return requestCount;
-    }
-
-    public void setTimeService(TimeService timeService) {
-        this.timeService = timeService;
-    }
+  public void setTimeService(TimeService timeService) {
+    this.timeService = timeService;
+  }
 }

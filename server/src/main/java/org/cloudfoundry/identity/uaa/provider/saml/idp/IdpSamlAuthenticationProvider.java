@@ -1,4 +1,3 @@
-
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -15,17 +14,18 @@ import org.springframework.security.saml.context.SAMLMessageContext;
  */
 public class IdpSamlAuthenticationProvider implements AuthenticationProvider {
 
-    @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        SecurityContext securityContext = SecurityContextHolder.getContext();
-        UaaAuthentication uaaAuthentication = (UaaAuthentication) securityContext.getAuthentication();
-        SAMLMessageContext samlMessageContext = ((SAMLAuthenticationToken) authentication).getCredentials();
-        uaaAuthentication.setSamlMessageContext(samlMessageContext);
-        return uaaAuthentication;
-    }
+  @Override
+  public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+    SecurityContext securityContext = SecurityContextHolder.getContext();
+    UaaAuthentication uaaAuthentication = (UaaAuthentication) securityContext.getAuthentication();
+    SAMLMessageContext samlMessageContext =
+        ((SAMLAuthenticationToken) authentication).getCredentials();
+    uaaAuthentication.setSamlMessageContext(samlMessageContext);
+    return uaaAuthentication;
+  }
 
-    @Override
-    public boolean supports(Class<?> authentication) {
-        return SAMLAuthenticationToken.class.isAssignableFrom(authentication);
-    }
+  @Override
+  public boolean supports(Class<?> authentication) {
+    return SAMLAuthenticationToken.class.isAssignableFrom(authentication);
+  }
 }

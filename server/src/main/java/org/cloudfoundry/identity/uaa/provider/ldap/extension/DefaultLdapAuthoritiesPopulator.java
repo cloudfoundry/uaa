@@ -15,6 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import javax.naming.directory.SearchControls;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.ContextSource;
@@ -25,24 +31,18 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 import org.springframework.util.Assert;
 
-import javax.naming.directory.SearchControls;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
-
 /**
  * The default strategy for obtaining user role information from the directory.
- * <p>
- * It obtains roles by performing a search for "groups" the user is a member of.
- * <p>
- * A typical group search scenario would be where each group/role is specified using the <tt>groupOfNames</tt>
- * (or <tt>groupOfUniqueNames</tt>) LDAP objectClass and the user's DN is listed in the <tt>member</tt> (or
- * <tt>uniqueMember</tt>) attribute to indicate that they should be assigned that role. The following LDIF sample has
- * the groups stored under the DN <tt>ou=groups,dc=springframework,dc=org</tt> and a group called "developers" with
- * "ben" and "luke" as members:
+ *
+ * <p>It obtains roles by performing a search for "groups" the user is a member of.
+ *
+ * <p>A typical group search scenario would be where each group/role is specified using the
+ * <tt>groupOfNames</tt> (or <tt>groupOfUniqueNames</tt>) LDAP objectClass and the user's DN is
+ * listed in the <tt>member</tt> (or <tt>uniqueMember</tt>) attribute to indicate that they should
+ * be assigned that role. The following LDIF sample has the groups stored under the DN
+ * <tt>ou=groups,dc=springframework,dc=org</tt> and a group called "developers" with "ben" and
+ * "luke" as members:
+ *
  * <pre>
  * dn: ou=groups,dc=springframework,dc=org
  * objectClass: top
@@ -58,15 +58,17 @@ import java.util.Set;
  * member: uid=luke,ou=people,dc=springframework,dc=org
  * ou: developer
  * </pre>
- * <p>
- * The group search is performed within a DN specified by the <tt>groupSearchBase</tt> property, which should
- * be relative to the root DN of its <tt>ContextSource</tt>. If the search base is null, group searching is
- * disabled. The filter used in the search is defined by the <tt>groupSearchFilter</tt> property, with the filter
- * argument {0} being the full DN of the user. You can also optionally use the parameter {1}, which will be substituted
- * with the username. You can also specify which attribute defines the role name by setting
- * the <tt>groupRoleAttribute</tt> property (the default is "cn").
- * <p>
- * The configuration below shows how the group search might be performed with the above schema.
+ *
+ * <p>The group search is performed within a DN specified by the <tt>groupSearchBase</tt> property,
+ * which should be relative to the root DN of its <tt>ContextSource</tt>. If the search base is
+ * null, group searching is disabled. The filter used in the search is defined by the
+ * <tt>groupSearchFilter</tt> property, with the filter argument {0} being the full DN of the user.
+ * You can also optionally use the parameter {1}, which will be substituted with the username. You
+ * can also specify which attribute defines the role name by setting the <tt>groupRoleAttribute</tt>
+ * property (the default is "cn").
+ *
+ * <p>The configuration below shows how the group search might be performed with the above schema.
+ *
  * <pre>
  * &lt;bean id="ldapAuthoritiesPopulator"
  *       class="org.springframework.security.authentication.ldap.populator.DefaultLdapAuthoritiesPopulator"&gt;
@@ -79,260 +81,266 @@ import java.util.Set;
  *   &lt;property name="convertToUpperCase" value="true"/&gt;
  * &lt;/bean&gt;
  * </pre>
- * A search for roles for user "uid=ben,ou=people,dc=springframework,dc=org" would return the single granted authority
- * "ROLE_DEVELOPER".
- * <p>
- * Note that case-conversion, use of the role prefix and setting a default role are better performed using a
- * {@code GrantedAuthoritiesMapper} and are now deprecated.
- * <p>
- * The single-level search is performed by default. Setting the <tt>searchSubTree</tt> property to true will enable
- * a search of the entire subtree under <tt>groupSearchBase</tt>.
+ *
+ * A search for roles for user "uid=ben,ou=people,dc=springframework,dc=org" would return the single
+ * granted authority "ROLE_DEVELOPER".
+ *
+ * <p>Note that case-conversion, use of the role prefix and setting a default role are better
+ * performed using a {@code GrantedAuthoritiesMapper} and are now deprecated.
+ *
+ * <p>The single-level search is performed by default. Setting the <tt>searchSubTree</tt> property
+ * to true will enable a search of the entire subtree under <tt>groupSearchBase</tt>.
  *
  * @author Luke Taylor
  */
 public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator {
-    //~ Static fields/initializers =====================================================================================
+  // ~ Static fields/initializers
+  // =====================================================================================
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultLdapAuthoritiesPopulator.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(DefaultLdapAuthoritiesPopulator.class);
 
-    //~ Instance fields ================================================================================================
+  // ~ Instance fields
+  // ================================================================================================
+  /** Template that will be used for searching */
+  private final SpringSecurityLdapTemplate ldapTemplate;
+  /**
+   * Controls used to determine whether group searches should be performed over the full sub-tree
+   * from the base DN. Modified by searchSubTree property
+   */
+  private final SearchControls searchControls = new SearchControls();
+  /** A default role which will be assigned to all authenticated users if set */
+  private GrantedAuthority defaultRole;
+  /** The ID of the attribute which contains the role name for a group */
+  private String groupRoleAttribute = "cn";
 
-    /**
-     * A default role which will be assigned to all authenticated users if set
-     */
-    private GrantedAuthority defaultRole;
+  /** The base DN from which the search for group membership should be performed */
+  private String groupSearchBase;
 
-    /**
-     * Template that will be used for searching
-     */
-    private final SpringSecurityLdapTemplate ldapTemplate;
+  /** The pattern to be used for the user search. {0} is the user's DN */
+  private String groupSearchFilter = "(member={0})";
+  /** The role prefix that will be prepended to each role name */
+  private String rolePrefix = "ROLE_";
+  /** Should we convert the role name to uppercase */
+  private boolean convertToUpperCase = true;
 
-    /**
-     * Controls used to determine whether group searches should be performed over the full sub-tree from the
-     * base DN. Modified by searchSubTree property
-     */
-    private final SearchControls searchControls = new SearchControls();
+  // ~ Constructors
+  // ===================================================================================================
 
-    /**
-     * The ID of the attribute which contains the role name for a group
-     */
-    private String groupRoleAttribute = "cn";
+  /**
+   * Constructor for group search scenarios. <tt>userRoleAttributes</tt> may still be set as a
+   * property.
+   *
+   * @param contextSource supplies the contexts used to search for user roles.
+   * @param groupSearchBase if this is an empty string the search will be performed from the root DN
+   *     of the context factory. If null, no search will be performed.
+   */
+  public DefaultLdapAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase) {
+    Assert.notNull(contextSource, "contextSource must not be null");
+    ldapTemplate = new SpringSecurityLdapTemplate(contextSource);
+    getLdapTemplate().setSearchControls(searchControls);
+    this.groupSearchBase = groupSearchBase;
 
-    /**
-     * The base DN from which the search for group membership should be performed
-     */
-    private String groupSearchBase;
+    if (groupSearchBase == null) {
+      logger.info("groupSearchBase is null. No group search will be performed.");
+    } else if (groupSearchBase.length() == 0) {
+      logger.info(
+          "groupSearchBase is empty. Searches will be performed from the context source base");
+    }
+  }
 
-    /**
-     * The pattern to be used for the user search. {0} is the user's DN
-     */
-    private String groupSearchFilter = "(member={0})";
-    /**
-     * The role prefix that will be prepended to each role name
-     */
-    private String rolePrefix = "ROLE_";
-    /**
-     * Should we convert the role name to uppercase
-     */
-    private boolean convertToUpperCase = true;
+  // ~ Methods
+  // ========================================================================================================
 
-    //~ Constructors ===================================================================================================
+  /**
+   * This method should be overridden if required to obtain any additional roles for the given user
+   * (on top of those obtained from the standard search implemented by this class).
+   *
+   * @param user the context representing the user who's roles are required
+   * @return the extra roles which will be merged with those returned by the group search
+   */
+  protected Set<GrantedAuthority> getAdditionalRoles(DirContextOperations user, String username) {
+    return null;
+  }
 
-    /**
-     * Constructor for group search scenarios. <tt>userRoleAttributes</tt> may still be
-     * set as a property.
-     *
-     * @param contextSource supplies the contexts used to search for user roles.
-     * @param groupSearchBase          if this is an empty string the search will be performed from the root DN of the
-     *                                 context factory. If null, no search will be performed.
-     */
-    public DefaultLdapAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase) {
-        Assert.notNull(contextSource, "contextSource must not be null");
-        ldapTemplate = new SpringSecurityLdapTemplate(contextSource);
-        getLdapTemplate().setSearchControls(searchControls);
-        this.groupSearchBase = groupSearchBase;
+  /**
+   * Obtains the authorities for the user who's directory entry is represented by the supplied
+   * LdapUserDetails object.
+   *
+   * @param user the user who's authorities are required
+   * @return the set of roles granted to the user.
+   */
+  public Collection<GrantedAuthority> getGrantedAuthorities(
+      DirContextOperations user, String username) {
+    String userDn = user.getNameInNamespace();
 
-        if (groupSearchBase == null) {
-            logger.info("groupSearchBase is null. No group search will be performed.");
-        } else if (groupSearchBase.length() == 0) {
-            logger.info("groupSearchBase is empty. Searches will be performed from the context source base");
-        }
+    if (logger.isDebugEnabled()) {
+      logger.debug("Getting authorities for user " + userDn);
     }
 
-    //~ Methods ========================================================================================================
+    Set<GrantedAuthority> roles = getGroupMembershipRoles(userDn, username);
 
-    /**
-     * This method should be overridden if required to obtain any additional
-     * roles for the given user (on top of those obtained from the standard
-     * search implemented by this class).
-     *
-     * @param user the context representing the user who's roles are required
-     * @return the extra roles which will be merged with those returned by the group search
-     */
+    Set<GrantedAuthority> extraRoles = getAdditionalRoles(user, username);
 
-    protected Set<GrantedAuthority> getAdditionalRoles(DirContextOperations user, String username) {
-        return null;
+    if (extraRoles != null) {
+      roles.addAll(extraRoles);
     }
 
-    /**
-     * Obtains the authorities for the user who's directory entry is represented by
-     * the supplied LdapUserDetails object.
-     *
-     * @param user the user who's authorities are required
-     * @return the set of roles granted to the user.
-     */
-    public Collection<GrantedAuthority> getGrantedAuthorities(DirContextOperations user, String username) {
-        String userDn = user.getNameInNamespace();
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("Getting authorities for user " + userDn);
-        }
-
-        Set<GrantedAuthority> roles = getGroupMembershipRoles(userDn, username);
-
-        Set<GrantedAuthority> extraRoles = getAdditionalRoles(user, username);
-
-        if (extraRoles != null) {
-            roles.addAll(extraRoles);
-        }
-
-        if (defaultRole != null) {
-            roles.add(defaultRole);
-        }
-
-        List<GrantedAuthority> result = new ArrayList<GrantedAuthority>(roles.size());
-        result.addAll(roles);
-
-        return result;
+    if (defaultRole != null) {
+      roles.add(defaultRole);
     }
 
-    public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
-        if (getGroupSearchBase() == null) {
-            return new HashSet<GrantedAuthority>();
-        }
+    List<GrantedAuthority> result = new ArrayList<GrantedAuthority>(roles.size());
+    result.addAll(roles);
 
-        Set<GrantedAuthority> authorities = new HashSet<GrantedAuthority>();
+    return result;
+  }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Searching for roles for user '" + username + "', DN = " + "'" + userDn + "', with filter "
-                    + groupSearchFilter + " in search base '" + getGroupSearchBase() + "'");
-        }
-
-        Set<String> userRoles = getLdapTemplate().searchForSingleAttributeValues(getGroupSearchBase(), groupSearchFilter,
-            new String[]{userDn, username}, groupRoleAttribute);
-
-        if (logger.isDebugEnabled()) {
-            logger.debug("Roles from search: " + userRoles);
-        }
-
-        for (String role : userRoles) {
-
-            if (convertToUpperCase) {
-                role = role.toUpperCase();
-            }
-
-            authorities.add(new SimpleGrantedAuthority(rolePrefix + role));
-        }
-
-        return authorities;
+  public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
+    if (getGroupSearchBase() == null) {
+      return new HashSet<GrantedAuthority>();
     }
 
-    protected ContextSource getContextSource() {
-        return getLdapTemplate().getContextSource();
+    Set<GrantedAuthority> authorities = new HashSet<GrantedAuthority>();
+
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "Searching for roles for user '"
+              + username
+              + "', DN = "
+              + "'"
+              + userDn
+              + "', with filter "
+              + groupSearchFilter
+              + " in search base '"
+              + getGroupSearchBase()
+              + "'");
     }
 
-    protected String getGroupSearchBase() {
-        return groupSearchBase;
+    Set<String> userRoles =
+        getLdapTemplate()
+            .searchForSingleAttributeValues(
+                getGroupSearchBase(),
+                groupSearchFilter,
+                new String[] {userDn, username},
+                groupRoleAttribute);
+
+    if (logger.isDebugEnabled()) {
+      logger.debug("Roles from search: " + userRoles);
     }
 
-    /**
-     * @deprecated Convert case in the {@code AuthenticationProvider} using a {@code GrantedAuthoritiesMapper}.
-     */
-    @Deprecated
-    public void setConvertToUpperCase(boolean convertToUpperCase) {
-        this.convertToUpperCase = convertToUpperCase;
+    for (String role : userRoles) {
+
+      if (convertToUpperCase) {
+        role = role.toUpperCase();
+      }
+
+      authorities.add(new SimpleGrantedAuthority(rolePrefix + role));
     }
 
-    /**
-     * The default role which will be assigned to all users.
-     *
-     * @param defaultRole the role name, including any desired prefix.
-     * @deprecated Assign a default role in the {@code AuthenticationProvider} using a {@code GrantedAuthoritiesMapper}.
-     */
-    @Deprecated
-    public void setDefaultRole(String defaultRole) {
-        Assert.notNull(defaultRole, "The defaultRole property cannot be set to null");
-        this.defaultRole = new SimpleGrantedAuthority(defaultRole);
-    }
+    return authorities;
+  }
 
-    public void setGroupRoleAttribute(String groupRoleAttribute) {
-        Assert.notNull(groupRoleAttribute, "groupRoleAttribute must not be null");
-        this.groupRoleAttribute = groupRoleAttribute;
-    }
+  protected ContextSource getContextSource() {
+    return getLdapTemplate().getContextSource();
+  }
 
-    public void setGroupSearchFilter(String groupSearchFilter) {
-        Assert.notNull(groupSearchFilter, "groupSearchFilter must not be null");
-        this.groupSearchFilter = groupSearchFilter;
-    }
+  protected String getGroupSearchBase() {
+    return groupSearchBase;
+  }
 
-    /**
-     * Sets the prefix which will be prepended to the values loaded from the directory.
-     * Defaults to "ROLE_" for compatibility with <tt>RoleVoter</tt>.
-     *
-     * @deprecated Map the authorities in the {@code AuthenticationProvider} using a {@code GrantedAuthoritiesMapper}.
-     */
-    @Deprecated
-    public void setRolePrefix(String rolePrefix) {
-        Assert.notNull(rolePrefix, "rolePrefix must not be null");
-        this.rolePrefix = rolePrefix;
-    }
+  /**
+   * If set to true, a subtree scope search will be performed. If false a single-level search is
+   * used.
+   *
+   * @param searchSubtree set to true to enable searching of the entire tree below the
+   *     <tt>groupSearchBase</tt>.
+   */
+  public void setSearchSubtree(boolean searchSubtree) {
+    int searchScope = searchSubtree ? SearchControls.SUBTREE_SCOPE : SearchControls.ONELEVEL_SCOPE;
+    searchControls.setSearchScope(searchScope);
+  }
 
-    /**
-     * If set to true, a subtree scope search will be performed. If false a single-level search is used.
-     *
-     * @param searchSubtree set to true to enable searching of the entire tree below the <tt>groupSearchBase</tt>.
-     */
-    public void setSearchSubtree(boolean searchSubtree) {
-        int searchScope = searchSubtree ? SearchControls.SUBTREE_SCOPE : SearchControls.ONELEVEL_SCOPE;
-        searchControls.setSearchScope(searchScope);
-    }
+  /**
+   * Sets the corresponding property on the underlying template, avoiding specific issues with
+   * Active Directory.
+   *
+   * @see LdapTemplate#setIgnoreNameNotFoundException(boolean)
+   */
+  public void setIgnorePartialResultException(boolean ignore) {
+    getLdapTemplate().setIgnorePartialResultException(ignore);
+  }
 
-    /**
-     * Sets the corresponding property on the underlying template, avoiding specific issues with Active Directory.
-     *
-     *   @see LdapTemplate#setIgnoreNameNotFoundException(boolean)
-     */
-    public void setIgnorePartialResultException(boolean ignore) {
-        getLdapTemplate().setIgnorePartialResultException(ignore);
-    }
+  protected SpringSecurityLdapTemplate getLdapTemplate() {
+    return ldapTemplate;
+  }
 
-    protected SpringSecurityLdapTemplate getLdapTemplate() {
-        return ldapTemplate;
-    }
+  protected GrantedAuthority getDefaultRole() {
+    return defaultRole;
+  }
 
-    protected GrantedAuthority getDefaultRole() {
-        return defaultRole;
-    }
+  /**
+   * The default role which will be assigned to all users.
+   *
+   * @param defaultRole the role name, including any desired prefix.
+   * @deprecated Assign a default role in the {@code AuthenticationProvider} using a {@code
+   *     GrantedAuthoritiesMapper}.
+   */
+  @Deprecated
+  public void setDefaultRole(String defaultRole) {
+    Assert.notNull(defaultRole, "The defaultRole property cannot be set to null");
+    this.defaultRole = new SimpleGrantedAuthority(defaultRole);
+  }
 
-    protected SearchControls getSearchControls() {
-        return searchControls;
-    }
+  protected SearchControls getSearchControls() {
+    return searchControls;
+  }
 
-    protected String getGroupRoleAttribute() {
-        return groupRoleAttribute;
-    }
+  protected String getGroupRoleAttribute() {
+    return groupRoleAttribute;
+  }
 
-    protected String getGroupSearchFilter() {
-        return groupSearchFilter;
-    }
+  public void setGroupRoleAttribute(String groupRoleAttribute) {
+    Assert.notNull(groupRoleAttribute, "groupRoleAttribute must not be null");
+    this.groupRoleAttribute = groupRoleAttribute;
+  }
 
-    protected String getRolePrefix() {
-        return rolePrefix;
-    }
+  protected String getGroupSearchFilter() {
+    return groupSearchFilter;
+  }
 
-    protected boolean isConvertToUpperCase() {
-        return convertToUpperCase;
-    }
+  public void setGroupSearchFilter(String groupSearchFilter) {
+    Assert.notNull(groupSearchFilter, "groupSearchFilter must not be null");
+    this.groupSearchFilter = groupSearchFilter;
+  }
 
+  protected String getRolePrefix() {
+    return rolePrefix;
+  }
 
+  /**
+   * Sets the prefix which will be prepended to the values loaded from the directory. Defaults to
+   * "ROLE_" for compatibility with <tt>RoleVoter</tt>.
+   *
+   * @deprecated Map the authorities in the {@code AuthenticationProvider} using a {@code
+   *     GrantedAuthoritiesMapper}.
+   */
+  @Deprecated
+  public void setRolePrefix(String rolePrefix) {
+    Assert.notNull(rolePrefix, "rolePrefix must not be null");
+    this.rolePrefix = rolePrefix;
+  }
+
+  protected boolean isConvertToUpperCase() {
+    return convertToUpperCase;
+  }
+
+  /**
+   * @deprecated Convert case in the {@code AuthenticationProvider} using a {@code
+   *     GrantedAuthoritiesMapper}.
+   */
+  @Deprecated
+  public void setConvertToUpperCase(boolean convertToUpperCase) {
+    this.convertToUpperCase = convertToUpperCase;
+  }
 }

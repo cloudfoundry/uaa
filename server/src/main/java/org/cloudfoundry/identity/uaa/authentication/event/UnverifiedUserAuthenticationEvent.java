@@ -8,21 +8,25 @@ import org.springframework.util.Assert;
 
 public class UnverifiedUserAuthenticationEvent extends AbstractUaaAuthenticationEvent {
 
-    private final UaaUser user;
+  private final UaaUser user;
 
-    public UnverifiedUserAuthenticationEvent(UaaUser user, Authentication authentication, String zoneId) {
-        super(authentication, zoneId);
-        Assert.notNull(user, "UaaUser object cannot be null");
-        this.user = user;
-    }
+  public UnverifiedUserAuthenticationEvent(
+      UaaUser user, Authentication authentication, String zoneId) {
+    super(authentication, zoneId);
+    Assert.notNull(user, "UaaUser object cannot be null");
+    this.user = user;
+  }
 
-    @Override
-    public AuditEvent getAuditEvent() {
-        return createAuditRecord(user.getId(), AuditEventType.UnverifiedUserAuthentication, getOrigin(getAuthenticationDetails()),
-                user.getUsername());
-    }
+  @Override
+  public AuditEvent getAuditEvent() {
+    return createAuditRecord(
+        user.getId(),
+        AuditEventType.UnverifiedUserAuthentication,
+        getOrigin(getAuthenticationDetails()),
+        user.getUsername());
+  }
 
-    public UaaUser getUser() {
-        return user;
-    }
+  public UaaUser getUser() {
+    return user;
+  }
 }

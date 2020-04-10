@@ -2,62 +2,62 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import java.net.URL;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OidcMetadata {
-    @JsonProperty("authorization_endpoint")
-    private URL authorizationEndpoint;
 
-    @JsonProperty("userinfo_endpoint")
-    private URL userinfoEndpoint;
+  @JsonProperty("authorization_endpoint")
+  private URL authorizationEndpoint;
 
-    @JsonProperty("token_endpoint")
-    private URL tokenEndpoint;
+  @JsonProperty("userinfo_endpoint")
+  private URL userinfoEndpoint;
 
-    @JsonProperty("jwks_uri")
-    private URL jsonWebKeysUri;
+  @JsonProperty("token_endpoint")
+  private URL tokenEndpoint;
 
-    private String issuer;
+  @JsonProperty("jwks_uri")
+  private URL jsonWebKeysUri;
 
-    public URL getAuthorizationEndpoint() {
-        return authorizationEndpoint;
-    }
+  private String issuer;
 
-    public void setAuthorizationEndpoint(URL authorizationEndpoint) {
-        this.authorizationEndpoint = authorizationEndpoint;
-    }
+  public URL getAuthorizationEndpoint() {
+    return authorizationEndpoint;
+  }
 
-    public URL getUserinfoEndpoint() {
-        return userinfoEndpoint;
-    }
+  public void setAuthorizationEndpoint(URL authorizationEndpoint) {
+    this.authorizationEndpoint = authorizationEndpoint;
+  }
 
-    public void setUserinfoEndpoint(URL userinfoEndpoint) {
-        this.userinfoEndpoint = userinfoEndpoint;
-    }
+  public URL getUserinfoEndpoint() {
+    return userinfoEndpoint;
+  }
 
-    public URL getTokenEndpoint() {
-        return tokenEndpoint;
-    }
+  public void setUserinfoEndpoint(URL userinfoEndpoint) {
+    this.userinfoEndpoint = userinfoEndpoint;
+  }
 
-    public void setTokenEndpoint(URL tokenEndpoint) {
-        this.tokenEndpoint = tokenEndpoint;
-    }
+  public URL getTokenEndpoint() {
+    return tokenEndpoint;
+  }
 
-    public URL getJsonWebKeysUri() {
-        return jsonWebKeysUri;
-    }
+  public void setTokenEndpoint(URL tokenEndpoint) {
+    this.tokenEndpoint = tokenEndpoint;
+  }
 
-    public void setJsonWebKeysUri(URL jsonWebKeysUri) {
-        this.jsonWebKeysUri = jsonWebKeysUri;
-    }
+  public URL getJsonWebKeysUri() {
+    return jsonWebKeysUri;
+  }
 
-    public String getIssuer() {
-        return issuer;
-    }
+  public void setJsonWebKeysUri(URL jsonWebKeysUri) {
+    this.jsonWebKeysUri = jsonWebKeysUri;
+  }
 
-    public void setIssuer(String issuer) {
-        this.issuer = issuer;
-    }
+  public String getIssuer() {
+    return issuer;
+  }
+
+  public void setIssuer(String issuer) {
+    this.issuer = issuer;
+  }
 }

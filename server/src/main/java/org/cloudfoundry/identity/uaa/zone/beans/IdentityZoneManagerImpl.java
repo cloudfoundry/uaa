@@ -6,23 +6,24 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class IdentityZoneManagerImpl implements IdentityZoneManager {
-    @Override
-    public IdentityZone getCurrentIdentityZone() {
-        return IdentityZoneHolder.get();
-    }
 
-    @Override
-    public String getCurrentIdentityZoneId() {
-        return IdentityZoneHolder.getCurrentZoneId();
-    }
+  @Override
+  public IdentityZone getCurrentIdentityZone() {
+    return IdentityZoneHolder.get();
+  }
 
-    @Override
-    public boolean isCurrentZoneUaa() {
-        return IdentityZoneHolder.isUaa();
-    }
+  @Override
+  public void setCurrentIdentityZone(final IdentityZone identityZone) {
+    IdentityZoneHolder.set(identityZone);
+  }
 
-    @Override
-    public void setCurrentIdentityZone(final IdentityZone identityZone) {
-        IdentityZoneHolder.set(identityZone);
-    }
+  @Override
+  public String getCurrentIdentityZoneId() {
+    return IdentityZoneHolder.getCurrentZoneId();
+  }
+
+  @Override
+  public boolean isCurrentZoneUaa() {
+    return IdentityZoneHolder.isUaa();
+  }
 }

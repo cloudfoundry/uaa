@@ -1,256 +1,253 @@
-
 package org.cloudfoundry.identity.uaa.user;
-
-import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Date;
 import java.util.List;
+import org.springframework.security.core.GrantedAuthority;
 
 public final class UaaUserPrototype {
 
-    private String id = "NaN";
+  private String id = "NaN";
 
-    private String username;
+  private String username;
 
-    private String password;
+  private String password;
 
-    private String email;
+  private String email;
 
-    private String givenName;
+  private String givenName;
 
-    private String familyName;
+  private String familyName;
 
-    private String phoneNumber;
+  private String phoneNumber;
 
-    private Date created;
+  private Date created;
 
-    private Date modified;
+  private Date modified;
 
-    private String origin;
+  private String origin;
 
-    private String externalId;
+  private String externalId;
 
-    private String salt;
+  private String salt;
 
-    private Date passwordLastModified;
+  private Date passwordLastModified;
 
-    private String zoneId;
+  private String zoneId;
 
-    private List<? extends GrantedAuthority> authorities;
+  private List<? extends GrantedAuthority> authorities;
 
-    private boolean verified = false;
+  private boolean verified = false;
 
-    private boolean legacyVerificationBehavior;
+  private boolean legacyVerificationBehavior;
 
-    private boolean passwordChangeRequired;
+  private boolean passwordChangeRequired;
 
-    private Long lastLogonTime;
+  private Long lastLogonTime;
 
-    private Long previousLogonTime;
+  private Long previousLogonTime;
 
-    public UaaUserPrototype() {
-    }
+  public UaaUserPrototype() {}
 
-    public UaaUserPrototype(UaaUser user) {
-        withVerified(user.isVerified())
-            .withLegacyVerificationBehavior(user.isLegacyVerificationBehavior())
-            .withEmail(user.getEmail())
-            .withUsername(user.getUsername())
-            .withPhoneNumber(user.getPhoneNumber())
-            .withId(user.getId())
-            .withOrigin(user.getOrigin())
-            .withZoneId(user.getZoneId())
-            .withAuthorities(user.getAuthorities())
-            .withPassword(user.getPassword())
-            .withFamilyName(user.getFamilyName())
-            .withGivenName(user.getGivenName())
-            .withExternalId(user.getExternalId())
-            .withPasswordLastModified(user.getPasswordLastModified())
-            .withLastLogonSuccess(user.getLastLogonTime())
-            .withPreviousLogonSuccess(user.getPreviousLogonTime())
-            .withSalt(user.getSalt())
-            .withCreated(user.getCreated())
-            .withModified(user.getModified())
-            .withPasswordChangeRequired(user.isPasswordChangeRequired());
+  public UaaUserPrototype(UaaUser user) {
+    withVerified(user.isVerified())
+        .withLegacyVerificationBehavior(user.isLegacyVerificationBehavior())
+        .withEmail(user.getEmail())
+        .withUsername(user.getUsername())
+        .withPhoneNumber(user.getPhoneNumber())
+        .withId(user.getId())
+        .withOrigin(user.getOrigin())
+        .withZoneId(user.getZoneId())
+        .withAuthorities(user.getAuthorities())
+        .withPassword(user.getPassword())
+        .withFamilyName(user.getFamilyName())
+        .withGivenName(user.getGivenName())
+        .withExternalId(user.getExternalId())
+        .withPasswordLastModified(user.getPasswordLastModified())
+        .withLastLogonSuccess(user.getLastLogonTime())
+        .withPreviousLogonSuccess(user.getPreviousLogonTime())
+        .withSalt(user.getSalt())
+        .withCreated(user.getCreated())
+        .withModified(user.getModified())
+        .withPasswordChangeRequired(user.isPasswordChangeRequired());
+  }
 
-    }
+  public String getId() {
+    return id;
+  }
 
-    public String getId() {
-        return id;
-    }
+  public UaaUserPrototype withId(String id) {
+    this.id = id;
+    return this;
+  }
 
+  public String getUsername() {
+    return username;
+  }
 
-    public UaaUserPrototype withId(String id) {
-        this.id = id;
-        return this;
-    }
+  public UaaUserPrototype withUsername(String username) {
+    this.username = username;
+    return this;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getPassword() {
+    return password;
+  }
 
-    public UaaUserPrototype withUsername(String username) {
-        this.username = username;
-        return this;
-    }
+  public UaaUserPrototype withPassword(String password) {
+    this.password = password;
+    return this;
+  }
 
-    public String getPassword() {
-        return password;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public UaaUserPrototype withPassword(String password) {
-        this.password = password;
-        return this;
-    }
+  public UaaUserPrototype withEmail(String email) {
+    this.email = email;
+    return this;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getGivenName() {
+    return givenName;
+  }
 
-    public UaaUserPrototype withEmail(String email) {
-        this.email = email;
-        return this;
-    }
+  public UaaUserPrototype withGivenName(String givenName) {
+    this.givenName = givenName;
+    return this;
+  }
 
-    public String getGivenName() {
-        return givenName;
-    }
+  public String getFamilyName() {
+    return familyName;
+  }
 
-    public UaaUserPrototype withGivenName(String givenName) {
-        this.givenName = givenName;
-        return this;
-    }
+  public UaaUserPrototype withFamilyName(String familyName) {
+    this.familyName = familyName;
+    return this;
+  }
 
-    public String getFamilyName() {
-        return familyName;
-    }
+  public String getPhoneNumber() {
+    return phoneNumber;
+  }
 
-    public UaaUserPrototype withFamilyName(String familyName) {
-        this.familyName = familyName;
-        return this;
-    }
+  public UaaUserPrototype withPhoneNumber(String phoneNumber) {
+    this.phoneNumber = phoneNumber;
+    return this;
+  }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
+  public Date getCreated() {
+    return created;
+  }
 
-    public UaaUserPrototype withPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-        return this;
-    }
+  public UaaUserPrototype withCreated(Date created) {
+    this.created = created;
+    return this;
+  }
 
-    public Date getCreated() {
-        return created;
-    }
+  public Date getModified() {
+    return modified;
+  }
 
-    public UaaUserPrototype withCreated(Date created) {
-        this.created = created;
-        return this;
-    }
+  public UaaUserPrototype withModified(Date modified) {
+    this.modified = modified;
+    return this;
+  }
 
-    public Date getModified() {
-        return modified;
-    }
+  public String getOrigin() {
+    return origin;
+  }
 
-    public UaaUserPrototype withModified(Date modified) {
-        this.modified = modified;
-        return this;
-    }
+  public UaaUserPrototype withOrigin(String origin) {
+    this.origin = origin;
+    return this;
+  }
 
-    public String getOrigin() {
-        return origin;
-    }
+  public String getExternalId() {
+    return externalId;
+  }
 
-    public UaaUserPrototype withOrigin(String origin) {
-        this.origin = origin;
-        return this;
-    }
+  public UaaUserPrototype withExternalId(String externalId) {
+    this.externalId = externalId;
+    return this;
+  }
 
-    public String getExternalId() {
-        return externalId;
-    }
+  public String getSalt() {
+    return salt;
+  }
 
-    public UaaUserPrototype withExternalId(String externalId) {
-        this.externalId = externalId;
-        return this;
-    }
+  public UaaUserPrototype withSalt(String salt) {
+    this.salt = salt;
+    return this;
+  }
 
-    public String getSalt() {
-        return salt;
-    }
+  public Date getPasswordLastModified() {
+    return passwordLastModified;
+  }
 
-    public UaaUserPrototype withSalt(String salt) {
-        this.salt = salt;
-        return this;
-    }
+  public UaaUserPrototype withPasswordLastModified(Date passwordLastModified) {
+    this.passwordLastModified = passwordLastModified;
+    return this;
+  }
 
-    public Date getPasswordLastModified() {
-        return passwordLastModified;
-    }
+  public String getZoneId() {
+    return zoneId;
+  }
 
-    public UaaUserPrototype withPasswordLastModified(Date passwordLastModified) {
-        this.passwordLastModified = passwordLastModified;
-        return this;
-    }
+  public UaaUserPrototype withZoneId(String zoneId) {
+    this.zoneId = zoneId;
+    return this;
+  }
 
-    public String getZoneId() {
-        return zoneId;
-    }
+  public List<? extends GrantedAuthority> getAuthorities() {
+    return authorities;
+  }
 
-    public UaaUserPrototype withZoneId(String zoneId) {
-        this.zoneId = zoneId;
-        return this;
-    }
+  public UaaUserPrototype withAuthorities(List<? extends GrantedAuthority> authorities) {
+    this.authorities = authorities;
+    return this;
+  }
 
-    public List<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
+  public boolean isVerified() {
+    return verified;
+  }
 
-    public UaaUserPrototype withAuthorities(List<? extends GrantedAuthority> authorities) {
-        this.authorities = authorities;
-        return this;
-    }
+  public UaaUserPrototype withVerified(boolean verified) {
+    this.verified = verified;
+    return this;
+  }
 
-    public boolean isVerified() {
-        return verified;
-    }
+  public boolean isLegacyVerificationBehavior() {
+    return legacyVerificationBehavior;
+  }
 
-    public UaaUserPrototype withVerified(boolean verified) {
-        this.verified = verified;
-        return this;
-    }
+  public UaaUserPrototype withLegacyVerificationBehavior(boolean legacyVerificationBehavior) {
+    this.legacyVerificationBehavior = legacyVerificationBehavior;
+    return this;
+  }
 
-    public boolean isLegacyVerificationBehavior() { return legacyVerificationBehavior; }
+  public boolean isPasswordChangeRequired() {
+    return passwordChangeRequired;
+  }
 
-    public UaaUserPrototype withLegacyVerificationBehavior(boolean legacyVerificationBehavior) {
-        this.legacyVerificationBehavior = legacyVerificationBehavior;
-        return this;
-    }
+  public UaaUserPrototype withPasswordChangeRequired(boolean requiresPasswordChange) {
+    this.passwordChangeRequired = requiresPasswordChange;
+    return this;
+  }
 
-    public boolean isPasswordChangeRequired() {
-        return passwordChangeRequired;
-    }
+  public Long getLastLogonTime() {
+    return lastLogonTime;
+  }
 
-    public UaaUserPrototype withPasswordChangeRequired(boolean requiresPasswordChange) {
-        this.passwordChangeRequired = requiresPasswordChange;
-        return this;
-    }
+  public UaaUserPrototype withLastLogonSuccess(Long lastLogonTime) {
+    this.lastLogonTime = lastLogonTime;
+    return this;
+  }
 
-    public Long getLastLogonTime() {
-        return lastLogonTime;
-    }
+  public UaaUserPrototype withPreviousLogonSuccess(Long previousLogonTime) {
+    this.previousLogonTime = previousLogonTime;
+    return this;
+  }
 
-    public UaaUserPrototype withLastLogonSuccess(Long lastLogonTime) {
-        this.lastLogonTime = lastLogonTime;
-        return this;
-    }
-
-    public UaaUserPrototype withPreviousLogonSuccess(Long previousLogonTime) {
-        this.previousLogonTime = previousLogonTime;
-        return this;
-    }
-
-    public Long getPreviousLogonTime() {
-        return previousLogonTime;
-    }
+  public Long getPreviousLogonTime() {
+    return previousLogonTime;
+  }
 }

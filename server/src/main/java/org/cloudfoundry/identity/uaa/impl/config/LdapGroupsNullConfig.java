@@ -15,14 +15,6 @@ import org.springframework.security.ldap.userdetails.LdapAuthoritiesPopulator;
 @Conditional(LdapGroupsNullConfig.IfConfigured.class)
 public class LdapGroupsNullConfig {
 
-  public static class IfConfigured implements Condition {
-    @Override
-    public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-      String ldapGroupsFile = context.getEnvironment().getProperty("ldap.groups.file");
-      return ldapGroupsFile == null || ldapGroupsFile.equals("ldap/ldap-groups-null.xml");
-    }
-  }
-
   @Bean
   public LdapAuthoritiesPopulator ldapAuthoritiesPopulator() {
     return new NullLdapAuthoritiesPopulator();
@@ -36,5 +28,14 @@ public class LdapGroupsNullConfig {
   @Bean
   public String testLdapGroup() {
     return "ldap-groups-null.xml";
+  }
+
+  public static class IfConfigured implements Condition {
+
+    @Override
+    public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+      String ldapGroupsFile = context.getEnvironment().getProperty("ldap.groups.file");
+      return ldapGroupsFile == null || ldapGroupsFile.equals("ldap/ldap-groups-null.xml");
+    }
   }
 }

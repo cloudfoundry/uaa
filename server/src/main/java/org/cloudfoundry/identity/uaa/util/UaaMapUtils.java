@@ -1,14 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
-
-import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
-import org.springframework.core.env.CompositePropertySource;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.EnumerablePropertySource;
-import org.springframework.core.env.PropertySource;
-import org.springframework.util.StringUtils;
-import org.yaml.snakeyaml.DumperOptions;
-import org.yaml.snakeyaml.Yaml;
+import static java.util.Map.Entry.comparingByKey;
 
 import java.util.AbstractMap;
 import java.util.Arrays;
@@ -18,138 +10,139 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
-
-import static java.util.Map.Entry.comparingByKey;
+import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
+import org.springframework.core.env.CompositePropertySource;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.EnumerablePropertySource;
+import org.springframework.core.env.PropertySource;
+import org.springframework.util.StringUtils;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 public class UaaMapUtils {
 
-    public static Map<String, Object> flatten(Map<String, Object> map) {
-        HashMap<String, Object> result = new HashMap<>();
-        if (map == null || map.isEmpty()) {
-            return result;
-        }
-        NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
-        for (String property : properties.getPropertyNames()) {
-            if (properties.getProperty(property) != null) {
-                result.put(property, properties.getProperty(property));
-            }
-        }
-        return result;
+  public static Map<String, Object> flatten(Map<String, Object> map) {
+    HashMap<String, Object> result = new HashMap<>();
+    if (map == null || map.isEmpty()) {
+      return result;
+    }
+    NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
+    for (String property : properties.getPropertyNames()) {
+      if (properties.getProperty(property) != null) {
+        result.put(property, properties.getProperty(property));
+      }
+    }
+    return result;
+  }
+
+  public static Map<String, Object> getPropertiesStartingWith(
+      ConfigurableEnvironment aEnv, String aKeyPrefix) {
+    Map<String, Object> result = new HashMap<>();
+    Map<String, Object> map = getAllProperties(aEnv);
+    for (Entry<String, Object> entry : map.entrySet()) {
+      String key = entry.getKey();
+      if (key.startsWith(aKeyPrefix)) {
+        result.put(key, entry.getValue());
+      }
+    }
+    return result;
+  }
+
+  public static Map<String, Object> getAllProperties(ConfigurableEnvironment aEnv) {
+    Map<String, Object> result = new HashMap<>();
+    aEnv.getPropertySources().forEach(ps -> addAll(result, getAllProperties(ps)));
+    return result;
+  }
+
+  public static Map<String, Object> getAllProperties(PropertySource<?> aPropSource) {
+    Map<String, Object> result = new HashMap<>();
+
+    if (aPropSource instanceof CompositePropertySource) {
+      CompositePropertySource cps = (CompositePropertySource) aPropSource;
+      cps.getPropertySources().forEach(ps -> addAll(result, getAllProperties(ps)));
+      return result;
     }
 
-
-    public static Map<String, Object> getPropertiesStartingWith(ConfigurableEnvironment aEnv,
-                                                                String aKeyPrefix) {
-        Map<String, Object> result = new HashMap<>();
-        Map<String, Object> map = getAllProperties(aEnv);
-        for (Entry<String, Object> entry : map.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(aKeyPrefix)) {
-                result.put(key, entry.getValue());
-            }
-        }
-        return result;
+    if (aPropSource instanceof EnumerablePropertySource<?>) {
+      EnumerablePropertySource<?> ps = (EnumerablePropertySource<?>) aPropSource;
+      Arrays.asList(ps.getPropertyNames()).forEach(key -> result.put(key, ps.getProperty(key)));
+      return result;
     }
 
-    public static Map<String, Object> getAllProperties(ConfigurableEnvironment aEnv) {
-        Map<String, Object> result = new HashMap<>();
-        aEnv.getPropertySources().forEach(ps -> addAll(result, getAllProperties(ps)));
-        return result;
+    // unable to iterate over it
+
+    return result;
+  }
+
+  private static void addAll(Map<String, Object> aBase, Map<String, Object> aToBeAdded) {
+    for (Entry<String, Object> entry : aToBeAdded.entrySet()) {
+      if (aBase.containsKey(entry.getKey())) {
+        continue;
+      }
+      aBase.put(entry.getKey(), entry.getValue());
     }
+  }
 
-    public static Map<String, Object> getAllProperties(PropertySource<?> aPropSource) {
-        Map<String, Object> result = new HashMap<>();
-
-        if (aPropSource instanceof CompositePropertySource) {
-            CompositePropertySource cps = (CompositePropertySource) aPropSource;
-            cps.getPropertySources().forEach(ps -> addAll(result, getAllProperties(ps)));
-            return result;
-        }
-
-        if (aPropSource instanceof EnumerablePropertySource<?>) {
-            EnumerablePropertySource<?> ps = (EnumerablePropertySource<?>) aPropSource;
-            Arrays.asList(ps.getPropertyNames()).forEach(key -> result.put(key, ps.getProperty(key)));
-            return result;
-        }
-
-        //unable to iterate over it
-
-        return result;
+  @SafeVarargs
+  public static <K, V, E extends Map.Entry<K, V>> Map<K, V> map(E... entries) {
+    Map<K, V> map = new HashMap<>();
+    for (E entry : entries) {
+      map.put(entry.getKey(), entry.getValue());
     }
+    return map;
+  }
 
-    private static void addAll(Map<String, Object> aBase, Map<String, Object> aToBeAdded) {
-        for (Entry<String, Object> entry : aToBeAdded.entrySet()) {
-            if (aBase.containsKey(entry.getKey())) {
-                continue;
-            }
-            aBase.put(entry.getKey(), entry.getValue());
-        }
-    }
+  public static <K, V> Map.Entry<K, V> entry(K key, V value) {
+    return new AbstractMap.SimpleEntry<>(key, value);
+  }
 
-    @SafeVarargs
-    public static <K, V, E extends Map.Entry<K, V>> Map<K, V> map(E... entries) {
-        Map<K, V> map = new HashMap<>();
-        for (E entry : entries) {
-            map.put(entry.getKey(), entry.getValue());
-        }
-        return map;
+  public static <K extends Comparable<? super K>, V> Map<K, V> sortByKeys(Map<K, V> map) {
+    List<Entry<K, V>> sortedEntries =
+        map.entrySet().stream().sorted(comparingByKey()).collect(Collectors.toList());
+    LinkedHashMap<K, V> result = new LinkedHashMap<>();
+    for (Map.Entry<K, V> entry : sortedEntries) {
+      Object value = entry.getValue();
+      if (value instanceof Map) {
+        value = sortByKeys((Map) value);
+      }
+      result.put(entry.getKey(), (V) value);
     }
+    return result;
+  }
 
-    public static <K, V> Map.Entry<K, V> entry(K key, V value) {
-        return new AbstractMap.SimpleEntry<>(key, value);
-    }
+  public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K, V> map) {
+    DumperOptions dump = new DumperOptions();
+    dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+    dump.setPrettyFlow(true);
+    dump.setIndent(2);
+    dump.setCanonical(false);
+    dump.setExplicitStart(true);
+    Yaml yaml = new Yaml(dump);
+    return yaml.dump(sortByKeys(map));
+  }
 
-    public static <K extends Comparable<? super K>, V> Map<K, V> sortByKeys(Map<K,V> map) {
-        List<Entry<K, V>> sortedEntries = map
-            .entrySet()
-            .stream()
-            .sorted(comparingByKey())
-            .collect(Collectors.toList());
-        LinkedHashMap<K, V> result = new LinkedHashMap<>();
-        for (Map.Entry<K, V> entry : sortedEntries) {
-            Object value = entry.getValue();
-            if (value instanceof Map) {
-                value = sortByKeys((Map) value);
-            }
-            result.put(entry.getKey(), (V)value);
-        }
-        return result;
+  /**
+   * Hide the values in a config map (e.g. for logging).
+   *
+   * @param map a map with String keys (e.g. Properties) and String or nested map values
+   * @return new properties with no plaintext passwords and secrets
+   */
+  public static Map<String, ?> redactValues(Map<String, ?> map) {
+    Map<String, Object> result = new LinkedHashMap<>(map);
+    for (String key : map.keySet()) {
+      Object value = map.get(key);
+      if (value == null) {
+        result.put(key, value);
+      } else if (value instanceof Map) {
+        @SuppressWarnings("unchecked")
+        Map<String, ?> bare = (Map<String, ?>) value;
+        result.put(key, redactValues(bare));
+      } else if (value instanceof String && StringUtils.isEmpty(value)) {
+        result.put(key, "");
+      } else {
+        result.put(key, "<redacted>");
+      }
     }
-
-    public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K,V> map) {
-        DumperOptions dump = new DumperOptions();
-        dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        dump.setPrettyFlow(true);
-        dump.setIndent(2);
-        dump.setCanonical(false);
-        dump.setExplicitStart(true);
-        Yaml yaml = new Yaml(dump);
-        return yaml.dump(sortByKeys(map));
-    }
-
-    /**
-     * Hide the values in a config map (e.g. for logging).
-     *
-     * @param map a map with String keys (e.g. Properties) and String or nested
-     *            map values
-     * @return new properties with no plaintext passwords and secrets
-     */
-    public static Map<String, ?> redactValues(Map<String, ?> map) {
-        Map<String, Object> result = new LinkedHashMap<>(map);
-        for (String key : map.keySet()) {
-            Object value = map.get(key);
-            if (value == null) {
-                result.put(key, value);
-             } else if (value instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, ?> bare = (Map<String, ?>) value;
-                result.put(key, redactValues(bare));
-            } else if (value instanceof String && StringUtils.isEmpty(value)){
-                result.put(key, "");
-            } else {
-                result.put(key, "<redacted>");
-            }
-        }
-        return result;
-    }
+    return result;
+  }
 }

@@ -1,208 +1,207 @@
-
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
-
-import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
-    private String mailAttributeName = "mail";
-    private String givenNameAttributeName;
-    private String familyNameAttributeName;
-    private String phoneNumberAttributeName;
-    private String emailVerifiedAttributeName;
-    private String dn;
-    private String password;
-    private String username;
-    private Collection<? extends GrantedAuthority> authorities = AuthorityUtils.NO_AUTHORITIES;
-    private boolean accountNonExpired = true;
-    private boolean accountNonLocked = true;
-    private boolean credentialsNonExpired = true;
-    private boolean enabled = true;
-    private Map<String,String[]> attributes = new HashMap<>();
+  private String mailAttributeName = "mail";
+  private String givenNameAttributeName;
+  private String familyNameAttributeName;
+  private String phoneNumberAttributeName;
+  private String emailVerifiedAttributeName;
+  private String dn;
+  private String password;
+  private String username;
+  private Collection<? extends GrantedAuthority> authorities = AuthorityUtils.NO_AUTHORITIES;
+  private boolean accountNonExpired = true;
+  private boolean accountNonLocked = true;
+  private boolean credentialsNonExpired = true;
+  private boolean enabled = true;
+  private Map<String, String[]> attributes = new HashMap<>();
 
-    public ExtendedLdapUserImpl(LdapUserDetails details) {
-        setDn(details.getDn());
-        setUsername(details.getUsername());
-        setPassword(details.getPassword());
-        setEnabled(details.isEnabled());
-        setAccountNonExpired(details.isAccountNonExpired());
-        setCredentialsNonExpired(details.isCredentialsNonExpired());
-        setAccountNonLocked(details.isAccountNonLocked());
-        setAuthorities(details.getAuthorities());
-    }
-    public ExtendedLdapUserImpl(LdapUserDetails details, Map<String,String[]> attributes) {
-        this(details);
-        this.attributes.putAll(attributes);
-    }
+  public ExtendedLdapUserImpl(LdapUserDetails details) {
+    setDn(details.getDn());
+    setUsername(details.getUsername());
+    setPassword(details.getPassword());
+    setEnabled(details.isEnabled());
+    setAccountNonExpired(details.isAccountNonExpired());
+    setCredentialsNonExpired(details.isCredentialsNonExpired());
+    setAccountNonLocked(details.isAccountNonLocked());
+    setAuthorities(details.getAuthorities());
+  }
 
-    @Override
-    public void eraseCredentials() {
-        //noop
-    }
+  public ExtendedLdapUserImpl(LdapUserDetails details, Map<String, String[]> attributes) {
+    this(details);
+    this.attributes.putAll(attributes);
+  }
 
-    @Override
-    public String[] getMail() {
-        String[] mail = attributes.get(getMailAttributeName());
-        if (mail==null) {
-            mail = new String[0];
-        }
-        return mail;
-    }
+  @Override
+  public void eraseCredentials() {
+    // noop
+  }
 
-    @Override
-    public Map<String, String[]> getAttributes() {
-        return Collections.unmodifiableMap(attributes);
+  @Override
+  public String[] getMail() {
+    String[] mail = attributes.get(getMailAttributeName());
+    if (mail == null) {
+      mail = new String[0];
     }
+    return mail;
+  }
 
-    @Override
-    public String[] getAttribute(String name, boolean caseSensitive) {
-        if (name==null) {
-            return null;
-        }
-        String[] value = getAttributes().get(name);
-        if (value != null || caseSensitive) {
-            return getAttributes().get(name);
-        }
-        for (Map.Entry<String, String[]> a : getAttributes().entrySet()) {
-            if (a.getKey().equalsIgnoreCase(name)) {
-                return a.getValue();
-            }
-        }
-        return null;
-     }
+  @Override
+  public Map<String, String[]> getAttributes() {
+    return Collections.unmodifiableMap(attributes);
+  }
 
-    public String getDn() {
-        return dn;
+  @Override
+  public String[] getAttribute(String name, boolean caseSensitive) {
+    if (name == null) {
+      return null;
     }
-
-    public void setDn(String dn) {
-        this.dn = dn;
+    String[] value = getAttributes().get(name);
+    if (value != null || caseSensitive) {
+      return getAttributes().get(name);
     }
-
-    public String getPassword() {
-        return password;
+    for (Map.Entry<String, String[]> a : getAttributes().entrySet()) {
+      if (a.getKey().equalsIgnoreCase(name)) {
+        return a.getValue();
+      }
     }
+    return null;
+  }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
+  public String getDn() {
+    return dn;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public void setDn(String dn) {
+    this.dn = dn;
+  }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+  public String getPassword() {
+    return password;
+  }
 
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
+  public void setPassword(String password) {
+    this.password = password;
+  }
 
-    public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        this.authorities = authorities;
-    }
+  public String getUsername() {
+    return username;
+  }
 
-    public boolean isAccountNonExpired() {
-        return accountNonExpired;
-    }
+  public void setUsername(String username) {
+    this.username = username;
+  }
 
-    public void setAccountNonExpired(boolean accountNonExpired) {
-        this.accountNonExpired = accountNonExpired;
-    }
+  public Collection<? extends GrantedAuthority> getAuthorities() {
+    return authorities;
+  }
 
-    public boolean isAccountNonLocked() {
-        return accountNonLocked;
-    }
+  public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
+    this.authorities = authorities;
+  }
 
-    public void setAccountNonLocked(boolean accountNonLocked) {
-        this.accountNonLocked = accountNonLocked;
-    }
+  public boolean isAccountNonExpired() {
+    return accountNonExpired;
+  }
 
-    public boolean isCredentialsNonExpired() {
-        return credentialsNonExpired;
-    }
+  public void setAccountNonExpired(boolean accountNonExpired) {
+    this.accountNonExpired = accountNonExpired;
+  }
 
-    public void setCredentialsNonExpired(boolean credentialsNonExpired) {
-        this.credentialsNonExpired = credentialsNonExpired;
-    }
+  public boolean isAccountNonLocked() {
+    return accountNonLocked;
+  }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+  public void setAccountNonLocked(boolean accountNonLocked) {
+    this.accountNonLocked = accountNonLocked;
+  }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+  public boolean isCredentialsNonExpired() {
+    return credentialsNonExpired;
+  }
 
-    public String getMailAttributeName() {
-        return mailAttributeName;
-    }
+  public void setCredentialsNonExpired(boolean credentialsNonExpired) {
+    this.credentialsNonExpired = credentialsNonExpired;
+  }
 
-    public void setMailAttributeName(String mailAttributeName) {
-        this.mailAttributeName = mailAttributeName;
-    }
+  public boolean isEnabled() {
+    return enabled;
+  }
 
-    public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
-        this.phoneNumberAttributeName = phoneNumberAttributeName;
-    }
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
 
-    public void setGivenNameAttributeName(String givenNameAttributeName) {
-        this.givenNameAttributeName = givenNameAttributeName;
-    }
+  public String getMailAttributeName() {
+    return mailAttributeName;
+  }
 
-    public void setFamilyNameAttributeName(String familyNameAttributeName) {
-        this.familyNameAttributeName = familyNameAttributeName;
-    }
+  public void setMailAttributeName(String mailAttributeName) {
+    this.mailAttributeName = mailAttributeName;
+  }
 
-    @Override
-    public String getEmailAddress() {
-        String[] mailAddresses = getMail();
-        return mailAddresses.length == 0 ? null : mailAddresses[0];
-    }
+  public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
+    this.phoneNumberAttributeName = phoneNumberAttributeName;
+  }
 
-    @Override
-    public String getGivenName() {
-        return getFirst(givenNameAttributeName,false);
-    }
+  public void setGivenNameAttributeName(String givenNameAttributeName) {
+    this.givenNameAttributeName = givenNameAttributeName;
+  }
 
-    @Override
-    public String getFamilyName() {
-        return getFirst(familyNameAttributeName,false);
-    }
+  public void setFamilyNameAttributeName(String familyNameAttributeName) {
+    this.familyNameAttributeName = familyNameAttributeName;
+  }
 
-    @Override
-    public String getPhoneNumber() {
-        return getFirst(phoneNumberAttributeName,false);
-    }
+  @Override
+  public String getEmailAddress() {
+    String[] mailAddresses = getMail();
+    return mailAddresses.length == 0 ? null : mailAddresses[0];
+  }
 
-    @Override
-    public String getExternalId() {
-        return getDn();
-    }
+  @Override
+  public String getGivenName() {
+    return getFirst(givenNameAttributeName, false);
+  }
 
-    public void setEmailVerifiedAttributeName(String emailVerifiedAttributeName) {
-        this.emailVerifiedAttributeName = emailVerifiedAttributeName;
-    }
+  @Override
+  public String getFamilyName() {
+    return getFirst(familyNameAttributeName, false);
+  }
 
-    @Override
-    public boolean isVerified() {
-        return Boolean.valueOf(getFirst(emailVerifiedAttributeName, false));
-    }
+  @Override
+  public String getPhoneNumber() {
+    return getFirst(phoneNumberAttributeName, false);
+  }
 
-    protected String getFirst(String attributeName, boolean caseSensitive) {
-        String[] result = getAttribute(attributeName, caseSensitive);
-        if (result!=null && result.length>0) {
-            return result[0];
-        }
-        return null;
+  @Override
+  public String getExternalId() {
+    return getDn();
+  }
+
+  public void setEmailVerifiedAttributeName(String emailVerifiedAttributeName) {
+    this.emailVerifiedAttributeName = emailVerifiedAttributeName;
+  }
+
+  @Override
+  public boolean isVerified() {
+    return Boolean.valueOf(getFirst(emailVerifiedAttributeName, false));
+  }
+
+  protected String getFirst(String attributeName, boolean caseSensitive) {
+    String[] result = getAttribute(attributeName, caseSensitive);
+    if (result != null && result.length > 0) {
+      return result[0];
     }
+    return null;
+  }
 }

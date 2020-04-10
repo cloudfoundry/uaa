@@ -1,7 +1,10 @@
-
-
 package org.cloudfoundry.identity.uaa.client;
 
+import java.io.IOException;
+import java.security.Principal;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -12,145 +15,129 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.security.Principal;
-
 /**
- * An authentication filter for remote identity providers. Intended to be used
- * with Spring OAuth (1 or 2), since it is
- * aware of the redirect protocols employed by those frameworks. If used in the
- * PRE_AUTH_FILTER position of a regular
- * Spring Security filter chain the user will be redirected to the remote
- * provider to approve the access and return with
- * a valid access token. There are 2 main strategies to provide:
+ * An authentication filter for remote identity providers. Intended to be used with Spring OAuth (1
+ * or 2), since it is aware of the redirect protocols employed by those frameworks. If used in the
+ * PRE_AUTH_FILTER position of a regular Spring Security filter chain the user will be redirected to
+ * the remote provider to approve the access and return with a valid access token. There are 2 main
+ * strategies to provide:
  *
  * <ul>
- * <li>
- * {@link #setPreAuthenticatedPrincipalSource(PreAuthenticatedPrincipalSource)
- * PreAuthenticatedPrincipalSource} (mandatory) provides a {@link Principal}
- * that can be authenticated by the authentication manager. An example would be
- * to contact the user info endpoint in a remote social provider and populate an
- * {@link Authentication} token with the user's profile data. The principal is
- * wrapped by</li>
- * <li>{@link #setAuthenticationManager(AuthenticationManager) Authentication
- * manager} is optional and defaults to a value that tries very hard to
- * authenticate everything it sees, on the assumption that it was obtained from
- * a trusted ID provider.</li>
+ *   <li>{@link #setPreAuthenticatedPrincipalSource(PreAuthenticatedPrincipalSource)
+ *       PreAuthenticatedPrincipalSource} (mandatory) provides a {@link Principal} that can be
+ *       authenticated by the authentication manager. An example would be to contact the user info
+ *       endpoint in a remote social provider and populate an {@link Authentication} token with the
+ *       user's profile data. The principal is wrapped by
+ *   <li>{@link #setAuthenticationManager(AuthenticationManager) Authentication manager} is optional
+ *       and defaults to a value that tries very hard to authenticate everything it sees, on the
+ *       assumption that it was obtained from a trusted ID provider.
  * </ul>
  *
- * To ensure that the default authentication manager successfully authenticates
- * the user, the principal source should
- * create a principal that itself is an {@link Authentication} and is already
- * authenticated. If you are not using the
- * default authentication manager then you are free to authenticate any way you
- * like (hence there is collaboration
- * between the principal source and authentication manager, and the principal
- * source can create an object of any type
- * that is understood by the authentication manager).
+ * To ensure that the default authentication manager successfully authenticates the user, the
+ * principal source should create a principal that itself is an {@link Authentication} and is
+ * already authenticated. If you are not using the default authentication manager then you are free
+ * to authenticate any way you like (hence there is collaboration between the principal source and
+ * authentication manager, and the principal source can create an object of any type that is
+ * understood by the authentication manager).
  *
  * @author Dave Syer
- *
  */
 public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
 
-    private PreAuthenticatedPrincipalSource<?> principalSource;
+  private PreAuthenticatedPrincipalSource<?> principalSource;
 
-    private boolean oauth2Available = false;
+  private boolean oauth2Available = false;
 
-    /**
-     * @param principalSource the PreAuthenticatedPrincipalSource to set
-     */
-    public void setPreAuthenticatedPrincipalSource(PreAuthenticatedPrincipalSource<?> principalSource) {
-        this.principalSource = principalSource;
+  public ClientAuthenticationFilter(String defaultFilterProcessesUrl) {
+    setAuthenticationManager(new DefaultFriendlyAuthenticationManager());
+  }
+
+  /** @param principalSource the PreAuthenticatedPrincipalSource to set */
+  public void setPreAuthenticatedPrincipalSource(
+      PreAuthenticatedPrincipalSource<?> principalSource) {
+    this.principalSource = principalSource;
+  }
+
+  @Override
+  public void afterPropertiesSet() {
+    Assert.state(principalSource != null, "User info source must be provided");
+    super.afterPropertiesSet();
+    try {
+      oauth2Available =
+          ClassUtils.isPresent(
+              AccessTokenRequiredException.class.getName(), ClassUtils.getDefaultClassLoader());
+    } catch (NoClassDefFoundError e) {
+      // ignore
     }
+  }
+
+  @Override
+  protected void unsuccessfulAuthentication(
+      HttpServletRequest request, HttpServletResponse response, AuthenticationException failed)
+      throws IOException, ServletException {
+    // Need to force a redirect via the OAuth client filter, so rethrow here
+    // if OAuth related
+    if (oauth2Available && failed instanceof SocialRedirectException) {
+      throw ((SocialRedirectException) failed).getUserRedirectException();
+    }
+    // If the exception is not a Spring Security exception this will
+    // result in a default error page
+    super.unsuccessfulAuthentication(request, response, failed);
+  }
+
+  @Override
+  protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
+    try {
+      return principalSource.getPrincipal();
+    } catch (UserRedirectRequiredException e) {
+      throw new SocialRedirectException(e);
+    }
+  }
+
+  @Override
+  protected Object getPreAuthenticatedCredentials(HttpServletRequest request) {
+    return "N/A";
+  }
+
+  private static class DefaultFriendlyAuthenticationManager implements AuthenticationManager {
 
     @Override
-    public void afterPropertiesSet() {
-        Assert.state(principalSource != null, "User info source must be provided");
-        super.afterPropertiesSet();
-        try {
-            oauth2Available = ClassUtils.isPresent(AccessTokenRequiredException.class.getName(),
-                            ClassUtils.getDefaultClassLoader());
-        } catch (NoClassDefFoundError e) {
-            // ignore
+    public Authentication authenticate(Authentication authentication)
+        throws AuthenticationException {
+
+      boolean authenticated = authentication.isAuthenticated();
+
+      // If not already authenticated (the default) from the parent class
+      if (authentication instanceof PreAuthenticatedAuthenticationToken && !authenticated) {
+
+        PreAuthenticatedAuthenticationToken preAuth =
+            (PreAuthenticatedAuthenticationToken) authentication;
+        // Look inside the principal and see if that was marked as
+        // authenticated
+        if (preAuth.getPrincipal() instanceof Authentication) {
+          Authentication principal = (Authentication) preAuth.getPrincipal();
+          preAuth =
+              new PreAuthenticatedAuthenticationToken(
+                  principal, preAuth.getCredentials(), principal.getAuthorities());
+          authenticated = principal.isAuthenticated();
         }
+        preAuth.setAuthenticated(authenticated);
+
+        authentication = preAuth;
+      }
+
+      return authentication;
+    }
+  }
+
+  private static class SocialRedirectException extends AuthenticationException {
+
+    public SocialRedirectException(UserRedirectRequiredException e) {
+      super("Social user details extraction failed", e);
     }
 
-    public ClientAuthenticationFilter(String defaultFilterProcessesUrl) {
-        setAuthenticationManager(new DefaultFriendlyAuthenticationManager());
+    public UserRedirectRequiredException getUserRedirectException() {
+      return (UserRedirectRequiredException) getCause();
     }
-
-    @Override
-    protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                    AuthenticationException failed) throws IOException, ServletException {
-        // Need to force a redirect via the OAuth client filter, so rethrow here
-        // if OAuth related
-        if (oauth2Available && failed instanceof SocialRedirectException) {
-            throw ((SocialRedirectException) failed).getUserRedirectException();
-        }
-        // If the exception is not a Spring Security exception this will
-        // result in a default error page
-        super.unsuccessfulAuthentication(request, response, failed);
-    }
-
-    @Override
-    protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
-        try {
-            return principalSource.getPrincipal();
-        } catch (UserRedirectRequiredException e) {
-            throw new SocialRedirectException(e);
-        }
-    }
-
-    @Override
-    protected Object getPreAuthenticatedCredentials(HttpServletRequest request) {
-        return "N/A";
-    }
-
-    private static class DefaultFriendlyAuthenticationManager implements AuthenticationManager {
-
-        @Override
-        public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-
-            boolean authenticated = authentication.isAuthenticated();
-
-            // If not already authenticated (the default) from the parent class
-            if (authentication instanceof PreAuthenticatedAuthenticationToken && !authenticated) {
-
-                PreAuthenticatedAuthenticationToken preAuth = (PreAuthenticatedAuthenticationToken) authentication;
-                // Look inside the principal and see if that was marked as
-                // authenticated
-                if (preAuth.getPrincipal() instanceof Authentication) {
-                    Authentication principal = (Authentication) preAuth.getPrincipal();
-                    preAuth = new PreAuthenticatedAuthenticationToken(principal, preAuth.getCredentials(),
-                                    principal.getAuthorities());
-                    authenticated = principal.isAuthenticated();
-                }
-                preAuth.setAuthenticated(authenticated);
-
-                authentication = preAuth;
-
-            }
-
-            return authentication;
-
-        }
-
-    }
-
-    private static class SocialRedirectException extends AuthenticationException {
-
-        public SocialRedirectException(UserRedirectRequiredException e) {
-            super("Social user details extraction failed", e);
-        }
-
-        public UserRedirectRequiredException getUserRedirectException() {
-            return (UserRedirectRequiredException) getCause();
-        }
-
-    }
-
+  }
 }

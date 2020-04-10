@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import java.util.HashMap;
+import java.util.Map;
+import javax.servlet.http.HttpServletRequest;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AuthenticationResponse;
 import org.slf4j.Logger;
@@ -22,124 +25,128 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.Map;
-
-/**
- * A username/password authentication endpoint (only intended) for use by the
- * login server.
- */
+/** A username/password authentication endpoint (only intended) for use by the login server. */
 @Controller
 public class RemoteAuthenticationEndpoint {
-    private static final Logger logger = LoggerFactory.getLogger(RemoteAuthenticationEndpoint.class);
 
-    private final AuthenticationManager authenticationManager;
-    private final AuthenticationManager loginAuthenticationManager;
+  private static final Logger logger = LoggerFactory.getLogger(RemoteAuthenticationEndpoint.class);
 
-    public RemoteAuthenticationEndpoint(
-            final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
-            final @Qualifier("loginAuthenticationMgr") AuthenticationManager loginAuthenticationManager) {
-        this.authenticationManager = authenticationManager;
-        this.loginAuthenticationManager = loginAuthenticationManager;
+  private final AuthenticationManager authenticationManager;
+  private final AuthenticationManager loginAuthenticationManager;
+
+  public RemoteAuthenticationEndpoint(
+      final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager
+              authenticationManager,
+      final @Qualifier("loginAuthenticationMgr") AuthenticationManager loginAuthenticationManager) {
+    this.authenticationManager = authenticationManager;
+    this.loginAuthenticationManager = loginAuthenticationManager;
+  }
+
+  @RequestMapping(
+      value = {"/authenticate"},
+      method = RequestMethod.POST)
+  @ResponseBody
+  public HttpEntity<AuthenticationResponse> authenticate(
+      HttpServletRequest request,
+      @RequestParam(value = "username") String username,
+      @RequestParam(value = "password") String password) {
+    AuthenticationResponse response = new AuthenticationResponse();
+
+    UsernamePasswordAuthenticationToken token =
+        new UsernamePasswordAuthenticationToken(username, password);
+    token.setDetails(new UaaAuthenticationDetails(request));
+
+    HttpStatus status = HttpStatus.UNAUTHORIZED;
+    try {
+      Authentication a = authenticationManager.authenticate(token);
+      response.setUsername(a.getName());
+      if (a.getPrincipal() != null && a.getPrincipal() instanceof UaaPrincipal) {
+        response.setEmail(((UaaPrincipal) a.getPrincipal()).getEmail());
+      }
+      processAdditionalInformation(response, a);
+      status = HttpStatus.OK;
+    } catch (AccountNotVerifiedException e) {
+      response.setError("account not verified");
+      status = HttpStatus.FORBIDDEN;
+    } catch (AuthenticationException e) {
+      response.setError("authentication failed");
+    } catch (Exception e) {
+      logger.debug("Failed to authenticate user ", e);
+      response.setError("error");
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
-    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST)
-    @ResponseBody
-    public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                           @RequestParam(value = "username") String username,
-                                                           @RequestParam(value = "password") String password) {
-        AuthenticationResponse response = new AuthenticationResponse();
+    return new ResponseEntity<>(response, status);
+  }
 
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
-        token.setDetails(new UaaAuthenticationDetails(request));
+  @RequestMapping(
+      value = {"/authenticate"},
+      method = RequestMethod.POST,
+      params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
+  @ResponseBody
+  public HttpEntity<AuthenticationResponse> authenticate(
+      HttpServletRequest request,
+      @RequestParam(value = "username") String username,
+      @RequestParam(value = OriginKeys.ORIGIN) String origin,
+      @RequestParam(value = "email", required = false) String email) {
+    AuthenticationResponse response = new AuthenticationResponse();
+    HttpStatus status = HttpStatus.UNAUTHORIZED;
 
-        HttpStatus status = HttpStatus.UNAUTHORIZED;
-        try {
-            Authentication a = authenticationManager.authenticate(token);
-            response.setUsername(a.getName());
-            if (a.getPrincipal() != null && a.getPrincipal() instanceof UaaPrincipal) {
-                response.setEmail(((UaaPrincipal) a.getPrincipal()).getEmail());
-            }
-            processAdditionalInformation(response, a);
-            status = HttpStatus.OK;
-        } catch (AccountNotVerifiedException e) {
-            response.setError("account not verified");
-            status = HttpStatus.FORBIDDEN;
-        } catch (AuthenticationException e) {
-            response.setError("authentication failed");
-        } catch (Exception e) {
-            logger.debug("Failed to authenticate user ", e);
-            response.setError("error");
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-
-        return new ResponseEntity<>(response, status);
+    if (!hasClientOauth2Authentication()) {
+      response.setError("authentication failed");
+      return new ResponseEntity<>(response, status);
     }
 
-    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
-    @ResponseBody
-    public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                           @RequestParam(value = "username") String username,
-                                                           @RequestParam(value = OriginKeys.ORIGIN) String origin,
-                                                           @RequestParam(value = "email", required = false) String email) {
-        AuthenticationResponse response = new AuthenticationResponse();
-        HttpStatus status = HttpStatus.UNAUTHORIZED;
-
-        if (!hasClientOauth2Authentication()) {
-            response.setError("authentication failed");
-            return new ResponseEntity<>(response, status);
-        }
-
-        Map<String, String> userInfo = new HashMap<>();
-        userInfo.put("username", username);
-        userInfo.put(OriginKeys.ORIGIN, origin);
-        if (StringUtils.hasText(email)) {
-            userInfo.put("email", email);
-        }
-
-        AuthzAuthenticationRequest token = new AuthzAuthenticationRequest(userInfo, new UaaAuthenticationDetails(request));
-        try {
-            Authentication a = loginAuthenticationManager.authenticate(token);
-            response.setUsername(a.getName());
-            processAdditionalInformation(response, a);
-            status = HttpStatus.OK;
-        } catch (AuthenticationException e) {
-            response.setError("authentication failed");
-        } catch (Exception e) {
-            logger.debug("Failed to authenticate user ", e);
-            response.setError("error");
-            status = HttpStatus.INTERNAL_SERVER_ERROR;
-        }
-
-        return new ResponseEntity<>(response, status);
+    Map<String, String> userInfo = new HashMap<>();
+    userInfo.put("username", username);
+    userInfo.put(OriginKeys.ORIGIN, origin);
+    if (StringUtils.hasText(email)) {
+      userInfo.put("email", email);
     }
 
-    private void processAdditionalInformation(AuthenticationResponse response, Authentication a) {
-        if (hasClientOauth2Authentication()) {
-            UaaPrincipal principal = getPrincipal(a);
-            if (principal != null) {
-                response.setOrigin(principal.getOrigin());
-                response.setUserId(principal.getId());
-            }
-        }
+    AuthzAuthenticationRequest token =
+        new AuthzAuthenticationRequest(userInfo, new UaaAuthenticationDetails(request));
+    try {
+      Authentication a = loginAuthenticationManager.authenticate(token);
+      response.setUsername(a.getName());
+      processAdditionalInformation(response, a);
+      status = HttpStatus.OK;
+    } catch (AuthenticationException e) {
+      response.setError("authentication failed");
+    } catch (Exception e) {
+      logger.debug("Failed to authenticate user ", e);
+      response.setError("error");
+      status = HttpStatus.INTERNAL_SERVER_ERROR;
     }
 
-    protected UaaPrincipal getPrincipal(Authentication a) {
-        if (a.getPrincipal() instanceof UaaPrincipal) {
-            return (UaaPrincipal) a.getPrincipal();
-        } else {
-            return null;
-        }
-    }
+    return new ResponseEntity<>(response, status);
+  }
 
-    protected boolean hasClientOauth2Authentication() {
-        SecurityContext context = SecurityContextHolder.getContext();
-
-        if (context.getAuthentication() instanceof OAuth2Authentication) {
-            OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
-            return authentication.isClientOnly();
-        }
-        return false;
+  private void processAdditionalInformation(AuthenticationResponse response, Authentication a) {
+    if (hasClientOauth2Authentication()) {
+      UaaPrincipal principal = getPrincipal(a);
+      if (principal != null) {
+        response.setOrigin(principal.getOrigin());
+        response.setUserId(principal.getId());
+      }
     }
+  }
+
+  protected UaaPrincipal getPrincipal(Authentication a) {
+    if (a.getPrincipal() instanceof UaaPrincipal) {
+      return (UaaPrincipal) a.getPrincipal();
+    } else {
+      return null;
+    }
+  }
+
+  protected boolean hasClientOauth2Authentication() {
+    SecurityContext context = SecurityContextHolder.getContext();
+
+    if (context.getAuthentication() instanceof OAuth2Authentication) {
+      OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
+      return authentication.isClientOnly();
+    }
+    return false;
+  }
 }

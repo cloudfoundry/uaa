@@ -1,4 +1,3 @@
-
 package org.cloudfoundry.identity.uaa.authentication.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -12,21 +11,26 @@ import org.springframework.util.Assert;
  * @author Dave Syer
  */
 public class UserAuthenticationSuccessEvent extends AbstractUaaAuthenticationEvent {
-    private final UaaUser user;
 
-    public UserAuthenticationSuccessEvent(UaaUser user, Authentication authentication, String zoneId) {
-        super(authentication, zoneId);
-        this.user = user;
-    }
+  private final UaaUser user;
 
-    @Override
-    public AuditEvent getAuditEvent() {
-        Assert.notNull(user, "UaaUser cannot be null");
-        return createAuditRecord(user.getId(), AuditEventType.UserAuthenticationSuccess,
-                        getOrigin(getAuthenticationDetails()), user.getUsername());
-    }
+  public UserAuthenticationSuccessEvent(
+      UaaUser user, Authentication authentication, String zoneId) {
+    super(authentication, zoneId);
+    this.user = user;
+  }
 
-    public UaaUser getUser() {
-        return user;
-    }
+  @Override
+  public AuditEvent getAuditEvent() {
+    Assert.notNull(user, "UaaUser cannot be null");
+    return createAuditRecord(
+        user.getId(),
+        AuditEventType.UserAuthenticationSuccess,
+        getOrigin(getAuthenticationDetails()),
+        user.getUsername());
+  }
+
+  public UaaUser getUser() {
+    return user;
+  }
 }

@@ -1,8 +1,12 @@
 package org.cloudfoundry.identity.uaa.security;
 
+import java.io.IOException;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -17,107 +21,116 @@ import org.springframework.security.web.csrf.InvalidCsrfTokenException;
 import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.util.StringUtils;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+public class CsrfAwareEntryPointAndDeniedHandler
+    implements AccessDeniedHandler, AuthenticationEntryPoint {
 
+  private static Logger logger = LoggerFactory.getLogger(CsrfAwareEntryPointAndDeniedHandler.class);
 
-public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler, AuthenticationEntryPoint {
+  private LoginUrlAuthenticationEntryPoint notloggedInCsrfEntryPoint;
+  private LoginUrlAuthenticationEntryPoint loggedInCsrfEntryPoint;
+  private LoginUrlAuthenticationEntryPoint loginEntryPoint;
 
-    private static Logger logger = LoggerFactory.getLogger(CsrfAwareEntryPointAndDeniedHandler.class);
-
-    private LoginUrlAuthenticationEntryPoint notloggedInCsrfEntryPoint;
-    private LoginUrlAuthenticationEntryPoint loggedInCsrfEntryPoint;
-    private LoginUrlAuthenticationEntryPoint loginEntryPoint;
-
-    public CsrfAwareEntryPointAndDeniedHandler(String login, String redirectCsrf, String redirectNotLoggedIn) {
-        if (redirectCsrf == null || !redirectCsrf.startsWith("/")) {
-            throw new NullPointerException("Invalid CSRF redirect URL, must start with '/'");
-        }
-        if (login == null || !login.startsWith("/")) {
-            throw new NullPointerException("Invalid CSRF redirect URL, must start with '/'");
-        }
-        if (redirectNotLoggedIn == null || !redirectNotLoggedIn.startsWith("/")) {
-            throw new NullPointerException("Invalid login redirect URL, must start with '/'");
-        }
-        loginEntryPoint = new LoginUrlAuthenticationEntryPoint(login);
-        notloggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectNotLoggedIn);
-        loggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectCsrf)
-        {
-            @Override
-            public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-                response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                super.commence(request, response, authException);
-            }
-        };
-        loggedInCsrfEntryPoint.setUseForward(true);
+  public CsrfAwareEntryPointAndDeniedHandler(
+      String login, String redirectCsrf, String redirectNotLoggedIn) {
+    if (redirectCsrf == null || !redirectCsrf.startsWith("/")) {
+      throw new NullPointerException("Invalid CSRF redirect URL, must start with '/'");
     }
-    public CsrfAwareEntryPointAndDeniedHandler(String redirectCsrf, String redirectNotLoggedIn) {
-        this("/login", redirectCsrf, redirectNotLoggedIn);
+    if (login == null || !login.startsWith("/")) {
+      throw new NullPointerException("Invalid CSRF redirect URL, must start with '/'");
     }
-
-    protected boolean isUserLoggedIn() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth!=null && auth.isAuthenticated() && auth.getPrincipal() instanceof UaaPrincipal;
+    if (redirectNotLoggedIn == null || !redirectNotLoggedIn.startsWith("/")) {
+      throw new NullPointerException("Invalid login redirect URL, must start with '/'");
     }
-
-    protected boolean wantJson(HttpServletRequest request) {
-        String accept = request.getHeader("Accept");
-        boolean json = false;
-        if (StringUtils.hasText(accept)) {
-            for (MediaType mediaType : MediaType.parseMediaTypes(accept)) {
-                if (mediaType.equals(MediaType.APPLICATION_JSON)) {
-                    json = true;
-                    break;
-                }
-            }
-        }
-        return json;
-    }
-
-    protected void internalHandle(HttpServletRequest request,
-                                  HttpServletResponse response,
-                                  Exception exception) throws IOException, ServletException {
-        AuthenticationException authEx = (exception instanceof AuthenticationException) ?
-            (AuthenticationException)exception :
-            new InternalAuthenticationServiceException("Access denied.", exception);
-
-        if (wantJson(request)) {
+    loginEntryPoint = new LoginUrlAuthenticationEntryPoint(login);
+    notloggedInCsrfEntryPoint = new LoginUrlAuthenticationEntryPoint(redirectNotLoggedIn);
+    loggedInCsrfEntryPoint =
+        new LoginUrlAuthenticationEntryPoint(redirectCsrf) {
+          @Override
+          public void commence(
+              HttpServletRequest request,
+              HttpServletResponse response,
+              AuthenticationException authException)
+              throws IOException, ServletException {
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().append(String.format("{\"error\":\"%s\"}", exception.getMessage()));
-        } else {
-            LoginUrlAuthenticationEntryPoint entryPoint = getLoginUrlAuthenticationEntryPoint(exception);
-            entryPoint.commence(request, response, authEx);
+            super.commence(request, response, authException);
+          }
+        };
+    loggedInCsrfEntryPoint.setUseForward(true);
+  }
+
+  public CsrfAwareEntryPointAndDeniedHandler(String redirectCsrf, String redirectNotLoggedIn) {
+    this("/login", redirectCsrf, redirectNotLoggedIn);
+  }
+
+  protected boolean isUserLoggedIn() {
+    Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+    return auth != null && auth.isAuthenticated() && auth.getPrincipal() instanceof UaaPrincipal;
+  }
+
+  protected boolean wantJson(HttpServletRequest request) {
+    String accept = request.getHeader("Accept");
+    boolean json = false;
+    if (StringUtils.hasText(accept)) {
+      for (MediaType mediaType : MediaType.parseMediaTypes(accept)) {
+        if (mediaType.equals(MediaType.APPLICATION_JSON)) {
+          json = true;
+          break;
         }
+      }
     }
+    return json;
+  }
 
-    protected LoginUrlAuthenticationEntryPoint getLoginUrlAuthenticationEntryPoint(Exception exception) {
-        if (exception instanceof MissingCsrfTokenException || exception instanceof InvalidCsrfTokenException) {
-            if (!isUserLoggedIn()) {
-                return notloggedInCsrfEntryPoint;
-            } else {
-                return loggedInCsrfEntryPoint;
-            }
-        } else {
-            return loginEntryPoint;
-        }
-    }
+  protected void internalHandle(
+      HttpServletRequest request, HttpServletResponse response, Exception exception)
+      throws IOException, ServletException {
+    AuthenticationException authEx =
+        (exception instanceof AuthenticationException)
+            ? (AuthenticationException) exception
+            : new InternalAuthenticationServiceException("Access denied.", exception);
 
-    @Override
-    public void handle(HttpServletRequest request,
-                       HttpServletResponse response,
-                       AccessDeniedException accessDeniedException) throws IOException,
-        ServletException {
-        request.setAttribute(WebAttributes.ACCESS_DENIED_403, accessDeniedException);
-        //if we get any other access denied we end up here
-        internalHandle(request, response, accessDeniedException);
+    if (wantJson(request)) {
+      response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+      response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+      response.getWriter().append(String.format("{\"error\":\"%s\"}", exception.getMessage()));
+    } else {
+      LoginUrlAuthenticationEntryPoint entryPoint = getLoginUrlAuthenticationEntryPoint(exception);
+      entryPoint.commence(request, response, authEx);
     }
+  }
 
-    @Override
-    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
-        //if there is insufficient authentication, this will be called
-        internalHandle(request, response, authException);
+  protected LoginUrlAuthenticationEntryPoint getLoginUrlAuthenticationEntryPoint(
+      Exception exception) {
+    if (exception instanceof MissingCsrfTokenException
+        || exception instanceof InvalidCsrfTokenException) {
+      if (!isUserLoggedIn()) {
+        return notloggedInCsrfEntryPoint;
+      } else {
+        return loggedInCsrfEntryPoint;
+      }
+    } else {
+      return loginEntryPoint;
     }
+  }
+
+  @Override
+  public void handle(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      AccessDeniedException accessDeniedException)
+      throws IOException, ServletException {
+    request.setAttribute(WebAttributes.ACCESS_DENIED_403, accessDeniedException);
+    // if we get any other access denied we end up here
+    internalHandle(request, response, accessDeniedException);
+  }
+
+  @Override
+  public void commence(
+      HttpServletRequest request,
+      HttpServletResponse response,
+      AuthenticationException authException)
+      throws IOException, ServletException {
+    // if there is insufficient authentication, this will be called
+    internalHandle(request, response, authException);
+  }
 }

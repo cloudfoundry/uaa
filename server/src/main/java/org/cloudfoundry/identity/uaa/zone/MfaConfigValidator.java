@@ -9,23 +9,25 @@ import org.springframework.util.StringUtils;
 
 @Component
 public class MfaConfigValidator {
-    private static Logger logger = LoggerFactory.getLogger(MfaConfigValidator.class);
 
-    private final MfaProviderProvisioning mfaProviderProvisioning;
+  private static Logger logger = LoggerFactory.getLogger(MfaConfigValidator.class);
 
-    public MfaConfigValidator(
-            final MfaProviderProvisioning mfaProviderProvisioning) {
-        this.mfaProviderProvisioning = mfaProviderProvisioning;
+  private final MfaProviderProvisioning mfaProviderProvisioning;
+
+  public MfaConfigValidator(final MfaProviderProvisioning mfaProviderProvisioning) {
+    this.mfaProviderProvisioning = mfaProviderProvisioning;
+  }
+
+  public void validate(MfaConfig config, String zoneId)
+      throws InvalidIdentityZoneConfigurationException {
+    if (config.isEnabled() || StringUtils.hasText(config.getProviderName())) {
+      try {
+        mfaProviderProvisioning.retrieveByName(config.getProviderName(), zoneId);
+      } catch (EmptyResultDataAccessException e) {
+        logger.debug(String.format("Provider with name %s not found", config.getProviderName()));
+        throw new InvalidIdentityZoneConfigurationException(
+            "Active MFA Provider not found with name: " + config.getProviderName());
+      }
     }
-
-    public void validate(MfaConfig config, String zoneId) throws InvalidIdentityZoneConfigurationException {
-        if (config.isEnabled() || StringUtils.hasText(config.getProviderName())) {
-            try {
-                mfaProviderProvisioning.retrieveByName(config.getProviderName(), zoneId);
-            } catch (EmptyResultDataAccessException e) {
-                logger.debug(String.format("Provider with name %s not found", config.getProviderName()));
-                throw new InvalidIdentityZoneConfigurationException("Active MFA Provider not found with name: " + config.getProviderName());
-            }
-        }
-    }
+  }
 }

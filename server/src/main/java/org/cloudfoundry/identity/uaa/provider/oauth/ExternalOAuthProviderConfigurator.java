@@ -1,9 +1,20 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+import javax.servlet.http.HttpServletRequest;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -15,170 +26,170 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-
 public class ExternalOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
+  private static Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
 
-    private final IdentityProviderProvisioning providerProvisioning;
-    private final OidcMetadataFetcher oidcMetadataFetcher;
-    private final UaaRandomStringUtil uaaRandomStringUtil;
+  private final IdentityProviderProvisioning providerProvisioning;
+  private final OidcMetadataFetcher oidcMetadataFetcher;
+  private final UaaRandomStringUtil uaaRandomStringUtil;
 
-    public ExternalOAuthProviderConfigurator(
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
-            final OidcMetadataFetcher oidcMetadataFetcher,
-            final UaaRandomStringUtil uaaRandomStringUtil) {
-        this.providerProvisioning = providerProvisioning;
-        this.oidcMetadataFetcher = oidcMetadataFetcher;
-        this.uaaRandomStringUtil = uaaRandomStringUtil;
+  public ExternalOAuthProviderConfigurator(
+      final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning
+              providerProvisioning,
+      final OidcMetadataFetcher oidcMetadataFetcher,
+      final UaaRandomStringUtil uaaRandomStringUtil) {
+    this.providerProvisioning = providerProvisioning;
+    this.oidcMetadataFetcher = oidcMetadataFetcher;
+    this.uaaRandomStringUtil = uaaRandomStringUtil;
+  }
+
+  protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
+    try {
+      oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(definition);
+      return definition;
+    } catch (OidcMetadataFetchingException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
+  public String getIdpAuthenticationUrl(
+      final AbstractExternalOAuthIdentityProviderDefinition definition,
+      final String idpOriginKey,
+      final HttpServletRequest request) {
+    var idpUrlBase = getIdpUrlBase(definition);
+    var callbackUrl = getCallbackUrlForIdp(idpOriginKey, UaaUrlUtils.getBaseURL(request));
+    var responseType = URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8);
+    var relyingPartyId = definition.getRelyingPartyId();
+
+    var state = generateStateParam();
+    saveStateParamForIdpToRequestSession(state, idpOriginKey, request);
+
+    UriComponentsBuilder uriBuilder =
+        UriComponentsBuilder.fromUriString(idpUrlBase)
+            .queryParam("client_id", relyingPartyId)
+            .queryParam("response_type", responseType)
+            .queryParam("redirect_uri", callbackUrl)
+            .queryParam("state", state);
+
+    if (!CollectionUtils.isEmpty(definition.getScopes())) {
+      uriBuilder.queryParam(
+          "scope",
+          URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
     }
 
-    protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
-        try {
-            oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(definition);
-            return definition;
-        } catch (OidcMetadataFetchingException e) {
-            throw new IllegalStateException(e);
-        }
+    if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
+      var nonceGenerator = new RandomValueStringGenerator(12);
+      uriBuilder.queryParam("nonce", nonceGenerator.generate());
     }
 
-    public String getIdpAuthenticationUrl(
-            final AbstractExternalOAuthIdentityProviderDefinition definition,
-            final String idpOriginKey,
-            final HttpServletRequest request) {
-        var idpUrlBase = getIdpUrlBase(definition);
-        var callbackUrl = getCallbackUrlForIdp(idpOriginKey, UaaUrlUtils.getBaseURL(request));
-        var responseType = URLEncoder.encode(definition.getResponseType(), StandardCharsets.UTF_8);
-        var relyingPartyId = definition.getRelyingPartyId();
+    return uriBuilder.build().toUriString();
+  }
 
-        var state = generateStateParam();
-        saveStateParamForIdpToRequestSession(state, idpOriginKey, request);
+  private void saveStateParamForIdpToRequestSession(
+      String state, String idpOriginKey, HttpServletRequest request) {
+    request.getSession().setAttribute("external-oauth-state-" + idpOriginKey, state);
+  }
 
-        UriComponentsBuilder uriBuilder = UriComponentsBuilder
-                .fromUriString(idpUrlBase)
-                .queryParam("client_id", relyingPartyId)
-                .queryParam("response_type", responseType)
-                .queryParam("redirect_uri", callbackUrl)
-                .queryParam("state", state);
+  private String generateStateParam() {
+    return uaaRandomStringUtil.getSecureRandom(10);
+  }
 
-        if (!CollectionUtils.isEmpty(definition.getScopes())) {
-            uriBuilder.queryParam("scope", URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
-        }
+  private String getCallbackUrlForIdp(String idpOriginKey, String uaaBaseUrl) {
+    return URLEncoder.encode(
+        uaaBaseUrl + "/login/callback/" + idpOriginKey, StandardCharsets.UTF_8);
+  }
 
-        if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
-            var nonceGenerator = new RandomValueStringGenerator(12);
-            uriBuilder.queryParam("nonce", nonceGenerator.generate());
-        }
-
-        return uriBuilder.build().toUriString();
+  private String getIdpUrlBase(final AbstractExternalOAuthIdentityProviderDefinition definition) {
+    if (definition instanceof OIDCIdentityProviderDefinition) {
+      return overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
     }
+    return definition.getAuthUrl().toString();
+  }
 
-    private void saveStateParamForIdpToRequestSession(String state, String idpOriginKey, HttpServletRequest request) {
-        request.getSession().setAttribute("external-oauth-state-" + idpOriginKey, state);
-    }
+  @Override
+  public IdentityProvider create(IdentityProvider identityProvider, String zoneId) {
+    return providerProvisioning.create(identityProvider, zoneId);
+  }
 
-    private String generateStateParam() {
-        return uaaRandomStringUtil.getSecureRandom(10);
-    }
+  @Override
+  public IdentityProvider update(IdentityProvider identityProvider, String zoneId) {
+    return providerProvisioning.update(identityProvider, zoneId);
+  }
 
-    private String getCallbackUrlForIdp(String idpOriginKey, String uaaBaseUrl) {
-        return URLEncoder.encode(uaaBaseUrl + "/login/callback/" + idpOriginKey, StandardCharsets.UTF_8);
+  @Override
+  public IdentityProvider retrieve(String id, String zoneId) {
+    IdentityProvider p = providerProvisioning.retrieve(id, zoneId);
+    if (p != null && p.getType().equals(OIDC10)) {
+      p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
     }
+    return p;
+  }
 
-    private String getIdpUrlBase(final AbstractExternalOAuthIdentityProviderDefinition definition) {
-        if (definition instanceof OIDCIdentityProviderDefinition) {
-            return overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
-        }
-        return definition.getAuthUrl().toString();
-    }
+  @Override
+  public List<IdentityProvider> retrieveActive(String zoneId) {
+    return retrieveAll(true, zoneId);
+  }
 
-    @Override
-    public IdentityProvider create(IdentityProvider identityProvider, String zoneId) {
-        return providerProvisioning.create(identityProvider, zoneId);
+  public IdentityProvider retrieveByIssuer(String issuer, String zoneId)
+      throws IncorrectResultSizeDataAccessException {
+    List<IdentityProvider> providers =
+        retrieveAll(true, zoneId).stream()
+            .filter(
+                p ->
+                    OIDC10.equals(p.getType())
+                        && issuer.equals(
+                            ((OIDCIdentityProviderDefinition) p.getConfig()).getIssuer()))
+            .collect(Collectors.toList());
+    if (providers.isEmpty()) {
+      throw new IncorrectResultSizeDataAccessException(
+          String.format("Active provider with issuer[%s] not found", issuer), 1);
+    } else if (providers.size() > 1) {
+      throw new IncorrectResultSizeDataAccessException(
+          String.format("Duplicate providers with issuer[%s] not found", issuer), 1);
     }
+    return providers.get(0);
+  }
 
-    @Override
-    public IdentityProvider update(IdentityProvider identityProvider, String zoneId) {
-        return providerProvisioning.update(identityProvider, zoneId);
-    }
+  @Override
+  public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
+    final List<String> types = Arrays.asList(OAUTH20, OIDC10);
+    List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
+    List<IdentityProvider> overlayedProviders = new ArrayList<>();
+    ofNullable(providers).orElse(emptyList()).stream()
+        .filter(p -> types.contains(p.getType()))
+        .forEach(
+            p -> {
+              if (p.getType().equals(OIDC10)) {
+                try {
+                  OIDCIdentityProviderDefinition overlayedDefinition =
+                      overlay((OIDCIdentityProviderDefinition) p.getConfig());
+                  p.setConfig(overlayedDefinition);
+                } catch (Exception e) {
+                  LOGGER.error("Identity provider excluded from login page due to a problem.", e);
+                  return;
+                }
+              }
+              overlayedProviders.add(p);
+            });
+    return overlayedProviders;
+  }
 
-    @Override
-    public IdentityProvider retrieve(String id, String zoneId) {
-        IdentityProvider p = providerProvisioning.retrieve(id, zoneId);
-        if (p != null && p.getType().equals(OIDC10)) {
-            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
-        }
-        return p;
+  @Override
+  public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
+    IdentityProvider p = providerProvisioning.retrieveByOrigin(origin, zoneId);
+    if (p != null && p.getType().equals(OIDC10)) {
+      p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
     }
+    return p;
+  }
 
-    @Override
-    public List<IdentityProvider> retrieveActive(String zoneId) {
-        return retrieveAll(true, zoneId);
+  @Override
+  public IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
+    IdentityProvider p = providerProvisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
+    if (p != null && p.getType().equals(OIDC10)) {
+      p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
     }
-
-    public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
-        List<IdentityProvider> providers = retrieveAll(true, zoneId)
-                .stream()
-                .filter(p -> OIDC10.equals(p.getType()) &&
-                        issuer.equals(((OIDCIdentityProviderDefinition) p.getConfig()).getIssuer()))
-                .collect(Collectors.toList());
-        if (providers.isEmpty()) {
-            throw new IncorrectResultSizeDataAccessException(String.format("Active provider with issuer[%s] not found", issuer), 1);
-        } else if (providers.size() > 1) {
-            throw new IncorrectResultSizeDataAccessException(String.format("Duplicate providers with issuer[%s] not found", issuer), 1);
-        }
-        return providers.get(0);
-    }
-
-    @Override
-    public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
-        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
-        List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
-        List<IdentityProvider> overlayedProviders = new ArrayList<>();
-        ofNullable(providers).orElse(emptyList()).stream()
-                .filter(p -> types.contains(p.getType()))
-                .forEach(p -> {
-                    if (p.getType().equals(OIDC10)) {
-                        try {
-                            OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
-                            p.setConfig(overlayedDefinition);
-                        } catch (Exception e) {
-                            LOGGER.error("Identity provider excluded from login page due to a problem.", e);
-                            return;
-                        }
-                    }
-                    overlayedProviders.add(p);
-                });
-        return overlayedProviders;
-    }
-
-    @Override
-    public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
-        IdentityProvider p = providerProvisioning.retrieveByOrigin(origin, zoneId);
-        if (p != null && p.getType().equals(OIDC10)) {
-            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
-        }
-        return p;
-    }
-
-    @Override
-    public IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
-        IdentityProvider p = providerProvisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
-        if (p != null && p.getType().equals(OIDC10)) {
-            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
-        }
-        return p;
-    }
+    return p;
+  }
 }

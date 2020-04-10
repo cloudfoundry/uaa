@@ -1,7 +1,3 @@
 package org.cloudfoundry.identity.uaa.account;
 
-public class NotFoundException extends RuntimeException {
-
-}
-
-
+public class NotFoundException extends RuntimeException {}

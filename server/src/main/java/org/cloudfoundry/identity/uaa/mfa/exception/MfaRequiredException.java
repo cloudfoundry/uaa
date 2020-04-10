@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.oauth.InteractionRequiredException;
 
 public class MfaRequiredException extends InteractionRequiredException {
 
-    public MfaRequiredException(String msg) {
-        super(msg);
-    }
+  public MfaRequiredException(String msg) {
+    super(msg);
+  }
 }

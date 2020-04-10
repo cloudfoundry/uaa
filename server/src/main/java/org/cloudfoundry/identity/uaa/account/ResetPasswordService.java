@@ -1,4 +1,3 @@
-
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -6,52 +5,54 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 public interface ResetPasswordService {
-    void resetUserPassword(String userId, String password);
 
-    ForgotPasswordInfo forgotPassword(String username, String clientId, String redirectUri);
+  void resetUserPassword(String userId, String password);
 
-    ResetPasswordResponse resetPassword(ExpiringCode code, String newPassword);
+  ForgotPasswordInfo forgotPassword(String username, String clientId, String redirectUri);
 
-    class ResetPasswordResponse {
-        @JsonProperty("user")
-        private ScimUser user;
+  ResetPasswordResponse resetPassword(ExpiringCode code, String newPassword);
 
-        @JsonProperty("redirect_uri")
-        private String redirectUri;
+  class ResetPasswordResponse {
 
-        @JsonProperty("client_id")
-        private String clientId;
+    @JsonProperty("user")
+    private ScimUser user;
 
-        public ResetPasswordResponse() {}
+    @JsonProperty("redirect_uri")
+    private String redirectUri;
 
-        public ResetPasswordResponse(ScimUser user, String redirectUri, String clientId) {
-            this.user = user;
-            this.redirectUri = redirectUri;
-            this.clientId = clientId;
-        }
+    @JsonProperty("client_id")
+    private String clientId;
 
-        public String getRedirectUri() {
-            return redirectUri;
-        }
+    public ResetPasswordResponse() {}
 
-        public void setRedirectUri(String redirectUri) {
-            this.redirectUri = redirectUri;
-        }
-
-        public ScimUser getUser() {
-            return user;
-        }
-
-        public void setUser(ScimUser user) {
-            this.user = user;
-        }
-
-        public String getClientId() {
-            return clientId;
-        }
-
-        public void setClientId(String clientId) {
-            this.clientId = clientId;
-        }
+    public ResetPasswordResponse(ScimUser user, String redirectUri, String clientId) {
+      this.user = user;
+      this.redirectUri = redirectUri;
+      this.clientId = clientId;
     }
+
+    public String getRedirectUri() {
+      return redirectUri;
+    }
+
+    public void setRedirectUri(String redirectUri) {
+      this.redirectUri = redirectUri;
+    }
+
+    public ScimUser getUser() {
+      return user;
+    }
+
+    public void setUser(ScimUser user) {
+      this.user = user;
+    }
+
+    public String getClientId() {
+      return clientId;
+    }
+
+    public void setClientId(String clientId) {
+      this.clientId = clientId;
+    }
+  }
 }

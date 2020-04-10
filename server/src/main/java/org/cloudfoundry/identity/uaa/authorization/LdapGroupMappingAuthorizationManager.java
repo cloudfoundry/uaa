@@ -1,56 +1,57 @@
-
 package org.cloudfoundry.identity.uaa.authorization;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+public class LdapGroupMappingAuthorizationManager
+    implements ExternalGroupMappingAuthorizationManager {
 
-public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappingAuthorizationManager {
+  private static final Logger logger =
+      LoggerFactory.getLogger(LdapGroupMappingAuthorizationManager.class);
+  private ScimGroupExternalMembershipManager extMbrMgr;
+  private ScimGroupProvisioning scimGroupProvisioning;
 
-    private ScimGroupExternalMembershipManager extMbrMgr;
-
-    private ScimGroupProvisioning scimGroupProvisioning;
-
-    private static final Logger logger = LoggerFactory.getLogger(LdapGroupMappingAuthorizationManager.class);
-
-    @Override
-    public Set<? extends GrantedAuthority> findScopesFromAuthorities(Set<? extends GrantedAuthority> authorities) {
-        Set<GrantedAuthority> result = new HashSet<>();
-        for (GrantedAuthority a : authorities) {
-            if (a instanceof LdapAuthority) {
-                LdapAuthority la = (LdapAuthority)a;
-                List<ScimGroupExternalMember> members = extMbrMgr.getExternalGroupMapsByExternalGroup(la.getDn(), OriginKeys.LDAP, IdentityZoneHolder.get().getId());
-                for (ScimGroupExternalMember member : members) {
-                    SimpleGrantedAuthority mapped = new SimpleGrantedAuthority(member.getDisplayName());
-                    result.add(mapped);
-                    if (logger.isDebugEnabled()) {
-                        logger.debug("Ldap Group Mapped[dn="+la.getDn()+" scope:"+mapped.getAuthority());
-                    }
-                }
-            } else {
-                result.add(a);
-            }
+  @Override
+  public Set<? extends GrantedAuthority> findScopesFromAuthorities(
+      Set<? extends GrantedAuthority> authorities) {
+    Set<GrantedAuthority> result = new HashSet<>();
+    for (GrantedAuthority a : authorities) {
+      if (a instanceof LdapAuthority) {
+        LdapAuthority la = (LdapAuthority) a;
+        List<ScimGroupExternalMember> members =
+            extMbrMgr.getExternalGroupMapsByExternalGroup(
+                la.getDn(), OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        for (ScimGroupExternalMember member : members) {
+          SimpleGrantedAuthority mapped = new SimpleGrantedAuthority(member.getDisplayName());
+          result.add(mapped);
+          if (logger.isDebugEnabled()) {
+            logger.debug("Ldap Group Mapped[dn=" + la.getDn() + " scope:" + mapped.getAuthority());
+          }
         }
-        return result;
+      } else {
+        result.add(a);
+      }
     }
+    return result;
+  }
 
-    public void setExternalMembershipManager(ScimGroupExternalMembershipManager externalMembershipManager) {
-        this.extMbrMgr = externalMembershipManager;
-    }
+  public void setExternalMembershipManager(
+      ScimGroupExternalMembershipManager externalMembershipManager) {
+    this.extMbrMgr = externalMembershipManager;
+  }
 
-    public void setScimGroupProvisioning(ScimGroupProvisioning scimGroupProvisioning) {
-        this.scimGroupProvisioning = scimGroupProvisioning;
-    }
-
+  public void setScimGroupProvisioning(ScimGroupProvisioning scimGroupProvisioning) {
+    this.scimGroupProvisioning = scimGroupProvisioning;
+  }
 }

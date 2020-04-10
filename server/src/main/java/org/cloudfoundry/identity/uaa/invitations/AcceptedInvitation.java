@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 @Data
 public class AcceptedInvitation {
-    private final String redirectUri;
-    private final ScimUser user;
+
+  private final String redirectUri;
+  private final ScimUser user;
 }

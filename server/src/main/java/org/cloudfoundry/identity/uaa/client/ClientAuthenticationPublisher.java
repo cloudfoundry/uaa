@@ -1,4 +1,3 @@
-
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
@@ -12,24 +11,29 @@ import org.springframework.security.core.AuthenticationException;
 
 public class ClientAuthenticationPublisher implements ApplicationEventPublisherAware {
 
-    private ApplicationEventPublisher publisher;
+  private ApplicationEventPublisher publisher;
 
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
-        this.publisher = publisher;
-    }
+  @Override
+  public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+    this.publisher = publisher;
+  }
 
-    public void clientAuthenticationSuccess(Authentication authentication) {
-        publish(new ClientAuthenticationSuccessEvent(authentication, IdentityZoneHolder.getCurrentZoneId()));
-    }
+  public void clientAuthenticationSuccess(Authentication authentication) {
+    publish(
+        new ClientAuthenticationSuccessEvent(
+            authentication, IdentityZoneHolder.getCurrentZoneId()));
+  }
 
-    public void clientAuthenticationFailure(Authentication authentication, AuthenticationException ex) {
-        publish(new ClientAuthenticationFailureEvent(authentication, ex, IdentityZoneHolder.getCurrentZoneId()));
-    }
+  public void clientAuthenticationFailure(
+      Authentication authentication, AuthenticationException ex) {
+    publish(
+        new ClientAuthenticationFailureEvent(
+            authentication, ex, IdentityZoneHolder.getCurrentZoneId()));
+  }
 
-    public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
-            publisher.publishEvent(event);
-        }
+  public void publish(ApplicationEvent event) {
+    if (publisher != null) {
+      publisher.publishEvent(event);
     }
+  }
 }

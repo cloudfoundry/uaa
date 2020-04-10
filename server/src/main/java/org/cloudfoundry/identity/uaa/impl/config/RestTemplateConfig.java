@@ -8,16 +8,17 @@ import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class RestTemplateConfig {
-    @Value("${rest.template.timeout:10000}")
-    public int timeout;
 
-    @Bean
-    public RestTemplate nonTrustingRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout));
-    }
+  @Value("${rest.template.timeout:10000}")
+  public int timeout;
 
-    @Bean
-    public RestTemplate trustingRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout));
-    }
+  @Bean
+  public RestTemplate nonTrustingRestTemplate() {
+    return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout));
+  }
+
+  @Bean
+  public RestTemplate trustingRestTemplate() {
+    return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout));
+  }
 }

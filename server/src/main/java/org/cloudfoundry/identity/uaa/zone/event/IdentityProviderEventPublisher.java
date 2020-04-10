@@ -10,30 +10,34 @@ import org.springframework.stereotype.Component;
 @Component("idpEventPublisher")
 public class IdentityProviderEventPublisher implements ApplicationEventPublisherAware {
 
-    private final IdentityZoneManager identityZoneManager;
+  private final IdentityZoneManager identityZoneManager;
 
-    private ApplicationEventPublisher publisher;
+  private ApplicationEventPublisher publisher;
 
-    public IdentityProviderEventPublisher(final IdentityZoneManager identityZoneManager) {
-        this.identityZoneManager = identityZoneManager;
-    }
+  public IdentityProviderEventPublisher(final IdentityZoneManager identityZoneManager) {
+    this.identityZoneManager = identityZoneManager;
+  }
 
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.publisher = applicationEventPublisher;
-    }
+  @Override
+  public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+    this.publisher = applicationEventPublisher;
+  }
 
-    public void idpCreated(IdentityProvider identityProvider) {
-        publish(IdentityProviderModifiedEvent.identityProviderCreated(identityProvider, identityZoneManager.getCurrentIdentityZoneId()));
-    }
+  public void idpCreated(IdentityProvider identityProvider) {
+    publish(
+        IdentityProviderModifiedEvent.identityProviderCreated(
+            identityProvider, identityZoneManager.getCurrentIdentityZoneId()));
+  }
 
-    public void idpModified(IdentityProvider identityProvider) {
-        publish(IdentityProviderModifiedEvent.identityProviderModified(identityProvider, identityZoneManager.getCurrentIdentityZoneId()));
+  public void idpModified(IdentityProvider identityProvider) {
+    publish(
+        IdentityProviderModifiedEvent.identityProviderModified(
+            identityProvider, identityZoneManager.getCurrentIdentityZoneId()));
+  }
+
+  public void publish(ApplicationEvent event) {
+    if (publisher != null) {
+      publisher.publishEvent(event);
     }
-    
-    public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
-            publisher.publishEvent(event);
-        }
-    }
+  }
 }

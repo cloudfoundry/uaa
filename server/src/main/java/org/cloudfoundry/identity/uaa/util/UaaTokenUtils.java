@@ -1,18 +1,15 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.Signer;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.web.util.UriComponentsBuilder;
+import static java.util.Collections.emptySet;
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.springframework.util.StringUtils.hasText;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -26,225 +23,246 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import static java.util.Collections.emptySet;
-import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
-import static org.springframework.util.StringUtils.hasText;
+import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.jwt.crypto.sign.Signer;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public final class UaaTokenUtils {
 
-    public static final Pattern jwtPattern = Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
+  public static final Pattern jwtPattern =
+      Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
 
-    private UaaTokenUtils() { }
+  private UaaTokenUtils() {}
 
-    public static String getRevocationHash(List<String> salts) {
-        String result = "";
-        for (String s : salts) {
-            byte[] hashable = (result+ "###" + s).getBytes();
-            result = Integer.toHexString(murmurhash3x8632(hashable, 0, hashable.length, 0xF0F0));
-        }
-        return result;
+  public static String getRevocationHash(List<String> salts) {
+    String result = "";
+    for (String s : salts) {
+      byte[] hashable = (result + "###" + s).getBytes();
+      result = Integer.toHexString(murmurhash3x8632(hashable, 0, hashable.length, 0xF0F0));
+    }
+    return result;
+  }
+
+  /**
+   * This code is public domain.
+   *
+   * <p>The MurmurHash3 algorithm was created by Austin Appleby and put into the public domain.
+   *
+   * @see <a href="http://code.google.com/p/smhasher">http://code.google.com/p/smhasher</a>
+   * @see <a
+   *     href="https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java">https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java</a>
+   */
+  public static int murmurhash3x8632(byte[] data, int offset, int len, int seed) {
+
+    int c1 = 0xcc9e2d51;
+    int c2 = 0x1b873593;
+
+    int h1 = seed;
+    int roundedEnd = offset + (len & 0xfffffffc); // round down to 4 byte block
+
+    for (int i = offset; i < roundedEnd; i += 4) {
+      // little endian load order
+      int k1 =
+          (data[i] & 0xff)
+              | ((data[i + 1] & 0xff) << 8)
+              | ((data[i + 2] & 0xff) << 16)
+              | (data[i + 3] << 24);
+      k1 *= c1;
+      k1 = (k1 << 15) | (k1 >>> 17); // ROTL32(k1,15);
+      k1 *= c2;
+
+      h1 ^= k1;
+      h1 = (h1 << 13) | (h1 >>> 19); // ROTL32(h1,13);
+      h1 = h1 * 5 + 0xe6546b64;
     }
 
-    /**
-     * This code is public domain.
-     *
-     *  The MurmurHash3 algorithm was created by Austin Appleby and put into the public domain.
-     *  @see <a href="http://code.google.com/p/smhasher">http://code.google.com/p/smhasher</a>
-     *  @see <a href="https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java">https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java</a>
-     */
-    public static int murmurhash3x8632(byte[] data, int offset, int len, int seed) {
+    // tail
+    int k1 = 0;
 
-        int c1 = 0xcc9e2d51;
-        int c2 = 0x1b873593;
-
-        int h1 = seed;
-        int roundedEnd = offset + (len & 0xfffffffc);  // round down to 4 byte block
-
-        for (int i = offset; i < roundedEnd; i += 4) {
-            // little endian load order
-            int k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24);
-            k1 *= c1;
-            k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
-            k1 *= c2;
-
-            h1 ^= k1;
-            h1 = (h1 << 13) | (h1 >>> 19);  // ROTL32(h1,13);
-            h1 = h1 * 5 + 0xe6546b64;
-        }
-
-        // tail
-        int k1 = 0;
-
-        switch(len & 0x03) {
-            case 3:
-                k1 = (data[roundedEnd + 2] & 0xff) << 16;
-                // fallthrough
-            case 2:
-                k1 |= (data[roundedEnd + 1] & 0xff) << 8;
-                // fallthrough
-            case 1:
-                k1 |= data[roundedEnd] & 0xff;
-                k1 *= c1;
-                k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
-                k1 *= c2;
-                h1 ^= k1;
-            default:
-        }
-
-        // finalization
-        h1 ^= len;
-
-        // fmix(h1);
-        h1 ^= h1 >>> 16;
-        h1 *= 0x85ebca6b;
-        h1 ^= h1 >>> 13;
-        h1 *= 0xc2b2ae35;
-        h1 ^= h1 >>> 16;
-
-        return h1;
+    switch (len & 0x03) {
+      case 3:
+        k1 = (data[roundedEnd + 2] & 0xff) << 16;
+        // fallthrough
+      case 2:
+        k1 |= (data[roundedEnd + 1] & 0xff) << 8;
+        // fallthrough
+      case 1:
+        k1 |= data[roundedEnd] & 0xff;
+        k1 *= c1;
+        k1 = (k1 << 15) | (k1 >>> 17); // ROTL32(k1,15);
+        k1 *= c2;
+        h1 ^= k1;
+      default:
     }
 
-    public static Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
-        HashSet<String> result = new HashSet<>();
-        if(autoApprovedScopes == null){
-            return result;
-        }
-        if (autoApprovedScopes.contains("true")) {
-            result.addAll(requestedScopes);
-            return result;
-        }
-        Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
-        // Don't want to approve more than what's requested
-        for (String scope : requestedScopes) {
-            if (UaaStringUtils.matches(autoApprovedScopePatterns, scope)) {
-                result.add(scope);
-            }
-        }
-        return result;
-    }
+    // finalization
+    h1 ^= len;
 
-    public static boolean isUserToken(Map<String, Object> claims) {
-        if (claims.get(GRANT_TYPE)!=null) {
-            return !GRANT_TYPE_CLIENT_CREDENTIALS.equals(claims.get(GRANT_TYPE));
-        }
-        if (claims.get(SUB)!=null) {
-            if (claims.get(SUB).equals(claims.get(USER_ID))) {
-                return true;
-            } else if (claims.get(SUB).equals(claims.get(CID))) {
-                return false;
-            }
-        }
-        //err on the side of caution
+    // fmix(h1);
+    h1 ^= h1 >>> 16;
+    h1 *= 0x85ebca6b;
+    h1 ^= h1 >>> 13;
+    h1 *= 0xc2b2ae35;
+    h1 ^= h1 >>> 16;
+
+    return h1;
+  }
+
+  public static Set<String> retainAutoApprovedScopes(
+      Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
+    HashSet<String> result = new HashSet<>();
+    if (autoApprovedScopes == null) {
+      return result;
+    }
+    if (autoApprovedScopes.contains("true")) {
+      result.addAll(requestedScopes);
+      return result;
+    }
+    Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
+    // Don't want to approve more than what's requested
+    for (String scope : requestedScopes) {
+      if (UaaStringUtils.matches(autoApprovedScopePatterns, scope)) {
+        result.add(scope);
+      }
+    }
+    return result;
+  }
+
+  public static boolean isUserToken(Map<String, Object> claims) {
+    if (claims.get(GRANT_TYPE) != null) {
+      return !GRANT_TYPE_CLIENT_CREDENTIALS.equals(claims.get(GRANT_TYPE));
+    }
+    if (claims.get(SUB) != null) {
+      if (claims.get(SUB).equals(claims.get(USER_ID))) {
         return true;
+      } else if (claims.get(SUB).equals(claims.get(CID))) {
+        return false;
+      }
     }
+    // err on the side of caution
+    return true;
+  }
 
-    public static String getRevocableTokenSignature(ClientDetails client, String clientSecret, UaaUser user) {
-        String tokenSalt = (String) client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
-        String clientId = client.getClientId();
+  public static String getRevocableTokenSignature(
+      ClientDetails client, String clientSecret, UaaUser user) {
+    String tokenSalt = (String) client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
+    String clientId = client.getClientId();
 
-        return getRevocableTokenSignature(user, tokenSalt, clientId, clientSecret);
-    }
+    return getRevocableTokenSignature(user, tokenSalt, clientId, clientSecret);
+  }
 
-    public static String getRevocableTokenSignature(UaaUser user, String tokenSalt, String clientId, String clientSecret) {
-        String[] salts = new String[] {
-            clientId,
-            clientSecret,
-            tokenSalt,
-            user == null ? null : user.getId(),
-            user == null ? null : user.getPassword(),
-            user == null ? null : user.getSalt(),
-            user == null ? null : user.getEmail(),
-            user == null ? null : user.getUsername(),
+  public static String getRevocableTokenSignature(
+      UaaUser user, String tokenSalt, String clientId, String clientSecret) {
+    String[] salts =
+        new String[] {
+          clientId,
+          clientSecret,
+          tokenSalt,
+          user == null ? null : user.getId(),
+          user == null ? null : user.getPassword(),
+          user == null ? null : user.getSalt(),
+          user == null ? null : user.getEmail(),
+          user == null ? null : user.getUsername(),
         };
-        List<String> saltlist = new LinkedList<>();
-        for (String s : salts) {
-            if (s!=null) {
-                saltlist.add(s);
-            }
-        }
-        return getRevocationHash(saltlist);
+    List<String> saltlist = new LinkedList<>();
+    for (String s : salts) {
+      if (s != null) {
+        saltlist.add(s);
+      }
+    }
+    return getRevocationHash(saltlist);
+  }
+
+  public static String constructToken(
+      Map<String, Object> header, Map<String, Object> claims, Signer signer) {
+    byte[] headerJson = header == null ? new byte[0] : JsonUtils.writeValueAsBytes(header);
+    byte[] claimsJson = claims == null ? new byte[0] : JsonUtils.writeValueAsBytes(claims);
+
+    String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
+    String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
+    String headerAndClaims = headerBase64 + "." + claimsBase64;
+    byte[] signature = signer.sign(headerAndClaims.getBytes());
+
+    String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
+
+    return headerAndClaims + "." + signatureBase64;
+  }
+
+  public static boolean isJwtToken(String token) {
+    return jwtPattern.matcher(token).matches();
+  }
+
+  public static String constructTokenEndpointUrl(String issuer, IdentityZone identityZone)
+      throws URISyntaxException {
+    URI uri;
+    if (!identityZone.isUaa()) {
+      String zone_issuer =
+          identityZone.getConfig() != null ? identityZone.getConfig().getIssuer() : null;
+      if (zone_issuer != null) {
+        uri = validateIssuer(zone_issuer);
+        return UriComponentsBuilder.fromUri(uri).pathSegment("oauth/token").build().toUriString();
+      }
+    }
+    uri = validateIssuer(issuer);
+    String hostToUse = uri.getHost();
+    if (hasText(identityZone.getSubdomain())) {
+      hostToUse = identityZone.getSubdomain() + "." + hostToUse;
+    }
+    return UriComponentsBuilder.fromUri(uri)
+        .host(hostToUse)
+        .pathSegment("oauth/token")
+        .build()
+        .toUriString();
+  }
+
+  private static URI validateIssuer(String issuer) throws URISyntaxException {
+    try {
+      new URL(issuer);
+    } catch (MalformedURLException x) {
+      throw new URISyntaxException(issuer, x.getMessage());
+    }
+    return new URI(issuer);
+  }
+
+  public static boolean hasRequiredUserAuthorities(
+      Collection<String> requiredGroups, Collection<? extends GrantedAuthority> userGroups) {
+    return hasRequiredUserGroups(
+        requiredGroups,
+        ofNullable(userGroups).orElse(emptySet()).stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList()));
+  }
+
+  public static boolean hasRequiredUserGroups(
+      Collection<String> requiredGroups, Collection<String> userGroups) {
+    return ofNullable(userGroups)
+        .orElse(emptySet())
+        .containsAll(ofNullable(requiredGroups).orElse(emptySet()));
+  }
+
+  public static Map<String, Object> getClaims(String jwtToken) {
+    Jwt jwt;
+    try {
+      jwt = JwtHelper.decode(jwtToken);
+    } catch (Exception ex) {
+      throw new InvalidTokenException("Invalid token (could not decode): " + jwtToken, ex);
     }
 
-    public static String constructToken(Map<String, Object> header, Map<String, Object> claims, Signer signer) {
-        byte[] headerJson = header == null ? new byte[0] : JsonUtils.writeValueAsBytes(header);
-        byte[] claimsJson = claims == null ? new byte[0] : JsonUtils.writeValueAsBytes(claims);
-
-        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
-        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
-        String headerAndClaims = headerBase64 + "." + claimsBase64;
-        byte[] signature = signer.sign(headerAndClaims.getBytes());
-
-        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
-
-        return headerAndClaims + "." + signatureBase64;
+    Map<String, Object> claims;
+    try {
+      claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+    } catch (JsonUtils.JsonUtilException ex) {
+      throw new InvalidTokenException("Invalid token (cannot read token claims): " + jwtToken, ex);
     }
 
-    public static boolean isJwtToken(String token) {
-        return jwtPattern.matcher(token).matches();
-    }
-
-    public static String constructTokenEndpointUrl(String issuer, IdentityZone identityZone) throws URISyntaxException {
-        URI uri;
-        if (!identityZone.isUaa()) {
-            String zone_issuer = identityZone.getConfig() != null ? identityZone.getConfig().getIssuer() : null;
-            if(zone_issuer != null) {
-                uri = validateIssuer(zone_issuer);
-                return UriComponentsBuilder.fromUri(uri).pathSegment("oauth/token").build().toUriString();
-            }
-        }
-        uri = validateIssuer(issuer);
-        String hostToUse = uri.getHost();
-        if (hasText(identityZone.getSubdomain())) {
-            hostToUse = identityZone.getSubdomain() + "." + hostToUse;
-        }
-        return UriComponentsBuilder.fromUri(uri).host(hostToUse).pathSegment("oauth/token").build().toUriString();
-    }
-
-    private static URI validateIssuer(String issuer) throws URISyntaxException {
-        try {
-            new URL(issuer);
-        } catch (MalformedURLException x) {
-            throw new URISyntaxException(issuer, x.getMessage());
-        }
-        return new URI(issuer);
-    }
-
-    public static boolean hasRequiredUserAuthorities(Collection<String> requiredGroups, Collection<? extends GrantedAuthority> userGroups) {
-        return hasRequiredUserGroups(requiredGroups,
-                                     ofNullable(userGroups).orElse(emptySet())
-                                        .stream()
-                                        .map(GrantedAuthority::getAuthority)
-                                        .collect(Collectors.toList())
-        );
-    }
-
-    public static boolean hasRequiredUserGroups(Collection<String> requiredGroups, Collection<String> userGroups) {
-        return ofNullable(userGroups).orElse(emptySet())
-            .containsAll(ofNullable(requiredGroups).orElse(emptySet()));
-    }
-
-    public static Map<String, Object> getClaims(String jwtToken) {
-        Jwt jwt;
-        try {
-            jwt = JwtHelper.decode(jwtToken);
-        } catch (Exception ex) {
-            throw new InvalidTokenException("Invalid token (could not decode): " + jwtToken, ex);
-        }
-
-        Map<String, Object> claims;
-        try {
-            claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-        } catch (JsonUtils.JsonUtilException ex) {
-            throw new InvalidTokenException("Invalid token (cannot read token claims): " + jwtToken, ex);
-        }
-
-        return claims != null ? claims : new HashMap<>();
-    }
+    return claims != null ? claims : new HashMap<>();
+  }
 }

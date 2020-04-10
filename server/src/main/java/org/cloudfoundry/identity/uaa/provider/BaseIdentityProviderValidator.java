@@ -4,14 +4,14 @@ import java.util.Optional;
 
 public abstract class BaseIdentityProviderValidator implements IdentityProviderConfigValidator {
 
-    @Override
-    public void validate(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
-        AbstractIdentityProviderDefinition definition = Optional.ofNullable(provider)
+  @Override
+  public void validate(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
+    AbstractIdentityProviderDefinition definition =
+        Optional.ofNullable(provider)
             .orElseThrow(() -> new IllegalArgumentException("Provider cannot be null"))
             .getConfig();
-        validate(definition);
+    validate(definition);
+  }
 
-    }
-
-    public abstract void validate(AbstractIdentityProviderDefinition definition);
+  public abstract void validate(AbstractIdentityProviderDefinition definition);
 }

@@ -1,112 +1,111 @@
-
 package org.cloudfoundry.identity.uaa.login;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlUserAuthority;
-
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlUserAuthority;
 
 public class PasscodeInformation {
 
-    private String userId;
-    private String username;
-    private String passcode;
-    private Map<String, Object> authorizationParameters;
-    private String origin;
+  private String userId;
+  private String username;
+  private String passcode;
+  private Map<String, Object> authorizationParameters;
+  private String origin;
 
-    public PasscodeInformation(
-        String userId,
-        String username,
-        String passcode,
-        String origin,
-        Map<String, Object> authorizationParameters) {
+  public PasscodeInformation(
+      String userId,
+      String username,
+      String passcode,
+      String origin,
+      Map<String, Object> authorizationParameters) {
 
-        setUserId(userId);
-        setUsername(username);
-        setPasscode(passcode);
-        setAuthorizationParameters(authorizationParameters);
-        setOrigin(origin);
+    setUserId(userId);
+    setUsername(username);
+    setPasscode(passcode);
+    setAuthorizationParameters(authorizationParameters);
+    setOrigin(origin);
+  }
+
+  @JsonCreator
+  public PasscodeInformation(
+      @JsonProperty("userId") String userId,
+      @JsonProperty("username") String username,
+      @JsonProperty("passcode") String passcode,
+      @JsonProperty("origin") String origin,
+      @JsonProperty("samlAuthorities") ArrayList<SamlUserAuthority> authorities) {
+
+    setUserId(userId);
+    setUsername(username);
+    setPasscode(passcode);
+    authorizationParameters = new LinkedHashMap<String, Object>();
+    setSamlAuthorities(authorities);
+    setOrigin(origin);
+  }
+
+  public PasscodeInformation(String username) {
+    this.username = username;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  @JsonProperty("samlAuthorities")
+  public ArrayList<SamlUserAuthority> getSamlAuthorities() {
+    ArrayList<SamlUserAuthority> list = new ArrayList<SamlUserAuthority>();
+    if (authorizationParameters != null && authorizationParameters.containsKey("authorities")) {
+      Set<SamlUserAuthority> set =
+          (Set<SamlUserAuthority>) authorizationParameters.get("authorities");
+      list.addAll(set);
     }
+    return list;
+  }
 
-    @JsonCreator
-    public PasscodeInformation(
-        @JsonProperty("userId") String userId,
-        @JsonProperty("username") String username,
-        @JsonProperty("passcode") String passcode,
-        @JsonProperty("origin") String origin,
-        @JsonProperty("samlAuthorities") ArrayList<SamlUserAuthority> authorities) {
+  public void setSamlAuthorities(ArrayList<SamlUserAuthority> authorities) {
+    Set<SamlUserAuthority> set = new HashSet<>(authorities);
+    authorizationParameters.put("authorities", set);
+  }
 
-        setUserId(userId);
-        setUsername(username);
-        setPasscode(passcode);
-        authorizationParameters = new LinkedHashMap<String, Object>();
-        setSamlAuthorities(authorities);
-        setOrigin(origin);
-    }
+  @JsonIgnore
+  public Map<String, Object> getAuthorizationParameters() {
+    return authorizationParameters;
+  }
 
-    public PasscodeInformation(String username) {
-        this.username = username;
-    }
+  public void setAuthorizationParameters(Map<String, Object> authorizationParameters) {
+    this.authorizationParameters = authorizationParameters;
+  }
 
-    public String getUsername() {
-        return username;
-    }
+  public String getPasscode() {
+    return passcode;
+  }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+  public void setPasscode(String passcode) {
+    this.passcode = passcode;
+  }
 
-    @JsonProperty("samlAuthorities")
-    public ArrayList<SamlUserAuthority> getSamlAuthorities() {
-        ArrayList<SamlUserAuthority> list = new ArrayList<SamlUserAuthority>();
-        if (authorizationParameters != null && authorizationParameters.containsKey("authorities")) {
-            Set<SamlUserAuthority> set = (Set<SamlUserAuthority>) authorizationParameters.get("authorities");
-            list.addAll(set);
-        }
-        return list;
-    }
+  public String getOrigin() {
+    return origin;
+  }
 
-    public void setSamlAuthorities(ArrayList<SamlUserAuthority> authorities) {
-        Set<SamlUserAuthority> set = new HashSet<>(authorities);
-        authorizationParameters.put("authorities", set);
-    }
+  public void setOrigin(String origin) {
+    this.origin = origin;
+  }
 
-    @JsonIgnore
-    public Map<String, Object> getAuthorizationParameters() {
-        return authorizationParameters;
-    }
+  public String getUserId() {
+    return userId;
+  }
 
-    public void setAuthorizationParameters(Map<String, Object> authorizationParameters) {
-        this.authorizationParameters = authorizationParameters;
-    }
-
-    public String getPasscode() {
-        return passcode;
-    }
-
-    public void setPasscode(String passcode) {
-        this.passcode = passcode;
-    }
-
-    public String getOrigin() {
-        return origin;
-    }
-
-    public void setOrigin(String origin) {
-        this.origin = origin;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
+  public void setUserId(String userId) {
+    this.userId = userId;
+  }
 }

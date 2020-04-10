@@ -1,6 +1,9 @@
-
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
+import java.util.Arrays;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ldap.NameNotFoundException;
@@ -16,139 +19,143 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.ldap.SpringSecurityLdapTemplate;
 import org.springframework.security.ldap.authentication.AbstractLdapAuthenticator;
 
-import javax.naming.NamingException;
-import javax.naming.directory.Attribute;
-import javax.naming.directory.Attributes;
-import java.util.Arrays;
-
 /**
- * Unfortunately the Spring PasswordComparisonAuthenticator is final, so we
- * can't extend it.
- * This password comparison authenticator lets you compare local bytes retrieved
- * by the initial user search.
+ * Unfortunately the Spring PasswordComparisonAuthenticator is final, so we can't extend it. This
+ * password comparison authenticator lets you compare local bytes retrieved by the initial user
+ * search.
  */
-
 public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
-    private static final Logger logger = LoggerFactory.getLogger(PasswordComparisonAuthenticator.class);
 
-    private boolean localCompare;
-    private String passwordAttributeName;
-    private PasswordEncoder passwordEncoder = new LdapShaPasswordEncoder();
+  private static final Logger logger =
+      LoggerFactory.getLogger(PasswordComparisonAuthenticator.class);
 
-    public PasswordComparisonAuthenticator(BaseLdapPathContextSource contextSource) {
-        super(contextSource);
+  private boolean localCompare;
+  private String passwordAttributeName;
+  private PasswordEncoder passwordEncoder = new LdapShaPasswordEncoder();
+
+  public PasswordComparisonAuthenticator(BaseLdapPathContextSource contextSource) {
+    super(contextSource);
+  }
+
+  @Override
+  public DirContextOperations authenticate(Authentication authentication) {
+    DirContextOperations user = null;
+    String username = authentication.getName();
+    String password = (String) authentication.getCredentials();
+
+    SpringSecurityLdapTemplate ldapTemplate = new SpringSecurityLdapTemplate(getContextSource());
+
+    for (String userDn : getUserDns(username)) {
+      try {
+        user = ldapTemplate.retrieveEntry(userDn, getUserAttributes());
+      } catch (NameNotFoundException ignore) {
+      }
+      if (user != null) {
+        break;
+      }
     }
 
-    @Override
-    public DirContextOperations authenticate(Authentication authentication) {
-        DirContextOperations user = null;
-        String username = authentication.getName();
-        String password = (String) authentication.getCredentials();
+    if (user == null && getUserSearch() != null) {
+      user = getUserSearch().searchForUser(username);
+    }
 
-        SpringSecurityLdapTemplate ldapTemplate = new SpringSecurityLdapTemplate(getContextSource());
+    if (user == null) {
+      throw new UsernameNotFoundException("User not found: " + username);
+    }
 
-        for (String userDn : getUserDns(username)) {
-            try {
-                user = ldapTemplate.retrieveEntry(userDn, getUserAttributes());
-            } catch (NameNotFoundException ignore) {
-            }
-            if (user != null) {
-                break;
-            }
-        }
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "Performing LDAP compare of password attribute '"
+              + passwordAttributeName
+              + "' for user '"
+              + user.getDn()
+              + "'");
+    }
 
-        if (user == null && getUserSearch() != null) {
-            user = getUserSearch().searchForUser(username);
-        }
+    if (isLocalCompare()) {
+      localCompareAuthenticate(user, password);
+    } else {
+      String encodedPassword = passwordEncoder.encode(password);
+      byte[] passwordBytes = Utf8.encode(encodedPassword);
+      searchAuthenticate(user, passwordBytes, ldapTemplate);
+    }
 
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found: " + username);
-        }
+    return user;
+  }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("Performing LDAP compare of password attribute '" + passwordAttributeName + "' for user '" +
-                            user.getDn() + "'");
-        }
-
-        if (isLocalCompare()) {
-            localCompareAuthenticate(user, password);
-        } else {
+  public DirContextOperations localCompareAuthenticate(DirContextOperations user, String password) {
+    boolean match = false;
+    try {
+      Attributes attributes = user.getAttributes();
+      Attribute attr = attributes.get(getPasswordAttributeName());
+      if (attr.size() == 0) {
+        throw new AuthenticationCredentialsNotFoundException(
+            "Missing " + getPasswordAttributeName() + " attribute.");
+      }
+      for (int i = 0; (attr != null) && (!match) && (i < attr.size()); i++) {
+        Object valObject = attr.get(i);
+        if (valObject != null && valObject instanceof byte[]) {
+          if (passwordEncoder instanceof DynamicPasswordComparator) {
+            byte[] received = password.getBytes();
+            byte[] stored = (byte[]) valObject;
+            match =
+                ((DynamicPasswordComparator) passwordEncoder).comparePasswords(received, stored);
+          } else {
             String encodedPassword = passwordEncoder.encode(password);
             byte[] passwordBytes = Utf8.encode(encodedPassword);
-            searchAuthenticate(user, passwordBytes, ldapTemplate);
+            match = Arrays.equals(passwordBytes, (byte[]) valObject);
+          }
         }
+      }
+    } catch (NamingException e) {
+      throw new BadCredentialsException("Bad credentials", e);
+    }
+    if (!match) {
+      throw new BadCredentialsException("Bad credentials");
+    }
+    return user;
+  }
 
-        return user;
-
+  public DirContextOperations searchAuthenticate(
+      DirContextOperations user, byte[] passwordBytes, SpringSecurityLdapTemplate ldapTemplate) {
+    if (logger.isDebugEnabled()) {
+      logger.debug(
+          "Performing LDAP compare of password attribute '"
+              + passwordAttributeName
+              + "' for user '"
+              + user.getDn()
+              + "'");
     }
 
-    public DirContextOperations localCompareAuthenticate(DirContextOperations user, String password) {
-        boolean match = false;
-        try {
-            Attributes attributes = user.getAttributes();
-            Attribute attr = attributes.get(getPasswordAttributeName());
-            if (attr.size()==0) {
-                throw new AuthenticationCredentialsNotFoundException("Missing "+getPasswordAttributeName()+" attribute.");
-            }
-            for (int i = 0; (attr != null) && (!match) && (i < attr.size()); i++) {
-                Object valObject = attr.get(i);
-                if (valObject != null && valObject instanceof byte[]) {
-                    if (passwordEncoder instanceof DynamicPasswordComparator) {
-                        byte[] received = password.getBytes();
-                        byte[] stored = (byte[]) valObject;
-                        match = ((DynamicPasswordComparator) passwordEncoder).comparePasswords(received, stored);
-                    } else {
-                        String encodedPassword = passwordEncoder.encode(password);
-                        byte[] passwordBytes = Utf8.encode(encodedPassword);
-                        match = Arrays.equals(passwordBytes, (byte[]) valObject);
-                    }
-                }
-            }
-        } catch (NamingException e) {
-            throw new BadCredentialsException("Bad credentials", e);
-        }
-        if (!match)
-            throw new BadCredentialsException("Bad credentials");
-        return user;
+    if (!ldapTemplate.compare(user.getDn().toString(), passwordAttributeName, passwordBytes)) {
+      throw new BadCredentialsException(
+          messages.getMessage("PasswordComparisonAuthenticator.badCredentials", "Bad credentials"));
     }
 
-    public DirContextOperations searchAuthenticate(DirContextOperations user, byte[] passwordBytes,
-                    SpringSecurityLdapTemplate ldapTemplate) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Performing LDAP compare of password attribute '" + passwordAttributeName + "' for user '" +
-                            user.getDn() + "'");
-        }
+    return user;
+  }
 
-        if (!ldapTemplate.compare(user.getDn().toString(), passwordAttributeName, passwordBytes)) {
-            throw new BadCredentialsException(messages.getMessage("PasswordComparisonAuthenticator.badCredentials",
-                            "Bad credentials"));
-        }
+  public String getPasswordAttributeName() {
+    return passwordAttributeName;
+  }
 
-        return user;
-    }
+  public void setPasswordAttributeName(String passwordAttribute) {
+    this.passwordAttributeName = passwordAttribute;
+  }
 
-    public void setPasswordAttributeName(String passwordAttribute) {
-        this.passwordAttributeName = passwordAttribute;
-    }
+  public PasswordEncoder getPasswordEncoder() {
+    return passwordEncoder;
+  }
 
-    public String getPasswordAttributeName() {
-        return passwordAttributeName;
-    }
+  public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
+    this.passwordEncoder = passwordEncoder;
+  }
 
-    public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
-    }
+  public boolean isLocalCompare() {
+    return localCompare;
+  }
 
-    public PasswordEncoder getPasswordEncoder() {
-        return passwordEncoder;
-    }
-
-    public boolean isLocalCompare() {
-        return localCompare;
-    }
-
-    public void setLocalCompare(boolean localCompare) {
-        this.localCompare = localCompare;
-    }
-
+  public void setLocalCompare(boolean localCompare) {
+    this.localCompare = localCompare;
+  }
 }

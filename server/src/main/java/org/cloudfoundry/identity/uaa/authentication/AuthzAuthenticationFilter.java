@@ -1,6 +1,25 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import static java.util.Optional.ofNullable;
+
 import com.fasterxml.jackson.core.type.TypeReference;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -16,222 +35,200 @@ import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEn
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.util.Assert;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.util.Optional.ofNullable;
-
 /**
- * Filter which processes authentication submitted through the
- * <code>/authorize</code> endpoint.
- * <p>
- * Checks the submitted information for a parameter named "credentials" (or
- * specified via the {@link #setParameterNames(List) parameter name}), in JSON
- * format.
- * <p>
- * If the parameter is found, it will submit an authentication request to the
- * AuthenticationManager and attempt to authenticate the user. If authentication
- * fails, it will return an error message. Otherwise, it creates a security
- * context and allows the request to continue.
- * <p>
- * If the parameter is not present, the filter will have no effect.
- * <p>
- * See <a
- * href="https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.md">UUA
- * API Docs</a>
+ * Filter which processes authentication submitted through the <code>/authorize</code> endpoint.
+ *
+ * <p>Checks the submitted information for a parameter named "credentials" (or specified via the
+ * {@link #setParameterNames(List) parameter name}), in JSON format.
+ *
+ * <p>If the parameter is found, it will submit an authentication request to the
+ * AuthenticationManager and attempt to authenticate the user. If authentication fails, it will
+ * return an error message. Otherwise, it creates a security context and allows the request to
+ * continue.
+ *
+ * <p>If the parameter is not present, the filter will have no effect.
+ *
+ * <p>See <a href="https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.md">UUA API
+ * Docs</a>
  */
 public class AuthzAuthenticationFilter implements Filter {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private AuthenticationManager authenticationManager;
+  private AuthenticationManager authenticationManager;
 
-    private List<String> parameterNames = Collections.emptyList();
+  private List<String> parameterNames = Collections.emptyList();
 
-    private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
+  private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
 
-    private Set<String> methods = Collections.singleton(HttpMethod.POST.toString());
+  private Set<String> methods = Collections.singleton(HttpMethod.POST.toString());
 
-    private AccountSavingAuthenticationSuccessHandler successHandler;
+  private AccountSavingAuthenticationSuccessHandler successHandler;
 
-    /**
-     * The filter fails on requests that don't have one of these HTTP methods.
-     *
-     * @param methods the methods to set (defaults to POST)
-     */
-    public void setMethods(Set<String> methods) {
-        this.methods = new HashSet<>();
-        for (String method : methods) {
-            this.methods.add(method.toUpperCase());
+  public AuthzAuthenticationFilter(AuthenticationManager authenticationManager) {
+    Assert.notNull(
+        authenticationManager,
+        "[Assertion failed] - authenticationManager is required; it must not be null");
+    this.authenticationManager = authenticationManager;
+  }
+
+  /**
+   * The filter fails on requests that don't have one of these HTTP methods.
+   *
+   * @param methods the methods to set (defaults to POST)
+   */
+  public void setMethods(Set<String> methods) {
+    this.methods = new HashSet<>();
+    for (String method : methods) {
+      this.methods.add(method.toUpperCase());
+    }
+  }
+
+  /** @param authenticationEntryPoint the authenticationEntryPoint to set */
+  public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
+    this.authenticationEntryPoint = authenticationEntryPoint;
+  }
+
+  public void setSuccessHandler(AccountSavingAuthenticationSuccessHandler successHandler) {
+    this.successHandler = successHandler;
+  }
+
+  /**
+   * The name of the parameter to extract credentials from. Request parameters with these names are
+   * extracted and passed as credentials to the authentication manager. A request that doesn't have
+   * any of the specified parameters is ignored.
+   *
+   * @param parameterNames the parameter names to set (default empty)
+   */
+  public void setParameterNames(List<String> parameterNames) {
+    this.parameterNames = parameterNames;
+  }
+
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+      throws IOException, ServletException {
+
+    HttpServletRequest req = (HttpServletRequest) request;
+    HttpServletResponse res = (HttpServletResponse) response;
+
+    Map<String, String> loginInfo = getCredentials(req);
+
+    boolean buggyVmcAcceptHeader = false;
+
+    try {
+      if (loginInfo.isEmpty()) {
+        throw new BadCredentialsException("Request does not contain credentials.");
+      } else {
+        logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+        if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
+          throw new BadCredentialsException(
+              "Credentials must be sent by (one of methods): " + methods);
         }
-    }
+        Authentication result =
+            authenticationManager.authenticate(
+                new AuthzAuthenticationRequest(loginInfo, new UaaAuthenticationDetails(req)));
 
-    /**
-     * @param authenticationEntryPoint the authenticationEntryPoint to set
-     */
-    public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
-        this.authenticationEntryPoint = authenticationEntryPoint;
-    }
+        if (result.isAuthenticated()) {
+          SecurityContextHolder.getContext().setAuthentication(result);
+          ofNullable(successHandler)
+              .ifPresent(s -> s.setSavedAccountOptionCookie(req, res, result));
 
-    public void setSuccessHandler(AccountSavingAuthenticationSuccessHandler successHandler) {
-        this.successHandler = successHandler;
-    }
-
-    /**
-     * The name of the parameter to extract credentials from. Request parameters
-     * with these names are extracted and
-     * passed as credentials to the authentication manager. A request that
-     * doesn't have any of the specified parameters
-     * is ignored.
-     *
-     * @param parameterNames the parameter names to set (default empty)
-     */
-    public void setParameterNames(List<String> parameterNames) {
-        this.parameterNames = parameterNames;
-    }
-
-    public AuthzAuthenticationFilter(AuthenticationManager authenticationManager) {
-        Assert.notNull(authenticationManager, "[Assertion failed] - authenticationManager is required; it must not be null");
-        this.authenticationManager = authenticationManager;
-    }
-
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-            ServletException {
-
-        HttpServletRequest req = (HttpServletRequest) request;
-        HttpServletResponse res = (HttpServletResponse) response;
-
-        Map<String, String> loginInfo = getCredentials(req);
-
-        boolean buggyVmcAcceptHeader = false;
-
-        try {
-            if (loginInfo.isEmpty()) {
-                throw new BadCredentialsException("Request does not contain credentials.");
-            } else {
-                logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
-                if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
-                    throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
-                }
-                Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
-                        new UaaAuthenticationDetails(req)));
-
-                if (result.isAuthenticated()) {
-                    SecurityContextHolder.getContext().setAuthentication(result);
-                    ofNullable(successHandler).ifPresent(s -> s.setSavedAccountOptionCookie(req, res, result));
-
-                    UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
-                    if (SessionUtils.isPasswordChangeRequired(req.getSession())) {
-                        throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
-                    }
-                }
-            }
-        } catch (AuthenticationException e) {
-            logger.debug("Authentication failed");
-
-            String acceptHeaderValue = req.getHeader("accept");
-            String clientId = req.getParameter("client_id");
-            if ("*/*; q=0.5, application/xml".equals(acceptHeaderValue) && "vmc".equals(clientId)) {
-                buggyVmcAcceptHeader = true;
-            }
-
-            if (buggyVmcAcceptHeader) {
-                HttpServletRequest jsonAcceptingRequest = new HttpServletRequestWrapper(req) {
-
-                    @Override
-                    public Enumeration<String> getHeaders(String name) {
-                        if ("accept".equalsIgnoreCase(name)) {
-                            return new JsonInjectedEnumeration(((HttpServletRequest) getRequest()).getHeaders(name));
-                        } else {
-                            return ((HttpServletRequest) getRequest()).getHeaders(name);
-                        }
-                    }
-
-                    @Override
-                    public String getHeader(String name) {
-                        if (name.equalsIgnoreCase("accept")) {
-                            return "application/json";
-                        } else {
-                            return ((HttpServletRequest) getRequest()).getHeader(name);
-                        }
-                    }
-                };
-
-                authenticationEntryPoint.commence(jsonAcceptingRequest, res, e);
-            } else {
-                authenticationEntryPoint.commence(req, res, e);
-            }
-            return;
+          UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
+          if (SessionUtils.isPasswordChangeRequired(req.getSession())) {
+            throw new PasswordChangeRequiredException(
+                uaaAuthentication, "password change required");
+          }
         }
+      }
+    } catch (AuthenticationException e) {
+      logger.debug("Authentication failed");
 
-        chain.doFilter(request, response);
-    }
+      String acceptHeaderValue = req.getHeader("accept");
+      String clientId = req.getParameter("client_id");
+      if ("*/*; q=0.5, application/xml".equals(acceptHeaderValue) && "vmc".equals(clientId)) {
+        buggyVmcAcceptHeader = true;
+      }
 
-    private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<>();
+      if (buggyVmcAcceptHeader) {
+        HttpServletRequest jsonAcceptingRequest =
+            new HttpServletRequestWrapper(req) {
 
-        for (String paramName : parameterNames) {
-            String value = request.getParameter(paramName);
-            if (value != null) {
-                if (value.startsWith("{")) {
-                    try {
-                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                                new TypeReference<>() {
-                                });
-                        credentials.putAll(jsonCredentials);
-                    } catch (JsonUtils.JsonUtilException e) {
-                        logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
-                    }
+              @Override
+              public Enumeration<String> getHeaders(String name) {
+                if ("accept".equalsIgnoreCase(name)) {
+                  return new JsonInjectedEnumeration(
+                      ((HttpServletRequest) getRequest()).getHeaders(name));
                 } else {
-                    credentials.put(paramName, value);
+                  return ((HttpServletRequest) getRequest()).getHeaders(name);
                 }
-            }
-        }
+              }
 
-        return credentials;
+              @Override
+              public String getHeader(String name) {
+                if (name.equalsIgnoreCase("accept")) {
+                  return "application/json";
+                } else {
+                  return ((HttpServletRequest) getRequest()).getHeader(name);
+                }
+              }
+            };
+
+        authenticationEntryPoint.commence(jsonAcceptingRequest, res, e);
+      } else {
+        authenticationEntryPoint.commence(req, res, e);
+      }
+      return;
+    }
+
+    chain.doFilter(request, response);
+  }
+
+  private Map<String, String> getCredentials(HttpServletRequest request) {
+    Map<String, String> credentials = new HashMap<>();
+
+    for (String paramName : parameterNames) {
+      String value = request.getParameter(paramName);
+      if (value != null) {
+        if (value.startsWith("{")) {
+          try {
+            Map<String, String> jsonCredentials =
+                JsonUtils.readValue(value, new TypeReference<>() {});
+            credentials.putAll(jsonCredentials);
+          } catch (JsonUtils.JsonUtilException e) {
+            logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
+          }
+        } else {
+          credentials.put(paramName, value);
+        }
+      }
+    }
+
+    return credentials;
+  }
+
+  @Override
+  public void init(FilterConfig filterConfig) {}
+
+  @Override
+  public void destroy() {}
+
+  static class JsonInjectedEnumeration implements Enumeration<String> {
+
+    private Enumeration<String> underlying;
+
+    public JsonInjectedEnumeration(Enumeration<String> underlying) {
+      this.underlying = underlying;
     }
 
     @Override
-    public void init(FilterConfig filterConfig) {
+    public boolean hasMoreElements() {
+      return underlying.hasMoreElements();
     }
 
     @Override
-    public void destroy() {
+    public String nextElement() {
+      underlying.nextElement();
+      return "application/json";
     }
-
-    static class JsonInjectedEnumeration implements Enumeration<String> {
-        private Enumeration<String> underlying;
-
-        public JsonInjectedEnumeration(Enumeration<String> underlying) {
-            this.underlying = underlying;
-        }
-
-        @Override
-        public boolean hasMoreElements() {
-            return underlying.hasMoreElements();
-        }
-
-        @Override
-        public String nextElement() {
-            underlying.nextElement();
-            return "application/json";
-        }
-
-    }
+  }
 }
