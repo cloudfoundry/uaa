@@ -5,14 +5,14 @@ import org.junit.jupiter.api.BeforeEach;
 
 class EmailChangeResponseTest extends JsonTranslation<EmailChangeResponse> {
 
-    @BeforeEach
-    void setUp() {
-        EmailChangeResponse subject = new EmailChangeResponse();
-        subject.setUsername("aaaa");
-        subject.setUserId("bbbb");
-        subject.setRedirectUrl("cccc");
-        subject.setEmail("dddd");
+  @BeforeEach
+  void setUp() {
+    EmailChangeResponse subject = new EmailChangeResponse();
+    subject.setUsername("aaaa");
+    subject.setUserId("bbbb");
+    subject.setRedirectUrl("cccc");
+    subject.setEmail("dddd");
 
-        super.setUp(subject, EmailChangeResponse.class);
-    }
+    super.setUp(subject, EmailChangeResponse.class);
+  }
 }
