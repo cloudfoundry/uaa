@@ -7,6 +7,6 @@ require (
 	github.com/onsi/gomega v1.9.0
 	gopkg.in/yaml.v2 v2.2.8
 	k8s.io/api v0.18.1
-	k8s.io/apimachinery v0.17.4
+	k8s.io/apimachinery v0.18.1
 	k8s.io/client-go v11.0.0+incompatible
 )
