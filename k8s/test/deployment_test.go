@@ -43,6 +43,11 @@ var _ = Describe("Deployment", func() {
 	It("Renders a deployment for the UAA", func() {
 		ctx := NewRenderingContext(templates...)
 
+		expectedJavaOpts := "" +
+			"-Djava.security.egd=file:/dev/./urandom " +
+			"-Dlogging.config=/etc/config/log4j2.properties " +
+			"-Dlog4j.configurationFile=/etc/config/log4j2.properties"
+
 		Expect(ctx).To(
 			ProduceYAML(
 				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
@@ -53,7 +58,7 @@ var _ = Describe("Deployment", func() {
 						container.WithEnvVar("spring_profiles", "hsqldb")
 						container.WithEnvVar("CLOUDFOUNDRY_CONFIG_PATH", "/etc/config")
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
-						container.WithEnvVar("JAVA_OPTS", "-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/etc/config/log4j2.properties -Dlog4j.configurationFile=/etc/config/log4j2.properties")
+						container.WithEnvVar("JAVA_OPTS", expectedJavaOpts)
 						container.WithEnvVar("SECRETS_DIR", "/etc/secrets")
 						container.WithVolumeMount("uaa-config", Not(BeNil()))
 						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
