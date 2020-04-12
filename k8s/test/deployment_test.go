@@ -44,9 +44,12 @@ var _ = Describe("Deployment", func() {
 		ctx := NewRenderingContext(templates...)
 
 		expectedJavaOpts := "" +
+			"-Dspring_profiles=hsqldb " +
 			"-Djava.security.egd=file:/dev/./urandom " +
 			"-Dlogging.config=/etc/config/log4j2.properties " +
-			"-Dlog4j.configurationFile=/etc/config/log4j2.properties"
+			"-Dlog4j.configurationFile=/etc/config/log4j2.properties " +
+			"-DCLOUDFOUNDRY_CONFIG_PATH=/etc/config " +
+			"-DSECRETS_DIR=/etc/secrets"
 
 		Expect(ctx).To(
 			ProduceYAML(
@@ -55,11 +58,8 @@ var _ = Describe("Deployment", func() {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
 						container.WithImageContaining("cfidentity/uaa@sha256:")
-						container.WithEnvVar("spring_profiles", "hsqldb")
-						container.WithEnvVar("CLOUDFOUNDRY_CONFIG_PATH", "/etc/config")
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
 						container.WithEnvVar("JAVA_OPTS", expectedJavaOpts)
-						container.WithEnvVar("SECRETS_DIR", "/etc/secrets")
 						container.WithVolumeMount("uaa-config", Not(BeNil()))
 						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
@@ -131,7 +131,7 @@ var _ = Describe("Deployment", func() {
 					RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
 						pod.WithContainerMatching(func(container *ContainerMatcher) {
 							container.WithName("uaa")
-							container.WithEnvVar("spring_profiles", databaseScheme)
+							container.WithEnvVarMatching("JAVA_OPTS", ContainSubstring("-Dspring_profiles=postgresql"))
 						})
 					}),
 				),

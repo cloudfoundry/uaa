@@ -1,7 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("deployment.star", "java_opts", "config_dir")
-
-#@ secrets_dir = "/etc/secrets"
+#@ load("deployment.star", "java_opts", "config_dir", "secrets_dir")
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -33,13 +31,7 @@ spec:
         - name: BPL_TOMCAT_ACCESS_LOGGING
           value: #@ data.values.tomcat.accessLoggingEnabled
         - name: JAVA_OPTS
-          value: #@ java_opts()
-        - name: spring_profiles
-          value: #@ data.values.database.scheme or "hsqldb"
-        - name: CLOUDFOUNDRY_CONFIG_PATH
-          value: #@ config_dir
-        - name: SECRETS_DIR
-          value: #@ secrets_dir
+          value: #@ java_opts(data.values.database.scheme)
         volumeMounts:
         - name: uaa-config
           mountPath: #@ config_dir

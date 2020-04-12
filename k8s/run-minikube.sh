@@ -7,6 +7,17 @@ UAA_ADMIN_CLIENT_SECRET=""
 UAA_CONFIG_DIR="${HOME}/.uaa"
 UAA_ADMIN_CLIENT_SECRET_LOCATION="${UAA_CONFIG_DIR}/admin_client_secret.json"
 
+minikube_status() {
+
+  local minikube_status_exit_code
+  minikube status
+  minikube_status_exit_code=$?
+
+  if [ ${minikube_status_exit_code} -ne 0 ]; then
+    exit ${minikube_status_exit_code}
+  fi
+}
+
 get_admin_client_secret() {
   mkdir -p "${UAA_CONFIG_DIR}"
 
@@ -124,6 +135,7 @@ get_client_credentials_token() {
 }
 
 main() {
+  minikube_status
   get_admin_client_secret
   ytt_and_minikube "${@}"
   check_k8s_for_admin_client_secret
