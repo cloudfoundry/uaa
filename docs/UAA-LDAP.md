@@ -116,13 +116,13 @@ The UAA is a Spring based application, and reads the values from the uaa.yml and
 [XML configuration files](https://github.com/cloudfoundry/uaa/tree/master/uaa/src/main/resources/ldap)
 
 Enabling any level of LDAP authentication requires the 
-[`spring_profiles: ldap`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/uaa.yml#L7-7) configuration
+[`-Dspring.profiles.active=ldap`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/uaa.yml#L7-7) configuration
 to be enabled. This `ldap` profile triggers the chained authentication to be enabled and the 
 [ldap configuration files](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring-servlet.xml#L174)
 to be loaded. 
 
 <code>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 </code>
 
 All further configurations will be placed under the `ldap: ` configuration element
@@ -144,7 +144,7 @@ to configure the
 This allows a user/administrator of the UAA to configure a Spring XML file for a custom ldap authentication method.
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -160,7 +160,7 @@ The following attributes are available for the default bind configuration
 * `ldap.base.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-simple-bind.xml
@@ -187,7 +187,7 @@ The following attributes are available for the default search and bind configura
   where the attribute `cn` matches the users input.
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -224,7 +224,7 @@ The following attributes are available for the default search and bind configura
   uses the Apache Directory Server password utilities to support several different encodings.
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-compare.xml
@@ -343,7 +343,7 @@ This is the default.
 The configuration looks like
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -360,7 +360,7 @@ ldap:
 is the same as omitting the value all together
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -388,7 +388,7 @@ ldap:
   they don't exist
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -420,7 +420,7 @@ ldap:
   and is valid, there will not be authorities assigned to the user
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -455,7 +455,7 @@ address that is as current as the user's last authentication.
 If an LDAP user does not have an email address, the UAA can automatically generate one.
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
@@ -478,7 +478,7 @@ The UAA provides an ability to override the email address that is set in LDAP
 by setting the `mailSubstituteOverridesLdap` flag to true.
 
 <pre>
-spring_profiles: ldap
+-Dspring.profiles.active=ldap
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml

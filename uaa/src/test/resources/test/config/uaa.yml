@@ -10,7 +10,6 @@ encryption:
     - label: 'key-2'
       passphrase: 'MY-PASSPHRASE-TWO'
 foo: bar
-spring_profiles: hsqldb
 logging:
   path: /tmp/uaa/logs
 oauth:

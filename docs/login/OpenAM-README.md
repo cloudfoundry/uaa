@@ -53,7 +53,7 @@ Configure and start UAA
   - a) Configure login.yml
   - b) uncomment '#providers:' under login.saml
   - c) uncomment the OpenAM section under 'openam-local'
-  - d) make sure you have 'spring_profiles: saml,default'
+  - d) make sure you have '-Dspring.profiles.active: saml,default'
   - e) Start UAA server on port 8080 (./gradlew run)
 
         DEBUG --- MetadataManager: Initializing provider data org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider@41f4a18b

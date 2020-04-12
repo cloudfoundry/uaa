@@ -11,8 +11,8 @@ applications:
     UAA_URL: http://@app@.@appdomain@
     LOGIN_URL: http://@app@.@appdomain@
     JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '{enabled: false}'
+    JAVA_OPTS: -Dspring.profiles.active=default,hsqldb
     UAA_CONFIG_YAML: |
-      spring_profiles: default,hsqldb
       login:
         serviceProviderKey: |
           -----BEGIN RSA PRIVATE KEY-----

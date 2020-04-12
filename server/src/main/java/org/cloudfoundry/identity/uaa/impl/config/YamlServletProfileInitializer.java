@@ -46,7 +46,6 @@ import static org.springframework.util.StringUtils.isEmpty;
  * <p>In addition if the YAML contains some special properties, some initialization is carried out:
  *
  * <ul>
- * <li><code>spring_profiles</code> - then the active profiles are set</li>
  * <li><code>logging.config</code> - then log4j is initialized from that
  * location (if it exists)</li>
  * </ul>
@@ -221,12 +220,6 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         environment.setDefaultProfiles(new String[0]);
 
         System.out.println(String.format("System property spring.profiles.active=[%s]", System.getProperty("spring.profiles.active")));
-        System.out.println(String.format("Environment property spring_profiles=[%s]", environment.getProperty("spring_profiles")));
-
-        if (environment.containsProperty("spring_profiles")) {
-            setActiveProfiles(environment, StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true));
-            return;
-        }
 
         String systemProfiles = System.getProperty("spring.profiles.active");
         if (!isEmpty(systemProfiles)) {

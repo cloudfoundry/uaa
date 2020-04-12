@@ -2,11 +2,12 @@
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default,ldap
-#spring_profiles: postgresql,default
-#spring_profiles: ldap,default,hsqldb
-#spring_profiles: saml
-#spring_profiles: keystone,default,hsqldb
+# Be sure to set the appropriate active profiles via system property -Dspring.profiles.active
+#-Dspring.profiles.active: mysql,default,ldap
+#-Dspring.profiles.active: postgresql,default
+#-Dspring.profiles.active: ldap,default,hsqldb
+#-Dspring.profiles.active: saml
+#-Dspring.profiles.active: keystone,default,hsqldb
 
 #database:
 #  driverClassName: org.postgresql.Driver

@@ -124,22 +124,9 @@ class YamlServletProfileInitializerTest {
     void activeProfiles() {
         System.setProperty("spring.profiles.active", "foo");
 
-        when(context.getResource(anyString())).thenReturn(
-                new ByteArrayResource("spring_profiles: bar".getBytes()));
-
         initializer.initialize(context);
 
-        assertActiveProfilesAre(environment, "bar");
-    }
-
-    @Test
-    void activeProfilesFromYaml() {
-        when(context.getResource(anyString())).thenReturn(
-                new ByteArrayResource("spring_profiles: bar".getBytes()));
-
-        initializer.initialize(context);
-
-        assertActiveProfilesAre(environment, "bar");
+        assertActiveProfilesAre(environment, "foo");
     }
 
     @Test
@@ -403,10 +390,9 @@ class YamlServletProfileInitializerTest {
 
         @Test
         void yamlConfiguredProfilesAreUsed() {
-            System.setProperty("spring.profiles.active", "hsqldb,default");
-            environment.setProperty("spring_profiles", "mysql,default");
+            System.setProperty("spring.profiles.active", "something,default");
             initializer.applySpringProfiles(environment);
-            assertActiveProfilesAre(environment, "mysql", "default");
+            assertActiveProfilesAre(environment, "something", "default");
         }
     }
 
