@@ -205,6 +205,7 @@
                 <ref bean="assertionBinding"/>
                 <ref bean="soapBinding"/>
                 <ref bean="paosBinding"/>
+                <ref bean="samlResponseLoggerBinding"/>
             </list>
         </constructor-arg>
     </bean>
