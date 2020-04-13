@@ -31,7 +31,6 @@ import org.springframework.web.context.support.StandardServletEnvironment;
 import javax.servlet.ServletContext;
 import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,9 +47,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.description;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -212,17 +209,6 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void loggingConfigVariableWorks() {
-        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
-        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
-                new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
-        initializer.initialize(context);
-        assertEquals("/some/path", environment.getProperty("logging.config"));
-        assertNull(environment.getProperty("smtp.host"));
-        assertNull(environment.getProperty("smtp.port"));
-    }
-
-    @Test
     void loadsPropertiesFrom_CLOUDFOUNDRY_CONFIG_PATH() {
         System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
         when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
@@ -284,58 +270,6 @@ class YamlServletProfileInitializerTest {
         assertEquals("3535", environment.getProperty("smtp.port"));
         assertEquals("http://uaa.test.url/", environment.getProperty("uaa.url"));
         assertEquals("http://login.test.url/", environment.getProperty("login.url"));
-    }
-
-    @Nested
-    class WithFakeStdOut {
-
-        private PrintStream originalOut;
-        private PrintStream mockPrintStream;
-
-        @BeforeEach
-        void setUp() {
-            originalOut = System.out;
-            mockPrintStream = mock(PrintStream.class);
-            System.setOut(mockPrintStream);
-        }
-
-        @AfterEach
-        void tearDown() {
-            System.setOut(originalOut);
-        }
-
-        @Test
-        void ignoreDashDTomcatLoggingConfigVariable() {
-            final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
-            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
-            when(context.getResource(eq("file:foo/uaa.yml")))
-                    .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
-            environment.getPropertySources().addFirst(new PropertySource<Object>(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME) {
-                @Override
-                public boolean containsProperty(String name) {
-                    if ("LOGGING_CONFIG".equals(name)) {
-                        return true;
-                    } else {
-                        return super.containsProperty(name);
-                    }
-                }
-
-                @Override
-                public Object getProperty(String name) {
-                    if ("LOGGING_CONFIG".equals(name)) {
-                        return tomcatLogConfig;
-                    } else {
-                        return System.getenv(name);
-                    }
-
-                }
-            });
-            initializer.initialize(context);
-            assertEquals("-Djava.util.logging.config=/some/path/logging.properties", environment.getProperty("logging.config"));
-
-            verify(mockPrintStream, description("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found."))
-                    .println("Ignoring Log Config Location: -Djava.util.logging.config=/some/path/logging.properties. Location is suspect to be a Tomcat startup script environment variable");
-        }
     }
 
     private static class EmptyEnumerationOfString implements Enumeration<String> {
