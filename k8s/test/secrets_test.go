@@ -152,4 +152,64 @@ var _ = Describe("Secrets", func() {
 		})
 	})
 
+	Context("JWT Policy Signing Keys", func() {
+		It("Renders into secret", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "signing-key-fixture1.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			jwtPolicySigningKeys := `jwt:
+  token:
+    policy:
+      activeKeyId: my_active_key_id
+      keys:
+        my_active_key_id:
+          signingKey: aaa
+`
+
+			Expect(renderingContext).To(
+				ProduceYAML(RepresentingASecret().
+					WithName("uaa-jwt-policy-signing-keys").
+					WithStringData("uaa-jwt-policy-signing-keys.yml", jwtPolicySigningKeys)),
+			)
+		})
+
+		It("Renders into secret with different values", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "signing-key-fixture2.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			jwtPolicySigningKeys := `jwt:
+  token:
+    policy:
+      activeKeyId: other_active_key2
+      keys:
+        other_active_key2:
+          signingKey: |
+            this
+            is
+            a
+            multiline
+            string
+        unused_key_id:
+          signingKey: unused_signing_key
+`
+
+			Expect(renderingContext).To(
+				ProduceYAML(RepresentingASecret().
+					WithName("uaa-jwt-policy-signing-keys").
+					WithStringData("uaa-jwt-policy-signing-keys.yml", jwtPolicySigningKeys)),
+			)
+		})
+	})
 })
