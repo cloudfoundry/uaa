@@ -6,6 +6,11 @@ def signing_keys(jwt_policy):
   end
 
   found_active_key = False
+
+  if type(jwt_policy.keys) != "list":
+    assert.fail("jwt.policy.keys must be a list")
+  end
+
   keys = {}
   for k in jwt_policy.keys:
     keys[k.keyId] = {

@@ -240,5 +240,22 @@ var _ = Describe("Secrets", func() {
 				ThrowError("fail: jwt.policy.keys must contain keyId matching jwt.policy.signingKey"),
 			)
 		})
+
+		It("keys must be a list", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.star")),
+			}
+
+			renderingContext := NewRenderingContext(templates...).WithData(map[string]string{
+				"jwt.policy.activeKeyId": "any value",
+				"jwt.policy.keys":        "not a list",
+			})
+
+			Expect(renderingContext).To(
+				ThrowError("fail: jwt.policy.keys must be a list"),
+			)
+		})
 	})
 })
