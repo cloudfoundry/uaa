@@ -211,5 +211,19 @@ var _ = Describe("Secrets", func() {
 					WithStringData("uaa-jwt-policy-signing-keys.yml", jwtPolicySigningKeys)),
 			)
 		})
+
+		It("activeKeyId is required", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.star")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(
+				ThrowError("jwt.policy.activeKeyId is required"),
+			)
+		})
 	})
 })
