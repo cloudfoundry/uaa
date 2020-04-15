@@ -1,5 +1,5 @@
 #@ load("@ytt:data", "data")
-#@ load("uaa.lib.star", "signing_keys", "database_connection_string")
+#@ load("uaa.lib.star", "database_connection_string")
 #@ def config():
 ---
 issuer:
@@ -53,10 +53,6 @@ login:
 
 #! The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret
-
-jwt:
-  token:
-    policy: #@ signing_keys(data.values.jwt.policy)
 
 database:
   maxactive: 100
