@@ -47,6 +47,10 @@ spec:
           mountPath: #@ "{}/admin_client_credentials.yml".format(secrets_dir)
           subPath: admin_client_credentials.yml
           readOnly: true
+        - name: jwt-policy-signing-keys-file
+          mountPath: #@ "{}/jwt_policy_signing_keys.yml".format(secrets_dir)
+          subPath: jwt_policy_signing_keys.yml
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /healthz
@@ -73,3 +77,6 @@ spec:
       - name: admin-client-credentials-file
         secret:
           secretName: uaa-admin-client-credentials
+      - name: jwt-policy-signing-keys-file
+        secret:
+          secretName: uaa-jwt-policy-signing-keys

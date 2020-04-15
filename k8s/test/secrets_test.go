@@ -175,7 +175,7 @@ var _ = Describe("Secrets", func() {
 			Expect(renderingContext).To(
 				ProduceYAML(RepresentingASecret().
 					WithName("uaa-jwt-policy-signing-keys").
-					WithStringData("uaa-jwt-policy-signing-keys.yml", jwtPolicySigningKeys)),
+					WithStringData("jwt_policy_signing_keys.yml", jwtPolicySigningKeys)),
 			)
 		})
 
@@ -208,7 +208,7 @@ var _ = Describe("Secrets", func() {
 			Expect(renderingContext).To(
 				ProduceYAML(RepresentingASecret().
 					WithName("uaa-jwt-policy-signing-keys").
-					WithStringData("uaa-jwt-policy-signing-keys.yml", jwtPolicySigningKeys)),
+					WithStringData("jwt_policy_signing_keys.yml", jwtPolicySigningKeys)),
 			)
 		})
 

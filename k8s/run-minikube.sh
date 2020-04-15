@@ -8,7 +8,6 @@ UAA_CONFIG_DIR="${HOME}/.uaa"
 UAA_ADMIN_CLIENT_SECRET_LOCATION="${UAA_CONFIG_DIR}/admin_client_secret.json"
 
 minikube_status() {
-
   local minikube_status_exit_code
   minikube status
   minikube_status_exit_code=$?
@@ -48,9 +47,14 @@ EOF
 
 ytt_and_minikube() {
   local ytt_kubectl_cmd="ytt -f templates -f addons -v admin.client_secret=\"${UAA_ADMIN_CLIENT_SECRET}\" ${@} | kubectl apply -f -"
-
+  local ytt_kubectl_cmd_exit_code
   echo "Running '${ytt_kubectl_cmd}'"
   eval "${ytt_kubectl_cmd}"
+  ytt_kubectl_cmd_exit_code=$?
+
+  if [ ${ytt_kubectl_cmd_exit_code} -ne 0 ]; then
+    exit ${ytt_kubectl_cmd_exit_code}
+  fi
 }
 
 check_k8s_for_admin_client_secret() {
