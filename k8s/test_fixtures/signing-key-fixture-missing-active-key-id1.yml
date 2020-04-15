@@ -1,0 +1,10 @@
+#@data/values
+#@ load("@ytt:overlay", "overlay")
+---
+jwt:
+  policy:
+    activeKeyId: missing_active_key
+    keys:
+      #@overlay/match by="keyId",missing_ok=True
+      - keyId: other_key
+        signingKey: signingKey

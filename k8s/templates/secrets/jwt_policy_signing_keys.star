@@ -5,11 +5,19 @@ def signing_keys(jwt_policy):
     assert.fail("jwt.policy.activeKeyId is required")
   end
 
+  found_active_key = False
   keys = {}
   for k in jwt_policy.keys:
     keys[k.keyId] = {
       "signingKey": k.signingKey
     }
+    if k.keyId == jwt_policy.activeKeyId:
+      found_active_key = True
+    end
+  end
+
+  if not found_active_key:
+    assert.fail("jwt.policy.keys must contain keyId matching jwt.policy.signingKey")
   end
 
   return {

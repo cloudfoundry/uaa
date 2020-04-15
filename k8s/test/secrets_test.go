@@ -222,7 +222,22 @@ var _ = Describe("Secrets", func() {
 			renderingContext := NewRenderingContext(templates...)
 
 			Expect(renderingContext).To(
-				ThrowError("jwt.policy.activeKeyId is required"),
+				ThrowError("fail: jwt.policy.activeKeyId is required"),
+			)
+		})
+
+		It("activeKeyId must be found in the list of keys", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
+				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "signing-key-fixture-missing-active-key-id1.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(
+				ThrowError("fail: jwt.policy.keys must contain keyId matching jwt.policy.signingKey"),
 			)
 		})
 	})
