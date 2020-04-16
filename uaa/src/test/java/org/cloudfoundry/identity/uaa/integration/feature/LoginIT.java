@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
@@ -404,10 +406,12 @@ public class LoginIT {
         webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
-        assertEquals(userEmail, webDriver.findElement(By.className("email-address")).getText());
+        assertThat(webDriver.findElement(By.className("email-address")).getText(), startsWith(userEmail));
+        assertThat(webDriver.findElement(By.className("email-address")).getText(), containsString(OriginKeys.UAA));
         webDriver.findElement(By.className("email-address")).click();
 
         assertEquals(userEmail, webDriver.findElement(By.id("username")).getAttribute("value"));
+        assertThat(webDriver.getCurrentUrl(), containsString("login_hint"));
         webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         assertEquals("Where to?", webDriver.findElement(By.cssSelector(".island h1")).getText());

@@ -385,7 +385,7 @@ public class LoginInfoEndpoint {
 
         if (discoveryEnabled) {
             if (model.containsAttribute("login_hint")) {
-                return goToPasswordPage(null, model);
+                return goToPasswordPage(request.getParameter("email"), model);
             }
             boolean accountChooserNeeded = accountChooserEnabled
                     && !(otherAccountSignIn || savedAccountsEmpty)
