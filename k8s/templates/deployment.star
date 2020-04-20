@@ -1,5 +1,7 @@
 config_dir = "/etc/config"
 secrets_dir = "/etc/secrets"
+truststore_file = "/etc/truststore/uaa.pkcs12.truststore"
+truststore_password = "changeit"
 
 java_opts_list = [
   "-Djava.security.egd=file:/dev/./urandom",
@@ -7,6 +9,9 @@ java_opts_list = [
   "-Dlog4j.configurationFile={}/log4j2.properties".format(config_dir),
   "-DCLOUDFOUNDRY_CONFIG_PATH={}".format(config_dir),
   "-DSECRETS_DIR={}".format(secrets_dir),
+  "-Djavax.net.ssl.trustStore={}".format(truststore_file),
+  "-Djavax.net.ssl.trustStoreType=PKCS12",
+  "-Djavax.net.ssl.trustStorePassword={}".format(truststore_password),
 ]
 
 def java_opts(database_scheme):

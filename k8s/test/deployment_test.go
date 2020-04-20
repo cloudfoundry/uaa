@@ -44,6 +44,7 @@ var _ = Describe("Deployment", func() {
 			pathToFile(filepath.Join("values", "image.yml")),
 			pathToFile(filepath.Join("values", "version.yml")),
 			pathToFile("deployment.star"),
+			"secrets/ca_certs.star=" + pathToFile(filepath.Join("secrets", "ca_certs.star")),
 		}
 	})
 
@@ -56,7 +57,10 @@ var _ = Describe("Deployment", func() {
 			"-Dlogging.config=/etc/config/log4j2.properties " +
 			"-Dlog4j.configurationFile=/etc/config/log4j2.properties " +
 			"-DCLOUDFOUNDRY_CONFIG_PATH=/etc/config " +
-			"-DSECRETS_DIR=/etc/secrets"
+			"-DSECRETS_DIR=/etc/secrets " +
+			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore " +
+			"-Djavax.net.ssl.trustStoreType=PKCS12 " +
+			"-Djavax.net.ssl.trustStorePassword=changeit"
 
 		Expect(ctx).To(
 			ProduceYAML(

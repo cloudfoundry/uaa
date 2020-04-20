@@ -258,4 +258,51 @@ var _ = Describe("Secrets", func() {
 			)
 		})
 	})
+
+	Context("CA Certs", func() {
+		It("Renders when CA Certs are present", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "ca_certs.yml")),
+				pathToFile(filepath.Join("secrets", "ca_certs.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "ca_certs.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			cert0 :=
+				`-----BEGIN CERTIFICATE-----
+MIIEjjCCA3agAwIBAgIJAI33lwF8rywxMA0GCSqGSIb3DQEBBQUAMIGKMQswCQYD
+...
+ScMdzkIk7jUztpr7pubxydSf
+-----END CERTIFICATE-----`
+			cert1 :=
+				`not
+a
+real
+cert`
+			cert2 := `i am a string`
+
+			Expect(renderingContext).To(
+				ProduceYAML(RepresentingASecret().
+					WithName("uaa-ca-certs").
+					WithData("uaa-ca-cert0.pem", []byte(cert0)).
+					WithData("uaa-ca-cert1.pem", []byte(cert1)).
+					WithData("uaa-ca-cert2.pem", []byte(cert2)),
+				),
+			)
+		})
+
+		It("Does not render when CA Certs are empty", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "ca_certs.yml")),
+				pathToFile(filepath.Join("secrets", "ca_certs.star")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(ProduceEmptyYAML())
+		})
+	})
 })
