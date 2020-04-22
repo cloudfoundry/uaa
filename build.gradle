@@ -207,6 +207,10 @@ cargo {
             property "metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true")
             property "smtp.host", "localhost"
             property "smtp.port", 2525
+
+//            property "javax.net.ssl.trustStore", System.getProperty("javax.net.ssl.trustStore")
+//            property "javax.net.ssl.trustStoreType", System.getProperty("javax.net.ssl.trustStoreType")
+//            property "javax.net.ssl.trustStorePassword", System.getProperty("javax.net.ssl.trustStorePassword")
         }
 
         containerProperties {
@@ -214,7 +218,7 @@ cargo {
         }
 
         installer {
-            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + tomcatVersion + "/tomcat-" + tomcatVersion + ".tar.gz"
+            installUrl = "file:/Users/pivotal/Downloads/tomcat-9.0.33.tar.gz"
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }

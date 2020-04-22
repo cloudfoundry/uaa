@@ -5,6 +5,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
@@ -87,6 +88,10 @@ public class ClientAdminBootstrap implements
         this.autoApproveClients = new HashSet<>(ofNullable(autoApproveClients).orElse(Collections.emptySet()));
         this.clientsToDelete = new HashSet<>(ofNullable(clientsToDelete).orElse(Collections.emptySet()));
         this.jdbcTemplate = jdbcTemplate;
+
+        logger.error("AAAAAAAAAAAA javax.net.ssl.trustStore=[{}]", System.getProperty("javax.net.ssl.trustStore"));
+        logger.error("AAAAAAAAAAAA javax.net.ssl.trustStoreType=[{}]", System.getProperty("javax.net.ssl.trustStoreType"));
+        logger.error("AAAAAAAAAAAA javax.net.ssl.trustStorePassword=[{}]", System.getProperty("javax.net.ssl.trustStorePassword"));
     }
 
     @Override
