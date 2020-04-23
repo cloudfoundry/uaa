@@ -37,6 +37,12 @@ var _ = Describe("Deployment", func() {
 		"ReadOnly":  Equal(true),
 	})
 
+	truststoreVolumeMountMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+		"Name":      Equal("truststore-file"),
+		"MountPath": Equal("/etc/truststore"),
+		"ReadOnly":  Equal(true),
+	})
+
 	BeforeEach(func() {
 		templates = []string{
 			pathToFile("deployment.yml"),
@@ -44,6 +50,7 @@ var _ = Describe("Deployment", func() {
 			pathToFile(filepath.Join("values", "image.yml")),
 			pathToFile(filepath.Join("values", "version.yml")),
 			pathToFile("deployment.star"),
+			"secrets/ca_certs.star=" + pathToFile(filepath.Join("secrets", "ca_certs.star")),
 		}
 	})
 
@@ -56,7 +63,10 @@ var _ = Describe("Deployment", func() {
 			"-Dlogging.config=/etc/config/log4j2.properties " +
 			"-Dlog4j.configurationFile=/etc/config/log4j2.properties " +
 			"-DCLOUDFOUNDRY_CONFIG_PATH=/etc/config " +
-			"-DSECRETS_DIR=/etc/secrets"
+			"-DSECRETS_DIR=/etc/secrets " +
+			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore " +
+			"-Djavax.net.ssl.trustStoreType=PKCS12 " +
+			"-Djavax.net.ssl.trustStorePassword=changeit"
 
 		Expect(ctx).To(
 			ProduceYAML(
@@ -72,6 +82,7 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
 						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 						container.WithVolumeMount("jwt-policy-signing-keys-file", jwtTokensVolumeMountMatcher)
+						container.WithVolumeMount("truststore-file", truststoreVolumeMountMatcher)
 						container.WithResourceRequests("512Mi", "500m")
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
@@ -79,6 +90,7 @@ var _ = Describe("Deployment", func() {
 					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
 					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 					pod.WithVolume("jwt-policy-signing-keys-file", Not(BeNil()))
+					pod.WithVolume("truststore-file", Not(BeNil()))
 				}),
 			),
 		)

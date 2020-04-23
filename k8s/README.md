@@ -1,5 +1,11 @@
 ## Testing image `cfidentity/uaa` 
 
+To switch between the minikube docker daemon and the local docker daemon, use these commands:
+
+For minikube's docker daemon: `eval "$(minikube docker-env)"`
+
+For the local docker daemon: `eval "$(minikube docker-env --unset=true)"`
+
 To test image `cfidentity/uaa`, you can make use of these sample docker commands:
 
 ### Docker Run
