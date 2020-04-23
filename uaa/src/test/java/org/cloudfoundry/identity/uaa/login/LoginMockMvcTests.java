@@ -2664,7 +2664,7 @@ public class LoginMockMvcTests {
         void hasValidError() throws Exception {
             mockMvc.perform(
                     get("/login?error=login_failure"))
-                    .andExpect(content().string(containsString("Unable to verify email or password. Please try again.")));
+                    .andExpect(content().string(containsString("Provided credentials are invalid. Please try again.")));
         }
 
         @Test

@@ -230,7 +230,7 @@ public class LoginIT {
         assertEquals("Cloud Foundry", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
         attemptLogin(newUserEmail, USER_PASSWORD);
-        assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Unable to verify email or password. Please try again."));
+        assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Provided credentials are invalid. Please try again."));
 
         String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8);
         webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
