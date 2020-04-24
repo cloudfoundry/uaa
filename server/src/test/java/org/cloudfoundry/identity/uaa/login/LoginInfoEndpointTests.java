@@ -410,7 +410,7 @@ class LoginInfoEndpointTests {
     void discoverIdentityProviderCarriesUsername() throws MalformedURLException {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("email","testuser@fake.com");
+        request.setParameter("username","testuser@fake.com");
         MockHttpSession session = new MockHttpSession();
         String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
         IdentityProvider idp = mock(IdentityProvider.class);

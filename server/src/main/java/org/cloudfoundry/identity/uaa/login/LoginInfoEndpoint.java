@@ -577,8 +577,8 @@ public class LoginInfoEndpoint {
 
     private String getRedirectUrlForExternalOAuthIDP(HttpServletRequest request, String idpOriginKey, AbstractExternalOAuthIdentityProviderDefinition definition) {
         String idpAuthenticationUrl = externalOAuthProviderConfigurator.getIdpAuthenticationUrl(definition, idpOriginKey, request);
-        if (request.getParameter("email") != null && definition.getUserPropagationParameter() != null) {
-            idpAuthenticationUrl = UriComponentsBuilder.fromUriString(idpAuthenticationUrl).queryParam(definition.getUserPropagationParameter(), request.getParameter("email")).build().toUriString();
+        if (request.getParameter("username") != null && definition.getUserPropagationParameter() != null) {
+            idpAuthenticationUrl = UriComponentsBuilder.fromUriString(idpAuthenticationUrl).queryParam(definition.getUserPropagationParameter(), request.getParameter("username")).build().toUriString();
         }
         return idpAuthenticationUrl;
     }
@@ -732,7 +732,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
-    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, @RequestParam(required = false, name = "login_hint") String loginHint, Model model, HttpSession session, HttpServletRequest request) {
+    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, @RequestParam(required = false, name = "login_hint") String loginHint,  @RequestParam(required = false, name = "username") String username,Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
@@ -762,6 +762,9 @@ public class LoginInfoEndpoint {
 
         if (StringUtils.hasText(email)) {
             model.addAttribute("email", email);
+        }
+        if (StringUtils.hasText(username)) {
+            model.addAttribute("username", username);
         }
         return "redirect:/login?discoveryPerformed=true";
     }
