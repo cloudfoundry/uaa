@@ -15,19 +15,19 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 
-public class AuditListenerTests {
+class AuditListenerTests {
 
     private AuditListener listener;
     private UaaAuditService auditor;
     private UaaUser user = new UaaUser("auser", "password", "auser@blah.com", "A", "User");
     private UaaAuthenticationDetails details;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         HttpServletRequest request = mock(HttpServletRequest.class);
         details = new UaaAuthenticationDetails(request);
         auditor = mock(UaaAuditService.class);
@@ -35,20 +35,20 @@ public class AuditListenerTests {
     }
 
     @Test
-    public void userNotFoundIsAudited() {
+    void userNotFoundIsAudited() {
         AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("breakin", "password", details);
         listener.onApplicationEvent(new UserNotFoundEvent(req, IdentityZoneHolder.getCurrentZoneId()));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void successfulUserAuthenticationIsAudited() {
+    void successfulUserAuthenticationIsAudited() {
         listener.onApplicationEvent(new UserAuthenticationSuccessEvent(user, mock(Authentication.class), IdentityZoneHolder.getCurrentZoneId()));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void unsuccessfulUserAuthenticationIsAudited() {
+    void unsuccessfulUserAuthenticationIsAudited() {
         AuthzAuthenticationRequest req = new AuthzAuthenticationRequest("auser", "password", details);
         listener.onApplicationEvent(new UserAuthenticationFailureEvent(user, req, IdentityZoneHolder.getCurrentZoneId()));
         verify(auditor).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
