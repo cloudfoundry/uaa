@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -23,6 +22,7 @@ import org.springframework.security.core.Authentication;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
+@ExtendWith(RandomStringGetterExtension.class)
 class AuditListenerTests {
 
     @Mock
@@ -38,22 +38,22 @@ class AuditListenerTests {
     private AuditListener auditListener;
 
     @Test
-    void userNotFoundIsAudited() {
+    void userNotFoundIsAudited(final RandomStringGetter zoneId) {
         when(mockAuthentication.getName()).thenReturn("name");
-        auditListener.onApplicationEvent(new UserNotFoundEvent(mockAuthentication, IdentityZoneHolder.getCurrentZoneId()));
-        verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
+        auditListener.onApplicationEvent(new UserNotFoundEvent(mockAuthentication, zoneId.get()));
+        verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(zoneId.get()));
     }
 
     @Test
-    void successfulUserAuthenticationIsAudited() {
-        auditListener.onApplicationEvent(new UserAuthenticationSuccessEvent(mockUser, mockAuthentication, IdentityZoneHolder.getCurrentZoneId()));
-        verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
+    void successfulUserAuthenticationIsAudited(final RandomStringGetter zoneId) {
+        auditListener.onApplicationEvent(new UserAuthenticationSuccessEvent(mockUser, mockAuthentication, zoneId.get()));
+        verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(zoneId.get()));
     }
 
     @Test
-    void unsuccessfulUserAuthenticationIsAudited() {
-        auditListener.onApplicationEvent(new UserAuthenticationFailureEvent(mockUser, mockAuthentication, IdentityZoneHolder.getCurrentZoneId()));
-        verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(IdentityZoneHolder.get().getId()));
+    void unsuccessfulUserAuthenticationIsAudited(final RandomStringGetter zoneId) {
+        auditListener.onApplicationEvent(new UserAuthenticationFailureEvent(mockUser, mockAuthentication, zoneId.get()));
+        verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(zoneId.get()));
     }
 
 }
