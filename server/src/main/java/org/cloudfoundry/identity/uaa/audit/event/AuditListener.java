@@ -16,10 +16,6 @@ import org.springframework.util.Assert;
 public class AuditListener implements ApplicationListener<AbstractUaaEvent> {
     private final UaaAuditService uaaAuditService;
 
-    public AuditListener() {
-        uaaAuditService = new LoggingAuditService();
-    }
-
     public AuditListener(UaaAuditService auditor) {
         Assert.notNull(auditor, "[Assertion failed] - auditor is required; it must not be null");
         this.uaaAuditService = auditor;
