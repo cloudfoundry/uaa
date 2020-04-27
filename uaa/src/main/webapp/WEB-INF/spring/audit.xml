@@ -4,7 +4,7 @@
 
     <bean id="jdbcAuditService" class="org.cloudfoundry.identity.uaa.audit.JdbcUnsuccessfulLoginCountingAuditService">
         <constructor-arg index="0" ref="jdbcTemplate"/>
-        <property name="timeService" ref="timeService"/>
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
 </beans>

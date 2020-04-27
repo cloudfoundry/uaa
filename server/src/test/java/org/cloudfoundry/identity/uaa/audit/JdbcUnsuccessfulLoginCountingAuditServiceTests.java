@@ -29,10 +29,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @WithDatabaseContext
 class JdbcUnsuccessfulLoginCountingAuditServiceTests {
@@ -42,13 +39,16 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
     private String authDetails;
     private JdbcTemplate template;
 
+    private TimeService mockTimeService;
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @BeforeEach
     void createService() {
         template = spy(jdbcTemplate);
-        auditService = new JdbcUnsuccessfulLoginCountingAuditService(template);
+        mockTimeService = mock(TimeService.class);
+        auditService = new JdbcUnsuccessfulLoginCountingAuditService(template, mockTimeService);
         jdbcTemplate.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
         authDetails = "1.1.1.1";
     }
@@ -68,6 +68,7 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
     @Test
     void userAuthenticationFailureDeletesOldData() {
         long now = System.currentTimeMillis();
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
         ReflectionTestUtils.invokeMethod(ReflectionTestUtils.getField(auditService, "lastDelete"), "set", 0l);
@@ -80,6 +81,7 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
     @Test
     void delete_happens_single_thread_on_intervals() {
         long now = System.currentTimeMillis();
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(1));
         // Set the created column to 25 hours past
@@ -95,17 +97,14 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
 
     @Test
     void periodic_delete_works() {
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
+
         for (int i = 0; i < 5; i++) {
             auditService.periodicDelete();
         }
         verify(template, times(1)).update(anyString(), any(Timestamp.class));
         // 30 seconds has passed
-        auditService.setTimeService(new TimeService() {
-            @Override
-            public long getCurrentTimeMillis() {
-                return System.currentTimeMillis() + (31 * 1000);
-            }
-        });
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis() + (31 * 1000));
         reset(template);
         for (int i = 0; i < 5; i++) {
             auditService.periodicDelete();

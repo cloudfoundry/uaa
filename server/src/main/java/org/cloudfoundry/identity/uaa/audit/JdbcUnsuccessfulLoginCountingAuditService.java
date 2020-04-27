@@ -17,25 +17,21 @@ import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticat
  */
 public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService {
 
-    private int saveDataPeriodMillis = 24 * 3600 * 1000; // 24hr
-    private long timeBetweenDeleteMillis = 1000 * 30;
+    private final TimeService timeService;
 
-    private AtomicLong lastDelete = new AtomicLong(0);
-    private TimeService timeService = new TimeServiceImpl();
+    private final int saveDataPeriodMillis;
+    private final long timeBetweenDeleteMillis;
 
-    public JdbcUnsuccessfulLoginCountingAuditService(JdbcTemplate template) {
+    private AtomicLong lastDelete;
+
+    public JdbcUnsuccessfulLoginCountingAuditService(
+            final JdbcTemplate template,
+            final TimeService timeService) {
         super(template);
-    }
-
-    /**
-     * @param saveDataPeriodMillis the period in milliseconds to set
-     */
-    public void setSaveDataPeriodMillis(int saveDataPeriodMillis) {
-        this.saveDataPeriodMillis = saveDataPeriodMillis;
-    }
-
-    public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+        this.lastDelete = new AtomicLong(0);
+        this.saveDataPeriodMillis = 24 * 3600 * 1000;  // 24hr
+        this.timeBetweenDeleteMillis = 1000 * 30;
     }
 
     @Override
@@ -66,7 +62,6 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
     private void resetAuthenticationEvents(AuditEvent auditEvent, String zoneId, AuditEventType eventType) {
         getJdbcTemplate().update("delete from sec_audit where principal_id=? and identity_zone_id=? and event_type=?", auditEvent.getPrincipalId(), zoneId, eventType.getCode());
     }
-
 
     protected void periodicDelete() {
         long now = timeService.getCurrentTimeMillis();
