@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.audit;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -16,6 +17,7 @@ import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticat
  * to answer queries about consecutive
  * failed logins.
  */
+@Component("jdbcAuditService")
 public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService {
 
     private final TimeService timeService;

@@ -56,7 +56,6 @@
 
     <import resource="classpath:spring/data-source.xml"/>
     <import resource="classpath:spring/env.xml"/>
-    <import resource="spring/audit.xml"/>
 
     <sec:http name="secFilterOpen01" pattern="/resources/**" security="none"/>
     <sec:http name="secFilterOpen02" pattern="/square-logo.png" security="none"/>
