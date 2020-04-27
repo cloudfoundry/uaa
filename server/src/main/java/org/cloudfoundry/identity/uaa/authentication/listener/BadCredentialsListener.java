@@ -3,10 +3,11 @@ package org.cloudfoundry.identity.uaa.authentication.listener;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalNotFoundEvent;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -20,10 +21,16 @@ public class BadCredentialsListener
         implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,
         ApplicationEventPublisherAware {
 
+    private final IdentityZoneManager identityZoneManager;
+
     private ApplicationEventPublisher publisher;
 
+    public BadCredentialsListener(IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
+
     @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+    public void setApplicationEventPublisher(@NonNull final ApplicationEventPublisher publisher) {
         this.publisher = publisher;
     }
 
@@ -32,9 +39,9 @@ public class BadCredentialsListener
         String principal = event.getAuthentication().getName();
         UaaAuthenticationDetails details = (UaaAuthenticationDetails) event.getAuthentication().getDetails();
         if (event.getException() instanceof UsernameNotFoundException) {
-            publisher.publishEvent(new PrincipalNotFoundEvent(principal, details, IdentityZoneHolder.getCurrentZoneId()));
+            publisher.publishEvent(new PrincipalNotFoundEvent(principal, details, identityZoneManager.getCurrentIdentityZoneId()));
         } else {
-            publisher.publishEvent(new PrincipalAuthenticationFailureEvent(principal, details, IdentityZoneHolder.getCurrentZoneId()));
+            publisher.publishEvent(new PrincipalAuthenticationFailureEvent(principal, details, identityZoneManager.getCurrentIdentityZoneId()));
         }
     }
 
