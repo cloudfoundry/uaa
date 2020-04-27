@@ -7,7 +7,4 @@
         <property name="timeService" ref="timeService"/>
     </bean>
 
-    <!-- Keep this as a top-level bean to ensure it is exposed as a @ManagedResource -->
-    <bean id="loggingAuditService" class="org.cloudfoundry.identity.uaa.audit.LoggingAuditService"/>
-
 </beans>
