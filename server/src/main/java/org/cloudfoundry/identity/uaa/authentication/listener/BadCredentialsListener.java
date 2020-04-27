@@ -10,6 +10,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Component;
 
 /**
  * Spring {@code ApplicationListener} which picks up the listens for Spring
@@ -17,6 +18,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  *
  * @author Dave Syer
  */
+@Component
 public class BadCredentialsListener
         implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,
         ApplicationEventPublisherAware {
