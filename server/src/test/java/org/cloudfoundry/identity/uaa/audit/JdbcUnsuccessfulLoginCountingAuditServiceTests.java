@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -92,17 +80,17 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
         // Set the created column to 25 hours past
         jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 25 * 3600 * 1000));
         int count = 5;
-        for (int i = 0; i< count; i++) {
+        for (int i = 0; i < count; i++) {
             auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         }
-        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(count+1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from sec_audit where principal_id='1'", Integer.class), is(count + 1));
         ArgumentCaptor<String> queries = ArgumentCaptor.forClass(String.class);
         verify(template, times(1)).update(queries.capture(), any(Timestamp.class));
     }
 
     @Test
     public void periodic_delete_works() {
-        for (int i=0; i<5; i++) {
+        for (int i = 0; i < 5; i++) {
             auditService.periodicDelete();
         }
         verify(template, times(1)).update(anyString(), any(Timestamp.class));
@@ -114,7 +102,7 @@ public class JdbcUnsuccessfulLoginCountingAuditServiceTests extends JdbcTestBase
             }
         });
         reset(template);
-        for (int i=0; i<5; i++) {
+        for (int i = 0; i < 5; i++) {
             auditService.periodicDelete();
         }
         verify(template, times(1)).update(anyString(), any(Timestamp.class));
