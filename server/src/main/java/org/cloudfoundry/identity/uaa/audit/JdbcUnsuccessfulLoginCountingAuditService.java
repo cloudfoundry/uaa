@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.MfaAuthenticationFailure;
@@ -19,8 +20,8 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
 
     private final TimeService timeService;
 
-    private final int saveDataPeriodMillis;
-    private final long timeBetweenDeleteMillis;
+    private final Duration saveDataPeriod;
+    private final Duration timeBetweenDelete;
 
     private AtomicLong lastDelete;
 
@@ -30,8 +31,8 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
         super(template);
         this.timeService = timeService;
         this.lastDelete = new AtomicLong(0);
-        this.saveDataPeriodMillis = 24 * 3600 * 1000;  // 24hr
-        this.timeBetweenDeleteMillis = 1000 * 30;
+        this.saveDataPeriod = Duration.ofDays(1L);
+        this.timeBetweenDelete = Duration.ofSeconds(30L);
     }
 
     @Override
@@ -66,10 +67,10 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
     protected void periodicDelete() {
         long now = timeService.getCurrentTimeMillis();
         long lastCheck = lastDelete.get();
-        if (now - lastCheck > timeBetweenDeleteMillis && lastDelete.compareAndSet(lastCheck, now)) {
+        if (now - lastCheck > timeBetweenDelete.toMillis() && lastDelete.compareAndSet(lastCheck, now)) {
             getJdbcTemplate().update("delete from sec_audit where created < ?",
                     new Timestamp(System.currentTimeMillis()
-                            - saveDataPeriodMillis));
+                            - saveDataPeriod.toMillis()));
         }
     }
 
