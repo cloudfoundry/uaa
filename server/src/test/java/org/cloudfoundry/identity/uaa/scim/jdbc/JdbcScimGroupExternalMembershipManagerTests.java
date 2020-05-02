@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -52,7 +40,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     public void initJdbcScimGroupExternalMembershipManagerTests() {
 
         String zoneId = new RandomValueStringGenerator().generate();
-        otherZone = MultitenancyFixture.identityZone(zoneId,zoneId);
+        otherZone = MultitenancyFixture.identityZone(zoneId, zoneId);
         otherZone = new JdbcIdentityZoneProvisioning(jdbcTemplate).create(otherZone);
 
         JdbcTemplate template = new JdbcTemplate(dataSource);
@@ -73,9 +61,9 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
         for (IdentityZone zone : Arrays.asList(IdentityZone.getUaa(), otherZone)) {
             IdentityZoneHolder.set(zone);
-            addGroup("g1-"+zone.getId(), "test1");
-            addGroup("g2-"+zone.getId(), "test2");
-            addGroup("g3-"+zone.getId(), "test3");
+            addGroup("g1-" + zone.getId(), "test1");
+            addGroup("g2-" + zone.getId(), "test2");
+            addGroup("g3-" + zone.getId(), "test3");
             IdentityZoneHolder.clear();
         }
 
@@ -101,7 +89,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     @Test
     public void deleteGroupAndMappings() {
         createGroupMapping();
-        gdao.delete("g1-"+IdentityZoneHolder.get().getId(), -1, IdentityZoneHolder.get().getId());
+        gdao.delete("g1-" + IdentityZoneHolder.get().getId(), -1, IdentityZoneHolder.get().getId());
         int mappingsCount = jdbcTemplate.queryForObject("select count(1) from " + JdbcScimGroupExternalMembershipManager.EXTERNAL_GROUP_MAPPING_TABLE, Integer.class);
         assertEquals(0, mappingsCount);
     }
@@ -109,26 +97,26 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     @Test
     public void test_group_mapping() {
         createGroupMapping();
-        assertEquals(1, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin,IdentityZoneHolder.get().getId()).size());
-        assertEquals(0, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin,"id").size());
+        assertEquals(1, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, edao.getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin, "id").size());
     }
 
     private void createGroupMapping() {
-        ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+        ScimGroup group = gdao.retrieve("g1-" + IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
         assertNotNull(group);
 
-        ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-        assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+        ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+        assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
         assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
 
-        List<ScimGroupExternalMember> externalMapping = edao.getExternalGroupMapsByGroupId("g1-"+IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
+        List<ScimGroupExternalMember> externalMapping = edao.getExternalGroupMapsByGroupId("g1-" + IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
 
         assertEquals(1, externalMapping.size());
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void cannot_Retrieve_ById_For_OtherZone() {
-        edao.getExternalGroupMapsByGroupId("g1-"+otherZone.getId(), origin, IdentityZoneHolder.get().getId());
+        edao.getExternalGroupMapsByGroupId("g1-" + otherZone.getId(), origin, IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
@@ -171,10 +159,10 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     @Test
     public void adding_ExternalMappingToGroup_IsCaseInsensitive() {
         createGroupMapping();
-        ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "CN=engineering,OU=groups,DC=example,DC=com", origin, IdentityZoneHolder.get().getId());
-        assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+        ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "CN=engineering,OU=groups,DC=example,DC=com", origin, IdentityZoneHolder.get().getId());
+        assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
         assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
-        List<ScimGroupExternalMember> externalMapping = edao.getExternalGroupMapsByGroupId("g1-"+IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
+        List<ScimGroupExternalMember> externalMapping = edao.getExternalGroupMapsByGroupId("g1-" + IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
         assertEquals(externalMapping.size(), 1);
     }
 
@@ -182,48 +170,48 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     public void addExternalMappingToGroupThatAlreadyExists() {
         createGroupMapping();
 
-        ScimGroupExternalMember dupMember = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-        assertEquals(dupMember.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+        ScimGroupExternalMember dupMember = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+        assertEquals(dupMember.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
         assertEquals(dupMember.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
     }
 
     @Test
     public void addMultipleExternalMappingsToGroup() {
-        ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+        ScimGroup group = gdao.retrieve("g1-" + IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
         assertNotNull(group);
 
         {
-            ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-            assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+            ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+            assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
             assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
         }
 
         {
-            ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=hr,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-            assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+            ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=hr,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+            assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
             assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
         }
 
         {
-            ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-            assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+            ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+            assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
             assertEquals(member.getExternalGroup(), "cn=mgmt,ou=groups,dc=example,dc=com");
         }
 
-        List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g1-"+IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
+        List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g1-" + IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
         assertEquals(externalMappings.size(), 3);
 
         List<String> testGroups = new ArrayList<>(
-            Arrays.asList(
-                new String[] {
-                    "cn=engineering,ou=groups,dc=example,dc=com",
-                    "cn=hr,ou=groups,dc=example,dc=com",
-                    "cn=mgmt,ou=groups,dc=example,dc=com"
-                }
-            )
+                Arrays.asList(
+                        new String[]{
+                                "cn=engineering,ou=groups,dc=example,dc=com",
+                                "cn=hr,ou=groups,dc=example,dc=com",
+                                "cn=mgmt,ou=groups,dc=example,dc=com"
+                        }
+                )
         );
         for (ScimGroupExternalMember member : externalMappings) {
-            assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+            assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
             testGroups.remove(member.getExternalGroup());
         }
 
@@ -233,85 +221,85 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     @Test
     public void addMultipleExternalMappingsToMultipleGroup() {
         {
-            ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+            ScimGroup group = gdao.retrieve("g1-" + IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             assertNotNull(group);
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
             }
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
             }
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g1-"+IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g1-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g1-" + IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g1-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=mgmt,ou=groups,dc=example,dc=com");
             }
-            List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g1-"+IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
+            List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g1-" + IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
             assertEquals(externalMappings.size(), 3);
         }
         {
-            ScimGroup group = gdao.retrieve("g2-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+            ScimGroup group = gdao.retrieve("g2-" + IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             assertNotNull(group);
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g2-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g2-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g2-" + IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g2-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
             }
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g2-"+IdentityZoneHolder.get().getId(), "cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g2-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g2-" + IdentityZoneHolder.get().getId(), "cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g2-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
             }
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g2-"+IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g2-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g2-" + IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g2-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=mgmt,ou=groups,dc=example,dc=com");
             }
-            List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g2-"+IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
+            List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g2-" + IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
             assertEquals(externalMappings.size(), 3);
         }
         {
-            ScimGroup group = gdao.retrieve("g3-"+IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
+            ScimGroup group = gdao.retrieve("g3-" + IdentityZoneHolder.get().getId(), IdentityZoneHolder.get().getId());
             assertNotNull(group);
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g3-"+IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g3-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g3-" + IdentityZoneHolder.get().getId(), "cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g3-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
             }
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g3-"+IdentityZoneHolder.get().getId(), "cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g3-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g3-" + IdentityZoneHolder.get().getId(), "cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g3-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
             }
 
             {
-                ScimGroupExternalMember member = edao.mapExternalGroup("g3-"+IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
-                assertEquals(member.getGroupId(), "g3-"+IdentityZoneHolder.get().getId());
+                ScimGroupExternalMember member = edao.mapExternalGroup("g3-" + IdentityZoneHolder.get().getId(), "cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                assertEquals(member.getGroupId(), "g3-" + IdentityZoneHolder.get().getId());
                 assertEquals(member.getExternalGroup(), "cn=mgmt,ou=groups,dc=example,dc=com");
             }
-            List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g3-"+IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
+            List<ScimGroupExternalMember> externalMappings = edao.getExternalGroupMapsByGroupId("g3-" + IdentityZoneHolder.get().getId(), origin, IdentityZoneHolder.get().getId());
             assertEquals(externalMappings.size(), 3);
         }
 
-        List<String> testGroups = new ArrayList<>(Arrays.asList(new String[] { "g1-"+IdentityZoneHolder.get().getId(), "g2-"+IdentityZoneHolder.get().getId(), "g3-"+IdentityZoneHolder.get().getId() }));
+        List<String> testGroups = new ArrayList<>(Arrays.asList(new String[]{"g1-" + IdentityZoneHolder.get().getId(), "g2-" + IdentityZoneHolder.get().getId(), "g3-" + IdentityZoneHolder.get().getId()}));
 
         {
             // LDAP groups are case preserving on fetch and case insensitive on
             // search
             List<ScimGroupExternalMember> externalMappings = edao
-                .getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                    .getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings) {
                 assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
                 testGroups.remove(member.getGroupId());
@@ -324,7 +312,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             // LDAP groups are case preserving on fetch and case insensitive on
             // search
             List<ScimGroupExternalMember> externalMappings = edao
-                            .getExternalGroupMapsByExternalGroup("cn=hr,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                    .getExternalGroupMapsByExternalGroup("cn=hr,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings) {
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
                 testGroups.remove(member.getGroupId());
@@ -333,7 +321,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             assertEquals(testGroups.size(), 0);
 
             List<ScimGroupExternalMember> externalMappings2 = edao
-                            .getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                    .getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings2) {
                 assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
                 testGroups.remove(member.getGroupId());
@@ -346,7 +334,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             // LDAP groups are case preserving on fetch and case insensitive on
             // search
             List<ScimGroupExternalMember> externalMappings = edao
-                            .getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
+                    .getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", origin, IdentityZoneHolder.get().getId());
             for (ScimGroupExternalMember member : externalMappings) {
                 assertEquals(member.getExternalGroup(), "cn=mgmt,ou=groups,dc=example,dc=com");
                 testGroups.remove(member.getGroupId());
