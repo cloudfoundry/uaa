@@ -1,20 +1,21 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.util.StringUtils;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class RevocableTokenTableTest extends JdbcTestBase {
+@WithDatabaseContext
+class RevocableTokenTableTest {
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
             new TestColumn("token_id", "varchar/nvarchar", 36),
@@ -36,15 +37,6 @@ public class RevocableTokenTableTest extends JdbcTestBase {
 
     );
 
-    @Override
-    public void setUp() {
-        MockEnvironment environment = new MockEnvironment();
-        if (System.getProperty("spring.profiles.active") != null) {
-            environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
-        }
-        setUp(environment);
-    }
-
     public boolean testColumn(String name, String type, int size) {
         return testColumn(TEST_COLUMNS, name, type, size);
     }
@@ -60,9 +52,8 @@ public class RevocableTokenTableTest extends JdbcTestBase {
         return false;
     }
 
-
     @Test
-    public void validate_table() throws Exception {
+    void validate_table(@Autowired DataSource dataSource) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
@@ -75,14 +66,14 @@ public class RevocableTokenTableTest extends JdbcTestBase {
                 int actualColumnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
                     String actualColumnType = rs.getString("TYPE_NAME");
-                    assertTrue("Testing column:" + rscolumnName, testColumn(rscolumnName, actualColumnType, actualColumnSize));
+                    assertTrue(testColumn(rscolumnName, actualColumnType, actualColumnSize), "Testing column:" + rscolumnName);
                     foundTable = true;
                     foundColumn++;
                 }
             }
             rs.close();
-            assertTrue("Table " + tableName + " not found!", foundTable);
-            assertEquals("Table " + tableName + " is missing columns!", TEST_COLUMNS.size(), foundColumn);
+            assertTrue(foundTable, "Table " + tableName + " not found!");
+            assertEquals(TEST_COLUMNS.size(), foundColumn, "Table " + tableName + " is missing columns!");
 
 
             rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
@@ -95,16 +86,16 @@ public class RevocableTokenTableTest extends JdbcTestBase {
                 String indexName = rs.getString("INDEX_NAME");
                 short indexType = rs.getShort("TYPE");
                 if (shouldCompareIndex(indexName)) {
-                    assertTrue("Testing index: " + indexName, testColumn(TEST_INDEX, indexName, "", indexType));
+                    assertTrue(testColumn(TEST_INDEX, indexName, "", indexType), "Testing index: " + indexName);
                     indexCount++;
 
                 }
             } while (rs.next());
-            assertEquals("One or more indices are missing", TEST_INDEX.size(), indexCount);
+            assertEquals(TEST_INDEX.size(), indexCount, "One or more indices are missing");
         }
     }
 
-    public boolean shouldCompareIndex(String indexName) {
+    boolean shouldCompareIndex(String indexName) {
         for (TestColumn c : TEST_INDEX) {
             if (c.name.equalsIgnoreCase(indexName)) {
                 return true;
@@ -113,12 +104,12 @@ public class RevocableTokenTableTest extends JdbcTestBase {
         return false;
     }
 
-    public static class TestColumn {
-        public final String name;
-        public final String type;
-        public final int size;
+    static class TestColumn {
+        final String name;
+        final String type;
+        final int size;
 
-        public TestColumn(String name, String type, int size) {
+        TestColumn(String name, String type, int size) {
             this.name = name;
             this.type = type;
             this.size = size;
