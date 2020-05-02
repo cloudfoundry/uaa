@@ -1,16 +1,26 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class TestSchemaValidation extends JdbcTestBase {
+@WithDatabaseContext
+public class TestSchemaValidation {
+
+    @Autowired
+    private Environment environment;
+
+    @Autowired
+    private DataSource dataSource;
 
     @Test
     public void test_v2_3_6__That_Users_Perf_Id_Index_Exists() throws Exception {
@@ -33,7 +43,6 @@ public class TestSchemaValidation extends JdbcTestBase {
         }
     }
 
-
     public void validate_index_existence(String[] tableNames, String lookupIndexName) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
@@ -51,7 +60,7 @@ public class TestSchemaValidation extends JdbcTestBase {
                     break;
                 }
             }
-            assertTrue("I was expecting to find index " + lookupIndexName, foundIndex);
+            assertTrue(foundIndex, "I was expecting to find index " + lookupIndexName);
         }
     }
 }
