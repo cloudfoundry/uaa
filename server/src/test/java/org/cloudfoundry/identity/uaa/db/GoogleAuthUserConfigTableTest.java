@@ -12,13 +12,13 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
+public class GoogleAuthUserConfigTableTest extends JdbcTestBase {
     public String tableName = "user_google_mfa_credentials";
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-            new TestColumn("user_id", "nvarchar/varchar",  36),
-            new TestColumn("secret_key","nvarchar/varchar", 255),
-            new TestColumn("encryption_key_label","nvarchar/varchar", 255),
+            new TestColumn("user_id", "nvarchar/varchar", 36),
+            new TestColumn("secret_key", "nvarchar/varchar", 255),
+            new TestColumn("encryption_key_label", "nvarchar/varchar", 255),
             new TestColumn("encrypted_validation_code", "nvarchar/varchar", 255),
             new TestColumn("validation_code", "integer/int4/int", -1),
             new TestColumn("scratch_codes", "nvarchar/varchar", 255),
@@ -27,7 +27,7 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
 
     @Test
     public void validate_table() throws Exception {
-        try(Connection connection = dataSource.getConnection()) {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             int foundColumn = 0;
@@ -57,7 +57,7 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
                 assertTrue("Error for column: " + c.name + " was type " + actualType.toLowerCase(), c.type.toLowerCase().contains(actualType.toLowerCase()));
-                if(c.size > 0) {
+                if (c.size > 0) {
                     assertEquals("Error for column: " + c.name, c.size, size);
                 }
             }
