@@ -1,34 +1,40 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
+@WithDatabaseContext
+class CheckIdpEnabledAuthenticationManagerTest {
 
     private IdentityProviderProvisioning identityProviderProvisioning;
     private CheckIdpEnabledAuthenticationManager manager;
     private UsernamePasswordAuthenticationToken token;
 
-    @Before
-    public void setupAuthManager() {
+    @BeforeEach
+    void setupAuthManager(@Autowired JdbcTemplate jdbcTemplate) {
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         identityProviderProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         MockUaaUserDatabase userDatabase = new MockUaaUserDatabase(u -> u.withId("id").withUsername("marissa").withEmail("test@test.org").withVerified(true).withPassword("koala"));
         PasswordEncoder encoder = mock(PasswordEncoder.class);
@@ -44,18 +50,18 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
     }
 
     @Test
-    public void testAuthenticate() {
+    void authenticate() {
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
         assertTrue(auth.isAuthenticated());
     }
 
-    @Test(expected = ProviderNotFoundException.class)
-    public void testAuthenticateIdpDisabled() {
+    @Test
+    void authenticateIdpDisabled() {
         IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         provider.setActive(false);
         identityProviderProvisioning.update(provider, IdentityZoneHolder.get().getId());
-        manager.authenticate(token);
+        assertThrows(ProviderNotFoundException.class, () -> manager.authenticate(token));
     }
 
 }
