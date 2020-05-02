@@ -1,20 +1,23 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class GroupMembershipAuthoritiesNullableTest extends JdbcTestBase {
+@WithDatabaseContext
+class GroupMembershipAuthoritiesNullableTest {
 
     @Test
-    public void testAuthoritiesNullable() throws SQLException {
+    void authoritiesNullable(@Autowired DataSource dataSource) throws SQLException {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             ResultSet rs;
@@ -27,7 +30,7 @@ public class GroupMembershipAuthoritiesNullableTest extends JdbcTestBase {
                     assertEquals("YES", rs.getString("IS_NULLABLE").toUpperCase());
                 }
             }
-            assertTrue("authorities column not found.", call);
+            assertTrue(call, "authorities column not found.");
         }
     }
 
