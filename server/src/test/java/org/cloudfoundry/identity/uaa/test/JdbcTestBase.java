@@ -28,7 +28,6 @@ public class JdbcTestBase extends TestClassNullifier {
     protected DataSource dataSource;
     protected LimitSqlAdapter limitSqlAdapter;
     protected MockEnvironment environment;
-    protected String validationQuery;
 
     @Before
     public void setUp() throws Exception {
@@ -49,7 +48,6 @@ public class JdbcTestBase extends TestClassNullifier {
         jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
         dataSource = webApplicationContext.getBean(DataSource.class);
         limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
-        validationQuery = webApplicationContext.getBean("validationQuery", String.class);
         IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
