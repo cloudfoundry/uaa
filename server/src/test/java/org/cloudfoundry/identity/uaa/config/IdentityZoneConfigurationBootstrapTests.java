@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator;
@@ -9,7 +10,7 @@ import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator;
 import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator;
@@ -21,8 +22,10 @@ import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfigValidator;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.security.Security;
 import java.util.Arrays;
@@ -32,14 +35,16 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
+@WithDatabaseContext
+public class IdentityZoneConfigurationBootstrapTests {
 
     public static final String PRIVATE_KEY =
             "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -64,8 +69,9 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     private Map<String, Object> links = new HashMap<>();
     private GeneralIdentityZoneValidator validator;
 
-    @Before
-    public void configureProvisioning() {
+    @BeforeEach
+    public void configureProvisioning(@Autowired JdbcTemplate jdbcTemplate) {
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
 
@@ -270,10 +276,10 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertFalse(bootstrap.isMfaEnabled());
     }
 
-    @Test(expected = InvalidIdentityZoneDetailsException.class)
+    @Test
     public void testMfaDisabledWithInvalidName() throws Exception {
         bootstrap.setMfaProviderName("NotExistingProvider");
-        bootstrap.afterPropertiesSet();
+        assertThrows(InvalidIdentityZoneDetailsException.class, () -> bootstrap.afterPropertiesSet());
     }
 
     @Test
@@ -286,10 +292,10 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertTrue(bootstrap.isMfaEnabled());
     }
 
-    @Test(expected = InvalidIdentityZoneDetailsException.class)
+    @Test
     public void testMfaEnabledInvalidName() throws Exception {
         bootstrap.setMfaProviderName("InvalidProvider");
         bootstrap.setMfaEnabled(true);
-        bootstrap.afterPropertiesSet();
+        assertThrows(InvalidIdentityZoneDetailsException.class, () -> bootstrap.afterPropertiesSet());
     }
 }
