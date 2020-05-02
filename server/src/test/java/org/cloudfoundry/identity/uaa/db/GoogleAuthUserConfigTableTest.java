@@ -63,16 +63,4 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
             }
         }
     }
-
-    public static class TestColumn {
-        public final String name;
-        public final String type;
-        public final int size;
-
-        public TestColumn(String name, String type, int size) {
-            this.name = name;
-            this.type = type;
-            this.size = size;
-        }
-    }
 }

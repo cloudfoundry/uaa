@@ -63,16 +63,4 @@ class ExpiringCodeTableTest {
         }
     }
 
-    private static class TestColumn {
-        private final String name;
-        private final String type;
-        private final int size;
-
-        private TestColumn(String name, String type, int size) {
-            this.name = name;
-            this.type = type;
-            this.size = size;
-        }
-    }
-
 }
