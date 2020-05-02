@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -12,7 +14,8 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-public class ExpiringCodeTableTest extends JdbcTestBase {
+@WithDatabaseContext
+class ExpiringCodeTableTest {
 
     private static List<TestColumn> TEST_COLUMNS = Arrays.asList(
             new TestColumn("code", "varchar/nvarchar", 255),
@@ -36,7 +39,7 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
     }
 
     @Test
-    public void validate_table() throws Exception {
+    void validate_table(@Autowired DataSource dataSource) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
