@@ -53,7 +53,8 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        provisioning = spy(new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProvider -> {}));
+        provisioning = spy(new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProvider -> {
+        }));
         bootstrap = new MfaProviderBootstrap(provisioning);
         sampleData = parseMfaYaml(sampleMfaYaml);
         expectedGoogleProviders = new ArrayList<>();
@@ -88,7 +89,7 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
     @Test
     public void testParseMfaProviders() {
         bootstrap.setMfaProviders(sampleData);
-        assertThat(bootstrap.getMfaProviders(),  containsInAnyOrder(expectedGoogleProviders.toArray()));
+        assertThat(bootstrap.getMfaProviders(), containsInAnyOrder(expectedGoogleProviders.toArray()));
     }
 
     @Test
@@ -108,8 +109,8 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
         ArgumentCaptor<MfaProvider> captor = ArgumentCaptor.forClass(MfaProvider.class);
         verify(provisioning).update(captor.capture(), eq("uaa"));
         verify(provisioning).create(eq(expectedGoogleProviders.get(1)), eq("uaa"));
-        assertEquals("new description", ((GoogleMfaProviderConfig)captor.getValue().getConfig()).getProviderDescription());
-        assertEquals("new description", ((GoogleMfaProviderConfig)provisioning.retrieveByName(expectedGoogleProviders.get(0).getName(), "uaa").getConfig()).getProviderDescription());
+        assertEquals("new description", ((GoogleMfaProviderConfig) captor.getValue().getConfig()).getProviderDescription());
+        assertEquals("new description", ((GoogleMfaProviderConfig) provisioning.retrieveByName(expectedGoogleProviders.get(0).getName(), "uaa").getConfig()).getProviderDescription());
     }
 
     public Map<String, Map<String, Object>> parseMfaYaml(String sampleYaml) {
@@ -121,11 +122,10 @@ public class MfaProviderBootstrapTest extends JdbcTestBase {
         factory.setResources(resources.toArray(new Resource[0]));
         Map<String, Object> tmpdata = factory.getObject();
         Map<String, Map<String, Object>> dataList = new HashMap<>();
-        for (Map.Entry<String, Map<String, Object>> entry : ((Map<String, Map<String, Object>>)tmpdata.get("mfa-providers")).entrySet()) {
+        for (Map.Entry<String, Map<String, Object>> entry : ((Map<String, Map<String, Object>>) tmpdata.get("mfa-providers")).entrySet()) {
             dataList.put(entry.getKey(), entry.getValue());
         }
         return dataList;
     }
-
 
 }
