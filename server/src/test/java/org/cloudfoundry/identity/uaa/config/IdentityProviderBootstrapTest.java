@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
@@ -18,18 +19,20 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.net.MalformedURLException;
@@ -52,21 +55,23 @@ import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class IdentityProviderBootstrapTest extends JdbcTestBase {
+@WithDatabaseContext
+class IdentityProviderBootstrapTest {
 
     private SamlIdentityProviderDefinition samlIdentityProviderDefinition;
     private SamlIdentityProviderDefinition samlIdentityProviderDefinition1;
@@ -79,13 +84,16 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     private AbstractExternalOAuthIdentityProviderDefinition oidcProvider;
     private HashMap<String, AbstractExternalOAuthIdentityProviderDefinition> oauthProviderConfig;
 
-    @After
-    public void clearIdentityHolder() {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @AfterEach
+    void clearIdentityHolder() {
         IdentityZoneHolder.clear();
     }
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() throws Exception {
         IdentityZoneHolder.clear();
         samlIdentityProviderDefinition = new SamlIdentityProviderDefinition();
         samlIdentityProviderDefinition.setAssertionConsumerIndex(0);
@@ -121,14 +129,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void upgradeLDAPProvider() throws Exception {
+    void upgradeLDAPProvider() throws Exception {
         String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
         jdbcTemplate.update(insertSQL);
         bootstrap.afterPropertiesSet();
     }
 
     @Test
-    public void ldapProfileBootstrap() throws Exception {
+    void ldapProfileBootstrap() throws Exception {
         environment.setActiveProfiles(LDAP);
         bootstrap.afterPropertiesSet();
 
@@ -143,7 +151,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void ldapBootstrap() throws Exception {
+    void ldapBootstrap() throws Exception {
         final String idpDescription = "Test LDAP Provider Description";
         HashMap<String, Object> ldapConfig = getGenericLdapConfig();
 
@@ -184,9 +192,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void ldapOverrideFalse() throws Exception {
+    void ldapOverrideFalse() throws Exception {
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         environment.setActiveProfiles(LDAP);
-        final String idpDescription = "Test LDAP Provider Description";
         HashMap<String, Object> ldapConfig = getGenericLdapConfig();
         ldapConfig.put("override", false);
 
@@ -205,7 +213,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void removedLdapBootstrapRemainsActive() throws Exception {
+    void removedLdapBootstrapRemainsActive() throws Exception {
         environment.setActiveProfiles(LDAP);
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put("base.url", "ldap://localhost:389/");
@@ -248,7 +256,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void keystoneProfileBootstrap() throws Exception {
+    void keystoneProfileBootstrap() throws Exception {
         environment.setActiveProfiles(KEYSTONE);
         bootstrap.afterPropertiesSet();
 
@@ -263,7 +271,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void keystoneBootstrap() throws Exception {
+    void keystoneBootstrap() throws Exception {
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
         bootstrap.setKeystoneConfig(keystoneConfig);
@@ -278,7 +286,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void removedKeystoneBootstrapIsInactive() throws Exception {
+    void removedKeystoneBootstrapIsInactive() throws Exception {
         environment.setActiveProfiles(KEYSTONE);
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
@@ -314,7 +322,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void oauthAndOidcProviderDeletion() throws Exception {
+    void oauthAndOidcProviderDeletion() throws Exception {
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         setOauthIDPWrappers();
         bootstrap.setOriginsToDelete(new LinkedList(oauthProviderConfig.keySet()));
         bootstrap.afterPropertiesSet();
@@ -354,7 +363,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void oauthAndOidcProviderActivation() throws Exception {
+    void oauthAndOidcProviderActivation() throws Exception {
         setOauthIDPWrappers();
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
@@ -394,7 +403,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void oauthAndOidcProviderOverrideFalse() throws Exception {
+    void oauthAndOidcProviderOverrideFalse() throws Exception {
         setOauthIDPWrappers();
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
@@ -404,8 +413,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         }
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void bootstrapFailsIfSamlAndOauthHaveTheSameAlias() throws Exception {
+    @Test
+    void bootstrapFailsIfSamlAndOauthHaveTheSameAlias() throws Exception {
         oauthProviderConfig.clear();
         oauthProviderConfig.put("same-alias", oauthProvider);
 
@@ -415,7 +424,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         setOauthIDPWrappers();
         bootstrap.setSamlProviders(configurator);
-        bootstrap.afterPropertiesSet();
+        assertThrows(IllegalArgumentException.class, () -> bootstrap.afterPropertiesSet());
     }
 
     private AbstractExternalOAuthIdentityProviderDefinition setCommonProperties(AbstractExternalOAuthIdentityProviderDefinition definition) throws MalformedURLException {
@@ -431,7 +440,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void samlBootstrap() throws Exception {
+    void samlBootstrap() throws Exception {
         bootstrap.setSamlProviders(configurator);
         configureSamlProviders(true, samlIdentityProviderDefinition);
 
@@ -447,7 +456,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void providersDeletedAndNotCreated() throws Exception {
+    void providersDeletedAndNotCreated() throws Exception {
         configureSamlProviders(true, samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
         List<String> originsToDelete = Arrays.asList(
                 samlIdentityProviderDefinition.getIdpEntityAlias(),
@@ -493,7 +502,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void samlProviderOverrideFalse() throws Exception {
+    void samlProviderOverrideFalse() throws Exception {
         configureSamlProviders(true, samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
@@ -522,7 +531,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void samlProviderNotDeactivated() throws Exception {
+    void samlProviderNotDeactivated() throws Exception {
         configureSamlProviders(true, samlIdentityProviderDefinition, samlIdentityProviderDefinition1);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
@@ -629,17 +638,17 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void setInternalUserManagementEnabled() throws Exception {
+    void setInternalUserManagementEnabled() throws Exception {
         setDisableInternalUserManagement("false");
     }
 
     @Test
-    public void setInternalUserManagementDisabled() throws Exception {
+    void setInternalUserManagementDisabled() throws Exception {
         setDisableInternalUserManagement("true");
     }
 
     @Test
-    public void setInternalUserManagementNotSet() throws Exception {
+    void setInternalUserManagementNotSet() throws Exception {
         setDisableInternalUserManagement(null);
     }
 
@@ -655,7 +664,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void setPasswordPolicyToInternalIDP() throws Exception {
+    void setPasswordPolicyToInternalIDP() throws Exception {
         bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
 
@@ -671,7 +680,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void setLockoutPolicyToInternalIDP() throws Exception {
+    void setLockoutPolicyToInternalIDP() throws Exception {
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
         lockoutPolicy.setLockoutPeriodSeconds(123);
         lockoutPolicy.setLockoutAfterFailures(3);
@@ -688,7 +697,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void deactivateAndActivateInternalIDP() throws Exception {
+    void deactivateAndActivateInternalIDP() throws Exception {
         environment.setProperty("disableInternalAuth", "true");
         bootstrap.afterPropertiesSet();
 
@@ -703,7 +712,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void defaultActiveFlagOnInternalIDP() throws Exception {
+    void defaultActiveFlagOnInternalIDP() throws Exception {
         bootstrap.afterPropertiesSet();
         IdentityProvider internalIdp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         assertTrue(internalIdp.isActive());
