@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,24 +46,21 @@ class JdbcSamlServiceProviderProvisioningTest {
     @AfterEach
     void cleanUp() {
         jdbcTemplate.update("delete from service_provider");
-        IdentityZoneHolder.clear();
     }
 
     @Test
     void retrieveActive() {
-        IdentityZoneHolder.set(IdentityZone.getUaa());
-        assertEquals(0, db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, db.retrieveActive(IdentityZone.getUaaZoneId()).size());
         String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
-        assertEquals(1, db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, db.retrieveActive(IdentityZone.getUaaZoneId()).size());
         jdbcTemplate.update("update service_provider set active=?", false);
-        assertEquals(0, db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, db.retrieveActive(IdentityZone.getUaaZoneId()).size());
     }
 
     @Test
     void createAndUpdateSamlServiceProviderInDefaultZone() {
-        IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
@@ -89,7 +85,7 @@ class JdbcSamlServiceProviderProvisioningTest {
         updatedConfig.setMetaDataLocation(SamlTestUtils.UNSIGNED_SAML_SP_METADATA);
         sp.setConfig(updatedConfig);
         sp.setIdentityZoneId(zoneId);
-        createdSp = db.update(sp, IdentityZoneHolder.get().getId());
+        createdSp = db.update(sp, IdentityZone.getUaaZoneId());
 
         assertEquals(sp.getName(), createdSp.getName());
         assertEquals(sp.getConfig(), createdSp.getConfig());
@@ -114,7 +110,6 @@ class JdbcSamlServiceProviderProvisioningTest {
     @Test
     void createSamlServiceProviderInOtherZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
-        IdentityZoneHolder.set(zone);
 
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
 
@@ -134,20 +129,17 @@ class JdbcSamlServiceProviderProvisioningTest {
     @Test
     void getSamlServiceProviderForWrongZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
-        IdentityZoneHolder.set(zone);
 
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
         db.create(sp, sp.getIdentityZoneId());
 
         // The current zone is not where we are creating the zone.
-        IdentityZoneHolder.set(IdentityZone.getUaa());
-        assertThrows(EmptyResultDataAccessException.class, () -> db.retrieve(sp.getId(), IdentityZoneHolder.get().getId()));
+        assertThrows(EmptyResultDataAccessException.class, () -> db.retrieve(sp.getId(), IdentityZone.getUaaZoneId()));
     }
 
     @Test
     void updateSamlServiceProviderInWrongZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
-        IdentityZoneHolder.set(zone);
 
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
 
@@ -172,13 +164,11 @@ class JdbcSamlServiceProviderProvisioningTest {
         sp.setConfig(updatedConfig);
         sp.setIdentityZoneId(zone.getId());
         // Switch to a different zone before updating.
-        IdentityZoneHolder.set(IdentityZone.getUaa());
-        assertThrows(EmptyResultDataAccessException.class, () -> db.update(sp, IdentityZoneHolder.get().getId()));
+        assertThrows(EmptyResultDataAccessException.class, () -> db.update(sp, IdentityZone.getUaaZoneId()));
     }
 
     @Test
     void createSamlServiceProviderWithSameEntityIdInDefaultZone() {
-        IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         db.create(sp, sp.getIdentityZoneId());
@@ -188,7 +178,6 @@ class JdbcSamlServiceProviderProvisioningTest {
     @Test
     void createSamlServiceProviderWithSameEntityIdInOtherZone() {
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
-        IdentityZoneHolder.set(zone);
         SamlServiceProvider sp = createSamlServiceProvider(zone.getId());
         db.create(sp, sp.getIdentityZoneId());
         assertThrows(SamlSpAlreadyExistsException.class, () -> db.create(sp, sp.getIdentityZoneId()));
@@ -196,13 +185,11 @@ class JdbcSamlServiceProviderProvisioningTest {
 
     @Test
     void createSamlServiceProviderWithSameEntityIdInDifferentZones() {
-        IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         db.create(sp, sp.getIdentityZoneId());
 
         IdentityZone zone = MultitenancyFixture.identityZone(UUID.randomUUID().toString(), "myzone");
-        IdentityZoneHolder.set(zone);
         zoneId = zone.getId();
         sp.setIdentityZoneId(zoneId);
         db.create(sp, sp.getIdentityZoneId());
@@ -210,7 +197,6 @@ class JdbcSamlServiceProviderProvisioningTest {
 
     @Test
     void deleteSamlServiceProvidersInUaaZone() {
-        IdentityZoneHolder.set(IdentityZone.getUaa());
         String zoneId = IdentityZone.getUaaZoneId();
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
@@ -218,26 +204,25 @@ class JdbcSamlServiceProviderProvisioningTest {
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
-                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, IdentityZoneHolder.getCurrentZoneId()));
+                new Object[]{IdentityZone.getUaaZoneId()}, Integer.class), is(1));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, zoneId));
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
-                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
+                new Object[]{zoneId}, Integer.class), is(0));
     }
 
     @Test
     void deleteSamlServiceProvidersInOtherZone() {
         String zoneId = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
-        IdentityZoneHolder.set(zone);
 
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
-                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, IdentityZoneHolder.getCurrentZoneId()));
+                new Object[]{zone.getId()}, Integer.class), is(1));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, zone.getId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?",
-                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
+                new Object[]{zone.getId()}, Integer.class), is(0));
     }
 }
