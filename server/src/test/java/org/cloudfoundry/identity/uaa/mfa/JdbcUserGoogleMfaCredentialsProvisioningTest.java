@@ -80,9 +80,9 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void testSaveUserGoogleMfaCredentials() throws EncryptionServiceException {
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-          "very_sercret_key",
-          74718234,
-          Arrays.asList(1, 22)).setMfaProviderId(MFA_ID);
+                "very_sercret_key",
+                74718234,
+                Arrays.asList(1, 22)).setMfaProviderId(MFA_ID);
 
         db.save(userGoogleMfaCredentials, zoneId);
         List<Map<String, Object>> credentials = jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials");
@@ -91,13 +91,13 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         assertEquals("jabbahut", record.get("user_id"));
 
         assertEquals("very_sercret_key", new String(
-          activeEncryptionKey.decrypt(Base64Utils.decodeFromString((String) record.get("secret_key"))))
+                activeEncryptionKey.decrypt(Base64Utils.decodeFromString((String) record.get("secret_key"))))
         );
         assertEquals(74718234, Integer.parseInt(new String(
-          activeEncryptionKey.decrypt(Base64Utils.decodeFromString(String.valueOf(record.get("encrypted_validation_code"))))))
+                activeEncryptionKey.decrypt(Base64Utils.decodeFromString(String.valueOf(record.get("encrypted_validation_code"))))))
         );
         assertEquals("1,22", new String(
-          activeEncryptionKey.decrypt(Base64Utils.decodeFromString(String.valueOf(record.get("scratch_codes")))))
+                activeEncryptionKey.decrypt(Base64Utils.decodeFromString(String.valueOf(record.get("scratch_codes")))))
         );
 
         assertEquals(MFA_ID, record.get("mfa_provider_id"));
@@ -110,9 +110,9 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void testSave_whenExistsForUser() {
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-          "very_sercret_key",
-          74718234,
-          Arrays.asList(1, 22)).setMfaProviderId(MFA_ID);
+                "very_sercret_key",
+                74718234,
+                Arrays.asList(1, 22)).setMfaProviderId(MFA_ID);
 
         db.save(userGoogleMfaCredentials, zoneId);
         db.save(userGoogleMfaCredentials, zoneId);
@@ -122,9 +122,9 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void testUpdateUserGoogleMfaCredentials_noUser() {
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-          "very_sercret_key",
-          74718234,
-          Arrays.asList(1, 22));
+                "very_sercret_key",
+                74718234,
+                Arrays.asList(1, 22));
         db.update(userGoogleMfaCredentials, zoneId);
     }
 
@@ -132,9 +132,9 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void testUpdateUserGoogleMfaCredentials() throws EncryptionServiceException {
         assertEquals(0, jdbcTemplate.queryForList("SELECT * FROM user_google_mfa_credentials").size());
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials("jabbahut",
-          "very_sercret_key",
-          74718234,
-          Arrays.asList(1, 22));
+                "very_sercret_key",
+                74718234,
+                Arrays.asList(1, 22));
         userGoogleMfaCredentials.setMfaProviderId(MFA_ID);
 
         db.save(userGoogleMfaCredentials, zoneId);
@@ -148,13 +148,13 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
         Map<String, Object> record = credentials.get(0);
 
         assertEquals("new_secret_key", new String(
-          activeEncryptionKey.decrypt(Base64Utils.decodeFromString((String) record.get("secret_key"))))
+                activeEncryptionKey.decrypt(Base64Utils.decodeFromString((String) record.get("secret_key"))))
         );
         assertEquals(84718234, Integer.parseInt(new String(
-          activeEncryptionKey.decrypt(Base64Utils.decodeFromString(String.valueOf(record.get("encrypted_validation_code"))))))
+                activeEncryptionKey.decrypt(Base64Utils.decodeFromString(String.valueOf(record.get("encrypted_validation_code"))))))
         );
         assertEquals("2,22", new String(
-          activeEncryptionKey.decrypt(Base64Utils.decodeFromString((String) record.get("scratch_codes"))))
+                activeEncryptionKey.decrypt(Base64Utils.decodeFromString((String) record.get("scratch_codes"))))
         );
         assertEquals(activeKeyLabel, record.get("encryption_key_label"));
     }
@@ -175,7 +175,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void testRetrieveExistingWithANonActiveEncryptionKey() {
         encryptionKeyService = new EncryptionKeyService(inactiveKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate,
-          encryptionKeyService);
+                encryptionKeyService);
         db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
 
 
@@ -235,7 +235,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void whenSaving_AndFailsToEncrypt_ShouldThrowAMeaningfulException() throws EncryptionServiceException {
         EncryptionKeyService mockEncryptionKeyService = mock(EncryptionKeyService.class, Answers.RETURNS_DEEP_STUBS);
         when(mockEncryptionKeyService.getActiveKey().encrypt(any()))
-          .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
+                .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, mockEncryptionKeyService);
 
         expectedException.expect(UnableToPersistMfaException.class);
@@ -247,17 +247,17 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     @Test
     public void whenUpdating_AndFailsToEncrypt_ShouldThrowAMeaningfulException() throws EncryptionServiceException {
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials(
-          "user1",
-          "secret",
-          12345,
-          Collections.singletonList(123)
+                "user1",
+                "secret",
+                12345,
+                Collections.singletonList(123)
         ).setMfaProviderId(MFA_ID);
 
         db.save(userGoogleMfaCredentials, zoneId);
 
         EncryptionKeyService mockEncryptionKeyService = mock(EncryptionKeyService.class, Answers.RETURNS_DEEP_STUBS);
         when(mockEncryptionKeyService.getActiveKey().encrypt(any()))
-          .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
+                .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, mockEncryptionKeyService);
 
         userGoogleMfaCredentials.setSecretKey("new_secret");
@@ -270,16 +270,16 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     @Test
     public void whenReading_AndFailsToDecrypt_ShouldThrowAMeaningfulException() throws EncryptionServiceException {
         UserGoogleMfaCredentials userGoogleMfaCredentials = new UserGoogleMfaCredentials(
-          "user1",
-          "secret",
-          12345,
-          Collections.singletonList(123)
+                "user1",
+                "secret",
+                12345,
+                Collections.singletonList(123)
         ).setMfaProviderId(MFA_ID);
         db.save(userGoogleMfaCredentials, zoneId);
 
         EncryptionKeyService mockEncryptionKeyService = mock(EncryptionKeyService.class, Answers.RETURNS_DEEP_STUBS);
         when(mockEncryptionKeyService.getKey(any()).orElseGet(any()).decrypt(any()))
-          .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
+                .thenThrow(new EncryptionServiceException(new RuntimeException("message should match")));
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate, mockEncryptionKeyService);
 
         expectedException.expect(UnableToRetrieveMfaException.class);
@@ -292,7 +292,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void whenDecryptingWithNonExistentKey_ShouldThrowMeaningfulException() {
         encryptionKeyService = new EncryptionKeyService(inactiveKeyLabel, Lists.newArrayList(activeEncryptionKey, inActiveEncryptionKey));
         db = new JdbcUserGoogleMfaCredentialsProvisioning(jdbcTemplate,
-          encryptionKeyService);
+                encryptionKeyService);
         db.save(new UserGoogleMfaCredentials("user1", "secret", 12345, Collections.singletonList(123)).setMfaProviderId(MFA_ID), zoneId);
 
 
@@ -309,7 +309,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void whenDecryptingRecordWithNoKeyLabel_ShouldNotAttemptToDecrypt() {
         String userId = "user1";
         int numInsertedRecords = jdbcTemplate.update("INSERT INTO user_google_mfa_credentials (user_id, secret_key, validation_code, scratch_codes, mfa_provider_id, zone_id, encryption_key_label) VALUES (?,?,?,?,?,?,?)",
-          userId, "secret_key", 123456, "123", MFA_ID, zoneId, null);
+                userId, "secret_key", 123456, "123", MFA_ID, zoneId, null);
         assertThat(numInsertedRecords, is(1));
 
         UserGoogleMfaCredentials user = db.retrieve(userId, MFA_ID);
@@ -324,7 +324,7 @@ public class JdbcUserGoogleMfaCredentialsProvisioningTest extends JdbcTestBase {
     public void whenDecryptingRecordWithEmptyKeyLabel_ShouldNotAttemptToDecrypt() {
         String userId = "user1";
         int numInsertedRecords = jdbcTemplate.update("INSERT INTO user_google_mfa_credentials (user_id, secret_key, validation_code, scratch_codes, mfa_provider_id, zone_id, encryption_key_label) VALUES (?,?,?,?,?,?,?)",
-          userId, "secret_key", 123456, "123", MFA_ID, zoneId, "");
+                userId, "secret_key", 123456, "123", MFA_ID, zoneId, "");
         assertThat(numInsertedRecords, is(1));
 
         UserGoogleMfaCredentials user = db.retrieve(userId, MFA_ID);
