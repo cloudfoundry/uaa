@@ -1,18 +1,22 @@
 package org.cloudfoundry.identity.uaa.authorization.external;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.authorization.LdapGroupMappingAuthorizationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -25,22 +29,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
+@WithDatabaseContext
+class LdapGroupMappingAuthorizationManagerTests {
 
     private JdbcScimGroupProvisioning gDB;
-
     private ScimGroupExternalMembershipManager eDB;
-
     private LdapGroupMappingAuthorizationManager manager;
-
     private ScimExternalGroupBootstrap bootstrap;
-
     private Set<? extends GrantedAuthority> nonLdapGroups;
-
     private Set<? extends GrantedAuthority> ldapGroups;
 
     private LdapAuthority
@@ -53,8 +53,12 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
             sa2 = new SimpleGrantedAuthority("acme.dev"),
             sa3 = new SimpleGrantedAuthority("acme.notmapped");
 
-    @Before
-    public void initLdapGroupMappingAuthorizationManagerTests() throws Exception {
+    @BeforeEach
+    void initLdapGroupMappingAuthorizationManagerTests(
+            @Autowired JdbcTemplate jdbcTemplate,
+            @Autowired LimitSqlAdapter limitSqlAdapter
+    ) {
+        TestUtils.cleanAndSeedDb(jdbcTemplate);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
@@ -84,21 +88,21 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void testAllLdapGroups() {
+    void allLdapGroups() {
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(ldapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1, sa2));
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
     }
 
     @Test
-    public void testAllNonLdapGroups() {
+    void allNonLdapGroups() {
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(nonLdapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1, sa2, sa3));
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
     }
 
     @Test
-    public void testMixedGroups() {
+    void mixedGroups() {
         Set<GrantedAuthority> mixed = new HashSet<>();
         mixed.add(sa1);
         mixed.add(sa3);
@@ -108,7 +112,7 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
     }
 
-    public String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
+    private static String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
         String[] result = new String[authorities != null ? authorities.size() : 0];
         if (result.length > 0) {
             int index = 0;
