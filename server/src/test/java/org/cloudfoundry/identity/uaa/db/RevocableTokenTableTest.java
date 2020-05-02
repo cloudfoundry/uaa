@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -28,33 +16,30 @@ import static org.junit.Assert.assertTrue;
 
 public class RevocableTokenTableTest extends JdbcTestBase {
 
-    private String springProfile;
-    private String tableName = "revocable_tokens";
-
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-        new TestColumn("token_id", "varchar/nvarchar", 36),
-        new TestColumn("client_id", "varchar/nvarchar", 255),
-        new TestColumn("user_id", "varchar/nvarchar", 36),
-        new TestColumn("format", "varchar/nvarchar", 255),
-        new TestColumn("response_type", "varchar/nvarchar", 25),
-        new TestColumn("issued_at", "bigint/int8", 64),
-        new TestColumn("expires_at", "bigint/int8", 64),
-        new TestColumn("scope", "text/longtext/nvarchar/clob", 0),
-        new TestColumn("data", "nvarchar/longvarchar/mediumtext", 0),
-        new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
+            new TestColumn("token_id", "varchar/nvarchar", 36),
+            new TestColumn("client_id", "varchar/nvarchar", 255),
+            new TestColumn("user_id", "varchar/nvarchar", 36),
+            new TestColumn("format", "varchar/nvarchar", 255),
+            new TestColumn("response_type", "varchar/nvarchar", 25),
+            new TestColumn("issued_at", "bigint/int8", 64),
+            new TestColumn("expires_at", "bigint/int8", 64),
+            new TestColumn("scope", "text/longtext/nvarchar/clob", 0),
+            new TestColumn("data", "nvarchar/longvarchar/mediumtext", 0),
+            new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
 
     private List<TestColumn> TEST_INDEX = Arrays.asList(
-        new TestColumn("idx_revocable_token_client_id", "", 0),
-        new TestColumn("idx_revocable_token_user_id", "", 0),
-        new TestColumn("idx_revocable_token_expires_at", "", 0)
+            new TestColumn("idx_revocable_token_client_id", "", 0),
+            new TestColumn("idx_revocable_token_user_id", "", 0),
+            new TestColumn("idx_revocable_token_expires_at", "", 0)
 
     );
 
     @Override
     public void setUp() {
         MockEnvironment environment = new MockEnvironment();
-        if (System.getProperty("spring.profiles.active")!=null) {
+        if (System.getProperty("spring.profiles.active") != null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
         setUp(environment);
@@ -63,12 +48,13 @@ public class RevocableTokenTableTest extends JdbcTestBase {
     public boolean testColumn(String name, String type, int size) {
         return testColumn(TEST_COLUMNS, name, type, size);
     }
+
     public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
                 return ("varchar".equalsIgnoreCase(type) || "nvarchar".equalsIgnoreCase(type)) && !("data".equalsIgnoreCase(name) || "scope".equalsIgnoreCase(name)) ?
-                    c.type.toLowerCase().contains(type.toLowerCase()) && c.size == size :
-                    c.type.toLowerCase().contains(type.toLowerCase());
+                        c.type.toLowerCase().contains(type.toLowerCase()) && c.size == size :
+                        c.type.toLowerCase().contains(type.toLowerCase());
             }
         }
         return false;
@@ -82,6 +68,7 @@ public class RevocableTokenTableTest extends JdbcTestBase {
             boolean foundTable = false;
             int foundColumn = 0;
             ResultSet rs = meta.getColumns(connection.getCatalog(), null, null, null);
+            String tableName = "revocable_tokens";
             while (rs.next()) {
                 String rstableName = rs.getString("TABLE_NAME");
                 String rscolumnName = rs.getString("COLUMN_NAME");
