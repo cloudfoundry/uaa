@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.db;
 
 import org.apache.http.NameValuePair;
@@ -25,14 +10,12 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.StringUtils;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
 public class DatabaseParametersTests extends JdbcTestBase {
-
 
     private Vendor vendor;
 
@@ -43,7 +26,7 @@ public class DatabaseParametersTests extends JdbcTestBase {
         environment.setProperty("database.initialsize", "0");
         environment.setProperty("database.validationquerytimeout", "5");
         environment.setProperty("database.connecttimeout", "5");
-        if (System.getProperty("spring.profiles.active")!=null) {
+        if (System.getProperty("spring.profiles.active") != null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
         super.setUp(environment);
@@ -63,22 +46,25 @@ public class DatabaseParametersTests extends JdbcTestBase {
     @Test
     public void connection_timeout_property_set() throws Exception {
         switch (vendor) {
-            case mysql : {
+            case mysql: {
                 assertEquals("5000", getUrlParameter("connectTimeout"));
                 break;
             }
-            case postgresql : {
+            case postgresql: {
                 assertEquals("5", getUrlParameter("connectTimeout"));
                 break;
             }
-            case hsqldb : {break;}
-            default : throw new IllegalStateException("Unrecognized database: "+ vendor);
+            case hsqldb: {
+                break;
+            }
+            default:
+                throw new IllegalStateException("Unrecognized database: " + vendor);
         }
 
     }
 
     public DataSource getDataSource() {
-        return (DataSource)dataSource;
+        return (DataSource) dataSource;
     }
 
     public String getUrlParameter(String name) {
