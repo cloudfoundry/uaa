@@ -22,8 +22,6 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -87,14 +85,8 @@ class IdentityProviderBootstrapTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @AfterEach
-    void clearIdentityHolder() {
-        IdentityZoneHolder.clear();
-    }
-
     @BeforeEach
     void setup() throws Exception {
-        IdentityZoneHolder.clear();
         samlIdentityProviderDefinition = new SamlIdentityProviderDefinition();
         samlIdentityProviderDefinition.setAssertionConsumerIndex(0);
         samlIdentityProviderDefinition.setIconUrl("iconUrl");
@@ -140,7 +132,7 @@ class IdentityProviderBootstrapTest {
         environment.setActiveProfiles(LDAP);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
@@ -158,7 +150,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         validateGenericLdapProvider(ldapProvider);
     }
 
@@ -201,13 +193,13 @@ class IdentityProviderBootstrapTest {
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         validateGenericLdapProvider(ldapProvider);
 
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain", "test2.domain"));
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         //no changes
         validateGenericLdapProvider(ldapProvider);
     }
@@ -220,7 +212,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
@@ -229,7 +221,7 @@ class IdentityProviderBootstrapTest {
 
         bootstrap.setLdapConfig(null);
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
@@ -238,7 +230,7 @@ class IdentityProviderBootstrapTest {
 
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
@@ -247,7 +239,7 @@ class IdentityProviderBootstrapTest {
 
         environment.setActiveProfiles("default");
         bootstrap.afterPropertiesSet();
-        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZoneHolder.get().getId());
+        ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
@@ -260,7 +252,7 @@ class IdentityProviderBootstrapTest {
         environment.setActiveProfiles(KEYSTONE);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZoneHolder.get().getId());
+        IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
         assertNotNull(keystoneProvider);
         assertEquals(new KeystoneIdentityProviderDefinition(), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
@@ -277,7 +269,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setKeystoneConfig(keystoneConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZoneHolder.get().getId());
+        IdentityProvider keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
         assertNotNull(keystoneProvider);
         assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
@@ -293,7 +285,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setKeystoneConfig(keystoneConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZoneHolder.get().getId());
+        IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
         assertNotNull(keystoneProvider);
         assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
@@ -303,7 +295,7 @@ class IdentityProviderBootstrapTest {
 
         bootstrap.setKeystoneConfig(null);
         bootstrap.afterPropertiesSet();
-        keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZoneHolder.get().getId());
+        keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
         assertNotNull(keystoneProvider);
         assertNotNull(keystoneProvider.getCreated());
         assertNotNull(keystoneProvider.getLastModified());
@@ -312,7 +304,7 @@ class IdentityProviderBootstrapTest {
 
         bootstrap.setKeystoneConfig(keystoneConfig);
         bootstrap.afterPropertiesSet();
-        keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZoneHolder.get().getId());
+        keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
         assertNotNull(keystoneProvider);
         assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
@@ -329,7 +321,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             try {
-                provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+                provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
                 fail(String.format("Provider '%s' should not exist.", provider.getKey()));
             } catch (EmptyResultDataAccessException ignored) {
             }
@@ -369,14 +361,14 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
             validateOauthOidcProvider(provider, bootstrapOauthProvider);
         }
 
         bootstrap.setOauthIdpDefinitions(null);
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
             assertNotNull(bootstrapOauthProvider);
             assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
             assertNotNull(bootstrapOauthProvider.getCreated());
@@ -408,7 +400,7 @@ class IdentityProviderBootstrapTest {
         oidcProvider.setResponseType("code id_token");
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZoneHolder.get().getId());
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
             validateOauthOidcProvider(provider, bootstrapOauthProvider);
         }
     }
@@ -446,9 +438,9 @@ class IdentityProviderBootstrapTest {
 
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
-        samlIdentityProviderDefinition.setZoneId(IdentityZoneHolder.get().getId());
+        samlIdentityProviderDefinition.setZoneId(IdentityZone.getUaaZoneId());
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
@@ -507,8 +499,8 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider<SamlIdentityProviderDefinition> samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
-        IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         assertNotNull(samlProvider2);
         assertEquals("http://location", samlProvider.getConfig().getMetaDataLocation());
@@ -520,8 +512,8 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
-        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
+        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         assertNotNull(samlProvider2);
         assertEquals("http://location", samlProvider.getConfig().getMetaDataLocation());
@@ -536,18 +528,18 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
-        samlIdentityProviderDefinition.setZoneId(IdentityZoneHolder.get().getId());
+        samlIdentityProviderDefinition.setZoneId(IdentityZone.getUaaZoneId());
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        IdentityProvider samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        IdentityProvider samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider2);
-        samlIdentityProviderDefinition1.setZoneId(IdentityZoneHolder.get().getId());
+        samlIdentityProviderDefinition1.setZoneId(IdentityZone.getUaaZoneId());
         assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
@@ -558,7 +550,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
@@ -566,7 +558,7 @@ class IdentityProviderBootstrapTest {
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider2);
         assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
@@ -578,7 +570,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
@@ -586,7 +578,7 @@ class IdentityProviderBootstrapTest {
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider2);
         assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
@@ -599,7 +591,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
@@ -607,7 +599,7 @@ class IdentityProviderBootstrapTest {
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider2);
         assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
@@ -620,7 +612,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
-        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
@@ -628,7 +620,7 @@ class IdentityProviderBootstrapTest {
         assertEquals(OriginKeys.SAML, samlProvider.getType());
         assertTrue(samlProvider.isActive());
 
-        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
+        samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider2);
         assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
