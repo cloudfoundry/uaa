@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import com.google.common.collect.Lists;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionServiceException;
@@ -8,15 +9,16 @@ import org.cloudfoundry.identity.uaa.mfa.exception.UnableToPersistMfaException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UnableToRetrieveMfaException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.test.RandomStringGetter;
+import org.cloudfoundry.identity.uaa.test.RandomStringGetterExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Answers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Base64Utils;
 
 import java.security.Security;
@@ -38,6 +40,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
+@ExtendWith(RandomStringGetterExtension.class)
 class JdbcUserGoogleMfaCredentialsProvisioningTest {
     private JdbcUserGoogleMfaCredentialsProvisioning db;
     private String activeKeyLabel;
@@ -54,11 +57,15 @@ class JdbcUserGoogleMfaCredentialsProvisioningTest {
         Security.setProperty("crypto.policy", "unlimited");
     }
 
-    private final static String MFA_ID = new RandomValueStringGenerator(36).generate();
-    private String zoneId = new RandomValueStringGenerator(36).generate();
+    private String MFA_ID;
+    private String zoneId;
 
     @BeforeEach
-    void initJdbcScimUserProvisioningTests() {
+    void initJdbcScimUserProvisioningTests(
+            final RandomStringGetter mfaId,
+            final RandomStringGetter zoneId) {
+        this.MFA_ID = StringUtils.rightPad(mfaId.get(), 36);
+        this.zoneId = StringUtils.rightPad(zoneId.get(), 36);
         activeKeyLabel = "key-1";
         inactiveKeyLabel = "key-2";
 
