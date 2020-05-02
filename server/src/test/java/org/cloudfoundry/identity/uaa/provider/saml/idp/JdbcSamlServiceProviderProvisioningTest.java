@@ -46,13 +46,13 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     @Test
     public void testRetrieveActive() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, db.retrieveActive(IdentityZoneHolder.get().getId()).size());
         String zoneId = IdentityZone.getUaaZoneId();
         SamlServiceProvider sp = createSamlServiceProvider(zoneId);
         SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
-        assertEquals(1 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        assertEquals(1, db.retrieveActive(IdentityZoneHolder.get().getId()).size());
         jdbcTemplate.update("update service_provider set active=?", false);
-        assertEquals(0 , db.retrieveActive(IdentityZoneHolder.get().getId()).size());
+        assertEquals(0, db.retrieveActive(IdentityZoneHolder.get().getId()).size());
     }
 
     @Test
@@ -86,7 +86,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         assertEquals(sp.getName(), createdSp.getName());
         assertEquals(sp.getConfig(), createdSp.getConfig());
-        assertTrue(Math.abs(sp.getLastModified().getTime()  - createdSp.getLastModified().getTime()) < 1001);
+        assertTrue(Math.abs(sp.getLastModified().getTime() - createdSp.getLastModified().getTime()) < 1001);
         assertEquals(Integer.valueOf(rawCreatedSp.get("version").toString()) + 1, createdSp.getVersion());
         assertEquals(zoneId, createdSp.getIdentityZoneId());
     }
@@ -211,10 +211,10 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
-                new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(1));
+                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(1));
         db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
-                new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(0));
+                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
     }
 
     @Test
@@ -228,9 +228,9 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
-                new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(1));
+                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(1));
         db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, IdentityZoneHolder.getCurrentZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?",
-                new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(0));
+                new Object[]{IdentityZoneHolder.get().getId()}, Integer.class), is(0));
     }
 }
