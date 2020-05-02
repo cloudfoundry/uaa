@@ -1,33 +1,19 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.db;
 
-import static org.hamcrest.Matchers.isIn;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.junit.Test;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.StringUtils;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.util.StringUtils;
+import static org.hamcrest.Matchers.isIn;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBase {
 
@@ -38,14 +24,14 @@ public class ClientDetailsSupportsExtendedAuthoritesAndScopes extends JdbcTestBa
     @Override
     public void setUp() {
         MockEnvironment environment = new MockEnvironment();
-        if (System.getProperty("spring.profiles.active")!=null) {
+        if (System.getProperty("spring.profiles.active") != null) {
             environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
         setUp(environment);
     }
 
     @Test
-    public void test_That_authorites_and_scopes_are_extended() throws Exception {
+    public void authoritiesAndScopesAreExtended() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
