@@ -2,17 +2,19 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.test.RandomStringGetter;
+import org.cloudfoundry.identity.uaa.test.RandomStringGetterExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -28,11 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 @WithDatabaseContext
+@ExtendWith(RandomStringGetterExtension.class)
 class JdbcSamlServiceProviderProvisioningTest {
 
     private JdbcSamlServiceProviderProvisioning db;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private Authentication authentication = mock(Authentication.class);
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -205,23 +206,22 @@ class JdbcSamlServiceProviderProvisioningTest {
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[]{IdentityZone.getUaaZoneId()}, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, zoneId));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, mock(Authentication.class), zoneId));
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[]{zoneId}, Integer.class), is(0));
     }
 
     @Test
-    void deleteSamlServiceProvidersInOtherZone() {
-        String zoneId = generator.generate();
-        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
+    void deleteSamlServiceProvidersInOtherZone(RandomStringGetter zoneId) {
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId.get(), zoneId.get());
 
-        SamlServiceProvider sp = createSamlServiceProvider(zoneId);
+        SamlServiceProvider sp = createSamlServiceProvider(zoneId.get());
         SamlServiceProvider createdSp = db.create(sp, sp.getIdentityZoneId());
 
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[]{zone.getId()}, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication, zone.getId()));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, mock(Authentication.class), zone.getId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?",
                 new Object[]{zone.getId()}, Integer.class), is(0));
     }
