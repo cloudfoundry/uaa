@@ -1,17 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -25,23 +11,22 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+
 public class ExpiringCodeTableTest extends JdbcTestBase {
 
-    private String tableName = "expiring_code_store";
-
-
-    private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-        new TestColumn("code", "varchar/nvarchar", 255),
-        new TestColumn("expiresat", "bigint/int8", -1),
-        new TestColumn("data", "longtext/mediumtext/nvarchar", -1),
-        new TestColumn("intent", "longtext/mediumtext/nvarchar", -1),
-        new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
+    private static List<TestColumn> TEST_COLUMNS = Arrays.asList(
+            new TestColumn("code", "varchar/nvarchar", 255),
+            new TestColumn("expiresat", "bigint/int8", -1),
+            new TestColumn("data", "longtext/mediumtext/nvarchar", -1),
+            new TestColumn("intent", "longtext/mediumtext/nvarchar", -1),
+            new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
 
-    public boolean testColumn(String name, String type, int size) {
+    private static boolean testColumn(String name, String type, int size) {
         return testColumn(TEST_COLUMNS, name, type, size);
     }
-    public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
+
+    private static boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
                 return c.type.toLowerCase().contains(type.toLowerCase()) && c.size > 0 ? c.size == size : true;
@@ -50,7 +35,6 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
         return false;
     }
 
-
     @Test
     public void validate_table() throws Exception {
         try (Connection connection = dataSource.getConnection()) {
@@ -58,6 +42,7 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
             boolean foundTable = false;
             int foundColumn = 0;
             ResultSet rs = meta.getColumns(connection.getCatalog(), null, null, null);
+            String tableName = "expiring_code_store";
             while (rs.next()) {
                 String rstableName = rs.getString("TABLE_NAME");
                 String rscolumnName = rs.getString("COLUMN_NAME");
@@ -72,17 +57,15 @@ public class ExpiringCodeTableTest extends JdbcTestBase {
             rs.close();
             assertTrue("Table " + tableName + " not found!", foundTable);
             assertEquals("Table " + tableName + " is missing columns!", TEST_COLUMNS.size(), foundColumn);
-
-
         }
     }
 
-    public static class TestColumn {
-        public final String name;
-        public final String type;
-        public final int size;
+    private static class TestColumn {
+        private final String name;
+        private final String type;
+        private final int size;
 
-        public TestColumn(String name, String type, int size) {
+        private TestColumn(String name, String type, int size) {
             this.name = name;
             this.type = type;
             this.size = size;
