@@ -640,6 +640,7 @@ class LegacyRedirectResolverTest {
             final String clientRedirectUri = "http*://*.example.com/**";
             assertTrue(resolver.redirectMatches("https://valid-redirect.example.com/login/callback", clientRedirectUri));
         }
+
     }
 
     @Nested
