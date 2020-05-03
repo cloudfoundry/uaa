@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -54,7 +42,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     @Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {InMemoryExpiringCodeStore.class}, {JdbcExpiringCodeStore.class},
+                {InMemoryExpiringCodeStore.class}, {JdbcExpiringCodeStore.class},
         });
     }
 
@@ -152,7 +140,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
 
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("other","other"));
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("other", "other"));
         Assert.assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId()));
 
         IdentityZoneHolder.clear();
@@ -180,7 +168,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         Arrays.fill(oneMb, 'a');
         String aaaString = new String(oneMb);
         ExpiringCode expiringCode = expiringCodeStore.generateCode(aaaString, new Timestamp(
-                        System.currentTimeMillis() + 60000), null, IdentityZoneHolder.get().getId());
+                System.currentTimeMillis() + 60000), null, IdentityZoneHolder.get().getId());
         String code = expiringCode.getCode();
         ExpiringCode actualCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Assert.assertEquals(expiringCode, actualCode);
@@ -206,7 +194,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
         Assert.assertEquals(1, countCodes());
 
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("id","id"));
+        IdentityZoneHolder.set(MultitenancyFixture.identityZone("id", "id"));
         expiringCodeStore.expireByIntent("Test Intent", IdentityZoneHolder.get().getId());
         Assert.assertEquals(1, countCodes());
 
@@ -242,7 +230,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
             jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
             ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
             jdbcTemplate.queryForObject(JdbcExpiringCodeStore.selectAllFields,
-                            new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test", IdentityZoneHolder.get().getId());
+                    new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test", IdentityZoneHolder.get().getId());
         } else {
             throw new EmptyResultDataAccessException(1);
         }
