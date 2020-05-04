@@ -11,11 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -38,15 +36,7 @@ abstract class ExpiringCodeStoreTests {
         mockTimeService = mock(TimeServiceImpl.class);
     }
 
-    int countCodes() {
-        if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
-            Map map = (Map) ReflectionTestUtils.getField(expiringCodeStore, "store");
-            return map.size();
-        } else {
-            // confirm that everything is clean prior to test.
-            return jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class);
-        }
-    }
+    abstract int countCodes();
 
     @Test
     void generateCode() {

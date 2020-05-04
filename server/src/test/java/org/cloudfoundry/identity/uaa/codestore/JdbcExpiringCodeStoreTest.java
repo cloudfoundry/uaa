@@ -57,4 +57,9 @@ class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
                         IdentityZoneHolder.get().getId()));
     }
 
+    @Override
+    int countCodes() {
+        return jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class);
+    }
+
 }
