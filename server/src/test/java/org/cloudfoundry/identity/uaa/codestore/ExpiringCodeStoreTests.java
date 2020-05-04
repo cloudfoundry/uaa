@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Assert;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,12 +20,14 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -207,33 +210,29 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
 
     @Test
     public void testDatabaseDown() throws Exception {
-        if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
-            javax.sql.DataSource ds = mock(javax.sql.DataSource.class);
-            Mockito.when(ds.getConnection()).thenThrow(new SQLException());
-            ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(ds);
-            try {
-                String data = "{}";
-                Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
-                ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
-                Assert.fail("Database is down, should not generate a code");
-            } catch (DataAccessException ignored) {
+        Assume.assumeTrue(JdbcExpiringCodeStore.class == expiringCodeStoreClass);
 
-            }
-        }
-
+        DataSource mockDataSource = mock(DataSource.class);
+        Mockito.when(mockDataSource.getConnection()).thenThrow(new SQLException());
+        ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(mockDataSource);
+        String data = "{}";
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
+        assertThrows(DataAccessException.class,
+                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
     }
 
-    @Test(expected = EmptyResultDataAccessException.class)
+    @Test
     public void testExpirationCleaner() {
-        when(timeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
-        if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
-            jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
-            ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
-            jdbcTemplate.queryForObject(JdbcExpiringCodeStore.selectAllFields,
-                    new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(), "test", IdentityZoneHolder.get().getId());
-        } else {
-            throw new EmptyResultDataAccessException(1);
-        }
+        Assume.assumeTrue(JdbcExpiringCodeStore.class == expiringCodeStoreClass);
 
+        when(timeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
+        jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
+        ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcTemplate.queryForObject(
+                        JdbcExpiringCodeStore.selectAllFields,
+                        new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(),
+                        "test",
+                        IdentityZoneHolder.get().getId()));
     }
 }
