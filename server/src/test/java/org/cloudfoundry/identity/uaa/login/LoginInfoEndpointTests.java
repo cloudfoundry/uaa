@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -1499,7 +1500,7 @@ class LoginInfoEndpointTests {
             final MultitenantClientServices clientDetailsService) {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint(
                 null,
-                new InMemoryExpiringCodeStore(),
+                new InMemoryExpiringCodeStore(new TimeServiceImpl()),
                 externalLoginUrl,
                 baseUrl,
                 spiedMfaChecker,

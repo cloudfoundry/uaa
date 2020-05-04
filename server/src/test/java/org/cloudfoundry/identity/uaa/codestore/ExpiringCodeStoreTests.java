@@ -1,66 +1,34 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameters;
 import org.mockito.Mockito;
-import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import javax.sql.DataSource;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(Parameterized.class)
-public class ExpiringCodeStoreTests extends JdbcTestBase {
+public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
 
-    private ExpiringCodeStore expiringCodeStore;
-    private Class expiringCodeStoreClass;
-    private TimeService timeService = mock(TimeServiceImpl.class);
-
-    public ExpiringCodeStoreTests(Class expiringCodeStoreClass) {
-        this.expiringCodeStoreClass = expiringCodeStoreClass;
-    }
-
-    @Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {InMemoryExpiringCodeStore.class}, {JdbcExpiringCodeStore.class},
-        });
-    }
+    ExpiringCodeStore expiringCodeStore;
+    TimeService mockTimeService;
 
     @Before
-    public void initExpiringCodeStoreTests() throws Exception {
-        expiringCodeStore = (ExpiringCodeStore) expiringCodeStoreClass.newInstance();
-
-        if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
-            ((InMemoryExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
-        } else {
-            // confirm that everything is clean prior to test.
-            TestUtils.deleteFrom(jdbcTemplate, JdbcExpiringCodeStore.tableName);
-            ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(jdbcTemplate.getDataSource());
-            ((JdbcExpiringCodeStore) expiringCodeStore).setTimeService(timeService);
-        }
+    public void setUp() throws Exception {
+        super.setUp();
+        mockTimeService = mock(TimeServiceImpl.class);
     }
 
     public int countCodes() {
@@ -106,7 +74,7 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void testGenerateCodeWithExpiresAtInThePast() {
         long now = 100000L;
-        when(timeService.getCurrentTimeMillis()).thenReturn(now);
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(now - 60000);
         expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
@@ -180,13 +148,13 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     @Test
     public void testExpiredCodeReturnsNull() {
         long generationTime = 100000L;
-        when(timeService.getCurrentTimeMillis()).thenReturn(generationTime);
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(generationTime);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(generationTime);
         ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
 
         long expirationTime = 200000L;
-        when(timeService.getCurrentTimeMillis()).thenReturn(expirationTime);
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(expirationTime);
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
         Assert.assertNull(retrievedCode);
     }
@@ -208,31 +176,4 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         Assert.assertNull(retrievedCode);
     }
 
-    @Test
-    public void testDatabaseDown() throws Exception {
-        Assume.assumeTrue(JdbcExpiringCodeStore.class == expiringCodeStoreClass);
-
-        DataSource mockDataSource = mock(DataSource.class);
-        Mockito.when(mockDataSource.getConnection()).thenThrow(new SQLException());
-        ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(mockDataSource);
-        String data = "{}";
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
-        assertThrows(DataAccessException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
-    }
-
-    @Test
-    public void testExpirationCleaner() {
-        Assume.assumeTrue(JdbcExpiringCodeStore.class == expiringCodeStoreClass);
-
-        when(timeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
-        jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
-        ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
-        assertThrows(EmptyResultDataAccessException.class,
-                () -> jdbcTemplate.queryForObject(
-                        JdbcExpiringCodeStore.selectAllFields,
-                        new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(),
-                        "test",
-                        IdentityZoneHolder.get().getId()));
-    }
 }
