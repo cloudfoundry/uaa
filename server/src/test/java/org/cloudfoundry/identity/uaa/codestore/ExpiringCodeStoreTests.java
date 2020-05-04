@@ -2,8 +2,7 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -42,7 +41,7 @@ abstract class ExpiringCodeStoreTests {
     void generateCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
 
         assertNotNull(expiringCode);
 
@@ -59,7 +58,7 @@ abstract class ExpiringCodeStoreTests {
         String data = null;
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         assertThrows(NullPointerException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
+                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
@@ -67,7 +66,7 @@ abstract class ExpiringCodeStoreTests {
         String data = "{}";
         Timestamp expiresAt = null;
         assertThrows(NullPointerException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
+                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
@@ -77,7 +76,7 @@ abstract class ExpiringCodeStoreTests {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(now - 60000);
         assertThrows(IllegalArgumentException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
+                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
@@ -88,41 +87,39 @@ abstract class ExpiringCodeStoreTests {
 
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
+        expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
         assertThrows(DataIntegrityViolationException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
+                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
     void retrieveCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
 
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZone.getUaaZoneId());
 
         assertEquals(generatedCode, retrievedCode);
 
-        assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId()));
+        assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZone.getUaaZoneId()));
     }
 
     @Test
     void retrieveCode_In_Another_Zone() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
 
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("other", "other"));
-        assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId()));
+        assertNull(expiringCodeStore.retrieveCode(generatedCode.getCode(), "other"));
 
-        IdentityZoneHolder.clear();
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZone.getUaaZoneId());
         assertEquals(generatedCode, retrievedCode);
     }
 
     @Test
     void retrieveCodeWithCodeNotFound() {
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode("unknown", IdentityZoneHolder.get().getId());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode("unknown", IdentityZone.getUaaZoneId());
 
         assertNull(retrievedCode);
     }
@@ -130,7 +127,7 @@ abstract class ExpiringCodeStoreTests {
     @Test
     void retrieveCodeWithNullCode() {
         assertThrows(NullPointerException.class,
-                () -> expiringCodeStore.retrieveCode(null, IdentityZoneHolder.get().getId()));
+                () -> expiringCodeStore.retrieveCode(null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
@@ -139,9 +136,9 @@ abstract class ExpiringCodeStoreTests {
         Arrays.fill(oneMb, 'a');
         String aaaString = new String(oneMb);
         ExpiringCode expiringCode = expiringCodeStore.generateCode(aaaString, new Timestamp(
-                System.currentTimeMillis() + 60000), null, IdentityZoneHolder.get().getId());
+                System.currentTimeMillis() + 60000), null, IdentityZone.getUaaZoneId());
         String code = expiringCode.getCode();
-        ExpiringCode actualCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        ExpiringCode actualCode = expiringCodeStore.retrieveCode(code, IdentityZone.getUaaZoneId());
         assertEquals(expiringCode, actualCode);
     }
 
@@ -151,27 +148,25 @@ abstract class ExpiringCodeStoreTests {
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(generationTime);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(generationTime);
-        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId());
 
         long expirationTime = 200000L;
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(expirationTime);
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZoneHolder.get().getId());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode(), IdentityZone.getUaaZoneId());
         assertNull(retrievedCode);
     }
 
     @Test
     void expireCodeByIntent() {
-        ExpiringCode code = expiringCodeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 60000), "Test Intent", IdentityZoneHolder.get().getId());
+        ExpiringCode code = expiringCodeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 60000), "Test Intent", IdentityZone.getUaaZoneId());
 
         assertEquals(1, countCodes());
 
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("id", "id"));
-        expiringCodeStore.expireByIntent("Test Intent", IdentityZoneHolder.get().getId());
+        expiringCodeStore.expireByIntent("Test Intent", "id");
         assertEquals(1, countCodes());
 
-        IdentityZoneHolder.clear();
-        expiringCodeStore.expireByIntent("Test Intent", IdentityZoneHolder.get().getId());
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(code.getCode(), IdentityZoneHolder.get().getId());
+        expiringCodeStore.expireByIntent("Test Intent", IdentityZone.getUaaZoneId());
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(code.getCode(), IdentityZone.getUaaZoneId());
         assertEquals(0, countCodes());
         assertNull(retrievedCode);
     }

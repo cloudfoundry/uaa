@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -41,20 +41,20 @@ class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
         assertThrows(DataAccessException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId()));
+                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
     void expirationCleaner() {
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
-        jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZone.getUaaZoneId());
         ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
         assertThrows(EmptyResultDataAccessException.class,
                 () -> jdbcTemplate.queryForObject(
                         JdbcExpiringCodeStore.selectAllFields,
                         new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(),
                         "test",
-                        IdentityZoneHolder.get().getId()));
+                        IdentityZone.getUaaZoneId()));
     }
 
     @Override
