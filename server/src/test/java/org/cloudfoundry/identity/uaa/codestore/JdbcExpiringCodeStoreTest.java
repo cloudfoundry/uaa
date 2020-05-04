@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -16,15 +17,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
+@WithDatabaseContext
+class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
 
     @Override
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
 
         super.expiringCodeStore = new JdbcExpiringCodeStore(
-                jdbcTemplate.getDataSource(),
+                super.jdbcTemplate.getDataSource(),
                 super.mockTimeService);
 
         // confirm that everything is clean prior to test.
@@ -32,7 +34,7 @@ public class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
     }
 
     @Test
-    public void testDatabaseDown() throws Exception {
+    void databaseDown() throws Exception {
         DataSource mockDataSource = mock(DataSource.class);
         Mockito.when(mockDataSource.getConnection()).thenThrow(new SQLException());
         ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(mockDataSource);
@@ -43,7 +45,7 @@ public class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
     }
 
     @Test
-    public void testExpirationCleaner() {
+    void expirationCleaner() {
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
         jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZoneHolder.get().getId());
         ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();

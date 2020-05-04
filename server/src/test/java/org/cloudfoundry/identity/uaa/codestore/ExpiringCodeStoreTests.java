@@ -1,14 +1,15 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -18,24 +19,26 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
+abstract class ExpiringCodeStoreTests {
 
     ExpiringCodeStore expiringCodeStore;
     TimeService mockTimeService;
 
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUp() throws Exception {
         mockTimeService = mock(TimeServiceImpl.class);
     }
 
-    public int countCodes() {
+    int countCodes() {
         if (expiringCodeStore instanceof InMemoryExpiringCodeStore) {
             Map map = (Map) ReflectionTestUtils.getField(expiringCodeStore, "store");
             return map.size();
@@ -46,7 +49,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCode() {
+    void generateCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode expiringCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
@@ -62,7 +65,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithNullData() {
+    void generateCodeWithNullData() {
         String data = null;
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         assertThrows(NullPointerException.class,
@@ -70,7 +73,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithNullExpiresAt() {
+    void generateCodeWithNullExpiresAt() {
         String data = "{}";
         Timestamp expiresAt = null;
         assertThrows(NullPointerException.class,
@@ -78,7 +81,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithExpiresAtInThePast() {
+    void generateCodeWithExpiresAtInThePast() {
         long now = 100000L;
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         String data = "{}";
@@ -88,7 +91,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testGenerateCodeWithDuplicateCode() {
+    void generateCodeWithDuplicateCode() {
         RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         Mockito.when(generator.generate()).thenReturn("duplicate");
         expiringCodeStore.setGenerator(generator);
@@ -101,7 +104,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCode() {
+    void retrieveCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
@@ -114,7 +117,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCode_In_Another_Zone() {
+    void retrieveCode_In_Another_Zone() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, IdentityZoneHolder.get().getId());
@@ -128,20 +131,20 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveCodeWithCodeNotFound() {
+    void retrieveCodeWithCodeNotFound() {
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode("unknown", IdentityZoneHolder.get().getId());
 
         assertNull(retrievedCode);
     }
 
     @Test
-    public void testRetrieveCodeWithNullCode() {
+    void retrieveCodeWithNullCode() {
         assertThrows(NullPointerException.class,
                 () -> expiringCodeStore.retrieveCode(null, IdentityZoneHolder.get().getId()));
     }
 
     @Test
-    public void testStoreLargeData() {
+    void storeLargeData() {
         char[] oneMb = new char[1024 * 1024];
         Arrays.fill(oneMb, 'a');
         String aaaString = new String(oneMb);
@@ -153,7 +156,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testExpiredCodeReturnsNull() {
+    void expiredCodeReturnsNull() {
         long generationTime = 100000L;
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(generationTime);
         String data = "{}";
@@ -167,7 +170,7 @@ public abstract class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testExpireCodeByIntent() {
+    void expireCodeByIntent() {
         ExpiringCode code = expiringCodeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 60000), "Test Intent", IdentityZoneHolder.get().getId());
 
         assertEquals(1, countCodes());
