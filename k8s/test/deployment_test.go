@@ -3,6 +3,7 @@ package k8s_test
 import (
 	. "github.com/cloudfoundry/uaa/matchers"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
 	"path/filepath"
@@ -55,7 +56,10 @@ var _ = Describe("Deployment", func() {
 	})
 
 	It("Renders a deployment for the UAA", func() {
-		ctx := NewRenderingContext(templates...)
+		ctx := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"database.scheme": "hsqldb",
+			})
 
 		expectedJavaOpts := "" +
 			"-Dspring_profiles=hsqldb " +
@@ -98,7 +102,10 @@ var _ = Describe("Deployment", func() {
 
 	It("Renders a custom image for the UAA", func() {
 		ctx := NewRenderingContext(templates...).WithData(
-			map[string]string{"image": "image from testing"})
+			map[string]string{
+				"image":           "image from testing",
+				"database.scheme": "hsqldb",
+			})
 
 		Expect(ctx).To(
 			ProduceYAML(
@@ -117,6 +124,7 @@ var _ = Describe("Deployment", func() {
 			map[string]string{
 				"resources.requests.memory": "888Mi",
 				"resources.requests.cpu":    "999m",
+				"database.scheme":           "hsqldb",
 			})
 
 		Expect(ctx).To(
@@ -140,9 +148,7 @@ var _ = Describe("Deployment", func() {
 		BeforeEach(func() {
 			databaseScheme = "postgresql"
 			ctx = NewRenderingContext(templates...).WithData(map[string]string{
-				"database.scheme":   databaseScheme,
-				"database.username": "database username",
-				"database.password": "database password",
+				"database.scheme": databaseScheme,
 			})
 		})
 
@@ -163,7 +169,8 @@ var _ = Describe("Deployment", func() {
 	It("Renders common labels for the deployment", func() {
 		templates = append(templates, pathToFile("metadata.yml"))
 		ctx := NewRenderingContext(templates...).WithData(map[string]string{
-			"version": "1.0.0",
+			"version":         "1.0.0",
+			"database.scheme": "hsqldb",
 		})
 
 		labels := map[string]string{
@@ -183,5 +190,29 @@ var _ = Describe("Deployment", func() {
 				}),
 			),
 		)
+	})
+
+	DescribeTable("Fails to render unless database.scheme is valid",
+		func(databaseScheme string, shouldThrow bool) {
+			ctx := NewRenderingContext(templates...).WithData(map[string]string{
+				"database.scheme": databaseScheme,
+			})
+
+			if shouldThrow {
+				Expect(ctx).To(ThrowError("database.scheme must be one of hsqldb, mysql, or postgresql"))
+			} else {
+				Expect(ctx).To(ProduceYAML(RepresentingDeployment()))
+			}
+		},
+		Entry("database.scheme=", "", true),
+		Entry("database.scheme=foobar", "foobar", true),
+		Entry("database.scheme=mysql", "mysql", false),
+		Entry("database.scheme=postgresql", "postgresql", false),
+		Entry("database.scheme=hsqldb", "hsqldb", false),
+	)
+
+	It("Fails to render when database.scheme is not provided", func() {
+		ctx := NewRenderingContext(templates...)
+		Expect(ctx).To(ThrowError("database.scheme must be one of hsqldb, mysql, or postgresql"))
 	})
 })

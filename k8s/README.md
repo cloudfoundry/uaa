@@ -1,3 +1,21 @@
+## Database connection strings
+
+Don't specify username and password in the url. Use `ytt` values `database.username` and `database.password`.
+
+#### HSQLDB
+The UAA uses the driver provided by hsqldb (`org.hsqldb:hsqldb`). To use an in-memory database, it's possible to have a database url as simple as `database.url=jdbc:hsqldb:mem:uaa`.
+
+HSQLDB connection strings are documented at http://www.hsqldb.org/doc/2.0/apidocs/index.html
+#### Postgres
+The UAA uses the driver provided by postgres (`org.postgresql:postgresql`). The connection string format is documented at https://jdbc.postgresql.org/documentation/head/connect.html
+
+The typical structure will look like `database.url=jdbc:postgres://<HOST>:<PORT>/<DB-NAME>?sslmode=disable|allow|prefer|require|verify-ca|verify-full`, with whatever other params you may need to use.
+
+#### Mysql / MariaDB
+The UAA uses the driver provided by mariadb (`org.mariadb.jdbc:mariadb-java-client`) for both MySQL and MariaDB servers. The connection string format is documented at https://mariadb.com/kb/en/about-mariadb-connector-j/#connection-strings.
+
+The typical structure will look like `database.url=jdbc:mysql://<HOST>:<PORT>/<DB-NAME>?useSSL=false|true`, with whatever other params you may need to use.
+
 ## Testing image `cfidentity/uaa` 
 
 To switch between the minikube docker daemon and the local docker daemon, use these commands:

@@ -27,6 +27,7 @@ var _ = Describe("Metadata", func() {
 			"labels.managedBy": "managedBy-from-test",
 			"version":          "version-from-test",
 			"namespace":        "namespace-from-test",
+			"database.scheme":  "hsqldb",
 		})
 
 		labels := map[string]string{

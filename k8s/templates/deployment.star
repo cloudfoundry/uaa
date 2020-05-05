@@ -1,3 +1,5 @@
+load("@ytt:assert", "assert")
+
 config_dir = "/etc/config"
 secrets_dir = "/etc/secrets"
 truststore_dir = "/etc/truststore"
@@ -16,7 +18,11 @@ java_opts_list = [
 ]
 
 def java_opts(database_scheme):
-  ret = "-Dspring_profiles={}".format(database_scheme or "hsqldb")
+  if not database_scheme in ['hsqldb' , 'mysql', 'postgresql']:
+    assert.fail("database.scheme must be one of hsqldb, mysql, or postgresql")
+  end
+
+  ret = "-Dspring_profiles={}".format(database_scheme)
   for i in range(0, len(java_opts_list)):
     ret += " "
     ret += java_opts_list[i]
