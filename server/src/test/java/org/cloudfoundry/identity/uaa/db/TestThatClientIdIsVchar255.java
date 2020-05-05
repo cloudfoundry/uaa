@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -44,9 +32,9 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
     @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {null, "authz_approvals", "client_id"},
-            {null, "oauth_client_details", "client_id"},
-            {null, "sec_audit", "principal_id"},
+                {null, "authz_approvals", "client_id"},
+                {null, "oauth_client_details", "client_id"},
+                {null, "sec_audit", "principal_id"},
 //            {"hsqldb", "authz_approvals", "client_id"},
 //            {"hsqldb", "oauth_client_details", "client_id"},
 //            {"hsqldb", "sec_audit", "principal_id"},
@@ -62,7 +50,7 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
     @Override
     public void setUp() {
         MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
+        if (springProfile != null) {
             environment.setActiveProfiles(springProfile);
         }
         setUp(environment);
