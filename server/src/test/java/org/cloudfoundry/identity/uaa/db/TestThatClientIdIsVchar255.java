@@ -1,64 +1,69 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.springframework.mock.env.MockEnvironment;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.ConfigurableEnvironment;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@RunWith(Parameterized.class)
-public class TestThatClientIdIsVchar255 extends JdbcTestBase {
+@WithDatabaseContext
+class TestThatClientIdIsVchar255 {
 
-    private String springProfile;
-    private String tableName;
-    private String columnName;
+    @Autowired
+    private ConfigurableEnvironment configurableEnvironment;
 
-    public TestThatClientIdIsVchar255(String springProfile, String tableName, String columnName) {
-        this.springProfile = springProfile;
-        this.tableName = tableName;
-        this.columnName = columnName;
-    }
+    @Autowired
+    private DataSource dataSource;
 
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {null, "authz_approvals", "client_id"},
-                {null, "oauth_client_details", "client_id"},
-                {null, "sec_audit", "principal_id"},
-//            {"hsqldb", "authz_approvals", "client_id"},
-//            {"hsqldb", "oauth_client_details", "client_id"},
-//            {"hsqldb", "sec_audit", "principal_id"},
-//            {"postgresql", "authz_approvals", "client_id"},
-//            {"postgresql", "oauth_client_details", "client_id"},
-//            {"postgresql", "sec_audit", "principal_id"},
-//            {"mysql", "authz_approvals", "client_id"},
-//            {"mysql", "oauth_client_details", "client_id"},
-//            {"mysql", "sec_audit", "principal_id"},
-        });
-    }
+    static class ClientIdArgumentsProvider implements ArgumentsProvider {
 
-    @Override
-    public void setUp() {
-        MockEnvironment environment = new MockEnvironment();
-        if (springProfile != null) {
-            environment.setActiveProfiles(springProfile);
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of("authz_approvals", "client_id"),
+                    Arguments.of("oauth_client_details", "client_id"),
+                    Arguments.of("sec_audit", "principal_id")
+            );
         }
-        setUp(environment);
     }
 
+//    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
+//    public static Collection<Object[]> data() {
+//        return Arrays.asList(new Object[][]{
+//                {null, "authz_approvals", "client_id"},
+//                {null, "oauth_client_details", "client_id"},
+//                {null, "sec_audit", "principal_id"},
+////            {"hsqldb", "authz_approvals", "client_id"},
+////            {"hsqldb", "oauth_client_details", "client_id"},
+////            {"hsqldb", "sec_audit", "principal_id"},
+////            {"postgresql", "authz_approvals", "client_id"},
+////            {"postgresql", "oauth_client_details", "client_id"},
+////            {"postgresql", "sec_audit", "principal_id"},
+////            {"mysql", "authz_approvals", "client_id"},
+////            {"mysql", "oauth_client_details", "client_id"},
+////            {"mysql", "sec_audit", "principal_id"},
+//        });
+//    }
 
-    @Test
-    public void test_That_ClientId_Is_Varchar_255() throws Exception {
+    @ParameterizedTest
+    @ArgumentsSource(ClientIdArgumentsProvider.class)
+    void test_That_ClientId_Is_Varchar_255(
+            final String tableName,
+            final String columnName
+    ) throws Exception {
         try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
@@ -81,6 +86,7 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
             }
             rs.close();
 
+            final String springProfile = String.join(", ", configurableEnvironment.getActiveProfiles());
             assertTrue(foundTable, "[" + springProfile + "] I was expecting to find table:" + tableName);
             assertTrue(foundColumn, "[" + springProfile + "] I was expecting to find column: client_id");
         }
