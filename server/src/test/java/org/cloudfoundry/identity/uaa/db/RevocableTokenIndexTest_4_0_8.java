@@ -2,18 +2,14 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collection;
 
 import static org.junit.Assert.assertTrue;
 
-@RunWith(Parameterized.class)
 public class RevocableTokenIndexTest_4_0_8 extends JdbcTestBase {
 
     private String springProfile;
@@ -21,18 +17,11 @@ public class RevocableTokenIndexTest_4_0_8 extends JdbcTestBase {
     private String indexName;
     private boolean unique;
 
-    public RevocableTokenIndexTest_4_0_8(String springProfile, String tableName, String indexName, boolean unique) {
-        this.springProfile = springProfile;
-        this.tableName = tableName;
-        this.indexName = indexName;
-        this.unique = unique;
-    }
-
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]; name[{2}]; unique[{3}];")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {null, "revocable_tokens", "revocable_tokens_zone_id", false},
-        });
+    public RevocableTokenIndexTest_4_0_8() {
+        this.springProfile = null;
+        this.tableName = "revocable_tokens";
+        this.indexName = "revocable_tokens_zone_id";
+        this.unique = false;
     }
 
     @Override
