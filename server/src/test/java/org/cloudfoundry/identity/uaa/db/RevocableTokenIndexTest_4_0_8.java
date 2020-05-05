@@ -1,40 +1,31 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Arrays;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class RevocableTokenIndexTest_4_0_8 extends JdbcTestBase {
+@WithDatabaseContext
+class RevocableTokenIndexTest_4_0_8 {
 
-    private String springProfile;
     private String tableName;
     private String indexName;
     private boolean unique;
 
-    public RevocableTokenIndexTest_4_0_8() {
-        this.springProfile = null;
+    RevocableTokenIndexTest_4_0_8() {
         this.tableName = "revocable_tokens";
         this.indexName = "revocable_tokens_zone_id";
         this.unique = false;
     }
 
-    @Override
-    public void setUp() {
-        MockEnvironment environment = new MockEnvironment();
-        if (springProfile != null) {
-            environment.setActiveProfiles(springProfile);
-        }
-        setUp(environment);
-    }
-
     @Test
-    public void existingIndices() throws Exception {
+    void existingIndices(@Autowired DataSource dataSource) throws Exception {
         boolean found = false;
         for (String tableName : Arrays.asList(tableName.toLowerCase(), tableName.toUpperCase())) {
             try (
@@ -50,7 +41,7 @@ public class RevocableTokenIndexTest_4_0_8 extends JdbcTestBase {
             }
         }
 
-        assertTrue(String.format("Expected to find index %s.%s", tableName, indexName), found);
+        assertTrue(found, String.format("Expected to find index %s.%s", tableName, indexName));
     }
 
 }
