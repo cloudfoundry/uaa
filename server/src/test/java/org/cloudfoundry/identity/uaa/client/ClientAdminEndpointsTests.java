@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -88,7 +89,7 @@ class ClientAdminEndpointsTests {
     private AuthenticationManager mockAuthenticationManager;
     private ApplicationEventPublisher mockApplicationEventPublisher;
 
-    private IdentityZone testZone;
+    private IdentityZoneConfiguration testIdentityZoneConfiguration;
     private ClientAdminEndpointsValidator clientDetailsValidator;
     private ClientAdminEndpoints clientAdminEndpoints;
 
@@ -107,7 +108,8 @@ class ClientAdminEndpointsTests {
 
     @BeforeEach
     void setUp() {
-        testZone = new IdentityZone();
+        IdentityZone testZone = new IdentityZone();
+        testIdentityZoneConfiguration = testZone.getConfig();
         zoneId = "zoneId-" + UUID.randomUUID().toString();
         testZone.setId(zoneId);
         mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
@@ -122,7 +124,7 @@ class ClientAdminEndpointsTests {
                 mockNoOpClientDetailsResourceManager,
                 new IdentityZoneManagerImpl());
 
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
 
         clientAdminEndpoints = new ClientAdminEndpoints(
@@ -198,49 +200,49 @@ class ClientAdminEndpointsTests {
 
     @Test
     void createClientDetails_With_Secret_Length_Less_Than_MinLength() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(7, 255, 0, 0, 0, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(7, 255, 0, 0, 0, 0, 6));
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
 
     @Test
     void createClientDetails_With_Secret_Length_Greater_Than_MaxLength() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
 
     @Test
     void createClientDetails_With_Secret_Require_Digit() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 1, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 1, 0, 6));
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
 
     @Test
     void createClientDetails_With_Secret_Require_Uppercase() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 1, 0, 0, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 5, 1, 0, 0, 0, 6));
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
 
     @Test
     void createClientDetails_With_Secret_Require_Lowercase() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 1, 0, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 1, 0, 0, 6));
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
 
     @Test
     void createClientDetails_With_Secret_Require_Special_Character() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 1, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 1, 6));
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
 
     @Test
     void createClientDetails_With_Secret_Satisfying_Complex_Policy() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(6, 255, 1, 1, 1, 1, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(6, 255, 1, 1, 1, 1, 6));
         String complexPolicySatisfyingSecret = "Secret1@";
         baseClientDetails.setClientSecret(complexPolicySatisfyingSecret);
         uaaClientDetails.setClientSecret(complexPolicySatisfyingSecret);
@@ -681,7 +683,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void changeSecretDeniedTooLong() {
-        testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
+        testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
         String complexPolicySatisfyingSecret = "Secret1@";
 
         when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), zoneId)).thenReturn(uaaClientDetails);
