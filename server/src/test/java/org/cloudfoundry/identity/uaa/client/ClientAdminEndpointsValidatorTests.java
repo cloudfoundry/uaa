@@ -18,9 +18,9 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
@@ -78,17 +79,21 @@ public class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6), new IdentityZoneManagerImpl());
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
+
+        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6), mockIdentityZoneManager);
 
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(false);
         when(mockSecurityContextAccessor.getScopes()).thenReturn(Collections.singletonList("clients.write"));
         String clientId = caller.getClientId();
         when(mockSecurityContextAccessor.getClientId()).thenReturn(clientId);
-        String zoneId = IdentityZoneHolder.get().getId();
+        String zoneId = "zoneId-" + UUID.randomUUID().toString();
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
         when(clientDetailsService.retrieve(eq(clientId), eq(zoneId))).thenReturn(caller);
 
-        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, secretValidator, clientDetailsService);
+        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, secretValidator, clientDetailsService, mockIdentityZoneManager);
     }
 
     @Test

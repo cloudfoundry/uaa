@@ -5,7 +5,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -59,6 +59,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     private final ClientSecretValidator clientSecretValidator;
 
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
+    private final IdentityZoneManager identityZoneManager;
 
     private final SecurityContextAccessor securityContextAccessor;
 
@@ -67,11 +68,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     public ClientAdminEndpointsValidator(
             final SecurityContextAccessor securityContextAccessor,
             final ClientSecretValidator clientSecretValidator,
-            final QueryableResourceManager<ClientDetails> clientDetailsService
-    ) {
+            final QueryableResourceManager<ClientDetails> clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.securityContextAccessor = securityContextAccessor;
         this.clientSecretValidator = clientSecretValidator;
         this.clientDetailsService = clientDetailsService;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @Override
@@ -151,7 +153,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             String callerId = securityContextAccessor.getClientId();
             ClientDetails caller = null;
             try {
-                caller = clientDetailsService.retrieve(callerId, IdentityZoneHolder.get().getId());
+                caller = clientDetailsService.retrieve(callerId, identityZoneManager.getCurrentIdentityZoneId());
             } catch (Exception e) {
                 // best effort to get the caller, but the caller might not belong to this zone.
             }

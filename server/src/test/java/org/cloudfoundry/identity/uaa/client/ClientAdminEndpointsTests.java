@@ -116,7 +116,8 @@ class ClientAdminEndpointsTests {
         final ClientSecretValidator clientSecretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6), new IdentityZoneManagerImpl());
         clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor,
                 clientSecretValidator,
-                mockNoOpClientDetailsResourceManager);
+                mockNoOpClientDetailsResourceManager,
+                new IdentityZoneManagerImpl());
 
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
