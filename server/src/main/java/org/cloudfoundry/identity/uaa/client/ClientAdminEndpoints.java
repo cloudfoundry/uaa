@@ -116,7 +116,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private ApplicationEventPublisher publisher;
 
     public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
-                                final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
+                                final ClientAdminEndpointsValidator clientDetailsValidator,
                                 final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
                                 final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
                                 final @Qualifier("approvalStore") ApprovalStore approvalStore,

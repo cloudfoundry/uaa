@@ -111,10 +111,9 @@ class ClientAdminEndpointsTests {
         when(mockNoOpClientDetailsResourceManager.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockAuthenticationManager = mock(AuthenticationManager.class);
-        clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
-        clientDetailsValidator.setClientDetailsService(mockNoOpClientDetailsResourceManager);
-        clientDetailsValidator.setClientSecretValidator(
-                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6)));
+        clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor,
+                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6)),
+                mockNoOpClientDetailsResourceManager);
 
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);

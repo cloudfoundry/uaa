@@ -12,6 +12,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -30,6 +31,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 
+@Component
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -54,22 +56,21 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Collections.singletonList(
             "uaa.none"));
 
-    private ClientSecretValidator clientSecretValidator;
+    private final ClientSecretValidator clientSecretValidator;
 
-    private QueryableResourceManager<ClientDetails> clientDetailsService;
+    private final QueryableResourceManager<ClientDetails> clientDetailsService;
 
     private final SecurityContextAccessor securityContextAccessor;
 
     private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
-    public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor) {
+    public ClientAdminEndpointsValidator(
+            final SecurityContextAccessor securityContextAccessor,
+            final ClientSecretValidator clientSecretValidator,
+            final QueryableResourceManager<ClientDetails> clientDetailsService
+    ) {
         this.securityContextAccessor = securityContextAccessor;
-    }
-
-    /**
-     * @param clientDetailsService the clientDetailsService to set
-     */
-    public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
+        this.clientSecretValidator = clientSecretValidator;
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -267,9 +268,5 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     @Override
     public ClientSecretValidator getClientSecretValidator() {
         return this.clientSecretValidator;
-    }
-
-    public void setClientSecretValidator(ClientSecretValidator clientSecretValidator) {
-        this.clientSecretValidator = clientSecretValidator;
     }
 }
