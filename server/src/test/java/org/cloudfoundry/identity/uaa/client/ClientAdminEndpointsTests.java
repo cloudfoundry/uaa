@@ -22,7 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,7 +66,6 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,6 +82,7 @@ class ClientAdminEndpointsTests {
     private SecurityContextAccessor mockSecurityContextAccessor;
     private MultitenantClientServices mockMultitenantClientServices;
     private AuthenticationManager mockAuthenticationManager;
+    private ApplicationEventPublisher mockApplicationEventPublisher;
 
     private IdentityZone testZone;
     private ClientAdminEndpointsValidator clientDetailsValidator;
@@ -120,7 +119,7 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
 
-        clientAdminEndpoints = spy(new ClientAdminEndpoints(
+        clientAdminEndpoints = new ClientAdminEndpoints(
                 mockSecurityContextAccessor,
                 clientDetailsValidator,
                 mockAuthenticationManager,
@@ -128,7 +127,7 @@ class ClientAdminEndpointsTests {
                 mock(ApprovalStore.class),
                 mockMultitenantClientServices,
                 mockNoOpClientDetailsResourceManager,
-                5));
+                5);
 
         baseClientDetails = new BaseClientDetails();
         baseClientDetails.setClientId("foo");
@@ -153,21 +152,8 @@ class ClientAdminEndpointsTests {
         uaaClientDetails.setScope(Collections.singletonList("uaa.none"));
         uaaClientDetails.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
 
-        clientAdminEndpoints.setApplicationEventPublisher(
-                new ApplicationEventPublisher() {
-                    @Override
-                    public void publishEvent(ApplicationEvent event) {
-                        if (event instanceof EntityDeletedEvent) {
-                            ClientDetails client = (ClientDetails) ((EntityDeletedEvent) event).getDeleted();
-                            mockMultitenantClientServices.removeClientDetails(client.getClientId());
-                        }
-                    }
-
-                    @Override
-                    public void publishEvent(Object event) {
-                    }
-                }
-        );
+        mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
+        clientAdminEndpoints.setApplicationEventPublisher(mockApplicationEventPublisher);
     }
 
     @AfterEach
@@ -717,8 +703,7 @@ class ClientAdminEndpointsTests {
         ClientDetails result = clientAdminEndpoints.removeClientDetails("foo");
         assertNull(result.getClientSecret());
         ArgumentCaptor<EntityDeletedEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
-        verify(clientAdminEndpoints).publish(captor.capture());
-        verify(mockMultitenantClientServices).removeClientDetails("foo");
+        verify(mockApplicationEventPublisher).publishEvent(captor.capture());
         assertNotNull(captor.getValue());
         Object deleted = captor.getValue().getDeleted();
         assertNotNull(deleted);
