@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -37,9 +35,6 @@ class ClientBasicAuthenticationFilterTests {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        IdentityZone testZone = new IdentityZone();
-        IdentityZoneHolder.set(testZone);
-
         clientAuthenticationManager = mock(AuthenticationManager.class);
         uaaAuthenticationDetailsSource = mock(UaaAuthenticationDetailsSource.class);
         mockEntryPoint = mock(AuthenticationEntryPoint.class);
@@ -47,7 +42,6 @@ class ClientBasicAuthenticationFilterTests {
 
     @AfterAll
     static void tearDown() {
-        IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
     }
 
