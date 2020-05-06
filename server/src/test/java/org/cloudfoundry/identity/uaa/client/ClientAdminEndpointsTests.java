@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
@@ -111,8 +112,9 @@ class ClientAdminEndpointsTests {
         when(mockNoOpClientDetailsResourceManager.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockAuthenticationManager = mock(AuthenticationManager.class);
+        final ClientSecretValidator clientSecretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor,
-                new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6)),
+                clientSecretValidator,
                 mockNoOpClientDetailsResourceManager);
 
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
@@ -121,6 +123,7 @@ class ClientAdminEndpointsTests {
         clientAdminEndpoints = new ClientAdminEndpoints(
                 mockSecurityContextAccessor,
                 clientDetailsValidator,
+                clientSecretValidator,
                 mockAuthenticationManager,
                 mock(ResourceMonitor.class),
                 mock(ApprovalStore.class),
@@ -733,7 +736,7 @@ class ClientAdminEndpointsTests {
     @Test
     void clientEndpointCannotBeConfiguredWithAnInvalidMaxCount() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> new ClientAdminEndpoints(null, null, null, null, null, null, null, 0),
+                () -> new ClientAdminEndpoints(null, null, null, null, null, null, null, null, 0),
                 is("Invalid \"clientMaxCount\" value (got 0). Should be positive number.")
         );
     }

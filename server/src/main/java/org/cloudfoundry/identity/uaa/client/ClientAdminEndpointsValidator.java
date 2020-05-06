@@ -264,8 +264,4 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
     }
-
-    public ClientSecretValidator getClientSecretValidator() {
-        return this.clientSecretValidator;
-    }
 }

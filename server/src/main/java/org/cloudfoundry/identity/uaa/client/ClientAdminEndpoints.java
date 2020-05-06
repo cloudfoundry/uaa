@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -99,6 +100,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     private final SecurityContextAccessor securityContextAccessor;
     private final ClientAdminEndpointsValidator clientDetailsValidator;
+    private final ClientSecretValidator clientSecretValidator;
     private final AuthenticationManager authenticationManager;
     private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
     private final ApprovalStore approvalStore;
@@ -117,6 +119,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
                                 final ClientAdminEndpointsValidator clientDetailsValidator,
+                                final ClientSecretValidator clientSecretValidator,
                                 final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
                                 final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
                                 final @Qualifier("approvalStore") ApprovalStore approvalStore,
@@ -132,6 +135,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
         this.securityContextAccessor = securityContextAccessor;
         this.clientDetailsValidator = clientDetailsValidator;
+        this.clientSecretValidator = clientSecretValidator;
         this.authenticationManager = authenticationManager;
         this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
         this.approvalStore = approvalStore;
@@ -395,7 +399,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 clientId = change[i].getClientId();
                 clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
-                clientDetailsValidator.getClientSecretValidator().validate(change[i].getSecret());
+                clientSecretValidator.validate(change[i].getSecret());
                 clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
                 if (!oldPasswordOk) {
                     deleteApprovals(clientId);
@@ -498,7 +502,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 if(!validateCurrentClientSecretAdd(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
                 }
-                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
+                clientSecretValidator.validate(change.getSecret());
                 clientRegistrationService.addClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "Secret is added");
                 break;
@@ -513,7 +517,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 break;
 
             default:
-                clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
+                clientSecretValidator.validate(change.getSecret());
                 clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
                 result = new ActionResult("ok", "secret updated");
         }
