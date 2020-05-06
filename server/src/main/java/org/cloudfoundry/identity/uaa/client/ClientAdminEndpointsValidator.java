@@ -265,7 +265,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
     }
 
-    @Override
     public ClientSecretValidator getClientSecretValidator() {
         return this.clientSecretValidator;
     }

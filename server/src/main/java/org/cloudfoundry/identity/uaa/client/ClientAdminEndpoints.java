@@ -98,7 +98,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
 
     private final SecurityContextAccessor securityContextAccessor;
-    private final ClientDetailsValidator clientDetailsValidator;
+    private final ClientAdminEndpointsValidator clientDetailsValidator;
     private final AuthenticationManager authenticationManager;
     private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
     private final ApprovalStore approvalStore;

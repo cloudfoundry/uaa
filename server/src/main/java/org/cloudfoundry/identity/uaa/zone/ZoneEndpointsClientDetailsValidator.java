@@ -77,9 +77,4 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
         }
         throw new IllegalStateException("This validator must be called with a mode");
     }
-
-    @Override
-    public ClientSecretValidator getClientSecretValidator() {
-        return this.clientSecretValidator;
-    }
 }
