@@ -189,14 +189,13 @@ class ClientAdminEndpointsTests {
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         ClientDetails result = clientAdminEndpoints.createClientDetails(baseClientDetails);
         assertNull(result.getClientSecret());
-        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, IdentityZoneHolder.get().getId());
+        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, "testzone");
         assertEquals(1463510591, result.getAdditionalInformation().get("lastModified"));
     }
 
     @Test
     void createClientDetails_With_Secret_Length_Less_Than_MinLength() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(7, 255, 0, 0, 0, 0, 6));
-        IdentityZoneHolder.set(testZone);
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
@@ -204,7 +203,6 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetails_With_Secret_Length_Greater_Than_MaxLength() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 0, 6));
-        IdentityZoneHolder.set(testZone);
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
@@ -212,7 +210,6 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetails_With_Secret_Require_Digit() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 1, 0, 6));
-        IdentityZoneHolder.set(testZone);
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
@@ -220,7 +217,6 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetails_With_Secret_Require_Uppercase() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 1, 0, 0, 0, 6));
-        IdentityZoneHolder.set(testZone);
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
@@ -228,7 +224,6 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetails_With_Secret_Require_Lowercase() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 1, 0, 0, 6));
-        IdentityZoneHolder.set(testZone);
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
@@ -236,7 +231,6 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetails_With_Secret_Require_Special_Character() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 5, 0, 0, 0, 1, 6));
-        IdentityZoneHolder.set(testZone);
         when(mockNoOpClientDetailsResourceManager.retrieve(anyString(), anyString())).thenReturn(baseClientDetails);
         assertThrows(InvalidClientSecretException.class, () -> clientAdminEndpoints.createClientDetails(baseClientDetails));
     }
@@ -244,7 +238,6 @@ class ClientAdminEndpointsTests {
     @Test
     void createClientDetails_With_Secret_Satisfying_Complex_Policy() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(6, 255, 1, 1, 1, 1, 6));
-        IdentityZoneHolder.set(testZone);
         String complexPolicySatisfyingSecret = "Secret1@";
         baseClientDetails.setClientSecret(complexPolicySatisfyingSecret);
         uaaClientDetails.setClientSecret(complexPolicySatisfyingSecret);
@@ -374,7 +367,7 @@ class ClientAdminEndpointsTests {
         uaaClientDetails.setAuthorizedGrantTypes(baseClientDetails.getAuthorizedGrantTypes());
         ClientDetails result = clientAdminEndpoints.createClientDetails(baseClientDetails);
         assertNull(result.getClientSecret());
-        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, IdentityZoneHolder.get().getId());
+        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, "testzone");
     }
 
     @Test
@@ -389,7 +382,7 @@ class ClientAdminEndpointsTests {
         uaaClientDetails.setScope(baseClientDetails.getScope());
         ClientDetails result = clientAdminEndpoints.createClientDetails(baseClientDetails);
         assertNull(result.getClientSecret());
-        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, IdentityZoneHolder.get().getId());
+        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, "testzone");
     }
 
     @Test
@@ -399,7 +392,7 @@ class ClientAdminEndpointsTests {
         uaaClientDetails.setAdditionalInformation(baseClientDetails.getAdditionalInformation());
         ClientDetails result = clientAdminEndpoints.createClientDetails(baseClientDetails);
         assertNull(result.getClientSecret());
-        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, IdentityZoneHolder.get().getId());
+        verify(mockNoOpClientDetailsResourceManager).create(uaaClientDetails, "testzone");
     }
 
     @Test
@@ -423,11 +416,11 @@ class ClientAdminEndpointsTests {
 
     @Test
     void findClientDetails() {
-        when(mockNoOpClientDetailsResourceManager.query("filter", "sortBy", true, IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.query("filter", "sortBy", true, "testzone")).thenReturn(
                 Collections.singletonList(uaaClientDetails));
         SearchResults<?> result = clientAdminEndpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100);
         assertEquals(1, result.getResources().size());
-        verify(mockNoOpClientDetailsResourceManager).query("filter", "sortBy", true, IdentityZoneHolder.get().getId());
+        verify(mockNoOpClientDetailsResourceManager).query("filter", "sortBy", true, "testzone");
 
         result = clientAdminEndpoints.listClientDetails("", "filter", "sortBy", "ascending", 1, 100);
         assertEquals(1, result.getResources().size());
@@ -435,13 +428,13 @@ class ClientAdminEndpointsTests {
 
     @Test
     void findClientDetailsInvalidFilter() {
-        when(mockNoOpClientDetailsResourceManager.query("filter", "sortBy", true, IdentityZoneHolder.get().getId())).thenThrow(new IllegalArgumentException());
+        when(mockNoOpClientDetailsResourceManager.query("filter", "sortBy", true, "testzone")).thenThrow(new IllegalArgumentException());
         assertThrows(UaaException.class, () -> clientAdminEndpoints.listClientDetails("client_id", "filter", "sortBy", "ascending", 1, 100));
     }
 
     @Test
     void findClientDetails_Test_Attribute_Filter() {
-        when(mockNoOpClientDetailsResourceManager.query(anyString(), anyString(), anyBoolean(), eq(IdentityZoneHolder.get().getId()))).thenReturn(Arrays.asList(clientDetailsModifications));
+        when(mockNoOpClientDetailsResourceManager.query(anyString(), anyString(), anyBoolean(), eq("testzone"))).thenReturn(Arrays.asList(clientDetailsModifications));
         for (String attribute : Arrays.asList("client_id", "resource_ids", "authorized_grant_types", "redirect_uri", "access_token_validity", "refresh_token_validity", "autoapprove", "additionalinformation")) {
             SearchResults<Map<String, Object>> result = (SearchResults<Map<String, Object>>) clientAdminEndpoints.listClientDetails(attribute, "client_id pr", "sortBy", "ascending", 1, 100);
             validateAttributeResults(result, Collections.singletonList(attribute));
@@ -450,7 +443,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void updateClientDetailsWithNullCallerAndInvalidScope() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(
                 new BaseClientDetails(baseClientDetails));
         baseClientDetails.setScope(Collections.singletonList("read"));
         assertThrows(InvalidClientDetailsException.class, () -> clientAdminEndpoints.updateClientDetails(baseClientDetails, baseClientDetails.getClientId()));
@@ -459,19 +452,19 @@ class ClientAdminEndpointsTests {
 
     @Test
     void nonExistentClient1() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenThrow(new InvalidClientDetailsException(""));
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenThrow(new InvalidClientDetailsException(""));
         assertThrows(InvalidClientDetailsException.class, () -> clientAdminEndpoints.getClientDetails(baseClientDetails.getClientId()));
     }
 
     @Test
     void nonExistentClient2() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenThrow(new BadClientCredentialsException());
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenThrow(new BadClientCredentialsException());
         assertThrows(NoSuchClientException.class, () -> clientAdminEndpoints.getClientDetails(baseClientDetails.getClientId()));
     }
 
     @Test
     void getClientDetails() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(baseClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(baseClientDetails);
         baseClientDetails.setScope(Collections.singletonList(baseClientDetails.getClientId() + ".read"));
         baseClientDetails.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
         ClientDetails result = clientAdminEndpoints.getClientDetails(baseClientDetails.getClientId());
@@ -481,7 +474,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void updateClientDetails() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(
                 new BaseClientDetails(baseClientDetails));
         when(mockSecurityContextAccessor.getClientId()).thenReturn(uaaClientDetails.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -495,7 +488,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void updateClientDetailsWithAdditionalInformation() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(
                 new BaseClientDetails(baseClientDetails));
         when(mockSecurityContextAccessor.getClientId()).thenReturn(uaaClientDetails.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -512,7 +505,7 @@ class ClientAdminEndpointsTests {
     @Test
     void updateClientDetailsRemoveAdditionalInformation() {
         baseClientDetails.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(
                 new BaseClientDetails(baseClientDetails));
         baseClientDetails.setAdditionalInformation(Collections.emptyMap());
         ClientDetails result = clientAdminEndpoints.updateClientDetails(baseClientDetails, baseClientDetails.getClientId());
@@ -522,7 +515,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void partialUpdateClientDetails() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(uaaClientDetails.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
 
@@ -544,7 +537,7 @@ class ClientAdminEndpointsTests {
         when(auth.isAuthenticated()).thenReturn(true);
         when(mockAuthenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
 
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(uaaClientDetails.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
 
@@ -562,14 +555,14 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
         change.setChangeMode(ADD);
 
         clientAdminEndpoints.changeSecret(uaaClientDetails.getClientId(), change);
-        verify(mockMultitenantClientServices).addClientSecret(uaaClientDetails.getClientId(), "newpassword", IdentityZoneHolder.get().getId());
+        verify(mockMultitenantClientServices).addClientSecret(uaaClientDetails.getClientId(), "newpassword", "testzone");
     }
 
     @Test
@@ -579,7 +572,7 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         uaaClientDetails.setClientSecret("hash1 hash2");
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
 
         SecretChangeRequest change = new SecretChangeRequest();
         change.setSecret("newpassword");
@@ -595,12 +588,12 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         uaaClientDetails.setClientSecret("hash1 hash2");
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
         SecretChangeRequest change = new SecretChangeRequest();
         change.setChangeMode(DELETE);
 
         clientAdminEndpoints.changeSecret(uaaClientDetails.getClientId(), change);
-        verify(mockMultitenantClientServices).deleteClientSecret(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId());
+        verify(mockMultitenantClientServices).deleteClientSecret(uaaClientDetails.getClientId(), "testzone");
     }
 
     @Test
@@ -610,7 +603,7 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
 
         uaaClientDetails.setClientSecret("hash1");
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
         SecretChangeRequest change = new SecretChangeRequest();
         change.setChangeMode(DELETE);
 
@@ -620,7 +613,7 @@ class ClientAdminEndpointsTests {
     @Test
     void changeSecretDeniedForNonAdmin() {
 
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
 
         when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -635,7 +628,7 @@ class ClientAdminEndpointsTests {
     @Test
     void addSecretDeniedForNonAdmin() {
 
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
 
         when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -650,7 +643,7 @@ class ClientAdminEndpointsTests {
     @Test
     void changeSecretDeniedWhenOldSecretNotProvided() {
 
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
 
 
         when(mockAuthenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
@@ -669,7 +662,7 @@ class ClientAdminEndpointsTests {
     @Test
     void changeSecretByAdmin() {
 
-        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve(uaaClientDetails.getClientId(), "testzone")).thenReturn(uaaClientDetails);
 
         when(mockSecurityContextAccessor.getClientId()).thenReturn("admin");
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -703,7 +696,7 @@ class ClientAdminEndpointsTests {
     @Test
     void removeClientDetailsAdminCaller() {
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
-        when(mockNoOpClientDetailsResourceManager.retrieve("foo", IdentityZoneHolder.get().getId())).thenReturn(uaaClientDetails);
+        when(mockNoOpClientDetailsResourceManager.retrieve("foo", "testzone")).thenReturn(uaaClientDetails);
         ClientDetails result = clientAdminEndpoints.removeClientDetails("foo");
         assertNull(result.getClientSecret());
         ArgumentCaptor<EntityDeletedEvent> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
@@ -719,7 +712,7 @@ class ClientAdminEndpointsTests {
     void scopeIsRestrictedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
-        when(mockNoOpClientDetailsResourceManager.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
+        when(mockNoOpClientDetailsResourceManager.retrieve("caller", "testzone")).thenReturn(caller);
         when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         uaaClientDetails.setScope(Collections.singletonList("some"));
         assertThrows(InvalidClientDetailsException.class, () -> clientAdminEndpoints.createClientDetails(uaaClientDetails));
@@ -729,7 +722,7 @@ class ClientAdminEndpointsTests {
     void validScopeIsNotRestrictedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
-        when(mockNoOpClientDetailsResourceManager.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
+        when(mockNoOpClientDetailsResourceManager.retrieve("caller", "testzone")).thenReturn(caller);
         when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         uaaClientDetails.setScope(Collections.singletonList("none"));
         clientAdminEndpoints.createClientDetails(uaaClientDetails);
@@ -747,7 +740,7 @@ class ClientAdminEndpointsTests {
     void authorityIsRestrictedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
-        when(mockNoOpClientDetailsResourceManager.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
+        when(mockNoOpClientDetailsResourceManager.retrieve("caller", "testzone")).thenReturn(caller);
         when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         uaaClientDetails.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.some"));
         assertThrows(InvalidClientDetailsException.class, () -> clientAdminEndpoints.createClientDetails(uaaClientDetails));
@@ -757,7 +750,7 @@ class ClientAdminEndpointsTests {
     void authorityAllowedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "uaa.none", "client_credentials,implicit",
                 "uaa.none");
-        when(mockNoOpClientDetailsResourceManager.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
+        when(mockNoOpClientDetailsResourceManager.retrieve("caller", "testzone")).thenReturn(caller);
         when(mockSecurityContextAccessor.getClientId()).thenReturn("caller");
         uaaClientDetails.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         clientAdminEndpoints.createClientDetails(uaaClientDetails);
@@ -767,7 +760,7 @@ class ClientAdminEndpointsTests {
     void cannotExpandScope() {
         BaseClientDetails caller = new BaseClientDetails();
         caller.setScope(Collections.singletonList("none"));
-        when(mockNoOpClientDetailsResourceManager.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
+        when(mockNoOpClientDetailsResourceManager.retrieve("caller", "testzone")).thenReturn(caller);
         uaaClientDetails.setAuthorizedGrantTypes(Collections.singletonList("implicit"));
         uaaClientDetails.setClientSecret("hello");
         assertThrows(InvalidClientDetailsException.class, () -> clientAdminEndpoints.createClientDetails(uaaClientDetails));
@@ -900,7 +893,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void updateClientWithAutoapproveScopesList() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(
                 new BaseClientDetails(baseClientDetails));
         when(mockSecurityContextAccessor.getClientId()).thenReturn(uaaClientDetails.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -924,7 +917,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void updateClientWithAutoapproveScopesTrue() {
-        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+        when(mockNoOpClientDetailsResourceManager.retrieve(baseClientDetails.getClientId(), "testzone")).thenReturn(
                 new BaseClientDetails(baseClientDetails));
         when(mockSecurityContextAccessor.getClientId()).thenReturn(uaaClientDetails.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
