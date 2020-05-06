@@ -84,8 +84,6 @@ class ClientAdminEndpointsTests {
 
     private BaseClientDetails detail = null;
 
-    private BaseClientDetails[] details = new BaseClientDetails[inputs.length];
-
     private QueryableResourceManager<ClientDetails> clientDetailsService = null;
 
     private SecurityContextAccessor mockSecurityContextAccessor;
@@ -162,15 +160,6 @@ class ClientAdminEndpointsTests {
         detail.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, "refresh_token"));
         detail.setScope(Collections.singletonList("uaa.none"));
         detail.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-
-        for (int i = 0; i < details.length; i++) {
-            details[i] = new BaseClientDetails(inputs[i]);
-            details[i].setResourceIds(Collections.singletonList("none"));
-            // refresh token is added automatically by endpoint validation
-            details[i].setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, "refresh_token"));
-            details[i].setScope(Collections.singletonList("uaa.none"));
-            details[i].setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-        }
 
         endpoints.setApplicationEventPublisher(
                 new ApplicationEventPublisher() {
