@@ -15,7 +15,6 @@ import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
@@ -129,7 +128,6 @@ class ClientAdminEndpointsTests {
                 mockIdentityZoneManager);
 
         testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
-        IdentityZoneHolder.set(testZone);
 
         clientAdminEndpoints = new ClientAdminEndpoints(
                 mockSecurityContextAccessor,
@@ -140,7 +138,8 @@ class ClientAdminEndpointsTests {
                 mock(ApprovalStore.class),
                 mockMultitenantClientServices,
                 mockNoOpClientDetailsResourceManager,
-                5);
+                5,
+                mockIdentityZoneManager);
 
         baseClientDetails = new BaseClientDetails();
         baseClientDetails.setClientId("foo");
@@ -167,11 +166,6 @@ class ClientAdminEndpointsTests {
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminEndpoints.setApplicationEventPublisher(mockApplicationEventPublisher);
-    }
-
-    @AfterEach
-    void tearDown() {
-        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -740,7 +734,7 @@ class ClientAdminEndpointsTests {
     @Test
     void clientEndpointCannotBeConfiguredWithAnInvalidMaxCount() {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> new ClientAdminEndpoints(null, null, null, null, null, null, null, null, 0),
+                () -> new ClientAdminEndpoints(null, null, null, null, null, null, null, null, 0, null),
                 is("Invalid \"clientMaxCount\" value (got 0). Should be positive number.")
         );
     }

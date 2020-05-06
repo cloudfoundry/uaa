@@ -30,9 +30,9 @@ import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -114,6 +114,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private final AtomicInteger clientUpdates;
     private final AtomicInteger clientDeletes;
     private final AtomicInteger clientSecretChanges;
+    private final IdentityZoneManager identityZoneManager;
 
     private ApplicationEventPublisher publisher;
 
@@ -125,7 +126,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                                 final @Qualifier("approvalStore") ApprovalStore approvalStore,
                                 final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientRegistrationService,
                                 final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
-                                final @Value("${clientMaxCount:500}") int clientMaxCount) {
+                                final @Value("${clientMaxCount:500}") int clientMaxCount,
+                                final IdentityZoneManager identityZoneManager) {
 
         if (clientMaxCount <= 0) {
             throw new IllegalArgumentException(
@@ -142,6 +144,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         this.clientRegistrationService = clientRegistrationService;
         this.clientDetailsService = clientDetailsService;
         this.clientMaxCount = clientMaxCount;
+        this.identityZoneManager = identityZoneManager;
         this.attributeNameMapper = new SimpleAttributeNameMapper(Map.of(
                 "client_id", "clientId",
                 "resource_ids", "resourceIds",
@@ -187,7 +190,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     public ClientDetails getClientDetails(@PathVariable String client) {
         try {
-            return removeSecret(clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId()));
+            return removeSecret(clientDetailsService.retrieve(client, identityZoneManager.getCurrentIdentityZoneId()));
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + client);
         } catch (BadClientCredentialsException e) {
@@ -203,7 +206,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
 
-        return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
+        return removeSecret(clientDetailsService.create(details, identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
@@ -239,7 +242,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     protected ClientDetails[] doInsertClientDetails(ClientDetails[] details) {
         for (int i=0; i<details.length; i++) {
-            details[i] = clientDetailsService.create(details[i], IdentityZoneHolder.get().getId());
+            // TODO: This call does not appear to be verified by unit tests
+            details[i] = clientDetailsService.create(details[i], identityZoneManager.getCurrentIdentityZoneId());
             details[i] = removeSecret(details[i]);
         }
         return details;
@@ -270,7 +274,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     protected ClientDetails[] doProcessUpdates(ClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
-            clientRegistrationService.updateClientDetails(details[i], IdentityZoneHolder.get().getId());
+            // TODO: This call does not appear to be verified by unit tests
+            clientRegistrationService.updateClientDetails(details[i], identityZoneManager.getCurrentIdentityZoneId());
             clientUpdates.incrementAndGet();
             result[i] = removeSecret(details[i]);
         }
@@ -306,16 +311,16 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
         }
         details = clientDetailsValidator.validate(details, Mode.MODIFY);
-        clientRegistrationService.updateClientDetails(details, IdentityZoneHolder.get().getId());
+        clientRegistrationService.updateClientDetails(details, identityZoneManager.getCurrentIdentityZoneId());
         clientUpdates.incrementAndGet();
-        return removeSecret(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
+        return removeSecret(clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails removeClientDetails(@PathVariable String client) {
-        ClientDetails details = clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId());
+        ClientDetails details = clientDetailsService.retrieve(client, identityZoneManager.getCurrentIdentityZoneId());
         doProcessDeletes(new ClientDetails[]{details});
         return removeSecret(details);
     }
@@ -327,7 +332,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
-            result[i] = clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId());
+            // TODO: This call does not appear to be verified by unit tests
+            result[i] = clientDetailsService.retrieve(details[i].getClientId(), identityZoneManager.getCurrentIdentityZoneId());
         }
         return doProcessDeletes(result);
     }
@@ -341,11 +347,14 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         for (int i=0; i<result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
                 ClientDetails client = clientDetailsValidator.validate(details[i], Mode.CREATE);
-                clientRegistrationService.addClientDetails(client, IdentityZoneHolder.get().getId());
+                // TODO: This call does not appear to be verified by unit tests
+                clientRegistrationService.addClientDetails(client, identityZoneManager.getCurrentIdentityZoneId());
                 clientUpdates.incrementAndGet();
-                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId()));
+                // TODO: This call does not appear to be verified by unit tests
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId(), identityZoneManager.getCurrentIdentityZoneId()));
             } else if (ClientDetailsModification.DELETE.equals(details[i].getAction())) {
-                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId()));
+                // TODO: This call does not appear to be verified by unit tests
+                result[i] = new ClientDetailsModification(clientDetailsService.retrieve(details[i].getClientId(), identityZoneManager.getCurrentIdentityZoneId()));
                 doProcessDeletes(new ClientDetails[]{result[i]});
                 result[i].setApprovalsDeleted(true);
             } else if (ClientDetailsModification.UPDATE.equals(details[i].getAction())) {
@@ -368,9 +377,11 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     private ClientDetailsModification updateClientNotSecret(ClientDetailsModification c) {
-        ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId(), IdentityZoneHolder.get().getId()));
+        // TODO: This call does not appear to be verified by unit tests
+        ClientDetailsModification result = new ClientDetailsModification(clientDetailsService.retrieve(c.getClientId(), identityZoneManager.getCurrentIdentityZoneId()));
         ClientDetails client = clientDetailsValidator.validate(c, Mode.MODIFY);
-        clientRegistrationService.updateClientDetails(client, IdentityZoneHolder.get().getId());
+        // TODO: This call does not appear to be verified by unit tests
+        clientRegistrationService.updateClientDetails(client, identityZoneManager.getCurrentIdentityZoneId());
         clientUpdates.incrementAndGet();
         return result;
     }
@@ -378,7 +389,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private boolean updateClientSecret(ClientDetailsModification detail) {
         boolean deleteApprovals = !(authenticateClient(detail.getClientId(), detail.getClientSecret()));
         if (deleteApprovals) {
-            clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret(), IdentityZoneHolder.get().getId());
+            // TODO: This call does not appear to be verified by unit tests
+            clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret(), identityZoneManager.getCurrentIdentityZoneId());
             deleteApprovals(detail.getClientId());
             detail.setApprovalsDeleted(true);
         }
@@ -397,10 +409,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         try {
             for (int i=0; i<change.length; i++) {
                 clientId = change[i].getClientId();
-                clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
+                // TODO: This call does not appear to be verified by unit tests
+                clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
                 clientSecretValidator.validate(change[i].getSecret());
-                clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), IdentityZoneHolder.get().getId());
+                // TODO: This call does not appear to be verified by unit tests
+                clientRegistrationService.updateClientSecret(clientId, change[i].getSecret(), identityZoneManager.getCurrentIdentityZoneId());
                 if (!oldPasswordOk) {
                     deleteApprovals(clientId);
                     clientDetails[i].setApprovalsDeleted(true);
@@ -417,7 +431,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
-            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
+            // TODO: This call does not appear to be verified by unit tests
+            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication(), identityZoneManager.getCurrentIdentityZoneId()));
             clientDeletes.incrementAndGet();
             result[i] = removeSecret(details[i]);
             result[i].setApprovalsDeleted(true);
@@ -426,7 +441,8 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     protected void deleteApprovals(String clientId) {
-        approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
+        // TODO: This call does not appear to be verified by unit tests
+        approvalStore.revokeApprovalsForClient(clientId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
@@ -446,7 +462,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         List<ClientDetails> result = new ArrayList<ClientDetails>();
         List<ClientDetails> clients;
         try {
-            clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), IdentityZoneHolder.get().getId());
+            clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), identityZoneManager.getCurrentIdentityZoneId());
             if (count > clients.size()) {
                 count = clients.size();
             }
@@ -485,7 +501,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
         ClientDetails clientDetails;
         try {
-            clientDetails = clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
+            clientDetails = clientDetailsService.retrieve(client_id, identityZoneManager.getCurrentIdentityZoneId());
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + client_id);
         }
@@ -503,7 +519,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                     throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
                 }
                 clientSecretValidator.validate(change.getSecret());
-                clientRegistrationService.addClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
+                clientRegistrationService.addClientSecret(client_id, change.getSecret(), identityZoneManager.getCurrentIdentityZoneId());
                 result = new ActionResult("ok", "Secret is added");
                 break;
 
@@ -512,13 +528,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                     throw new InvalidClientDetailsException("client secret is either empty or client has only one secret.");
                 }
 
-                clientRegistrationService.deleteClientSecret(client_id, IdentityZoneHolder.get().getId());
+                clientRegistrationService.deleteClientSecret(client_id, identityZoneManager.getCurrentIdentityZoneId());
                 result = new ActionResult("ok", "Secret is deleted");
                 break;
 
             default:
                 clientSecretValidator.validate(change.getSecret());
-                clientRegistrationService.updateClientSecret(client_id, change.getSecret(), IdentityZoneHolder.get().getId());
+                clientRegistrationService.updateClientSecret(client_id, change.getSecret(), identityZoneManager.getCurrentIdentityZoneId());
                 result = new ActionResult("ok", "secret updated");
         }
         clientSecretChanges.incrementAndGet();
