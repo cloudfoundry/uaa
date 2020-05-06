@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -112,7 +113,7 @@ class ClientAdminEndpointsTests {
         when(mockNoOpClientDetailsResourceManager.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockAuthenticationManager = mock(AuthenticationManager.class);
-        final ClientSecretValidator clientSecretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
+        final ClientSecretValidator clientSecretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6), new IdentityZoneManagerImpl());
         clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor,
                 clientSecretValidator,
                 mockNoOpClientDetailsResourceManager);

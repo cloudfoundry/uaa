@@ -1,11 +1,14 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class ZoneAwareClientSecretPolicyValidatorTests {
@@ -32,8 +35,10 @@ class ZoneAwareClientSecretPolicyValidatorTests {
     @BeforeEach
     void setUp() {
         zone = new IdentityZone();
-        IdentityZoneHolder.set(zone);
-        validator = new ZoneAwareClientSecretPolicyValidator(defaultPolicy);
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(zone);
+
+        validator = new ZoneAwareClientSecretPolicyValidator(defaultPolicy, mockIdentityZoneManager);
     }
 
     @Test

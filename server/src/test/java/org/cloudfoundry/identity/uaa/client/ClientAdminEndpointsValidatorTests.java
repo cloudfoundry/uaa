@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -77,7 +78,7 @@ public class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6), new IdentityZoneManagerImpl());
 
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
         when(mockSecurityContextAccessor.isAdmin()).thenReturn(false);

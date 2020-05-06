@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.passay.PasswordData;
 import org.passay.PasswordValidator;
 import org.passay.PropertiesMessageResolver;
@@ -64,9 +65,13 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
         messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
     }
     private final ClientSecretPolicy globalDefaultClientSecretPolicy;
+    private final IdentityZoneManager identityZoneManager;
 
-    public ZoneAwareClientSecretPolicyValidator(ClientSecretPolicy globalDefaultClientSecretPolicy) {
+    public ZoneAwareClientSecretPolicyValidator(
+            final ClientSecretPolicy globalDefaultClientSecretPolicy,
+            final IdentityZoneManager identityZoneManager) {
         this.globalDefaultClientSecretPolicy = globalDefaultClientSecretPolicy;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @Override
@@ -77,7 +82,7 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
 
         ClientSecretPolicy clientSecretPolicy = this.globalDefaultClientSecretPolicy;
 
-        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
         if(zone.getConfig().getClientSecretPolicy().getMinLength() != -1) {
             clientSecretPolicy = zone.getConfig().getClientSecretPolicy();
         }
