@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,15 +114,19 @@ class ClientAdminEndpointsTests {
         testZone.setId(zoneId);
         mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
 
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(testZone);
+
         mockNoOpClientDetailsResourceManager = mock(NoOpClientDetailsResourceManager.class);
         when(mockNoOpClientDetailsResourceManager.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockAuthenticationManager = mock(AuthenticationManager.class);
-        final ClientSecretValidator clientSecretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6), new IdentityZoneManagerImpl());
+        final ClientSecretValidator clientSecretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6), mockIdentityZoneManager);
         clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor,
                 clientSecretValidator,
                 mockNoOpClientDetailsResourceManager,
-                new IdentityZoneManagerImpl());
+                mockIdentityZoneManager);
 
         testIdentityZoneConfiguration.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
