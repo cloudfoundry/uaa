@@ -404,7 +404,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
 
         //we must check and see if the email address has changed between authentications
-        if (request.getPrincipal() != null) {
             if (haveUserAttributesChanged(userFromDb, userFromRequest)) {
                 logger.debug("User attributed have changed, updating them.");
                 userFromDb = userFromDb.modifyAttributes(email,
@@ -415,7 +414,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     .modifyUsername(userFromRequest.getUsername());
                 userModified = true;
             }
-        }
 
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
