@@ -16,7 +16,7 @@ public class IdentityZoneEndpointClientRegistrationService {
 
     public IdentityZoneEndpointClientRegistrationService(
             final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
-            final @Qualifier("zoneEndpointsClientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
+            final ZoneEndpointsClientDetailsValidator clientDetailsValidator,
             final @Qualifier("approvalStore") ApprovalStore approvalStore) {
         this.clientDetailsService = clientDetailsService;
         this.clientDetailsValidator = clientDetailsValidator;

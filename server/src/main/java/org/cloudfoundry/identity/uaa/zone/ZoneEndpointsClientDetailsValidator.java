@@ -21,7 +21,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 
-@Component("zoneEndpointsClientDetailsValidator")
+@Component
 public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidator {
 
     private final String REQUIRED_SCOPE = "zones.write";
