@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import java.util.Arrays;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
+import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
@@ -36,6 +38,7 @@ import java.nio.file.Path;
 import java.util.Enumeration;
 
 import static org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer.YML_ENV_VAR_NAME;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -126,7 +129,7 @@ class YamlServletProfileInitializerTest {
 
         initializer.initialize(context);
 
-        assertEquals("bar", environment.getActiveProfiles()[0]);
+        assertActiveProfilesAre(environment, "bar");
     }
 
     @Test
@@ -136,7 +139,7 @@ class YamlServletProfileInitializerTest {
 
         initializer.initialize(context);
 
-        assertEquals("bar", environment.getActiveProfiles()[0]);
+        assertActiveProfilesAre(environment, "bar");
     }
 
     @Test
@@ -380,21 +383,21 @@ class YamlServletProfileInitializerTest {
         void ifNoProfilesAreSetUseHsqldb() {
             System.clearProperty("spring.profiles.active");
             initializer.applySpringProfiles(environment);
-            assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
+            assertActiveProfilesAre(environment, "hsqldb");
         }
 
         @Test
         void ifProfilesAreSetUseThem() {
             System.setProperty("spring.profiles.active", "hsqldb,default");
             initializer.applySpringProfiles(environment);
-            assertArrayEquals(new String[]{"hsqldb", "default"}, environment.getActiveProfiles());
+            assertActiveProfilesAre(environment, "hsqldb", "default");
         }
 
         @Test
         void defaultProfileUnset() {
             System.setProperty("spring.profiles.active", "hsqldb");
             initializer.applySpringProfiles(environment);
-            assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
+            assertActiveProfilesAre(environment, "hsqldb");
             assertArrayEquals(new String[0], environment.getDefaultProfiles());
         }
 
@@ -403,7 +406,7 @@ class YamlServletProfileInitializerTest {
             System.setProperty("spring.profiles.active", "hsqldb,default");
             environment.setProperty("spring_profiles", "mysql,default");
             initializer.applySpringProfiles(environment);
-            assertArrayEquals(new String[]{"mysql", "default"}, environment.getActiveProfiles());
+            assertActiveProfilesAre(environment, "mysql", "default");
         }
     }
 
@@ -505,4 +508,13 @@ class YamlServletProfileInitializerTest {
         newFile.deleteOnExit();
         return newFile.getAbsolutePath();
     }
+
+    private static void assertActiveProfilesAre(
+        final AbstractEnvironment environment,
+        final String... profiles
+    ) {
+        assertThat(Arrays.asList(environment.getActiveProfiles()),
+            containsInAnyOrder(profiles));
+    }
+
 }

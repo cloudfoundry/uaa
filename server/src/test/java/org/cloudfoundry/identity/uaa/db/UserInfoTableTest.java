@@ -69,16 +69,4 @@ class UserInfoTableTest {
         }
     }
 
-    public static class TestColumn {
-        public final String name;
-        public final String type;
-        public final int size;
-
-        TestColumn(String name, String type, int size) {
-            this.name = name;
-            this.type = type;
-            this.size = size;
-        }
-    }
-
 }

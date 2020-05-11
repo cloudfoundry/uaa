@@ -49,6 +49,12 @@ func (matcher *PodMatcher) WithLabels(labels map[string]string) *PodMatcher {
 	return matcher
 }
 
+func (matcher *PodMatcher) WithNamespace(namespace string) *PodMatcher {
+	matcher.meta.WithNamespace(namespace)
+
+	return matcher
+}
+
 func (matcher *PodMatcher) WithVolume(name string, volumeMatcher types.GomegaMatcher) *PodMatcher {
 	matcher.volumes[name] = volumeMatcher
 

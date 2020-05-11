@@ -1,5 +1,6 @@
 #@ load("@ytt:data", "data")
-#@ load("uaa.lib.star", "signing_keys", "database_connection_string")
+#@ load("@ytt:assert", "assert")
+
 #@ def config():
 ---
 issuer:
@@ -54,10 +55,6 @@ login:
 #! The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret
 
-jwt:
-  token:
-    policy: #@ signing_keys(data.values.jwt.policy)
-
 database:
   maxactive: 100
   maxidle: 10
@@ -65,7 +62,7 @@ database:
   removeabandoned: false
   logabandoned: true
   abandonedtimeout: 300
-  url: #@ database_connection_string(data.values.database)
+  url: #@ data.values.database.url or assert.fail("database.url is required")
 
 smtp:
   host: #@ data.values.smtp.host

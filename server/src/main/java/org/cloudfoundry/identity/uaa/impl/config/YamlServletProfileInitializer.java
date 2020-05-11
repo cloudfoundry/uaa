@@ -39,10 +39,11 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
- * to externalize the environment and
- * logging configuration. A YAML config file is loaded if present and inserted
- * into the environment. In addition if the
- * YAML contains some special properties, some initialization is carried out:
+ * to externalize the environment and logging configuration.
+ *
+ * <p>A YAML config file is loaded if present and inserted into the environment.
+ *
+ * <p>In addition if the YAML contains some special properties, some initialization is carried out:
  *
  * <ul>
  * <li><code>spring_profiles</code> - then the active profiles are set</li>

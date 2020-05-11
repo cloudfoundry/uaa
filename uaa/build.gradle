@@ -2,7 +2,6 @@ Project identityServer = parent.subprojects.find { it.name.equals("cloudfoundry-
 
 apply plugin: "war"
 apply plugin: "org.asciidoctor.convert"
-apply plugin: "com.moowork.node"
 
 processResources {
     //maven replaces project.artifactId in the log4j.properties file
@@ -65,25 +64,6 @@ dependencies {
     testCompile libraries.tomcatJdbc
     testCompile libraries.springRestdocs
     testCompile "com.icegreen:greenmail:1.5.11"
-}
-
-node {
-    version = "8.16.0"
-    npmVersion = "6.4.1"
-
-    // If true, it will download node using above parameters.
-    // If false, it will try to use globally installed node.
-    download = true
-
-    // Set the work directory for NPM
-    npmWorkDir = file("${project.buildDir}/npm")
-
-    // Set the work directory where node_modules should be located
-    nodeModulesDir = file("${project.projectDir}")
-}
-task jasmineTests {
-    dependsOn(npm_install)
-    dependsOn(npm_test)
 }
 
 ext {

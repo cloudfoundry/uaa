@@ -3,3 +3,4 @@
 database:
   scheme: hsqldb
   username: sa
+  url: jdbc:hsqldb:mem:uaa

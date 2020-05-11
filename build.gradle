@@ -17,7 +17,6 @@ buildscript {
         classpath libraries.gradleCargoPlugin
         classpath libraries.prodepsPlugin
         classpath libraries.asciidoctorGradlePlugin
-        classpath libraries.gradleNodePlugin
         classpath libraries.springDependencyMgmtPlugin
         classpath libraries.springBootGradlePlugin
     }
@@ -53,8 +52,22 @@ allprojects {
     }
 }
 
+
+
+
 subprojects {
     apply plugin: "java"
+    apply plugin: "checkstyle"
+
+    tasks.withType(Checkstyle) {
+        reports {
+            xml.enabled true
+            html.enabled true
+            if (project.hasProperty("checkstyleFail")) {
+                maxWarnings = 0
+            }
+        }
+    }
 
     configurations.all {
         exclude group: "org.hamcrest", module: "hamcrest-all"
