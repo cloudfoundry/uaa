@@ -58,6 +58,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -390,7 +391,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null,  extendedModelMap, session, request);
 
         assertEquals(extendedModelMap.get("email"), "testuser@fake.com");
     }
@@ -401,9 +402,33 @@ class LoginInfoEndpointTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
         String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, null, extendedModelMap, session, request);
 
         assertEquals(loginHint, extendedModelMap.get("login_hint"));
+    }
+
+    @Test
+    void discoverIdentityProviderCarriesUsername() throws MalformedURLException {
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("username","testuser@fake.com");
+        MockHttpSession session = new MockHttpSession();
+        String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
+        IdentityProvider idp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(idp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(idp.getOriginKey()).thenReturn("oidcOrigin");
+        when(idpConfig.getEmailDomain()).thenReturn(Collections.singletonList("fake.com"));
+        when(idpConfig.getAuthUrl()).thenReturn(new URL("https://example.com/oauth/authorize"));
+        when(idpConfig.getResponseType()).thenReturn("code");
+        when(idpConfig.getRelyingPartyId()).thenReturn("clientid");
+        when(idpConfig.getUserPropagationParameter()).thenReturn("username");
+        when(idp.getConfig()).thenReturn(idpConfig);
+        when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(Collections.singletonList(idp));
+
+        String redirect = endpoint.discoverIdentityProvider("testuser@fake.com", null, loginHint, "testuser@fake.com", extendedModelMap, session, request);
+
+        assertThat(redirect, containsString("username=testuser@fake.com"));
     }
 
     @Test
@@ -417,7 +442,7 @@ class LoginInfoEndpointTests {
         uaaIdentityProvider.setType(OriginKeys.UAA);
         when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(singletonList(uaaIdentityProvider));
 
-        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, null,  extendedModelMap, session, request);
 
         String loginHint = "{\"origin\":\"uaa\"}";
         assertEquals(loginHint, extendedModelMap.get("login_hint"));
