@@ -86,6 +86,19 @@ class UaaUrlUtilsTest {
             "org-cl0udfoundry-identity://mobile-android-app.com/view"
     );
 
+    private List<String> validSubdomains = Arrays.asList(
+            "test1",
+            "test-test2",
+            "t"
+    );
+
+    private List<String> invalidSubdomains = Arrays.asList(
+            "",
+            "-t",
+            "t-",
+            "test_test2"
+    );
+
     @BeforeEach
     void setUp() {
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -440,6 +453,16 @@ class UaaUrlUtilsTest {
         assertThat(UaaUrlUtils.getSubdomain("a"), is("a."));
         assertThat(UaaUrlUtils.getSubdomain("    z     "), is("z."));
         assertThat(UaaUrlUtils.getSubdomain("a.b.c.d.e"), is("a.b.c.d.e."));
+    }
+
+    @Test
+    void validateValidSubdomains() {
+         validSubdomains.forEach(testString -> assertTrue(UaaUrlUtils.isValidSubdomain(testString)));
+    }
+
+    @Test
+    void validateInvalidSubdomains() {
+        invalidSubdomains.forEach(testString -> assertFalse(UaaUrlUtils.isValidSubdomain(testString)));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {
