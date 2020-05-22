@@ -105,8 +105,7 @@ class IdentityZoneResolvingFilterTests {
                 wasFilterExecuted = true;
             }
         };
-        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
-        filter.setIdentityZoneProvisioning(dao);
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter(dao);
         filter.setAdditionalInternalHostnames(new HashSet<>(Arrays.asList(uaaHostname)));
         filter.doFilter(request, response, filterChain);
 
