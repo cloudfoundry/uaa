@@ -799,6 +799,38 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    void authcodeWithAllowedProviderStillUsesAccountChooser() throws Exception {
+        // mock session and saved request
+        MockHttpServletRequest request = getMockHttpServletRequest();
+
+        IdentityZone zone = MultitenancyFixture.identityZone("other-zone", "other-zone");
+        zone.getConfig().setAccountChooserEnabled(true);
+        zone.getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.set(zone);
+
+        List<String> allowedProviders = Arrays.asList("uaa", "my-client-awesome-idp1");
+
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "other-zone")).thenReturn(clientDetails);
+
+        // mock SamlIdentityProviderConfigurator
+        List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "other-zone"));
+        clientIDPs.add(createIdentityProviderDefinition("uaa", "other-zone"));
+        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(zone))).thenReturn(clientIDPs);
+
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+        endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
+
+        assertNull(extendedModelMap.get("login_hint"));
+    }
+
+    @Test
     void filterIDPsForAuthcodeClientWithNoAllowedIDPsInOtherZone() throws Exception {
         // mock session and saved request
         MockHttpServletRequest request = getMockHttpServletRequest();
