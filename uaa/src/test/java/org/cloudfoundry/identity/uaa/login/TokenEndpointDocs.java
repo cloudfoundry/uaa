@@ -238,6 +238,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 clientIdParameter,
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
                 clientSecretParameter,
+                scopeParameter,
                 opaqueFormatParameter
         );
 
