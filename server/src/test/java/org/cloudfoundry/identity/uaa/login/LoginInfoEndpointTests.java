@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -57,6 +58,7 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -389,7 +391,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null,  extendedModelMap, session, request);
 
         assertEquals(extendedModelMap.get("email"), "testuser@fake.com");
     }
@@ -400,9 +402,33 @@ class LoginInfoEndpointTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
         String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", loginHint, null, extendedModelMap, session, request);
 
         assertEquals(loginHint, extendedModelMap.get("login_hint"));
+    }
+
+    @Test
+    void discoverIdentityProviderCarriesUsername() throws MalformedURLException {
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("username","testuser@fake.com");
+        MockHttpSession session = new MockHttpSession();
+        String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
+        IdentityProvider idp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(idp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(idp.getOriginKey()).thenReturn("oidcOrigin");
+        when(idpConfig.getEmailDomain()).thenReturn(Collections.singletonList("fake.com"));
+        when(idpConfig.getAuthUrl()).thenReturn(new URL("https://example.com/oauth/authorize"));
+        when(idpConfig.getResponseType()).thenReturn("code");
+        when(idpConfig.getRelyingPartyId()).thenReturn("clientid");
+        when(idpConfig.getUserPropagationParameter()).thenReturn("username");
+        when(idp.getConfig()).thenReturn(idpConfig);
+        when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(Collections.singletonList(idp));
+
+        String redirect = endpoint.discoverIdentityProvider("testuser@fake.com", null, loginHint, "testuser@fake.com", extendedModelMap, session, request);
+
+        assertThat(redirect, containsString("username=testuser@fake.com"));
     }
 
     @Test
@@ -416,7 +442,7 @@ class LoginInfoEndpointTests {
         uaaIdentityProvider.setType(OriginKeys.UAA);
         when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(singletonList(uaaIdentityProvider));
 
-        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, null,  extendedModelMap, session, request);
 
         String loginHint = "{\"origin\":\"uaa\"}";
         assertEquals(loginHint, extendedModelMap.get("login_hint"));
@@ -770,6 +796,38 @@ class LoginInfoEndpointTests {
         assertThat(idpDefinitions, PredicateMatcher.has(SamlIdentityProviderDefinition::isShowSamlLink));
         assertEquals(false, extendedModelMap.asMap().get("fieldUsernameShow"));
         assertEquals(false, extendedModelMap.asMap().get("linkCreateAccountShow"));
+    }
+
+    @Test
+    void authcodeWithAllowedProviderStillUsesAccountChooser() throws Exception {
+        // mock session and saved request
+        MockHttpServletRequest request = getMockHttpServletRequest();
+
+        IdentityZone zone = MultitenancyFixture.identityZone("other-zone", "other-zone");
+        zone.getConfig().setAccountChooserEnabled(true);
+        zone.getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.set(zone);
+
+        List<String> allowedProviders = Arrays.asList("uaa", "my-client-awesome-idp1");
+
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "other-zone")).thenReturn(clientDetails);
+
+        // mock SamlIdentityProviderConfigurator
+        List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
+        clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "other-zone"));
+        clientIDPs.add(createIdentityProviderDefinition("uaa", "other-zone"));
+        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(zone))).thenReturn(clientIDPs);
+
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+        endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
+
+        assertNull(extendedModelMap.get("login_hint"));
     }
 
     @Test
@@ -1499,7 +1557,7 @@ class LoginInfoEndpointTests {
             final MultitenantClientServices clientDetailsService) {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint(
                 null,
-                new InMemoryExpiringCodeStore(),
+                new InMemoryExpiringCodeStore(new TimeServiceImpl()),
                 externalLoginUrl,
                 baseUrl,
                 spiedMfaChecker,

@@ -1,0 +1,19 @@
+#@data/values
+#@ load("@ytt:overlay", "overlay")
+---
+ca_certs:
+#@overlay/append
+- |
+  -----BEGIN CERTIFICATE-----
+  MIIEjjCCA3agAwIBAgIJAI33lwF8rywxMA0GCSqGSIb3DQEBBQUAMIGKMQswCQYD
+  ...
+  ScMdzkIk7jUztpr7pubxydSf
+  -----END CERTIFICATE-----
+#@overlay/append
+- |
+  not
+  a
+  real
+  cert
+#@overlay/append
+- i am a string

@@ -75,6 +75,7 @@ class IdentityZoneResolvingFilterTests {
         String uaaHostname = "uaa.mycf.com";
         String incomingHostname = incomingSubdomain + "." + uaaHostname;
         request.setServerName(incomingHostname);
+        request.setRequestURI("/uaa/login.html");
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         FilterChain chain = Mockito.mock(FilterChain.class);
@@ -85,6 +86,32 @@ class IdentityZoneResolvingFilterTests {
         assertEquals(HttpServletResponse.SC_NOT_FOUND, response.getStatus());
         assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
         Mockito.verifyNoInteractions(chain);
+    }
+
+    @Test
+    public void serveStaticContent_InCase_RetrievingZoneFails() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        String incomingSubdomain = "not_a_zone";
+        String uaaHostname = "uaa.mycf.com";
+        String incomingHostname = incomingSubdomain+"."+uaaHostname;
+        request.setServerName(incomingHostname);
+        request.setRequestURI("/uaa/resources/css/application.css");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        MockFilterChain filterChain = new MockFilterChain() {
+            @Override
+            public void doFilter(ServletRequest request, ServletResponse response) throws IOException, ServletException {
+                assertNotNull(IdentityZoneHolder.get());
+                wasFilterExecuted = true;
+            }
+        };
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter(dao);
+        filter.setAdditionalInternalHostnames(new HashSet<>(Arrays.asList(uaaHostname)));
+        filter.doFilter(request, response, filterChain);
+
+        assertEquals(HttpServletResponse.SC_OK, response.getStatus());
+        assertTrue(wasFilterExecuted);
+        assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
     }
 
     private void assertFindsCorrectSubdomain(final String subDomainInput, final String incomingHostname, String... additionalInternalHostnames) throws ServletException, IOException {

@@ -74,6 +74,7 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -1002,15 +1003,18 @@ public class SamlLoginIT {
 
     @Test
     public void two_zone_saml_bearer_grant_url_metadata() throws Exception {
-        two_zone_saml_bearer_grant(true, "testzone4");
+        Map<String, Object> claims = two_zone_saml_bearer_grant(true, "testzone4");
+        String samlClientId = (String)claims.get(ClaimConstants.CLIENT_ID);
+        ArrayList<String> auds = (ArrayList<String>)claims.get(ClaimConstants.AUD);
+        Assert.assertTrue("aud claim must contain own client id: " + samlClientId, auds.contains(samlClientId));
     }
 
     @Test
     public void two_zone_saml_bearer_grant_xml_metadata() throws Exception {
-        two_zone_saml_bearer_grant(false, "testzone3");
+        assertNotNull(two_zone_saml_bearer_grant(false, "testzone3"));
     }
 
-    public void two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
+    public Map<String, Object> two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneUrl = baseUrl.replace("localhost", zoneName +".localhost");
 
@@ -1100,7 +1104,10 @@ public class SamlLoginIT {
         assertEquals(HttpStatus.OK, response.getStatusCode());
         Map<String, Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
         });
-        assertNotNull("Expecting access_token to be present in response", tokenResponse.get("access_token"));
+        String jwtAccessToken = (String)tokenResponse.get("access_token");
+        assertNotNull("Expecting access_token to be present in response", jwtAccessToken);
+        Jwt idTokenClaims = JwtHelper.decode(jwtAccessToken);
+        return JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() { });
     }
 
     @Test

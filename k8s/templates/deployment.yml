@@ -1,5 +1,13 @@
 #@ load("@ytt:data", "data")
-#@ load("deployment.star", "java_opts", "config_dir", "secrets_dir")
+#@ load("deployment.star",
+#@  "java_opts",
+#@  "config_dir",
+#@  "secrets_dir",
+#@  "truststore_dir",
+#@  "truststore_file",
+#@  "truststore_password")
+#@ load("secrets/ca_certs.star", "has_ca_certs")
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -16,6 +24,87 @@ spec:
         app: uaa-deployment
     spec: #! pod spec
       serviceAccountName: uaa
+      initContainers:
+      - name: build-uaa-truststore
+        image: #@ data.values.image
+        command:
+        - 'sh'
+        - '-c'
+        - |
+          find_keytool_or_fail_fast() {
+            local has_keytool
+            ls "${JAVA_HOME}"/bin/keytool
+            has_keytool=$?
+
+            if [ ${has_keytool} -ne 0 ]; then
+              exit ${has_keytool}
+            fi
+          }
+
+          import_cert() {
+            local pemfile="${1}"
+            local alias="${2}"
+
+            echo "Adding ${pemfile} to truststore"
+
+            # Have to use cat instead of -file
+            # because keytool won't understand all of the filenames!
+            cat "${pemfile}" | "${JAVA_HOME}"/bin/keytool \
+              -noprompt \
+              -import \
+              -trustcacerts \
+              -alias "${alias}" \
+              -keystore "${TRUSTSTORE_FILE}" \
+              -storepass "${TRUSTSTORE_PASSWORD}"
+          }
+
+          get_alias() {
+            local pemfile="${1}"
+            basename "${pemfile}" .pem
+          }
+
+          add_ca_certs() {
+            local has_ca_certs
+            ls ${SECRETS_DIR}/ca_certs/*.pem
+            has_ca_certs=$?
+
+            if [ ${has_ca_certs} -eq 0 ]; then
+              for cert in ${SECRETS_DIR}/ca_certs/*.pem; do
+                import_cert "${cert}" "$(get_alias $cert)"
+              done
+            fi
+          }
+
+          add_system_certs() {
+            for cert in $OS_CERTS_DIR/*.pem; do
+              import_cert "${cert}" "$(get_alias $cert)"
+            done
+          }
+
+          main() {
+            find_keytool_or_fail_fast
+            add_ca_certs
+            add_system_certs
+          }
+
+          main
+        env:
+        - name: SECRETS_DIR
+          value: #@ secrets_dir
+        - name: TRUSTSTORE_FILE
+          value: #@ truststore_file
+        - name: TRUSTSTORE_PASSWORD
+          value: #@ truststore_password
+        - name: JAVA_HOME
+          value: /layers/org.cloudfoundry.openjdk/openjdk-jre
+        - name: OS_CERTS_DIR
+          value: /etc/ssl/certs
+        volumeMounts:
+        - name: ca-certs-files
+          mountPath: #@ "{}/ca_certs".format(secrets_dir)
+          readOnly: true
+        - name: truststore-file
+          mountPath: #@ truststore_dir
       containers:
       - name: uaa
         image: #@ data.values.image
@@ -51,6 +140,9 @@ spec:
           mountPath: #@ "{}/jwt_policy_signing_keys.yml".format(secrets_dir)
           subPath: jwt_policy_signing_keys.yml
           readOnly: true
+        - name: truststore-file
+          mountPath: #@ truststore_dir
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /healthz
@@ -80,3 +172,9 @@ spec:
       - name: jwt-policy-signing-keys-file
         secret:
           secretName: uaa-jwt-policy-signing-keys
+      - name: ca-certs-files
+        secret:
+          optional: true
+          secretName: uaa-ca-certs
+      - name: truststore-file
+        emptyDir: {}

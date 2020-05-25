@@ -1,5 +1,6 @@
 #@ load("@ytt:data", "data")
-#@ load("uaa.lib.star", "database_connection_string")
+#@ load("@ytt:assert", "assert")
+
 #@ def config():
 ---
 issuer:
@@ -61,7 +62,7 @@ database:
   removeabandoned: false
   logabandoned: true
   abandonedtimeout: 300
-  url: #@ database_connection_string(data.values.database)
+  url: #@ data.values.database.url or assert.fail("database.url is required")
 
 smtp:
   host: #@ data.values.smtp.host

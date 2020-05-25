@@ -60,6 +60,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -333,7 +334,7 @@ public class LoginInfoEndpoint {
         }
 
         boolean linkCreateAccountShow = fieldUsernameShow;
-        if (fieldUsernameShow && (allowedIdentityProviderKeys != null)) {
+        if (fieldUsernameShow && (allowedIdentityProviderKeys != null) && (!discoveryEnabled || discoveryPerformed)) {
             if (!allowedIdentityProviderKeys.contains(OriginKeys.UAA)) {
                 linkCreateAccountShow = false;
                 model.addAttribute("login_hint", new UaaLoginHint(OriginKeys.LDAP).toString());
@@ -385,7 +386,7 @@ public class LoginInfoEndpoint {
 
         if (discoveryEnabled) {
             if (model.containsAttribute("login_hint")) {
-                return goToPasswordPage(null, model);
+                return goToPasswordPage(request.getParameter("email"), model);
             }
             boolean accountChooserNeeded = accountChooserEnabled
                     && !(otherAccountSignIn || savedAccountsEmpty)
@@ -575,7 +576,11 @@ public class LoginInfoEndpoint {
     }
 
     private String getRedirectUrlForExternalOAuthIDP(HttpServletRequest request, String idpOriginKey, AbstractExternalOAuthIdentityProviderDefinition definition) {
-        return externalOAuthProviderConfigurator.getIdpAuthenticationUrl(definition, idpOriginKey, request);
+        String idpAuthenticationUrl = externalOAuthProviderConfigurator.getIdpAuthenticationUrl(definition, idpOriginKey, request);
+        if (request.getParameter("username") != null && definition.getUserPropagationParameter() != null) {
+            idpAuthenticationUrl = UriComponentsBuilder.fromUriString(idpAuthenticationUrl).queryParam(definition.getUserPropagationParameter(), request.getParameter("username")).build().toUriString();
+        }
+        return idpAuthenticationUrl;
     }
 
     private Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
@@ -727,7 +732,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
-    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, @RequestParam(required = false, name = "login_hint") String loginHint, Model model, HttpSession session, HttpServletRequest request) {
+    public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, @RequestParam(required = false, name = "login_hint") String loginHint,  @RequestParam(required = false, name = "username") String username,Model model, HttpSession session, HttpServletRequest request) {
         ClientDetails clientDetails = null;
         if (hasSavedOauthAuthorizeRequest(session)) {
             SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
@@ -757,6 +762,9 @@ public class LoginInfoEndpoint {
 
         if (StringUtils.hasText(email)) {
             model.addAttribute("email", email);
+        }
+        if (StringUtils.hasText(username)) {
+            model.addAttribute("username", username);
         }
         return "redirect:/login?discoveryPerformed=true";
     }

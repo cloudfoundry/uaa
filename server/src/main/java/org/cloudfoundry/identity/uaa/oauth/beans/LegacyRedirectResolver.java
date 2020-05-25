@@ -18,6 +18,7 @@ import java.net.URI;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -214,7 +215,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         boolean isSafeRedirect(URI requestedRedirect) {
             // We iterate backwards through the hosts to make sure the TLD and domain match
             String[] configuredRedirectHost = splitAndReverseHost(getHost());
-            String[] requestedRedirectHost = splitAndReverseHost(requestedRedirect.getHost());
+            String[] requestedRedirectHost = splitAndReverseHost((Optional.ofNullable(requestedRedirect.getHost()).orElse("")));
 
             if (requestedRedirectHost.length < configuredRedirectHost.length) {
                 return false;

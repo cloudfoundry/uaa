@@ -20,11 +20,9 @@ tomcat:
 #! UAA Application Values
 database:
   scheme: ~
-  address: ~
-  port: ~
-  name: ~
   username: ~
   password: ~
+  url: ~
 
 jwt:
   policy:
@@ -41,3 +39,7 @@ smtp:
 
 admin:
   client_secret: ~
+
+#! ca_certs should be an array of PEM-encoded certs
+#! These will be added to the UAA's truststore
+ca_certs: []

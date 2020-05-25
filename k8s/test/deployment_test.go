@@ -3,6 +3,7 @@ package k8s_test
 import (
 	. "github.com/cloudfoundry/uaa/matchers"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
 	"path/filepath"
@@ -37,6 +38,12 @@ var _ = Describe("Deployment", func() {
 		"ReadOnly":  Equal(true),
 	})
 
+	truststoreVolumeMountMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+		"Name":      Equal("truststore-file"),
+		"MountPath": Equal("/etc/truststore"),
+		"ReadOnly":  Equal(true),
+	})
+
 	BeforeEach(func() {
 		templates = []string{
 			pathToFile("deployment.yml"),
@@ -44,11 +51,15 @@ var _ = Describe("Deployment", func() {
 			pathToFile(filepath.Join("values", "image.yml")),
 			pathToFile(filepath.Join("values", "version.yml")),
 			pathToFile("deployment.star"),
+			"secrets/ca_certs.star=" + pathToFile(filepath.Join("secrets", "ca_certs.star")),
 		}
 	})
 
 	It("Renders a deployment for the UAA", func() {
-		ctx := NewRenderingContext(templates...)
+		ctx := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"database.scheme": "hsqldb",
+			})
 
 		expectedJavaOpts := "" +
 			"-Dspring_profiles=hsqldb " +
@@ -56,7 +67,10 @@ var _ = Describe("Deployment", func() {
 			"-Dlogging.config=/etc/config/log4j2.properties " +
 			"-Dlog4j.configurationFile=/etc/config/log4j2.properties " +
 			"-DCLOUDFOUNDRY_CONFIG_PATH=/etc/config " +
-			"-DSECRETS_DIR=/etc/secrets"
+			"-DSECRETS_DIR=/etc/secrets " +
+			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore " +
+			"-Djavax.net.ssl.trustStoreType=PKCS12 " +
+			"-Djavax.net.ssl.trustStorePassword=changeit"
 
 		Expect(ctx).To(
 			ProduceYAML(
@@ -72,6 +86,7 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
 						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 						container.WithVolumeMount("jwt-policy-signing-keys-file", jwtTokensVolumeMountMatcher)
+						container.WithVolumeMount("truststore-file", truststoreVolumeMountMatcher)
 						container.WithResourceRequests("512Mi", "500m")
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
@@ -79,6 +94,7 @@ var _ = Describe("Deployment", func() {
 					pod.WithVolume("smtp-credentials-file", Not(BeNil()))
 					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 					pod.WithVolume("jwt-policy-signing-keys-file", Not(BeNil()))
+					pod.WithVolume("truststore-file", Not(BeNil()))
 				}),
 			),
 		)
@@ -86,7 +102,10 @@ var _ = Describe("Deployment", func() {
 
 	It("Renders a custom image for the UAA", func() {
 		ctx := NewRenderingContext(templates...).WithData(
-			map[string]string{"image": "image from testing"})
+			map[string]string{
+				"image":           "image from testing",
+				"database.scheme": "hsqldb",
+			})
 
 		Expect(ctx).To(
 			ProduceYAML(
@@ -105,6 +124,7 @@ var _ = Describe("Deployment", func() {
 			map[string]string{
 				"resources.requests.memory": "888Mi",
 				"resources.requests.cpu":    "999m",
+				"database.scheme":           "hsqldb",
 			})
 
 		Expect(ctx).To(
@@ -128,9 +148,7 @@ var _ = Describe("Deployment", func() {
 		BeforeEach(func() {
 			databaseScheme = "postgresql"
 			ctx = NewRenderingContext(templates...).WithData(map[string]string{
-				"database.scheme":   databaseScheme,
-				"database.username": "database username",
-				"database.password": "database password",
+				"database.scheme": databaseScheme,
 			})
 		})
 
@@ -151,7 +169,8 @@ var _ = Describe("Deployment", func() {
 	It("Renders common labels for the deployment", func() {
 		templates = append(templates, pathToFile("metadata.yml"))
 		ctx := NewRenderingContext(templates...).WithData(map[string]string{
-			"version": "1.0.0",
+			"version":         "1.0.0",
+			"database.scheme": "hsqldb",
 		})
 
 		labels := map[string]string{
@@ -171,5 +190,29 @@ var _ = Describe("Deployment", func() {
 				}),
 			),
 		)
+	})
+
+	DescribeTable("Fails to render unless database.scheme is valid",
+		func(databaseScheme string, shouldThrow bool) {
+			ctx := NewRenderingContext(templates...).WithData(map[string]string{
+				"database.scheme": databaseScheme,
+			})
+
+			if shouldThrow {
+				Expect(ctx).To(ThrowError("database.scheme must be one of hsqldb, mysql, or postgresql"))
+			} else {
+				Expect(ctx).To(ProduceYAML(RepresentingDeployment()))
+			}
+		},
+		Entry("database.scheme=", "", true),
+		Entry("database.scheme=foobar", "foobar", true),
+		Entry("database.scheme=mysql", "mysql", false),
+		Entry("database.scheme=postgresql", "postgresql", false),
+		Entry("database.scheme=hsqldb", "hsqldb", false),
+	)
+
+	It("Fails to render when database.scheme is not provided", func() {
+		ctx := NewRenderingContext(templates...)
+		Expect(ctx).To(ThrowError("database.scheme must be one of hsqldb, mysql, or postgresql"))
 	})
 })

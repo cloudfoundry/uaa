@@ -456,6 +456,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
+        definition.setUserPropagationParameter("username");
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
@@ -475,6 +476,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
                 fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
         }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relyingPartySecret));
@@ -522,6 +524,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
+        definition.setUserPropagationParameter("username");
         definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
         List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
                 new Prompt("password", "password", "Password"),
@@ -549,6 +552,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective, if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
