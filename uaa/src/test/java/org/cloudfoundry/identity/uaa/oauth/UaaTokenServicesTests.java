@@ -57,6 +57,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_AUTHORITIES;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -66,6 +67,8 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertAll;
 
 @DisplayName("Uaa Token Services Tests")
@@ -227,6 +230,21 @@ class UaaTokenServicesTests {
 
         Jwt decode = JwtHelper.decode(accessToken.getValue());
         assertThat(decode.getHeader().getJku(), is("https://uaa.some.test.domain.com:555/uaa/token_keys"));
+        assertTrue(decode.getClaims().contains(REQUEST_AUTHORITIES));
+    }
+
+    @Test
+    void ensureNoAuthoritiesWhenBuildingAnAccessToken() {
+        Map<String, String> extParameter = new HashMap<>();
+        extParameter.put(REQUEST_AUTHORITIES, "");
+        AuthorizationRequest authorizationRequest = constructAuthorizationRequestEx(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, extParameter, Strings.split(clientScopes, ','));
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        Jwt decode = JwtHelper.decode(accessToken.getValue());
+        assertFalse(decode.getClaims().contains(REQUEST_AUTHORITIES));
     }
 
     @Test
@@ -481,6 +499,15 @@ class UaaTokenServicesTests {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList(scopes));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, grantType);
+        authorizationRequest.setRequestParameters(azParameters);
+        return authorizationRequest;
+    }
+
+    private AuthorizationRequest constructAuthorizationRequestEx(String clientId, String grantType, Map<String, String> extraParameters, String... scopes) {
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList(scopes));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, grantType);
+        azParameters.putAll(extraParameters);
         authorizationRequest.setRequestParameters(azParameters);
         return authorizationRequest;
     }

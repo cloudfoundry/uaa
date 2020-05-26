@@ -323,6 +323,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     additionalRootClaims,
                     revocableHashSignature,
                     isRevocable,
+                    false,
                     authenticationData
             );
 
@@ -393,6 +394,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Map<String, Object> additionalRootClaims,
                                                 String revocableHashSignature,
                                                 boolean isRevocable,
+                                                boolean addAuthorities,
                                                 UserAuthenticationData userAuthenticationData) throws AuthenticationException {
         CompositeToken compositeToken = new CompositeToken(tokenId);
         compositeToken.setExpiration(accessTokenValidityResolver.resolve(clientId));
@@ -434,6 +436,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 revocableHashSignature,
                 isRevocable,
+                addAuthorities,
                 additionalRootClaims);
         try {
             content = JsonUtils.writeValueAsString(jwtAccessToken);
@@ -476,6 +479,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String grantType,
                                                 String revocableHashSignature,
                                                 boolean isRevocable,
+                                                boolean addAuthorities,
                                                 Map<String, Object> additionalRootClaims) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
@@ -488,7 +492,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(SUB, clientId);
-        if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType)) {
+        if (GRANT_TYPE_CLIENT_CREDENTIALS.equals(grantType) && addAuthorities) {
             claims.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
         }
 
@@ -619,10 +623,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String nonce = requestParameters.get(NONCE);
 
-        Map<String, String> additionalAuthorizationAttributes =
-            new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(
-                requestParameters.get(REQUEST_AUTHORITIES)
-            );
+        String authorities = requestParameters.get(REQUEST_AUTHORITIES);
+        Map<String, String> additionalAuthorizationAttributes = new AuthorizationAttributesParser().getAdditionalAuthorizationAttributes(authorities);
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(userAuthenticationTime,
                 authenticationMethods,
@@ -650,6 +652,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         revocableHashSignature,
                         isAccessTokenRevocable,
+                        authorities == null || StringUtils.hasText(authorities),
                         authenticationData);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable);
