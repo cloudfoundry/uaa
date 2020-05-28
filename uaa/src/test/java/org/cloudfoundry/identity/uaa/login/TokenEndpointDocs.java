@@ -232,6 +232,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(CLIENT_ID, "login")
                 .param("client_secret", "loginsecret")
+                .param(SCOPE, "scim.write")
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
 
@@ -263,6 +264,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
+                .param(SCOPE, "scim.write")
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .header("Authorization", "Basic " + clientAuthorization);
 
