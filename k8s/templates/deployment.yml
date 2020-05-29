@@ -96,7 +96,7 @@ spec:
         - name: TRUSTSTORE_PASSWORD
           value: #@ truststore_password
         - name: JAVA_HOME
-          value: /layers/org.cloudfoundry.openjdk/openjdk-jre
+          value: /layers/paketo-buildpacks_bellsoft-liberica/jre
         - name: OS_CERTS_DIR
           value: /etc/ssl/certs
         volumeMounts:
