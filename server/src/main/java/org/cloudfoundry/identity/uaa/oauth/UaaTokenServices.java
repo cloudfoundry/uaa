@@ -441,7 +441,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         compositeToken.setValue(token);
         BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        if (idTokenGranter.shouldSendIdToken(user == null ? null : user.getId(), clientDetails, requestedScopes, grantType)) {
+        if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             String idTokenContent;
             try {
                 idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientDetails, user, userAuthenticationData));

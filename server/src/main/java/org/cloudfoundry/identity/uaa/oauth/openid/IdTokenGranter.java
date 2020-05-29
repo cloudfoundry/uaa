@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -34,18 +35,18 @@ public class IdTokenGranter {
         this.approvalService = approvalService;
     }
 
-    public boolean shouldSendIdToken(String userId,
+    public boolean shouldSendIdToken(UaaUser user,
                                      BaseClientDetails clientDetails,
                                      Set<String> requestedScopes,
                                      String requestedGrantType
     ) {
-        if (!GRANT_TYPES_THAT_MAY_GET_ID_TOKENS.contains(requestedGrantType)) {
+        if (null == user || !GRANT_TYPES_THAT_MAY_GET_ID_TOKENS.contains(requestedGrantType)) {
             return false;
         }
 
         try {
             approvalService.ensureRequiredApprovals(
-                    userId, Sets.newHashSet(REQUIRED_OPENID_SCOPE), requestedGrantType, clientDetails
+                    user.getId(), Sets.newHashSet(REQUIRED_OPENID_SCOPE), requestedGrantType, clientDetails
             );
         } catch (InvalidTokenException e) {
             return false;
