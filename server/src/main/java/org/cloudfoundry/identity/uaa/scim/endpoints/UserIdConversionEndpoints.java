@@ -16,6 +16,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -54,16 +55,16 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/ids/Users")
     @ResponseBody
-    public SearchResults<?> findUsers(
+    public ResponseEntity<Object> findUsers(
             @RequestParam(defaultValue = "") String filter,
             @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
             @RequestParam(required = false, defaultValue = "1") int startIndex,
             @RequestParam(required = false, defaultValue = "100") int count,
             @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
         if (!enabled) {
-            logger.warn("Request from user " + securityContextAccessor.getAuthenticationInfo() +
+            logger.info("Request from user " + securityContextAccessor.getAuthenticationInfo() +
                     " received at disabled Id translation endpoint with filter:" + filter);
-            throw new ScimException("Illegal operation.", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Illegal Operation: Endpoint not enabled.", HttpStatus.BAD_REQUEST);
         }
 
         filter = filter.trim();
@@ -73,13 +74,13 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
         if (!includeInactive) {
             if (activeIdentityProviders.isEmpty()) {
-                return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), new ArrayList<>(), startIndex, count, 0);
+                return new ResponseEntity<>(new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), new ArrayList<>(), startIndex, count, 0), HttpStatus.OK);
             }
             String originFilter = activeIdentityProviders.stream().map(identityProvider -> "".concat("origin eq \"" + identityProvider.getOriginKey() + "\"")).collect(Collectors.joining(" OR "));
             filter += " AND (" + originFilter + " )";
         }
 
-        return scimUserEndpoints.findUsers("id,userName,origin", filter, "userName", sortOrder, startIndex, count);
+        return new ResponseEntity<>(scimUserEndpoints.findUsers("id,userName,origin", filter, "userName", sortOrder, startIndex, count), HttpStatus.OK);
     }
 
     @ExceptionHandler
