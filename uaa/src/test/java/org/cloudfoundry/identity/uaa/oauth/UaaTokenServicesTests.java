@@ -496,18 +496,16 @@ class UaaTokenServicesTests {
     }
 
     private AuthorizationRequest constructAuthorizationRequest(String clientId, String grantType, String... scopes) {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList(scopes));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, grantType);
-        authorizationRequest.setRequestParameters(azParameters);
-        return authorizationRequest;
+        return constructAuthorizationRequestEx(clientId, grantType, null, scopes);
     }
 
     private AuthorizationRequest constructAuthorizationRequestEx(String clientId, String grantType, Map<String, String> extraParameters, String... scopes) {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, Arrays.asList(scopes));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, grantType);
-        azParameters.putAll(extraParameters);
+        if (extraParameters != null) {
+            azParameters.putAll(extraParameters);
+        }
         authorizationRequest.setRequestParameters(azParameters);
         return authorizationRequest;
     }
