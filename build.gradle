@@ -130,6 +130,8 @@ subprojects {
     task generateDocs() {
     }
 
+    task allDeps(type: DependencyReportTask) {}
+
     task writeNewPom() {
         doLast {
             pom {
