@@ -15,3 +15,15 @@ dependencies {
     providedCompile libraries.tomcatEmbed
     providedRuntime libraries.springBootStarterTomcat
 }
+
+test {
+    exclude "org/cloudfoundry/identity/statsd/integration/*.class"
+    exclude "**/*IT.class"
+}
+
+integrationTest {
+    filter {
+        includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
+        includeTestsMatching "*IT"
+    }
+}
