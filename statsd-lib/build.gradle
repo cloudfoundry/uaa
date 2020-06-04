@@ -1,0 +1,31 @@
+apply plugin: "java"
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    compile project(":cloudfoundry-identity-metrics-data")
+    compile libraries.springBootStarter
+    compile libraries.springBootStarterWeb
+    compile libraries.springBootStarterLog4j2
+    compile libraries.statsdClient
+    testCompile libraries.mockito
+    testCompile libraries.springBootStarterTest
+
+    compile libraries.jacksonDataformatYaml
+    compile libraries.jacksonDatabind
+}
+
+test {
+    exclude "org/cloudfoundry/identity/statsd/integration/*.class"
+    exclude "**/*IT.class"
+}
+
+integrationTest {
+    filter {
+        includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
+        includeTestsMatching "*IT"
+    }
+}
