@@ -70,7 +70,8 @@ var _ = Describe("Deployment", func() {
 			"-DSECRETS_DIR=/etc/secrets " +
 			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore " +
 			"-Djavax.net.ssl.trustStoreType=PKCS12 " +
-			"-Djavax.net.ssl.trustStorePassword=changeit"
+			"-Djavax.net.ssl.trustStorePassword=changeit " +
+			"-Dstatsd.enabled=true"
 
 		Expect(ctx).To(
 			ProduceYAML(
