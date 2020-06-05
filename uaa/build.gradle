@@ -32,6 +32,7 @@ dependencies {
     compile(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
+    compile(project(":cloudfoundry-identity-statsd-lib"))
     compile libraries.springBootStarter
     compile libraries.springBootStarterWeb
     runtime libraries.springSecurityConfig

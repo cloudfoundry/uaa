@@ -168,11 +168,6 @@ cargo {
     port = applicationPort
 
     deployable {
-        file = file("statsd/build/libs/cloudfoundry-identity-statsd-" + version + ".war")
-        context = "statsd"
-    }
-
-    deployable {
         file = file("samples/api/build/libs/cloudfoundry-identity-api-" + version + ".war")
         context = "api"
     }
@@ -193,6 +188,8 @@ cargo {
         rmiPort = applicationPort + 1
         List activeProfiles = System.getProperty("spring.profiles.active", "").split(",")
         jvmArgs = "-DCLOUDFOUNDRY_CONFIG_PATH=" + file("scripts/cargo").getAbsolutePath() + " -Dlog4j.configurationFile=" + file("scripts/cargo/log4j2.properties").getAbsolutePath()
+        jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
+
         if (activeProfiles.contains("debug")) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
