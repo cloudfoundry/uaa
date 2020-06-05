@@ -21,9 +21,6 @@ test {
     exclude "**/*IT.class"
 }
 
-integrationTest {
-    filter {
-        includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
-        includeTestsMatching "*IT"
-    }
+integrationTest {}.onlyIf { //disable since we don't have any
+    false
 }
