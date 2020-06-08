@@ -207,12 +207,6 @@ class MultitenantJdbcClientDetailsServiceTests {
     }
 
     @Test
-    void loadingClientForNullByteClientId() {
-        assertThrows(NoSuchClientException.class,
-            () -> service.loadClientByClientId("nonExistingClientIdD".replace('D', '\u0000')));
-    }
-
-    @Test
     void loadingClientIdWithNoDetails() {
         int rowsInserted = jdbcTemplate.update(INSERT_SQL,
                 "clientIdWithNoDetails", null, null,
