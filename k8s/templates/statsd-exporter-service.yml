@@ -8,9 +8,9 @@ metadata:
 spec:
   ports:
     - name: udp
-      port: 9125
+      port: 8125
       protocol: UDP
-      targetPort: 8125
+      targetPort: 9125
 #!    - name: tcp
 #!      port: 9102 #port to fetch metrics from
 #!      protocol: TCP
