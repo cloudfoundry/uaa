@@ -4,6 +4,7 @@ java_opts_list = [
   "-Djava.security.egd=file:/dev/./urandom",
   "-Dlogging.config={}/log4j2.properties".format(config_dir),
   "-Dlog4j.configurationFile={}/log4j2.properties".format(config_dir),
+  "-Dstatsd.enabled=true",
 ]
 
 def java_opts():
