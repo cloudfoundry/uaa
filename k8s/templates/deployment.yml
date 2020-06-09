@@ -33,6 +33,9 @@ spec:
         - name: http-uaa
           containerPort: 8080
           protocol: TCP
+        - name: udp-uaa
+          containerPort: 8125
+          protocol: UDP
         env:
         - name: BPL_TOMCAT_ACCESS_LOGGING
           value: #@ data.values.tomcat.accessLoggingEnabled
