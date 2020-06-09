@@ -35,6 +35,7 @@ spec:
           protocol: TCP
         - name: udp-uaa
           containerPort: 8125
+          hostPort: 9125
           protocol: UDP
         env:
         - name: BPL_TOMCAT_ACCESS_LOGGING
