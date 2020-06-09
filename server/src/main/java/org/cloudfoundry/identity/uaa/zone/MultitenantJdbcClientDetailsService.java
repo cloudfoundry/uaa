@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
@@ -119,7 +120,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         ClientDetails details;
         try {
             details = jdbcTemplate.queryForObject(selectClientDetailsSql, new ClientDetailsRowMapper(), clientId, zoneId);
-        } catch (EmptyResultDataAccessException e) {
+        } catch (EmptyResultDataAccessException | DataIntegrityViolationException e) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
         }
 
