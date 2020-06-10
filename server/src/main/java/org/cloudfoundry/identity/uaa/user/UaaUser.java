@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -208,7 +209,7 @@ public class UaaUser {
     }
 
     public List<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return Optional.ofNullable(authorities).orElseThrow();
     }
 
     public UaaUser id(String id) {
