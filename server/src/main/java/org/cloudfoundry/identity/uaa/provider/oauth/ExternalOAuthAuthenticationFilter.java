@@ -50,18 +50,21 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
   public void doFilter(
       final ServletRequest servletRequest,
       final ServletResponse servletResponse,
-      final FilterChain chain) throws IOException, ServletException {
+      final FilterChain chain
+  ) throws IOException, ServletException {
+
     final HttpServletRequest request = (HttpServletRequest) servletRequest;
     final HttpServletResponse response = (HttpServletResponse) servletResponse;
 
+    if (!containsCredentials(request)) {
+      request.getRequestDispatcher("/login_implicit").forward(request, response);
+      return;
+    }
+
     checkRequestStateParameter(request);
 
-    if (containsCredentials(request)) {
-      if (authenticationWasSuccessful(request, response)) {
-        chain.doFilter(request, response);
-      }
-    } else {
-      request.getRequestDispatcher("/login_implicit").forward(request, response);
+    if (authenticationWasSuccessful(request, response)) {
+      chain.doFilter(request, response);
     }
   }
 
