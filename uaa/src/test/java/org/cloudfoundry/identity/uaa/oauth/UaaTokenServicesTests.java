@@ -236,7 +236,7 @@ class UaaTokenServicesTests {
     @Test
     void ensureNoAuthoritiesWhenBuildingAnAccessToken() {
         Map<String, String> extParameter = new HashMap<>();
-        extParameter.put(REQUEST_AUTHORITIES, "");
+        extParameter.put(REQUEST_AUTHORITIES, "false");
         AuthorizationRequest authorizationRequest = constructAuthorizationRequestEx(clientId, GRANT_TYPE_CLIENT_CREDENTIALS, extParameter, Strings.split(clientScopes, ','));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);

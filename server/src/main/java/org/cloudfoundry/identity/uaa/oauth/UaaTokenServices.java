@@ -652,10 +652,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         additionalRootClaims,
                         revocableHashSignature,
                         isAccessTokenRevocable,
-                        authorities == null || StringUtils.hasText(authorities),
+                        isAddAuthorities(authorities),
                         authenticationData);
 
         return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable);
+    }
+
+    private boolean isAddAuthorities(String authorities) {
+        if (authorities != null && false == Boolean.parseBoolean(authorities)) {
+            return false;
+        }
+        return true;
     }
 
     private TokenPolicy getActiveTokenPolicy() {
