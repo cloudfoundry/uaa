@@ -251,8 +251,8 @@ public class ClientAdminBootstrap implements
             // check if both passwords are still up to date
             // 1st line: client already has 2 passwords: check if both are still correct
             // 2nd line: client has only 1 pasword: check if password is correct and second password is null
-            if (!( (existingPasswordHash.length > 1 && (!passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) || !passwordEncoder.matches(rawPassword2, existingPasswordHash[1])))
-                    || (!passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null) ) ) {
+            if ( (existingPasswordHash.length > 1 && passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]) )
+                    || (passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null) ) {
                 // no changes to passwords: nothing to do here
                 return;
             }
