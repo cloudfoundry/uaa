@@ -43,3 +43,5 @@ admin:
 #! ca_certs should be an array of PEM-encoded certs
 #! These will be added to the UAA's truststore
 ca_certs: []
+
+automountServiceAccountToken: false
