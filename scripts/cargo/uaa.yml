@@ -53,5 +53,3 @@ LOGIN_SECRET: loginsecret
 jwt:
   token:
     signing-key: tokenKey
-
-foobarport: 9125

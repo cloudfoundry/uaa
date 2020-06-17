@@ -14,17 +14,17 @@ package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 import java.lang.management.ManagementFactory;
 import java.util.Calendar;
 import java.util.Date;
 
 @EnableScheduling
-public class StatsdConfiguration {
+public class StatsdConfiguration implements SchedulingConfigurer {
 
     @Bean
     public UaaMetricsEmitter statsDClientWrapper(MetricsUtils utils, StatsDClient client) {
@@ -32,8 +32,8 @@ public class StatsdConfiguration {
     }
 
     @Bean
-    public StatsDClient statsdClient(@Value("${foobarport}") int port) {
-        return new NonBlockingStatsDClient("uaa", "localhost", port);
+    public StatsDClient statsDClient() {
+        return new NonBlockingStatsDClient("uaa", "localhost", 8125);
     }
 
     @Bean
@@ -41,11 +41,11 @@ public class StatsdConfiguration {
         return new MetricsUtils();
     }
 
-    @Bean
-    public SchedulingConfigurer statsdConfigurer(UaaMetricsEmitter statsdClientWrapper) {
-        return taskRegistrar -> taskRegistrar.addTriggerTask(() -> statsdClientWrapper.enableNotification(),
+    @Override
+    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
+        taskRegistrar.addTriggerTask(() -> statsDClientWrapper(metricsUtils(), statsDClient()).enableNotification(),
                 triggerContext -> {
-                    if (statsdClientWrapper.isNotificationEnabled()) {
+                    if (statsDClientWrapper(metricsUtils(), statsDClient()).isNotificationEnabled()) {
                         return null;
                     } else {
                         Calendar calendar = Calendar.getInstance();
