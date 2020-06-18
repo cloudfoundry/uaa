@@ -161,6 +161,7 @@ spec:
       - name: statsd-exporter
         image: #@ data.values.images.statsd_exporter
         imagePullPolicy: Always
+        args: ["--statsd.listen-udp=\":8125\""]
       volumes:
       - name: uaa-config
         configMap:
