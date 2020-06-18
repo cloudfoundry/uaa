@@ -39,4 +39,17 @@ var _ = Describe("Service Account", func() {
 			),
 		)
 	})
+
+	When("AutomountServiceAccountToken is true", func() {
+		It("Renders a service account with AutomountServiceAccountToken set to true", func() {
+			templates = append(templates, filepath.Join("..", "test_fixtures", "enable-automount-service-account-token.yml"))
+			ctx := NewRenderingContext(templates...)
+
+			Expect(ctx).To(
+				ProduceYAML(
+					RepresentingServiceAccount().
+						WithName("uaa").
+						WithAutomountServiceAccountToken(true)))
+		})
+	})
 })
