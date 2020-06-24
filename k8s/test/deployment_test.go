@@ -193,6 +193,24 @@ var _ = Describe("Deployment", func() {
 		)
 	})
 
+	It("Renders a container for StatsD Exporter", func() {
+		ctx := NewRenderingContext(templates...).WithData(map[string]string{
+			"database.scheme": "hsqldb",
+		})
+
+		Expect(ctx).To(
+			ProduceYAML(RepresentingDeployment().
+				WithPodMatching(func(pod *PodMatcher) {
+					pod.WithContainerMatching(func(container *ContainerMatcher) {
+						container.
+							WithName("statsd-exporter").
+							WithImageContaining("oratos/statsd_exporter")
+					})
+				}),
+			),
+		)
+	})
+
 	DescribeTable("Fails to render unless database.scheme is valid",
 		func(databaseScheme string, shouldThrow bool) {
 			ctx := NewRenderingContext(templates...).WithData(map[string]string{

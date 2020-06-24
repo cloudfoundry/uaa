@@ -154,6 +154,8 @@ spec:
           httpGet:
             path: /healthz
             port: http-uaa
+      - name: statsd-exporter
+        image: #@ data.values.images.statsd_exporter
       volumes:
       - name: uaa-config
         configMap:
