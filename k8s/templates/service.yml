@@ -12,5 +12,9 @@ spec:
     name: http-uaa
     targetPort: 8080
     protocol: TCP
+  - port: 9102
+    name: metrics-uaa
+    targetPort: 9102
+    protocol: TCP
   selector:
     app: uaa-deployment

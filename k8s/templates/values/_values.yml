@@ -28,8 +28,10 @@ database:
 
 jwt:
   policy:
-    activeKeyId: ~
-    keys: []
+    activeKeyId: kiki
+    keys:
+    - keyId: kiki
+      signingKey: bobo
 
 smtp:
   host: ~

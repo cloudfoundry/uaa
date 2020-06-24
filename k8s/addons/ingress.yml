@@ -7,7 +7,19 @@ spec:
   rules:
   - http:
       paths:
-      - path: /
+      - path: /uaa
         backend:
           serviceName: uaa
           servicePort: 8080
+  - http:
+      paths:
+      - path: /metrics
+        backend:
+          serviceName: uaa
+          servicePort: 9102
+  - http:
+      paths:
+      - path: /
+        backend:
+          serviceName: prom-deployment
+          servicePort: 9090
