@@ -47,6 +47,12 @@ func (matcher *ContainerMatcher) WithImageContaining(image string) *ContainerMat
 	return matcher
 }
 
+func (matcher *ContainerMatcher) WithImagePullPolicy(imagePullPolicy coreV1.PullPolicy) *ContainerMatcher {
+	matcher.fields["ImagePullPolicy"] = Equal(imagePullPolicy)
+
+	return matcher
+}
+
 func (matcher *ContainerMatcher) WithEnvVar(name, value string) *ContainerMatcher {
 	return matcher.WithEnvVarMatching(name, Equal(value))
 }

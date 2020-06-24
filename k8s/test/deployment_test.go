@@ -204,7 +204,8 @@ var _ = Describe("Deployment", func() {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.
 							WithName("statsd-exporter").
-							WithImageContaining("oratos/statsd_exporter")
+							WithImageContaining("oratos/statsd_exporter").
+							WithImagePullPolicy("Always")
 					})
 				}),
 			),

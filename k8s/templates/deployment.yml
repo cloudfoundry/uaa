@@ -156,6 +156,7 @@ spec:
             port: http-uaa
       - name: statsd-exporter
         image: #@ data.values.images.statsd_exporter
+        imagePullPolicy: Always
       volumes:
       - name: uaa-config
         configMap:
