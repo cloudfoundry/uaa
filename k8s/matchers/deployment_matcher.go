@@ -7,9 +7,6 @@ import (
 	appV1 "k8s.io/api/apps/v1"
 )
 
-type PodMatcherConfig func(*PodMatcher)
-type ObjectMetaMatcherConfig func(*ObjectMetaMatcher)
-
 type DeploymentMatcher struct {
 	pod  *PodMatcher
 	meta *ObjectMetaMatcher

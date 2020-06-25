@@ -9,7 +9,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 )
 
-type ContainerMatcherConfig func(*ContainerMatcher)
+type PodMatcherConfig func(*PodMatcher)
 
 type PodMatcher struct {
 	containers     []types.GomegaMatcher

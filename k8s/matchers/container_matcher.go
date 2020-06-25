@@ -19,6 +19,8 @@ type ContainerMatcher struct {
 	executed  types.GomegaMatcher
 }
 
+type ContainerMatcherConfig func(*ContainerMatcher)
+
 func NewContainerMatcher() *ContainerMatcher {
 	return &ContainerMatcher{
 		map[string]types.GomegaMatcher{},
