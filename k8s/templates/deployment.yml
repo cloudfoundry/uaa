@@ -20,6 +20,8 @@ spec:
   replicas: 1
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
       labels:
         app: uaa-deployment
     spec: #! pod spec

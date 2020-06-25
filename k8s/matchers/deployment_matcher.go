@@ -17,7 +17,11 @@ type DeploymentMatcher struct {
 }
 
 func RepresentingDeployment() *DeploymentMatcher {
-	return &DeploymentMatcher{NewPodMatcher(), NewObjectMetaMatcher(), nil}
+	return &DeploymentMatcher{
+		NewPodMatcher(),
+		NewObjectMetaMatcher(),
+		nil,
+	}
 }
 
 func (matcher *DeploymentMatcher) WithPodMatching(config PodMatcherConfig) *DeploymentMatcher {

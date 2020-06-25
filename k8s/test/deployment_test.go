@@ -101,6 +101,26 @@ var _ = Describe("Deployment", func() {
 		)
 	})
 
+	It("Renders the deployment with prometheus annotations", func() {
+		ctx := NewRenderingContext(templates...).WithData(
+			map[string]string{
+				"database.scheme": "hsqldb",
+			})
+
+		annotationsMap := map[string]string {
+			"prometheus.io/scrape": "true",
+		}
+
+		Expect(ctx).To(
+			ProduceYAML(
+				RepresentingDeployment().
+					WithPodMatching(func(pod *PodMatcher) {
+						pod.WithAnnotations(annotationsMap)
+				}),
+			),
+		)
+	})
+
 	It("Renders a custom image for the UAA", func() {
 		ctx := NewRenderingContext(templates...).WithData(
 			map[string]string{

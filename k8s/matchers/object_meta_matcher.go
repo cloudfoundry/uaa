@@ -41,6 +41,17 @@ func (matcher *ObjectMetaMatcher) WithNamespace(namespace string) *ObjectMetaMat
 	return matcher
 }
 
+
+func (matcher *ObjectMetaMatcher) WithAnnotations(annotations map[string]string) *ObjectMetaMatcher {
+	var matchers []types.GomegaMatcher
+	for annotation, value := range annotations {
+		matchers = append(matchers, gomega.HaveKeyWithValue(annotation, value))
+	}
+
+	matcher.fields["Annotations"] = gomega.SatisfyAll(matchers...)
+	return matcher
+}
+
 func (matcher *ObjectMetaMatcher) Match(actual interface{}) (bool, error) {
 	meta, ok := actual.(metaV1.ObjectMeta)
 	if !ok {

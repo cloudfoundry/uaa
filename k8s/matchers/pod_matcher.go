@@ -26,7 +26,8 @@ func NewPodMatcher() *PodMatcher {
 		NewObjectMetaMatcher(),
 		nil,
 		map[string]types.GomegaMatcher{},
-		nil}
+		nil,
+	}
 }
 
 func (matcher *PodMatcher) WithContainerMatching(config ContainerMatcherConfig) *PodMatcher {
@@ -45,6 +46,12 @@ func (matcher *PodMatcher) WithServiceAccountMatching(serviceAccount string) *Po
 
 func (matcher *PodMatcher) WithLabels(labels map[string]string) *PodMatcher {
 	matcher.meta.WithLabels(labels)
+
+	return matcher
+}
+
+func (matcher *PodMatcher) WithAnnotations(annotations map[string]string) *PodMatcher {
+	matcher.meta.WithAnnotations(annotations)
 
 	return matcher
 }
