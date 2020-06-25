@@ -41,7 +41,6 @@ func (matcher *ObjectMetaMatcher) WithNamespace(namespace string) *ObjectMetaMat
 	return matcher
 }
 
-
 func (matcher *ObjectMetaMatcher) WithAnnotations(annotations map[string]string) *ObjectMetaMatcher {
 	var matchers []types.GomegaMatcher
 	for annotation, value := range annotations {

@@ -8,6 +8,7 @@ import (
 )
 
 type PodMatcherConfig func(*PodMatcher)
+type ObjectMetaMatcherConfig func(*ObjectMetaMatcher)
 
 type DeploymentMatcher struct {
 	pod  *PodMatcher
@@ -31,7 +32,15 @@ func (matcher *DeploymentMatcher) WithPodMatching(config PodMatcherConfig) *Depl
 }
 
 func (matcher *DeploymentMatcher) WithLabels(labels map[string]string) *DeploymentMatcher {
-	matcher.meta.WithLabels(labels)
+	matcher.WithMetaMatching(func(metaMatcher *ObjectMetaMatcher) {
+		metaMatcher.WithLabels(labels)
+	})
+
+	return matcher
+}
+
+func (matcher *DeploymentMatcher) WithMetaMatching(config ObjectMetaMatcherConfig) *DeploymentMatcher {
+	config(matcher.meta)
 
 	return matcher
 }

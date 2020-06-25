@@ -107,7 +107,7 @@ var _ = Describe("Deployment", func() {
 				"database.scheme": "hsqldb",
 			})
 
-		annotationsMap := map[string]string {
+		annotationsMap := map[string]string{
 			"prometheus.io/scrape": "true",
 		}
 
@@ -116,7 +116,7 @@ var _ = Describe("Deployment", func() {
 				RepresentingDeployment().
 					WithPodMatching(func(pod *PodMatcher) {
 						pod.WithAnnotations(annotationsMap)
-				}),
+					}),
 			),
 		)
 	})
