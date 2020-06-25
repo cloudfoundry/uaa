@@ -55,6 +55,51 @@ var _ = Describe("Deployment", func() {
 		}
 	})
 
+	Describe("Prometheus metrics", func() {
+		It("Renders the deployment with prometheus annotations", func() {
+			ctx := NewRenderingContext(templates...).WithData(
+				map[string]string{
+					"database.scheme": "hsqldb",
+				})
+
+			annotationsMap := map[string]string{
+				"prometheus.io/scrape": "true",
+				"prometheus.io/port":   "9102",
+				"prometheus.io/path":   "/metrics",
+			}
+
+			Expect(ctx).To(
+				ProduceYAML(
+					RepresentingDeployment().
+						WithPodMatching(func(pod *PodMatcher) {
+							pod.WithMetaMatching(func(metadata *ObjectMetaMatcher) {
+								metadata.WithAnnotations(annotationsMap)
+							})
+						}),
+				),
+			)
+		})
+
+		It("Renders a container for StatsD Exporter", func() {
+			ctx := NewRenderingContext(templates...).WithData(map[string]string{
+				"database.scheme": "hsqldb",
+			})
+
+			Expect(ctx).To(
+				ProduceYAML(RepresentingDeployment().
+					WithPodMatching(func(pod *PodMatcher) {
+						pod.WithContainerMatching(func(container *ContainerMatcher) {
+							container.
+								WithName("statsd-exporter").
+								WithImageContaining("oratos/statsd_exporter").
+								WithImagePullPolicy("Always")
+						})
+					}),
+				),
+			)
+		})
+	})
+
 	It("Renders a deployment for the UAA", func() {
 		ctx := NewRenderingContext(templates...).WithData(
 			map[string]string{
@@ -97,30 +142,6 @@ var _ = Describe("Deployment", func() {
 					pod.WithVolume("jwt-policy-signing-keys-file", Not(BeNil()))
 					pod.WithVolume("truststore-file", Not(BeNil()))
 				}),
-			),
-		)
-	})
-
-	It("Renders the deployment with prometheus annotations", func() {
-		ctx := NewRenderingContext(templates...).WithData(
-			map[string]string{
-				"database.scheme": "hsqldb",
-			})
-
-		annotationsMap := map[string]string{
-			"prometheus.io/scrape": "true",
-			"prometheus.io/port":   "9102",
-			"prometheus.io/path":   "/metrics",
-		}
-
-		Expect(ctx).To(
-			ProduceYAML(
-				RepresentingDeployment().
-					WithPodMatching(func(pod *PodMatcher) {
-						pod.WithMetaMatching(func(metadata *ObjectMetaMatcher) {
-							metadata.WithAnnotations(annotationsMap)
-						})
-					}),
 			),
 		)
 	})
@@ -215,25 +236,6 @@ var _ = Describe("Deployment", func() {
 				WithPodMatching(func(pod *PodMatcher) {
 					pod.WithMetaMatching(func(metadata *ObjectMetaMatcher) {
 						metadata.WithLabels(labels)
-					})
-				}),
-			),
-		)
-	})
-
-	It("Renders a container for StatsD Exporter", func() {
-		ctx := NewRenderingContext(templates...).WithData(map[string]string{
-			"database.scheme": "hsqldb",
-		})
-
-		Expect(ctx).To(
-			ProduceYAML(RepresentingDeployment().
-				WithPodMatching(func(pod *PodMatcher) {
-					pod.WithContainerMatching(func(container *ContainerMatcher) {
-						container.
-							WithName("statsd-exporter").
-							WithImageContaining("oratos/statsd_exporter").
-							WithImagePullPolicy("Always")
 					})
 				}),
 			),
