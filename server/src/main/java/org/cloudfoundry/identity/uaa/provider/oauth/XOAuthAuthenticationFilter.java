@@ -61,14 +61,15 @@ public class XOAuthAuthenticationFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
         HttpServletResponse response = (HttpServletResponse) servletResponse;
 
+        if (!containsCredentials(request)) {
+            request.getRequestDispatcher("/login_implicit").forward(request, response);
+            return;
+        }
+
         checkRequestStateParameter(request);
 
-        if (containsCredentials(request)) {
-            if (authenticationWasSuccessful(request, response)) {
-                chain.doFilter(request, response);
-            }
-        } else {
-            request.getRequestDispatcher("/login_implicit").forward(request, response);
+        if (authenticationWasSuccessful(request, response)) {
+            chain.doFilter(request, response);
         }
     }
 

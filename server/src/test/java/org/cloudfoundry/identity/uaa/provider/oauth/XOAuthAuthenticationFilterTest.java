@@ -190,6 +190,21 @@ class XOAuthAuthenticationFilterTest {
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
             verify(mockRequestDispatcher).forward(mockRequest, mockResponse);
         }
+
+        @Test
+        void itRedirects_EvenWhenTheStateHasNotYetBeenPulledFromTheHashFragmentYet()
+                throws IOException, ServletException {
+            RequestDispatcher mockRequestDispatcher = mock(RequestDispatcher.class);
+
+            HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, (request) -> {
+                when(request.getRequestDispatcher("/login_implicit")).thenReturn(mockRequestDispatcher);
+            });
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+            verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+            verify(mockRequestDispatcher).forward(mockRequest, mockResponse);
+        }
     }
 
     private HttpServletRequest mockRedirectRequest(String origin, Consumer<HttpServletRequest> config) {
