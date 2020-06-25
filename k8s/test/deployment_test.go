@@ -90,6 +90,7 @@ var _ = Describe("Deployment", func() {
 					WithPodMatching(func(pod *PodMatcher) {
 						pod.WithContainerMatching(func(container *ContainerMatcher) {
 							container.
+								WithArgs([]string{"--statsd.listen-udp=:8125"}).
 								WithName("statsd-exporter").
 								WithImageContaining("oratos/statsd_exporter").
 								WithImagePullPolicy("Always")

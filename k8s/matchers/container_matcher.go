@@ -31,6 +31,12 @@ func NewContainerMatcher() *ContainerMatcher {
 	}
 }
 
+func (matcher *ContainerMatcher) WithArgs(args []string) *ContainerMatcher {
+	matcher.fields["Args"] = ContainElements(args)
+
+	return matcher
+}
+
 func (matcher *ContainerMatcher) WithName(name string) *ContainerMatcher {
 	matcher.fields["Name"] = Equal(name)
 
