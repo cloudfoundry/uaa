@@ -162,6 +162,10 @@ spec:
         image: #@ data.values.images.statsd_exporter
         imagePullPolicy: Always
         args: ["--statsd.listen-udp=:8125"]
+        ports:
+        - name: "metrics-uaa"
+          containerPort: 9102
+          protocol: "TCP"
       volumes:
       - name: uaa-config
         configMap:

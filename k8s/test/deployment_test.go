@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
+	coreV1 "k8s.io/api/core/v1"
 	"path/filepath"
 )
 
@@ -89,8 +90,16 @@ var _ = Describe("Deployment", func() {
 				ProduceYAML(RepresentingDeployment().
 					WithPodMatching(func(pod *PodMatcher) {
 						pod.WithContainerMatching(func(container *ContainerMatcher) {
+
+							expectedPort := coreV1.ContainerPort{
+								Name:          "metrics-uaa",
+								ContainerPort: 9102,
+								Protocol:      "TCP",
+							}
+
 							container.
 								WithArgs([]string{"--statsd.listen-udp=:8125"}).
+								WithPort(expectedPort).
 								WithName("statsd-exporter").
 								WithImageContaining("oratos/statsd_exporter").
 								WithImagePullPolicy("Always")

@@ -37,6 +37,11 @@ func (matcher *ContainerMatcher) WithArgs(args []string) *ContainerMatcher {
 	return matcher
 }
 
+func (matcher *ContainerMatcher) WithPort(port coreV1.ContainerPort) *ContainerMatcher {
+	matcher.fields["Ports"] = ContainElement(port)
+	return matcher
+}
+
 func (matcher *ContainerMatcher) WithName(name string) *ContainerMatcher {
 	matcher.fields["Name"] = Equal(name)
 
