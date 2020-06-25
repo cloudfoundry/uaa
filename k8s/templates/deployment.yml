@@ -23,6 +23,7 @@ spec:
       annotations:
         prometheus.io/scrape: 'true'
         prometheus.io/port: '9102'
+        prometheus.io/path: '/metrics'
       labels:
         app: uaa-deployment
     spec: #! pod spec
