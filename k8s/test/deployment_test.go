@@ -109,6 +109,7 @@ var _ = Describe("Deployment", func() {
 
 		annotationsMap := map[string]string{
 			"prometheus.io/scrape": "true",
+			"prometheus.io/port": "9102",
 		}
 
 		Expect(ctx).To(
