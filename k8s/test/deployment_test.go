@@ -204,7 +204,9 @@ var _ = Describe("Deployment", func() {
 		}
 		Expect(ctx).To(
 			ProduceYAML(RepresentingDeployment().
-				WithLabels(labels).
+				WithMetaMatching(func(metadata *ObjectMetaMatcher) {
+					metadata.WithLabels(labels)
+				}).
 				WithNamespace("default").
 				WithPodMatching(func(pod *PodMatcher) {
 					pod.WithLabels(labels)

@@ -42,7 +42,9 @@ var _ = Describe("Metadata", func() {
 		Expect(ctx).To(
 			ProduceYAML(
 				RepresentingDeployment().
-					WithLabels(labels).
+					WithMetaMatching(func(metadata *ObjectMetaMatcher) {
+						metadata.WithLabels(labels)
+					}).
 					WithNamespace("namespace-from-test").
 					WithPodMatching(func(pod *PodMatcher) {
 						pod.WithLabels(labels)

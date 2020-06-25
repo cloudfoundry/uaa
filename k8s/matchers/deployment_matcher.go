@@ -31,14 +31,6 @@ func (matcher *DeploymentMatcher) WithPodMatching(config PodMatcherConfig) *Depl
 	return matcher
 }
 
-func (matcher *DeploymentMatcher) WithLabels(labels map[string]string) *DeploymentMatcher {
-	matcher.WithMetaMatching(func(metaMatcher *ObjectMetaMatcher) {
-		metaMatcher.WithLabels(labels)
-	})
-
-	return matcher
-}
-
 func (matcher *DeploymentMatcher) WithMetaMatching(config ObjectMetaMatcherConfig) *DeploymentMatcher {
 	config(matcher.meta)
 
