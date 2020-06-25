@@ -44,20 +44,8 @@ func (matcher *PodMatcher) WithServiceAccountMatching(serviceAccount string) *Po
 	return matcher
 }
 
-func (matcher *PodMatcher) WithLabels(labels map[string]string) *PodMatcher {
-	matcher.meta.WithLabels(labels)
-
-	return matcher
-}
-
-func (matcher *PodMatcher) WithAnnotations(annotations map[string]string) *PodMatcher {
-	matcher.meta.WithAnnotations(annotations)
-
-	return matcher
-}
-
-func (matcher *PodMatcher) WithNamespace(namespace string) *PodMatcher {
-	matcher.meta.WithNamespace(namespace)
+func (matcher *PodMatcher) WithMetaMatching(config ObjectMetaMatcherConfig) *PodMatcher {
+	config(matcher.meta)
 
 	return matcher
 }

@@ -47,8 +47,10 @@ var _ = Describe("Metadata", func() {
 						metadata.WithNamespace("namespace-from-test")
 					}).
 					WithPodMatching(func(pod *PodMatcher) {
-						pod.WithLabels(labels)
-						pod.WithNamespace("namespace-from-test")
+						pod.WithMetaMatching(func(metadata *ObjectMetaMatcher) {
+							metadata.WithLabels(labels)
+							metadata.WithNamespace("namespace-from-test")
+						})
 					}),
 			),
 		)
