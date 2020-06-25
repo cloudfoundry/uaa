@@ -206,8 +206,8 @@ var _ = Describe("Deployment", func() {
 			ProduceYAML(RepresentingDeployment().
 				WithMetaMatching(func(metadata *ObjectMetaMatcher) {
 					metadata.WithLabels(labels)
+					metadata.WithNamespace("default")
 				}).
-				WithNamespace("default").
 				WithPodMatching(func(pod *PodMatcher) {
 					pod.WithLabels(labels)
 				}),
