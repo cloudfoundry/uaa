@@ -6,6 +6,8 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: uaa-config
+  annotations:
+    kapp.k14s.io/versioned: ""
 data:
   uaa.yml: #@ yaml.encode(config())
   log4j2.properties: #@ data.read("log4j2.properties")
