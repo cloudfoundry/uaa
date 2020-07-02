@@ -206,6 +206,7 @@ cargo {
             property "metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true")
             property "smtp.host", "localhost"
             property "smtp.port", 2525
+            property "uaa.migrationsEnabled", System.getProperty("uaa.migrationsEnabled", "true")
         }
 
         containerProperties {
