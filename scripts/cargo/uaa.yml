@@ -54,5 +54,3 @@ jwt:
   token:
     signing-key: tokenKey
 
-uaa:
-  migrationsEnabled: true

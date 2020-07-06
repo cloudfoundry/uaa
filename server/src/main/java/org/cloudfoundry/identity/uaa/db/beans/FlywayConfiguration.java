@@ -38,8 +38,6 @@ public class FlywayConfiguration {
         .validateOnMigrate(false)
         .table(VERSION_TABLE)
         .load();
-    flyway.repair();
-    flyway.migrate();
     return flyway;
   }
 
@@ -50,8 +48,11 @@ public class FlywayConfiguration {
 
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        return Boolean
-            .parseBoolean(context.getEnvironment().getProperty("uaa.migrationsEnabled", "true"));
+        var migrationsEnabled = context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
+        if(migrationsEnabled != "true" && migrationsEnabled != "false") {
+          return true;
+        }
+        return Boolean.parseBoolean(migrationsEnabled);
       }
     }
 
@@ -76,8 +77,11 @@ public class FlywayConfiguration {
 
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        return !Boolean
-            .parseBoolean(context.getEnvironment().getProperty("uaa.migrationsEnabled", "true"));
+        var migrationsEnabled = context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
+        if(migrationsEnabled != "true" && migrationsEnabled != "false") {
+          return false;
+        }
+        return !Boolean.parseBoolean(migrationsEnabled);
       }
     }
 
