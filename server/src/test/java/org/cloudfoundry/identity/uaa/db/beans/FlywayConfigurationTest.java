@@ -48,4 +48,12 @@ class FlywayConfigurationTest {
     assertFalse(new FlywayConfiguration.FlywayConfigurationWithMigration.ConfiguredWithMigrations().matches(mockConditionContext, null));
     assertTrue(new FlywayConfiguration.FlywayConfigurationWithoutMigrations.ConfiguredWithoutMigrations().matches(mockConditionContext, null));
   }
+
+  @Test
+  void flywayConfiguration_RunsMigration_WhenInvalidConfiguration() {
+    mockEnvironment.setProperty("uaa.migrationsEnabled", "bogus");
+
+    assertTrue(new FlywayConfiguration.FlywayConfigurationWithMigration.ConfiguredWithMigrations().matches(mockConditionContext, null));
+    assertFalse(new FlywayConfiguration.FlywayConfigurationWithoutMigrations.ConfiguredWithoutMigrations().matches(mockConditionContext, null));
+  }
 }
