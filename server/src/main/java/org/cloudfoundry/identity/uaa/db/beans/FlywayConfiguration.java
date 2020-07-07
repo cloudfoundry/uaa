@@ -24,12 +24,8 @@ public class FlywayConfiguration {
 
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var migrationsEnabled =
-            context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
-        if (migrationsEnabled != "true" && migrationsEnabled != "false") {
-          return true;
-        }
-        return Boolean.parseBoolean(migrationsEnabled);
+        var migrationsEnabled = context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
+        return !migrationsEnabled.equals("false");
       }
     }
 
@@ -81,12 +77,8 @@ public class FlywayConfiguration {
 
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var migrationsEnabled =
-            context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
-        if (migrationsEnabled != "true" && migrationsEnabled != "false") {
-          return false;
-        }
-        return !Boolean.parseBoolean(migrationsEnabled);
+        var migrationsEnabled = context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
+        return migrationsEnabled.equals("false");
       }
     }
 
