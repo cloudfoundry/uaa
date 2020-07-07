@@ -247,7 +247,8 @@ public class ClientAdminBootstrap implements
     private void updatePasswordsIfChanged(String clientId, String rawPassword1, String rawPassword2) {
         if (passwordEncoder != null) {
             ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
-            String[] existingPasswordHash = existing.getClientSecret().split(" ");
+            String existingSecret = existing.getClientSecret();
+            String[] existingPasswordHash = (existingSecret != null ? existingSecret : "").split(" ");
             // check if both passwords are still up to date
             // 1st line: client already has 2 passwords: check if both are still correct
             // 2nd line: client has only 1 pasword: check if password is correct and second password is null
