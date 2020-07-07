@@ -15,6 +15,8 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 public class FlywayConfiguration {
 
+  private static final String MIGRATIONS_ENABLED = "uaa.migrationsEnabled";
+
   @Configuration
   @Conditional(FlywayConfigurationWithMigration.ConfiguredWithMigrations.class)
   public static class FlywayConfigurationWithMigration {
@@ -23,7 +25,7 @@ public class FlywayConfiguration {
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
         var migrationsEnabled =
-            context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
+            context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
         if (migrationsEnabled != "true" && migrationsEnabled != "false") {
           return true;
         }
@@ -80,7 +82,7 @@ public class FlywayConfiguration {
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
         var migrationsEnabled =
-            context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
+            context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
         if (migrationsEnabled != "true" && migrationsEnabled != "false") {
           return false;
         }
