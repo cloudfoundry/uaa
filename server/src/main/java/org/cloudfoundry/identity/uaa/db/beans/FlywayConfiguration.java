@@ -13,33 +13,7 @@ import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
-@Configuration
 public class FlywayConfiguration {
-
-  /**
-   * In Flyway 5, the default version table name changed to flyway_schema_history
-   * https://flywaydb.org/documentation/releaseNotes#5.0.0
-   * https://github.com/flyway/flyway/issues/1848
-   * <p>
-   * We need to maintain backwards compatibility due to {@link FixFailedBackportMigrations_4_0_4}
-   */
-  static final String VERSION_TABLE = "schema_version";
-
-  @Bean
-  public Flyway baseFlyway(
-      DataSource dataSource,
-      DataSourceAccessor dataSourceAccessor,
-      @Qualifier("platform") String platform) {
-    Flyway flyway = Flyway.configure()
-        .baselineOnMigrate(true)
-        .dataSource(dataSource)
-        .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
-        .baselineVersion("1.5.2")
-        .validateOnMigrate(false)
-        .table(VERSION_TABLE)
-        .load();
-    return flyway;
-  }
 
   @Configuration
   @Conditional(FlywayConfigurationWithMigration.ConfiguredWithMigrations.class)
@@ -48,13 +22,23 @@ public class FlywayConfiguration {
 
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var migrationsEnabled = context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
-        if(migrationsEnabled != "true" && migrationsEnabled != "false") {
+        var migrationsEnabled =
+            context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
+        if (migrationsEnabled != "true" && migrationsEnabled != "false") {
           return true;
         }
         return Boolean.parseBoolean(migrationsEnabled);
       }
     }
+
+    /**
+     * In Flyway 5, the default version table name changed to flyway_schema_history
+     * https://flywaydb.org/documentation/releaseNotes#5.0.0
+     * https://github.com/flyway/flyway/issues/1848
+     * <p>
+     * We need to maintain backwards compatibility due to {@link FixFailedBackportMigrations_4_0_4}
+     */
+    static final String VERSION_TABLE = "schema_version";
 
     /**
      * @param dataSourceAccessor This bean does NOT need need an instance of {@link DataSourceAccessor}.
@@ -63,6 +47,24 @@ public class FlywayConfiguration {
      */
     @Bean
     public Flyway flyway(@Qualifier("baseFlyway") Flyway flyway) {
+      flyway.repair();
+      flyway.migrate();
+      return flyway;
+    }
+
+    @Bean
+    public Flyway baseFlyway(
+        DataSource dataSource,
+        DataSourceAccessor dataSourceAccessor,
+        @Qualifier("platform") String platform) {
+      Flyway flyway = Flyway.configure()
+          .baselineOnMigrate(true)
+          .dataSource(dataSource)
+          .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
+          .baselineVersion("1.5.2")
+          .validateOnMigrate(false)
+          .table(VERSION_TABLE)
+          .load();
       flyway.repair();
       flyway.migrate();
       return flyway;
@@ -77,17 +79,40 @@ public class FlywayConfiguration {
 
       @Override
       public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var migrationsEnabled = context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
-        if(migrationsEnabled != "true" && migrationsEnabled != "false") {
+        var migrationsEnabled =
+            context.getEnvironment().getProperty("uaa.migrationsEnabled", "true");
+        if (migrationsEnabled != "true" && migrationsEnabled != "false") {
           return false;
         }
         return !Boolean.parseBoolean(migrationsEnabled);
       }
     }
 
+    /**
+     * In Flyway 5, the default version table name changed to flyway_schema_history
+     * https://flywaydb.org/documentation/releaseNotes#5.0.0
+     * https://github.com/flyway/flyway/issues/1848
+     * <p>
+     * We need to maintain backwards compatibility due to {@link FixFailedBackportMigrations_4_0_4}
+     */
+    static final String VERSION_TABLE = "schema_version";
+
     @Bean
-    public Flyway flyway(@Qualifier("baseFlyway") Flyway flyway) {
+    public Flyway flyway(
+        DataSource dataSource,
+        DataSourceAccessor dataSourceAccessor,
+        @Qualifier("platform") String platform) {
+      Flyway flyway = Flyway.configure()
+          .baselineOnMigrate(true)
+          .dataSource(dataSource)
+          .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
+          .baselineVersion("1.5.2")
+          .validateOnMigrate(false)
+          .table(VERSION_TABLE)
+          .load();
+
       return flyway;
     }
   }
 }
+
