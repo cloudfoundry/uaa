@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @ContextConfiguration(classes = {
         DatabaseOnlyConfiguration.class,
         PasswordEncoderConfig.class,
-        FlywayConfiguration.FlywayConfigurationWithMigration.class,
+        FlywayConfiguration.class,
 })
 public @interface WithDatabaseContext {
 
