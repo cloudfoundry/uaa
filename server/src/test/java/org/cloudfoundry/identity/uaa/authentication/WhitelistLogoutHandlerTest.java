@@ -36,13 +36,17 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 public class WhitelistLogoutHandlerTest {
 
     private WhitelistLogoutHandler handler;
-    private MockHttpServletRequest request = new MockHttpServletRequest();
-    private MockHttpServletResponse response = new MockHttpServletResponse();
-    private BaseClientDetails client = new BaseClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
-    private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
+    private MockHttpServletRequest request;
+    private MockHttpServletResponse response;
+    private BaseClientDetails client;
+    private MultitenantClientServices clientDetailsService;
 
     @Before
     public void setUp() {
+        request = new MockHttpServletRequest();
+        response = new MockHttpServletResponse();
+        client = new BaseClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
+        clientDetailsService =  mock(MultitenantClientServices.class);
         handler = new WhitelistLogoutHandler(EMPTY_LIST);
         handler.setDefaultTargetUrl("/login");
         handler.setAlwaysUseDefaultTargetUrl(true);
