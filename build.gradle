@@ -185,7 +185,7 @@ cargo {
     local {
         configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
         startStopTimeout = 540000
-        rmiPort = applicationPort + 1
+        rmiPort = applicationPort + 10
         List activeProfiles = System.getProperty("spring.profiles.active", "").split(",")
         jvmArgs = "-DCLOUDFOUNDRY_CONFIG_PATH=" + file("scripts/cargo").getAbsolutePath() + " -Dlog4j.configurationFile=" + file("scripts/cargo/log4j2.properties").getAbsolutePath()
         jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
@@ -209,7 +209,7 @@ cargo {
         }
 
         containerProperties {
-            property 'cargo.tomcat.ajp.port', applicationPort + 2
+            property 'cargo.tomcat.ajp.port', applicationPort + 20
         }
 
         installer {
