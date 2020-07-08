@@ -26,7 +26,10 @@ import java.util.Collections;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
@@ -104,12 +107,13 @@ public class WhitelistLogoutHandlerTest {
 
     @Test
     public void client_not_found_exception() {
-        when(clientDetailsService.loadClientByClientId("test", "uaa")).thenThrow(new NoSuchClientException("test"));
+        when(clientDetailsService.loadClientByClientId(eq("test"), any())).thenThrow(new NoSuchClientException("test"));
         handler.setWhitelist(Collections.singletonList("http://testing.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://notwhitelisted.com");
         request.setParameter(CLIENT_ID, "test");
         assertEquals("/login", handler.determineTargetUrl(request, response));
+        verify(clientDetailsService).loadClientByClientId("test", "uaa");
     }
 
     @Test
