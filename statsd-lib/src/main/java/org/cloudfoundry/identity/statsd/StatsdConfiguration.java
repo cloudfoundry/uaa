@@ -14,15 +14,16 @@ package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
 import com.timgroup.statsd.StatsDClient;
+import java.lang.management.ManagementFactory;
+import java.util.Calendar;
+import java.util.Date;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.SchedulingConfigurer;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
-import java.lang.management.ManagementFactory;
-import java.util.Calendar;
-import java.util.Date;
-
+@Configuration
 @EnableScheduling
 public class StatsdConfiguration implements SchedulingConfigurer {
 
