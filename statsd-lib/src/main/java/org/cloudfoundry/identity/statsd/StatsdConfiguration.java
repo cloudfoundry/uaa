@@ -10,6 +10,7 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
@@ -25,32 +26,32 @@ import org.springframework.scheduling.annotation.SchedulingConfigurer;
 @EnableScheduling
 public class StatsdConfiguration {
 
-    @Bean
-    public UaaMetricsEmitter statsDClientWrapper() {
-        return new UaaMetricsEmitter(
-            new MetricsUtils(),
-            new NonBlockingStatsDClient("uaa", "localhost", 8125),
-            ManagementFactory.getPlatformMBeanServer());
-    }
+  @Bean
+  public UaaMetricsEmitter statsDClientWrapper() {
+    return new UaaMetricsEmitter(
+        new MetricsUtils(),
+        new NonBlockingStatsDClient("uaa", "localhost", 8125),
+        ManagementFactory.getPlatformMBeanServer());
+  }
 
-    @Bean
-    public SchedulingConfigurer schedulingConfigurer(UaaMetricsEmitter uaaMetricsEmitter) {
-        return taskRegistrar -> taskRegistrar.addTriggerTask(
-            uaaMetricsEmitter::enableNotification,
-            triggerContext -> {
-                if (uaaMetricsEmitter.isNotificationEnabled()) {
-                    return null;
-                }
-                return triggerContext.lastCompletionTime() != null
-                    ? getFiveSecondsFrom(triggerContext.lastCompletionTime())
-                    : getFiveSecondsFrom(new Date());
-            });
-    }
+  @Bean
+  public SchedulingConfigurer schedulingConfigurer(UaaMetricsEmitter uaaMetricsEmitter) {
+    return taskRegistrar -> taskRegistrar.addTriggerTask(
+        uaaMetricsEmitter::enableNotification,
+        triggerContext -> {
+          if (uaaMetricsEmitter.isNotificationEnabled()) {
+            return null;
+          }
+          return triggerContext.lastCompletionTime() != null
+              ? getFiveSecondsFrom(triggerContext.lastCompletionTime())
+              : getFiveSecondsFrom(new Date());
+        });
+  }
 
-    private Date getFiveSecondsFrom(Date date) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(date);
-        calendar.add(Calendar.SECOND, 5);
-        return calendar.getTime();
-    }
+  private Date getFiveSecondsFrom(Date date) {
+    Calendar calendar = Calendar.getInstance();
+    calendar.setTime(date);
+    calendar.add(Calendar.SECOND, 5);
+    return calendar.getTime();
+  }
 }
