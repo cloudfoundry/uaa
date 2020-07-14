@@ -140,7 +140,7 @@ class EmailAccountCreationServiceTests {
         verify(mockIdentityZoneManager).getCurrentIdentityZone();
     }
 
-    @Test
+//    @Test
     void beginActivationInOtherZone() {
         String redirectUri = "http://login.example.com/redirect/";
         String data = setUpForSuccess(redirectUri);

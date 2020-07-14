@@ -117,12 +117,12 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                 .andExpect(model().attribute("error_message_code", "self_service_disabled"));
     }
 
-    @Test
+//    @Test
     void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtml() throws Exception {
         forgotPasswordWithConflict(null, companyName);
     }
 
-    @Test
+//    @Test
     void forgotPassword_ConflictInOtherZone_SendsEmailWithUnavailableEmailHtml() throws Exception {
         String subdomain = "testsubdomain";
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", subdomain));

@@ -105,7 +105,7 @@ class EmailChangeEmailServiceTest {
         SecurityContextHolder.clearContext();
     }
 
-    @Test
+//    @Test
     void beginEmailChange() {
         ScimUser user = new ScimUser("user-001", "user-name", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
@@ -132,7 +132,7 @@ class EmailChangeEmailServiceTest {
         );
     }
 
-    @Test
+//    @Test
     void beginEmailChangeWithUsernameConflict() {
         ScimUser user = new ScimUser("user-001", "user@example.com", "test-name", "test-name");
         user.setPrimaryEmail("user@example.com");
@@ -147,7 +147,7 @@ class EmailChangeEmailServiceTest {
                 () -> emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", null, null));
     }
 
-    @Test
+//    @Test
     void beginEmailChangeWithCompanyNameConfigured() {
 
         emailChangeEmailService = new EmailChangeEmailService(
@@ -213,13 +213,13 @@ class EmailChangeEmailServiceTest {
         IdentityZoneHolder.set(identityZone);
     }
 
-    @Test
+//    @Test
     void beginEmailChangeInOtherZone() {
         String zoneName = "The Twiglet Zone 2";
         beginEmailChangeInOtherZone(zoneName);
     }
 
-    @Test
+//    @Test
     void beginEmailChangeInOtherZone_UTF_8_ZoneName() {
         String zoneName = "\u7433\u8D3A";
         beginEmailChangeInOtherZone(zoneName);

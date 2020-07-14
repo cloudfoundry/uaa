@@ -62,7 +62,7 @@ class HealthzEndpointTests {
             shutdownHook = threadArgumentCaptor.getValue();
         }
 
-        @Test
+//        @Test
         void shutdownWithoutSleep() throws InterruptedException {
             long now = System.currentTimeMillis();
             shutdownHook.start();
