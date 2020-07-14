@@ -51,6 +51,8 @@ import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
+
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -225,7 +227,7 @@ public class InvitationsIT {
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
