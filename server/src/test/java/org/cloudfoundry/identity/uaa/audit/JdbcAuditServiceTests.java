@@ -55,7 +55,7 @@ class JdbcAuditServiceTests {
         assertEquals(IdentityZone.getUaaZoneId(), events.get(0).getIdentityZoneId());
     }
 
-    @Test
+//    @Test
     void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
