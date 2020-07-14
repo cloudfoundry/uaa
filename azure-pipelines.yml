@@ -9,12 +9,12 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 steps:
-- task: Gradle@2
 - task: JavaToolInstaller@0
   inputs:
     versionSpec: '11'
     jdkArchitectureOption: 'x64'
     jdkSourceOption: 'PreInstalled'
+- task: Gradle@2
   inputs:
     workingDirectory: ''
     gradleWrapperFile: 'gradlew'
