@@ -18,4 +18,4 @@ steps:
     javaHomeOption: 'JDKVersion'
     jdkVersionOption: '1.11'
     jdkArchitectureOption: 'x64'
-    tasks: 'build'
+    tasks: 'clean build'
