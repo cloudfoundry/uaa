@@ -252,7 +252,7 @@ task cleanCargoConfDir {
     }
 }
 
-task integrationTest(dependsOn: subprojects.integrationTest) {
+task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
