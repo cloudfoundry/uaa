@@ -10,6 +10,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+
 - task: Gradle@2
   inputs:
     workingDirectory: ''
@@ -18,4 +19,13 @@ steps:
     javaHomeOption: 'JDKVersion'
     jdkVersionOption: '1.11'
     jdkArchitectureOption: 'x64'
-    tasks: 'clean build'
+    tasks: 'build'
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      
+      echo 'Execute run-unit-tests.sh mysql'
+      echo pwd
+      ./ run-unit-tests.sh mysql
