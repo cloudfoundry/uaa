@@ -29,4 +29,4 @@ steps:
       echo 'Execute run-unit-tests.sh mysql'
       pwd
       ll
-      ./ run-unit-tests.sh mysql
+      ./run-unit-tests.sh mysql
