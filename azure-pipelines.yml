@@ -18,6 +18,9 @@ steps:
       # Write your commands here
       echo 'Hello world'
       ls -l /bin/sh
+      sudo rm /bin/sh
+      sudo ln -s /bin/bash /bin/sh
+      ls -l /bin/sh
 
 - task: Gradle@2
   inputs:
