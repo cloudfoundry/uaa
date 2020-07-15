@@ -27,5 +27,6 @@ steps:
       # Write your commands here
       
       echo 'Execute run-unit-tests.sh mysql'
-      echo pwd
+      pwd
+      ll
       ./ run-unit-tests.sh mysql
