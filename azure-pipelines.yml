@@ -11,6 +11,14 @@ pool:
 
 steps:
 
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      echo 'Hello world'
+      ls -l /bin/sh
+
 - task: Gradle@2
   inputs:
     workingDirectory: ''
@@ -20,7 +28,7 @@ steps:
     jdkVersionOption: '1.11'
     jdkArchitectureOption: 'x64'
     tasks: 'build --exclude-task test'
-    
+
 - task: Bash@3
   inputs:
     targetType: 'inline'
