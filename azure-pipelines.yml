@@ -35,4 +35,4 @@ steps:
 - task: Bash@3
   inputs:
     targetType: 'inline'
-    script: 'sh run-unit-tests-ci.sh mysql'
+    script: 'sh run-unit-tests-ci.sh postgresql'
