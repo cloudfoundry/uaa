@@ -16,11 +16,11 @@ steps:
   inputs:
     targetType: 'inline'
     script: |
-      # Write your commands here
-      echo 'Hello world'
+      echo 'Current Bash'
       ls -l /bin/sh
       sudo rm /bin/sh
       sudo ln -s /bin/bash /bin/sh
+      echo 'Updated Bash'
       ls -l /bin/sh
 
 - task: Gradle@2
