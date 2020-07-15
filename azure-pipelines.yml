@@ -12,6 +12,7 @@ pool:
 steps:
 
 - task: Bash@3
+  displayName: Changing Dash to Bash shell
   inputs:
     targetType: 'inline'
     script: |
@@ -23,6 +24,7 @@ steps:
       ls -l /bin/sh
 
 - task: Gradle@2
+  displayName: Gradle Build
   inputs:
     workingDirectory: ''
     gradleWrapperFile: 'gradlew'
@@ -33,6 +35,13 @@ steps:
     tasks: 'build --exclude-task test'
 
 - task: Bash@3
+  displayName: Running Unit Tests with Docker 
   inputs:
     targetType: 'inline'
     script: 'sh run-unit-tests-ci.sh postgresql'
+
+- task: Bash@3
+  displayName: Running Integration Tests with Docker 
+  inputs:
+    targetType: 'inline'
+    script: 'sh run-integration-tests-ci.sh postgresql'
