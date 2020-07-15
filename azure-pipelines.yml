@@ -20,6 +20,12 @@ steps:
     jdkVersionOption: '1.11'
     jdkArchitectureOption: 'x64'
     tasks: 'build --exclude-task test'
+
+- task: Bash@3
+  inputs:
+    filePath: 'run-unit-tests.sh mysql'
+    arguments: 'mysql'
+    
 - task: Bash@3
   inputs:
     targetType: 'inline'
@@ -32,4 +38,4 @@ steps:
       echo 'Dir Content'
       ll
       echo 'Execute run-unit-tests.sh mysql'
-      ./run-unit-tests.sh mysql
+      ./run-unit-tests.sh 
