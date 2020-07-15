@@ -44,14 +44,7 @@ public class FlywayConfiguration {
      *                           DO make use of {@link DataSourceAccessor}
      */
     @Bean
-    public Flyway flyway(@Qualifier("baseFlyway") Flyway flyway) {
-      flyway.repair();
-      flyway.migrate();
-      return flyway;
-    }
-
-    @Bean
-    public Flyway baseFlyway(
+    public Flyway flyway(
         DataSource dataSource,
         DataSourceAccessor dataSourceAccessor,
         @Qualifier("platform") String platform) {
