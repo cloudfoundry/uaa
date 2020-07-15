@@ -10,6 +10,18 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: |
+      # Write your commands here
+      echo 'Hello world'
+      ls -l /bin/sh
+      sudo rm /bin/sh
+      sudo ln -s /bin/bash /bin/sh
+      ls -l /bin/sh
+
 - task: Gradle@2
   inputs:
     workingDirectory: ''
@@ -18,4 +30,9 @@ steps:
     javaHomeOption: 'JDKVersion'
     jdkVersionOption: '1.11'
     jdkArchitectureOption: 'x64'
-    tasks: 'clean build'
+    tasks: 'build --exclude-task test'
+
+- task: Bash@3
+  inputs:
+    targetType: 'inline'
+    script: 'sh run-unit-tests.sh mysql'
