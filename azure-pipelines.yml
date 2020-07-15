@@ -19,14 +19,17 @@ steps:
     javaHomeOption: 'JDKVersion'
     jdkVersionOption: '1.11'
     jdkArchitectureOption: 'x64'
-    tasks: 'build'
+    tasks: 'build --exclude-task test'
 - task: Bash@3
   inputs:
     targetType: 'inline'
     script: |
       # Write your commands here
       
-      echo 'Execute run-unit-tests.sh mysql'
+      echo 'Begin Unit Test'
+      echo 'Current Dir'
       pwd
+      echo 'Dir Content'
       ll
+      echo 'Execute run-unit-tests.sh mysql'
       ./run-unit-tests.sh mysql
