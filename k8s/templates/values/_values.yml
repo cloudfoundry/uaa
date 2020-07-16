@@ -24,10 +24,10 @@ images:
 
 #! UAA Application Values
 database:
-  scheme: ~
-  username: ~
-  password: ~
-  url: ~
+  scheme: postgresql
+  username: uaa
+  password: postgres1!
+  url: jdbc:postgresql://uaa-postgres.postgres.database.azure.com:5432/{your_database}?user=uaa@uaa-postgres&password={your_password}&sslmode=require
 
 jwt:
   policy:
