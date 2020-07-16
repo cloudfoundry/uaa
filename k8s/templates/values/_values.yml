@@ -33,7 +33,8 @@ jwt:
   policy:
     activeKeyId: my_active_key_id
     keys:
-      my_active_key_id:
+      #@overlay/match by="keyId",missing_ok=True
+      - keyId: my_active_key_id
         signingKey: aaa
 
 smtp:
