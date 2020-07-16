@@ -45,3 +45,8 @@ steps:
   inputs:
     targetType: 'inline'
     script: 'sh run-integration-tests-ci.sh postgresql'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Pipeline.Workspace)'
+    publishLocation: 'pipeline'
