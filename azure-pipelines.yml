@@ -12,17 +12,19 @@ pool:
 steps:
 
 - task: Bash@3
+  displayName: Changing Dash to Bash shell
   inputs:
     targetType: 'inline'
     script: |
-      # Write your commands here
-      echo 'Hello world'
+      echo 'Current Bash'
       ls -l /bin/sh
       sudo rm /bin/sh
       sudo ln -s /bin/bash /bin/sh
+      echo 'Updated Bash'
       ls -l /bin/sh
 
 - task: Gradle@2
+  displayName: Gradle Build
   inputs:
     workingDirectory: ''
     gradleWrapperFile: 'gradlew'
@@ -33,6 +35,18 @@ steps:
     tasks: 'build --exclude-task test'
 
 - task: Bash@3
+  displayName: Running Unit Tests with Docker 
   inputs:
     targetType: 'inline'
-    script: 'sh run-unit-tests.sh mysql'
+    script: 'sh run-unit-tests-ci.sh postgresql'
+
+- task: Bash@3
+  displayName: Running Integration Tests with Docker 
+  inputs:
+    targetType: 'inline'
+    script: 'sh run-integration-tests-ci.sh postgresql'
+
+- task: PublishPipelineArtifact@1
+  inputs:
+    targetPath: '$(Pipeline.Workspace)'
+    publishLocation: 'pipeline'
