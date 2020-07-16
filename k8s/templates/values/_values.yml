@@ -32,7 +32,9 @@ database:
 jwt:
   policy:
     activeKeyId: my_active_key_id
-    keys: [aaa]
+    keys:
+      my_active_key_id:
+        signingKey: aaa
 
 smtp:
   host: ~
