@@ -31,7 +31,7 @@ database:
 
 jwt:
   policy:
-    activeKeyId: ~
+    activeKeyId: my_active_key_id
     keys: []
 
 smtp:
