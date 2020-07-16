@@ -213,7 +213,7 @@ cargo {
         }
 
         installer {
-            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + tomcatVersion + "/tomcat-" + tomcatVersion + ".tar.gz"
+            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + versions.tomcatVersion + "/tomcat-" + versions.tomcatVersion + ".tar.gz"
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }
