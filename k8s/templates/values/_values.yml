@@ -43,7 +43,7 @@ smtp:
   from_address: ~
 
 admin:
-  client_secret: ~
+  client_secret: admin
 
 #! ca_certs should be an array of PEM-encoded certs
 #! These will be added to the UAA's truststore
