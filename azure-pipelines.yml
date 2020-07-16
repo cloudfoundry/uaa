@@ -34,17 +34,17 @@ steps:
     jdkArchitectureOption: 'x64'
     tasks: 'build --exclude-task test'
 
-- task: Bash@3
-  displayName: Running Unit Tests with Docker 
-  inputs:
-    targetType: 'inline'
-    script: 'sh run-unit-tests-ci.sh postgresql'
+#- task: Bash@3
+#  displayName: Running Unit Tests with Docker 
+#  inputs:
+#    targetType: 'inline'
+#    script: 'sh run-unit-tests-ci.sh postgresql'
 
-- task: Bash@3
-  displayName: Running Integration Tests with Docker 
-  inputs:
-    targetType: 'inline'
-    script: 'sh run-integration-tests-ci.sh postgresql'
+#- task: Bash@3
+#  displayName: Running Integration Tests with Docker 
+#  inputs:
+#    targetType: 'inline'
+#    script: 'sh run-integration-tests-ci.sh postgresql'
 
 - task: PublishPipelineArtifact@1
   inputs:
