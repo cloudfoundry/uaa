@@ -7,8 +7,6 @@ ext {
 ext["mariadb.version"] = "2.3.0"
 ext["flyway.version"] = "5.2.4"
 
-def versions = [:]
-
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
