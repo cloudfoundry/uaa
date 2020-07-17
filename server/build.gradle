@@ -1,3 +1,9 @@
+plugins {
+    id "org.flywaydb.flyway" version "5.2.4"
+}
+
+flywayMigrate.dependsOn classes
+
 description = "CloudFoundry Identity Server JAR"
 
 dependencies {
@@ -48,8 +54,8 @@ dependencies {
     }
 
     compile libraries.hibernateValidator
-    compile libraries.flywayCore
     compile libraries.mariaJdbcDriver
+    compile libraries.flywayCore
     compile libraries.hsqldb
 
     compile libraries.snakeyaml
