@@ -2,8 +2,11 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
+
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -14,10 +17,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-public class BootstrapIdentityZones implements SpringJdbcMigration {
+public class BootstrapIdentityZones extends BaseJavaMigration {
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
+    public void migrate(Context context) throws Exception {
+        JdbcTemplate jdbcTemplate =
+            new JdbcTemplate(new SingleConnectionDataSource(context.getConnection(), true));
+
         IdentityZone uaa = IdentityZone.getUaa();
         Timestamp t = new Timestamp(uaa.getCreated().getTime());
         jdbcTemplate.update("insert into identity_zone VALUES (?,?,?,?,?,?,?)", uaa.getId(),t,t,uaa.getVersion(),uaa.getSubdomain(),uaa.getName(),uaa.getDescription());
