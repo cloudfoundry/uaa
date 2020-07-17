@@ -28,7 +28,6 @@ apply from: "dependencies.gradle"
 apply plugin: "com.bmuschko.cargo"
 
 allprojects {
-
     apply plugin: "propdeps"
     apply plugin: "propdeps-maven"
     apply plugin: "propdeps-idea"
@@ -97,7 +96,6 @@ subprojects {
 
     test {
         maxParallelForks = 6
-
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
@@ -112,7 +110,6 @@ subprojects {
 
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
-
         useJUnitPlatform()
 
         testLogging {
@@ -124,8 +121,7 @@ subprojects {
         }
     }
 
-    task generateDocs() {
-    }
+    task generateDocs() {}
 
     task allDeps(type: DependencyReportTask) {}
 
@@ -141,7 +137,6 @@ subprojects {
             url "https://repo.maven.apache.org/maven2"
         }
     }
-
 }
 
 cargo {
@@ -229,14 +224,12 @@ task cleanCargoConfDir {
     delete file(System.getProperty("java.io.tmpdir") + "/cargo/uaa-${applicationPort}")
     try {
         Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
-    } catch (all) {
-    }
+    } catch (ignored) {}
 }
 
 task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
-
 
 // task dependencies
 assemble.dependsOn subprojects.assemble
