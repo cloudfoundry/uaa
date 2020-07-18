@@ -1,13 +1,13 @@
 rootProject.name = "cloudfoundry-identity-parent"
-include ":cloudfoundry-identity-metrics-data"
-include ":cloudfoundry-identity-model"
-include ":cloudfoundry-identity-server"
-include ":cloudfoundry-identity-statsd"
-include ":cloudfoundry-identity-statsd-lib"
-include ":cloudfoundry-identity-uaa"
-include ":cloudfoundry-identity-samples:cloudfoundry-identity-api"
-include ":cloudfoundry-identity-samples:cloudfoundry-identity-app"
-include ":cloudfoundry-identity-samples"
+include(":cloudfoundry-identity-metrics-data")
+include(":cloudfoundry-identity-model")
+include(":cloudfoundry-identity-server")
+include(":cloudfoundry-identity-statsd")
+include(":cloudfoundry-identity-statsd-lib")
+include(":cloudfoundry-identity-uaa")
+include(":cloudfoundry-identity-samples:cloudfoundry-identity-api")
+include(":cloudfoundry-identity-samples:cloudfoundry-identity-app")
+include(":cloudfoundry-identity-samples")
 
 project(":cloudfoundry-identity-metrics-data").projectDir = "$rootDir/metrics-data" as File
 project(":cloudfoundry-identity-model").projectDir = "$rootDir/model" as File
