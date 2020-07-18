@@ -3,7 +3,7 @@ apply(plugin: "war")
 apply(plugin: "org.springframework.boot")
 
 war {
-    baseName = "cloudfoundry-identity-statsd"
+    archiveBaseName = "cloudfoundry-identity-statsd"
 }
 
 repositories {
@@ -11,7 +11,7 @@ repositories {
 }
 
 dependencies {
-    compile(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(project(":cloudfoundry-identity-statsd-lib"))
     providedCompile(libraries.tomcatEmbed)
     providedRuntime(libraries.springBootStarterTomcat)
 }

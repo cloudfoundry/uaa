@@ -13,11 +13,11 @@ dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-    compile(identityServer)
+    implementation(identityServer)
 
     providedCompile(libraries.tomcatEmbed)
-    runtime(libraries.javaxServlet)
-    runtime(libraries.springSecurityConfig) {
+    runtimeOnly(libraries.javaxServlet)
+    runtimeOnly(libraries.springSecurityConfig) {
         exclude(module: "spring-aop")
     }
 
