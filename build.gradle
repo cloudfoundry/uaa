@@ -51,6 +51,9 @@ allprojects {
     }
 }
 
+
+
+
 subprojects {
     apply plugin: "java"
     apply plugin: "checkstyle"
@@ -124,6 +127,22 @@ subprojects {
     task generateDocs() {}
 
     task allDeps(type: DependencyReportTask) {}
+
+    task writeNewPom() {
+        doLast {
+            pom {
+                project {
+                    licenses {
+                        license {
+                            name "The Apache Software License, Version 2.0"
+                            url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+                            distribution "repo"
+                        }
+                    }
+                }
+            }.writeTo("./pom.xml")
+        }
+    }
 
     repositories {
         mavenCentral()
