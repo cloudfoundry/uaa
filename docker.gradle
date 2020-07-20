@@ -6,6 +6,9 @@ DOCKER_REPO_USER
 DOCKER_REPO_USER_PW
 DOCKER_CONTAINER_NAME
 
+To build UAA docker image using release artifacts:
+export USE_RELEASE_ARTIFACTS=true
+
 When pulling the uaa docker image from a registry you can inject the uaa profile and uaa.yml
 into the docker container environment.
 
@@ -24,10 +27,12 @@ buildscript {
 
   dependencies {
     classpath 'com.bmuschko:gradle-docker-plugin:3.0.11'
+    classpath 'de.undercouch:gradle-download-task:4.1.1'
   }
 }
 
 apply plugin: com.bmuschko.gradle.docker.DockerRemoteApiPlugin
+apply plugin: 'de.undercouch.download'
 apply plugin: 'java'
 
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
@@ -38,8 +43,32 @@ import com.bmuschko.gradle.docker.DockerRegistryCredentials
 import com.bmuschko.gradle.docker.tasks.container.DockerCreateContainer
 import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
 
+import de.undercouch.gradle.tasks.download.Download
+
+def use_release_artifacts = System.getenv('USE_RELEASE_ARTIFACTS')
+
+task downloadReleaseArtifacts(type: Download) {
+  def docker_build = "${buildDir}/docker"
+  doFirst {
+    mkdir docker_build
+  }
+  src 'https://artifactory.build.ge.com/MAAXA/org/cloudfoundry/identity/' \
+      + 'cloudfoundry-identity-uaa/' \
+      + version \
+      + '/cloudfoundry-identity-uaa-' \
+      + version \
+      + '.war'
+  dest docker_build
+  username System.getenv('ARTIFACTORY_READER')
+  password System.getenv('ARTIFACTORY_READER_PW')
+}
+
 task createDockerfile(type: Dockerfile) {
-  dependsOn assemble
+  if (use_release_artifacts == 'true') {
+      dependsOn downloadReleaseArtifacts
+  } else {
+      dependsOn assemble
+  }
   destFile = project.file('build/docker/Dockerfile')
   from 'tomcat:8.5-jre8'
   maintainer 'UAA team "$MAINTAINER_EMAIL"'
@@ -70,9 +99,13 @@ task deleteDockerfile() {
 
 task copyContainerFiles(type: Copy) {
   dependsOn createDockerfile
-  from 'uaa/build/libs'
-  from 'uaa/build/resources/main/tomcat-server.xml'
-  from 'uaa/build/resources/main/uaa-docker.yml'
+  if (use_release_artifacts == 'true') {
+    from 'uaa/src/main/resources/uaa-docker.yml'
+  } else {
+    from 'uaa/build/libs'
+    from 'uaa/build/resources/main/tomcat-server.xml'
+    from 'uaa/build/resources/main/uaa-docker.yml'
+  }
   into 'build/docker'
 }
 

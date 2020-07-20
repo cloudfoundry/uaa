@@ -26,6 +26,7 @@ buildscript {
         classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
+        classpath 'de.undercouch:gradle-download-task:4.1.1'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
         classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
@@ -75,6 +76,10 @@ allprojects {
         }
         maven {
             url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
+            content {
+                excludeGroup "javax.validation"
+                excludeGroup "ca.juliusdavies"
+            }
         }
         maven { url 'https://repository.mulesoft.org/releases/' }
     }
