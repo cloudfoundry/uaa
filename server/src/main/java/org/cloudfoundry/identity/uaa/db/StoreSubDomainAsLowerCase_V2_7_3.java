@@ -42,6 +42,11 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
 
     @Override
     public synchronized void migrate(JdbcTemplate jdbcTemplate) {
+        try {
+            Thread.sleep(30000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         RandomValueStringGenerator generator = new RandomValueStringGenerator(3);
         Map<String, List<IdentityZone>> zones = new HashMap<>();
         Set<String> duplicates = new HashSet<>();

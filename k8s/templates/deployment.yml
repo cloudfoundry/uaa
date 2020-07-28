@@ -109,6 +109,66 @@ spec:
           readOnly: true
         - name: truststore-file
           mountPath: #@ truststore_dir
+      - name: uaa-canary
+        image: "vmhausler/tim-uaa"
+        command:
+        - 'bash'
+        - '-c'
+        - |
+          /cnb/lifecycle/launcher &> echofile & UAA_PID=$!
+
+          HEALTH_RESPONSE=$(curl -ksS --max-time 5 --connect-timeout 2 http://localhost:8080/healthz)
+
+          while true ; do
+          if true ; then
+            kill $UAA_PID
+            echo $HEALTH_RESPONSE
+            echo "there is a time for all things" &1>2
+            echo $(date) &1>2
+            sleep 1000
+            exit 0
+          else
+            sleep 5
+            echo "what do we say to death?" &1>2
+            echo $(date) &1>2
+            HEALTH_RESPONSE=$(curl -ksS --max-time 5 --connect-timeout 2 http://127.0.0.1:8080/healthz)
+          fi
+          done
+        ports:
+        - name: http-uaa
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: SECRETS_DIR
+          value: #@ secrets_dir
+        - name: JAVA_HOME
+          value: /layers/paketo-buildpacks_bellsoft-liberica/jre
+        - name: BPL_TOMCAT_ACCESS_LOGGING
+          value: #@ data.values.tomcat.accessLoggingEnabled
+        - name: JAVA_OPTS
+          value: #@ java_opts(data.values.database.scheme)
+        volumeMounts:
+        - name: uaa-config
+          mountPath: #@ config_dir
+        - name: smtp-credentials-file
+          mountPath: #@ "{}/smtp_credentials.yml".format(secrets_dir)
+          subPath: smtp_credentials.yml
+          readOnly: true
+        - name: database-credentials-file
+          mountPath: #@ "{}/database_credentials.yml".format(secrets_dir)
+          subPath: database_credentials.yml
+          readOnly: true
+        - name: admin-client-credentials-file
+          mountPath: #@ "{}/admin_client_credentials.yml".format(secrets_dir)
+          subPath: admin_client_credentials.yml
+          readOnly: true
+        - name: jwt-policy-signing-keys-file
+          mountPath: #@ "{}/jwt_policy_signing_keys.yml".format(secrets_dir)
+          subPath: jwt_policy_signing_keys.yml
+          readOnly: true
+        - name: truststore-file
+          mountPath: #@ truststore_dir
+          readOnly: true
       containers:
       - name: uaa
         image: #@ data.values.image
