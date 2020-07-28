@@ -22,7 +22,7 @@ def signing_keys(jwt_policy):
   end
 
   if not found_active_key:
-    assert.fail("jwt.policy.keys must contain keyId matching jwt.policy.signingKey")
+    assert.fail("jwt.policy.keys must contain keyId matching jwt.policy.activeKeyId")
   end
 
   return {

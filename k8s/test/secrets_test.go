@@ -237,7 +237,7 @@ var _ = Describe("Secrets", func() {
 			renderingContext := NewRenderingContext(templates...)
 
 			Expect(renderingContext).To(
-				ThrowError("fail: jwt.policy.keys must contain keyId matching jwt.policy.signingKey"),
+				ThrowError("fail: jwt.policy.keys must contain keyId matching jwt.policy.activeKeyId"),
 			)
 		})
 
