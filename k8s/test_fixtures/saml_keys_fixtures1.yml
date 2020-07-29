@@ -2,10 +2,10 @@
 #@ load("@ytt:overlay", "overlay")
 ---
 login:
+  #@overlay/replace
   saml:
     activeKeyId: key1
     keys:
-      #@overlay/match missing_ok=True
       key1:
         key: private-key-here
         passphrase: passphrase-was-here

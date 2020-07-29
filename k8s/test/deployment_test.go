@@ -46,7 +46,7 @@ var _ = Describe("Deployment", func() {
 	})
 
 	samlKeysVolumeMountMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
-		"Name":	Equal("saml-keys-file"),
+		"Name":      Equal("saml-keys-file"),
 		"MountPath": Equal("/etc/secrets/saml_keys.yml"),
 		"SubPath":   Equal("saml_keys.yml"),
 		"ReadOnly":  Equal(true),

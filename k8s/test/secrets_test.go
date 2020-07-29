@@ -313,7 +313,6 @@ cert`
 				pathToFile(filepath.Join("secrets", "saml_keys.yml")),
 				pathToFile(filepath.Join("secrets", "saml_keys.star")),
 				pathToFile(filepath.Join("..", "test_fixtures", "saml_keys_fixtures1.yml")),
-
 			}
 
 			renderingContext := NewRenderingContext(templates...)
@@ -331,7 +330,7 @@ cert`
 			Expect(renderingContext).To(
 				ProduceYAML(RepresentingASecret().
 					WithName("uaa-saml-keys").
-					WithStringData("uaa_saml_keys.yml", samlKeys)))
+					WithStringData("saml_keys.yml", samlKeys)))
 		})
 
 		It("Renders into secret with different values", func() {
@@ -357,15 +356,30 @@ cert`
 			Expect(renderingContext).To(
 				ProduceYAML(RepresentingASecret().
 					WithName("uaa-saml-keys").
-					WithStringData("uaa_saml_keys.yml", samlKeys)),
+					WithStringData("saml_keys.yml", samlKeys)),
 			)
 		})
 
-		It("Requires an activeKeyId", func() {
+		It("Requires an activeKeyId entry", func() {
 			templates = []string{
 				pathToFile(filepath.Join("values", "_values.yml")),
 				pathToFile(filepath.Join("secrets", "saml_keys.yml")),
 				pathToFile(filepath.Join("secrets", "saml_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "saml_keys_fixtures_missing_active_key_id_entry.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(
+				ThrowError("fail: login.saml.activeKeyId is required"))
+		})
+
+		It("Requires a value for activeKeyId", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "saml_keys.yml")),
+				pathToFile(filepath.Join("secrets", "saml_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "saml_keys_fixtures_no_key_set_as_active_key_id.yml")),
 			}
 
 			renderingContext := NewRenderingContext(templates...)

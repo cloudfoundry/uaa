@@ -1,7 +1,7 @@
 load("@ytt:assert", "assert")
 
 def saml_keys(login):
-    if not login or not login.saml or not login.saml.activeKeyId:
+    if not login or not login.saml or not hasattr(login.saml, "activeKeyId") or not login.saml.activeKeyId:
         assert.fail("login.saml.activeKeyId is required")
     end
 

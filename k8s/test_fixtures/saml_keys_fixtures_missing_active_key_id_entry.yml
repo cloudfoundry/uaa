@@ -1,0 +1,11 @@
+#@data/values
+#@ load("@ytt:overlay", "overlay")
+---
+login:
+  #@overlay/replace
+  saml:
+    keys:
+      notherekey:
+        key: noone
+        passphrase: references
+        certificate: us
