@@ -147,6 +147,10 @@ spec:
         - name: truststore-file
           mountPath: #@ truststore_dir
           readOnly: true
+        - name: saml-keys-file
+          mountPath: #@ "{}/saml_keys.yml".format(secrets_dir)
+          subPath: saml_keys.yml
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /healthz
@@ -190,3 +194,7 @@ spec:
           secretName: uaa-ca-certs
       - name: truststore-file
         emptyDir: {}
+      - name: saml-keys-file
+        secret:
+          optional: false
+          secretName: uaa-saml-keys

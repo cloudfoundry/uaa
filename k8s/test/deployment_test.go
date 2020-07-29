@@ -45,6 +45,13 @@ var _ = Describe("Deployment", func() {
 		"ReadOnly":  Equal(true),
 	})
 
+	samlKeysVolumeMountMatcher := gstruct.MatchFields(gstruct.IgnoreExtras, gstruct.Fields{
+		"Name":	Equal("saml-keys-file"),
+		"MountPath": Equal("/etc/secrets/saml_keys.yml"),
+		"SubPath":   Equal("saml_keys.yml"),
+		"ReadOnly":  Equal(true),
+	})
+
 	BeforeEach(func() {
 		templates = []string{
 			pathToFile("deployment.yml"),
@@ -143,6 +150,7 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("admin-client-credentials-file", adminCredentialsVolumeMountMatcher)
 						container.WithVolumeMount("jwt-policy-signing-keys-file", jwtTokensVolumeMountMatcher)
 						container.WithVolumeMount("truststore-file", truststoreVolumeMountMatcher)
+						container.WithVolumeMount("saml-keys-file", samlKeysVolumeMountMatcher)
 						container.WithResourceRequests("512Mi", "500m")
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
@@ -151,6 +159,7 @@ var _ = Describe("Deployment", func() {
 					pod.WithVolume("admin-client-credentials-file", Not(BeNil()))
 					pod.WithVolume("jwt-policy-signing-keys-file", Not(BeNil()))
 					pod.WithVolume("truststore-file", Not(BeNil()))
+					pod.WithVolume("saml-keys-file", Not(BeNil()))
 				}),
 			),
 		)

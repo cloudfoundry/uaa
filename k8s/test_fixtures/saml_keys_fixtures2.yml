@@ -1,0 +1,12 @@
+#@data/values
+#@ load("@ytt:overlay", "overlay")
+---
+login:
+  saml:
+    activeKeyId: keyWest
+    keys:
+      #@overlay/match missing_ok=True
+      keyWest:
+        key: different-private-key-here
+        passphrase: different-passphrase-was-here
+        certificate: different-certificate-goes-here
