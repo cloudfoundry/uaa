@@ -226,7 +226,7 @@ var _ = Describe("Secrets", func() {
 			)
 		})
 
-		It("activeKeyId must be found in the list of keys", func() {
+		It("activeKeyId must be present in keys", func() {
 			templates = []string{
 				pathToFile(filepath.Join("values", "_values.yml")),
 				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
@@ -241,7 +241,7 @@ var _ = Describe("Secrets", func() {
 			)
 		})
 
-		It("keys must be a list", func() {
+		It("keys must be an object", func() {
 			templates = []string{
 				pathToFile(filepath.Join("values", "_values.yml")),
 				pathToFile(filepath.Join("secrets", "jwt_policy_signing_keys.yml")),
@@ -254,7 +254,7 @@ var _ = Describe("Secrets", func() {
 			})
 
 			Expect(renderingContext).To(
-				ThrowError("fail: jwt.policy.keys must be a list"),
+				ThrowError("fail: jwt.policy.keys must be an object"),
 			)
 		})
 	})

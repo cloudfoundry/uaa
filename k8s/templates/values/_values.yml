@@ -32,7 +32,7 @@ database:
 jwt:
   policy:
     activeKeyId: ~
-    keys: []
+    keys: {}
 
 login:
   saml:

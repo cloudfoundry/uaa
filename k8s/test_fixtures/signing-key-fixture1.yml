@@ -2,9 +2,9 @@
 #@ load("@ytt:overlay", "overlay")
 ---
 jwt:
+  #@overlay/replace
   policy:
     activeKeyId: my_active_key_id
     keys:
-      #@overlay/match by="keyId",missing_ok=True
-      - keyId: my_active_key_id
+      my_active_key_id:
         signingKey: aaa

@@ -5,28 +5,13 @@ def signing_keys(jwt_policy):
     assert.fail("jwt.policy.activeKeyId is required")
   end
 
-  found_active_key = False
-
-  if type(jwt_policy.keys) != "list":
-    assert.fail("jwt.policy.keys must be a list")
+  if type(jwt_policy.keys) != "struct":
+    assert.fail("jwt.policy.keys must be an object")
   end
 
-  keys = {}
-  for k in jwt_policy.keys:
-    keys[k.keyId] = {
-      "signingKey": k.signingKey
-    }
-    if k.keyId == jwt_policy.activeKeyId:
-      found_active_key = True
-    end
-  end
-
-  if not found_active_key:
+  if not hasattr(jwt_policy.keys, jwt_policy.activeKeyId):
     assert.fail("jwt.policy.keys must contain keyId matching jwt.policy.activeKeyId")
   end
 
-  return {
-    "activeKeyId": jwt_policy.activeKeyId,
-    "keys": keys,
-  }
+  return jwt_policy
 end
