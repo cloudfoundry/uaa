@@ -74,13 +74,8 @@ allprojects {
             }
             url 'https://artifactory.build.ge.com/predix-virtual'
         }
-        maven {
-            url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
-            content {
-                excludeGroup "javax.validation"
-                excludeGroup "ca.juliusdavies"
-            }
-        }
+        maven { url 'https://artifacts.alfresco.com/nexus/content/repositories/public/' }
+        maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
         maven { url 'https://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
