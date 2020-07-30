@@ -403,7 +403,7 @@ cert`
 			)
 		})
 
-		It("keys must be a list", func() {
+		It("keys must be an object", func() {
 			templates = []string{
 				pathToFile(filepath.Join("values", "_values.yml")),
 				pathToFile(filepath.Join("secrets", "saml_keys.yml")),
