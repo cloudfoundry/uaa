@@ -1,14 +1,8 @@
-plugins {
-    id "org.flywaydb.flyway" version "5.2.4"
-}
+apply plugin: 'java'
+apply plugin: 'com.github.johnrengelman.shadow'
 
-flywayMigrate.dependsOn classes
 
 description = "CloudFoundry Identity Server JAR"
-
-configurations {
-    flywayMigration
-}
 
 dependencies {
 
@@ -98,8 +92,6 @@ dependencies {
     testCompile libraries.tomcatJdbc
 
     testCompile libraries.jsonPathAssert
-
-    flywayMigration libraries.springContext
 }
 
 configurations.all {
@@ -131,25 +123,25 @@ artifacts {
 }
 
 task migrationJar(type: Jar) {
-    manifest.attributes("Main-Class": "org.cloudfoundry.identity.uaa.db.CrazyMain")
-    manifest.attributes("Class-Path": "spring-context-5.2.6.RELEASE.jar spring-beans-5.2.6.RELEASE.jar spring-core-5.2.6.RELEASE.jar commons-logging-1.2.jar spring-tx-3.1.1.RELEASE.jar spring-aop-3.2.3.RELEASE.jar aopalliance-1.0.jar spring-expression-5.2.6.RELEASE.jar flyway-core-5.2.4.jar slf4j-api-1.7.30.jar tomcat-jdbc-9.0.33.jar juli-6.0.26.jar spring-jdbc-5.2.7.RELEASE.jar")
-    archiveBaseName = "flyway-migrations"
-    from(sourceSets.main.output)
-    from {
-        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
-    }
-    include "org/cloudfoundry/identity/uaa/db/**/*"
-    include "spring/env.xml"
-    include "spring/data-source.xml"
-    include "spring/jdbc-test-base-add-flyway.xml"
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/*.MF'
 
-    include "org/cloudfoundry/identity/uaa/impl/config/EnvironmentPropertiesFactoryBean.class"
-    include "org/cloudfoundry/identity/uaa/impl/config/EnvironmentMapFactoryBean.class"
-    include "org/cloudfoundry/identity/uaa/resources/jdbc/HsqlDbLimitSqlAdapter.class"
-    include "org/cloudfoundry/identity/uaa/resources/jdbc/LimitSqlAdapter.class"
-    include "org/cloudfoundry/identity/uaa/resources/jdbc/JdbcPagingListFactory.class"
+    manifest {
+        attributes 'Main-Class': "org.cloudfoundry.identity.uaa.db.CrazyMain",
+                'Class-Path': configurations.runtime.files.collect { "lib/$it.name" }.join(' ')
+    }
+    archiveBaseName = "flyway-migrations"
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
 }
 
 artifacts {
     archives migrationJar
+}
+
+shadowJar {
+    baseName("shadow-jar")
+    manifest {
+        inheritFrom project.tasks.migrationJar.manifest
+    }
+    mergeServiceFiles('META-INF/spring.*')
 }

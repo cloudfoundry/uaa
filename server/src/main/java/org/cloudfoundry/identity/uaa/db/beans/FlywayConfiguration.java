@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.db.beans;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import javax.sql.DataSource;
 import org.cloudfoundry.identity.uaa.db.DataSourceAccessor;
 import org.cloudfoundry.identity.uaa.db.FixFailedBackportMigrations_4_0_4;
@@ -35,6 +38,7 @@ public class FlywayConfiguration {
       DataSource dataSource,
       DataSourceAccessor dataSourceAccessor,
       @Qualifier("platform") String platform) {
+
     Flyway flyway = Flyway.configure()
         .baselineOnMigrate(true)
         .dataSource(dataSource)
@@ -43,6 +47,14 @@ public class FlywayConfiguration {
         .validateOnMigrate(false)
         .table(VERSION_TABLE)
         .load();
+    System.out.println(Arrays.toString(flyway.getConfiguration().getLocations()));
+    try {
+      Files.list(
+          Paths.get("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/"))
+          .forEach(x -> System.out.println(x.toString()));
+    } catch(Exception e) {
+      System.out.println(e.toString());
+    }
     return flyway;
   }
 
@@ -62,8 +74,18 @@ public class FlywayConfiguration {
 
     @Bean
     public Flyway flyway(Flyway baseFlyway) {
+      System.out.println(Arrays.toString(baseFlyway.getConfiguration().getLocations()));
+      try {
+        Files.list(
+            Paths.get("classpath:org/cloudfoundry/identity/uaa/db/" + "mysql" + "/"))
+            .forEach(x -> System.out.println(x.toString()));
+      } catch(Exception e) {
+        System.out.println(e.toString());
+      }
+      System.out.println("Migrations will be fun!");
       baseFlyway.repair();
       baseFlyway.migrate();
+      System.out.println("Migrations have been fun!");
       return baseFlyway;
     }
   }

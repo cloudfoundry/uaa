@@ -10,6 +10,7 @@ public class V4_9_2__AddPrimaryKeysIfMissing implements SpringJdbcMigration {
 
     @Override
     public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+        System.out.println("" + this.getClass().getName());
         String[] tables = {"group_membership", "external_group_mapping", "oauth_code", "sec_audit"};
         for (String table : tables) {
             int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), table);
