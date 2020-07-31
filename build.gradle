@@ -19,6 +19,8 @@ buildscript {
         classpath libraries.asciidoctorGradlePlugin
         classpath libraries.springDependencyMgmtPlugin
         classpath libraries.springBootGradlePlugin
+
+        classpath 'com.github.jengelman.gradle.plugins:shadow:6.0.0'
     }
 }
 
