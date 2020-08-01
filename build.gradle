@@ -73,17 +73,21 @@ allprojects {
                 password geArtifactoryReaderPassword
             }
             url 'https://artifactory.build.ge.com/predix-virtual'
-        }
-        // Repositories required to download jwt-bearer-key-provider
-        maven {
-            credentials {
-                username geArtifactoryReader
-                password geArtifactoryReaderPassword
+            content {
+                // There is a discrepancy in javax/validation/validation-api/maven-metadata.xml
+                // for latest version of validation-api
+                // between maven repo (2.0.1.Final) and predix-virtual (2.0.2-SNAPSHOT).
+                // Prefer version from maven repo.
+                excludeGroup "javax.validation"
             }
-            url 'https://artifactory.build.ge.com/artifactory/MAAXA'
         }
+        // shibboleth.net is not reachable from the Jenkins nodes due to GE selling "3.0.0.0/8 address space" to Amazon.
+        // Now, within GE, when Propel sends the wget command to the 3.213.250.186 address that shibboleth has,
+        // it never makes it out of the GE network because it thinks 3.x.x.x is within GE network.
+        // See https://docs.gecloudpod.com/misc/3pocalypse
+        // As of August 2020, relevant dependencies were uploaded to GE artifactory and should be available in predix-virtual
+        // maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
         maven { url 'https://artifacts.alfresco.com/nexus/content/repositories/public/' }
-        maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
         maven { url 'https://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
