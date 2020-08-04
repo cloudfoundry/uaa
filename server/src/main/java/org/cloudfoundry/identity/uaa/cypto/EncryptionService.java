@@ -12,13 +12,11 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 public class EncryptionService {
-    private Logger logger = LoggerFactory.getLogger(EncryptionService.class);
-    private String passphrase;
+    private final Logger logger = LoggerFactory.getLogger(EncryptionService.class);
 
     private final int GCM_AUTHENTICATION_TAG_SIZE_BITS = 128;
     private final int GCM_IV_NONCE_SIZE_BYTES = 12;
@@ -27,18 +25,13 @@ public class EncryptionService {
     private final int AES_KEY_LENGTH_BITS = 256;
     private final String CIPHER = "AES";
     private final String CIPHERSCHEME = "AES/GCM/NoPadding";
-    private SecureRandom random = new SecureRandom();
+    private final SecureRandom random = new SecureRandom();
 
-
-    public EncryptionService(String passphrase) {
-        this.passphrase = passphrase;
-    }
-
-    public byte[] encrypt(String plaintext) throws EncryptionServiceException {
+    public byte[] encrypt(String plaintext, String passphrase) throws EncryptionServiceException {
         try {
             byte[] newSalt = generateRandomArray(PBKDF2_SALT_SIZE_BYTES);
 
-            SecretKey key = new SecretKeySpec(generateKey(newSalt), CIPHER);
+            SecretKey key = new SecretKeySpec(generateKey(newSalt, passphrase), CIPHER);
 
             Cipher myCipher = Cipher.getInstance(CIPHERSCHEME);
             byte[] newNonce = generateRandomArray(GCM_IV_NONCE_SIZE_BYTES);
@@ -55,7 +48,7 @@ public class EncryptionService {
         }
     }
 
-    public byte[] decrypt(byte[] encrypt) throws EncryptionServiceException {
+    public byte[] decrypt(byte[] encrypt, String passphrase) throws EncryptionServiceException {
         try {
             byte[] myNonce = new byte[GCM_IV_NONCE_SIZE_BYTES];
             byte[] mySalt = new byte[PBKDF2_SALT_SIZE_BYTES];
@@ -64,7 +57,7 @@ public class EncryptionService {
             fileInputStream.read(myNonce);
             fileInputStream.read(mySalt);
 
-            SecretKey key = new SecretKeySpec(generateKey(mySalt), CIPHER);
+            SecretKey key = new SecretKeySpec(generateKey(mySalt, passphrase), CIPHER);
 
             Cipher myCipher = Cipher.getInstance(CIPHERSCHEME);
             GCMParameterSpec spec = new GCMParameterSpec(GCM_AUTHENTICATION_TAG_SIZE_BITS, myNonce);
@@ -83,10 +76,11 @@ public class EncryptionService {
         return randomArray;
     }
 
-    private byte[] generateKey(byte[] salt) {
+    private byte[] generateKey(byte[] salt, String passphrase) {
         PKCS5S2ParametersGenerator gen = new PKCS5S2ParametersGenerator(new SHA256Digest());
 
-        gen.init(this.passphrase.getBytes(StandardCharsets.UTF_8), salt, PBKDF2_ITERATIONS);
+        gen.init(passphrase.getBytes(StandardCharsets.UTF_8), salt, PBKDF2_ITERATIONS);
         return ((KeyParameter) gen.generateDerivedParameters(AES_KEY_LENGTH_BITS)).getKey();
     }
+
 }

@@ -13,6 +13,8 @@ import static org.hamcrest.Matchers.not;
 
 public class EncryptionServiceTest {
     private EncryptionService service;
+    private String passphrase;
+
     @BeforeClass
     public static void key() {
         Security.setProperty("crypto.policy", "unlimited");
@@ -20,28 +22,29 @@ public class EncryptionServiceTest {
 
     @Before
     public void setup() {
-        service = new EncryptionService("some-password");
+        passphrase = "some-password";
+        service = new EncryptionService();
     }
 
     @Test
     public void encrypt_shouldEncrypt() throws EncryptionServiceException {
-        byte[] ciphertext = service.encrypt("bob");
+        byte[] ciphertext = service.encrypt("bob", passphrase);
         assertThat(ciphertext, is(notNullValue()));
-        byte[] decrypt = service.decrypt(ciphertext);
+        byte[] decrypt = service.decrypt(ciphertext, passphrase);
         assertThat(new String(decrypt), is("bob"));
     }
 
     @Test
     public void encrypt_shouldReturnDifferentCiphertextEachTime() throws EncryptionServiceException {
-        byte[] ciphertext1 = service.encrypt("bob");
-        byte[] ciphertext2 = service.encrypt("bob");
+        byte[] ciphertext1 = service.encrypt("bob", passphrase);
+        byte[] ciphertext2 = service.encrypt("bob", passphrase);
         assertThat(ciphertext1, not(ciphertext2));
     }
 
     @Test(expected = EncryptionServiceException.class)
     public void decrypt_shouldNotDecryptWithInvalidPassphrase() throws EncryptionServiceException {
-        byte[] ciphertext = service.encrypt("bob");
+        byte[] ciphertext = service.encrypt("bob", passphrase);
         assertThat(ciphertext, is(notNullValue()));
-        new EncryptionService("invalid-password").decrypt(ciphertext);
+        new EncryptionService().decrypt(ciphertext, "invalid-password");
     }
 }

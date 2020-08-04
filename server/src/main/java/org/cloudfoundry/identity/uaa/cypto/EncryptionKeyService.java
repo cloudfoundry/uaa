@@ -35,13 +35,16 @@ public class EncryptionKeyService {
             );
         }
 
-        List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream().filter(encryptionKey -> Strings.isEmpty(encryptionKey.getPassphrase())).collect(Collectors.toList());
+        List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream()
+                .filter(encryptionKey -> Strings.isEmpty(encryptionKey.getPassphrase()))
+                .collect(Collectors.toList());
         if (!keysWithoutPassphrase.isEmpty()) {
-            throw new NoActiveEncryptionKeyProvided(
-              String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined",
-                      keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
-              )
-            );
+            String labels = keysWithoutPassphrase.stream()
+                    .map(EncryptionKey::getLabel)
+                    .map(label -> "label=" + label)
+                    .collect(Collectors.joining(", "));
+            String message = String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined", labels);
+            throw new NoActiveEncryptionKeyProvided(message);
         }
 
         List<EncryptionKey> invalidLengthKeys = encryptionKeys.stream().filter(encryptionKey -> encryptionKey.getPassphrase().length() < 8).collect(Collectors.toList());
@@ -76,7 +79,7 @@ public class EncryptionKeyService {
             .findFirst()
             .orElseGet(() -> {
                 throw new NoActiveEncryptionKeyProvided(
-                  String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", activeKeyLabel)
+                  String.format("you are currently trying to make an active key; UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", activeKeyLabel)
                 );
             });
     }
@@ -108,16 +111,16 @@ public class EncryptionKeyService {
 
         public byte[] encrypt(String plaintext) throws EncryptionServiceException {
             if (encryptionService == null) {
-                encryptionService = new EncryptionService(getPassphrase());
+                encryptionService = new EncryptionService();
             }
-            return encryptionService.encrypt(plaintext);
+            return encryptionService.encrypt(plaintext, getPassphrase());
         }
 
         public byte[] decrypt(byte[] encrypt) throws EncryptionServiceException {
             if (encryptionService == null) {
-                encryptionService = new EncryptionService(getPassphrase());
+                encryptionService = new EncryptionService();
             }
-            return encryptionService.decrypt(encrypt);
+            return encryptionService.decrypt(encrypt, getPassphrase());
         }
     }
 }
