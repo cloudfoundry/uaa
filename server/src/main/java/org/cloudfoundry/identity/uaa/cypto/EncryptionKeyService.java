@@ -12,12 +12,23 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class EncryptionKeyService {
-    private final EncryptionKey activeKey;
-    private final List<EncryptionKey> encryptionKeys;
+    private EncryptionKey activeKey;
+    private String activeKeyLabel;
+    private List<EncryptionKey> encryptionKeys;
 
     public EncryptionKeyService(
-            final @Value("${encryption.active_key_label}") String activeKeyLabel,
-            final @Value("#{@config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
+            final @Value("${encryption.active_key_label:'fooKey'}") String activeKeyLabel,
+            final @Value("#{@config['encryption']==null ? Collections.emptyList() : @config['encryption']['encryption_keys']==null ? Collections.emptyList() :  @config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
+        this.activeKeyLabel = activeKeyLabel;
+        this.encryptionKeys = encryptionKeys;
+
+        if(!Strings.isEmpty(activeKeyLabel) && !encryptionKeys.isEmpty()) {
+            validateKeys();
+        }
+    }
+
+    private void validateKeys() {
+
         if (Strings.isEmpty(activeKeyLabel)) {
             throw new NoActiveEncryptionKeyProvided(
               "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
@@ -59,7 +70,6 @@ public class EncryptionKeyService {
             );
         }
 
-        this.encryptionKeys = encryptionKeys;
         activeKey =
           encryptionKeys.stream()
             .filter(v -> v.getLabel().equals(activeKeyLabel))
@@ -72,6 +82,7 @@ public class EncryptionKeyService {
     }
 
     public EncryptionKey getActiveKey() {
+        this.validateKeys();
         return this.activeKey;
     }
 

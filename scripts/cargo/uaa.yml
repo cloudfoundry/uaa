@@ -1,13 +1,15 @@
 issuer:
   uri: http://localhost:8080/uaa
 
-encryption:
-  active_key_label: CHANGE-THIS-KEY
-  encryption_keys:
-  - label: CHANGE-THIS-KEY
-    passphrase: CHANGEME
+#encryption:
+#  active_key_label: CHANGE-THIS-KEY
+#  encryption_keys:
+#  - label: CHANGE-THIS-KEY
+#    passphrase: CHANGEME
 
 login:
+  mfa:
+    enabled: false
   serviceProviderKey: |
     -----BEGIN RSA PRIVATE KEY-----
     MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5

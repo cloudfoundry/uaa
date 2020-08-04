@@ -5,14 +5,17 @@ import com.google.common.collect.Lists;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.rules.ExpectedException;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 public class EncryptionKeyServiceTest {
@@ -34,6 +37,26 @@ public class EncryptionKeyServiceTest {
 
         encryptionKeyService = new EncryptionKeyService("active-key", encryptionKeys);
     }
+
+
+        @Test
+        public void emptyEncryptionKeys() {
+            var activeKey = "";
+            var encryptionKeys = Collections.<EncryptionKeyService.EncryptionKey>emptyList();
+            var encryptionKeyService = new EncryptionKeyService(activeKey, encryptionKeys);
+
+            Exception thrown = null;
+            try {
+                encryptionKeyService.getActiveKey();
+            } catch(Exception e) {
+                thrown = e;
+            }
+
+            assertThat(thrown, is(not(nullValue())));
+            assertThat(thrown, is(instanceOf(NoActiveEncryptionKeyProvided.class)));
+            assertThat(thrown.getMessage(), containsString("UAA cannot be started without encryption key value uaa.encryption.active_key_label"));
+        }
+
 
     @Test
     public void shouldFetchValidEncryptionActiveKeyPassphrase() throws EncryptionServiceException {
