@@ -109,6 +109,15 @@ spec:
           readOnly: true
         - name: truststore-file
           mountPath: #@ truststore_dir
+      - name: uaa-flyway-migrations
+        image: swaggoner/uaa_flyway_migrations
+        env:
+          - name: database_url
+            value: #@ data.values.database.url
+          - name: database_username
+            value: #@ data.values.database.username
+          - name: database_password
+            value: #@ data.values.database.password
       containers:
       - name: uaa
         image: #@ data.values.image
