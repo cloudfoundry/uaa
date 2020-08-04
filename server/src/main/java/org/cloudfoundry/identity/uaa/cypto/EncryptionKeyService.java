@@ -17,8 +17,8 @@ public class EncryptionKeyService {
     private List<EncryptionKey> encryptionKeys;
 
     public EncryptionKeyService(
-            final @Value("${encryption.active_key_label:'fooKey'}") String activeKeyLabel,
-            final @Value("#{@config['encryption']==null ? Collections.emptyList() : @config['encryption']['encryption_keys']==null ? Collections.emptyList() :  @config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
+            final @Value("${encryption.active_key_label:''}") String activeKeyLabel,
+            final @Value("#{@config['encryption']==null ? T(java.util.Collections).emptyList() : @config['encryption']['encryption_keys']==null ? T(java.util.Collections).emptyList() :  @config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
         this.activeKeyLabel = activeKeyLabel;
         this.encryptionKeys = encryptionKeys;
 
