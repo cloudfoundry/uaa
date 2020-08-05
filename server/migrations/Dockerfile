@@ -46,10 +46,11 @@ RUN echo "#!/usr/bin/env bash"                                                  
     && echo "set -eu -o pipefail"                                               >> "${DB_SCRIPT}" \
     && echo "java \\"                                                           >> "${DB_SCRIPT}" \
     && echo "-Dspring.profiles.active=${DB_SCHEMA} \\"                          >> "${DB_SCRIPT}" \
-    && echo "-Ddatabase.username==${DB_USERNAME} \\"                            >> "${DB_SCRIPT}" \
-    && echo "-Ddatabase.password==${DB_PASSWORD} \\"                            >> "${DB_SCRIPT}" \
+    && echo "-Ddatabase.username=${DB_USERNAME} \\"                            >> "${DB_SCRIPT}" \
+    && echo "-Ddatabase.password=${DB_PASSWORD} \\"                            >> "${DB_SCRIPT}" \
     && echo "-Ddatabase.url='jdbc:${DB_SCHEMA}://${DB_HOST}:${DB_PORT}/uaa' \\" >> "${DB_SCRIPT}" \
     && echo "-jar UAA-FlywayMigrationRunner-0.0.0-all.jar"                      >> "${DB_SCRIPT}" \
     && chmod 755 "${DB_SCRIPT}"
 
 CMD ${DB_SCRIPT}
+
