@@ -41,8 +41,8 @@ COPY UAA-FlywayMigrationRunner-0.0.0-all.jar UAA-FlywayMigrationRunner-0.0.0-all
 #ENV DB_PASSWORD=""
 #ENV DB_PORT="5432"
 
-RUN export DB_SCRIPT="/migrate.sh" \
-    && echo "#!/usr/bin/env bash"                                               >> "${DB_SCRIPT}" \
+ENV DB_SCRIPT="/migrate.sh"
+RUN echo "#!/usr/bin/env bash"                                                  >> "${DB_SCRIPT}" \
     && echo "set -eu -o pipefail"                                               >> "${DB_SCRIPT}" \
     && echo "java \\"                                                           >> "${DB_SCRIPT}" \
     && echo "-Dspring.profiles.active=${DB_SCHEMA} \\"                          >> "${DB_SCRIPT}" \
