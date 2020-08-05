@@ -27,9 +27,29 @@ RUN JAVA_MAJOR_VERSION="11" \
 COPY UAA-FlywayMigrationRunner-0.0.0-all.jar UAA-FlywayMigrationRunner-0.0.0-all.jar
 # is this better b/c it doesn't know about concourse? RUN install git fetch repo get gradle and build jar
 
+# MySQL
+#ENV DB_SCHEMA="mysql"
+#ENV DB_HOST=""
+#ENV DB_USERNAME=""
+#ENV DB_PASSWORD=""
+#ENV DB_PORT="3306"
 
-#RUN apt-get install mysql-client -y
+# Postgres
+#ENV DB_SCHEMA="postgres"
+#ENV DB_HOST=""
+#ENV DB_USERNAME=""
+#ENV DB_PASSWORD=""
+#ENV DB_PORT="5432"
 
-#ENTRYPOINT java -Dspring.profiles.active=mysql -Ddatabase.username=barnam  -Ddatabase.url='jdbc:mysql://host.docker.internal:3306/uaa?' -jar UAA-FlywayMigrationRunner-0.0.0-all.jar
+RUN export DB_SCRIPT="/migrate.sh" \
+    && echo "#!/usr/bin/env bash"                                               >> "${DB_SCRIPT}" \
+    && echo "set -eu -o pipefail"                                               >> "${DB_SCRIPT}" \
+    && echo "java \\"                                                           >> "${DB_SCRIPT}" \
+    && echo "-Dspring.profiles.active=${DB_SCHEMA} \\"                          >> "${DB_SCRIPT}" \
+    && echo "-Ddatabase.username==${DB_USERNAME} \\"                            >> "${DB_SCRIPT}" \
+    && echo "-Ddatabase.password==${DB_PASSWORD} \\"                            >> "${DB_SCRIPT}" \
+    && echo "-Ddatabase.url='jdbc:${DB_SCHEMA}://${DB_HOST}:${DB_PORT}/uaa' \\" >> "${DB_SCRIPT}" \
+    && echo "-jar UAA-FlywayMigrationRunner-0.0.0-all.jar"                      >> "${DB_SCRIPT}" \
+    && chmod 755 "${DB_SCRIPT}"
 
-CMD java -Dspring.profiles.active=mysql -Ddatabase.username=root -Ddatabase.url='jdbc:mysql://host.docker.internal:3306/uaa?' -jar UAA-FlywayMigrationRunner-0.0.0-all.jar
+CMD ${DB_SCRIPT}
