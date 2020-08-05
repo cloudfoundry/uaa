@@ -9,17 +9,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=true
 
 # JAVA
-ENV JAVA_HOME /usr/lib/jvm/java-11-bellsoft-amd64
+ENV JAVA_HOME /usr/lib/jvm/java-bellsoft-amd64
 ENV PATH "${JAVA_HOME}/bin:${PATH}"
-RUN export JAVA_MAJOR_VERSION="11" \
-  && JDK_METADATA=$(curl "https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&os=linux&release-type=lts&bitness=64&package-type=tar.gz&bundle-type=jdk&arch=x86") \
-  && JDK_VERSION=$(echo $JDK_METADATA | jq -r ".[] | select(.featureVersion | contains($JAVA_MAJOR_VERSION)).version") \
-  && DOWNLOAD_URL=$(echo $JDK_METADATA | jq -r ".[] | select(.featureVersion | contains($JAVA_MAJOR_VERSION)).downloadUrl") \
-  && FILENAME="bellsoft-${JDK_VERSION}.tar.gz" \
-  && curl -L -o "${FILENAME}" "${DOWNLOAD_URL}" \
-    && mkdir -p ${JAVA_HOME} \
-  && tar -xf ${FILENAME} -C ${JAVA_HOME} --strip-components=1 \
-  && "${JAVA_HOME}"/bin/java -version
+RUN JAVA_MAJOR_VERSION="11" \
+    && JDK_METADATA="jdk-metadata.json" \
+    && curl -sLo "${JDK_METADATA}" "https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&os=linux&release-type=lts&bitness=64&package-type=tar.gz&bundle-type=jdk&arch=x86" \
+    && JDK_VERSION="$(jq -r ".[] | select(.featureVersion | contains("${JAVA_MAJOR_VERSION}")).version" "${JDK_METADATA}")" \
+    && JDK_ARCHIVE_URL="$(jq -r ".[] | select(.featureVersion | contains("${JAVA_MAJOR_VERSION}")).downloadUrl" "${JDK_METADATA}")" \
+    && JDK_ARCHIVE="$(basename "${JDK_ARCHIVE_URL}")" \
+    && curl -sLo "${JDK_ARCHIVE}" "${JDK_ARCHIVE_URL}" \
+    && mkdir -p "${JAVA_HOME}" \
+    && tar -xf "${JDK_ARCHIVE}" -C "${JAVA_HOME}" --strip-components=1 \
+    && rm -rf "${JDK_ARCHIVE}" "${JDK_METADATA}" \
+    && "${JAVA_HOME}"/bin/java -version
 #/JAVA
 
 COPY UAA-FlywayMigrationRunner-0.0.0-all.jar UAA-FlywayMigrationRunner-0.0.0-all.jar
