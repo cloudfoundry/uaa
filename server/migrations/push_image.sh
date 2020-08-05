@@ -12,4 +12,4 @@ cp -v "${UAA_DIR}/server/build/libs/UAA-FlywayMigrationRunner-0.0.0-all.jar" "${
 
 docker build --tag ${DOCKER_IMAGE} "${DOCKER_ROOT}"
 
-#docker push "${DOCKER_IMAGE}"
+docker push "${DOCKER_IMAGE}"
