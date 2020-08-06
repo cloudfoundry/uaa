@@ -25,30 +25,5 @@ RUN JAVA_MAJOR_VERSION="11" \
 #/JAVA
 
 COPY UAA-FlywayMigrationRunner-0.0.0-all.jar UAA-FlywayMigrationRunner-0.0.0-all.jar
-# is this better b/c it doesn't know about concourse? RUN install git fetch repo get gradle and build jar
 
-# MySQL
-#ENV DB_SCHEME="mysql"
-#ENV DB_USERNAME=""
-#ENV DB_PASSWORD=""
-#ENV DB_URL="jdbc:${DB_SCHEME}://${DB_HOST}:3306/uaa"
-
-# Postgres
-#ENV DB_SCHEME="postgres"
-#ENV DB_USERNAME=""
-#ENV DB_PASSWORD=""
-#ENV DB_URL="jdbc:${DB_SCHEME}://${DB_HOST}:5432/uaa"
-
-ENV DB_SCRIPT="/migrate.sh"
-RUN echo "#!/usr/bin/env bash"                             >> "${DB_SCRIPT}" \
-    && echo "set -eu -o pipefail"                          >> "${DB_SCRIPT}" \
-    && echo "java \\"                                      >> "${DB_SCRIPT}" \
-    && echo '-Dspring.profiles.active=${DB_SCHEME} \\'     >> "${DB_SCRIPT}" \
-    && echo '-Ddatabase.username=${DB_USERNAME} \\'        >> "${DB_SCRIPT}" \
-    && echo '-Ddatabase.password=${DB_PASSWORD} \\'        >> "${DB_SCRIPT}" \
-    && echo '-Ddatabase.url='${DB_URL}' \\'                >> "${DB_SCRIPT}" \
-    && echo '-jar UAA-FlywayMigrationRunner-0.0.0-all.jar' >> "${DB_SCRIPT}" \
-    && chmod 755 "${DB_SCRIPT}"
-
-CMD ${DB_SCRIPT}
-
+CMD java -jar UAA-FlywayMigrationRunner-0.0.0-all.jar
