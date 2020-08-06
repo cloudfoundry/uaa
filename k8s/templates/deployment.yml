@@ -112,12 +112,14 @@ spec:
       - name: uaa-flyway-migrations
         image: swaggoner/uaa_flyway_migrations
         env:
-          - name: database_url
-            value: #@ data.values.database.url
-          - name: database_username
+          - name: DB_SCHEME
+            value: #@ data.values.database.scheme
+          - name: DB_USERNAME
             value: #@ data.values.database.username
-          - name: database_password
+          - name: DB_PASSWORD
             value: #@ data.values.database.password
+          - name: DB_URL
+            value: #@ data.values.database.url
       containers:
       - name: uaa
         image: #@ data.values.image
