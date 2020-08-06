@@ -151,6 +151,10 @@ spec:
           mountPath: #@ "{}/saml_keys.yml".format(secrets_dir)
           subPath: saml_keys.yml
           readOnly: true
+        - name: encryption-keys-file
+          mountPath: #@ "{}/encryption_keys.yml".format(secrets_dir)
+          subPath: encryption_keys.yml
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /healthz
@@ -198,3 +202,7 @@ spec:
         secret:
           optional: false
           secretName: uaa-saml-keys
+      - name: encryption-keys-file
+        secret:
+          optional: false
+          secretName: encryption-keys

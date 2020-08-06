@@ -420,4 +420,25 @@ cert`
 			)
 		})
 	})
+
+	Context("Encryption Keys", func() {
+		It("Renders into secrets", func() {
+			templates = []string{
+				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			encryptionKeys := `encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+    - label: CHANGE-THIS-KEY
+      passphrase: CHANGEME`
+
+			Expect(renderingContext).To(
+				ProduceYAML(RepresentingASecret().
+					WithName("encryption-keys").
+					WithStringData("encryption_keys.yml", encryptionKeys)))
+		})
+	})
 })
