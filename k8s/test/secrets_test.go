@@ -425,6 +425,7 @@ cert`
 		It("Renders into secrets", func() {
 			templates = []string{
 				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.star")),
 				pathToFile(filepath.Join("values", "_values.yml")),
 			}
 
@@ -447,6 +448,7 @@ cert`
 			templates = []string{
 				pathToFile(filepath.Join("values", "_values.yml")),
 				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.star")),
 				pathToFile(filepath.Join("..", "test_fixtures", "encryption_keys_fixtures.yml")),
 			}
 
@@ -463,6 +465,49 @@ cert`
 				ProduceYAML(RepresentingASecret().
 					WithName("encryption-keys").
 					WithStringData("encryption_keys.yml", encryptionKeys)),
+			)
+		})
+
+		It("Requires an active_key_label entry", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "encryption_keys_fixtures_no_active_key.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(
+				ThrowError("fail: encryption.active_key_label is required"))
+		})
+
+		It("Requires a nonempty active_key_label entry", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "encryption_keys_fixtures_empty_key.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(
+				ThrowError("fail: encryption.active_key_label is required"))
+		})
+
+		It("active_key_label must be found in the list of keys", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.star")),
+				pathToFile(filepath.Join("..", "test_fixtures", "encryption_keys_invalid_key_fixtures.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			Expect(renderingContext).To(
+				ThrowError("fail: encryption.active_key_label must reference key in encryption.encryption_keys"),
 			)
 		})
 	})
