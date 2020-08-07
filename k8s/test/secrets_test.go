@@ -425,6 +425,7 @@ cert`
 		It("Renders into secrets", func() {
 			templates = []string{
 				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("values", "_values.yml")),
 			}
 
 			renderingContext := NewRenderingContext(templates...)
@@ -432,13 +433,37 @@ cert`
 			encryptionKeys := `encryption:
   active_key_label: CHANGE-THIS-KEY
   encryption_keys:
-    - label: CHANGE-THIS-KEY
-      passphrase: CHANGEME`
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
+`
 
 			Expect(renderingContext).To(
 				ProduceYAML(RepresentingASecret().
 					WithName("encryption-keys").
 					WithStringData("encryption_keys.yml", encryptionKeys)))
+		})
+
+		It("Renders into secret with different values", func() {
+			templates = []string{
+				pathToFile(filepath.Join("values", "_values.yml")),
+				pathToFile(filepath.Join("secrets", "encryption_keys.yml")),
+				pathToFile(filepath.Join("..", "test_fixtures", "encryption_keys_fixtures.yml")),
+			}
+
+			renderingContext := NewRenderingContext(templates...)
+
+			encryptionKeys := `encryption:
+  active_key_label: CHANGED-KEY
+  encryption_keys:
+  - label: CHANGED-KEY
+    passphrase: NEVERGONNAGUESS
+`
+
+			Expect(renderingContext).To(
+				ProduceYAML(RepresentingASecret().
+					WithName("encryption-keys").
+					WithStringData("encryption_keys.yml", encryptionKeys)),
+			)
 		})
 	})
 })
