@@ -107,7 +107,7 @@ pipeline {
             }
             // Publish the UAA docker image only if we are on release branch
             when {
-                branch pattern: 'release_\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+                branch pattern: 'release_\\d+\\.\\d+\\.\\d+_dockerized', comparator: 'REGEXP'
             }
             steps {
                 sh '''#!/bin/bash -ex
