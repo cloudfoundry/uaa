@@ -7,13 +7,13 @@ def use_release_artifacts() {
 pipeline {
     agent {
         docker {
-            image 'registry.gear.ge.com/dig-predix-security-services/uaa-ci-testing-with-docker:latest'
+            image 'registry.gear.ge.com/dig-predix-security-services/uaa-ci-testing:latest'
             label 'dind'
             args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
         }
     }
     environment {
-        USE_RELEASE_ARTIFACTS = use_release_artifacts()
+        USE_RELEASE_ARTIFACTS = true
         COMPLIANCEENABLED = true
     }
     options {
