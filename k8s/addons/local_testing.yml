@@ -12,10 +12,17 @@ database:
 #@overlay/replace
 jwt:
   policy:
-    activeKeyId: FAKE_KEY_ID
+    activeKeyId: FAKE_JWT_SIGNING_KEY_DO_NOT_USE
     keys:
-    - keyId: FAKE_KEY_ID
-      signingKey: FAKE_SIGNING_KEY
+      FAKE_JWT_SIGNING_KEY_DO_NOT_USE:
+        signingKey: FAKE_SIGNING_KEY
+
+#@overlay/replace
+encryption:
+  active_key_label: bogus-label
+  encryption_keys:
+  - label: bogus-label
+    passphrase: bogus-key
 
 #@overlay/replace
 login:
