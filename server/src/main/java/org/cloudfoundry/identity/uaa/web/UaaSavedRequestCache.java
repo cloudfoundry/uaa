@@ -45,7 +45,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
-import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.util.StringUtils.hasText;
@@ -109,7 +108,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
 
     protected static SavedRequest getSavedRequest(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        return session==null ? null : (SavedRequest)session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        return session == null ? null : SessionUtils.getSavedRequestSession(session);
     }
 
     @Override

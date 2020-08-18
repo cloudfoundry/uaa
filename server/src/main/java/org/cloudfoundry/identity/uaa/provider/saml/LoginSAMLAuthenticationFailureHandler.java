@@ -1,8 +1,9 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.apache.http.client.utils.URIBuilder;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
@@ -14,8 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.URI;
-
-import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 
 /**
  * This class is used to provide OAuth error redirects when SAML login fails
@@ -38,7 +37,7 @@ public class LoginSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticati
             HttpSession session = request.getSession();
             if (session != null) {
                 DefaultSavedRequest savedRequest =
-                        (DefaultSavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+                        (DefaultSavedRequest) SessionUtils.getSavedRequestSession(session);
                 if (savedRequest != null) {
                     String[] redirectURI = savedRequest.getParameterMap().get("redirect_uri");
 
