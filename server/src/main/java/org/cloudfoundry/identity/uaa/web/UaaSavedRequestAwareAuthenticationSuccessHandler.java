@@ -24,8 +24,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
-    public static final String SAVED_REQUEST_SESSION_ATTRIBUTE = "SPRING_SECURITY_SAVED_REQUEST";
-
     public static final String URI_OVERRIDE_ATTRIBUTE = "override.redirect_uri";
 
     public static final String FORM_REDIRECT_PARAMETER = "form_redirect_uri";

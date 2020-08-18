@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.springframework.security.core.context.SecurityContext;
 
 import javax.servlet.http.HttpSession;
@@ -9,6 +10,7 @@ public final class SessionUtils {
     public static final String PASSWORD_CHANGE_REQUIRED = "PASSWORD_CHANGE_REQUIRED";
     public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
     public static final String SPRING_SECURITY_CONTEXT = "SPRING_SECURITY_CONTEXT";
+    public static final String SAVED_REQUEST_SESSION_ATTRIBUTE = "SPRING_SECURITY_SAVED_REQUEST";
 
     private SessionUtils() {}
 
@@ -40,5 +42,9 @@ public final class SessionUtils {
 
     public static void setSecurityContext(HttpSession session, SecurityContext context) {
         session.setAttribute(SPRING_SECURITY_CONTEXT, context);
+    }
+
+    public static void setClientRedirectSavedRequest(HttpSession session, UaaSavedRequestCache.ClientRedirectSavedRequest clientRedirectSavedRequest) {
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, clientRedirectSavedRequest);
     }
 }
