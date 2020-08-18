@@ -65,7 +65,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         var relyingPartyId = definition.getRelyingPartyId();
 
         var state = generateStateParam();
-        SessionUtils.saveStateParam(request.getSession(), stateParamKeyForIdp(idpOriginKey), state);
+        SessionUtils.setStateParam(request.getSession(), stateParamKeyForIdp(idpOriginKey), state);
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(idpUrlBase)
