@@ -40,6 +40,10 @@ public final class SessionUtils {
         session.setAttribute(stateParamKey, state);
     }
 
+    public static Object getStateParam(HttpSession session, String stateParamKey) {
+        return session.getAttribute(stateParamKey);
+    }
+
     public static void setSecurityContext(HttpSession session, SecurityContext context) {
         session.setAttribute(SPRING_SECURITY_CONTEXT, context);
     }

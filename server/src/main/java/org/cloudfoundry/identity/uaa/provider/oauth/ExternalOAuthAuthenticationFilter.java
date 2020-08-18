@@ -1,12 +1,18 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import static java.util.Optional.ofNullable;
-import static org.springframework.util.StringUtils.hasText;
+import org.apache.commons.httpclient.util.URIUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.csrf.CsrfException;
+import org.springframework.web.HttpSessionRequiredException;
 
-
-import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -16,17 +22,13 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import org.apache.commons.httpclient.util.URIUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.csrf.CsrfException;
-import org.springframework.web.HttpSessionRequiredException;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
+import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator.EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX;
+import static org.springframework.util.StringUtils.hasText;
 
 public class ExternalOAuthAuthenticationFilter implements Filter {
 
@@ -75,8 +77,7 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
     if (session == null) {
       throw new HttpSessionRequiredException("An HTTP Session is required to process request.");
     }
-    final Object stateInSession =
-        request.getSession().getAttribute("external-oauth-state-" + originKey);
+    final Object stateInSession = SessionUtils.getStateParam(session, EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + originKey);
     final String stateFromParameters = request.getParameter("state");
     if (StringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
       throw new CsrfException("Invalid State Param in request.");
