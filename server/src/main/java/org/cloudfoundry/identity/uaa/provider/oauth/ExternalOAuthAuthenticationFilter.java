@@ -27,7 +27,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator.EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.util.SessionUtils.EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX;
 import static org.springframework.util.StringUtils.hasText;
 
 public class ExternalOAuthAuthenticationFilter implements Filter {

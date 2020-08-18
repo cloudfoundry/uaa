@@ -30,7 +30,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
 public class ExternalOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
-    public static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
     private static Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
 
     private final IdentityProviderProvisioning providerProvisioning;
@@ -65,7 +64,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         var relyingPartyId = definition.getRelyingPartyId();
 
         var state = generateStateParam();
-        SessionUtils.setStateParam(request.getSession(), stateParamKeyForIdp(idpOriginKey), state);
+        SessionUtils.setStateParam(request.getSession(), SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey), state);
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(idpUrlBase)
@@ -84,10 +83,6 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         }
 
         return uriBuilder.build().toUriString();
-    }
-
-    private String stateParamKeyForIdp(String idpOriginKey) {
-        return EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 
     private String generateStateParam() {

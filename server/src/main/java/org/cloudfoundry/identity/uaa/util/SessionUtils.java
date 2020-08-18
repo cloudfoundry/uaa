@@ -14,6 +14,7 @@ public final class SessionUtils {
     public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
     public static final String SPRING_SECURITY_CONTEXT = "SPRING_SECURITY_CONTEXT";
     public static final String SAVED_REQUEST_SESSION_ATTRIBUTE = "SPRING_SECURITY_SAVED_REQUEST";
+    public static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
 
     private SessionUtils() {}
 
@@ -61,5 +62,9 @@ public final class SessionUtils {
 
     public static AuthenticationException getAuthentictionException(HttpSession session) {
         return (AuthenticationException) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
+    }
+
+    public static String stateParameterAttributeKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 }

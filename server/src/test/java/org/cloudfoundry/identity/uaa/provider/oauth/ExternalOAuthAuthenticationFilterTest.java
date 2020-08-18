@@ -20,6 +20,7 @@ import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.function.Consumer;
 
+import static org.cloudfoundry.identity.uaa.util.SessionUtils.EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -234,6 +235,6 @@ class ExternalOAuthAuthenticationFilterTest {
     }
 
     private void mockStateParamInSession(HttpSession session, String origin, String state) {
-        when(session.getAttribute("external-oauth-state-" + origin)).thenReturn(state);
+        when(session.getAttribute(EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + origin)).thenReturn(state);
     }
 }
