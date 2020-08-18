@@ -31,4 +31,8 @@ public final class SessionUtils {
     public static void setForcePasswordExpiredUser(HttpSession session, PasswordChangeRequiredException exception) {
         session.setAttribute(FORCE_PASSWORD_EXPIRED_USER, exception.getAuthentication());
     }
+
+    public static void saveStateParam(HttpSession session, String stateParamKey, String state) {
+        session.setAttribute(stateParamKey, state);
+    }
 }

@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
@@ -30,6 +30,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
 public class ExternalOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
+    public static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
     private static Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
 
     private final IdentityProviderProvisioning providerProvisioning;
@@ -64,7 +65,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         var relyingPartyId = definition.getRelyingPartyId();
 
         var state = generateStateParam();
-        saveStateParamForIdpToRequestSession(state, idpOriginKey, request);
+        SessionUtils.saveStateParam(request.getSession(), stateParamKeyForIdp(idpOriginKey), state);
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(idpUrlBase)
@@ -85,8 +86,8 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         return uriBuilder.build().toUriString();
     }
 
-    private void saveStateParamForIdpToRequestSession(String state, String idpOriginKey, HttpServletRequest request) {
-        request.getSession().setAttribute("external-oauth-state-" + idpOriginKey, state);
+    private String stateParamKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 
     private String generateStateParam() {
