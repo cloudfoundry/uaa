@@ -129,7 +129,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_T
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
-import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -1866,7 +1865,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         assertNotNull(session);
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(session);
         assertNotNull(savedRequest);
         assertEquals(authUrl, savedRequest.getRedirectUrl());
 
@@ -1894,7 +1893,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         session = (MockHttpSession) result.getRequest().getSession(false);
         assertNotNull(session);
-        savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        savedRequest =  SessionUtils.getSavedRequestSession(session);
         assertNotNull(savedRequest);
 
         mockMvc.perform(

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -12,7 +13,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
@@ -30,7 +30,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        SessionUtils.setSavedRequestSession(session, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -54,7 +54,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        SessionUtils.setSavedRequestSession(session, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -78,7 +78,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        SessionUtils.setSavedRequestSession(session, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -144,7 +144,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        SessionUtils.setSavedRequestSession(session, savedRequest);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
