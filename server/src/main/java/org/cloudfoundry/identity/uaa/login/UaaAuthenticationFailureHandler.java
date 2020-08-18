@@ -40,7 +40,8 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
         addCookie(response);
         if(exception != null) {
             if (exception instanceof PasswordChangeRequiredException) {
-                SessionUtils.setForcePasswordExpiredUser(request.getSession(), ((PasswordChangeRequiredException) exception));
+                SessionUtils.setForcePasswordExpiredUser(request.getSession(),
+                        ((PasswordChangeRequiredException) exception).getAuthentication());
             }
         }
         if (delegate!=null) {

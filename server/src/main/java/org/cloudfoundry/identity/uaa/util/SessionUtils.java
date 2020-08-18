@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.web.WebAttributes;
@@ -35,8 +35,8 @@ public final class SessionUtils {
         session.setAttribute(PASSWORD_CHANGE_REQUIRED, passwordChangeRequired);
     }
 
-    public static void setForcePasswordExpiredUser(HttpSession session, PasswordChangeRequiredException exception) {
-        session.setAttribute(FORCE_PASSWORD_EXPIRED_USER, exception.getAuthentication());
+    public static void setForcePasswordExpiredUser(HttpSession session, UaaAuthentication uaaAuthentication) {
+        session.setAttribute(FORCE_PASSWORD_EXPIRED_USER, uaaAuthentication);
     }
 
     public static void setStateParam(HttpSession session, String stateParamKey, String state) {
