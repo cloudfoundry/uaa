@@ -27,7 +27,6 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.util.SessionUtils.EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX;
 import static org.springframework.util.StringUtils.hasText;
 
 public class ExternalOAuthAuthenticationFilter implements Filter {
@@ -77,7 +76,7 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
     if (session == null) {
       throw new HttpSessionRequiredException("An HTTP Session is required to process request.");
     }
-    final Object stateInSession = SessionUtils.getStateParam(session, EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + originKey);
+    final Object stateInSession = SessionUtils.getStateParam(session, SessionUtils.stateParameterAttributeKeyForIdp(originKey));
     final String stateFromParameters = request.getParameter("state");
     if (StringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
       throw new CsrfException("Invalid State Param in request.");
