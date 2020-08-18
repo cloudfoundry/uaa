@@ -39,6 +39,10 @@ public final class SessionUtils {
         session.setAttribute(FORCE_PASSWORD_EXPIRED_USER, uaaAuthentication);
     }
 
+    public static UaaAuthentication getForcePasswordExpiredUser(HttpSession session) {
+        return (UaaAuthentication) session.getAttribute(FORCE_PASSWORD_EXPIRED_USER);
+    }
+
     public static void setStateParam(HttpSession session, String stateParamKey, String state) {
         session.setAttribute(stateParamKey, state);
     }

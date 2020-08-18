@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -31,7 +32,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.util.SessionUtils.FORCE_PASSWORD_EXPIRED_USER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -90,8 +90,9 @@ public class UaaAuthenticationFailureHandlerTests {
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         PasswordChangeRequiredException exception = new PasswordChangeRequiredException(uaaAuthentication, "mock");
         uaaAuthenticationFailureHandler.onAuthenticationFailure(request, response, exception);
-        assertNotNull(request.getSession().getAttribute(FORCE_PASSWORD_EXPIRED_USER));
-        assertEquals(uaaAuthentication, request.getSession().getAttribute(FORCE_PASSWORD_EXPIRED_USER));
+        UaaAuthentication uaaAuthenticationFromSession = SessionUtils.getForcePasswordExpiredUser(request.getSession());
+        assertNotNull(uaaAuthenticationFromSession);
+        assertEquals(uaaAuthentication, uaaAuthenticationFromSession);
         validateCookie();
         assertEquals("/force_password_change", response.getRedirectedUrl());
     }
