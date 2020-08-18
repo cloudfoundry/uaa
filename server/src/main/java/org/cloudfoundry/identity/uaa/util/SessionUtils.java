@@ -51,7 +51,7 @@ public final class SessionUtils {
         session.setAttribute(SPRING_SECURITY_CONTEXT, context);
     }
 
-    public static void setClientRedirectSavedRequest(HttpSession session, UaaSavedRequestCache.ClientRedirectSavedRequest clientRedirectSavedRequest) {
+    public static void setSavedRequestSession(HttpSession session, UaaSavedRequestCache.ClientRedirectSavedRequest clientRedirectSavedRequest) {
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, clientRedirectSavedRequest);
     }
 
