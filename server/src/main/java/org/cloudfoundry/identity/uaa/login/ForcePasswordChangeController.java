@@ -29,7 +29,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @Controller
 public class ForcePasswordChangeController {
     private static final Logger logger = LoggerFactory.getLogger(ForcePasswordChangeController.class);
-    public static final String FORCE_PASSWORD_EXPIRED_USER = "FORCE_PASSWORD_EXPIRED_USER";
 
     private final ResourcePropertySource resourcePropertySource;
     private final ResetPasswordService resetPasswordService;
