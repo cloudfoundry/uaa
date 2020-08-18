@@ -63,7 +63,7 @@ public final class SessionUtils {
         return (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
     }
 
-    public static AuthenticationException getAuthentictionException(HttpSession session) {
+    public static AuthenticationException getAuthenticationException(HttpSession session) {
         return (AuthenticationException) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
     }
 
