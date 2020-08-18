@@ -2,7 +2,9 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.web.WebAttributes;
 
 import javax.servlet.http.HttpSession;
 
@@ -50,5 +52,9 @@ public final class SessionUtils {
 
     public static void setClientRedirectSavedRequest(HttpSession session, UaaSavedRequestCache.ClientRedirectSavedRequest clientRedirectSavedRequest) {
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, clientRedirectSavedRequest);
+    }
+
+    public static AuthenticationException getAuthentictionException(HttpSession session) {
+        return (AuthenticationException) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
     }
 }
