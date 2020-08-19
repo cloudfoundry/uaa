@@ -10,8 +10,8 @@ dependencies {
     compile(libraries.springBootStarterWeb)
     compile(libraries.springBootStarterLog4j2)
     compile(libraries.statsdClient)
-    testCompile(libraries.mockito)
-    testCompile(libraries.springBootStarterTest)
+    testImplementation(libraries.mockito)
+    testImplementation(libraries.springBootStarterTest)
 
     compile(libraries.jacksonDataformatYaml)
     compile(libraries.jacksonDatabind)
