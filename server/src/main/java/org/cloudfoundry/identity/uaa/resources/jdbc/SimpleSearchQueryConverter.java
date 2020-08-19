@@ -116,7 +116,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private String generateParameterPrefix(String filter) {
         while (true) {
             String s = new RandomValueStringGenerator().generate().toLowerCase();
-            if (!filter.contains(s)) {
+            if (!filter.contains(s) && !s.contains("-")) {
                 return "__" + s + "_";
             }
         }
