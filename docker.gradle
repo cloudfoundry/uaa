@@ -46,11 +46,11 @@ import com.bmuschko.gradle.docker.tasks.container.DockerStartContainer
 import de.undercouch.gradle.tasks.download.Download
 
 def use_release_artifacts = System.getenv('USE_RELEASE_ARTIFACTS')
+def build_context = "${buildDir}/docker/"
 
 task downloadReleaseArtifacts(type: Download) {
-  def docker_build = "${buildDir}/docker"
   doFirst {
-    mkdir docker_build
+    mkdir build_context
   }
   src 'https://artifactory.build.ge.com/MAAXA/org/cloudfoundry/identity/' \
       + 'cloudfoundry-identity-uaa/' \
@@ -58,47 +58,28 @@ task downloadReleaseArtifacts(type: Download) {
       + '/cloudfoundry-identity-uaa-' \
       + version \
       + '.war'
-  dest docker_build
+  dest build_context
   username System.getenv('ARTIFACTORY_READER')
   password System.getenv('ARTIFACTORY_READER_PW')
 }
 
-task createDockerfile(type: Dockerfile) {
+task copyDockerfile(type: Copy) {
   if (use_release_artifacts == 'true') {
       dependsOn downloadReleaseArtifacts
   } else {
       dependsOn assemble
   }
-  destFile = project.file('build/docker/Dockerfile')
-  from 'tomcat:8.5-jre8'
-  maintainer 'UAA team "$MAINTAINER_EMAIL"'
-  instruction 'ENV LOGIN_CONFIG_URL WEB-INF/classes/required_configuration.yml'
-  instruction 'ENV CLOUD_FOUNDRY_CONFIG_PATH /uaa'
-  instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/ROOT"'
-  instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/host-manager"'
-  instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/manager"'
-  instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/examples"'
-  instruction 'RUN bash -c "rm -r /usr/local/tomcat/webapps/docs"'
-  instruction 'RUN bash -c "addgroup --gid 1110 docker"'
-  instruction 'RUN bash -c "adduser --uid 1100 --disabled-password --gecos \'\' dockeruser"'
-  instruction 'RUN bash -c "adduser dockeruser docker"'
-  instruction 'ADD cloudfoundry-identity-uaa-' + version + '.war /usr/local/tomcat/webapps/ROOT.war'
-  instruction 'ADD uaa-docker.yml /uaa/uaa.yml'
-  instruction 'RUN bash -c "echo $LOGIN_CONFIG_URL"'
-  instruction 'RUN bash -c "chown -R dockeruser:docker /usr/local/tomcat"'
-  instruction 'RUN bash -c "ls -l /usr/local/tomcat"'
-  instruction 'RUN bash -c "chown -R dockeruser:docker /uaa"'
-  instruction 'RUN bash -c "ls -l /uaa"'
-  instruction 'EXPOSE 8080'
-  instruction 'USER dockeruser:docker'
+
+  from 'Dockerfile'
+  into build_context
 }
 
 task deleteDockerfile() {
-  delete file('build/docker')
+  delete file(build_context)
 }
 
 task copyContainerFiles(type: Copy) {
-  dependsOn createDockerfile
+  dependsOn copyDockerfile
   if (use_release_artifacts == 'true') {
     from 'uaa/src/main/resources/uaa-docker.yml'
   } else {
@@ -106,13 +87,14 @@ task copyContainerFiles(type: Copy) {
     from 'uaa/build/resources/main/tomcat-server.xml'
     from 'uaa/build/resources/main/uaa-docker.yml'
   }
-  into 'build/docker'
+  into build_context
 }
 
 task buildImage(type: DockerBuildImage) {
   dependsOn copyContainerFiles
-  inputDir = createDockerfile.destFile.parentFile
+  inputDir = file(build_context)
   tag = System.getenv('DOCKER_REPO_URL') + '/uaa:' + version
+  buildArgs = [MAINTAINER_EMAIL: System.getenv('MAINTAINER_EMAIL'), VERSION: version]
 }
 
 task createUaaContainer(type: DockerCreateContainer) {
