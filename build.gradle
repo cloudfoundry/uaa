@@ -14,13 +14,12 @@ buildscript {
     }
 
     dependencies {
-        classpath(libraries.gradleCargoPlugin)
-        classpath(libraries.prodepsPlugin)
+        classpath(libraries.cargoGradlePlugin)
+        classpath(libraries.shadowGradlePlugin)
+        classpath(libraries.prodepsGradlePlugin)
         classpath(libraries.asciidoctorGradlePlugin)
-        classpath(libraries.springDependencyMgmtPlugin)
+        classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
-
-        classpath('com.github.jengelman.gradle.plugins:shadow:6.0.0')
     }
 }
 
