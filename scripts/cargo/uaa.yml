@@ -1,3 +1,6 @@
+servlet:
+  session-store: database
+
 encryption:
   active_key_label: CHANGE-THIS-KEY
   encryption_keys:
