@@ -32,6 +32,5 @@ if [[ -x /bin/start-slapd ]]; then /bin/start-slapd; fi
 if [[ -x "/bin/start-${db}" ]]; then "/bin/start-${db}"; fi
 
 gradle --stacktrace \
-    --exclude-task :cloudfoundry-identity-samples:assemble \
     "-Dspring.profiles.active=${TESTENV}" \
     "${@}"
