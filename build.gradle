@@ -23,9 +23,10 @@ buildscript {
     }
 }
 
+apply(from: "dependencies.gradle")
+
 def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
 
-apply(from: "dependencies.gradle")
 apply(plugin: "com.bmuschko.cargo")
 
 allprojects {
