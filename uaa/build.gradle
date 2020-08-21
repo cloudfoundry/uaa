@@ -29,16 +29,16 @@ repositories {
 
 description = "UAA"
 dependencies {
-    compile(project(":cloudfoundry-identity-server")) {
+    implementation(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
-    compile(project(":cloudfoundry-identity-statsd-lib"))
-    compile(libraries.springBootStarter)
-    compile(libraries.springBootStarterWeb)
-    runtime(libraries.springSecurityConfig)
-    runtime(libraries.springRetry)
-    runtime(libraries.aspectJWeaver)
-    runtime(libraries.postgresql)
+    implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.springBootStarter)
+    implementation(libraries.springBootStarterWeb)
+    runtimeOnly(libraries.springSecurityConfig)
+    runtimeOnly(libraries.springRetry)
+    runtimeOnly(libraries.aspectJWeaver)
+    runtimeOnly(libraries.postgresql)
 
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.javaxXmlBindCore)
