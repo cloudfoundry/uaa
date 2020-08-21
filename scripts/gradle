@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -eu -o pipefail
 
-UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+UAA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 db_variant() {
-    local db_type="${1}"
+  local db_type="${1}"
 
-    if [[ "${db_type}" = "percona" ]]; then
-        echo "mysql"
-    else
-        echo "${db_type}"
-    fi
+  if [[ "${db_type}" == "percona" ]]; then
+    echo "mysql"
+  else
+    echo "${db_type}"
+  fi
 }
 
 gradle() {
@@ -20,9 +20,9 @@ Running:
   ${gradle_command}
 COMMAND
 
-  command pushd "${UAA_DIR}"    > /dev/null # silence output
+  command pushd "${UAA_DIR}" >/dev/null # silence output
   ${gradle_command}
-  command popd                  > /dev/null # silence output
+  command popd >/dev/null # silence output
 }
 
 db="$(db_variant "${DB-hsqldb}")"
@@ -32,5 +32,5 @@ if [[ -x /bin/start-slapd ]]; then /bin/start-slapd; fi
 if [[ -x "/bin/start-${db}" ]]; then "/bin/start-${db}"; fi
 
 gradle --stacktrace \
-    "-Dspring.profiles.active=${TESTENV}" \
-    "${@}"
+  "-Dspring.profiles.active=${TESTENV}" \
+  "${@}"
