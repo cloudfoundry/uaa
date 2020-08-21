@@ -1,11 +1,18 @@
-issuer:
-  uri: http://localhost:8080/uaa
-
 encryption:
   active_key_label: CHANGE-THIS-KEY
   encryption_keys:
   - label: CHANGE-THIS-KEY
     passphrase: CHANGEME
+
+issuer:
+  uri: http://localhost:8080/uaa
+
+#The secret that an external login server will use to authenticate to the uaa using the id `login`
+LOGIN_SECRET: loginsecret
+
+jwt:
+  token:
+    signing-key: tokenKey
 
 login:
   serviceProviderKey: |
@@ -46,11 +53,3 @@ login:
     KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
     RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
     -----END CERTIFICATE-----
-
-#The secret that an external login server will use to authenticate to the uaa using the id `login`
-LOGIN_SECRET: loginsecret
-
-jwt:
-  token:
-    signing-key: tokenKey
-
