@@ -179,11 +179,12 @@ cargo {
         configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
         startStopTimeout = 540000
         rmiPort = applicationPort + 10
-        List activeProfiles = System.getProperty("spring.profiles.active", "").split(",")
-        jvmArgs = "-DCLOUDFOUNDRY_CONFIG_PATH=" + file("scripts/cargo").getAbsolutePath() + " -Dlog4j.configurationFile=" + file("scripts/cargo/log4j2.properties").getAbsolutePath()
-        jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
 
-        if (activeProfiles.contains("debug")) {
+        jvmArgs = ""
+        jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
+        jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
+        jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
+        if (System.getProperty("spring.profiles.active", "").split(',').contains("debug")) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
 
