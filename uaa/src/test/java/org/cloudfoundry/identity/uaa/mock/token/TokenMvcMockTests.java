@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
+import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -1641,8 +1642,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
 
-        session.setAttribute("authorizationRequest", authorizationRequest);
-        session.setAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", unmodifiableMap(authorizationRequest));
+        session.setAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
+        session.setAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
 
         MvcResult result = mockMvc.perform(
                 post("/oauth/authorize")
@@ -1678,8 +1679,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         authorizationRequest.setScope(new ArrayList<>(Collections.singletonList("openid")));
         authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code", "id_token")));
         authorizationRequest.setState(state);
-        session.setAttribute("authorizationRequest", authorizationRequest);
-        session.setAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST", unmodifiableMap(authorizationRequest));
+        session.setAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
+        session.setAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, unmodifiableMap(authorizationRequest));
 
         MvcResult result = mockMvc.perform(
                 post("/oauth/authorize")

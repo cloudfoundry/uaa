@@ -62,7 +62,7 @@ class AccessControllerTests {
         request.setScheme("https");
         request.addHeader("Host", "foo");
         ModelMap model = new ModelMap();
-        model.put("authorizationRequest", new AuthorizationRequest("client-id", null));
+        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, new AuthorizationRequest("client-id", null));
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
         controller.confirm(model, request, auth, new SimpleSessionStatus());
         Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");
@@ -78,7 +78,7 @@ class AccessControllerTests {
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 
         ModelMap model = new ModelMap();
-        model.put("authorizationRequest", new AuthorizationRequest("client-id", null));
+        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, new AuthorizationRequest("client-id", null));
 
         controller.confirm(model, new MockHttpServletRequest(), auth, new SimpleSessionStatus());
 
@@ -109,7 +109,7 @@ class AccessControllerTests {
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
 
         ModelMap model = new ModelMap();
-        model.put("authorizationRequest", new AuthorizationRequest("client-id", Arrays.asList("resource.scope1", "resource.scope2")));
+        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, new AuthorizationRequest("client-id", Arrays.asList("resource.scope1", "resource.scope2")));
 
         controller.confirm(model, new MockHttpServletRequest(), auth, new SimpleSessionStatus());
         List<Map<String, String>> undecidedScopeDetails = (List<Map<String, String>>) model.get("undecided_scopes");
