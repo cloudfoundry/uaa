@@ -38,9 +38,7 @@ import org.springframework.web.client.RestTemplate;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.updateUserToForcePasswordChange;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -159,7 +157,12 @@ public class ForcedPasswordChangeIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
+
+        var session1= webDriver.manage().getCookieNamed("JSESSIONID");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        var session2 = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertEquals(session1, session2);
+        assertNotNull(session1);
         assertEquals(baseUrl+"/profile", webDriver.getCurrentUrl());
     }
 
