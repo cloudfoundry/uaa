@@ -107,7 +107,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForceChangingPassword() {
+    public void testHandleForcePasswordChange() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
@@ -122,7 +122,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForceChangingPasswordWithNewPasswordSameAsOld() {
+    public void testHandleForcePasswordChangeWithNewPasswordSameAsOld() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
@@ -133,7 +133,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForcePasswordChangeInvalidConfirmation() {
+    public void testHandleForcePasswordChangeWithPasswordDoesNotMatchPasswordConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("invalid");
@@ -144,7 +144,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForcePasswordChangeEmptyConfirmation() {
+    public void testHandleForcePasswordChangeWithEmptyPasswordConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
@@ -154,7 +154,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testRedirectForHandleForcePasswordChange() {
+    public void testHandleForcePasswordChangeDoesRedirectToOriginalUrl() {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminAccessToken, userId);
         webDriver.get(baseUrl+"/profile");
         assertEquals(baseUrl+"/login", webDriver.getCurrentUrl());
