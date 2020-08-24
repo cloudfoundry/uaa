@@ -70,7 +70,7 @@ public class ForcedPasswordChangeIT {
 
     @Before
     @After
-    public void logout_and_clear_cookies() {
+    public void logoutAndClearCookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
         }catch (org.openqa.selenium.TimeoutException x) {
