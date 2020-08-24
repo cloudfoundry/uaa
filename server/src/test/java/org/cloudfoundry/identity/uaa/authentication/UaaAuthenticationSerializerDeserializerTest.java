@@ -19,6 +19,7 @@ public class UaaAuthenticationSerializerDeserializerTest {
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN,"sessionId"));
         auth.setAuthenticationMethods(Collections.singleton("pwd"));
         auth.setAuthContextClassRef(Collections.singleton("test:uri"));
+        auth.setAuthenticatedTime(1485314434675L);
         auth.setLastLoginSuccessTime(1485305759366l);
 
         UaaAuthentication deserializedUaaAuthentication = JsonUtils.readValue(JsonUtils.writeValueAsString(auth), UaaAuthentication.class);
