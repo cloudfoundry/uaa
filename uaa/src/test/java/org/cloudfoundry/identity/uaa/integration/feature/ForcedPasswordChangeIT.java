@@ -161,6 +161,8 @@ public class ForcedPasswordChangeIT {
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
 
@@ -194,6 +196,4 @@ public class ForcedPasswordChangeIT {
             containsString("Force Change Password"));
         assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
     }
-
-
 }
