@@ -111,7 +111,13 @@ public class ForcedPasswordChangeIT {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
+
+        var session1= webDriver.manage().getCookieNamed("JSESSIONID");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        var session2 = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertEquals(session1, session2);
+        assertNotNull(session1);
+
         assertEquals(baseUrl+"/", webDriver.getCurrentUrl());
     }
 
