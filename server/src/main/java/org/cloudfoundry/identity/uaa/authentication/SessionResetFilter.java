@@ -55,31 +55,24 @@ public class SessionResetFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         SecurityContext context = SecurityContextHolder.getContext();
-        if (context!=null && context.getAuthentication()!=null && context.getAuthentication() instanceof UaaAuthentication) {
-            UaaAuthentication authentication = (UaaAuthentication)context.getAuthentication();
-            if (authentication.isAuthenticated() &&
-                OriginKeys.UAA.equals(authentication.getPrincipal().getOrigin()) &&
-                null != request.getSession(false)) {
-
+        UaaAuthentication authentication = getUaaAuthentication(context);
+        if (authentication != null) {
+            if (isAuthenticatedToUaa(authentication) && request.getSession(false) != null) {
                 boolean redirect = false;
                 String userId = authentication.getPrincipal().getId();
+
                 try {
                     logger.debug("Evaluating user-id for session reset:"+userId);
-                    UaaUser user = userDatabase.retrieveUserById(userId);
-                    Date lastModified;
-                    if ((lastModified = user.getPasswordLastModified()) != null) {
-                        long lastAuthTime = authentication.getAuthenticatedTime();
-                        long passwordModTime = lastModified.getTime();
-                        //if the password has changed after authentication time
-                        if (hasPasswordChangedAfterAuthentication(lastAuthTime, passwordModTime)) {
-                            logger.debug(String.format("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s",userId, lastAuthTime, passwordModTime));
-                            redirect = true;
-                        }
+                    UaaUser uaaUser = userDatabase.retrieveUserById(userId);
+                    if (passwordModifiedAfterLastAuthentication(uaaUser, authentication)) {
+                        logger.debug(String.format("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s", uaaUser.getId(), authentication.getAuthenticatedTime(), uaaUser.getPasswordLastModified().getTime()));
+                        redirect = true;
                     }
                 } catch (UsernameNotFoundException x) {
-                    logger.info("Authenticated user ["+userId+"] was not found in DB.");
+                    logger.info(String.format("Authenticated user [%s] was not found in DB.", userId));
                     redirect = true;
                 }
+
                 if (redirect) {
                     handleRedirect(request, response);
                     return;
@@ -89,8 +82,28 @@ public class SessionResetFilter extends OncePerRequestFilter {
         filterChain.doFilter(request,response);
     }
 
-    protected boolean hasPasswordChangedAfterAuthentication(long lastAuthTime, long passwordModTime) {
-        return passwordModTime > lastAuthTime;
+    protected UaaAuthentication getUaaAuthentication(SecurityContext securityContext) {
+        UaaAuthentication uaaAuthentication;
+
+        if (securityContext != null
+                && securityContext.getAuthentication() != null
+                && securityContext.getAuthentication() instanceof UaaAuthentication) {
+            uaaAuthentication= (UaaAuthentication) securityContext.getAuthentication();
+        } else {
+            uaaAuthentication = null;
+        }
+
+        return uaaAuthentication;
+    }
+
+    protected boolean isAuthenticatedToUaa(UaaAuthentication uaaAuthentication) {
+        return uaaAuthentication.isAuthenticated() &&
+                OriginKeys.UAA.equals(uaaAuthentication.getPrincipal().getOrigin());
+    }
+
+    protected boolean passwordModifiedAfterLastAuthentication(UaaUser uaaUser, UaaAuthentication uaaAuthentication) {
+        return uaaUser.getPasswordLastModified() != null
+                && (uaaUser.getPasswordLastModified().getTime() > uaaAuthentication.getAuthenticatedTime());
     }
 
     protected void handleRedirect(HttpServletRequest request, HttpServletResponse response) throws IOException {
