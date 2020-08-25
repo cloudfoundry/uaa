@@ -194,6 +194,22 @@ public class SessionResetFilterTests {
         verifyZeroInteractions(response);
     }
 
+    @Test
+    public void test_User_Not_Found() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        setFieldValue("id", "invalid-user-id", authentication.getPrincipal());
+        filter.doFilterInternal(request, response, chain);
+
+        //user is not forwarded, and error response is generated right away
+        Mockito.verifyZeroInteractions(chain);
+        //user redirect
+        verify(response, times(1)).sendRedirect(any());
+        //session was requested
+        verify(request, times(2)).getSession(false);
+        //session was invalidated
+        verify(session, times(1)).invalidate();
+    }
+
     protected void setFieldValue(String fieldname, Object value, Object object) {
         Field f = ReflectionUtils.findField(object.getClass(), fieldname);
         ReflectionUtils.makeAccessible(f);
