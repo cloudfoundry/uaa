@@ -13,7 +13,7 @@ pipeline {
         }
     }
     environment {
-        USE_RELEASE_ARTIFACTS = true
+        USE_RELEASE_ARTIFACTS = use_release_artifacts()
         COMPLIANCEENABLED = true
     }
     options {
@@ -107,7 +107,7 @@ pipeline {
             }
             // Publish the UAA docker image only if we are on release branch
             when {
-                branch pattern: 'release_\\d+\\.\\d+\\.\\d+_dockerized', comparator: 'REGEXP'
+                branch pattern: 'release_\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
             }
             steps {
                 sh '''#!/bin/bash -ex
