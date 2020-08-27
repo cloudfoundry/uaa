@@ -27,14 +27,14 @@ import java.util.List;
 public class InMemoryLdapServer implements Closeable {
     private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
 
-    private static String[] DEFAULT_ROOTS = {
+    private static final String[] DEFAULT_ROOTS = {
             "dc=test,dc=com",
             "olcDatabase=bdb, cn=config",
             "cn=module, cn=config",
             "cn=schema, cn=config"
     };
 
-    private static File TRUST_STORE = new File(InMemoryLdapServer
+    private static final File TRUST_STORE = new File(InMemoryLdapServer
             .class
             .getClassLoader()
             .getResource("certs/truststore-containing-the-ldap-ca.jks")
