@@ -40,6 +40,9 @@ public class InMemoryLdapServer implements Closeable {
             .getResource("certs/truststore-containing-the-ldap-ca.jks")
             .getFile());
 
+    private static final URL LDAP_INIT_LIDF_URL =
+            InMemoryLdapServer.class.getClassLoader().getResource("ldap_init.ldif");
+
     private InMemoryDirectoryServer directoryServer;
     private final int port;
 
@@ -49,19 +52,17 @@ public class InMemoryLdapServer implements Closeable {
     private File trustStore;
 
     public static InMemoryLdapServer startLdap(int port) {
-        ClassLoader classLoader = InMemoryLdapServer.class.getClassLoader();
         InMemoryLdapServer server = new InMemoryLdapServer(port);
         server.start();
-        server.applyChangesFromLDIF(classLoader.getResource("ldap_init.ldif"));
+        server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
         return server;
     }
 
     public static InMemoryLdapServer startLdapWithTls(int port, int tlsPort, File keyStore) {
-        ClassLoader classLoader = InMemoryLdapServer.class.getClassLoader();
         InMemoryLdapServer server = new InMemoryLdapServer(port);
         server.configureStartTLS(tlsPort, keyStore, TRUST_STORE);
         server.start();
-        server.applyChangesFromLDIF(classLoader.getResource("ldap_init.ldif"));
+        server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
         return server;
     }
 
