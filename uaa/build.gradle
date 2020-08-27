@@ -161,6 +161,7 @@ integrationTest {
 
 task acceptanceTest(type: Test) {
   include "org/cloudfoundry/identity/uaa/acceptance/*.class"
+  exclude "org/cloudfoundry/identity/uaa/acceptance/SamlLoginAT.class"
 }
 
 task degradedTestCloud(type: Test) {

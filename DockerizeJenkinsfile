@@ -1,14 +1,19 @@
 #!/usr/bin/env groovy
 
+def use_release_artifacts() {
+    return (env.BRANCH_NAME ==~ /^release_(\d+)\.(\d+)\.(\d+)$/) ? 'true' : 'false'
+}
+
 pipeline {
     agent {
         docker {
-            image 'registry.gear.ge.com/dig-predix-security-services/uaa-ci-testing-with-docker:latest'
+            image 'registry.gear.ge.com/dig-predix-security-services/uaa-ci-testing:latest'
             label 'dind'
             args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
         }
     }
     environment {
+        USE_RELEASE_ARTIFACTS = use_release_artifacts()
         COMPLIANCEENABLED = true
     }
     options {
@@ -43,10 +48,7 @@ pipeline {
                 }
             }
         }
-        stage('Build, Test, and Push Image') {
-            environment {
-                DOCKER_USER = credentials('dtr-docker-repo-pusher')
-            }
+        stage('Build and Test') {
             steps {
                 dir('uaa-cf-release') {
                     git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
@@ -55,14 +57,11 @@ pipeline {
                     checkout scm
                 }
                 sh '''#!/bin/bash -ex
+                    source uaa/scripts/setup-tests.sh
                     source uaa-cf-release/config-local/set-env.sh
-                    unset HTTPS_PROXY
-                    unset HTTP_PROXY
-                    unset http_proxy
-                    unset https_proxy
-                    unset GRADLE_OPTS
-                    export DOCKER_REPO_USER=$DOCKER_USER_USR
-                    export DOCKER_REPO_USER_PW=$DOCKER_USER_PSW
+                    unset_env
+
+                    install_chromedriver
 
                     pushd uaa
                         export UAA_HOST=localhost
@@ -80,6 +79,44 @@ pipeline {
                             exit $LAST
                         fi
                     popd
+                '''
+            }
+            post {
+                always {
+                    junit testResults: 'uaa/uaa/build/test-results/**/*.xml', allowEmptyResults: true
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'uaa/uaa/build/reports/tests/acceptanceTest',
+                        reportFiles: 'index.html',
+                        reportName: 'Acceptance Test Results'
+                    ]
+                }
+                success {
+                    echo "Acceptance test stage success"
+                }
+                failure {
+                    echo "Acceptance test stage failed"
+                }
+            }
+        }
+        stage('Push Docker Image') {
+            environment {
+                DOCKER_USER = credentials('dtr-docker-repo-pusher')
+            }
+            // Publish the UAA docker image only if we are on release branch
+            when {
+                branch pattern: 'release_\\d+\\.\\d+\\.\\d+', comparator: 'REGEXP'
+            }
+            steps {
+                sh '''#!/bin/bash -ex
+                    source uaa/scripts/setup-tests.sh
+                    source uaa-cf-release/config-local/set-env.sh
+                    unset_env
+
+                    export DOCKER_REPO_USER=$DOCKER_USER_USR
+                    export DOCKER_REPO_USER_PW=$DOCKER_USER_PSW
 
                     pushd uaa
                         APP_VERSION=$(grep 'version' gradle.properties | sed 's/version=//')
@@ -92,10 +129,10 @@ pipeline {
             }
             post {
                 success {
-                    echo "Acceptance test stage success"
+                    echo "Push Docker Image stage success"
                 }
                 failure {
-                    echo "Acceptance test stage failed"
+                    echo "Push Docker Image stage failed"
                 }
             }
         }

@@ -26,6 +26,7 @@ buildscript {
         classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
         classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
         classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
+        classpath 'de.undercouch:gradle-download-task:4.1.1'
         classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
         classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
         classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
@@ -72,10 +73,21 @@ allprojects {
                 password geArtifactoryReaderPassword
             }
             url 'https://artifactory.build.ge.com/predix-virtual'
+            content {
+                // There is a discrepancy in javax/validation/validation-api/maven-metadata.xml
+                // for latest version of validation-api
+                // between maven repo (2.0.1.Final) and predix-virtual (2.0.2-SNAPSHOT).
+                // Prefer version from maven repo.
+                excludeGroup "javax.validation"
+            }
         }
-        maven {
-            url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
-        }
+        // shibboleth.net is not reachable from the Jenkins nodes due to GE selling "3.0.0.0/8 address space" to Amazon.
+        // Now, within GE, when Propel sends the wget command to the 3.213.250.186 address that shibboleth has,
+        // it never makes it out of the GE network because it thinks 3.x.x.x is within GE network.
+        // See https://docs.gecloudpod.com/misc/3pocalypse
+        // As of August 2020, relevant dependencies were uploaded to GE artifactory and should be available in predix-virtual
+        // maven { url 'https://build.shibboleth.net/nexus/content/repositories/releases/' }
+        maven { url 'https://artifacts.alfresco.com/nexus/content/repositories/public/' }
         maven { url 'https://repository.mulesoft.org/releases/' }
     }
     task sourceJar(type: Jar) {
