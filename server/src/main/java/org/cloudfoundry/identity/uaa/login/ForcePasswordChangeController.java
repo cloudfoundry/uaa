@@ -9,10 +9,10 @@ import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -53,7 +53,8 @@ public class ForcePasswordChangeController {
                                             @RequestParam("password_confirmation") String passwordConfirmation,
                                             HttpServletRequest request,
                                             HttpServletResponse response, HttpSession httpSession) {
-        UaaAuthentication authentication = ((UaaAuthentication) SecurityContextHolder.getContext().getAuthentication());
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        UaaAuthentication authentication = ((UaaAuthentication) securityContext.getAuthentication());
         UaaPrincipal principal = authentication.getPrincipal();
         String email = principal.getEmail();
 
@@ -71,6 +72,7 @@ public class ForcePasswordChangeController {
         logger.debug(String.format("Successful password change for username:%s in zone:%s ", principal.getName(), IdentityZoneHolder.get().getId()));
         SessionUtils.setPasswordChangeRequired(httpSession, false);
         authentication.setAuthenticatedTime(System.currentTimeMillis());
+        SessionUtils.setSecurityContext(request.getSession(), SecurityContextHolder.getContext());
         return "redirect:/force_password_change_completed";
     }
 
