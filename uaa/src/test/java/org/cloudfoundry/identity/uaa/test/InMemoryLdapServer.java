@@ -34,11 +34,8 @@ public class InMemoryLdapServer implements Closeable {
             "cn=schema, cn=config"
     };
 
-    private static final File TRUST_STORE = new File(InMemoryLdapServer
-            .class
-            .getClassLoader()
-            .getResource("certs/truststore-containing-the-ldap-ca.jks")
-            .getFile());
+    private static final URL TRUST_STORE_URL =
+            InMemoryLdapServer.class.getClassLoader().getResource("certs/truststore-containing-the-ldap-ca.jks");
 
     private static final URL LDAP_INIT_LIDF_URL =
             InMemoryLdapServer.class.getClassLoader().getResource("ldap_init.ldif");
@@ -60,7 +57,7 @@ public class InMemoryLdapServer implements Closeable {
 
     public static InMemoryLdapServer startLdapWithTls(int port, int tlsPort, File keyStore) {
         InMemoryLdapServer server = new InMemoryLdapServer(port);
-        server.configureStartTLS(tlsPort, keyStore, TRUST_STORE);
+        server.configureStartTLS(tlsPort, keyStore, new File(TRUST_STORE_URL.getFile()));
         server.start();
         server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
         return server;
@@ -159,14 +156,18 @@ public class InMemoryLdapServer implements Closeable {
 
         @Override
         public void beforeAll(ExtensionContext context) {
-            ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+            ExtensionContext.Store store =
+                    context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
             store.put(JAVAX_NET_SSL_TRUST_STORE, System.getProperty(JAVAX_NET_SSL_TRUST_STORE));
-            System.setProperty(JAVAX_NET_SSL_TRUST_STORE, TRUST_STORE.getAbsolutePath());
+
+            String trustStoreAbsolutePath = new File(TRUST_STORE_URL.getFile()).getAbsolutePath();
+            System.setProperty(JAVAX_NET_SSL_TRUST_STORE, trustStoreAbsolutePath);
         }
 
         @Override
         public void afterAll(ExtensionContext context) {
-            ExtensionContext.Store store = context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
+            ExtensionContext.Store store =
+                    context.getStore(ExtensionContext.Namespace.create(context.getRequiredTestClass()));
             String value = store.get(JAVAX_NET_SSL_TRUST_STORE, String.class);
 
             if (value != null) {
