@@ -4,4 +4,4 @@ UAA_LOG=$(grep --text /webapps/uaa.war uaa/build/reports/tests/uaa-server.log | 
 
 echo $UAA_LOG
 
-tail -f $UAA_LOG
+tail -F $UAA_LOG

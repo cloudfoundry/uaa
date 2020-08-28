@@ -106,6 +106,7 @@ public class ForcedPasswordChangeIT {
             new HttpEntity<>(headers), Object.class, userId);
     }
 
+
     @Test
     public void testHandleForcePasswordChange() {
         navigateToForcePasswordChange();
