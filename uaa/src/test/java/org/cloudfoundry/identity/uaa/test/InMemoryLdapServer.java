@@ -49,15 +49,14 @@ public class InMemoryLdapServer implements Closeable {
     private File trustStore;
 
     public static InMemoryLdapServer startLdap(int port) {
-        InMemoryLdapServer server = new InMemoryLdapServer(port);
-        server.start();
-        server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
-        return server;
+        return startLdapWithTls(port, 0, null);
     }
 
     public static InMemoryLdapServer startLdapWithTls(int port, int tlsPort, File keyStore) {
         InMemoryLdapServer server = new InMemoryLdapServer(port);
-        server.configureStartTLS(tlsPort, keyStore, new File(TRUST_STORE_URL.getFile()));
+        if (keyStore != null) {
+          server.configureStartTLS(tlsPort, keyStore, new File(TRUST_STORE_URL.getFile()));
+        }
         server.start();
         server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
         return server;
