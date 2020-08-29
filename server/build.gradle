@@ -123,12 +123,12 @@ artifacts {
 task migrationJar(type: Jar) {
     manifest {
         attributes('Main-Class': "org.cloudfoundry.identity.uaa.db.FlywayMigrationRunner",
-                'Class-Path': configurations.runtime.files.collect { "lib/$it.name" }.join(' '))
+                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/$it.name" }.join(' '))
     }
 }
 
 shadowJar {
-    baseName("UAA-FlywayMigrationRunner")
+    archiveBaseName = "UAA-FlywayMigrationRunner"
     manifest {
         inheritFrom(project.tasks.migrationJar.manifest)
     }
