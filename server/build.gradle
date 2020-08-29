@@ -4,12 +4,14 @@ apply plugin: 'com.github.johnrengelman.shadow'
 description = "CloudFoundry Identity Server JAR"
 
 dependencies {
+    implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(project(":cloudfoundry-identity-model"))
 
     implementation(libraries.tomcatJdbc)
     provided(libraries.tomcatEmbed)
     implementation(libraries.javaxMail)
 
+    implementation(libraries.jacksonDatabind)
     implementation(libraries.jsonPath)
     implementation(libraries.zxing)
     implementation(libraries.springBeans)

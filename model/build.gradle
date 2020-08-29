@@ -3,23 +3,16 @@ description = "CloudFoundry Identity Model JAR"
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
 
-    implementation(libraries.javaxValidationApi)
-
     implementation(libraries.commonsIo)
-
-    implementation(libraries.springWeb)
-    implementation(libraries.springWebMvc)
-    implementation(libraries.springSecurityConfig)
-
+    implementation(libraries.jacksonDatabind)
+    implementation(libraries.javaxValidationApi)
+    implementation(libraries.slf4jApi)
     implementation(libraries.springSecurityOauth) {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
 
-    implementation(libraries.slf4jApi)
-
     testImplementation(libraries.junit)
-
     testImplementation(libraries.jsonAssert)
 }
 

@@ -12,10 +12,13 @@ description = "Sample user webapp for Cloudfoundry Identity Services"
 dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
-
     implementation(identityServer)
 
+    implementation(libraries.springWebMvc)
+    implementation(libraries.springSecurityCore)
+
     providedCompile(libraries.tomcatEmbed)
+
     runtimeOnly(libraries.javaxServlet)
     runtimeOnly(libraries.springSecurityConfig) {
         exclude(module: "spring-aop")

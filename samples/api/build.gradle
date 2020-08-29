@@ -12,17 +12,14 @@ description = "Sample resource server for Cloudfoundry Identity Services"
 dependencies {
   Project identityParent = parent.parent
   Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
-
   implementation(identityServer)
 
+  implementation(libraries.springWebMvc)
+
   providedCompile(libraries.tomcatEmbed)
-  implementation(libraries.springSecurityTaglibs) {
-    exclude(module: "spring-jdbc")
-    exclude(module: "spring-tx")
-  }
-  implementation(libraries.springSecurityConfig)
 
   testImplementation(identityServer.configurations.testImplementation.dependencies)
+  testImplementation(libraries.springSecurityOauth)
   testImplementation(identityServer.sourceSets.test.output)
 }
 
