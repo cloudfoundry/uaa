@@ -64,7 +64,7 @@ dependencies {
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
-    testImplementation("com.icegreen:greenmail:1.5.11")
+    testImplementation(libraries.greenmail)
 }
 
 ext {
