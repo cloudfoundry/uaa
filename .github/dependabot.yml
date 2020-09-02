@@ -7,7 +7,7 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/"
@@ -16,7 +16,7 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
   ignore:
   - dependency-name: org.apache.directory.api:api-ldap-model
@@ -38,7 +38,7 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/metrics-data"
@@ -47,7 +47,7 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/samples/api"
@@ -56,7 +56,7 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/server"
@@ -65,7 +65,7 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/samples/app"
@@ -74,5 +74,5 @@ updates:
     time: "11:00"
   allowed_updates:
     - match:
-        update_type: "semver:patch"
+        update_type: "security"
   open-pull-requests-limit: 10
