@@ -1,23 +1,5 @@
 version: 2
 updates:
-- package-ecosystem: npm
-  directory: "/uaa"
-  schedule:
-    interval: weekly
-    time: "11:00"
-  allowed_updates:
-    - match:
-        update_type: "semver:patch"
-  open-pull-requests-limit: 10
-- package-ecosystem: gomod
-  directory: "/k8s"
-  schedule:
-    interval: weekly
-    time: "11:00"
-  allowed_updates:
-    - match:
-        update_type: "semver:patch"
-  open-pull-requests-limit: 10
 - package-ecosystem: gradle
   directory: "/statsd"
   schedule:
