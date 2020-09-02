@@ -41,7 +41,7 @@ import java.util.Set;
  * for access to a protected resource.
  */
 @Controller
-@SessionAttributes("authorizationRequest")
+@SessionAttributes(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST)
 public class AccessController {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
@@ -81,7 +81,7 @@ public class AccessController {
                     "User must be authenticated with before authorizing access.");
         }
 
-        AuthorizationRequest clientAuthRequest = (AuthorizationRequest) model.remove("authorizationRequest");
+        AuthorizationRequest clientAuthRequest = (AuthorizationRequest) model.remove(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST);
         if (clientAuthRequest == null) {
             model.put("error",
                     "No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
