@@ -114,8 +114,11 @@ spec:
         image: #@ data.values.image
         resources:
           requests:
-            memory: #@ data.values.resources.requests.memory
-            cpu: #@ data.values.resources.requests.cpu
+            memory: #@ data.values.resources.uaa.requests.memory
+            cpu: #@ data.values.resources.uaa.requests.cpu
+          limits:
+            memory: #@ data.values.resources.uaa.limits.memory
+            cpu: #@ data.values.resources.uaa.limits.cpu
         ports:
         - name: http-uaa
           containerPort: 8080
@@ -174,6 +177,13 @@ spec:
         - name: "metrics-uaa"
           containerPort: 9102
           protocol: "TCP"
+        resources:
+          requests:
+            memory: #@ data.values.resources.statsd_exporter.requests.memory
+            cpu: #@ data.values.resources.statsd_exporter.requests.cpu
+          limits:
+            memory: #@ data.values.resources.statsd_exporter.limits.memory
+            cpu: #@ data.values.resources.statsd_exporter.limits.cpu
       volumes:
       - name: uaa-config
         configMap:
