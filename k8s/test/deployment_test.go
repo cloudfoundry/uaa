@@ -140,7 +140,8 @@ var _ = Describe("Deployment", func() {
 			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore " +
 			"-Djavax.net.ssl.trustStoreType=PKCS12 " +
 			"-Djavax.net.ssl.trustStorePassword=changeit " +
-			"-Dstatsd.enabled=true"
+			"-Dstatsd.enabled=true " +
+			"-Dservlet.session-store=database"
 
 		Expect(ctx).To(
 			ProduceYAML(
