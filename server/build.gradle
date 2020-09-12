@@ -1,13 +1,14 @@
 description = "CloudFoundry Identity Server JAR"
 
 dependencies {
-
+    compile(project(":cloudfoundry-identity-metrics-data"))
     compile(project(":cloudfoundry-identity-model"))
 
     compile(libraries.tomcatJdbc)
     provided(libraries.tomcatEmbed)
     compile(libraries.javaxMail)
 
+    compile(libraries.jacksonDatabind)
     compile(libraries.jsonPath)
     compile(libraries.zxing)
     compile(libraries.springBeans)
