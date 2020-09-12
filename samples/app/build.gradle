@@ -16,8 +16,8 @@ dependencies {
     compile(identityServer)
 
     providedCompile(libraries.tomcatEmbed)
-    runtime(libraries.javaxServlet)
-    runtime(libraries.springSecurityConfig) {
+    runtimeOnly(libraries.javaxServlet)
+    runtimeOnly(libraries.springSecurityConfig) {
         exclude(module: "spring-aop")
     }
 
