@@ -54,6 +54,7 @@ dependencies {
     testImplementation(identityServer.sourceSets.test.output)
 
     testImplementation(project(":cloudfoundry-identity-model"))
+    testImplementation(project(":cloudfoundry-identity-metrics-data"))
     testImplementation(libraries.apacheDsProtocolLdap) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
@@ -77,6 +78,7 @@ dependencies {
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
     }
+    testImplementation(libraries.springBootStarterLog4j2)
     testImplementation(libraries.springContextSupport)
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
