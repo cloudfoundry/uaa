@@ -13,7 +13,7 @@ dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-    compile(identityServer)
+    implementation(identityServer)
     implementation(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
@@ -21,11 +21,11 @@ dependencies {
     }
 
     providedCompile(libraries.tomcatEmbed)
-    compile(libraries.springSecurityTaglibs) {
+    implementation(libraries.springSecurityTaglibs) {
         exclude(module: "spring-jdbc")
         exclude(module: "spring-tx")
     }
-    compile(libraries.springSecurityConfig)
+    implementation(libraries.springSecurityConfig)
 
     testImplementation(identityServer.configurations.testImplementation.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
