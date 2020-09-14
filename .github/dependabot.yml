@@ -1,21 +1,24 @@
 version: 2
 updates:
   - package-ecosystem: npm
+    target-branch: "prerelease/74.5.x"
     directory: "/uaa"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/statsd"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
     ignore:
@@ -32,32 +35,37 @@ updates:
           - "> 1.2.0"
           - "< 2"
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/model"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/metrics-data"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/samples/api"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/server"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
   - package-ecosystem: gradle
+    target-branch: "prerelease/74.5.x"
     directory: "/samples/app"
     schedule:
-      interval: weekly
+      interval: daily
       time: "11:00"
     open-pull-requests-limit: 10
