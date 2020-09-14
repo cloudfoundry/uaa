@@ -35,6 +35,11 @@ dependencies {
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(libraries.springBootStarter)
     implementation(libraries.springBootStarterWeb)
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
     runtimeOnly(libraries.springSecurityConfig)
     runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
@@ -46,24 +51,43 @@ dependencies {
 
     providedCompile(libraries.tomcatEmbed)
 
-    testImplementation(identityServer.configurations.testImplementation.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
 
+    testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(libraries.apacheDsProtocolLdap) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
+    testImplementation(libraries.apacheLdapApi) {
+        exclude(module: "slf4j-api")
+    }
+    testImplementation(libraries.flywayCore)
+    testImplementation(libraries.googleAuth)
+    testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.junit)
     testImplementation(libraries.selenium)
     testImplementation(libraries.dumbster)
     testImplementation(libraries.zxing)
     testImplementation(libraries.jsonAssert)
+    testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.unboundIdScimSdk) {
+        exclude(module: "servlet-api")
+        exclude(module: "commons-logging")
+        exclude(module: "httpclient")
+        exclude(module: "wink-client-apache-httpclient")
+    }
+    testImplementation(libraries.springContextSupport)
+    testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
+    testImplementation(libraries.springSecurityJwt)
+    testImplementation(libraries.springSecurityLdap)
+    testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
+    testImplementation(libraries.javaxMail)
     testImplementation(libraries.greenmail)
 }
 
