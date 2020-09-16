@@ -14,4 +14,4 @@ jobs:
         java-version: 11
         jdkFile: ./openjdk-11_linux-x64_bin.tar.gz
     - name: Build and test with Gradle
-      run: ./gradlew clean build
+      run: ./gradlew clean build test
