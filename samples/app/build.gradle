@@ -13,7 +13,12 @@ dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-    compile(identityServer)
+    implementation(identityServer)
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
 
     providedCompile(libraries.tomcatEmbed)
     runtimeOnly(libraries.javaxServlet)
