@@ -2,6 +2,7 @@ package matchers
 
 import (
 	"fmt"
+
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gstruct"
@@ -13,6 +14,7 @@ import (
 type ContainerMatcher struct {
 	fields       map[string]types.GomegaMatcher
 	envVars      map[string]types.GomegaMatcher
+	resources    map[string]types.GomegaMatcher
 	volumeMounts map[string]types.GomegaMatcher
 
 	container *coreV1.Container
@@ -23,6 +25,7 @@ type ContainerMatcherConfig func(*ContainerMatcher)
 
 func NewContainerMatcher() *ContainerMatcher {
 	return &ContainerMatcher{
+		map[string]types.GomegaMatcher{},
 		map[string]types.GomegaMatcher{},
 		map[string]types.GomegaMatcher{},
 		map[string]types.GomegaMatcher{},
@@ -84,13 +87,28 @@ func (matcher *ContainerMatcher) WithVolumeMount(name string, volumeMountMatcher
 	return matcher
 }
 
-func (matcher *ContainerMatcher) WithResourceRequests(memory, cpu string) *ContainerMatcher {
-	resourceList := coreV1.ResourceList{}
-	resourceList[coreV1.ResourceMemory] = k8sResource.MustParse(memory)
-	resourceList[coreV1.ResourceCPU] = k8sResource.MustParse(cpu)
-	matcher.fields["Resources"] = MatchFields(IgnoreExtras, Fields{
-		"Requests": Equal(resourceList),
-	})
+func (matcher *ContainerMatcher) WithResources(memoryRequest, cpuRequest, memoryLimit, cpuLimit interface{}) *ContainerMatcher {
+	requestList := coreV1.ResourceList{}
+	if memoryRequest != nil {
+		requestList[coreV1.ResourceMemory] = k8sResource.MustParse(memoryRequest.(string))
+	}
+	if cpuRequest != nil {
+		requestList[coreV1.ResourceCPU] = k8sResource.MustParse(cpuRequest.(string))
+	}
+
+	limitList := coreV1.ResourceList{}
+	if memoryLimit != nil {
+		limitList[coreV1.ResourceMemory] = k8sResource.MustParse(memoryLimit.(string))
+	}
+	if cpuLimit != nil {
+		limitList[coreV1.ResourceCPU] = k8sResource.MustParse(cpuLimit.(string))
+	}
+
+	resourceFields := Fields{}
+	resourceFields["Requests"] = Equal(requestList)
+	resourceFields["Limits"] = Equal(limitList)
+
+	matcher.fields["Resources"] = MatchFields(IgnoreExtras, resourceFields)
 	return matcher
 }
 
