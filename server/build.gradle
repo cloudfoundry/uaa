@@ -4,81 +4,83 @@ apply plugin: 'com.github.johnrengelman.shadow'
 description = "CloudFoundry Identity Server JAR"
 
 dependencies {
-    compile(project(":cloudfoundry-identity-model"))
+    implementation(project(":cloudfoundry-identity-metrics-data"))
+    implementation(project(":cloudfoundry-identity-model"))
 
-    compile(libraries.tomcatJdbc)
+    implementation(libraries.tomcatJdbc)
     provided(libraries.tomcatEmbed)
-    compile(libraries.javaxMail)
+    implementation(libraries.javaxMail)
 
-    compile(libraries.jsonPath)
-    compile(libraries.zxing)
-    compile(libraries.springBeans)
-    compile(libraries.springContext)
+											 
+    implementation(libraries.jsonPath)
+    implementation(libraries.zxing)
+    implementation(libraries.springBeans)
+    implementation(libraries.springContext)
     compile(libraries.springContextSupport)
-    compile(libraries.springTx)
-    compile(libraries.springJdbc)
-    compile(libraries.springWeb)
-    compile(libraries.springSecurityCore)
-    compile(libraries.springSecurityJwt)
-    compile(libraries.springSecurityWeb)
-    compile(libraries.springSecuritySaml)
-    compile(libraries.springSessionJdbc)
-    compile(libraries.springSessionCore)
+    implementation(libraries.springTx)
+    implementation(libraries.springJdbc)
+    implementation(libraries.springWeb)
+    implementation(libraries.springSecurityCore)
+    implementation(libraries.springSecurityJwt)
+    implementation(libraries.springSecurityWeb)
+    implementation(libraries.springSecuritySaml)
+    implementation(libraries.springSessionJdbc)
+    implementation(libraries.springSessionCore)
 
-    compile(libraries.springSecurityOauth) {
+    implementation(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
     
-    compile libraries.infinispanCore
-    compile libraries.infinispanSpring5   
-    compile libraries.infinispanQueryRemote
-    compile (libraries.infinispanQuery) {
+    implementation libraries.infinispanCore
+    implementation libraries.infinispanSpring5   
+    implementation libraries.infinispanQueryRemote
+    implementation (libraries.infinispanQuery) {
         exclude(module: "infinispan-lucene-directory")
         exclude(module: "lucene-queryparser")
         exclude(module: "hibernate-search-engine")
     }
 
-    compile(libraries.bouncyCastleProv)
-    compile(libraries.bouncyCastlePkix)
+    implementation(libraries.bouncyCastleProv)
+    implementation(libraries.bouncyCastlePkix)
 
-    compile(libraries.guava)
+    implementation(libraries.guava)
 
-    compile(libraries.aspectJRt)
-    compile(libraries.aspectJWeaver)
+    implementation(libraries.aspectJRt)
+    implementation(libraries.aspectJWeaver)
 
-    compile(libraries.thymeleafSpring5)
-    compile(libraries.thymeleafDialect)
-    compile(libraries.thymeleafExtrasSpringSecurity5)
+    implementation(libraries.thymeleafSpring5)
+    implementation(libraries.thymeleafDialect)
+    implementation(libraries.thymeleafExtrasSpringSecurity5)
 
-    compile(libraries.unboundIdScimSdk) {
+    implementation(libraries.unboundIdScimSdk) {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
     }
 
-    compile(libraries.hibernateValidator)
-    compile(libraries.flywayCore)
-    compile(libraries.mariaJdbcDriver)
-    compile(libraries.hsqldb)
+    implementation(libraries.hibernateValidator)
+    implementation(libraries.flywayCore)
+    implementation(libraries.mariaJdbcDriver)
+    implementation(libraries.hsqldb)
 
-    compile(libraries.snakeyaml)
+    implementation(libraries.snakeyaml)
 
-    compile(libraries.springSecurityLdap)
-    compile(libraries.springLdapCore)
-    compile(libraries.springLdapCoreTiger)
-    compile(libraries.apacheLdapApi) {
+    implementation(libraries.springSecurityLdap)
+    implementation(libraries.springLdapCore)
+    implementation(libraries.springLdapCoreTiger)
+    implementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
     }
 
-    compile(libraries.passay)
+    implementation(libraries.passay)
 
-    compile(libraries.googleAuth)
+    implementation(libraries.googleAuth)
 
-    compile(libraries.slf4jImpl)
-    compile(libraries.log4jCore)
+    implementation(libraries.slf4jImpl)
+    implementation(libraries.log4jCore)
 
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.javaxXmlBindCore)
