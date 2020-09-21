@@ -23,11 +23,21 @@ dependencies {
     compile(libraries.springSecurityWeb)
     compile(libraries.springSecuritySaml)
     compile(libraries.springSessionJdbc)
+    compile(libraries.springSessionCore)
 
     compile(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
+    }
+    
+    compile libraries.infinispanCore
+    compile libraries.infinispanSpring5   
+    compile libraries.infinispanQueryRemote
+    compile (libraries.infinispanQuery) {
+        exclude(module: "infinispan-lucene-directory")
+        exclude(module: "lucene-queryparser")
+        exclude(module: "hibernate-search-engine")
     }
 
     compile(libraries.bouncyCastleProv)

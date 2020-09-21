@@ -46,9 +46,9 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
     private final MultitenantJdbcClientDetailsService clientDetailsService;
     private final ScimUserProvisioning userProvisioning;
-    private final RevocableTokenProvisioning tokenProvisioning;
+    private RevocableTokenProvisioning tokenProvisioning;
 
-    private final WebResponseExceptionTranslator exceptionTranslator;
+	private final WebResponseExceptionTranslator exceptionTranslator;
     private final RandomValueStringGenerator generator;
 
     private ApplicationEventPublisher eventPublisher;
@@ -168,5 +168,10 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         this.eventPublisher = applicationEventPublisher;
-    }
+    }    
+
+    public void setTokenProvisioning(RevocableTokenProvisioning tokenProvisioning) {
+		this.tokenProvisioning = tokenProvisioning;
+	}
+
 }

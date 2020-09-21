@@ -10,13 +10,14 @@ public class UaaSessionConfig {
     private static final String SERVLET_SESSION_STORE = "servlet.session-store";
     static final String DATABASE_SESSION_STORE_TYPE = "database";
     static final String MEMORY_SESSION_STORE_TYPE = "memory";
+    public static final String CACHE_SESSION_STORE_TYPE = "cache";
 
-    static String getSessionStore(final Environment environment) {
+    public static String getSessionStore(final Environment environment) {
         return environment.getProperty(SERVLET_SESSION_STORE, MEMORY_SESSION_STORE_TYPE);
     }
 
-    static void validateSessionStore(String sessionStore) {
-        if (DATABASE_SESSION_STORE_TYPE.equals(sessionStore) || MEMORY_SESSION_STORE_TYPE.equals(sessionStore)) {
+    public static void validateSessionStore(String sessionStore) {
+        if (DATABASE_SESSION_STORE_TYPE.equals(sessionStore) || MEMORY_SESSION_STORE_TYPE.equals(sessionStore) || CACHE_SESSION_STORE_TYPE.equals(sessionStore)) {
             return;
         }
         throw new IllegalArgumentException(String.format(

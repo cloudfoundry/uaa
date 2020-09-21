@@ -24,8 +24,13 @@ import org.springframework.security.web.PortResolver;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest.Builder;
 import org.springframework.security.web.util.UrlUtils;
+import org.springframework.util.ReflectionUtils;
 import org.springframework.util.StringUtils;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -38,6 +43,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.lang.reflect.Proxy;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -48,6 +54,7 @@ import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticati
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.util.StringUtils.hasText;
+import org.springframework.util.ReflectionUtils;
 
 public class UaaSavedRequestCache extends HttpSessionRequestCache implements Filter {
 
@@ -121,17 +128,52 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
 
     }
 
+    @com.fasterxml.jackson.databind.annotation.JsonDeserialize(builder = ClientRedirectSavedRequest.Builder.class)
     public static class ClientRedirectSavedRequest extends DefaultSavedRequest {
 
-        private final String redirectUrl;
-        private final Map<String, String[]> parameters;
+        private String redirectUrl;
+        private Map<String, String[]> parameters;
 
         public ClientRedirectSavedRequest(HttpServletRequest request, String redirectUrl) {
             super(request, req -> req.getServerPort());
             this.redirectUrl = redirectUrl;
             parameters = Collections.unmodifiableMap(UaaUrlUtils.getParameterMap(redirectUrl));
         }
+        
+       
+        @JsonIgnoreProperties(ignoreUnknown = true)
+    	@JsonPOJOBuilder(withPrefix = "set")
+    	public static class Builder extends DefaultSavedRequest.Builder {
+        	
+        	private String redirectUrl;
+        	
+        	public Builder setRedirectUrl(String redirectUrl) {
+				this.redirectUrl = redirectUrl;
+				return this;
+			}
 
+			public ClientRedirectSavedRequest build(){
+				DefaultSavedRequest  parent =  super.build();
+				HttpServletRequest request = (HttpServletRequest) Proxy.newProxyInstance(HttpServletRequest.class.getClassLoader(), 
+			               new Class[] {HttpServletRequest.class}, (orig, method, args) -> {
+			            	   try {			            		   
+			            		   if ("getHeaderNames".equals(method.getName()) || "getLocales".equals(method.getName()) )
+			            			     return Collections.enumeration(Collections.emptyList());
+			            		   if ("getCookies".equals(method.getName()) )
+			            			     return new Cookie[0];
+			            		   if ("getRequestURL".equals(method.getName()) )
+			            			     return new StringBuffer(parent.getRequestURL());
+			            		   return ReflectionUtils.findMethod(DefaultSavedRequest.class, method.getName()).invoke(parent, args);
+			            	   } catch(Exception e) {
+			            		   e.printStackTrace();
+			            	   } 
+			            	   return null;
+			               });
+        		return new ClientRedirectSavedRequest(request, this.redirectUrl);
+        	}
+        	
+        }
+        
         @Override
         public String getRedirectUrl() {
             return redirectUrl;
@@ -188,7 +230,8 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
                 result = formRedirect.equals(getRedirectUrl());
             }
             return result;
-        }
+        }        
+       
     }
 
 

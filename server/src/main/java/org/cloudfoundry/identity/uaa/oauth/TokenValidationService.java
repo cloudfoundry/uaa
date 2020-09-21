@@ -79,4 +79,9 @@ public class TokenValidationService {
     public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
+
+	public void setTokenProvisioning(RevocableTokenProvisioning revocableTokenProvisioning) {
+		this.revocableTokenProvisioning = revocableTokenProvisioning;
+	}    
+    
 }

@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
@@ -68,6 +68,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
@@ -75,8 +76,8 @@ import static java.util.Optional.ofNullable;
 
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
 
-    private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning;
-    private JdbcScimUserProvisioning scimUserProvisioning;
+    private SamlServiceProviderProvisioning samlServiceProviderProvisioning;
+    private ScimUserProvisioning scimUserProvisioning;
 
     @Override
     public void sendResponse(Authentication authentication, SAMLMessageContext context, IdpWebSSOProfileOptions options)
@@ -351,7 +352,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
                 attributeStatement.getAttributes().add(familyNameAttribute);
             }
 
-            String phoneNumber = scimUserProvisioning.extractPhoneNumber(user);
+            String phoneNumber = Optional.ofNullable(user.getPhoneNumbers()).filter(l -> !l.isEmpty()).map(p -> p.get(0).getValue()).orElse(null);
             if (StringUtils.hasText(phoneNumber) && attributeMappings.containsKey("phone_number")) {
                 Attribute phoneNumberAttribute = buildStringAttribute(attributeMappings.get("phone_number").toString(), Collections.singletonList(phoneNumber));
                 attributeStatement.getAttributes().add(phoneNumberAttribute);
@@ -423,11 +424,11 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         Signer.signObject(signature);
     }
 
-    public void setSamlServiceProviderProvisioning(JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning) {
+    public void setSamlServiceProviderProvisioning(SamlServiceProviderProvisioning samlServiceProviderProvisioning) {
         this.samlServiceProviderProvisioning = samlServiceProviderProvisioning;
     }
 
-    public void setScimUserProvisioning(JdbcScimUserProvisioning scimUserProvisioning) {
+    public void setScimUserProvisioning(ScimUserProvisioning scimUserProvisioning) {
         this.scimUserProvisioning = scimUserProvisioning;
     }
 }

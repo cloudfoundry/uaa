@@ -746,7 +746,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    boolean isOpaqueTokenRequired(OAuth2Authentication authentication) {
+    public boolean isOpaqueTokenRequired(OAuth2Authentication authentication) {
         Map<String, String> parameters = authentication.getOAuth2Request().getRequestParameters();
         return OPAQUE.getStringValue().equals(parameters.get(REQUEST_TOKEN_FORMAT)) ||
             GRANT_TYPE_USER_TOKEN.equals(parameters.get(GRANT_TYPE));

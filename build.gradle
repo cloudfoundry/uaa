@@ -39,6 +39,7 @@ allprojects {
         imports {
             mavenBom(libraries.springBom)
             mavenBom(libraries.springBootBom)
+            mavenBom(libraries.infinispanBom)
         }
     }
 

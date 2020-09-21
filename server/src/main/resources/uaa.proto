@@ -1,0 +1,30 @@
+syntax = "proto3";
+package uaa;
+
+/* @Indexed */
+message RevocableToken {
+   /* @Field(index = Index.YES, store = Store.NO) */
+   optional int32 tokenType = 1;
+   /* @Field(index = Index.YES, store = Store.YES) */
+   optional string clientId = 2;
+   /* @Field(index = Index.YES, store = Store.YES) */
+   optional string userId = 3;   
+   /* @Field(store = Store.YES) */
+   optional string scope = 4;	
+   optional string format = 5;
+   /* @Field(index = Index.YES, store = Store.NO) */
+   optional string zoneId = 6;
+   optional string value = 7;
+   optional int64 expiresAt = 8;	
+   optional int64 issuedAt = 9;	
+   optional string tokenId = 10;	
+}
+
+message MapSession {
+    optional string id = 1;
+	optional string originalId = 2;
+	optional int64 creationTime = 3;
+	optional int64 lastAccessedTime = 4;
+	optional string sessionAttrs = 5;
+	optional string security_context = 6;
+}
