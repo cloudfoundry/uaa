@@ -1,13 +1,15 @@
 package k8s_test
 
 import (
+	"path/filepath"
+	"strings"
+
 	. "github.com/cloudfoundry/uaa/matchers"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gstruct"
 	coreV1 "k8s.io/api/core/v1"
-	"path/filepath"
 )
 
 var _ = Describe("Deployment", func() {
@@ -130,17 +132,19 @@ var _ = Describe("Deployment", func() {
 				"database.scheme": "hsqldb",
 			})
 
-		expectedJavaOpts := "" +
-			"-Dspring_profiles=hsqldb " +
-			"-Djava.security.egd=file:/dev/./urandom " +
-			"-Dlogging.config=/etc/config/log4j2.properties " +
-			"-Dlog4j.configurationFile=/etc/config/log4j2.properties " +
-			"-DCLOUDFOUNDRY_CONFIG_PATH=/etc/config " +
-			"-DSECRETS_DIR=/etc/secrets " +
-			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore " +
-			"-Djavax.net.ssl.trustStoreType=PKCS12 " +
-			"-Djavax.net.ssl.trustStorePassword=changeit " +
-			"-Dstatsd.enabled=true"
+		expectedJavaOpts := []string{
+			"-Dspring_profiles=hsqldb",
+			"-Djava.security.egd=file:/dev/./urandom",
+			"-Dlogging.config=/etc/config/log4j2.properties",
+			"-Dlog4j.configurationFile=/etc/config/log4j2.properties",
+			"-DCLOUDFOUNDRY_CONFIG_PATH=/etc/config",
+			"-DSECRETS_DIR=/etc/secrets",
+			"-Djavax.net.ssl.trustStore=/etc/truststore/uaa.pkcs12.truststore",
+			"-Djavax.net.ssl.trustStoreType=PKCS12",
+			"-Djavax.net.ssl.trustStorePassword=changeit",
+			"-Dstatsd.enabled=true",
+			"-Dservlet.session-store=database",
+		}
 
 		Expect(ctx).To(
 			ProduceYAML(
@@ -150,7 +154,7 @@ var _ = Describe("Deployment", func() {
 						container.WithName("uaa")
 						container.WithImageContaining("cfidentity/uaa@sha256:")
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
-						container.WithEnvVar("JAVA_OPTS", expectedJavaOpts)
+						container.WithEnvVar("JAVA_OPTS", strings.Join(expectedJavaOpts, " "))
 						container.WithVolumeMount("uaa-config", Not(BeNil()))
 						container.WithVolumeMount("database-credentials-file", databaseVolumeMountMatcher)
 						container.WithVolumeMount("smtp-credentials-file", smtpVolumeMountMatcher)
