@@ -163,7 +163,7 @@ var _ = Describe("Deployment", func() {
 						container.WithVolumeMount("truststore-file", truststoreVolumeMountMatcher)
 						container.WithVolumeMount("saml-keys-file", samlKeysVolumeMountMatcher)
 						container.WithVolumeMount("encryption-keys-file", encryptionKeysVolumeMountMatcher)
-						container.WithResourceRequests("512Mi", "500m")
+						container.WithResources("512Mi", "50m", "2000Mi", "500m")
 					})
 					pod.WithVolume("uaa-config", Not(BeNil()))
 					pod.WithVolume("database-credentials-file", Not(BeNil()))
@@ -200,9 +200,11 @@ var _ = Describe("Deployment", func() {
 	It("Renders custom resource requests for the UAA", func() {
 		ctx := NewRenderingContext(templates...).WithData(
 			map[string]string{
-				"resources.requests.memory": "888Mi",
-				"resources.requests.cpu":    "999m",
-				"database.scheme":           "hsqldb",
+				"resources.uaa.requests.memory": "888Mi",
+				"resources.uaa.requests.cpu":    "999m",
+				"resources.uaa.limits.memory":   "1100Mi",
+				"resources.uaa.limits.cpu":      "1200m",
+				"database.scheme":               "hsqldb",
 			})
 
 		Expect(ctx).To(
@@ -210,7 +212,7 @@ var _ = Describe("Deployment", func() {
 				RepresentingDeployment().WithPodMatching(func(pod *PodMatcher) {
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
-						container.WithResourceRequests("888Mi", "999m")
+						container.WithResources("888Mi", "999m", "1100Mi", "1200m")
 					})
 				}),
 			),
