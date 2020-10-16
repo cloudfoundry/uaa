@@ -23,7 +23,9 @@ dependencies {
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityJwt)
     implementation(libraries.springSecurityWeb)
-    implementation(libraries.springSecuritySaml)
+    implementation(libraries.springSecuritySaml) {
+        exclude(module: "bcprov-ext-jdk15on")
+    }
     implementation(libraries.springSessionJdbc)
 
     implementation(libraries.springSecurityOauth) {
