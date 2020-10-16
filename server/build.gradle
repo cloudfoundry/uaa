@@ -1,5 +1,4 @@
 apply plugin: 'java'
-apply plugin: 'com.github.johnrengelman.shadow'
 
 description = "CloudFoundry Identity Server JAR"
 
@@ -122,19 +121,4 @@ task tomcatListenerJar(type: Jar) {
 
 artifacts {
     archives(tomcatListenerJar)
-}
-
-task migrationJar(type: Jar) {
-    manifest {
-        attributes('Main-Class': "org.cloudfoundry.identity.uaa.db.FlywayMigrationRunner",
-                'Class-Path': configurations.runtimeClasspath.files.collect { "lib/$it.name" }.join(' '))
-    }
-}
-
-shadowJar {
-    archiveBaseName = "UAA-FlywayMigrationRunner"
-    manifest {
-        inheritFrom(project.tasks.migrationJar.manifest)
-    }
-    mergeServiceFiles('META-INF/spring.*')
 }
