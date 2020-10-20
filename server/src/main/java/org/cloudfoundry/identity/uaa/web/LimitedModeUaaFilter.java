@@ -34,6 +34,7 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
 
     public static final String ERROR_CODE = "uaa_unavailable";
     public static final String ERROR_MESSAGE = "UAA intentionally in limited mode, operation not permitted. Please try later.";
+    public static final String ERROR_MESSAGE_KEY = "error_description";
     public static final long STATUS_INTERVAL_MS = 5000;
     private static Logger logger = LoggerFactory.getLogger(LimitedModeUaaFilter.class);
 
@@ -66,7 +67,7 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
                     response.getWriter().flush();
                     response.getWriter().close();
                 } else {
-                    response.sendError(SC_SERVICE_UNAVAILABLE, json.get("description"));
+                    response.sendError(SC_SERVICE_UNAVAILABLE, json.get(ERROR_MESSAGE_KEY));
                 }
             }
         } else {
@@ -77,7 +78,7 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
     protected Map<String, String> getErrorData() {
         Map<String, String> json = new HashMap<>();
         json.put("error", ERROR_CODE);
-        json.put("error_description", ERROR_MESSAGE);
+        json.put(ERROR_MESSAGE_KEY, ERROR_MESSAGE);
         return json;
     }
 
