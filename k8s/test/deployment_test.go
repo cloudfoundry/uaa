@@ -117,7 +117,7 @@ var _ = Describe("Deployment", func() {
 								WithArgs([]string{"--statsd.listen-udp=:8125"}).
 								WithPort(expectedPort).
 								WithName("statsd-exporter").
-								WithImageContaining("oratos/statsd_exporter").
+								WithImageContaining("cloudfoundry/statsd_exporter").
 								WithImagePullPolicy("Always")
 						})
 					}),
