@@ -62,12 +62,15 @@ class SamlKeyRotationMockMvcTests {
             @Autowired TestClient testClient,
             @Autowired MockMvc mockMvc
     ) throws Exception {
+        System.out.println("In the saml key rotation test beforeEach block");
         token = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
                 "zones.write");
+        System.out.println("In the saml key rotation test beforeEach block 222");
         this.mockMvc = mockMvc;
 
+        System.out.println("In the saml key rotation test beforeEach block 333");
         String id = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
@@ -86,13 +89,16 @@ class SamlKeyRotationMockMvcTests {
         samlKey2 = new SamlKey(key2, passphrase2, certificate2);
         samlConfig.addKey("key2", samlKey2);
         identityZone.getConfig().setSamlConfig(samlConfig);
+        System.out.println("In the saml key rotation test beforeEach block 444");
 
         createZone(identityZone);
+        System.out.println("In the saml key rotation test beforeEach block 555");
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"/saml/idp/metadata", "/saml/metadata"})
     void key_rotation(String url) throws Exception {
+        System.out.println("In the saml key rotation test key_rotation");
         //default with three keys
         String metadata = getMetadata(url);
         List<String> signatureVerificationKeys = getCertificates(metadata, "signing");
@@ -126,6 +132,8 @@ class SamlKeyRotationMockMvcTests {
     @ParameterizedTest
     @ValueSource(strings = {"/saml/idp/metadata", "/saml/metadata"})
     void check_metadata_signature_key(String url) throws Exception {
+        System.out.println("In the saml key rotation test check_metadata_signature_key");
+
         String metadata = getMetadata(url);
 
         evaluateSignatureKey(metadata, legacyCertificate);

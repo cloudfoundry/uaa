@@ -90,6 +90,8 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         testLogging {
+            outputs.upToDateWhen {false}
+            showStandardStreams = true
             events("skipped", "failed", "passed")
             exceptionFormat("full")
 
