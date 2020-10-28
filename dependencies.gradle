@@ -14,7 +14,7 @@ def versions = [:]
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
-versions.apacheDsVersion = "2.0.0.AM25"
+versions.apacheDsVersion = "2.0.0.AM26"
 versions.bouncyCastleVersion = "1.64"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.1.9.RELEASE"
