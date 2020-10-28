@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
@@ -42,12 +43,12 @@ public class TestClient {
         if (subdomain != null && !subdomain.equals(""))
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         System.out.println("in the main oauth client creds token fn in testclient.java 444");
-        MvcResult result = mockMvc.perform(oauthTokenPost)
-            .andExpect(status().isOk())
-            .andReturn();
+        ResultActions resultAction = mockMvc.perform(oauthTokenPost);
         System.out.println("in the main oauth client creds token fn in testclient.java 555");
-        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
+        MvcResult result = resultAction.andExpect(status().isOk()).andReturn();
         System.out.println("in the main oauth client creds token fn in testclient.java 666");
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
+        System.out.println("in the main oauth client creds token fn in testclient.java 777");
         return oauthToken.accessToken;
     }
 
