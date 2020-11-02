@@ -115,4 +115,4 @@ libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcat
 libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatVersion}"
 libraries.unboundIdLdapSdk = "com.unboundid:unboundid-ldapsdk"
 libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.25"
-libraries.zxing = "com.google.zxing:javase:3.4.0"
+libraries.zxing = "com.google.zxing:javase:3.4.1"
