@@ -31,7 +31,6 @@ apply(plugin: "com.bmuschko.cargo")
 allprojects {
     apply(plugin: "propdeps")
     apply(plugin: "propdeps-maven")
-    apply(plugin: "propdeps-idea")
     apply(plugin: "io.spring.dependency-management")
 
     dependencyManagement {
