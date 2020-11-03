@@ -81,7 +81,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             "gm.external_group",
             "gm.origin",
             "g.displayname",
-            "g.id");
+            "g.id",
+            "external_id");
 
     private static Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
