@@ -11,10 +11,10 @@ public class RestTemplateConfig {
     @Value("${rest.template.timeout:10000}")
     public int timeout;
 
-    @Value("${rest.template.maxTotal:0}")
+    @Value("${rest.template.maxTotal:20}")
     public int maxTotal;
 
-    @Value("${rest.template.maxPerRoute:0}")
+    @Value("${rest.template.maxPerRoute:2}")
     public int maxPerRoute;
 
     @Value("${rest.template.maxKeepAlive:0}")

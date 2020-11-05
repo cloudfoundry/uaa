@@ -130,7 +130,7 @@ public class UaaHttpRequestUtilsTest {
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5);
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);

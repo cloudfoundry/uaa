@@ -51,7 +51,7 @@ public abstract class UaaHttpRequestUtils {
     private static Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation), timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, 20, 2, 0), timeout);
     }
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
@@ -67,10 +67,6 @@ public abstract class UaaHttpRequestUtils {
         return httpComponentsClientHttpRequestFactory;
     }
 
-    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation) {
-        return getClientBuilder(skipSslValidation, 0,0, 0);
-    }
-
     protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
         HttpClientBuilder builder = HttpClients.custom()
             .useSystemProperties()
@@ -79,15 +75,10 @@ public abstract class UaaHttpRequestUtils {
             builder.setSslcontext(getNonValidatingSslContext());
             builder.setSSLHostnameVerifier(new NoopHostnameVerifier());
         }
-        if (poolSize > 0) {
-            PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
-            cm.setMaxTotal(poolSize);
-
-            if (defaultMaxPerRoute > 0) {
-                cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
-            }
-            builder.setConnectionManager(cm);
-        }
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        cm.setMaxTotal(poolSize);
+        cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
+        builder.setConnectionManager(cm);
 
         if (maxKeepAlive <= 0) {
             builder.setConnectionReuseStrategy(NoConnectionReuseStrategy.INSTANCE);
