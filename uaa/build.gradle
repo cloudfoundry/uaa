@@ -10,18 +10,10 @@ processResources {
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-uaa') : line }
 }
 
-apply(plugin: "eclipse-wtp")
 apply(plugin: "org.springframework.boot")
 bootWar { enabled = false }
 war { enabled = true }
 
-eclipse {
-    wtp {
-        component {
-            contextPath = "uaa"
-        }
-    }
-}
 
 repositories {
     maven { url("https://repo.spring.io/libs-milestone") }
