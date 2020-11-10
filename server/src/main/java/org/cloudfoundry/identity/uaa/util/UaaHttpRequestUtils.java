@@ -12,6 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
+import org.apache.http.HttpResponse;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeaderElementIterator;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.protocol.HttpContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -33,6 +41,7 @@ import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.stream;
@@ -42,7 +51,11 @@ public abstract class UaaHttpRequestUtils {
     private static Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation), timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, 20, 2, 0), timeout);
+    }
+
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
+        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive), timeout);
     }
 
     protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs) {
@@ -54,7 +67,7 @@ public abstract class UaaHttpRequestUtils {
         return httpComponentsClientHttpRequestFactory;
     }
 
-    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation) {
+    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
         HttpClientBuilder builder = HttpClients.custom()
             .useSystemProperties()
             .setRedirectStrategy(new DefaultRedirectStrategy());
@@ -62,7 +75,17 @@ public abstract class UaaHttpRequestUtils {
             builder.setSslcontext(getNonValidatingSslContext());
             builder.setSSLHostnameVerifier(new NoopHostnameVerifier());
         }
-        builder.setConnectionReuseStrategy(NoConnectionReuseStrategy.INSTANCE);
+        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
+        cm.setMaxTotal(poolSize);
+        cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
+        builder.setConnectionManager(cm);
+
+        if (maxKeepAlive <= 0) {
+            builder.setConnectionReuseStrategy(NoConnectionReuseStrategy.INSTANCE);
+        } else {
+            builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(maxKeepAlive));
+        }
+
         return builder;
     }
 
@@ -99,5 +122,36 @@ public abstract class UaaHttpRequestUtils {
 
         }
         return false;
+    }
+
+    private static class UaaConnectionKeepAliveStrategy implements ConnectionKeepAliveStrategy {
+
+        private static final String TIMEOUT = "timeout";
+
+        private final long connectionKeepAliveMax;
+
+        public UaaConnectionKeepAliveStrategy(long connectionKeepAliveMax) {
+            this.connectionKeepAliveMax = connectionKeepAliveMax;
+        }
+
+        @Override public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
+            HeaderElementIterator elementIterator = new BasicHeaderElementIterator(httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            long result = connectionKeepAliveMax;
+
+            while (elementIterator.hasNext()) {
+                HeaderElement element = elementIterator.nextElement();
+                String elementName = element.getName();
+                String elementValue = element.getValue();
+                if (elementValue != null && elementName != null && elementName.equalsIgnoreCase(TIMEOUT)) {
+                    try {
+                        result = Math.min(TimeUnit.SECONDS.toMillis(Long.parseLong(elementValue)), connectionKeepAliveMax);
+                    } catch (NumberFormatException e) {
+                        //Ignore Exception and keep current elementValue of result
+                    }
+                    break;
+                }
+            }
+            return result;
+        }
     }
 }
