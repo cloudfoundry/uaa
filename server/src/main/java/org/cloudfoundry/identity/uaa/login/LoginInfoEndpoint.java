@@ -274,14 +274,25 @@ public class LoginInfoEndpoint {
             clientName = (String) clientInfo.get(ClientConstants.CLIENT_NAME);
         }
 
+        //Read all configuration and parameters at the beginning to allow earlier decisions
+        boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
+        boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
+        String defaultIdentityProviderName = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
+        boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
+        boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
+        boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
+        boolean accountChooserNeeded = accountChooserEnabled && !(otherAccountSignIn || savedAccountsEmpty) && discoveryEnabled &&!discoveryPerformed;
+
+        String loginHintParam = extractLoginHintParam(session, request);
+        UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHintParam);
+
         Map<String, SamlIdentityProviderDefinition> samlIdentityProviders;
         Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders;
         Map<String, AbstractIdentityProviderDefinition> allIdentityProviders = Collections.emptyMap();
         Map<String, AbstractIdentityProviderDefinition> loginHintProviders = Collections.emptyMap();
 
-        String loginHintParam = extractLoginHintParam(session, request);
-        UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHintParam);
         if (uaaLoginHint != null && (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin()))) {
+            // Login hint: Only try to read the hinted IdP from database
             if (!(OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin()))) {
                 try {
                     IdentityProvider loginHintProvider = externalOAuthProviderConfigurator
@@ -292,6 +303,10 @@ public class LoginInfoEndpoint {
                 } catch (EmptyResultDataAccessException ignored) {
                 }
             }
+            oauthIdentityProviders = Collections.emptyMap();
+            samlIdentityProviders = Collections.emptyMap();
+        } else if (accountChooserNeeded || (discoveryEnabled && !discoveryPerformed)) {
+            //Account Chooser and discovery do not need any IdP information
             oauthIdentityProviders = Collections.emptyMap();
             samlIdentityProviders = Collections.emptyMap();
         } else {
@@ -330,10 +345,6 @@ public class LoginInfoEndpoint {
         Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect;
         idpForRedirect = evaluateLoginHint(model, samlIdentityProviders,
                 oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, loginHintParam, uaaLoginHint, loginHintProviders);
-
-        boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
-        boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
-        String defaultIdentityProviderName = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
 
         idpForRedirect = evaluateIdpDiscovery(model, samlIdentityProviders, oauthIdentityProviders,
                 allIdentityProviders, allowedIdentityProviderKeys, idpForRedirect, discoveryEnabled, discoveryPerformed, defaultIdentityProviderName);
@@ -381,7 +392,7 @@ public class LoginInfoEndpoint {
                 excludedPrompts, returnLoginPrompts);
 
         if (principal == null) {
-            return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed);
+            return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed, accountChooserNeeded);
         }
         return "home";
     }
@@ -390,25 +401,18 @@ public class LoginInfoEndpoint {
             Model model,
             HttpServletRequest request,
             boolean discoveryEnabled,
-            boolean discoveryPerformed
+            boolean discoveryPerformed,
+            boolean accountChooserNeeded
     ) {
         String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
         if (hasText(formRedirectUri)) {
             model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
         }
 
-        boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
-        boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
-        boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
-
         if (discoveryEnabled) {
             if (model.containsAttribute("login_hint")) {
                 return goToPasswordPage(request.getParameter("email"), model);
             }
-            boolean accountChooserNeeded = accountChooserEnabled
-                    && !(otherAccountSignIn || savedAccountsEmpty)
-                    && !discoveryPerformed;
-
             if (accountChooserNeeded) {
                 return "idp_discovery/account_chooser";
             }
