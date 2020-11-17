@@ -73,6 +73,9 @@ public class SamlServiceProviderConfiguratorTest {
         when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
         RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
         restTemplateConfig.timeout = 120;
+        restTemplateConfig.maxTotal = 20;
+        restTemplateConfig.maxPerRoute = 2;
+        restTemplateConfig.maxKeepAlive = 0;
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(
                 restTemplateConfig.trustingRestTemplate(),
                 restTemplateConfig.nonTrustingRestTemplate(),

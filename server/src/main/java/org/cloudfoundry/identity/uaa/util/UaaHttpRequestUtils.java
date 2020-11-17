@@ -15,11 +15,17 @@ package org.cloudfoundry.identity.uaa.util;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.ssl.DefaultHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
+import org.apache.http.util.TextUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -34,6 +40,7 @@ import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -71,11 +78,18 @@ public abstract class UaaHttpRequestUtils {
         HttpClientBuilder builder = HttpClients.custom()
             .useSystemProperties()
             .setRedirectStrategy(new DefaultRedirectStrategy());
+        PoolingHttpClientConnectionManager cm;
         if (skipSslValidation) {
-            builder.setSslcontext(getNonValidatingSslContext());
-            builder.setSSLHostnameVerifier(new NoopHostnameVerifier());
+            SSLContext sslContext = getNonValidatingSslContext();
+            final String[] supportedProtocols = split(System.getProperty("https.protocols"));
+            final String[] supportedCipherSuites = split(System.getProperty("https.cipherSuites"));
+            HostnameVerifier hostnameVerifierCopy = new NoopHostnameVerifier();
+            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifierCopy);
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create().register("https", sslSocketFactory).build();
+            cm = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
+        } else {
+            cm = new PoolingHttpClientConnectionManager();
         }
-        PoolingHttpClientConnectionManager cm = new PoolingHttpClientConnectionManager();
         cm.setMaxTotal(poolSize);
         cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
         builder.setConnectionManager(cm);
@@ -153,5 +167,12 @@ public abstract class UaaHttpRequestUtils {
             }
             return result;
         }
+    }
+
+    private static String[] split(final String s) {
+        if (TextUtils.isBlank(s)) {
+            return null;
+        }
+        return s.split(" *, *");
     }
 }
