@@ -19,6 +19,7 @@ import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -85,7 +86,10 @@ public abstract class UaaHttpRequestUtils {
             final String[] supportedCipherSuites = split(System.getProperty("https.cipherSuites"));
             HostnameVerifier hostnameVerifierCopy = new NoopHostnameVerifier();
             SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifierCopy);
-            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create().register("https", sslSocketFactory).build();
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create()
+                    .register("https", sslSocketFactory)
+                    .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                    .build();
             cm = new PoolingHttpClientConnectionManager(socketFactoryRegistry);
         } else {
             cm = new PoolingHttpClientConnectionManager();
