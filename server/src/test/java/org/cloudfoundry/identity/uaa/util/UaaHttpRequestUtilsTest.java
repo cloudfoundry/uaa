@@ -102,7 +102,7 @@ public class UaaHttpRequestUtilsTest {
         String host = "localhost";
         System.setProperty(HTTP_HOST_PROPERTY, host);
         System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
-        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), host, true);
+        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), host, false);
     }
 
     @Test
@@ -118,7 +118,7 @@ public class UaaHttpRequestUtilsTest {
         String ip = "127.0.0.1";
         System.setProperty(HTTP_HOST_PROPERTY, ip);
         System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
-        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), ip, true);
+        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), ip, false);
     }
 
     @Test
