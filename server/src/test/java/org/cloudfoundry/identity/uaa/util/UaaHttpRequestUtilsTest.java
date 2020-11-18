@@ -10,11 +10,7 @@ import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,12 +19,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLHandshakeException;
 import java.io.File;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.junit.Assert.assertEquals;
@@ -102,7 +93,7 @@ public class UaaHttpRequestUtilsTest {
         String host = "localhost";
         System.setProperty(HTTP_HOST_PROPERTY, host);
         System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
-        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), host, false);
+        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), host, true);
     }
 
     @Test
@@ -118,7 +109,7 @@ public class UaaHttpRequestUtilsTest {
         String ip = "127.0.0.1";
         System.setProperty(HTTP_HOST_PROPERTY, ip);
         System.setProperty(HTTP_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
-        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), ip, false);
+        testHttpProxy("http://google.com:80/", httpServer.getAddress().getPort(), ip, true);
     }
 
     @Test
