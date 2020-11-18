@@ -23,7 +23,7 @@ pushd $(dirname $SCRIPT_DIR)
 
   ldapadd \
       -Y EXTERNAL \
-      -H ldapi:/// \
+      -H 'ldapi:///' \
       -f ./uaa/src/test/resources/ldap_db_init.ldif
 
   ldapadd \
@@ -37,5 +37,5 @@ pushd $(dirname $SCRIPT_DIR)
             --no-daemon \
             --stacktrace \
             --console=plain \
-            --exclude-task :cloudfoundry-identity-samples:assemble
+            --exclude-task ':cloudfoundry-identity-samples:assemble'
 popd
