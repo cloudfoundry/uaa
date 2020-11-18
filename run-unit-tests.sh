@@ -36,11 +36,11 @@ fi
 
 docker run \
   --privileged \
-  -t \
-  -i \
+  --tty \
+  --interactive \
   --shm-size=1G \
-  -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
-  -v "${GRADLE_LOCK_DIR}" \
+  --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
+  --volume "${GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
   "${DOCKER_IMAGE}" \
   /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
