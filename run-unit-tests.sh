@@ -34,7 +34,11 @@ if [[ -z "${DOCKER_IMAGE+x}" ]]; then
     DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
 fi
 
-docker run --privileged -t -i --shm-size=1G \
+docker run \
+  --privileged \
+  -t \
+  -i \
+  --shm-size=1G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   -v "${GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
