@@ -37,5 +37,5 @@ pushd $(dirname $SCRIPT_DIR)
             --no-daemon \
             --stacktrace \
             --console=plain \
-            -x :cloudfoundry-identity-samples:assemble
+            --exclude-task :cloudfoundry-identity-samples:assemble
 popd
