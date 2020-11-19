@@ -79,8 +79,8 @@ If this works you are in business:
     $ git clone git://github.com/cloudfoundry/uaa.git
     $ cd uaa
     $ ./gradlew run
-    
-    
+
+
 The apps all work together with the apps running on the same port
 (8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
 
@@ -110,7 +110,7 @@ requesting system information:
       }
     }
 
-For complex requests it is more convenient to interact with UAA using 
+For complex requests it is more convenient to interact with UAA using
 `uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
 
 ## Integration tests
@@ -118,7 +118,7 @@ For complex requests it is more convenient to interact with UAA using
 You can run the integration tests with docker
 
     $ run-integration-tests.sh <dbtype>
-  
+
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
 ### Using Gradle to test with postgresql or mysql
@@ -158,9 +158,9 @@ There are actually several projects here, the main `uaa` server application, a c
 
 1. `uaa` a WAR project for easy deployment
 
-2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
+2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI
 
-3. `model` a JAR project used by both the client library and server 
+3. `model` a JAR project used by both the client library and server
 
 4. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
 
@@ -211,6 +211,6 @@ Here are some ways for you to get involved in the community:
   want to contribute code this way, please reference an existing issue
   if there is one as well covering the specific issue you are
   addressing.  Always submit pull requests to the "develop" branch.
-  We strictly adhere to test driven development. We kindly ask that 
+  We strictly adhere to test driven development. We kindly ask that
   pull requests are accompanied with test cases that would be failing
   if ran separately from the pull request.
