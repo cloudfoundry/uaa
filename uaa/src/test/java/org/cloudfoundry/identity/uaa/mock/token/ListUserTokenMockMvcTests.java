@@ -166,7 +166,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     void listUserTokens_for_self() throws Exception {
         String userId = user2.getId();
-        listTokens("/oauth/token/list/user/" + userId, tokensPerUser.getFirst(userId), emptyList(), status().isForbidden());
+        listTokens("/oauth/token/list/user/" + userId, tokensPerUser.getFirst(userId), emptyList(), status().isOk());
     }
 
     @Test
