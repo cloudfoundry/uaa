@@ -2818,6 +2818,7 @@ public class LoginMockMvcTests {
 
         if (StringUtils.hasText(discoveryUrl)) {
             definition.setDiscoveryUrl(new URL(discoveryUrl));
+            definition.setSkipSslValidation(true);
         } else {
             definition.setAuthUrl(new URL("http://auth.url"));
             definition.setTokenUrl(new URL("http://token.url"));
