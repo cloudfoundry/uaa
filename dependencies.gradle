@@ -10,14 +10,14 @@ ext["flyway.version"] = "5.2.4"
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.66"
+versions.bouncyCastleVersion = "1.67"
 versions.hamcrestVersion = "2.2"
-versions.springBootVersion = "2.3.5.RELEASE"
+versions.springBootVersion = "2.3.6.RELEASE"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.4.0.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.springVersion = "5.2.9.RELEASE"
-versions.tomcatVersion = "9.0.38"
+versions.springVersion = "5.2.11.RELEASE"
+versions.tomcatVersion = "9.0.39"
 versions.xmlBind = "2.3.0.1"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
