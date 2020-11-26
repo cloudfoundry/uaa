@@ -124,6 +124,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -1406,6 +1407,7 @@ public class LoginMockMvcTests {
     void ExternalOAuthRedirectOnlyOneProviderWithDiscoveryUrl(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
     ) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -2816,6 +2818,7 @@ public class LoginMockMvcTests {
 
         if (StringUtils.hasText(discoveryUrl)) {
             definition.setDiscoveryUrl(new URL(discoveryUrl));
+            definition.setSkipSslValidation(true);
         } else {
             definition.setAuthUrl(new URL("http://auth.url"));
             definition.setTokenUrl(new URL("http://token.url"));
