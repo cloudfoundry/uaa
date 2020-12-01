@@ -1,6 +1,6 @@
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 
-# CloudFoundry User Account and Authentication (UAA) Server, hi 
+# CloudFoundry User Account and Authentication (UAA) Server
 
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
 as a stand alone OAuth2 server.  Its primary role is as an OAuth2 provider, issuing tokens for client
