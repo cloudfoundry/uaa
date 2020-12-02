@@ -1407,7 +1407,6 @@ public class LoginMockMvcTests {
     void ExternalOAuthRedirectOnlyOneProviderWithDiscoveryUrl(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
     ) throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
