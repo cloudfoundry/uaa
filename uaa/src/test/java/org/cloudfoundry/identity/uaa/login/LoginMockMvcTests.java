@@ -2815,6 +2815,7 @@ public class LoginMockMvcTests {
     private String createOIDCProviderInZone(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, IdentityZone identityZone, String discoveryUrl) throws Exception {
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
+
         if (StringUtils.hasText(discoveryUrl)) {
             definition.setDiscoveryUrl(new URL(discoveryUrl));
         } else {
