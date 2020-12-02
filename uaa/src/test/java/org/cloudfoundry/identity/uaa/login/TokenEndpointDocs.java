@@ -983,7 +983,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet requestHeaders = requestHeaders(
-                headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing the `tokens.list` scope."),
+                headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing one of: the `tokens.list` scope OR matching `user_id`"),
                 headerWithName(HttpHeaders.ACCEPT).description("Set to " + MediaType.APPLICATION_JSON_VALUE),
                 IDENTITY_ZONE_ID_HEADER,
                 IDENTITY_ZONE_SUBDOMAIN_HEADER
