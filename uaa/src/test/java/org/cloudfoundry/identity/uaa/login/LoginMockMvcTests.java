@@ -160,6 +160,9 @@ public class LoginMockMvcTests {
     private File originalLimitedModeStatusFile;
     private LimitedModeUaaFilter limitedModeUaaFilter;
 
+    @MockBean
+    OidcMetadataFetcher oidcMetadataFetcher;
+
     @BeforeEach
     void setUpContext(
             @Autowired WebApplicationContext webApplicationContext,
@@ -1407,7 +1410,6 @@ public class LoginMockMvcTests {
     void ExternalOAuthRedirectOnlyOneProviderWithDiscoveryUrl(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
     ) throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -1417,6 +1419,13 @@ public class LoginMockMvcTests {
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, "https://accounts.google.com/.well-known/openid-configuration");
+        doAnswer(invocation -> {
+            OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
+            definition.setIssuer("https://accounts.google.com");
+            definition.setAuthUrl(new URL("https://accounts.google.com/o/oauth2/v2/auth"));
+            return null;
+        }).when(oidcMetadataFetcher)
+            .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
         IdentityZoneHolder.set(identityZone);
         IdentityProvider uaaIdentityProvider = jdbcIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(UAA, identityZone.getId());
