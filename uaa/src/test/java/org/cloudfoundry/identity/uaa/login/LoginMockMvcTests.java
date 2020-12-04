@@ -1413,6 +1413,8 @@ public class LoginMockMvcTests {
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
     ) throws Exception {
         final String zoneAdminClientId = "admin";
+        final String oidcMetaEndpoint = "http://mocked/.well-known/openid-configuration";
+        final String oidcAuthUrl = "http://againmocked/oauth/auth";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
@@ -1420,11 +1422,10 @@ public class LoginMockMvcTests {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, "https://accounts.google.com/.well-known/openid-configuration");
+        String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, oidcMetaEndpoint);
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
-            definition.setIssuer("https://accounts.google.com");
-            definition.setAuthUrl(new URL("https://accounts.google.com/o/oauth2/v2/auth"));
+            definition.setAuthUrl(new URL(oidcAuthUrl));
             return null;
         }).when(oidcMetadataFetcher)
             .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
@@ -1443,7 +1444,7 @@ public class LoginMockMvcTests {
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
-        assertThat(location, startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
+        assertThat(location, startsWith(oidcAuthUrl));
         assertThat(queryParams, hasEntry("client_id", "uaa"));
         assertThat(queryParams, hasEntry("response_type", "code+id_token"));
         assertThat(queryParams, hasEntry("redirect_uri", "http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias));
