@@ -150,7 +150,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 @DirtiesContext
-@ExtendWith(PollutionPreventionExtension.class)
 public class LoginMockMvcTests {
 
     private WebApplicationContext webApplicationContext;
