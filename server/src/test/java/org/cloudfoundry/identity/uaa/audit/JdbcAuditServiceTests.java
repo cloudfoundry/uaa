@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +36,7 @@ class JdbcAuditServiceTests {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         Thread.sleep(100);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
-        List<AuditEvent> events = auditService.find("1", 0, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("1", 0, IdentityZone.getUaaZoneId());
         assertEquals(2, events.size());
         assertEquals("1", events.get(0).getPrincipalId());
         assertEquals("joe", events.get(0).getData());
@@ -48,7 +47,7 @@ class JdbcAuditServiceTests {
     @Test
     void principalAuthenticationFailureAuditSucceeds() {
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
-        List<AuditEvent> events = auditService.find("clientA", 0, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("clientA", 0, IdentityZone.getUaaZoneId());
         assertEquals(1, events.size());
         assertEquals("clientA", events.get(0).getPrincipalId());
         assertEquals("1.1.1.1", events.get(0).getOrigin());
@@ -64,7 +63,7 @@ class JdbcAuditServiceTests {
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientB"), getAuditEvent(PrincipalAuthenticationFailure, "clientB").getIdentityZoneId());
         // Find events within last 2 mins
-        List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId());
         assertEquals(1, events.size());
     }
 
