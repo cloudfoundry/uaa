@@ -20,7 +20,6 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.DefaultHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeaderElementIterator;
@@ -59,7 +58,7 @@ public abstract class UaaHttpRequestUtils {
     private static Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, 20, 2, 0), timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0), timeout);
     }
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
