@@ -175,11 +175,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @BeforeEach
     void setUp() throws Exception {
-        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
-        restTemplateConfig.timeout = 120;
-        restTemplateConfig.maxTotal = 20;
-        restTemplateConfig.maxPerRoute = 2;
-        restTemplateConfig.maxKeepAlive = 0;
+        RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
         RestTemplate nonTrustingRestTemplate = restTemplateConfig.nonTrustingRestTemplate();
         RestTemplate trustingRestTemplate = restTemplateConfig.trustingRestTemplate();
         SecurityContextHolder.clearContext();
