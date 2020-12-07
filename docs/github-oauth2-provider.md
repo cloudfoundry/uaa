@@ -1,6 +1,6 @@
 # Registering Github as external OAuth provider in UAA
- 
-Github can be setup as an Oauth2 provider for UAA. 
+
+Github can be setup as an Oauth2 provider for UAA.
 
 1. Create an OAuth “application” client in Github.
    For example at: `https://github.com/organizations/{YOUR-ORG}/settings/applications/new`.
@@ -13,7 +13,7 @@ Github can be setup as an Oauth2 provider for UAA.
 
 2. Make sure you have `Client ID` and `Client secret`.
 
-3. The following configuration needs to be added in login.yml. 
+3. The following configuration needs to be added in login.yml.
    Please refer to 'https://accounts.google.com/.well-known/openid-configuration' for authUrl and tokenUrl
 
         login:

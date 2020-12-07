@@ -98,6 +98,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
@@ -537,20 +538,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             headers.add("Accept", "application/json");
 
             URI requestUri;
-            HttpEntity requestEntity = new HttpEntity<>(headers);
+            HttpEntity<Object> requestEntity = new HttpEntity<>(headers);
             try {
                 requestUri = narrowedConfig.getCheckTokenUrl().toURI();
             } catch (URISyntaxException exc) {
-                logger.error("Invalid URI configured:" + narrowedConfig.getCheckTokenUrl(), exc);
+                logger.error("Invalid URI configured: <" + narrowedConfig.getCheckTokenUrl() + ">", exc);
                 return null;
             }
 
             logger.debug(String.format("Performing token check with url:%s", requestUri));
             ResponseEntity<Map<String, Object>> responseEntity =
                 getRestTemplate(config)
-                    .exchange(requestUri,
-                              HttpMethod.GET,
-                              requestEntity,
+                    .exchange(requestUri, GET, requestEntity,
                               new ParameterizedTypeReference<Map<String, Object>>() {
                               }
                     );
