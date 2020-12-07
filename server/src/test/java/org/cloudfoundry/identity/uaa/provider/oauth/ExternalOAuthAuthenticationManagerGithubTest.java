@@ -68,7 +68,7 @@ public class ExternalOAuthAuthenticationManagerGithubTest {
         providerConfig.setResponseType("code");
         providerConfig.setAuthUrl(new URL(AUTH_URL));
         providerConfig.setTokenUrl(new URL(TOKEN_URL));
-        providerConfig.setCheckTokenUrl(new URL(USER_INFO_URL));
+        providerConfig.setUserInfoUrl(new URL(USER_INFO_URL));
         providerConfig.setScopes(newArrayList(new String[] { "openid", "email" }));
         providerConfig.setAddShadowUserOnLogin(true); // the default anyway
         providerConfig.setRelyingPartyId("github_app_client_id");

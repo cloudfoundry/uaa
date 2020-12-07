@@ -24,7 +24,7 @@ Github can be setup as an Oauth2 provider for UAA.
                 providerDescription: Github OAuth provider, using the 'Authorization Code Grant' flow
                 authUrl: https://github.com/login/oauth/authorize
                 tokenUrl: https://github.com/login/oauth/access_token
-                checkTokenUrl: https://api.github.com/user
+                userInfoUrl: https://api.github.com/user
                 scopes:
                   - read:user
                   - user:email

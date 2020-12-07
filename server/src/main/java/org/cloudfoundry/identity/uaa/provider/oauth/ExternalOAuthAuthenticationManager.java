@@ -530,7 +530,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
         } else if ("code".equals(config.getResponseType())
                 && RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())
-                && ((RawExternalOAuthIdentityProviderDefinition) config).getCheckTokenUrl() != null) {
+                && ((RawExternalOAuthIdentityProviderDefinition) config).getUserInfoUrl() != null) {
             RawExternalOAuthIdentityProviderDefinition narrowedConfig = (RawExternalOAuthIdentityProviderDefinition) config;
 
             HttpHeaders headers = new HttpHeaders();
@@ -540,9 +540,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             URI requestUri;
             HttpEntity<Object> requestEntity = new HttpEntity<>(headers);
             try {
-                requestUri = narrowedConfig.getCheckTokenUrl().toURI();
+                requestUri = narrowedConfig.getUserInfoUrl().toURI();
             } catch (URISyntaxException exc) {
-                logger.error("Invalid URI configured: <" + narrowedConfig.getCheckTokenUrl() + ">", exc);
+                logger.error("Invalid user info URI configured: <" + narrowedConfig.getUserInfoUrl() + ">", exc);
                 return null;
             }
 
