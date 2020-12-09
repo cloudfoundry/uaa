@@ -59,7 +59,7 @@ public class ExpiringUrlCache implements UrlContentCache {
             }
             return metadata;
         } catch (RestClientException x) {
-            logger.warn("Unable to fetch metadata for " + uri, x);
+            logger.debug("Unable to fetch metadata for " + uri, x);
             throw x;
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException(e);
