@@ -7,6 +7,10 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -47,13 +51,27 @@ public class ExpiringUrlCache implements UrlContentCache {
 
     @Override
     public byte[] getUrlContent(String uri, final RestTemplate template) {
+        return getUrlContent(uri, template, HttpMethod.GET, null);
+    }
+
+    @Override
+    public byte[] getUrlContent(String uri, final RestTemplate template, final HttpMethod method, HttpEntity<?> requestEntity) {
         try {
             final URI netUri = new URI(uri);
             CacheEntry entry = cache.getIfPresent(uri);
             byte[] metadata = entry != null ? entry.data : null;
             if (metadata == null || isEntryExpired(entry)) {
                 logger.debug("Fetching metadata for " + uri);
-                metadata = template.getForObject(netUri, byte[].class);
+                if (requestEntity != null) {
+                    ResponseEntity<byte[]> responseEntity = template.exchange(netUri, method, requestEntity, byte[].class);
+                    if (responseEntity.getStatusCode() == HttpStatus.OK) {
+                        metadata = responseEntity.getBody();
+                    } else {
+                        throw new IllegalArgumentException("Unable to fetch content, status:" + responseEntity.getStatusCode().getReasonPhrase());
+                    }
+                } else {
+                    metadata = template.getForObject(netUri, byte[].class);
+                }
                 Instant now = Instant.ofEpochMilli(timeService.getCurrentTimeMillis());
                 cache.put(uri, new CacheEntry(now, metadata));
             }

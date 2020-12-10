@@ -1,10 +1,12 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -18,6 +20,7 @@ import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 
@@ -109,7 +112,12 @@ public class ExternalOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl));
+        OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
+            new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+            new RestTemplate(),
+            new RestTemplate()
+        );
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 
     @After

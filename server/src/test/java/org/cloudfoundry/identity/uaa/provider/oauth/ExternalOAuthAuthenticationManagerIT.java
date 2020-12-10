@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthori
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -132,6 +133,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     private MockRestServiceServer mockUaaServer;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
+    private UrlContentCache urlContentCache;
     private IdentityProviderProvisioning provisioning;
     private InMemoryUaaUserDatabase userDatabase;
     private ExternalOAuthCodeToken xCodeToken;
@@ -203,8 +205,9 @@ class ExternalOAuthAuthenticationManagerIT {
         publisher = mock(ApplicationEventPublisher.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
         when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn(UAA_ISSUER_URL);
+        urlContentCache = spy(new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10));
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
-                new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+                urlContentCache,
                 trustingRestTemplate,
                 nonTrustingRestTemplate
         );
@@ -214,7 +217,7 @@ class ExternalOAuthAuthenticationManagerIT {
                         oidcMetadataFetcher,
                         mock(UaaRandomStringUtil.class))
         );
-        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL)));
+        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);
@@ -703,6 +706,7 @@ class ExternalOAuthAuthenticationManagerIT {
                 true);
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
+        verify(urlContentCache, times(1)).getUrlContent(any(), any(), any(), any());
     }
 
     @Test

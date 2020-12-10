@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -48,7 +47,6 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -68,7 +66,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,6 +105,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
+    private final OidcMetadataFetcher oidcMetadataFetcher;
 
     private TokenEndpointBuilder tokenEndpointBuilder;
     private KeyInfoService keyInfoService;
@@ -119,12 +117,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                                               RestTemplate trustingRestTemplate,
                                               RestTemplate nonTrustingRestTemplate,
                                               TokenEndpointBuilder tokenEndpointBuilder,
-                                              KeyInfoService keyInfoService) {
+                                              KeyInfoService keyInfoService,
+                                              OidcMetadataFetcher oidcMetadataFetcher) {
         super(providerProvisioning);
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.keyInfoService = keyInfoService;
+        this.oidcMetadataFetcher = oidcMetadataFetcher;
     }
 
     @Override
@@ -547,22 +547,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             logger.debug("Key configured, returning.");
             return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
         }
-        URL tokenKeyUrl = config.getTokenKeyUrl();
-        if (tokenKeyUrl == null || !StringUtils.hasText(tokenKeyUrl.toString())) {
-            return new JsonWebKeySet<>(Collections.emptyList());
-        }
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Authorization", getClientAuthHeader(config));
-        headers.add("Accept", "application/json");
-        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        logger.debug("Fetching token keys from:"+tokenKeyUrl);
-        ResponseEntity<String> responseEntity = getRestTemplate(config).exchange(tokenKeyUrl.toString(), HttpMethod.GET, tokenKeyRequest, String.class);
-        logger.debug("Token key response:"+responseEntity.getStatusCode());
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
-            return JsonWebKeyHelper.deserialize(responseEntity.getBody());
-        } else {
-            throw new InvalidTokenException("Unable to fetch verification keys, status:" + responseEntity.getStatusCode());
+        try {
+            return oidcMetadataFetcher.fetchWebKeySet(config);
+        } catch (OidcMetadataFetchingException e) {
+            throw new InvalidTokenException(e.getMessage(), e);
         }
     }
 
