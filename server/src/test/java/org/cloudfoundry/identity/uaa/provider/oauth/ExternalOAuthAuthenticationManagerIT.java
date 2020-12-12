@@ -698,6 +698,32 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void null_key_invalid() throws Exception {
+        String json = new String("");
+        configureTokenKeyResponse("http://localhost/token_key", json);
+        addTheUserOnAuth();
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof OidcMetadataFetchingException);
+        }
+    }
+
+    @Test
+    void invalid_key() throws Exception {
+        String json = new String("{x}");
+        configureTokenKeyResponse("http://localhost/token_key", json);
+        addTheUserOnAuth();
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof OidcMetadataFetchingException);
+        }
+    }
+
+    @Test
     void multi_key_response() throws Exception {
         configureTokenKeyResponse(
                 "http://localhost/token_key",
@@ -707,6 +733,23 @@ class ExternalOAuthAuthenticationManagerIT {
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
         verify(urlContentCache, times(1)).getUrlContent(any(), any(), any(), any());
+    }
+
+    @Test
+    void null_key_config_invalid() throws Exception {
+        configureTokenKeyResponse(
+                "http://localhost/token_key",
+                PRIVATE_KEY,
+                "correctKey",
+                true);
+        addTheUserOnAuth();
+        config.setTokenKeyUrl(null);
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+        }
     }
 
     @Test
