@@ -144,7 +144,7 @@ public class LimitedModeUaaFilterTests {
             mockHttpServletRequest.addHeader(ACCEPT, accept);
             filter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
             assertEquals(SC_SERVICE_UNAVAILABLE, mockHttpServletResponse.getStatus());
-            assertEquals(filter.getErrorData().get("description"), mockHttpServletResponse.getErrorMessage());
+            assertEquals(filter.getErrorData().get("error_description"), mockHttpServletResponse.getErrorMessage());
         }
     }
 
