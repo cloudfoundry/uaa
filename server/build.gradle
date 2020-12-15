@@ -67,6 +67,7 @@ dependencies {
     }
 
     implementation(libraries.passay)
+    implementation(libraries.beanutils)
 
     implementation(libraries.googleAuth)
 
@@ -97,6 +98,7 @@ dependencies {
 
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
+    exclude(group: "org.apache-extras.beanshell", module: "bsh")
 }
 
 jar {
