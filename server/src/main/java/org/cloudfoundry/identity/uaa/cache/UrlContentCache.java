@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.cache;
 
 
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -29,6 +31,16 @@ public interface UrlContentCache {
      * @throws IllegalArgumentException if uri is not valid {@link URI}
      */
     byte[] getUrlContent(String uri, RestTemplate template);
+
+    /**
+     * Retrieves and caches the content for a given URI by invoking
+     * @param uri - must be a valid URI
+     * @param method - HTTP Method
+     * @param requestEntity HTTP Entity
+     * @return byte[] for the content or null if a content retrieval error happened ({@link org.springframework.web.client.RestClientException})
+     * @throws IllegalArgumentException if uri is not valid {@link URI}
+     */
+    byte[] getUrlContent(String uri, final RestTemplate template, final HttpMethod method, HttpEntity<?> requestEntity);
 
     /**
      * Clears the cache unconditionally
