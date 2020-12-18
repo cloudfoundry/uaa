@@ -211,6 +211,14 @@ subprojects {
             csv.enabled = false
         }
     }
+
+    if (!path.startsWith(':cloudfoundry-identity-samples')) {
+        task collectDependencies(type: Copy) {
+            from configurations.runtime
+            into "${rootProject.buildDir}/dependencies"
+            exclude 'cloudfoundry-identity-*.jar'
+        }
+    }
 }
 
 def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"

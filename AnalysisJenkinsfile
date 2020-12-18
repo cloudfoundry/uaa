@@ -1,0 +1,89 @@
+#!/usr/bin/env groovy
+
+pipeline {
+    agent none
+    options {
+        skipDefaultCheckout()
+        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+    }
+    parameters {
+        booleanParam(name: 'WHITESOURCE_SCAN', defaultValue: true, description: 'Run Whitesource scan')
+    }
+    stages {
+        stage ('Run code analysis') {
+            parallel {
+                stage ('Whitesource') {
+                    when {
+                        beforeAgent true
+                        expression { params.WHITESOURCE_SCAN }
+                    }
+                    agent {
+                        docker {
+                            image 'openjdk:8'
+                            label 'dind'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle'
+                        }
+                    }
+                    stages {
+                        stage ('Download sources') {
+                            steps {
+                                checkout scm
+                                dir('uaa-cf-release') {
+                                    git changelog: false,
+                                        credentialsId: 'github.build.ge.com',
+                                        poll: false,
+                                        url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                        branch: 'master'
+                                }
+                            }
+                        }
+                        stage ('Collect dependencies') {
+                            steps {
+                                sh '''#!/bin/bash -ex
+
+                                    source uaa-cf-release/config-local/set-env.sh
+                                    unset HTTPS_PROXY
+                                    unset HTTP_PROXY
+                                    unset http_proxy
+                                    unset https_proxy
+                                    unset GRADLE_OPTS
+
+                                    ./gradlew collectDependencies
+                                '''
+                            }
+                        }
+                        stage ('Run scan') {
+                            environment {
+                                PROPEL_API_KEY = credentials('PROPEL_API_KEY')
+                                PRODUCT_NAME = 'GESoftware-CF'
+                                PROJECT_NAME = 'uaa'
+                                WORKSPACE_ID = 'bjmjek1k'
+                                LOCAL = true
+                            }
+                            steps {
+                                sh '''#!/bin/bash
+
+                                    source uaa-cf-release/config-local/set-env.sh
+                                    unset HTTPS_PROXY
+                                    unset HTTP_PROXY
+                                    unset http_proxy
+                                    unset https_proxy
+                                    unset GRADLE_OPTS
+
+                                    echo 'Downloading Propel OSS binary'
+                                    wget --http-user=${ARTIFACTORY_READER} \
+                                         --http-password=${ARTIFACTORY_READER_PW} \
+                                         https://artifactory.build.ge.com/BUILDGE/propel-oss/latest/linux/propel-oss
+                                    chmod u+x propel-oss
+    
+                                    echo 'Running scan'
+                                    ./propel-oss
+                                '''
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
