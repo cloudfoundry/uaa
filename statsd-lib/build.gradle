@@ -10,6 +10,7 @@ dependencies {
     implementation(libraries.springBootStarterWeb)
     implementation(libraries.springBootStarterLog4j2)
     implementation(libraries.statsdClient)
+    testImplementation(libraries.junit)
     testImplementation(libraries.mockito)
     testImplementation(libraries.springBootStarterTest)
 

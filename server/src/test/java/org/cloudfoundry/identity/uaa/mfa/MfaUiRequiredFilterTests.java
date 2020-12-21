@@ -113,7 +113,7 @@ class MfaUiRequiredFilterTests {
     @Test
     void authentication_log_info_unknown() {
         SecurityContextHolder.getContext().setAuthentication(usernameAuthentication);
-        assertThat(spyFilter.getAuthenticationLogInfo(), containsString("Unknown Auth=org.springframework.security.authentication.UsernamePasswordAuthenticationToken"));
+        assertThat(spyFilter.getAuthenticationLogInfo(), containsString("Unknown Auth=UsernamePasswordAuthenticationToken"));
         assertThat(spyFilter.getAuthenticationLogInfo(), containsString("fake-principal"));
     }
 
