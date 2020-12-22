@@ -68,8 +68,6 @@ pipeline {
                 source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
                 unset_env
 
-                install_chromedriver
-
                 pushd uaa-cf-release
                     source combine-inline-config.sh
                     echo "$UAA_CONFIG_YAML"

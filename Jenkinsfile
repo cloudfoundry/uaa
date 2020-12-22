@@ -220,12 +220,8 @@ pipeline {
 
                             curl -v http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php
 
-                            install_chromedriver
-
-                            ### install ldap
-                            apt-get -y update || echo "problems were encountered when trying to update the package index, but let's continue anyway"
-                            DEBIAN_FRONTEND=noninteractive apt-get -qy install slapd ldap-utils
-                            /etc/init.d/slapd start 
+                            ### start slapd and add entries to ldap for tests
+                            /etc/init.d/slapd start
                             /etc/init.d/slapd status
                             ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/uaa/src/main/resources/ldap_db_init.ldif
                             ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/uaa/src/main/resources/ldap_init.ldif
@@ -313,19 +309,13 @@ pipeline {
                                     export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
                                     unset_env
 
-                                    install_chromedriver
-
                                     ruby -v
 
                                     # The docker image comes with uaac version 4.1.0, which is fine.
                                     # DO NOT upgrade to 4.2.0, for that version url-encodes special characters, turning
                                     # admin secret abc@def into abc%40def, which leads to a "Bad credentials"
-                                    # authenication failure.
+                                    # authentication failure.
                                     uaac --version
-
-                                    #install phantomjs for degraded tests
-                                    gem install phantomjs
-                                    phantomjs --version
 
                                     apt-get install jq -y
                                     jq --version
