@@ -68,6 +68,7 @@ dependencies {
 
     implementation(libraries.passay)
     implementation(libraries.beanutils)
+    implementation(libraries.velocity)
 
     implementation(libraries.googleAuth)
 
