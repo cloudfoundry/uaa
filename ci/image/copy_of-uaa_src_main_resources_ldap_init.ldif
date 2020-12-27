@@ -1,0 +1,326 @@
+dn: dc=test,dc=com
+changetype: add
+objectClass: top
+objectClass: dcObject
+objectClass: domain
+
+dn: ou=Users,dc=test,dc=com
+changetype: add
+objectClass: organizationalUnit
+ou: Users
+
+dn: cn=admin,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: admin
+sn: Administrator
+userPassword: adminsecret
+uid: 3378a03c-fc8c-46b6-8a76-f67f9d7a7b4a
+mail: admin@test.com
+givenname: Bob
+initials: X
+telephonenumber: 8885550987
+streetAddress: 1111 Admin St
+l: Adminton
+st: California
+postalCode: 94119
+
+dn: cn=marissa,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db1
+mail: marissa@test.com
+sn: Marissa
+
+dn: cn=slash/username,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: slash/username
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7fff9db1
+mail: slash-username@test.com
+sn: Marissa
+
+dn: cn=slash/贺琳,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: slash/贺琳
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7fff9db1
+mail: slash-username2@test.com
+sn: Marissa
+
+dn: cn=琳贺,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: 琳贺
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7fff9db1
+mail: username3@test.com
+sn: Marissa
+
+dn: cn=marissa2,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa2
+userPassword: ldap
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db2
+mail: marissa2@test.com
+sn: Marissa2
+
+dn: cn=marissa3,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: customUaaUser
+cn: marissa3
+userPassword: ldap3
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db3
+mail: marissa3@test.com
+sn: Lastnamerton
+givenname: Marissa
+initials: M
+telephonenumber: 8885550986
+streetAddress: 1111 Marissa St
+l: Marissaville
+st: Florida
+postalCode: 32561
+costCenter: Denver,CO
+uaaManager: John the Sloth
+uaaManager: Kari the Ant Eater
+emailVerified: false
+memberOf: cn=developers,ou=scopes,dc=test,dc=com
+
+dn: cn=marissa4,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa4
+userPassword: ldap4
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db4
+mail: marissa4@test.com
+sn: Marissa4
+
+dn: cn=marissa5,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa5
+userPassword: ldap5
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db5
+mail: marissa5@test.com
+sn: Marissa5
+
+dn: cn=marissa6,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa6
+userPassword: ldap6
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db6
+mail: marissa6@test.com
+sn: Marissa6
+
+dn: cn=marissa7,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa7
+userPassword: ldap7
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db7
+sn: Marissa7
+
+dn: cn=marissa8,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa8
+userPassword: ldap8
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db8
+sn: Marissa8
+
+dn: cn=marissa9,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: customUaaUser
+cn: marissa9
+mail: marissa9@test.com
+userPassword: ldap9
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db9
+sn: Marissa9
+costCenter: Denver,CO
+uaaManager: John the Sloth
+uaaManager: Kari the Ant Eater
+givenname: Marissa
+initials: M
+telephonenumber: 8885550986
+mail: marissa9-custom@test.com
+emailVerified: true
+memberOf: cn=developers,ou=scopes,dc=test,dc=com
+
+dn: cn=marissa10,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: customUaaUser
+cn: marissa10
+userPassword: ldap10
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769d10
+sn: Marissa10
+costCenter: Denver,CO
+uaaManager: John the Sloth
+uaaManager: Kari the Ant Eater
+emailVerified: true
+memberOf: cn=developers,ou=scopes,dc=test,dc=com
+memberOf: cn=superusers,ou=scopes,dc=test,dc=com
+
+dn: cn=marissa 11,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: marissa 11
+userPassword: ldap11
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769d10
+sn: Marissa11
+
+###############################################################################
+#        BEGIN GROUP TO SCOPE MAPPING
+###############################################################################
+#scopes as groups mapping - this is the search base
+
+dn: ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: organizationalUnit
+ou: scopes
+
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=admins,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: admins
+description: uaa.admin,cloud_controller.read
+member: cn=admin,ou=Users,dc=test,dc=com
+member: cn=marissa3,ou=Users,dc=test,dc=com
+
+dn: cn=marissagroup1,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissagroup1
+description: foobar # the description field is required for ldap-groups-as-scopes.xml, but not for ldap-groups-map-to-scopes.xml
+member: cn=marissa,ou=Users,dc=test,dc=com
+
+dn: cn=marissagroup2,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissagroup2
+description: foobar # the description field is required for ldap-groups-as-scopes.xml, but not for ldap-groups-map-to-scopes.xml
+member: cn=marissa,ou=Users,dc=test,dc=com
+
+#This groups contains scope as the cn attribute
+dn: cn=uaa.admin,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: uaa.admin
+member: cn=admin,ou=Users,dc=test,dc=com
+member: cn=marissa3,ou=Users,dc=test,dc=com
+
+dn: cn=thirdmarissa,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: thirdmarissa
+description: thirdmarissa
+member: cn=marissa3,ou=Users,dc=test,dc=com
+
+dn: cn=developers,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: developers
+description: test.read
+member: cn=operators,ou=scopes,dc=test,dc=com
+member: cn=marissa6,ou=Users,dc=test,dc=com
+
+dn: cn=operators,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: operators
+description: test.write
+member: cn=superusers,ou=scopes,dc=test,dc=com
+member: cn=marissa5,ou=Users,dc=test,dc=com
+
+dn: cn=superusers,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: superusers
+description: test.everything
+member: cn=marissa4,ou=Users,dc=test,dc=com
+
+dn: cn=otherusers,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: otherusers
+description: test.everything
+member: cn=marissa8,ou=Users,dc=test,dc=com
+
+# Invalid referral cause PartialResultsException
+
+dn: cn=Referral1,ou=scopes,dc=test,dc=com
+changetype: add
+objectclass: referral
+objectclass: extensibleObject
+member: cn=marissa8,ou=Users,dc=test,dc=com
+ref: ldap://localhost:43389/cn=otherusers1,ou=scopes,dc=test,dc=com
+
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=marissaniner,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissaniner
+description: marissaniner
+member: cn=marissa9,ou=Users,dc=test,dc=com
+
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=marissaniner2,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissaniner2
+description: marissaniner2
+member: cn=marissa9,ou=Users,dc=test,dc=com
+
+###############################################################################
+#        END GROUP TO SCOPE MAPPING
+###############################################################################

@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -eu -o pipefail
+
+UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+
+DOCKER_IMAGE=${DOCKER_IMAGE-cfidentity/uaa-consolidated}
+echo "Using docker image: ${DOCKER_IMAGE}"
+
+uaa_work_dir="/root/uaa"
+
+docker_run() {
+  local run_command="docker run ${*}"
+  cat <<COMMAND
+Running:
+  ${run_command}
+COMMAND
+
+  command pushd "${UAA_DIR}"    > /dev/null # silence output
+  ${run_command}
+  command popd                  > /dev/null # silence output
+}
+
+docker_run --tty --interactive \
+  --workdir "${uaa_work_dir}" \
+  --volume "${UAA_DIR}":"${uaa_work_dir}" \
+  --env DB=${DB-hsqldb} \
+  "${DOCKER_IMAGE}" \
+  "${@}"

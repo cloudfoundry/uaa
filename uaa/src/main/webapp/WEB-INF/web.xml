@@ -87,6 +87,10 @@
             <param-name>contextInitializerClasses</param-name>
             <param-value>org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer</param-value>
         </init-param>
+        <init-param>
+            <param-name>dispatchTraceRequest</param-name>
+            <param-value>true</param-value>
+        </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
 
@@ -108,5 +112,4 @@
     <error-page>
         <location>/error</location>
     </error-page>
-
 </web-app>

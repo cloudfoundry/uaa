@@ -52,6 +52,7 @@ class IdTokenCreatorTest {
     private String familyName;
     private String email;
     private UaaUser user;
+    private BaseClientDetails clientDetails;
     private long previousLogonTime;
     private String phoneNumber;
     private Set<String> roles;
@@ -153,7 +154,7 @@ class IdTokenCreatorTest {
         excludedClaims = new HashSet<>();
 
         MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails = new BaseClientDetails();
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(clientsecret);
 
@@ -183,10 +184,10 @@ class IdTokenCreatorTest {
 
     @Test
     void create_includesStandardClaims() throws IdTokenCreationException {
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken, is(notNullValue()));
-        assertThat(idToken.sub, is(userId));
+        assertThat(idToken.sub, is("id1234"));
         assertThat(idToken.aud, hasItem(clientId));
         assertThat(idToken.iss, is(issuerUrl));
         assertThat(idToken.exp, is(expDate));
@@ -199,7 +200,7 @@ class IdTokenCreatorTest {
 
     @Test
     void create_includesAdditionalClaims() throws IdTokenCreationException {
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken, is(notNullValue()));
         assertThat(idToken.givenName, is(givenName));
@@ -224,7 +225,7 @@ class IdTokenCreatorTest {
     @Test
     void create_includesEmailVerified() throws IdTokenCreationException {
         user.setVerified(false);
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
         assertThat(idToken.emailVerified, is(false));
     }
 
@@ -233,7 +234,7 @@ class IdTokenCreatorTest {
         scopes.clear();
         scopes.add("openid");
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.roles, nullValue());
     }
@@ -242,7 +243,7 @@ class IdTokenCreatorTest {
     void create_setsRolesToNullIfThereAreNoRoles() throws IdTokenCreationException {
         roles.clear();
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.roles, nullValue());
     }
@@ -260,7 +261,7 @@ class IdTokenCreatorTest {
                 grantType,
                 jti);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.roles, nullValue());
     }
@@ -270,7 +271,7 @@ class IdTokenCreatorTest {
         scopes.clear();
         scopes.add("openid");
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.userAttributes, nullValue());
     }
@@ -288,7 +289,7 @@ class IdTokenCreatorTest {
                 grantType,
                 jti);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.userAttributes, nullValue());
     }
@@ -297,7 +298,7 @@ class IdTokenCreatorTest {
     void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() throws IdTokenCreationException {
         scopes.remove("profile");
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.givenName, is(nullValue()));
         assertThat(idToken.familyName, is(nullValue()));
@@ -332,7 +333,7 @@ class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.JTI);
         excludedClaims.add(ClaimConstants.REVOCATION_SIGNATURE);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.sub, is(nullValue()));
         assertThat(idToken.aud, is(nullValue()));
@@ -362,21 +363,13 @@ class IdTokenCreatorTest {
     }
 
     @Test
-    void whenUserIdNotFound_throwsException() {
-        when(mockUaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
-
-        assertThrows(IdTokenCreationException.class,
-                () -> tokenCreator.create(clientId, "missing-user", userAuthenticationData));
-    }
-
-    @Test
     void idToken_containsZonifiedIssuerUrl() throws Exception {
         IdentityZone mockIdentityZone = mock(IdentityZone.class);
         when(mockIdentityZone.isUaa()).thenReturn(false);
         when(mockIdentityZone.getSubdomain()).thenReturn("myzone");
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.iss, is("http://myzone.localhost:8080/uaa/oauth/token"));
     }

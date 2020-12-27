@@ -71,13 +71,13 @@ public class SamlServiceProviderConfiguratorTest {
         slowHttpServer = new SlowHttpServer();
         TimeService mockTimeService = mock(TimeService.class);
         when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
-        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+        RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
         restTemplateConfig.timeout = 120;
-        FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider();
-        fixedHttpMetaDataProvider.setNonTrustingRestTemplate(restTemplateConfig.nonTrustingRestTemplate());
-        fixedHttpMetaDataProvider.setTrustingRestTemplate(restTemplateConfig.trustingRestTemplate());
-
-        fixedHttpMetaDataProvider.setCache(new ExpiringUrlCache(Duration.ofMinutes(10), mockTimeService, 2));
+        FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(
+                restTemplateConfig.trustingRestTemplate(),
+                restTemplateConfig.nonTrustingRestTemplate(),
+                new ExpiringUrlCache(Duration.ofMinutes(10), mockTimeService, 2)
+        );
 
         conf.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
     }

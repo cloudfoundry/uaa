@@ -123,8 +123,6 @@ public class SamlIdentityProviderConfiguratorTests {
     @BeforeEach
     public void setUp() {
         bootstrap = new BootstrapSamlIdentityProviderData();
-        configurator = new SamlIdentityProviderConfigurator();
-        configurator.setParserPool(new BasicParserPool());
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
                 .setIdpEntityAlias(singleAddAlias)
@@ -143,10 +141,11 @@ public class SamlIdentityProviderConfiguratorTests {
                 .setLinkText("sample-link-test")
                 .setIconUrl("sample-icon-url")
                 .setZoneId("uaa");
-        configurator.setIdentityProviderProvisioning(provisioning);
         fixedHttpMetaDataProvider = mock(FixedHttpMetaDataProvider.class);
 
-        configurator.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
+        configurator = new SamlIdentityProviderConfigurator(
+                new BasicParserPool(), provisioning, fixedHttpMetaDataProvider);
+
     }
 
     @Test

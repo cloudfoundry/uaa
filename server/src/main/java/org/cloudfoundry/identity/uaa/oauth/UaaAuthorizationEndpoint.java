@@ -102,9 +102,10 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE_
         UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST
 })
 public class UaaAuthorizationEndpoint extends AbstractEndpoint implements AuthenticationEntryPoint {
-
-    static final String AUTHORIZATION_REQUEST = "authorizationRequest";
-    static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
+    // matches org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.AUTHORIZATION_REQUEST_ATTR_NAME
+    public static final String AUTHORIZATION_REQUEST = "authorizationRequest";
+    // matching org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST_ATTR_NAME
+    public static final String ORIGINAL_AUTHORIZATION_REQUEST = "org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST";
     private static final String userApprovalPage = "forward:/oauth/confirm_access";
     private static final String errorPage = "forward:/oauth/error";
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");

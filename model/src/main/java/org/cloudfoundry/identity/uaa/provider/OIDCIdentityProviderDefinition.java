@@ -22,7 +22,7 @@ import java.util.Objects;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
+public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
     private URL userInfoUrl;
     private URL discoveryUrl;

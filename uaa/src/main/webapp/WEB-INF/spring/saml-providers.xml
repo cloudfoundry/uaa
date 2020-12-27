@@ -123,15 +123,6 @@
         <property name="soTimeout" value="${login.saml.socket.soTimeout:10000}"/>
     </bean>
 
-    <!-- SAML Authentication Provider responsible for validating of received
-        SAML messages -->
-    <bean id="samlAuthenticationProvider"
-          class="org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationProvider">
-        <property name="userDatabase" ref="userDatabase"/>
-        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-        <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
-    </bean>
-
     <bean id="samlLoginFailureHandler"
           class="org.cloudfoundry.identity.uaa.provider.saml.LoginSAMLAuthenticationFailureHandler">
         <property name="defaultFailureUrl" value="/saml_error"/>
@@ -205,6 +196,7 @@
                 <ref bean="assertionBinding"/>
                 <ref bean="soapBinding"/>
                 <ref bean="paosBinding"/>
+                <ref bean="samlResponseLoggerBinding"/>
             </list>
         </constructor-arg>
     </bean>
@@ -293,13 +285,6 @@
 
     <bean id="metaDataUrl" class="java.lang.String">
         <constructor-arg value="${login.idpMetadataURL:null}"/>
-    </bean>
-
-
-    <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
-        <property name="parserPool" ref="parserPool"/>
-        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-        <property name="fixedHttpMetaDataProvider" ref="fixedHttpMetaDataProvider"/>
     </bean>
 
     <bean id="bootstrapMetaDataProviders"

@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -67,6 +67,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -117,7 +119,7 @@ public class OIDCLoginIT {
     private String adminToken;
     private String subdomain;
     private String zoneUrl;
-    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
+    private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider;
     private String clientCredentialsToken;
     private BaseClientDetails zoneClient;
     private ScimGroup createdGroup;
@@ -429,7 +431,7 @@ public class OIDCLoginIT {
             Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
 
             webDriver.findElement(By.linkText("SAML Login")).click();
-            webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+            webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
             webDriver.findElement(By.name("username")).clear();
             webDriver.findElement(By.name("username")).sendKeys("marissa6");
             webDriver.findElement(By.name("password")).sendKeys("saml6");

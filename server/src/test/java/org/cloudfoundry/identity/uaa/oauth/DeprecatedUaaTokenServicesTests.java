@@ -235,8 +235,9 @@ public class DeprecatedUaaTokenServicesTests {
         when(jwt.getEncoded()).thenReturn("encoded");
 
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+        UaaUser user = new UaaUser(new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com"));
         when(userDatabase.retrieveUserById(userId))
-          .thenReturn(new UaaUser(new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com")));
+          .thenReturn(user);
 
         ArgumentCaptor<UserAuthenticationData> userAuthenticationDataArgumentCaptor =
           ArgumentCaptor.forClass(UserAuthenticationData.class);
@@ -274,7 +275,7 @@ public class DeprecatedUaaTokenServicesTests {
         String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
         uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
 
-        verify(idTokenCreator).create(eq(TokenTestSupport.CLIENT_ID), eq(userId), userAuthenticationDataArgumentCaptor.capture());
+        verify(idTokenCreator).create(eq(clientDetails), eq(user), userAuthenticationDataArgumentCaptor.capture());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
         Set<String> expectedRoles = Sets.newHashSet("custom_role");
         assertEquals(expectedRoles, userData.roles);

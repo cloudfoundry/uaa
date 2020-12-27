@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -333,7 +334,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
 
         @Bean
         public ExpiringCodeStore codeStore() {
-            return new InMemoryExpiringCodeStore();
+            return new InMemoryExpiringCodeStore(new TimeServiceImpl());
         }
 
         @Bean

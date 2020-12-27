@@ -1,8 +1,0 @@
-#@data/values
----
-database:
-  url: jdbc:postgresql://127.0.0.1:5432/uaa
-  scheme: hsqldb
-  username: sa
-  password: password
-

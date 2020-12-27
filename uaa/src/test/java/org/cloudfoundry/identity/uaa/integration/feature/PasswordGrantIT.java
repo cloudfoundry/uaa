@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
@@ -164,6 +165,61 @@ public class PasswordGrantIT {
     }
 
     @Test
+    public void testUserDataChangedOnPwGrant() throws Exception {
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        try {
+            createOidcProvider(clientCredentialsToken);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+
+            LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+            postBody.add("grant_type", "password");
+            postBody.add("response_type", "token");
+            postBody.add("username", testAccounts.getUserName());
+            postBody.add("password", testAccounts.getPassword());
+            postBody.add("login_hint", "{\"origin\":\"puppy\"}");
+
+            // do a password grant to create the puppy user
+            restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers), String.class);
+
+            // get the uaa user in order to update it (use case: IDP user has changed)
+            ScimUser user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
+            String oldMail = user.getEmails().get(0).getValue();
+            String newMail = oldMail + "-new";
+
+            // verify that the puppy user has the correct family and given name
+            ScimUser puppyUser = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "puppy", "marissa");
+            Assert.assertEquals(oldMail, puppyUser.getFamilyName());
+            Assert.assertEquals(oldMail, puppyUser.getGivenName());
+
+            // update uaa user email
+            user.getEmails().get(0).setValue(newMail);
+            IntegrationTestUtils.updateUser(clientCredentialsToken, baseUrl, user);
+
+            // do password grant again to provision user changes to user with origin "puppy"
+            restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers), String.class);
+            // verify that given and family have been updated accordingly
+            puppyUser = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "puppy", "marissa");
+            Assert.assertEquals(newMail, puppyUser.getFamilyName());
+            Assert.assertEquals(newMail, puppyUser.getGivenName());
+
+            // get new user instance to get current version count and revert the update from above
+            user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
+            user.getEmails().get(0).setValue(oldMail);
+            IntegrationTestUtils.updateUser(clientCredentialsToken, baseUrl, user);
+
+            // verify that the email is the old one
+            user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
+            Assert.assertEquals(oldMail, user.getEmails().get(0).getValue());
+        } finally {
+            IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
+        }
+
+    }
+
+    @Test
     public void testUserLoginViaPasswordGrantLoginHintOidcFails() throws Exception {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         try {
@@ -264,7 +320,8 @@ public class PasswordGrantIT {
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.setClientAuthInBody(false);
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.addAttributeMapping("given_name", "user_name");
+        config.addAttributeMapping("given_name", "email");
+        config.addAttributeMapping("family_name", "email");
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
         config.addAttributeMapping("external_groups", "scope");
 

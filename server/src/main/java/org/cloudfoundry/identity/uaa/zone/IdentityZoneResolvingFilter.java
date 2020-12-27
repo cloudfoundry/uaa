@@ -35,9 +35,13 @@ import java.util.Set;
  */
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
-    private IdentityZoneProvisioning dao;
+    private final IdentityZoneProvisioning dao;
     private Set<String> defaultZoneHostnames = new HashSet<>();
     private Logger logger = LoggerFactory.getLogger(getClass());
+
+    public IdentityZoneResolvingFilter(final IdentityZoneProvisioning dao) {
+        this.dao = dao;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -58,6 +62,13 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             }
         }
         if (identityZone == null) {
+            // skip filter to static resources in order to serve images and css in case of invalid zones
+            boolean isStaticResource = request.getRequestURI().startsWith("/uaa/resources/");
+            if(isStaticResource) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             request.setAttribute("error_message_code", "zone.not.found");
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain " + subdomain);
             return;
@@ -87,10 +98,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         }
         logger.debug("Unable to determine subdomain for host:"+hostname+"; root domains:"+Arrays.toString(defaultZoneHostnames.toArray()));
         return null;
-    }
-
-    public void setIdentityZoneProvisioning(IdentityZoneProvisioning dao) {
-        this.dao = dao;
     }
 
     public void setAdditionalInternalHostnames(Set<String> hostnames) {

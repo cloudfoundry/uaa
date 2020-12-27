@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthUserAuthority;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -312,7 +312,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
-                    user.getId(),
                     user,
                     AuthTimeDateConverter.authTimeToDate(authTime),
                     getClientPermissions(client),
@@ -382,7 +381,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private CompositeToken createCompositeToken(String tokenId,
-                                                String userId,
                                                 UaaUser user,
                                                 Date userAuthenticationTime,
                                                 Collection<GrantedAuthority> clientScopes,
@@ -424,7 +422,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String content;
         Map<String, ?> jwtAccessToken = createJWTAccessToken(
                 compositeToken,
-                userId,
                 user,
                 userAuthenticationTime,
                 clientScopes,
@@ -444,10 +441,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         compositeToken.setValue(token);
         BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        if (idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopes, grantType)) {
+        if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             String idTokenContent;
             try {
-                idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
+                idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientDetails, user, userAuthenticationData));
             } catch (RuntimeException | IdTokenCreationException ignored) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
@@ -466,7 +463,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token,
-                                                String userId,
                                                 UaaUser user,
                                                 Date userAuthenticationTime,
                                                 Collection<GrantedAuthority> clientScopes,
@@ -503,14 +499,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != grantType) {
             claims.put(GRANT_TYPE, grantType);
         }
-        if (user!=null && userId!=null) {
-            claims.put(USER_ID, userId);
+        if (user!=null) {
+            claims.put(USER_ID, user.getId());
             String origin = user.getOrigin();
             if (StringUtils.hasLength(origin)) {
                 claims.put(ORIGIN, origin);
             }
             String username = user.getUsername();
-            claims.put(USER_NAME, username == null ? userId : username);
+            claims.put(USER_NAME, username == null ? user.getId() : username);
             String userEmail = user.getEmail();
             if (userEmail != null) {
                 claims.put(EMAIL, userEmail);
@@ -518,7 +514,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             if (userAuthenticationTime!=null) {
                 claims.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
             }
-            claims.put(SUB, userId);
+            claims.put(SUB, user.getId());
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
@@ -639,7 +635,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         CompositeToken accessToken =
                 createCompositeToken(
                         tokenId,
-                        userId,
                         user,
                         userAuthenticationTime,
                         clientScopes,
@@ -663,7 +658,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Collection<GrantedAuthority> clientScopes;
         clientScopes = new ArrayList<>();
         for(String scope : client.getScope()) {
-            clientScopes.add(new XOAuthUserAuthority(scope));
+            clientScopes.add(new ExternalOAuthUserAuthority(scope));
         }
         return clientScopes;
     }

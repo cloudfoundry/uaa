@@ -628,6 +628,19 @@ class LegacyRedirectResolverTest {
             assertTrue(resolver.redirectMatches("https://example.com:80/path1/path2/path3", clientRedirectUri));
             assertFalse(resolver.redirectMatches("https://example.com/path1/path2/path3", clientRedirectUri));
         }
+
+        @Test
+        public void testIllegalUnderscoreDomain() {
+            final String clientRedirectUri = "http*://*.example.com/**";
+            assertFalse(resolver.redirectMatches("https://invalid_redirect.example.com/login/callback", clientRedirectUri));
+        }
+
+        @Test
+        public void testLegalDomain() {
+            final String clientRedirectUri = "http*://*.example.com/**";
+            assertTrue(resolver.redirectMatches("https://valid-redirect.example.com/login/callback", clientRedirectUri));
+        }
+
     }
 
     @Nested

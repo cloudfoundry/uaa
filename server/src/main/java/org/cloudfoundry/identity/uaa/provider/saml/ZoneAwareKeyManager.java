@@ -16,11 +16,15 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.xml.security.CriteriaSet;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.credential.Credential;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.security.saml.key.KeyManager;
+import org.springframework.stereotype.Component;
 
 import java.security.cert.X509Certificate;
 import java.util.Set;
 
+@Component("zoneAwareSamlSpKeyManager")
+@DependsOn("identityZoneHolderInitializer")
 public class ZoneAwareKeyManager implements KeyManager {
     @Override
     public Credential getCredential(String keyName) {

@@ -20,26 +20,30 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.ServletContext;
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
- * to externalize the environment and
- * logging configuration. A YAML config file is loaded if present and inserted
- * into the environment. In addition if the
- * YAML contains some special properties, some initialization is carried out:
+ * to externalize the environment and logging configuration.
+ *
+ * <p>A YAML config file is loaded if present and inserted into the environment.
+ *
+ * <p>In addition if the YAML contains some special properties, some initialization is carried out:
  *
  * <ul>
  * <li><code>spring_profiles</code> - then the active profiles are set</li>
@@ -57,6 +61,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     };
 
     private static final List<String> FILE_CONFIG_LOCATIONS;
+    private static final String SECRETS_DIR_VAR = "${SECRETS_DIR}";
 
     static {
         FILE_CONFIG_LOCATIONS = List.of(
@@ -66,7 +71,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 "${UAA_CONFIG_URL}",
                 "file:${UAA_CONFIG_FILE}",
                 "file:${UAA_CONFIG_PATH}/uaa.yml",
-                "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml");
+                "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml"
+        );
     }
 
     @Override
@@ -91,7 +97,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
                 .filter(ClassPathResource::exists)
                 .forEach(resources::add);
 
-        resources.addAll(getResource(applicationContext));
+        resources.addAll(getResource(applicationContext, FILE_CONFIG_LOCATIONS));
+        resources.addAll(getResource(applicationContext, getSecretsFiles(applicationContext)));
 
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
         if (yamlFromEnv != null) {
@@ -119,6 +126,29 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
     }
 
+    private static List<String> getSecretsFiles(
+            final ConfigurableWebApplicationContext applicationContext
+    ) {
+        final String resolvedSecretsLocation = applicationContext
+                .getEnvironment()
+                .resolvePlaceholders(SECRETS_DIR_VAR);
+
+        System.out.println(SECRETS_DIR_VAR + " resolves to " + resolvedSecretsLocation);
+
+        final File[] secretFiles =
+                ofNullable(new File(resolvedSecretsLocation).listFiles((dir, name) -> name != null && name.endsWith(".yml")))
+                        .orElse(new File[]{});
+
+        if (secretFiles.length == 0) {
+            System.out.println("Found no .yml files in " + SECRETS_DIR_VAR);
+        }
+
+        return Arrays.stream(secretFiles)
+                .map(File::getAbsolutePath)
+                .map(path -> String.format("file:%s", path))
+                .collect(Collectors.toList());
+    }
+
     private Resource getYamlFromEnvironmentVariable() {
         if (environmentAccessor != null) {
             String data = environmentAccessor.getEnvironmentVariable(YML_ENV_VAR_NAME);
@@ -130,8 +160,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         return null;
     }
 
-    private List<Resource> getResource(ConfigurableWebApplicationContext applicationContext) {
-        final List<String> resolvedLocations = FILE_CONFIG_LOCATIONS.stream()
+    private static List<Resource> getResource(
+            final ConfigurableWebApplicationContext applicationContext,
+            final List<String> fileConfigLocations
+    ) {
+        final List<String> resolvedLocations = fileConfigLocations.stream()
                 .map(applicationContext.getEnvironment()::resolvePlaceholders)
                 .collect(Collectors.toList());
 
@@ -184,23 +217,31 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         MDC.put("context", contextPath); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
-    void applySpringProfiles(ConfigurableEnvironment environment) {
-        String systemProfiles = System.getProperty("spring.profiles.active");
-        System.out.format("System property spring.profiles.active=[%s]%n", systemProfiles);
+    static void applySpringProfiles(ConfigurableEnvironment environment) {
         environment.setDefaultProfiles(new String[0]);
+
+        System.out.println(String.format("System property spring.profiles.active=[%s]", System.getProperty("spring.profiles.active")));
+        System.out.println(String.format("Environment property spring_profiles=[%s]", environment.getProperty("spring_profiles")));
+
         if (environment.containsProperty("spring_profiles")) {
-            String profiles = environment.getProperty("spring_profiles");
-            System.out.println("Setting active profiles: " + profiles);
-            environment.setActiveProfiles(StringUtils.tokenizeToStringArray(profiles, ",", true, true));
-        } else {
-            if (isEmpty(systemProfiles)) {
-                System.out.println("Setting active profiles: [hsqldb]");
-                environment.setActiveProfiles("hsqldb");
-            } else {
-                System.out.format("Setting active profiles: [%s]%n", systemProfiles);
-                environment.setActiveProfiles(commaDelimitedListToStringArray(systemProfiles));
-            }
+            setActiveProfiles(environment, StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true));
+            return;
         }
+
+        String systemProfiles = System.getProperty("spring.profiles.active");
+        if (!isEmpty(systemProfiles)) {
+            setActiveProfiles(environment, commaDelimitedListToStringArray(systemProfiles));
+            return;
+        }
+
+        setActiveProfiles(environment, new String[]{"hsqldb"});
+    }
+
+    private static void setActiveProfiles(
+            final ConfigurableEnvironment environment,
+            final String[] profiles) {
+        System.out.println("Setting active profiles: " + Arrays.toString(profiles));
+        environment.setActiveProfiles(profiles);
     }
 
     void setEnvironmentAccessor(SystemEnvironmentAccessor environmentAccessor) {

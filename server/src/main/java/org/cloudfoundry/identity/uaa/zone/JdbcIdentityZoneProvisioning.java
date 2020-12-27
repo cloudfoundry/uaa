@@ -1,26 +1,14 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.util.Assert;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
@@ -29,11 +17,12 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
+@Component("identityZoneProvisioning")
 public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, SystemDeletable {
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config,active";
 
-    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config,active".replace(",","=?,")+"=?";
+    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config,active".replace(",", "=?,") + "=?";
 
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?,?)";
 
@@ -55,8 +44,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     private final RowMapper<IdentityZone> mapper = new IdentityZoneRowMapper();
 
-    public JdbcIdentityZoneProvisioning(JdbcTemplate jdbcTemplate) {
-        Assert.notNull(jdbcTemplate);
+    public JdbcIdentityZoneProvisioning(final JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -65,7 +53,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
         } catch (EmptyResultDataAccessException x) {
-            throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
+            throw new ZoneDoesNotExistsException("Zone[" + id + "] not found.", x);
         }
     }
 
@@ -74,7 +62,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
         } catch (EmptyResultDataAccessException x) {
-            throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
+            throw new ZoneDoesNotExistsException("Zone[" + id + "] not found.", x);
         }
     }
 
@@ -85,7 +73,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     @Override
     public IdentityZone retrieveBySubdomain(String subdomain) {
-        if (subdomain==null) {
+        if (subdomain == null) {
             throw new EmptyResultDataAccessException("Subdomain cannot be null", 1);
         }
         return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase(), true);
@@ -104,9 +92,9 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 ps.setString(6, identityZone.getSubdomain().toLowerCase());
                 ps.setString(7, identityZone.getDescription());
                 ps.setString(8,
-                             identityZone.getConfig() != null ?
-                                 JsonUtils.writeValueAsString(identityZone.getConfig()) :
-                                 null
+                        identityZone.getConfig() != null ?
+                                JsonUtils.writeValueAsString(identityZone.getConfig()) :
+                                null
                 );
                 ps.setBoolean(9, identityZone.isActive());
             });
@@ -128,9 +116,9 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 ps.setString(4, identityZone.getSubdomain().toLowerCase());
                 ps.setString(5, identityZone.getDescription());
                 ps.setString(6,
-                             identityZone.getConfig() != null ?
-                                 JsonUtils.writeValueAsString(identityZone.getConfig()) :
-                                 null
+                        identityZone.getConfig() != null ?
+                                JsonUtils.writeValueAsString(identityZone.getConfig()) :
+                                null
                 );
                 ps.setBoolean(7, identityZone.isActive());
                 ps.setString(8, identityZone.getId().trim());
@@ -152,7 +140,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         return logger;
     }
 
-    public static final class IdentityZoneRowMapper implements RowMapper<IdentityZone> {
+    private static final class IdentityZoneRowMapper implements RowMapper<IdentityZone> {
         @Override
         public IdentityZone mapRow(ResultSet rs, int rowNum) throws SQLException {
 
@@ -170,7 +158,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 try {
                     identityZone.setConfig(JsonUtils.readValue(config, IdentityZoneConfiguration.class));
                 } catch (JsonUtils.JsonUtilException e) {
-                    logger.error("Invalid zone configuration found for zone id:"+identityZone.getId(), e);
+                    logger.error("Invalid zone configuration found for zone id:" + identityZone.getId(), e);
                     identityZone.setConfig(new IdentityZoneConfiguration());
                 }
             }

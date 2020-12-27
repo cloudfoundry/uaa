@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -86,12 +87,12 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     public IdentityProviderEndpoints(
-            IdentityProviderProvisioning identityProviderProvisioning,
-            ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-            ScimGroupProvisioning scimGroupProvisioning,
-            SamlIdentityProviderConfigurator samlConfigurator,
-            IdentityProviderConfigValidator configValidator,
-            IdentityZoneManager identityZoneManager) {
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
+            final @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
+            final @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
+            final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator,
+            final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
+            final IdentityZoneManager identityZoneManager) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
@@ -311,14 +312,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
                     if (definition.getRelyingPartySecret() == null) {
                         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
                         if (existing!=null &&
                             existing.getConfig()!=null &&
-                            existing.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-                            AbstractXOAuthIdentityProviderDefinition existingDefinition = (AbstractXOAuthIdentityProviderDefinition)existing.getConfig();
+                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                            AbstractExternalOAuthIdentityProviderDefinition existingDefinition = (AbstractExternalOAuthIdentityProviderDefinition)existing.getConfig();
                             definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                         }
                     }
@@ -346,9 +347,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
                     logger.debug("Removing relying secret from OAuth/OIDC provider id:"+provider.getId());
-                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
                     definition.setRelyingPartySecret(null);
                 }
                 break;

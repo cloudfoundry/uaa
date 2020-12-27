@@ -81,14 +81,21 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             "gm.external_group",
             "gm.origin",
             "g.displayname",
-            "g.id");
+            "g.id",
+            "external_id");
 
     private static Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
     private boolean dbCaseInsensitive = false;
+    private RandomValueStringGenerator randomStringGenerator;
 
     public SimpleSearchQueryConverter() {
+        randomStringGenerator = new RandomValueStringGenerator();
+    }
+
+    public SimpleSearchQueryConverter(RandomValueStringGenerator randomStringGenerator) {
+        this.randomStringGenerator = randomStringGenerator;
     }
 
     private boolean isDbCaseInsensitive() {
@@ -115,8 +122,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     private String generateParameterPrefix(String filter) {
         while (true) {
-            String s = new RandomValueStringGenerator().generate().toLowerCase();
-            if (!filter.contains(s)) {
+            String s = randomStringGenerator.generate().toLowerCase();
+            if (!filter.contains(s) && !s.contains("-")) {
                 return "__" + s + "_";
             }
         }

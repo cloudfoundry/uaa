@@ -1,105 +1,92 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.provider.ldap.LdapIdentityProviderConfigValidator;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
+import org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
-@SuppressWarnings("ALL")
-public class IdentityProviderConfigValidationDelegatorTest {
+@ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(MockitoExtension.class)
+class IdentityProviderConfigValidationDelegatorTest {
 
-    IdentityProviderConfigValidationDelegator validator;
-    private IdentityProviderConfigValidator uaaValidator;
-    private IdentityProviderConfigValidator ldapValidator;
-    private IdentityProvider<AbstractIdentityProviderDefinition> provider;
-    private IdentityProviderConfigValidator xoauthValidator;
+    @Mock
+    private UaaIdentityProviderConfigValidator mockUaaIdentityProviderConfigValidator;
 
-    @Before
-    public void setup() {
-        validator = new IdentityProviderConfigValidationDelegator();
-        Map<String, IdentityProviderConfigValidator> delegates = new HashMap<>();
-        uaaValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put(UAA, uaaValidator);
-        xoauthValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put("xoauth", xoauthValidator);
-        ldapValidator = mock(IdentityProviderConfigValidator.class);
-        delegates.put(LDAP, ldapValidator);
-        provider = new IdentityProvider<>();
-        validator.setDelegates(delegates);
-    }
+    @Mock
+    private LdapIdentityProviderConfigValidator mockLdapIdentityProviderConfigValidator;
 
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+    @Mock
+    private ExternalOAuthIdentityProviderConfigValidator mockExternalOAuthIdentityProviderConfigValidator;
 
-    @Test
-    public void null_identity_provider() {
-        exception.expect(IllegalArgumentException.class);
-        exception.expectMessage("Provider cannot be null");
-        validator.validate(null);
+    @InjectMocks
+    private IdentityProviderConfigValidationDelegator identityProviderConfigValidationDelegator;
+
+    private IdentityProvider<AbstractIdentityProviderDefinition> identityProvider;
+
+    @BeforeEach
+    void setup() {
+        identityProvider = new IdentityProvider<>();
     }
 
     @Test
-    public void uaa_validator_with_nodefinition_is_invoked() {
-        provider.setType(UAA);
-        provider.setOriginKey(UAA);
-        validator.validate(provider);
-        verify(uaaValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(xoauthValidator);
-        verifyZeroInteractions(ldapValidator);
+    void null_identity_provider() {
+        assertThrowsWithMessageThat(
+                IllegalArgumentException.class,
+                () -> identityProviderConfigValidationDelegator.validate(null),
+                org.hamcrest.Matchers.is("Provider cannot be null")
+        );
     }
 
     @Test
-    public void ldap_validator_with_definition_is_invoked() {
-        provider.setType(LDAP);
-        provider.setOriginKey(LDAP);
-        validator.validate(provider);
-        verify(ldapValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(uaaValidator);
-        verifyZeroInteractions(xoauthValidator);
+    void uaa_validator_with_nodefinition_is_invoked() {
+        identityProvider.setType(UAA);
+
+        identityProviderConfigValidationDelegator.validate(identityProvider);
+
+        verify(mockUaaIdentityProviderConfigValidator).validate(identityProvider);
+        verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
+        verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
     }
 
     @Test
-    public void xoauth_validator_with_definition_is_invoked() {
-        for (String type : Arrays.asList(OAUTH20, OIDC10)) {
-            provider.setType(type);
-            provider.setOriginKey("any");
-            validator.validate(provider);
-            verify(xoauthValidator, times(1)).validate(same(provider));
-            verifyZeroInteractions(uaaValidator);
-            verifyZeroInteractions(ldapValidator);
-            Mockito.reset(xoauthValidator);
-        }
+    void ldap_validator_with_definition_is_invoked() {
+        identityProvider.setType(LDAP);
+
+        identityProviderConfigValidationDelegator.validate(identityProvider);
+
+        verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
+        verify(mockLdapIdentityProviderConfigValidator).validate(identityProvider);
+        verifyNoInteractions(mockExternalOAuthIdentityProviderConfigValidator);
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {
+            OAUTH20,
+            OIDC10
+    })
+    void externalOAuth_validator_with_definition_is_invoked(final String type) {
+        identityProvider.setType(type);
 
+        identityProviderConfigValidationDelegator.validate(identityProvider);
+
+        verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
+        verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
+        verify(mockExternalOAuthIdentityProviderConfigValidator).validate(identityProvider);
+    }
 }

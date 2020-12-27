@@ -237,7 +237,7 @@
         <constructor-arg ref="passwordGrantAuthenticationManager"/>
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="samlWebSSOProcessingFilter"/>
-        <constructor-arg ref="xOauthAuthenticationManager"/>
+        <constructor-arg ref="externalOAuthAuthenticationManager"/>
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>
         <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>
     </bean>
@@ -381,32 +381,33 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean id="xOauthAuthenticationManager"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager">
-        <constructor-arg name="providerProvisioning" ref="xoauthProviderConfigurator"/>
+    <bean id="externalOAuthAuthenticationManager"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager">
+        <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>
         <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>
 
-    <bean id="xOauthCallbackAuthenticationFilter"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationFilter">
-        <constructor-arg name="xOAuthAuthenticationManager" ref="xOauthAuthenticationManager"/>
+    <bean id="externalOAuthCallbackAuthenticationFilter"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter">
+        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
         <constructor-arg name="successHandler" ref="accountSavingAuthenticationSuccessHandler"/>
     </bean>
 
-    <bean id="xOauthCallbackRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+    <bean id="externalOAuthCallbackRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/login/callback"/>
     </bean>
 
-    <http name="xOauthCallbackEndpointSecurity" request-matcher-ref="xOauthCallbackRequestMatcher"
+    <http name="externalOAuthCallbackEndpointSecurity" request-matcher-ref="externalOAuthCallbackRequestMatcher"
           entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="**" access="IS_AUTHENTICATED_FULLY"/>
-        <custom-filter ref="xOauthCallbackAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
+        <custom-filter ref="externalOAuthCallbackAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
         <anonymous enabled="false"/>
         <csrf disabled="true"/>
     </http>
@@ -456,7 +457,6 @@
     <bean id="authorizationRequestManager" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager">
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="userDatabase"/>
-        <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
@@ -643,13 +643,11 @@
 
     <bean id="globalUserLockoutPolicyRetriever"
           class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
-        <constructor-arg ref="identityProviderProvisioning"/>
         <property name="defaultLockoutPolicy" ref="defaultUserLockoutPolicy"/>
     </bean>
 
     <bean id="globalMfaLockoutPolicyRetriever"
           class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">
-        <constructor-arg ref="identityProviderProvisioning"/>
         <property name="defaultLockoutPolicy" ref="defaultMfaLockoutPolicy"/>
     </bean>
 
@@ -688,14 +686,12 @@
           class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
         <constructor-arg name="delegate" ref="uaaUserDatabaseAuthenticationManager"/>
         <constructor-arg name="origin" value="uaa"/>
-        <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="zoneAwareAuthzAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager"
           destroy-method="destroy">
         <constructor-arg name="internalUaaAuthenticationManager" ref="uaaAuthenticationMgr"/>
-        <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
         <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
@@ -704,11 +700,10 @@
     <bean id="passwordGrantAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">
         <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
-        <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
         <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
-        <constructor-arg name="xoAuthAuthenticationManager" ref="xOauthAuthenticationManager"/>
+        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="xoAuthProviderProvisioning" ref="xoauthProviderConfigurator"/>
+        <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>
     </bean>
 
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder"/>
