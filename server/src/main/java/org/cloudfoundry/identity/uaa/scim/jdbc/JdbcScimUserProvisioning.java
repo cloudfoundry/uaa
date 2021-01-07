@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -47,13 +48,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import static java.sql.Types.VARCHAR;
@@ -69,10 +64,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return logger;
     }
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,last_logon_success_time,previous_logon_success_time";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,last_logon_success_time,previous_logon_success_time,custom_attributes";
 
-    public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+
+//    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, custom_salt=?, custom_attributes=? where id=? and version=? and identity_zone_id=?";
 
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=? and identity_zone_id=?";
 
@@ -216,7 +212,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
                 ps.setNull(17, Types.BIGINT);
                 ps.setNull(18, Types.BIGINT);
-                ps.setString(19, user.getPassword());
+                if(user.getCustomAttributes() == null) {
+                    ps.setNull(19, Types.LONGVARCHAR);
+                } else {
+                    ps.setString(19, JsonUtils.writeValueAsString(user.getCustomAttributes()));
+                }
+                ps.setString(20, user.getPassword());
+
             });
         } catch (DuplicateKeyException e) {
             String userOrigin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
@@ -474,6 +476,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             Date passwordLastModified = rs.getTimestamp("passwd_lastmodified");
             Long lastLogonTime = (Long) rs.getObject("last_logon_success_time");
             Long previousLogonTime = (Long) rs.getObject("previous_logon_success_time");
+            String customAttributes = rs.getString("custom_attributes");
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -499,6 +502,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             user.setPasswordLastModified(passwordLastModified);
             user.setLastLogonTime(lastLogonTime);
             user.setPreviousLogonTime(previousLogonTime);
+            if(hasText(customAttributes)) {
+                user.setCustomAttributes(JsonUtils.readValue(customAttributes, LinkedHashMap.class));
+            }
             return user;
         }
     }

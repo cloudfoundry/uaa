@@ -31,12 +31,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -1040,6 +1035,20 @@ class JdbcScimUserProvisioningTests {
         jdbcScimUserProvisioning.updateLastLogonTime(joeId, currentIdentityZoneId);
         user = jdbcScimUserProvisioning.retrieve(joeId, currentIdentityZoneId);
         assertNotNull(user.getLastLogonTime());
+    }
+
+    @Test
+    void createCustomAttribute() {
+        String userName = "jo!!@foo.com";
+        ScimUser user = new ScimUser(null, userName, "Jo", "User");
+        user.addEmail("email");
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+        map.put("accountNumber", "12345");
+        user.setCustomAttributes(map);
+
+        ScimUser createdUser = jdbcScimUserProvisioning.createUser(user, "j7hyqpassX", currentIdentityZoneId);
+
+        assertNotNull(createdUser.getCustomAttributes());
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {

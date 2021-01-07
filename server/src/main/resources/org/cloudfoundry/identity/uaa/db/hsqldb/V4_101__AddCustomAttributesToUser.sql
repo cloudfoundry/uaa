@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN custom_attributes LONGVARCHAR DEFAULT NULL;
