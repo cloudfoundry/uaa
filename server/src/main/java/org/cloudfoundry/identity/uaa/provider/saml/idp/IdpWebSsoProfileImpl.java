@@ -336,8 +336,20 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
         Map<String, Object> attributeMappings = config.getAttributeMappings();
 
+        ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
+
+        if(user.getCustomAttributes() != null) {
+            for(Map.Entry<String, String> entry : user.getCustomAttributes().entrySet()) {
+                String attributeName = entry.getKey();
+                String attributeValue = entry.getValue();
+                if(StringUtils.hasText(attributeName) && StringUtils.hasText(attributeValue)) {
+                    Attribute customAttribute = buildStringAttribute(attributeName,
+                            Collections.singletonList(attributeValue));
+                    attributeStatement.getAttributes().add(customAttribute);
+                }
+            }
+        }
         if (attributeMappings.size() > 0) {
-            ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
 
             String givenName = user.getGivenName();
             if (StringUtils.hasText(givenName) && attributeMappings.containsKey("given_name")) {
