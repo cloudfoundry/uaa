@@ -22,13 +22,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -815,5 +809,33 @@ public class ScimUserTests {
         patch.setVerified(true);
         user.patch(patch);
         assertTrue(user.isVerified());
+    }
+
+    @Test
+    public void testCustomAttributeAccountNumber() {
+        String json = "{\"userName\":\"jbourne\",\"customAttributes\":{\"accountNumber\":12345," +
+                "\"ccUserName\":\"jbourne@acme.com\"}}";
+        ScimUser user = JsonUtils.readValue(json, ScimUser.class);
+
+        assertEquals(12345, user.getCustomAttributes().get("accountNumber"));
+        assertEquals("jbourne@acme.com", user.getCustomAttributes().get("ccUserName"));
+    }
+
+    @Test
+    public void testCustomAttributeSerialization() {
+        ScimUser user = new ScimUser();
+        user.setUserName("jbourne");
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+        map.put("accountNumber", "12345");
+        map.put("ccUserName", "jbourne@acme.com");
+        user.setCustomAttributes(map);
+
+        String json = JsonUtils.writeValueAsString(user);
+        ScimUser user1 = JsonUtils.readValue(json, ScimUser.class);
+
+        assertTrue(json.contains("\"accountNumber\":\"12345\""));
+        assertTrue(json.contains("\"ccUserName\":\"jbourne@acme.com\""));
+        assertEquals("12345", user1.getCustomAttributes().get("accountNumber"));
+        assertEquals("jbourne@acme.com", user1.getCustomAttributes().get("ccUserName"));
     }
 }

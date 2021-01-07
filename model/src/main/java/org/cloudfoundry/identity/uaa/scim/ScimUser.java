@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
 import org.springframework.util.Assert;
+import org.springframework.util.LinkedMultiValueMap;
 
 import java.util.*;
 
@@ -349,6 +350,17 @@ public class ScimUser extends ScimCore<ScimUser> {
     private Long previousLogonTime = null;
 
     private Long lastLogonTime = null;
+
+    private LinkedHashMap<String, String> customAttributes = null;
+
+    public LinkedHashMap<String, String> getCustomAttributes() {
+        return customAttributes;
+    }
+
+    public void setCustomAttributes(
+            LinkedHashMap<String, String> customAttributes) {
+        this.customAttributes = customAttributes;
+    }
 
     @JsonProperty
     private String password;
