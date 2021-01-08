@@ -25,6 +25,9 @@ resources:
       memory: 100Mi
       cpu: 100m
 
+issuer:
+  uri: http://localhost:8080/uaa
+
 tomcat:
   accessLoggingEnabled: "y"
 
