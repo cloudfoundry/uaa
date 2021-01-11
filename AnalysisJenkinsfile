@@ -2,17 +2,21 @@
 
 pipeline {
     agent none
+    triggers {
+        cron('H 22 1 * *')
+    }
     options {
         skipDefaultCheckout()
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
     parameters {
         booleanParam(name: 'WHITESOURCE_SCAN', defaultValue: true, description: 'Run Whitesource scan')
+        booleanParam(name: 'COVERITY_SCAN', defaultValue: true, description: 'Run Coverity scan')
     }
     stages {
-        stage ('Run code analysis') {
+        stage('Run code analysis') {
             parallel {
-                stage ('Whitesource') {
+                stage('Whitesource') {
                     when {
                         beforeAgent true
                         expression { params.WHITESOURCE_SCAN }
@@ -25,7 +29,7 @@ pipeline {
                         }
                     }
                     stages {
-                        stage ('Download sources') {
+                        stage('Download sources') {
                             steps {
                                 checkout scm
                                 dir('uaa-cf-release') {
@@ -37,7 +41,7 @@ pipeline {
                                 }
                             }
                         }
-                        stage ('Collect dependencies') {
+                        stage('Collect dependencies') {
                             steps {
                                 sh '''#!/bin/bash -ex
 
@@ -52,7 +56,7 @@ pipeline {
                                 '''
                             }
                         }
-                        stage ('Run scan') {
+                        stage('Run scan') {
                             environment {
                                 PROPEL_API_KEY = credentials('PROPEL_API_KEY')
                                 PRODUCT_NAME = 'GESoftware-CF'
@@ -80,6 +84,107 @@ pipeline {
                                     ./propel-oss
                                 '''
                             }
+                        }
+                    }
+                    post {
+                        always {
+                            deleteDir()
+                        }
+                    }
+                }
+                stage('Coverity') {
+                    when {
+                        beforeAgent true
+                        expression { params.COVERITY_SCAN }
+                    }
+                    agent {
+                        docker {
+                            image 'registry.gear.ge.com/dig-propel/propel-coverity-image'
+                            label 'dind'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle'
+                        }
+                    }
+                    stages {
+                        stage('Download sources') {
+                            steps {
+                                checkout scm
+                                dir('uaa-cf-release') {
+                                    git changelog: false,
+                                        credentialsId: 'github.build.ge.com',
+                                        poll: false,
+                                        url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                        branch: 'master'
+                                }
+                            }
+                        }
+                        stage('Install tools') {
+                            steps {
+                                sh '''
+                                    JQ=/usr/bin/jq
+                                    curl https://stedolan.github.io/jq/download/linux64/jq > $JQ && chmod +x $JQ
+                                    ls -la $JQ
+                                    jq --version
+                                '''
+                            }
+                        }
+                        stage('Run scan') {
+                            environment {
+                                COVERITY = credentials('Coverity_Token')
+                                COVERITY_HOST = 'pdx.coverity.build.ge.com'
+                                COVERITY_PORT = '8443'
+                                COVERITY_STREAM = 'Predix UAA v4.30'
+                                COVERITY_PROJECT = 'Predix%20UAA'
+                                COVERITY_VIEW = 'Jenkins_Predix_UAA_4_30'
+                            }
+                            steps {
+                                sh label: 'Run Gradle build with Coverity agent', script: '''#!/usr/bin/env bash
+                                    rm -rf ${WORKSPACE}/covscan
+                                    mkdir -p ${WORKSPACE}/covscan
+
+                                    source uaa-cf-release/config-local/set-env.sh
+                                    unset HTTPS_PROXY
+                                    unset HTTP_PROXY
+                                    unset http_proxy
+                                    unset https_proxy
+                                    unset GRADLE_OPTS
+
+                                    cov-build --dir ${WORKSPACE}/covscan \
+                                              ./gradlew \
+                                              --no-daemon -Porg.gradle.daemon=false -Dorg.gradle.daemon=false \
+                                              clean build -x test
+                                '''
+
+                                sh label: 'Run Coverity analysis', script: '''#!/usr/bin/env bash
+                                    # This line is added to reduce the coverity scan time by not committing the
+                                    # summary of the scan. Not publishing the summary would not remove any
+                                    # important information published to coverity server.
+                                    cov-analyze --dir ${WORKSPACE}/covscan --export-summaries false
+                                '''
+
+                                sh label: 'Publish Coverity defects', script: '''#!/usr/bin/env bash
+                                    cov-commit-defects --dir ${WORKSPACE}/covscan \
+                                                       --host ${COVERITY_HOST} --https-port ${COVERITY_PORT} \
+                                                       --stream "${COVERITY_STREAM}" \
+                                                       --user ${COVERITY_USR} --password ${COVERITY_PSW}
+                                '''
+
+                                script {
+                                    int issueCount = sh(label: 'Count Coverity issues', returnStdout: true, script: '''#!/usr/bin/env bash
+                                        curl -s --user "${COVERITY_USR}:${COVERITY_PSW}" \
+                                             "https://${COVERITY_HOST}:${COVERITY_PORT}/api/viewContents/issues/v1/${COVERITY_VIEW}?projectId=${COVERITY_PROJECT}&rowCount=1" \
+                                        | jq '.viewContentsV1.totalRows'
+                                    ''').trim().toInteger()
+
+                                    if (issueCount > 0) {
+                                        unstable "### Coverity scan found ${issueCount} high/medium severity issues ###"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            deleteDir()
                         }
                     }
                 }
