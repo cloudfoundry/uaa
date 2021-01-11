@@ -96,7 +96,7 @@ GEM
     rb-fsevent (0.9.8)
     rb-inotify (0.9.8)
       ffi (>= 0.5.0)
-    redcarpet (3.4.0)
+    redcarpet (3.5.1)
     ref (2.0.0)
     rouge (2.0.7)
     sass (3.4.23)
@@ -125,7 +125,7 @@ DEPENDENCIES
   middleman-sprockets (~> 4.1.1)
   middleman-syntax (~> 3.0.0)
   nokogiri (~> 1.10.8)
-  redcarpet (~> 3.4.0)
+  redcarpet (~> 3.5.1)
   rouge (~> 2.0.5)
   therubyracer
 
