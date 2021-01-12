@@ -4,9 +4,7 @@
 #@ def config():
 ---
 issuer:
-  uri: http://localhost:8080/uaa
-
-
+  uri: #@ data.values.issuer.uri
 
 #! The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret

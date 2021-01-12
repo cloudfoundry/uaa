@@ -1,3 +1,3 @@
 #@data/values
 ---
-image: "cfidentity/uaa@sha256:4ee059a954e7ab6cf193077dedb2ad88306bdee6d1c11cd5d9aa5eb1cd0626d0"
+image: "cfidentity/uaa@sha256:1f6cbc6a45891ad31c2ff562b1fdc279f13263c88787ea69e275e082c525ead0"

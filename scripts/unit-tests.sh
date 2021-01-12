@@ -33,6 +33,14 @@ pushd $(dirname $SCRIPT_DIR)
       -f ./uaa/src/test/resources/ldap_init.ldif
 
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
+            assemble \
+            --max-workers=4 \
+            --no-daemon \
+            --stacktrace \
+            --console=plain \
+            --exclude-task ':cloudfoundry-identity-samples:assemble'
+
+  ./gradlew "-Dspring.profiles.active=${TESTENV}" \
             test \
             --no-daemon \
             --stacktrace \
