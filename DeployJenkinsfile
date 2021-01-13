@@ -14,7 +14,7 @@ pipeline {
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
     parameters  {
-        choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-sysint\ncf3-integration\nvpc\njpn\neu-central\nazr-usw\nasv-pr\ngovw\nperf-vpc-sb\nperf-asv-sb\nperf-cf3\nvpc-db-mig-test\nasv-sb', description: 'This specifies which point of presence to deploy to')
+        choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-integration\nvpc\neu-central\ngovw\nperf-cf3', description: 'This specifies which point of presence to deploy to')
         booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
         booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
     }
@@ -68,6 +68,8 @@ pipeline {
                 source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
                 unset_env
 
+                export JRE_VERSION="{ jre: { version: 1.8.+}}"
+
                 pushd uaa-cf-release
                     source combine-inline-config.sh
                     echo "$UAA_CONFIG_YAML"
@@ -78,7 +80,7 @@ pipeline {
                     ./ci_deploy.sh
 
                     # run service broker acceptance tests
-                    if [ $DEPLOYMENT_TYPE != 'perf-vpc-sb' -a $DEPLOYMENT_TYPE != 'perf-asv-sb' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'perf-azr-usw' -a $DEPLOYMENT_TYPE != 'perf-govcloud' -a $DEPLOYMENT_TYPE != 'cf3-integration' -a $DEPLOYMENT_TYPE != 'asv-pr-db-mig-test' ]; then
+                    if [ $DEPLOYMENT_TYPE != 'cf3-release-candidate' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'cf3-integration' ]; then
                         ./uaa-sb-acceptance-tests.sh
                     fi
                 popd
