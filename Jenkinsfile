@@ -422,26 +422,6 @@ pipeline {
                 }
             }
         }
-
-        stage('Trigger publish to Bintray') {
-            when {
-                expression { params.PUSH_TO_BUILD_GE == true }
-            }
-            steps {
-                script {
-                    build job: "PublishBintray/${env.BRANCH_NAME}",
-                    wait: false
-                }
-            }
-            post {
-                success {
-                    echo 'Trigger publishing to Bintray succeeded'
-                }
-                failure {
-                    echo 'Trigger publishing to Bintray failed'
-                }
-            }
-        }
     }
     post {
         success {
