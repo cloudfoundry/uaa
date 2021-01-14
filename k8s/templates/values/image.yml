@@ -1,3 +1,3 @@
 #@data/values
 ---
-image: "cfidentity/uaa@sha256:e7e7bc996a7594fe8b767056088d4216339392edd098877f794bd739bd649caf"
+image: "index.docker.io/cfidentity/uaa@sha256:7a3ded9ec4d090ae2450a4259ab402e64ef1401d711895259fea4bbf59304069"
