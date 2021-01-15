@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -141,7 +142,21 @@ public class ClientAdminBootstrap implements
                     (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                     (String) map.get("authorities"), getRedirectUris(map));
 
-            client.setClientSecret(map.get("secret") == null ? "" : (String) map.get("secret"));
+            // support second secret
+            String secondSecret = null;
+            if (map.get("secret") instanceof List) {
+                List<String> secrets = (List<String>) map.get("secret");
+                if (secrets.isEmpty()) {
+                    client.setClientSecret("");
+                } else {
+                    client.setClientSecret(secrets.get(0) == null ? "" : secrets.get(0));
+                    if (secrets.size() > 1) {
+                        secondSecret = secrets.get(1) == null ? "" : secrets.get(1);
+                    }
+                }
+            } else {
+                client.setClientSecret(map.get("secret") == null ? "" : (String) map.get("secret"));
+            }
 
             Integer validity = (Integer) map.get("access-token-validity");
             Boolean override = (Boolean) map.get("override");
@@ -176,13 +191,14 @@ public class ClientAdminBootstrap implements
             client.setAdditionalInformation(info);
             try {
                 clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
+                if (secondSecret != null) {
+                    clientRegistrationService.addClientSecret(clientId, secondSecret, IdentityZone.getUaaZoneId());
+                }
             } catch (ClientAlreadyExistsException e) {
                 if (override) {
                     logger.debug("Overriding client details for " + clientId);
                     clientRegistrationService.updateClientDetails(client, IdentityZone.getUaaZoneId());
-                    if (didPasswordChange(clientId, client.getClientSecret())) {
-                        clientRegistrationService.updateClientSecret(clientId, client.getClientSecret(), IdentityZone.getUaaZoneId());
-                    }
+                    updatePasswordsIfChanged(clientId, client.getClientSecret(), secondSecret);
                 } else {
                     // ignore it
                     logger.debug(e.getMessage());
@@ -228,14 +244,23 @@ public class ClientAdminBootstrap implements
         return clientMetadata;
     }
 
-    private boolean didPasswordChange(String clientId, String rawPassword) {
+    private void updatePasswordsIfChanged(String clientId, String rawPassword1, String rawPassword2) {
         if (passwordEncoder != null) {
             ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
-            String existingPasswordHash = existing.getClientSecret();
-            return !passwordEncoder.matches(rawPassword, existingPasswordHash);
-        } else {
-            return true;
+            String existingSecret = existing.getClientSecret();
+            String[] existingPasswordHash = (existingSecret != null ? existingSecret : "").split(" ");
+            // check if both passwords are still up to date
+            // 1st line: client already has 2 passwords: check if both are still correct
+            // 2nd line: client has only 1 pasword: check if password is correct and second password is null
+            if ( (existingPasswordHash.length > 1 && passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]) )
+                    || (passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null) ) {
+                // no changes to passwords: nothing to do here
+                return;
+            }
         }
+        // at least one password has changed: update
+        clientRegistrationService.updateClientSecret(clientId, rawPassword1, IdentityZone.getUaaZoneId());
+        if (rawPassword2 != null) clientRegistrationService.addClientSecret(clientId, rawPassword2, IdentityZone.getUaaZoneId());
     }
 
     @Override
