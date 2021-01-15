@@ -10,11 +10,7 @@ import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,12 +19,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLHandshakeException;
 import java.io.File;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.junit.Assert.assertEquals;
@@ -130,7 +121,7 @@ public class UaaHttpRequestUtilsTest {
     }
 
     public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true);
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5);
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);

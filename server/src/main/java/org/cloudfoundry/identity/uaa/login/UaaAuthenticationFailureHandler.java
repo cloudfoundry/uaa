@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
@@ -24,8 +25,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-
-import static org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController.FORCE_PASSWORD_EXPIRED_USER;
 
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
     private ExceptionMappingAuthenticationFailureHandler delegate;
@@ -41,7 +40,8 @@ public class UaaAuthenticationFailureHandler implements AuthenticationFailureHan
         addCookie(response);
         if(exception != null) {
             if (exception instanceof PasswordChangeRequiredException) {
-                request.getSession().setAttribute(FORCE_PASSWORD_EXPIRED_USER, ((PasswordChangeRequiredException) exception).getAuthentication());
+                SessionUtils.setForcePasswordExpiredUser(request.getSession(),
+                        ((PasswordChangeRequiredException) exception).getAuthentication());
             }
         }
         if (delegate!=null) {

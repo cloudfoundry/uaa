@@ -9,7 +9,7 @@ import (
 	coreV1 "k8s.io/api/core/v1"
 )
 
-type ContainerMatcherConfig func(*ContainerMatcher)
+type PodMatcherConfig func(*PodMatcher)
 
 type PodMatcher struct {
 	containers     []types.GomegaMatcher
@@ -26,7 +26,8 @@ func NewPodMatcher() *PodMatcher {
 		NewObjectMetaMatcher(),
 		nil,
 		map[string]types.GomegaMatcher{},
-		nil}
+		nil,
+	}
 }
 
 func (matcher *PodMatcher) WithContainerMatching(config ContainerMatcherConfig) *PodMatcher {
@@ -43,14 +44,8 @@ func (matcher *PodMatcher) WithServiceAccountMatching(serviceAccount string) *Po
 	return matcher
 }
 
-func (matcher *PodMatcher) WithLabels(labels map[string]string) *PodMatcher {
-	matcher.meta.WithLabels(labels)
-
-	return matcher
-}
-
-func (matcher *PodMatcher) WithNamespace(namespace string) *PodMatcher {
-	matcher.meta.WithNamespace(namespace)
+func (matcher *PodMatcher) WithMetaMatching(config ObjectMetaMatcherConfig) *PodMatcher {
+	config(matcher.meta)
 
 	return matcher
 }

@@ -38,9 +38,7 @@ import org.springframework.web.client.RestTemplate;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.updateUserToForcePasswordChange;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -72,7 +70,7 @@ public class ForcedPasswordChangeIT {
 
     @Before
     @After
-    public void logout_and_clear_cookies() {
+    public void logoutAndClearCookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
         }catch (org.openqa.selenium.TimeoutException x) {
@@ -109,16 +107,22 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForceChangingPassword() {
+    public void testHandleForcePasswordChange() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
+
+        var session1= webDriver.manage().getCookieNamed("JSESSIONID");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        var session2 = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertEquals(session1, session2);
+        assertNotNull(session1);
+
         assertEquals(baseUrl+"/", webDriver.getCurrentUrl());
     }
 
     @Test
-    public void testHandleForceChangingPasswordWithNewPasswordSameAsOld() {
+    public void testHandleForcePasswordChangeWithNewPasswordSameAsOld() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
@@ -129,7 +133,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForcePasswordChangeInvalidConfirmation() {
+    public void testHandleForcePasswordChangeWithPasswordDoesNotMatchPasswordConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("invalid");
@@ -140,7 +144,7 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testHandleForcePasswordChangeEmptyConfirmation() {
+    public void testHandleForcePasswordChangeWithEmptyPasswordConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
@@ -150,16 +154,23 @@ public class ForcedPasswordChangeIT {
     }
 
     @Test
-    public void testRedirectForHandleForcePasswordChange() {
+    public void testHandleForcePasswordChangeDoesRedirectToOriginalUrl() {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminAccessToken, userId);
         webDriver.get(baseUrl+"/profile");
         assertEquals(baseUrl+"/login", webDriver.getCurrentUrl());
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
+
+        var session1= webDriver.manage().getCookieNamed("JSESSIONID");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        var session2 = webDriver.manage().getCookieNamed("JSESSIONID");
+        assertEquals(session1, session2);
+        assertNotNull(session1);
         assertEquals(baseUrl+"/profile", webDriver.getCurrentUrl());
     }
 
@@ -185,6 +196,4 @@ public class ForcedPasswordChangeIT {
             containsString("Force Change Password"));
         assertEquals(baseUrl+"/force_password_change", webDriver.getCurrentUrl());
     }
-
-
 }

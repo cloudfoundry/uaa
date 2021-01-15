@@ -17,17 +17,16 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.context.WebApplicationContext;
 import org.w3c.dom.NodeList;
 
 import java.util.HashMap;
@@ -38,31 +37,23 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryT
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.*;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_XML;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-// TODO: This class has a lot of helpers, why?
 @DefaultTestContext
 class SamlKeyRotationMockMvcTests {
 
     private IdentityZone zone;
-    private String token;
     private SamlKey samlKey2;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void createZone(
-            @Autowired TestClient testClient,
+            @Autowired WebApplicationContext webApplicationContext,
             @Autowired MockMvc mockMvc
     ) throws Exception {
-        token = testClient.getClientCredentialsOAuthAccessToken(
-                "identity",
-                "identitysecret",
-                "zones.write");
         this.mockMvc = mockMvc;
 
         String id = new RandomValueStringGenerator().generate().toLowerCase();
@@ -84,7 +75,15 @@ class SamlKeyRotationMockMvcTests {
         samlConfig.addKey("key2", samlKey2);
         identityZone.getConfig().setSamlConfig(samlConfig);
 
-        createZone(identityZone);
+        BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null,
+            "openid",
+            "client_credentials,authorization_code",
+            "clients.admin,scim.read,scim.write",
+            "http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils
+            .createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, zoneAdminClient, identityZone, false, id);
+        zone = identityZoneCreationResult.getIdentityZone();
     }
 
     @ParameterizedTest
@@ -133,18 +132,6 @@ class SamlKeyRotationMockMvcTests {
         metadata = getMetadata(url);
 
         evaluateSignatureKey(metadata, certificate1);
-    }
-
-    private void createZone(IdentityZone identityZone) throws Exception {
-        String zoneJson = mockMvc.perform(
-                post("/identity-zones")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(identityZone)))
-                .andExpect(status().is(HttpStatus.CREATED.value()))
-                .andReturn().getResponse().getContentAsString();
-
-        zone = JsonUtils.readValue(zoneJson, IdentityZone.class);
     }
 
     private String getMetadata(String uri) throws Exception {

@@ -71,7 +71,7 @@ public class SamlServiceProviderConfiguratorTest {
         slowHttpServer = new SlowHttpServer();
         TimeService mockTimeService = mock(TimeService.class);
         when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
-        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+        RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
         restTemplateConfig.timeout = 120;
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(
                 restTemplateConfig.trustingRestTemplate(),

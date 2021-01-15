@@ -142,7 +142,7 @@ class ExpiringUrlCacheTests {
 
         @Test
         void throwUnavailableIdpWhenServerMetadataDoesNotReply() {
-            RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+            RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
             restTemplateConfig.timeout = 120;
             RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
 

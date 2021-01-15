@@ -388,6 +388,7 @@
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>

@@ -7,8 +7,6 @@ import (
 	appV1 "k8s.io/api/apps/v1"
 )
 
-type PodMatcherConfig func(*PodMatcher)
-
 type DeploymentMatcher struct {
 	pod  *PodMatcher
 	meta *ObjectMetaMatcher
@@ -17,7 +15,11 @@ type DeploymentMatcher struct {
 }
 
 func RepresentingDeployment() *DeploymentMatcher {
-	return &DeploymentMatcher{NewPodMatcher(), NewObjectMetaMatcher(), nil}
+	return &DeploymentMatcher{
+		NewPodMatcher(),
+		NewObjectMetaMatcher(),
+		nil,
+	}
 }
 
 func (matcher *DeploymentMatcher) WithPodMatching(config PodMatcherConfig) *DeploymentMatcher {
@@ -26,14 +28,8 @@ func (matcher *DeploymentMatcher) WithPodMatching(config PodMatcherConfig) *Depl
 	return matcher
 }
 
-func (matcher *DeploymentMatcher) WithLabels(labels map[string]string) *DeploymentMatcher {
-	matcher.meta.WithLabels(labels)
-
-	return matcher
-}
-
-func (matcher *DeploymentMatcher) WithNamespace(namespace string) *DeploymentMatcher {
-	matcher.meta.WithNamespace(namespace)
+func (matcher *DeploymentMatcher) WithMetaMatching(config ObjectMetaMatcherConfig) *DeploymentMatcher {
+	config(matcher.meta)
 
 	return matcher
 }

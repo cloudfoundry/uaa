@@ -15,6 +15,8 @@ java_opts_list = [
   "-Djavax.net.ssl.trustStore={}".format(truststore_file),
   "-Djavax.net.ssl.trustStoreType=PKCS12",
   "-Djavax.net.ssl.trustStorePassword={}".format(truststore_password),
+  "-Dstatsd.enabled=true",
+  "-Dservlet.session-store=database",
 ]
 
 def java_opts(database_scheme):
