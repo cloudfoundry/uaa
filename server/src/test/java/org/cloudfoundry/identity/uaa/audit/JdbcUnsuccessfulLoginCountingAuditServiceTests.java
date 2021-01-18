@@ -130,6 +130,7 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
     @Test
     void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
         // Set the created column to 2 hour past
