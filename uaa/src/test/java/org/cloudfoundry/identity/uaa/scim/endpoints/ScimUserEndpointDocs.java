@@ -33,6 +33,7 @@ import java.util.Date;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -474,7 +475,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -507,7 +508,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
