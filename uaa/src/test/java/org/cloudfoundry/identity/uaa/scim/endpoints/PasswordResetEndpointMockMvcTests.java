@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -62,7 +62,7 @@ class PasswordResetEndpointMockMvcTests {
     void setUp() throws Exception {
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
-        scimUser = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        scimUser = new ScimUser(null, generator.generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         scimUser.setPrimaryEmail(scimUser.getUserName());
         scimUser.setPassword("secr3T");
         scimUser = MockMvcUtils.createUser(mockMvc, adminToken, scimUser);
@@ -70,7 +70,7 @@ class PasswordResetEndpointMockMvcTests {
 
     @AfterEach
     void resetGenerator() {
-        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new org.springframework.security.oauth2.common.util.RandomValueStringGenerator(24));
     }
 
     @Test
@@ -261,7 +261,7 @@ class PasswordResetEndpointMockMvcTests {
         MockMvcUtils.createClient(this.mockMvc, adminToken, zonifiedAdminClientId , zonifiedAdminClientSecret, Collections.singleton("oauth"), Collections.singletonList(zoneAdminScope), Arrays.asList("client_credentials", "password"), "uaa.none");
         String zoneAdminAccessToken = testClient.getUserOAuthAccessToken(zonifiedAdminClientId, zonifiedAdminClientSecret, scimUser.getUserName(), "secr3T", zoneAdminScope);
 
-        ScimUser userInZone = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        ScimUser userInZone = new ScimUser(null, generator.generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         userInZone.setPrimaryEmail(userInZone.getUserName());
         userInZone.setPassword("secr3T");
         userInZone = MockMvcUtils.createUserInZone(mockMvc, adminToken, userInZone, "",identityZone.getId());
@@ -313,7 +313,7 @@ class PasswordResetEndpointMockMvcTests {
     }
 
     private static String getCodeFromPage(MvcResult result) throws UnsupportedEncodingException {
-        Pattern codePattern = Pattern.compile("<input type=\"hidden\" name=\"code\" value=\"([A-Za-z0-9]+)\"/>");
+        Pattern codePattern = Pattern.compile("<input type=\"hidden\" name=\"code\" value=\"([A-Za-z0-9\\_\\-]+)\"/>");
         Matcher codeMatcher = codePattern.matcher(result.getResponse().getContentAsString());
 
         assertTrue(codeMatcher.find());
