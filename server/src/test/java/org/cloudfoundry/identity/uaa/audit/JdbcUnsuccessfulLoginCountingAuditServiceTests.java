@@ -130,17 +130,18 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
     @Test
     void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
         // Set the created column to 2 hour past
-        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 2 * 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(UserAuthenticationFailure, "2", "joe"), getAuditEvent(UserAuthenticationFailure, "2", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "otherclient", "testman"), getAuditEvent(ClientAuthenticationFailure, "otherclient", "testman").getIdentityZoneId());
         // Find events within last 2 mins
-        List<AuditEvent> userEvents = auditService.find("1", now - 120 * 1000, IdentityZone.getUaaZoneId());
-        List<AuditEvent> clientEvents = auditService.find("client", now - 120 * 1000, IdentityZone.getUaaZoneId());
+        List<AuditEvent> userEvents = auditService.find("1", now - 2 * 60 * 1000, IdentityZone.getUaaZoneId());
+        List<AuditEvent> clientEvents = auditService.find("client", now - 2 * 60 * 1000, IdentityZone.getUaaZoneId());
         assertEquals(1, userEvents.size());
         assertEquals(0, clientEvents.size());
     }
