@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.test.annotation.DirtiesContext;
@@ -67,6 +69,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @DisplayName("Uaa Token Services Tests")
 @DefaultTestContext
@@ -81,6 +84,8 @@ class UaaTokenServicesTests {
 
     @Autowired
     private JdbcUaaUserDatabase jdbcUaaUserDatabase;
+    @Autowired
+    private MultitenantClientServices jdbcClientDetailsService;
 
     @Nested
     @DisplayName("when building an id token")
@@ -90,8 +95,9 @@ class UaaTokenServicesTests {
         private String requestedScope;
 
         @BeforeEach
-        void setupRequest() {
+        void setupRequest() throws InterruptedException {
             requestedScope = "openid";
+            assumeTrue(waitForClient(clientId, 3), "Test client jku_test not up yet");
         }
 
         @DisplayName("id token should contain jku header")
@@ -357,8 +363,9 @@ class UaaTokenServicesTests {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
             @DisplayName("an ID token is not returned")
-            void idTokenNotReturned(String grantType) {
+            void idTokenNotReturned(String grantType) throws InterruptedException {
                 String nonOpenIdScope = "password.write";
+                assumeTrue(waitForClient("client_without_openid", 5), "Test client needs to be setup for this test");
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest("client_without_openid", grantType, nonOpenIdScope);
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
                 CompositeToken compositeToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
@@ -483,5 +490,18 @@ class UaaTokenServicesTests {
         azParameters.put(GRANT_TYPE, grantType);
         authorizationRequest.setRequestParameters(azParameters);
         return authorizationRequest;
+    }
+
+    private boolean waitForClient(String clientId, int max) throws InterruptedException {
+        int retry = 0;
+        while(retry++ < max) {
+            try {
+                jdbcClientDetailsService.loadClientByClientId(clientId);
+                return true;
+            } catch (NoSuchClientException e) {
+                Thread.sleep(500);
+            }
+        }
+        return false;
     }
 }
