@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -19,7 +20,7 @@ class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     void methodNotAllowedReturnsError_PUT() throws Exception {
-        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
+        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, new RandomValueStringGenerator(20));
         mockMvc.perform(
                 put("/oauth/token")
                         .param("client_id", CLIENTID)
@@ -38,7 +39,7 @@ class UaaTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
 
     @Test
     void methodNotAllowedReturnsError_DELETE() throws Exception {
-        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator);
+        String username = createUserForPasswordGrant(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, new RandomValueStringGenerator(15));
         mockMvc.perform(
                 delete("/oauth/token")
                         .param("client_id", CLIENTID)
