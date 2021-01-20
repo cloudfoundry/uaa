@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
@@ -31,7 +32,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.time.Duration;
 import java.util.Collections;

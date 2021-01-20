@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -26,7 +27,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
