@@ -54,7 +54,7 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
             output = (UsernamePasswordAuthenticationToken) authentication;
         } else {
             output = new UsernamePasswordAuthenticationToken(authentication.getPrincipal(),
-                                                             authentication.getCredentials(),
+                                                             (authentication.getCredentials() != null ? authentication.getCredentials().toString() : null),
                                                              authentication.getAuthorities());
             output.setDetails(authentication.getDetails());
         }
