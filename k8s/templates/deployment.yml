@@ -20,6 +20,10 @@ spec:
   replicas: 1
   template:
     metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9102'
+        prometheus.io/path: '/metrics'
       labels:
         app: uaa-deployment
     spec: #! pod spec
@@ -110,8 +114,11 @@ spec:
         image: #@ data.values.image
         resources:
           requests:
-            memory: #@ data.values.resources.requests.memory
-            cpu: #@ data.values.resources.requests.cpu
+            memory: #@ data.values.resources.uaa.requests.memory
+            cpu: #@ data.values.resources.uaa.requests.cpu
+          limits:
+            memory: #@ data.values.resources.uaa.limits.memory
+            cpu: #@ data.values.resources.uaa.limits.cpu
         ports:
         - name: http-uaa
           containerPort: 8080
@@ -143,6 +150,14 @@ spec:
         - name: truststore-file
           mountPath: #@ truststore_dir
           readOnly: true
+        - name: saml-keys-file
+          mountPath: #@ "{}/saml_keys.yml".format(secrets_dir)
+          subPath: saml_keys.yml
+          readOnly: true
+        - name: encryption-keys-file
+          mountPath: #@ "{}/encryption_keys.yml".format(secrets_dir)
+          subPath: encryption_keys.yml
+          readOnly: true
         livenessProbe:
           httpGet:
             path: /healthz
@@ -154,6 +169,21 @@ spec:
           httpGet:
             path: /healthz
             port: http-uaa
+      - name: statsd-exporter
+        image: #@ data.values.images.statsd_exporter
+        imagePullPolicy: Always
+        args: ["--statsd.listen-udp=:8125"]
+        ports:
+        - name: "metrics-uaa"
+          containerPort: 9102
+          protocol: "TCP"
+        resources:
+          requests:
+            memory: #@ data.values.resources.statsd_exporter.requests.memory
+            cpu: #@ data.values.resources.statsd_exporter.requests.cpu
+          limits:
+            memory: #@ data.values.resources.statsd_exporter.limits.memory
+            cpu: #@ data.values.resources.statsd_exporter.limits.cpu
       volumes:
       - name: uaa-config
         configMap:
@@ -178,3 +208,11 @@ spec:
           secretName: uaa-ca-certs
       - name: truststore-file
         emptyDir: {}
+      - name: saml-keys-file
+        secret:
+          optional: false
+          secretName: uaa-saml-keys
+      - name: encryption-keys-file
+        secret:
+          optional: false
+          secretName: encryption-keys

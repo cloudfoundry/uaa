@@ -9,6 +9,8 @@ import (
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type ObjectMetaMatcherConfig func(*ObjectMetaMatcher)
+
 type ObjectMetaMatcher struct {
 	fields map[string]types.GomegaMatcher
 
@@ -38,6 +40,16 @@ func (matcher *ObjectMetaMatcher) WithLabels(labels map[string]string) *ObjectMe
 
 func (matcher *ObjectMetaMatcher) WithNamespace(namespace string) *ObjectMetaMatcher {
 	matcher.fields["Namespace"] = gomega.Equal(namespace)
+	return matcher
+}
+
+func (matcher *ObjectMetaMatcher) WithAnnotations(annotations map[string]string) *ObjectMetaMatcher {
+	var matchers []types.GomegaMatcher
+	for annotation, value := range annotations {
+		matchers = append(matchers, gomega.HaveKeyWithValue(annotation, value))
+	}
+
+	matcher.fields["Annotations"] = gomega.SatisfyAll(matchers...)
 	return matcher
 }
 

@@ -1,0 +1,10 @@
+#@data/values
+#@ load("@ytt:overlay", "overlay")
+
+---
+#@overlay/replace
+encryption:
+  active_key_label: not-present-key
+  encryption_keys:
+    - label: CHANGED-KEY
+      passphrase: NEVERGONNAGUESS

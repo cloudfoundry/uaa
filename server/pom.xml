@@ -60,7 +60,7 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-jdbc</artifactId>
-      <version>9.0.33</version>
+      <version>9.0.37</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -766,7 +766,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcprov-jdk15on</artifactId>
-      <version>1.65</version>
+      <version>1.66</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -810,7 +810,7 @@
     <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
-      <version>1.65</version>
+      <version>1.66</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
@@ -1870,7 +1870,7 @@
     <dependency>
       <groupId>org.apache.tomcat.embed</groupId>
       <artifactId>tomcat-embed-core</artifactId>
-      <version>9.0.33</version>
+      <version>9.0.37</version>
       <scope>provided</scope>
       <exclusions>
         <exclusion>
@@ -2345,7 +2345,7 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-el-api</artifactId>
-      <version>9.0.33</version>
+      <version>9.0.37</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
@@ -2389,7 +2389,7 @@
     <dependency>
       <groupId>org.apache.tomcat</groupId>
       <artifactId>tomcat-jasper-el</artifactId>
-      <version>9.0.33</version>
+      <version>9.0.37</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>

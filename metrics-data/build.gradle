@@ -1,8 +1,8 @@
 description = "CloudFoundry Identity Metrics Data Jar"
 
 dependencies {
-  compile libraries.jacksonDatabind
-  compile libraries.jacksonAnnotations
+  implementation(libraries.jacksonDatabind)
+  implementation(libraries.jacksonAnnotations)
 }
 
 processResources {

@@ -10,53 +10,48 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+
 package org.cloudfoundry.identity.statsd;
 
 import com.timgroup.statsd.NonBlockingStatsDClient;
-import com.timgroup.statsd.StatsDClient;
-import org.springframework.context.annotation.Bean;
-import org.springframework.scheduling.annotation.EnableScheduling;
-import org.springframework.scheduling.annotation.SchedulingConfigurer;
-import org.springframework.scheduling.config.ScheduledTaskRegistrar;
-
 import java.lang.management.ManagementFactory;
 import java.util.Calendar;
 import java.util.Date;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
 
+@Configuration
 @EnableScheduling
-public class StatsdConfiguration implements SchedulingConfigurer {
+public class StatsdConfiguration {
 
-    @Bean
-    public UaaMetricsEmitter statsDClientWrapper(MetricsUtils utils, StatsDClient client) {
-        return new UaaMetricsEmitter(utils, client, ManagementFactory.getPlatformMBeanServer());
-    }
+  @Bean
+  public UaaMetricsEmitter statsDClientWrapper() {
+    return new UaaMetricsEmitter(
+        new MetricsUtils(),
+        new NonBlockingStatsDClient("uaa", "localhost", 8125),
+        ManagementFactory.getPlatformMBeanServer());
+  }
 
-    @Bean
-    public StatsDClient statsDClient() {
-        return new NonBlockingStatsDClient("uaa", "localhost", 8125);
-    }
+  @Bean
+  public SchedulingConfigurer schedulingConfigurer(UaaMetricsEmitter uaaMetricsEmitter) {
+    return taskRegistrar -> taskRegistrar.addTriggerTask(
+        uaaMetricsEmitter::enableNotification,
+        triggerContext -> {
+          if (uaaMetricsEmitter.isNotificationEnabled()) {
+            return null;
+          }
+          return triggerContext.lastCompletionTime() != null
+              ? getFiveSecondsFrom(triggerContext.lastCompletionTime())
+              : getFiveSecondsFrom(new Date());
+        });
+  }
 
-    @Bean
-    public MetricsUtils metricsUtils() {
-        return new MetricsUtils();
-    }
-
-    @Override
-    public void configureTasks(ScheduledTaskRegistrar taskRegistrar) {
-        taskRegistrar.addTriggerTask(() -> statsDClientWrapper(metricsUtils(), statsDClient()).enableNotification(),
-                triggerContext -> {
-                    if (statsDClientWrapper(metricsUtils(), statsDClient()).isNotificationEnabled()) {
-                        return null;
-                    } else {
-                        Calendar calendar = Calendar.getInstance();
-                        if (triggerContext.lastCompletionTime() != null) {
-                            calendar.setTime(triggerContext.lastCompletionTime());
-                        } else {
-                            calendar.setTime(new Date());
-                        }
-                        calendar.add(Calendar.SECOND, 5);
-                        return calendar.getTime();
-                    }
-                });
-    }
+  private Date getFiveSecondsFrom(Date date) {
+    Calendar calendar = Calendar.getInstance();
+    calendar.setTime(date);
+    calendar.add(Calendar.SECOND, 5);
+    return calendar.getTime();
+  }
 }

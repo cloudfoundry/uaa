@@ -1,9 +1,9 @@
-apply plugin: "java"
-apply plugin: "war"
-apply plugin: "org.springframework.boot"
+apply(plugin: "java")
+apply(plugin: "war")
+apply(plugin: "org.springframework.boot")
 
 war {
-    baseName = "cloudfoundry-identity-statsd"
+    archiveBaseName = "cloudfoundry-identity-statsd"
 }
 
 repositories {
@@ -11,14 +11,15 @@ repositories {
 }
 
 dependencies {
-    compile project(":cloudfoundry-identity-statsd-lib")
-    providedCompile libraries.tomcatEmbed
-    providedRuntime libraries.springBootStarterTomcat
+    implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.springBootStarterWeb)
+    providedCompile(libraries.tomcatEmbed)
+    providedRuntime(libraries.springBootStarterTomcat)
 }
 
 test {
-    exclude "org/cloudfoundry/identity/statsd/integration/*.class"
-    exclude "**/*IT.class"
+    exclude("org/cloudfoundry/identity/statsd/integration/*.class")
+    exclude("**/*IT.class")
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any

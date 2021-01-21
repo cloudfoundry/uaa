@@ -382,6 +382,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                     userWithSamlAttributes.getGivenName(),
                     userWithSamlAttributes.getFamilyName(),
                     userWithSamlAttributes.getPhoneNumber(),
+                    userWithSamlAttributes.getExternalId(),
                     user.isVerified() || userWithSamlAttributes.isVerified());
         }
         publish(
@@ -423,6 +424,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 !StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) ||
                 !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
                 !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) ||
-                !StringUtils.equals(existingUser.getEmail(), user.getEmail());
+                !StringUtils.equals(existingUser.getEmail(), user.getEmail())||
+                !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
     }
 }

@@ -24,7 +24,7 @@ import java.lang.annotation.Target;
 @ContextConfiguration(classes = {
         DatabaseOnlyConfiguration.class,
         PasswordEncoderConfig.class,
-        FlywayConfiguration.class,
+        FlywayConfiguration.FlywayConfigurationWithMigration.class,
 })
 public @interface WithDatabaseContext {
 
@@ -33,6 +33,7 @@ public @interface WithDatabaseContext {
 @ImportResource(locations = {
         "classpath:spring/env.xml",
         "classpath:spring/data-source.xml",
+        "classpath:spring/jdbc-test-base-add-flyway.xml"
 })
 class DatabaseOnlyConfiguration {
 

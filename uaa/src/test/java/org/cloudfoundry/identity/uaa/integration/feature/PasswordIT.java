@@ -18,6 +18,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
@@ -26,11 +27,14 @@ import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguratio
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -43,16 +47,41 @@ public class PasswordIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    @Test
-    public void getClientCredentials() {
+    private RestTemplate getPostTemplate(MultiValueMap<String, String> headers) {
         RestTemplate restTemplate = new RestTemplate();
-        MultiValueMap<String, String> headers = new LinkedMaskingMultiValueMap<>();
         headers.add("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE);
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        RequestEntity requestEntity = new RequestEntity(headers, HttpMethod.POST, URI.create(baseUrl + "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials"));
+        return restTemplate;
+    }
+
+    private RequestEntity getRequestEntity(MultiValueMap<String, String> headers, String s) {
+        return new RequestEntity(headers, HttpMethod.POST, URI.create(baseUrl + s));
+    }
+
+    @Test
+    public void getClientCredentials() {
+        MultiValueMap<String, String> headers = new LinkedMaskingMultiValueMap<>();
+        RestTemplate restTemplate = getPostTemplate(headers);
+        RequestEntity requestEntity = getRequestEntity(headers,
+            "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
         ResponseEntity<Void> responseEntity = restTemplate.exchange(requestEntity, Void.class);
 
         assertEquals(responseEntity.getStatusCodeValue(), 200);
     }
 
+    @Test
+    public void getClientCredentialsInvalid() {
+        MultiValueMap<String, String> headers = new LinkedMaskingMultiValueMap<>();
+        headers.add("Authorization", "Basic YWRtaW4lMDA6YWRtaW5zZWNyZXQ=");
+        RestTemplate restTemplate = getPostTemplate(headers);
+        RequestEntity requestEntity = getRequestEntity(headers,
+            "/oauth/token?grant_type=client_credentials");
+        try {
+            restTemplate.exchange(requestEntity, Void.class);
+        } catch( HttpClientErrorException ex) {
+            assertTrue(ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0).contains("error_description=\"Bad credentials\""));
+            return;
+        }
+        fail("not expected");
+    }
 }

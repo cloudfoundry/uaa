@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
@@ -64,7 +64,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         var relyingPartyId = definition.getRelyingPartyId();
 
         var state = generateStateParam();
-        saveStateParamForIdpToRequestSession(state, idpOriginKey, request);
+        SessionUtils.setStateParam(request.getSession(), SessionUtils.stateParameterAttributeKeyForIdp(idpOriginKey), state);
 
         UriComponentsBuilder uriBuilder = UriComponentsBuilder
                 .fromUriString(idpUrlBase)
@@ -83,10 +83,6 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         }
 
         return uriBuilder.build().toUriString();
-    }
-
-    private void saveStateParamForIdpToRequestSession(String state, String idpOriginKey, HttpServletRequest request) {
-        request.getSession().setAttribute("external-oauth-state-" + idpOriginKey, state);
     }
 
     private String generateStateParam() {

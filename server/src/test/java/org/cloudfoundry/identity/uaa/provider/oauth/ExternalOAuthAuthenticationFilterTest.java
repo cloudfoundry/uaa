@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -190,6 +191,21 @@ class ExternalOAuthAuthenticationFilterTest {
             verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
             verify(mockRequestDispatcher).forward(mockRequest, mockResponse);
         }
+
+        @Test
+        void itRedirects_EvenWhenTheStateHasNotYetBeenPulledFromTheHashFragmentYet()
+            throws IOException, ServletException {
+            RequestDispatcher mockRequestDispatcher = mock(RequestDispatcher.class);
+
+            HttpServletRequest mockRequest = mockRedirectRequest(ORIGIN_KEY, (request) -> {
+                when(request.getRequestDispatcher("/login_implicit")).thenReturn(mockRequestDispatcher);
+            });
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+
+            externalOAuthAuthenticationFilter.doFilter(mockRequest, mockResponse, mockFilterChain);
+            verify(mockFilterChain, never()).doFilter(mockRequest, mockResponse);
+            verify(mockRequestDispatcher).forward(mockRequest, mockResponse);
+        }
     }
 
     private HttpServletRequest mockRedirectRequest(String origin, Consumer<HttpServletRequest> config) {
@@ -219,6 +235,6 @@ class ExternalOAuthAuthenticationFilterTest {
     }
 
     private void mockStateParamInSession(HttpSession session, String origin, String state) {
-        when(session.getAttribute("external-oauth-state-" + origin)).thenReturn(state);
+        when(session.getAttribute(SessionUtils.stateParameterAttributeKeyForIdp(origin))).thenReturn(state);
     }
 }
