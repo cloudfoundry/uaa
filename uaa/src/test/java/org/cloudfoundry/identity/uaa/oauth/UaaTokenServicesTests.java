@@ -309,7 +309,7 @@ class UaaTokenServicesTests {
             @DisplayName("an ID token is returned with ACR claim")
             void happyCase(List<String> acrs) {
                 setup(new HashSet<>(acrs));
-
+                assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
                 CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
                         refreshToken.getValue(),
                         new TokenRequest(
@@ -363,7 +363,7 @@ class UaaTokenServicesTests {
             @ParameterizedTest
             @ValueSource(strings = {GRANT_TYPE_PASSWORD, GRANT_TYPE_AUTHORIZATION_CODE})
             @DisplayName("an ID token is not returned")
-            void idTokenNotReturned(String grantType) throws InterruptedException {
+            void idTokenNotReturned(String grantType) {
                 String nonOpenIdScope = "password.write";
                 assumeTrue(waitForClient("client_without_openid", 5), "Test client needs to be setup for this test");
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest("client_without_openid", grantType, nonOpenIdScope);
@@ -492,14 +492,18 @@ class UaaTokenServicesTests {
         return authorizationRequest;
     }
 
-    private boolean waitForClient(String clientId, int max) throws InterruptedException {
+    private boolean waitForClient(String clientId, int max) {
         int retry = 0;
         while(retry++ < max) {
             try {
                 jdbcClientDetailsService.loadClientByClientId(clientId);
                 return true;
             } catch (NoSuchClientException e) {
-                Thread.sleep(500);
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException interruptedException) {
+                    return false;
+                }
             }
         }
         return false;
