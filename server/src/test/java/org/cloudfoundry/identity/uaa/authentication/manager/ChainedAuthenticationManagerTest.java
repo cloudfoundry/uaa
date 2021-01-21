@@ -137,4 +137,10 @@ public class ChainedAuthenticationManagerTest {
         assertTrue(result.isAuthenticated());
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
     }
+
+    @Test
+    public void testNullAuthentication() {
+        Authentication result = authMgr.authenticate(null);
+        assertNull(result);
+    }
 }
