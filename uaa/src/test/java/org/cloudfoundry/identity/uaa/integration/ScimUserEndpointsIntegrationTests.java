@@ -160,6 +160,27 @@ public class ScimUserEndpointsIntegrationTests {
         assertTrue(joe2.isVerified());
     }
 
+    @Test
+    public void updateUserWithCustomAttributeSucceeds() {
+
+        LinkedHashMap<String, String> customAttributes = new LinkedHashMap<>();
+        customAttributes.put("accountNumber", "12345");
+        ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", customAttributes);
+        ScimUser joe1 = response.getBody();
+
+        joe1.getCustomAttributes().remove("accountNumber");
+        joe1.getCustomAttributes().put("pcUsername", "joe");
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", "\"" + joe1.getVersion() + "\"");
+        response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+                new HttpEntity<ScimUser>(joe1, headers), ScimUser.class, joe1.getId());
+        ScimUser respJoe = response.getBody();
+
+        assertEquals("joe", respJoe.getCustomAttributes().get("pcUsername"));
+        assertNull(respJoe.getCustomAttributes().get("accountNumber"));
+    }
+
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
     // --data
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"

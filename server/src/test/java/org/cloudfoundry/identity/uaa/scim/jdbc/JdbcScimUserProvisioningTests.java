@@ -1051,6 +1051,27 @@ class JdbcScimUserProvisioningTests {
         assertNotNull(createdUser.getCustomAttributes());
     }
 
+    @Test
+    void updateCustomAttribute() {
+        String userName = "jo!!@foo.com";
+        ScimUser user = new ScimUser(null, userName, "Jo", "User");
+        user.addEmail("email");
+        LinkedHashMap<String, String> map = new LinkedHashMap<>();
+        map.put("accountNumber", "12345");
+        user.setCustomAttributes(map);
+
+        ScimUser createdUser = jdbcScimUserProvisioning.createUser(user, "j7hyqpassX", currentIdentityZoneId);
+
+        map.remove("accountNumber");
+        map.put("pcUsername", "jo!!");
+        createdUser.setCustomAttributes(map);
+
+        ScimUser updatedUser = jdbcScimUserProvisioning.update(createdUser.getId(), createdUser, currentIdentityZoneId);
+        assertNotNull(updatedUser.getCustomAttributes());
+        assertNull(updatedUser.getCustomAttributes().get("accountNumber"));
+        assertEquals("jo!!", updatedUser.getCustomAttributes().get("pcUsername"));
+    }
+
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
         String randomUserId = UUID.randomUUID().toString();
         addUser(jdbcTemplate, randomUserId, randomUserId, "password", randomUserId + "@delete.com", "ToDelete", "User", "+1-234-5678910", zoneId);

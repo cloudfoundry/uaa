@@ -68,9 +68,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-//    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, custom_salt=?, custom_attributes=? where id=? and version=? and identity_zone_id=?";
-
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=? and identity_zone_id=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=?, custom_attributes=? where id=? and version=? and identity_zone_id=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=? and identity_zone_id=?";
 
@@ -274,6 +272,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             ps.setString(pos++, origin);
             ps.setString(pos++, hasText(user.getExternalId())?user.getExternalId():null);
             ps.setString(pos++, user.getSalt());
+            if(user.getCustomAttributes() == null) {
+                ps.setNull(pos++, Types.LONGVARCHAR);
+            } else {
+                ps.setString(pos++, JsonUtils.writeValueAsString(user.getCustomAttributes()));
+            }
             ps.setString(pos++, id);
             ps.setInt(pos++, user.getVersion());
             ps.setString(pos++, zoneId);
