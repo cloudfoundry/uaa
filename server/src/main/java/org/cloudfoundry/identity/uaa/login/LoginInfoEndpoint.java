@@ -303,8 +303,16 @@ public class LoginInfoEndpoint {
                 } catch (EmptyResultDataAccessException ignored) {
                 }
             }
-            oauthIdentityProviders = Collections.emptyMap();
-            samlIdentityProviders = Collections.emptyMap();
+            if (!loginHintProviders.isEmpty()) {
+                oauthIdentityProviders = Collections.emptyMap();
+                samlIdentityProviders = Collections.emptyMap();
+            } else {
+                samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
+                oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
+                allIdentityProviders = new HashMap<>();
+                allIdentityProviders.putAll(samlIdentityProviders);
+                allIdentityProviders.putAll(oauthIdentityProviders);
+            }
         } else if (accountChooserNeeded || (discoveryEnabled && !discoveryPerformed)) {
             //Account Chooser and discovery do not need any IdP information
             oauthIdentityProviders = Collections.emptyMap();

@@ -1152,6 +1152,30 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testInvalidLoginHintLoginPageReturnsList() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
+        when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+        List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
+        when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("invalidorigin"), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"invalidorigin\"}"});
+
+        endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertFalse(((Map)extendedModelMap.get("oauthLinks")).isEmpty());
+    }
+
+    @Test
     void loginHintOriginOidc() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
 
