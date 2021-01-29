@@ -71,7 +71,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 dest = err
 name = UaaLog
 
-property.log_pattern=[%d{yyyy-MM-dd HH:mm:ss.SSS}] uaa%X{context} - %pid [%t] .... %5p --- %c{1}: %replace{%m}{(?<=password=|client_secret=)([^&]*)}{<redacted>}%n
+property.log_pattern=[%d{yyyy-MM-dd'T'HH:mm:ss.nnnnnn}{GMT+0}Z] uaa%X{context} - %pid [%t] .... %5p --- %c{1}: %replace{%m}{(?<=password=|client_secret=)([^&]*)}{<redacted>}%n
 
 appender.uaaDefaultAppender.type = Console
 appender.uaaDefaultAppender.name = UaaDefaultAppender
