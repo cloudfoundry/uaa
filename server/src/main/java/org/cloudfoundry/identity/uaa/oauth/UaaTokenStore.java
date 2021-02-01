@@ -93,12 +93,14 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public String createAuthorizationCode(OAuth2Authentication authentication) {
+        logger.debug("BRUCE: start createAuthorizationCode");
         final int max_tries = 3;
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         int tries = 0;
         while ((tries++)<=max_tries) {
             try {
+                logger.debug("BRUCE: createAuthorizationCode try " + tries);
                 String code = generator.generate();
                 long expiresAt = System.currentTimeMillis()+getExpirationTime();
                 String userId = authentication.getUserAuthentication()==null ? null : ((UaaPrincipal)authentication.getUserAuthentication().getPrincipal()).getId();
@@ -110,13 +112,17 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     new int[] {Types.VARCHAR,Types.VARCHAR, Types.VARCHAR, Types.NUMERIC, Types.BLOB, Types.VARCHAR}
                 );
                 if (updated==0) {
+                    logger.debug("BRUCE: createAuthorizationCode failed to update DB");
                     throw new DataIntegrityViolationException("[oauth_code] Failed to insert code. Result was 0");
                 }
+                logger.debug("BRUCE: createAuthorizationCode SUCCESS, returning: " + code);
                 return code;
             } catch (DataIntegrityViolationException exists) {
+                logger.debug("BRUCE: createAuthorizationCode error DataIntegrityViolationException");
                 if (tries>=max_tries) throw exists;
             }
         }
+        logger.debug("BRUCE: createAuthorizationCode return null");
         return null;
     }
 
@@ -124,26 +130,33 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public OAuth2Authentication consumeAuthorizationCode(String code) throws InvalidGrantException {
+        logger.debug("BRUCE: consumeAuthorizationCode start");
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         try {
             TokenCode tokenCode = (TokenCode) template.queryForObject(SQL_SELECT_STATEMENT, rowMapper, code);
             if (tokenCode != null) {
+                logger.debug("BRUCE: token code is NOT null");
                 try {
                     if (tokenCode.isExpired()) {
+                        logger.debug("BRUCE: consumeAuthorizationCode if 1");
                         logger.debug("[oauth_code] Found code, but it expired:"+tokenCode);
                         throw new InvalidGrantException("Authorization code expired: " + code);
                     } else if (tokenCode.getExpiresAt() == 0) {
+                        logger.debug("BRUCE: consumeAuthorizationCode if 2");
                         return SerializationUtils.deserialize(tokenCode.getAuthentication());
                     } else {
+                        logger.debug("BRUCE: consumeAuthorizationCode if 3");
                         return deserializeOauth2Authentication(tokenCode.getAuthentication());
                     }
                 } finally {
+                    logger.debug("BRUCE: consumeAuthorizationCode finally");
                     template.update(SQL_DELETE_STATEMENT, code);
                 }
             }
         }catch (EmptyResultDataAccessException ignored) {
         }
+        logger.debug("BRUCE: tokenCode is NULL");
         throw new InvalidGrantException("Invalid authorization code: " + code);
     }
 
