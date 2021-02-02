@@ -130,7 +130,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public OAuth2Authentication consumeAuthorizationCode(String code) throws InvalidGrantException {
-        logger.debug("BRUCE: consumeAuthorizationCode start");
+        logger.debug("BRUCE: consumeAuthorizationCode start. Code: " + code);
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         try {
@@ -156,7 +156,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             }
         }catch (EmptyResultDataAccessException ignored) {
         }
-        logger.debug("BRUCE: tokenCode is NULL");
+        logger.debug("BRUCE: tokenCode is NULL. Code was: " + code);
         throw new InvalidGrantException("Invalid authorization code: " + code);
     }
 
