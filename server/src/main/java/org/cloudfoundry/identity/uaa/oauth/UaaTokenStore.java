@@ -115,7 +115,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     logger.debug("BRUCE: createAuthorizationCode failed to update DB");
                     throw new DataIntegrityViolationException("[oauth_code] Failed to insert code. Result was 0");
                 }
-                logger.debug("BRUCE: createAuthorizationCode SUCCESS, returning: " + code);
+                logger.debug("BRUCE: createAuthorizationCode SUCCESS, returning: \"" + code + "\"");
                 return code;
             } catch (DataIntegrityViolationException exists) {
                 logger.debug("BRUCE: createAuthorizationCode error DataIntegrityViolationException");
@@ -130,7 +130,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public OAuth2Authentication consumeAuthorizationCode(String code) throws InvalidGrantException {
-        logger.debug("BRUCE: consumeAuthorizationCode start. Code: " + code);
+        logger.debug("BRUCE: consumeAuthorizationCode start. Code: \"" + code + "\"");
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         try {
