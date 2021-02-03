@@ -53,6 +53,11 @@ pipeline {
                     buildGeArtServer.download(downloadSpec)
                     sh "ls -ltr deploy-workspace/"
                 }
+
+                dir('deploy-workspace') {
+                    stash includes: '*.war', name: 'uaa-war'
+                }
+
                 dir('uaa-cf-release') {
                     git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
                 }
@@ -121,6 +126,10 @@ pipeline {
                 expression { params.DEPLOYMENT_TYPE == 'cf3-staging' }
             }
             steps{
+                dir('deploy-workspace') {
+                    unstash 'uaa-war'
+                }
+
                 script {
                     echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory" 
                     def uploadSpec = """{
