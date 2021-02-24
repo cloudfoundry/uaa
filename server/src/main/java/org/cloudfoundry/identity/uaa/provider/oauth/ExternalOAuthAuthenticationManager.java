@@ -174,6 +174,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private IdentityProvider buildInternalUaaIdpConfig(String issuer, String originKey) {
         OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
         uaaOidcProviderConfig.setIssuer(issuer);
+        Map<String, Object> userNameMapping = Collections.singletonMap(USER_NAME_ATTRIBUTE_NAME, USER_NAME_ATTRIBUTE_NAME);
+        uaaOidcProviderConfig.setAttributeMappings(userNameMapping);
         IdentityProvider<OIDCIdentityProviderDefinition> uaaIdp = new IdentityProvider<>();
         uaaIdp.setOriginKey(originKey);
         uaaIdp.setConfig(uaaOidcProviderConfig);

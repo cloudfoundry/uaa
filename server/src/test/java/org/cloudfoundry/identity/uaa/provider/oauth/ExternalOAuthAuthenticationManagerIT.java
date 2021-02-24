@@ -80,6 +80,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -442,7 +443,9 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
         String username = RandomStringUtils.random(50);
-        claims.put("sub", username);
+        String userid = UUID.randomUUID().toString();
+        claims.put("sub", userid);
+        claims.put("user_name", username);
         claims.put("iss", "http://localhost/oauth/token");
         claims.put("origin", UAA_ORIGIN);
 
@@ -485,7 +488,9 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
 
         String username = RandomStringUtils.random(50);
-        claims.put("sub", username);
+        String userid = UUID.randomUUID().toString();
+        claims.put("sub", userid);
+        claims.put("user_name", username);
         claims.put("iss", UAA_ISSUER_URL);
         claims.put("origin", idpProvider.getOriginKey());
 
