@@ -167,6 +167,83 @@ public class LoginMockMvcTests {
         identityZoneConfigurationBootstrap.afterPropertiesSet();
     }
 
+    private static MockHttpSession setupUAA_23_Support(
+            WebApplicationContext webApplicationContext,
+            JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
+            RandomValueStringGenerator generator,
+            String originKey,
+            IdentityZone zone, List<String> allowedProviders) {
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
+                .setMetaDataLocation(metadata)
+                .setIdpEntityAlias(originKey)
+                .setLinkText("Active SAML Provider")
+                .setZoneId(zone.getId())
+                .setEmailDomain(Collections.singletonList("test.org"));
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
+        identityProvider.setType(OriginKeys.SAML);
+        identityProvider.setConfig(config);
+        createIdentityProvider(jdbcIdentityProviderProvisioning, zone, identityProvider);
+
+        identityProvider = MultitenancyFixture.identityProvider(LDAP, zone.getId());
+        identityProvider.setType(LDAP);
+        identityProvider.setConfig(new LdapIdentityProviderDefinition().setEmailDomain(Collections.singletonList("testLdap.org")));
+        createIdentityProvider(jdbcIdentityProviderProvisioning, zone, identityProvider);
+
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, allowedProviders);
+        MockMvcUtils.createClient(webApplicationContext, client, zone);
+
+        SavedRequest savedRequest = getSavedRequest(client);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        return session;
+    }
+
+    @Test
+    void UAA_23_SUPPORT_ISSUE_WORKING_AS_EXPECTED(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+        String originKey = generator.generate();
+        List<String> allowedProviders = asList(originKey, UAA, LDAP);
+        UAA_23_SUPPORT_ISSUE(identityProviderProvisioning, identityZoneProvisioning, originKey, allowedProviders);
+    }
+
+    @Test
+    void UAA_23_SUPPORT_ISSUE_BROKEN(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+        String originKey = generator.generate();
+        List<String> allowedProviders = asList(originKey, UAA);
+        UAA_23_SUPPORT_ISSUE(identityProviderProvisioning, identityZoneProvisioning, originKey, allowedProviders);
+    }
+
+    void UAA_23_SUPPORT_ISSUE(
+            JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            JdbcIdentityZoneProvisioning identityZoneProvisioning, String originKey, List<String> allowedProviders
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        MockHttpSession session = setupUAA_23_Support(webApplicationContext, identityProviderProvisioning, generator, originKey, zone, allowedProviders);
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/email"))
+                .andExpect(content().string(containsString("Sign in to continue to woohoo")))
+                .andExpect(xpath("//input[@name='email']").exists())
+                .andExpect(xpath("//div[@class='action']//a").string("Create account"))
+                .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
+    }
+
     @Test
     void access_login_page_while_logged_in() throws Exception {
         SecurityContext securityContext = MockMvcUtils.getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
