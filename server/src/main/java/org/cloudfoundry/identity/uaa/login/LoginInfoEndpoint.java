@@ -431,12 +431,11 @@ public class LoginInfoEndpoint {
         boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
 
         if (discoveryEnabled) {
-            if (model.containsAttribute("login_hint")) {
-                return goToPasswordPage(null, model);
-            }
+
             boolean accountChooserNeeded = accountChooserEnabled
                     && !(otherAccountSignIn || savedAccountsEmpty)
-                    && !discoveryPerformed;
+                    && !discoveryPerformed
+                    && !model.containsAttribute("login_hint");
 
             if (accountChooserNeeded) {
                 return "idp_discovery/account_chooser";
