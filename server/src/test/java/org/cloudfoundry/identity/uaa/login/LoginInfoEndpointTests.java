@@ -1083,8 +1083,60 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testNoLoginHintAccountChooser() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        savedAccount.setUsername("tim");
+        savedAccount.setEmail("tim@example.org");
+        savedAccount.setUserId("zzzz");
+        savedAccount.setOrigin("ldap");
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+        mockHttpServletRequest.setCookies(cookie1, cookie2);
+
+        LoginInfoEndpoint endpoint = getEndpoint();
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+
+        endpoint.setClientDetailsService(clientDetailsService);
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+
+        assertEquals("idp_discovery/account_chooser", redirect);
+    }
+
+    @Test
     public void testLoginHintOriginUaaSkipAccountChooser() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        savedAccount.setUsername("tim");
+        savedAccount.setEmail("tim@example.org");
+        savedAccount.setUserId("zzzz");
+        savedAccount.setOrigin("ldap");
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+        mockHttpServletRequest.setCookies(cookie1, cookie2);
+
         LoginInfoEndpoint endpoint = getEndpoint();
 
         MultitenantClientServices clientDetailsService = mockClientService();
@@ -1099,8 +1151,8 @@ public class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
+        assertEquals("idp_discovery/email", redirect);
         assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
-        assertEquals("idp_discovery/password", redirect);
     }
 
     @Test
