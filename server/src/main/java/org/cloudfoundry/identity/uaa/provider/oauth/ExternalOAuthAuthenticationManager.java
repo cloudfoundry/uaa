@@ -406,21 +406,41 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
 
         //we must check and see if the email address has changed between authentications
-            if (haveUserAttributesChanged(userFromDb, userFromRequest)) {
-                logger.debug("User attributed have changed, updating them.");
-                userFromDb = userFromDb.modifyAttributes(email,
-                                                         userFromRequest.getGivenName(),
-                                                         userFromRequest.getFamilyName(),
-                                                         userFromRequest.getPhoneNumber(),
-                                                         userFromRequest.getExternalId(),
-                                                         userFromDb.isVerified() || userFromRequest.isVerified())
-                    .modifyUsername(userFromRequest.getUsername());
-                userModified = true;
-            }
+        if (haveUserAttributesChanged(userFromDb, userFromRequest) && !isIdTokenIssuedByUaaWithoutIdpRegistration(request)) {
+            logger.debug("User attributed have changed, updating them.");
+            userFromDb = userFromDb.modifyAttributes(email,
+                                                     userFromRequest.getGivenName(),
+                                                     userFromRequest.getFamilyName(),
+                                                     userFromRequest.getPhoneNumber(),
+                                                     userFromRequest.getExternalId(),
+                                                     userFromDb.isVerified() || userFromRequest.isVerified())
+                .modifyUsername(userFromRequest.getUsername());
+            userModified = true;
+        }
 
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());
+    }
+
+    private boolean isIdTokenIssuedByUaaWithoutIdpRegistration(Authentication request) {
+        String idToken = ((ExternalOAuthCodeToken) request).getIdToken();
+        if (idToken == null) {
+            return false;
+        }
+        String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
+        Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+        String issuer = (String) claims.get(ClaimConstants.ISS);
+        if (idTokenWasIssuedByTheUaa(issuer)) {
+            try {
+                ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+                return false;
+            } catch (IncorrectResultSizeDataAccessException e) {
+                return true;
+            }
+        } else {
+            return false;
+        }
     }
 
     @Override
