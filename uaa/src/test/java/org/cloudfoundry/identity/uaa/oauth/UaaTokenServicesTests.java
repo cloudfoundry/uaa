@@ -280,6 +280,38 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken, is(notNullValue()));
         }
 
+        /*
+        1. no name
+        2. gibberish: myTestIDontKnowHowToName
+        3. Long complete and honest: epochTimestampInSecondsExceedsIntegerSize
+        4. honest
+        5. Short and accurate
+
+
+         */
+
+        @Test
+        void epochTimestampInSecondsExceedsIntegerSize_HappyCase() {
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(),
+                    null,
+                    null
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            assertThat(refreshToken, is(notNullValue()));
+            OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(refreshedToken, is(notNullValue()));
+        }
+
         @Nested
         @DisplayName("when ACR claim is present")
         @DefaultTestContext
