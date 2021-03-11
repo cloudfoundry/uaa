@@ -291,7 +291,9 @@ class UaaTokenServicesTests {
          */
 
         @Test
-        void epochTimestampInSecondsExceedsIntegerSize_HappyCase() {
+        void refreshTokenShouldWorkForDatesPast2039_HappyCase() {
+            Date datePast2039 = new Date(2039, 1, 1);
+
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
                     GRANT_TYPE_AUTHORIZATION_CODE,
                     Sets.newHashSet("openid", "user_attributes"),
@@ -300,7 +302,7 @@ class UaaTokenServicesTests {
                     Sets.newHashSet(""),
                     "jku_test",
                     false,
-                    new Date(),
+                    datePast2039,
                     null,
                     null
             );
