@@ -102,7 +102,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
@@ -142,7 +142,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             CLIENT_ID, CID, AZP, REVOCABLE,
             GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
-            EXP, ISS, ZONE_ID, AUD
+            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
     );
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
     private UaaUserDatabase userDatabase;
@@ -234,7 +234,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String userId = (String) refreshTokenClaims.get(USER_ID);
         String refreshTokenId = (String) refreshTokenClaims.get(JTI);
-        Integer refreshTokenExpirySeconds = (Integer) refreshTokenClaims.get(EXP);
+        Integer refreshTokenExpirySeconds = (Integer) refreshTokenClaims.get(EXPIRY_IN_SECONDS);
         String clientId = (String) refreshTokenClaims.get(CID);
         Boolean revocableClaim = (Boolean) refreshTokenClaims.get(REVOCABLE);
         String refreshGrantType = refreshTokenClaims.get(GRANT_TYPE).toString();
@@ -522,7 +522,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-        claims.put(EXP, token.getExpiration().getTime() / 1000);
+        claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / 1000);
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
             claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
@@ -779,7 +779,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken = tokenValidation.getJwt().getEncoded();
 
         // Check token expiry
-        Long expiration = Long.valueOf(claims.get(EXP).toString());
+        Long expiration = Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString());
         if (new Date(expiration * 1000L).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000L));
         }
@@ -852,7 +852,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Expiry is verified by check_token
         CompositeToken token = new CompositeToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-        token.setExpiration(new Date(Long.valueOf(claims.get(EXP).toString()) * 1000L));
+        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * 1000L));
 
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);

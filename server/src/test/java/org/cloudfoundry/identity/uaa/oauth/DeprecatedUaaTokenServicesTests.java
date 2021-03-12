@@ -221,7 +221,7 @@ public class DeprecatedUaaTokenServicesTests {
         String userId = "userid";
         claims.put(ClaimConstants.USER_ID, userId);
         claims.put(ClaimConstants.CID, TokenTestSupport.CLIENT_ID);
-        claims.put(ClaimConstants.EXP, 1);
+        claims.put(ClaimConstants.EXPIRY_IN_SECONDS, 1);
         claims.put(ClaimConstants.GRANTED_SCOPES, Lists.newArrayList("read", "write", "openid"));
         claims.put(ClaimConstants.GRANT_TYPE, "password");
         claims.put(ClaimConstants.AUD, Lists.newArrayList(TokenTestSupport.CLIENT_ID));

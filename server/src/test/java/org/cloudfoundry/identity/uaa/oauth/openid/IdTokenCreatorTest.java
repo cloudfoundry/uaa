@@ -16,7 +16,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -310,7 +309,7 @@ class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.USER_ID);
         excludedClaims.add(ClaimConstants.AUD);
         excludedClaims.add(ClaimConstants.ISS);
-        excludedClaims.add(ClaimConstants.EXP);
+        excludedClaims.add(ClaimConstants.EXPIRY_IN_SECONDS);
         excludedClaims.add(ClaimConstants.IAT);
         excludedClaims.add(ClaimConstants.AUTH_TIME);
         excludedClaims.add(ClaimConstants.AMR);
