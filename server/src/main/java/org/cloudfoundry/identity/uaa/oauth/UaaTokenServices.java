@@ -234,7 +234,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String userId = (String) refreshTokenClaims.get(USER_ID);
         String refreshTokenId = (String) refreshTokenClaims.get(JTI);
-        Integer refreshTokenExpirySeconds = (Integer) refreshTokenClaims.get(EXP);
+        Long refreshTokenExpirySeconds = ((Number) refreshTokenClaims.get(EXP)).longValue();
         String clientId = (String) refreshTokenClaims.get(CID);
         Boolean revocableClaim = (Boolean) refreshTokenClaims.get(REVOCABLE);
         String refreshGrantType = refreshTokenClaims.get(GRANT_TYPE).toString();
@@ -242,7 +242,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String revocableHashSignature = (String) refreshTokenClaims.get(REVOCATION_SIGNATURE);
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) refreshTokenClaims.get(ADDITIONAL_AZ_ATTR);
         Set<String> audience = new HashSet<>((ArrayList<String>) refreshTokenClaims.get(AUD));
-        Integer authTime = (Integer) refreshTokenClaims.get(AUTH_TIME);
+        Long authTime = ((Number) refreshTokenClaims.get(AUTH_TIME)).longValue();
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
@@ -260,7 +260,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = userDatabase.retrieveUserById(userId);
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
+        long refreshTokenExpireMillis = refreshTokenExpirySeconds * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireMillis));
         }

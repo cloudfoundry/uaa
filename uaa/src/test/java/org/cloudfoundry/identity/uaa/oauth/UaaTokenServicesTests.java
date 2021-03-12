@@ -280,16 +280,6 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken, is(notNullValue()));
         }
 
-        /*
-        1. no name
-        2. gibberish: myTestIDontKnowHowToName
-        3. Long complete and honest: epochTimestampInSecondsExceedsIntegerSize
-        4. honest
-        5. Short and accurate
-
-
-         */
-
         @Test
         void refreshTokenShouldWorkForDatesPast2039_HappyCase() {
             Date datePast2039 = new Date(2039, 1, 1);
