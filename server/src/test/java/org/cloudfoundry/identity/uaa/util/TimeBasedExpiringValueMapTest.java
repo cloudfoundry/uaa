@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.concurrent.ConcurrentMap;

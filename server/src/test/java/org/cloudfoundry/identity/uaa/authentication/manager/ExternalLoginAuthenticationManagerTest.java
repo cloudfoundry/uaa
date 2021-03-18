@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -26,7 +27,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -349,6 +349,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         manager.setOrigin(origin);
         when(user.getEmail()).thenReturn(email);
         when(user.getOrigin()).thenReturn(origin);
+        when(user.getExternalId()).thenReturn(dn);
         when(uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin)))
             .thenReturn(null)
             .thenReturn(user);
@@ -419,7 +420,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         // Invited users are created with their email as their username.
         UaaUser invitedUser = addUserToDb(email, userId, origin, email);
-        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
+        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
         UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
         when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 

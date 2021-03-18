@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.clients;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -12,7 +13,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;

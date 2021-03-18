@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -21,7 +22,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.sql.Timestamp;

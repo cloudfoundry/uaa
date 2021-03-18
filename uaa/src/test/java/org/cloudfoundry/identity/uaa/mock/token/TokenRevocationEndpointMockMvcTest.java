@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -14,7 +15,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 

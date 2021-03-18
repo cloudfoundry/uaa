@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
@@ -26,9 +27,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
@@ -102,6 +102,7 @@ public abstract class AbstractTokenMockMvcTests {
         this.defaultAuthorities = new HashSet<>((LinkedHashSet) defaultAuthorities);
         IdentityZoneHolder.clear();
 
+        waitForClient("admin", 3);
         adminToken =
                 getClientCredentialsOAuthAccessToken(
                         mockMvc,
@@ -327,6 +328,18 @@ public abstract class AbstractTokenMockMvcTests {
             return scimGroups.get(0);
         } else {
             return groupProvisioning.create(new ScimGroup(null, scope, zoneId), zoneId);
+        }
+    }
+
+    protected void waitForClient(String clientId, int max) throws InterruptedException {
+        int retry = 0;
+        while(retry++ < max) {
+            try {
+                clientDetailsService.loadClientByClientId(clientId);
+                break;
+            } catch (NoSuchClientException e) {
+                Thread.sleep(500);
+            }
         }
     }
 }

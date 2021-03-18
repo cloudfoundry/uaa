@@ -3,13 +3,13 @@ package org.cloudfoundry.identity.uaa.util;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;

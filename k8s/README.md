@@ -16,7 +16,7 @@ The UAA uses the driver provided by mariadb (`org.mariadb.jdbc:mariadb-java-clie
 
 The typical structure will look like `database.url=jdbc:mysql://<HOST>:<PORT>/<DB-NAME>?useSSL=false|true`, with whatever other params you may need to use.
 
-## Testing image `cfidentity/uaa` 
+## Testing image `cloudfoundry/uaa` 
 
 To switch between the minikube docker daemon and the local docker daemon, use these commands:
 
@@ -24,25 +24,25 @@ For minikube's docker daemon: `eval "$(minikube docker-env)"`
 
 For the local docker daemon: `eval "$(minikube docker-env --unset=true)"`
 
-To test image `cfidentity/uaa`, you can make use of these sample docker commands:
+To test image `cloudfoundry/uaa`, you can make use of these sample docker commands:
 
 ### Docker Run
 
 ```shell script
-docker pull cfidentity/uaa:latest \
+docker pull cloudfoundry/uaa:latest \
 	&& docker run \
 		--detach \
 		--publish 8080:8080 \
 		--mount type=bind,source=${PWD}/../scripts/cargo/uaa.yml,target=/uaa.yml \
 		--env CLOUDFOUNDRY_CONFIG_PATH= \
 		--env spring_profiles=default,hsqldb \
-		cfidentity/uaa:latest
+		cloudfoundry/uaa:latest
 ```
 
 ### Docker Debug
 
 ```shell script
-docker pull cfidentity/uaa:latest \
+docker pull cloudfoundry/uaa:latest \
    	&& docker run \
 		--detach \
 		--publish 8080:8080 \
@@ -51,5 +51,5 @@ docker pull cfidentity/uaa:latest \
 		--env CLOUDFOUNDRY_CONFIG_PATH= \
 		--env spring_profiles=default,hsqldb \
 		--env JAVA_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -Djava.security.egd=file:/dev/./urandom" \
-		cfidentity/uaa:latest
+		cloudfoundry/uaa:latest
 ```
