@@ -72,15 +72,15 @@ Security OAuth that can do the heavy lifting if your client is Java.
 ## Quick Start
 
 Requirements:
-* Java 8
+* Java 11
 
 If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
     $ cd uaa
     $ ./gradlew run
-    
-    
+
+
 The apps all work together with the apps running on the same port
 (8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
 
@@ -110,17 +110,15 @@ requesting system information:
       }
     }
 
-For complex requests it is more convenient to interact with UAA using 
+For complex requests it is more convenient to interact with UAA using
 `uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
 
 ## Integration tests
 
 You can run the integration tests with docker
 
-    $ ~/workspace/uaa/run-integration-tests.sh mysql
-    $ ~/workspace/uaa/run-integration-tests.sh postgresql
-    $ ~/workspace/uaa/run-integration-tests.sh sqlserver
-  
+    $ run-integration-tests.sh <dbtype>
+
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
 ### Using Gradle to test with postgresql or mysql
@@ -129,9 +127,30 @@ The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
 To run the unit tests with docker:
 
-    $ ~/workspace/uaa/run-unit-tests.sh mysql
-    $ ~/workspace/uaa/run-unit-tests.sh postgresql
-    $ ~/workspace/uaa/run-unit-tests.sh sqlserver
+    $ run-unit-tests.sh <dbtype>
+
+### To run a single test
+
+Start by finding out which gradle project your test belongs to.
+You can find all project by running
+
+    $ ./gradlew projects
+
+Then you can run
+
+    $ ./gradlew :<project name>:test --tests <TestClass>.<MethodName>
+
+or to run all tests in a Class
+
+    $ ./gradlew :<project name>:test --tests <TestClass>
+
+You might want to use the full gradle command found at the bottom of
+the `scripts/unit-tests.sh` script by prepending the project name to
+the `test` command and adding the `--tests` option.
+
+### Building war file
+
+    $ ./gradlew :clean :assemble -Pversion=${UAA_VERSION}
 
 ## Inventory
 
@@ -139,9 +158,9 @@ There are actually several projects here, the main `uaa` server application, a c
 
 1. `uaa` a WAR project for easy deployment
 
-2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
+2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI
 
-3. `model` a JAR project used by both the client library and server 
+3. `model` a JAR project used by both the client library and server
 
 4. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
 
@@ -158,6 +177,27 @@ In CloudFoundry terms
 * `app` is a webapp that needs single sign on and access to the `api`
   service on behalf of users.
 
+# Running the UAA on Kubernetes
+
+__Prerequisites__
+* [ytt](https://get-ytt.io/), tested with 0.24.0
+* [kubectl](https://kubernetes.io/docs/reference/kubectl/overview/)
+
+The Kubernetes deployment is in active development.  You should expect frequent (and possibly breaking) changes. This section will be updated as progress is made on this feature set. As of now:
+
+The [K8s directory](./k8s) contains `ytt` templates that can be rendered and applied to a K8s cluster.
+
+In development, [this Makefile](./k8s/Makefile) can be used for common rendering and deployment activities.
+
+In production, you'll most likely want to use ytt directly. Something like this should get you going:
+
+`$ ytt -f templates -f values/default-values.yml | kubectl apply -f -`
+
+If you'd like to overide some of those values, you can do so by taking advantage of YTT's [overlay functionality](https://get-ytt.io/#example:example-multiple-data-values).
+
+`$ ytt -f templates -f values/default-values.yml -f your-dir/production-values.yml | kubectl apply -f -`
+
+Of course, you can always abandon the default values altogether and provide your own values file.
 
 # Contributing to the UAA
 
@@ -171,6 +211,6 @@ Here are some ways for you to get involved in the community:
   want to contribute code this way, please reference an existing issue
   if there is one as well covering the specific issue you are
   addressing.  Always submit pull requests to the "develop" branch.
-  We strictly adhere to test driven development. We kindly ask that 
+  We strictly adhere to test driven development. We kindly ask that
   pull requests are accompanied with test cases that would be failing
   if ran separately from the pull request.

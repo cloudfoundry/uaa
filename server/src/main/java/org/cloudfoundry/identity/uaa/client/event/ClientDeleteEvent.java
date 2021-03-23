@@ -19,8 +19,8 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 
 public class ClientDeleteEvent extends AbstractClientAdminEvent {
 
-    public ClientDeleteEvent(ClientDetails client, Authentication principal) {
-        super(client, principal);
+    public ClientDeleteEvent(ClientDetails client, Authentication principal, String zoneId) {
+        super(client, principal, zoneId);
     }
 
     @Override

@@ -25,8 +25,8 @@ import org.springframework.util.Assert;
 public class UserAuthenticationSuccessEvent extends AbstractUaaAuthenticationEvent {
     private final UaaUser user;
 
-    public UserAuthenticationSuccessEvent(UaaUser user, Authentication authentication) {
-        super(authentication);
+    public UserAuthenticationSuccessEvent(UaaUser user, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         this.user = user;
     }
 

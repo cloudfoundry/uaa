@@ -86,10 +86,7 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
                                                         messageResolver);
         RuleResult result = clientSecretValidator.validate(new PasswordData(clientSecret));
         if (!result.isValid()) {
-            List<String> errorMessages = new LinkedList<>();
-            for (String s : clientSecretValidator.getMessages(result)) {
-                errorMessages.add(s);
-            }
+            List<String> errorMessages = new LinkedList<>(clientSecretValidator.getMessages(result));
             if (!errorMessages.isEmpty()) {
                 throw new InvalidClientSecretException(errorMessages);
             }

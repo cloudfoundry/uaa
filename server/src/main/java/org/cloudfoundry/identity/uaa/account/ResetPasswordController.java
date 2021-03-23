@@ -1,20 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.message.MessageService;
@@ -26,6 +12,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
@@ -48,7 +37,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class ResetPasswordController {
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
@@ -57,11 +46,11 @@ public class ResetPasswordController {
     private final UaaUserDatabase userDatabase;
 
     public ResetPasswordController(
-        ResetPasswordService resetPasswordService,
-        MessageService messageService,
-        TemplateEngine templateEngine,
-        ExpiringCodeStore codeStore,
-        UaaUserDatabase userDatabase
+            final ResetPasswordService resetPasswordService,
+            final MessageService messageService,
+            final @Qualifier("mailTemplateEngine") TemplateEngine templateEngine,
+            final ExpiringCodeStore codeStore,
+            final UaaUserDatabase userDatabase
     ) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
@@ -75,7 +64,7 @@ public class ResetPasswordController {
                                      @RequestParam(required = false, value = "client_id") String clientId,
                                      @RequestParam(required = false, value = "redirect_uri") String redirectUri,
                                      HttpServletResponse response) {
-        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+        if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
         model.addAttribute("client_id", clientId);
@@ -86,7 +75,7 @@ public class ResetPasswordController {
     @RequestMapping(value = "/forgot_password.do", method = RequestMethod.POST)
     public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
                                  @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
-        if(!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+        if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
         forgotPassword(username, clientId, redirectUri);
@@ -155,17 +144,19 @@ public class ResetPasswordController {
     }
 
     @RequestMapping(value = "/email_sent", method = RequestMethod.GET)
-    public String emailSentPage(@ModelAttribute("code") String code) {
+    public String emailSentPage(@ModelAttribute("code") String code,
+                                HttpServletResponse response) {
+        response.addHeader("Content-Security-Policy", "frame-ancestors 'none'");
         return "email_sent";
     }
 
-    @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = { "code" })
+    @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = {"code"})
     public String resetPasswordPage(Model model,
                                     HttpServletResponse response,
                                     @RequestParam("code") String code) {
 
         ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, IdentityZoneHolder.get().getId()));
-        if (expiringCode==null) {
+        if (expiringCode == null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
             PasswordChange passwordChange = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
@@ -180,24 +171,25 @@ public class ResetPasswordController {
     }
 
     private ExpiringCode checkIfUserExists(ExpiringCode code) {
-        if (code==null) {
+        if (code == null) {
             logger.debug("reset_password ExpiringCode object is null. Aborting.");
             return null;
         }
         if (!hasText(code.getData())) {
-            logger.debug("reset_password ExpiringCode["+code.getCode()+"] data string is null or empty. Aborting.");
+            logger.debug("reset_password ExpiringCode[" + code.getCode() + "] data string is null or empty. Aborting.");
             return null;
         }
-        Map<String,String> data = JsonUtils.readValue(code.getData(), new TypeReference<Map<String,String>>() {});
+        Map<String, String> data = JsonUtils.readValue(code.getData(), new TypeReference<Map<String, String>>() {
+        });
         if (!hasText(data.get("user_id"))) {
-            logger.debug("reset_password ExpiringCode["+code.getCode()+"] user_id string is null or empty. Aborting.");
+            logger.debug("reset_password ExpiringCode[" + code.getCode() + "] user_id string is null or empty. Aborting.");
             return null;
         }
         String userId = data.get("user_id");
         try {
             userDatabase.retrieveUserById(userId);
         } catch (UsernameNotFoundException e) {
-            logger.debug("reset_password ExpiringCode["+code.getCode()+"] user_id is invalid. Aborting.");
+            logger.debug("reset_password ExpiringCode[" + code.getCode() + "] user_id is invalid. Aborting.");
             return null;
         }
         return code;

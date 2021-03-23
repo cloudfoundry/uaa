@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
@@ -56,8 +55,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
@@ -260,12 +257,6 @@ public class SamlTestUtils {
         AddBcProvider.noop();
         DefaultBootstrap.bootstrap();
         initializeSimple();
-    }
-
-    IdentityZone getUaaZoneWithSamlConfig() {
-        IdentityZone uaa = IdentityZoneHolder.getUaaZone();
-        setupZoneWithSamlConfig(uaa);
-        return uaa;
     }
 
     void setupZoneWithSamlConfig(IdentityZone zone) {

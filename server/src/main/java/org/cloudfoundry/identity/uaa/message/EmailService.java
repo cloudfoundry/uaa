@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.message;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -16,7 +16,7 @@ import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
 
 public class EmailService implements MessageService {
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private JavaMailSender mailSender;
     private final String fromAddress;

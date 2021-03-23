@@ -1,27 +1,17 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.SpringServletAndHoneycombTestConfig;
 import org.cloudfoundry.identity.uaa.account.OpenIdConfiguration;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombAuditEventTestListenerExtension;
-import org.cloudfoundry.identity.uaa.test.HoneycombJdbcInterceptorExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Arrays;
@@ -41,16 +31,12 @@ class OpenIdConnectEndpointsMockMvcTests {
     private IdentityZone identityZone;
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-
-        identityZone = createOtherIdentityZone("subdomain", mockMvc, webApplicationContext);
+        identityZone = createOtherIdentityZone("subdomain", mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
     }
 
     @AfterEach

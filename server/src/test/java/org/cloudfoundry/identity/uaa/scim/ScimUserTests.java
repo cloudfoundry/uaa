@@ -30,13 +30,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -105,18 +99,18 @@ public class ScimUserTests {
     }
 
     @Test
-    public void minimalJsonMapsToUser() throws Exception {
+    public void minimalJsonMapsToUser() {
         String minimal = "{" + SCHEMAS +
                         "  \"userName\": \"bjensen@example.com\"\n" +
                         "}";
 
         ScimUser user = JsonUtils.readValue(minimal, ScimUser.class);
         assertEquals("bjensen@example.com", user.getUserName());
-        assertEquals(null, user.getPassword());
+        assertNull(user.getPassword());
     }
 
     @Test
-    public void passwordJsonMapsToUser() throws Exception {
+    public void passwordJsonMapsToUser() {
         String minimal = "{" + SCHEMAS +
                         "  \"userName\": \"bjensen@example.com\",\n" +
                         "  \"password\": \"foo\"\n" +
@@ -161,7 +155,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void userWithGroupsMapsToJson() throws Exception {
+    public void userWithGroupsMapsToJson() {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
@@ -173,7 +167,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void emailsAreMappedCorrectly() throws Exception {
+    public void emailsAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"emails\": [\n" +
                         "{\"value\": \"bj@jensen.org\",\"type\": \"other\"}," +
@@ -190,7 +184,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void groupsAreMappedCorrectly() throws Exception {
+    public void groupsAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"groups\": [\n" +
                         "{\"value\": \"12345\",\"display\": \"uaa.admin\"}," +
@@ -202,7 +196,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void datesAreMappedCorrectly() throws Exception {
+    public void datesAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
                         "\"meta\":{\"version\":10,\"created\":\"2011-11-30T10:46:16.475Z\"}}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
@@ -296,13 +290,13 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testSpelFilter() throws Exception {
+    public void testSpelFilter() {
         ScimUser user = new ScimUser();
         user.setId("123");
         user.setUserName("joe");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("foo@bar.com");
-        user.setEmails(Arrays.asList(email));
+        user.setEmails(Collections.singletonList(email));
         StandardEvaluationContext context = new StandardEvaluationContext(user);
         assertTrue(new SpelExpressionParser().parseExpression(
                         "userName == 'joe' and !(emails.?[value=='foo@bar.com']).empty").getValue(context,
@@ -310,7 +304,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testSetPrimaryEmail() throws Exception {
+    public void testSetPrimaryEmail() {
         ScimUser user = new ScimUser();
 
 
@@ -320,7 +314,7 @@ public class ScimUserTests {
 
         ScimUser.Email email1 = new ScimUser.Email();
         email1.setValue("email1@bar.com");
-        user.setEmails(new LinkedList<>(Arrays.asList(email1)));
+        user.setEmails(new LinkedList<>(Collections.singletonList(email1)));
         assertEquals("email1@bar.com", user.getPrimaryEmail());
 
         email1.setPrimary(true);
@@ -355,7 +349,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testGroupSettersGetters() throws Exception {
+    public void testGroupSettersGetters() {
         Group group = new Group("id", "display", Group.Type.DIRECT);
         group.setType(Group.Type.DIRECT);
         assertEquals(Group.Type.DIRECT, group.getType());
@@ -366,27 +360,27 @@ public class ScimUserTests {
 
         Group group1 = new Group("id", "display", Group.Type.DIRECT);
         Group group2 = new Group("id", "display", Group.Type.DIRECT);
-        assertTrue(group1.equals(group2));
-        assertTrue(group2.equals(group1));
-        assertTrue(group1.equals(group1));
-        assertTrue(group2.equals(group2));
-        assertFalse(group1.equals(null));
-        assertFalse(group1.equals(new Object()));
+        assertEquals(group1, group2);
+        assertEquals(group2, group1);
+        assertEquals(group1, group1);
+        assertEquals(group2, group2);
+        assertNotEquals(null, group1);
+        assertNotEquals(group1, new Object());
         group1.setValue(null);
-        assertFalse(group1.equals(group2));
-        assertFalse(group2.equals(group1));
+        assertNotEquals(group1, group2);
+        assertNotEquals(group2, group1);
         group2.setValue(null);
-        assertTrue(group1.equals(group2));
+        assertEquals(group1, group2);
         group1.setDisplay(null);
-        assertFalse(group1.equals(group2));
-        assertFalse(group2.equals(group1));
+        assertNotEquals(group1, group2);
+        assertNotEquals(group2, group1);
         group2.setDisplay(null);
-        assertTrue(group1.equals(group2));
+        assertEquals(group1, group2);
         assertNotNull(group2.toString());
     }
 
     @Test
-    public void testName() throws Exception {
+    public void testName() {
         ScimUser.Name name1 = new ScimUser.Name();
         assertNull(name1.getFamilyName());
         assertNull(name1.getFormatted());
@@ -413,40 +407,40 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testEmail() throws Exception {
+    public void testEmail() {
         ScimUser.Email email1 = new ScimUser.Email();
         ScimUser.Email email2 = new ScimUser.Email();
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
         email1.setPrimary(true);
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setPrimary(true);
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
         email1.setType("work");
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setType("home");
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setType("work");
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
         email1.setValue("value@value.org");
-        assertFalse(email1.equals(email2));
-        assertFalse(email2.equals(email1));
+        assertNotEquals(email1, email2);
+        assertNotEquals(email2, email1);
         email2.setValue("value@value.org");
-        assertTrue(email1.equals(email2));
-        assertTrue(email2.equals(email1));
+        assertEquals(email1, email2);
+        assertEquals(email2, email1);
         assertEquals(email1.hashCode(), email2.hashCode());
     }
 
     @Test
-    public void testPhoneNumber() throws Exception {
+    public void testPhoneNumber() {
         ScimUser.PhoneNumber p1 = new ScimUser.PhoneNumber();
         assertNull(p1.getType());
         assertNull(p1.getValue());
@@ -455,19 +449,19 @@ public class ScimUserTests {
         assertEquals("value",p1.getValue());
         assertEquals("type", p1.getType());
         ScimUser user = new ScimUser();
-        user.setPhoneNumbers(Arrays.asList(p1));
+        user.setPhoneNumbers(Collections.singletonList(p1));
         try {
             p1.setType(null);
             user.addPhoneNumber(p1.getValue());
             fail();
-        }catch (IllegalArgumentException x) {
+        }catch (IllegalArgumentException ignored) {
 
         }
 
     }
 
     @Test
-    public void testPasswordLastModified() throws Exception {
+    public void testPasswordLastModified() {
         ScimUser user = new ScimUser();
         assertNull(user.getPasswordLastModified());
         user.setId("someid");
@@ -481,7 +475,7 @@ public class ScimUserTests {
     }
 
     @Test
-    public void user_verified_byDefault() throws Exception {
+    public void user_verified_byDefault() {
         ScimUser user = new ScimUser();
         assertTrue(user.isVerified());
     }
@@ -506,7 +500,7 @@ public class ScimUserTests {
         ScimUser.Email newMail = new ScimUser.Email();
         newMail.setPrimary(true);
         newMail.setValue("newTest@example.org");
-        patch.setEmails(Arrays.asList(newMail));
+        patch.setEmails(Collections.singletonList(newMail));
         user.patch(patch);
         assertEquals("newTest@example.org", user.getPrimaryEmail());
     }
@@ -544,7 +538,7 @@ public class ScimUserTests {
         try {
             user.patch(patch);
             fail("username is a required field, can't nullify it.");
-        } catch (IllegalArgumentException e) {
+        } catch (IllegalArgumentException ignored) {
         }
         assertNotNull(user.getUserName());
 
@@ -714,7 +708,7 @@ public class ScimUserTests {
     @Test
     public void testPatchUserChangePhone() {
         ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
-        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
         assertEquals(2, user.getPhoneNumbers().size());
         assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
@@ -727,7 +721,7 @@ public class ScimUserTests {
         assertNull(patch.getPhoneNumbers());
 
         ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
-        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
         assertEquals(1, user.getPhoneNumbers().size());
         assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
@@ -765,7 +759,7 @@ public class ScimUserTests {
 
         patch.getMeta().setAttributes(new String[]{"PhOnEnUmBeRs"});
         ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
-        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
 
         assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());

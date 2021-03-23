@@ -17,7 +17,6 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpStatus.FOUND;
 import static org.springframework.http.HttpStatus.OK;
 
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.http.Header;
@@ -42,13 +41,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 
-
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.CSRF_PARAMETER_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.http.HttpStatus.FOUND;
-import static org.springframework.http.HttpStatus.OK;
 
 public class FormLoginIntegrationTests {
 
@@ -61,13 +56,13 @@ public class FormLoginIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     Header header = new BasicHeader(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
-    List<Header> headers = Arrays.asList(header);
+    List<Header> headers = Collections.singletonList(header);
 
     BasicCookieStore cookieStore = new BasicCookieStore();
     CloseableHttpClient httpclient;
 
     @Before
-    public void createHttpClient() throws Exception {
+    public void createHttpClient() {
         httpclient = HttpClients.custom()
             .setDefaultRequestConfig(RequestConfig.DEFAULT)
             .setDefaultHeaders(headers)

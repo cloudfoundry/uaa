@@ -15,20 +15,14 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.security.saml.storage.HttpSessionStorage;
 import org.springframework.security.saml.storage.SAMLMessageStorage;
 import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 public class SamlSessionStorageFactory implements SAMLMessageStorageFactory {
-
-    private static Log logger = LogFactory.getLog(SamlSessionStorageFactory.class);
-
-    public static final String SAML_REQUEST_DATA = SamlMessageStorage.class.getName() + ".saml.requests";
 
     @Override
     public synchronized SAMLMessageStorage getMessageStorage(HttpServletRequest request) {
@@ -37,11 +31,6 @@ public class SamlSessionStorageFactory implements SAMLMessageStorageFactory {
             //https://docs.spring.io/spring-security-saml/docs/current/reference/html/chapter-troubleshooting.html
             return null;
         }
-        HttpSession session = request.getSession(true);
-        if (session.getAttribute(SAML_REQUEST_DATA) == null) {
-            session.setAttribute(SAML_REQUEST_DATA, new SamlMessageStorage());
-        }
-        logger.debug("Returning SAML message factory for session ID:"+session.getId());
-        return (SAMLMessageStorage) session.getAttribute(SAML_REQUEST_DATA);
+        return new HttpSessionStorage(request);
     }
 }

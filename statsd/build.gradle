@@ -1,61 +1,27 @@
-apply plugin: 'java'
-apply plugin: 'war'
+apply(plugin: "java")
+apply(plugin: "war")
+apply(plugin: "org.springframework.boot")
 
 war {
-  baseName = 'cloudfoundry-identity-statsd'
+    archiveBaseName = "cloudfoundry-identity-statsd"
 }
 
 repositories {
-  mavenCentral()
+    mavenCentral()
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
 dependencies {
-  compile project(':cloudfoundry-identity-metrics-data')
-  compile("org.springframework.boot:spring-boot-starter:${parent.springBootVersion}") {
-    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
-  }
-  compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
-  compile group: 'org.apache.logging.log4j', name: 'log4j', version: parent.log4j2Version
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version: parent.slf4jVersion
-  compile group: 'org.apache.httpcomponents', name: 'httpclient', version: parent.commonsHttpClientVersion
-  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: parent.jacksonVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
-  providedRuntime group: 'org.springframework.boot', name: 'spring-boot-starter-tomcat', version: parent.springBootVersion
-  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
-  testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
-  testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: parent.springBootVersion
+    implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.springBootStarterWeb)
+    providedCompile(libraries.tomcatEmbed)
+    providedRuntime(libraries.springBootStarterTomcat)
 }
 
 test {
-  exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
-  exclude '**/*IT.class'
+    exclude("org/cloudfoundry/identity/statsd/integration/*.class")
+    exclude("**/*IT.class")
 }
 
-integrationTest {
-  filter {
-    includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
-    includeTestsMatching "*IT"
-  }
-}
-
-
-publishing {
-  publications {
-    statsd(MavenPublication) {
-      apply plugin: 'war'
-
-      groupId 'org.cloudfoundry.identity'
-      version version
-      artifactId 'cloudfoundry-identity-statsd'
-
-      from components.web
-      artifact sourceJar
-    }
-  }
+integrationTest {}.onlyIf { //disable since we don't have any
+    false
 }

@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -33,10 +33,7 @@ import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -60,7 +57,7 @@ public class UserTokenGranterTest {
 
     private UserTokenGranter granter;
     private AuthorizationServerTokenServices tokenServices;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
@@ -73,7 +70,7 @@ public class UserTokenGranterTest {
     @Before
     public void setup() {
         tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
         tokenStore = mock(RevocableTokenProvisioning.class);
@@ -107,43 +104,43 @@ public class UserTokenGranterTest {
     }
 
     @Test(expected = InsufficientAuthenticationException.class)
-    public void test_no_authentication() throws Exception {
+    public void test_no_authentication() {
         SecurityContextHolder.clearContext();
         granter.validateRequest(tokenRequest);
     }
 
     @Test(expected = InsufficientAuthenticationException.class)
-    public void test_not_authenticated() throws Exception {
+    public void test_not_authenticated() {
         when(authentication.isAuthenticated()).thenReturn(false);
         granter.validateRequest(tokenRequest);
     }
 
     @Test(expected = InsufficientAuthenticationException.class)
-    public void test_not_a_user_authentication() throws Exception {
+    public void test_not_a_user_authentication() {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
         granter.validateRequest(tokenRequest);
     }
 
     @Test(expected = InvalidGrantException.class)
-    public void test_invalid_grant_type() throws Exception {
+    public void test_invalid_grant_type() {
         missing_parameter(GRANT_TYPE);
     }
 
     @Test(expected = InvalidGrantException.class)
-    public void test_requesting_client_id_missing() throws Exception {
+    public void test_requesting_client_id_missing() {
         missing_parameter(USER_TOKEN_REQUESTING_CLIENT_ID);
     }
 
     @Test(expected = InvalidClientException.class)
     public void test_wrong_requesting_grant_type() {
-        requestingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
+        requestingClient.setAuthorizedGrantTypes(Collections.singletonList("password"));
         missing_parameter("non existent");
     }
 
     @Test(expected = InvalidClientException.class)
     public void test_wrong_receiving_grant_type() {
-        receivingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
+        receivingClient.setAuthorizedGrantTypes(Collections.singletonList("password"));
         missing_parameter("non existent");
     }
 

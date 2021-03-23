@@ -1,20 +1,5 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
@@ -22,6 +7,9 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlSpAlreadyExistsExcept
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,20 +33,21 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 @RestController
 public class SamlServiceProviderEndpoints {
 
-    protected static Log logger = LogFactory.getLog(SamlServiceProviderEndpoints.class);
+    protected static Logger logger = LoggerFactory.getLogger(SamlServiceProviderEndpoints.class);
 
     private final SamlServiceProviderProvisioning serviceProviderProvisioning;
     private final SamlServiceProviderConfigurator samlConfigurator;
 
-    public SamlServiceProviderEndpoints(SamlServiceProviderProvisioning serviceProviderProvisioning,
-                                        SamlServiceProviderConfigurator samlConfigurator) {
+    public SamlServiceProviderEndpoints(
+            final @Qualifier("serviceProviderProvisioning") SamlServiceProviderProvisioning serviceProviderProvisioning,
+            final @Qualifier("spMetaDataProviders") SamlServiceProviderConfigurator samlConfigurator) {
         this.serviceProviderProvisioning = serviceProviderProvisioning;
         this.samlConfigurator = samlConfigurator;
     }
 
     @RequestMapping(method = POST)
     public ResponseEntity<SamlServiceProvider> createServiceProvider(@RequestBody SamlServiceProvider body)
-        throws MetadataProviderException {
+            throws MetadataProviderException {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
         samlConfigurator.validateSamlServiceProvider(body);
@@ -86,11 +75,11 @@ public class SamlServiceProviderEndpoints {
 
     @RequestMapping(method = GET)
     public ResponseEntity<List<SamlServiceProvider>> retrieveServiceProviders(
-        @RequestParam(value = "active_only", required = false) String activeOnly) {
-        Boolean retrieveActiveOnly = Boolean.valueOf(activeOnly);
+            @RequestParam(value = "active_only", required = false) String activeOnly) {
+        boolean retrieveActiveOnly = Boolean.parseBoolean(activeOnly);
         List<SamlServiceProvider> serviceProviderList =
-            serviceProviderProvisioning.retrieveAll(retrieveActiveOnly,
-                                                    IdentityZoneHolder.get().getId());
+                serviceProviderProvisioning.retrieveAll(retrieveActiveOnly,
+                        IdentityZoneHolder.get().getId());
         return new ResponseEntity<>(serviceProviderList, OK);
     }
 
@@ -127,7 +116,7 @@ public class SamlServiceProviderEndpoints {
     }
 
     @ExceptionHandler(SamlSpAlreadyExistsException.class)
-    public ResponseEntity<String> handleDuplicateServiceProvider(){
+    public ResponseEntity<String> handleDuplicateServiceProvider() {
         return new ResponseEntity<>("SAML SP with the same entity id already exists.", HttpStatus.CONFLICT);
     }
 

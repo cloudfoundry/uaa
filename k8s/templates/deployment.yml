@@ -1,0 +1,218 @@
+#@ load("@ytt:data", "data")
+#@ load("deployment.star",
+#@  "java_opts",
+#@  "config_dir",
+#@  "secrets_dir",
+#@  "truststore_dir",
+#@  "truststore_file",
+#@  "truststore_password")
+#@ load("secrets/ca_certs.star", "has_ca_certs")
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: uaa
+spec:
+  selector:
+    matchLabels:
+      app: uaa-deployment
+  replicas: 1
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '9102'
+        prometheus.io/path: '/metrics'
+      labels:
+        app: uaa-deployment
+    spec: #! pod spec
+      serviceAccountName: uaa
+      initContainers:
+      - name: build-uaa-truststore
+        image: #@ data.values.image
+        command:
+        - 'sh'
+        - '-c'
+        - |
+          find_keytool_or_fail_fast() {
+            local has_keytool
+            ls "${JAVA_HOME}"/bin/keytool
+            has_keytool=$?
+
+            if [ ${has_keytool} -ne 0 ]; then
+              exit ${has_keytool}
+            fi
+          }
+
+          import_cert() {
+            local pemfile="${1}"
+            local alias="${2}"
+
+            echo "Adding ${pemfile} to truststore"
+
+            # Have to use cat instead of -file
+            # because keytool won't understand all of the filenames!
+            cat "${pemfile}" | "${JAVA_HOME}"/bin/keytool \
+              -noprompt \
+              -import \
+              -trustcacerts \
+              -alias "${alias}" \
+              -keystore "${TRUSTSTORE_FILE}" \
+              -storepass "${TRUSTSTORE_PASSWORD}"
+          }
+
+          get_alias() {
+            local pemfile="${1}"
+            basename "${pemfile}" .pem
+          }
+
+          add_ca_certs() {
+            local has_ca_certs
+            ls ${SECRETS_DIR}/ca_certs/*.pem
+            has_ca_certs=$?
+
+            if [ ${has_ca_certs} -eq 0 ]; then
+              for cert in ${SECRETS_DIR}/ca_certs/*.pem; do
+                import_cert "${cert}" "$(get_alias $cert)"
+              done
+            fi
+          }
+
+          add_system_certs() {
+            for cert in $OS_CERTS_DIR/*.pem; do
+              import_cert "${cert}" "$(get_alias $cert)"
+            done
+          }
+
+          main() {
+            find_keytool_or_fail_fast
+            add_ca_certs
+            add_system_certs
+          }
+
+          main
+        env:
+        - name: SECRETS_DIR
+          value: #@ secrets_dir
+        - name: TRUSTSTORE_FILE
+          value: #@ truststore_file
+        - name: TRUSTSTORE_PASSWORD
+          value: #@ truststore_password
+        - name: JAVA_HOME
+          value: /layers/paketo-buildpacks_bellsoft-liberica/jre
+        - name: OS_CERTS_DIR
+          value: /etc/ssl/certs
+        volumeMounts:
+        - name: ca-certs-files
+          mountPath: #@ "{}/ca_certs".format(secrets_dir)
+          readOnly: true
+        - name: truststore-file
+          mountPath: #@ truststore_dir
+      containers:
+      - name: uaa
+        image: #@ data.values.image
+        resources:
+          requests:
+            memory: #@ data.values.resources.uaa.requests.memory
+            cpu: #@ data.values.resources.uaa.requests.cpu
+          limits:
+            memory: #@ data.values.resources.uaa.limits.memory
+            cpu: #@ data.values.resources.uaa.limits.cpu
+        ports:
+        - name: http-uaa
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: BPL_TOMCAT_ACCESS_LOGGING
+          value: #@ data.values.tomcat.accessLoggingEnabled
+        - name: JAVA_OPTS
+          value: #@ java_opts(data.values.database.scheme)
+        volumeMounts:
+        - name: uaa-config
+          mountPath: #@ config_dir
+        - name: smtp-credentials-file
+          mountPath: #@ "{}/smtp_credentials.yml".format(secrets_dir)
+          subPath: smtp_credentials.yml
+          readOnly: true
+        - name: database-credentials-file
+          mountPath: #@ "{}/database_credentials.yml".format(secrets_dir)
+          subPath: database_credentials.yml
+          readOnly: true
+        - name: admin-client-credentials-file
+          mountPath: #@ "{}/admin_client_credentials.yml".format(secrets_dir)
+          subPath: admin_client_credentials.yml
+          readOnly: true
+        - name: jwt-policy-signing-keys-file
+          mountPath: #@ "{}/jwt_policy_signing_keys.yml".format(secrets_dir)
+          subPath: jwt_policy_signing_keys.yml
+          readOnly: true
+        - name: truststore-file
+          mountPath: #@ truststore_dir
+          readOnly: true
+        - name: saml-keys-file
+          mountPath: #@ "{}/saml_keys.yml".format(secrets_dir)
+          subPath: saml_keys.yml
+          readOnly: true
+        - name: encryption-keys-file
+          mountPath: #@ "{}/encryption_keys.yml".format(secrets_dir)
+          subPath: encryption_keys.yml
+          readOnly: true
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: http-uaa
+          failureThreshold: 25
+          initialDelaySeconds: 60
+          periodSeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: http-uaa
+      - name: statsd-exporter
+        image: #@ data.values.images.statsd_exporter
+        imagePullPolicy: Always
+        args: ["--statsd.listen-udp=:8125"]
+        ports:
+        - name: "metrics-uaa"
+          containerPort: 9102
+          protocol: "TCP"
+        resources:
+          requests:
+            memory: #@ data.values.resources.statsd_exporter.requests.memory
+            cpu: #@ data.values.resources.statsd_exporter.requests.cpu
+          limits:
+            memory: #@ data.values.resources.statsd_exporter.limits.memory
+            cpu: #@ data.values.resources.statsd_exporter.limits.cpu
+      volumes:
+      - name: uaa-config
+        configMap:
+          name: uaa-config
+      - name: smtp-credentials-file
+        secret:
+          optional: true
+          secretName: uaa-smtp-credentials
+      - name: database-credentials-file
+        secret:
+          optional: true
+          secretName: uaa-database-credentials
+      - name: admin-client-credentials-file
+        secret:
+          secretName: uaa-admin-client-credentials
+      - name: jwt-policy-signing-keys-file
+        secret:
+          secretName: uaa-jwt-policy-signing-keys
+      - name: ca-certs-files
+        secret:
+          optional: true
+          secretName: uaa-ca-certs
+      - name: truststore-file
+        emptyDir: {}
+      - name: saml-keys-file
+        secret:
+          optional: false
+          secretName: uaa-saml-keys
+      - name: encryption-keys-file
+        secret:
+          optional: false
+          secretName: encryption-keys

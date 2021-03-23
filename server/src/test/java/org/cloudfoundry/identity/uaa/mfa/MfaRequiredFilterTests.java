@@ -38,7 +38,6 @@ import static java.util.Collections.emptyList;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -55,7 +54,7 @@ public class MfaRequiredFilterTests {
     private FilterChain chain;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         authentication = new UaaAuthentication(
             new UaaPrincipal("fake-id", "fake-username", "email@email.com", "origin", "", "uaa"),
             emptyList(),
@@ -69,14 +68,14 @@ public class MfaRequiredFilterTests {
             mfaChecker,
             entryPoint
         );
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(true);
+        when(mfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(true);
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
@@ -89,19 +88,19 @@ public class MfaRequiredFilterTests {
     }
 
     @Test
-    public void authentication_missing() throws Exception {
+    public void authentication_missing() {
         SecurityContextHolder.clearContext();
         assertFalse(filter.isMfaRequiredAndMissing());
     }
 
     @Test
-    public void anonymous_authentication() throws Exception {
+    public void anonymous_authentication() {
         SecurityContextHolder.getContext().setAuthentication(mock(AnonymousAuthenticationToken.class));
         assertFalse(filter.isMfaRequiredAndMissing());
     }
 
     @Test
-    public void unknown_authentication() throws Exception {
+    public void unknown_authentication() {
         SecurityContextHolder.getContext().setAuthentication(mock(UsernamePasswordAuthenticationToken.class));
         assertFalse(filter.isMfaRequiredAndMissing());
     }
@@ -115,8 +114,8 @@ public class MfaRequiredFilterTests {
     }
 
     @Test
-    public void mfa_not_enabled() throws Exception {
-        when(mfaChecker.isMfaEnabled(any(IdentityZone.class), anyString())).thenReturn(false);
+    public void mfa_not_enabled() {
+        when(mfaChecker.isMfaEnabled(any(IdentityZone.class))).thenReturn(false);
         assertFalse(filter.isMfaRequiredAndMissing());
     }
 

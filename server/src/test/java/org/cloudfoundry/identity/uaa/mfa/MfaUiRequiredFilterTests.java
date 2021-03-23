@@ -9,11 +9,11 @@ import java.util.HashSet;
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -63,13 +63,11 @@ class MfaUiRequiredFilterTests {
     private HttpServletResponse response;
     private FilterChain chain;
     private MfaUiRequiredFilter filter;
-    private IdentityProviderProvisioning providerProvisioning;
     private AntPathRequestMatcher logoutMatcher;
     private IdentityZone mfaEnabledZone;
 
     @BeforeEach
-    void setup() throws Exception {
-        providerProvisioning = mock(IdentityProviderProvisioning.class);
+    void setup() {
         requestCache = mock(RequestCache.class);
         logoutMatcher = new AntPathRequestMatcher("/logout.do");
         filter = new MfaUiRequiredFilter("/login/mfa/**",
@@ -77,7 +75,7 @@ class MfaUiRequiredFilterTests {
                                          requestCache,
                                          "/login/mfa/completed",
                                          logoutMatcher,
-                                         new MfaChecker(providerProvisioning));
+                                         new MfaChecker(mock(IdentityZoneProvisioning.class)));
         spyFilter = spy(filter);
         request = new MockHttpServletRequest();
         usernameAuthentication = new UsernamePasswordAuthenticationToken("fake-principal","fake-credentials");

@@ -18,14 +18,16 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
+public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
     private URL userInfoUrl;
     private URL discoveryUrl;
     private boolean passwordGrantEnabled = false;
+    private boolean setForwardHeader = false;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
 
@@ -54,6 +56,14 @@ implements Cloneable {
         this.passwordGrantEnabled = passwordGrantEnabled;
     }
 
+    public boolean isSetForwardHeader() {
+        return setForwardHeader;
+    }
+
+    public void setSetForwardHeader(boolean setForwardHeader) {
+        this.setForwardHeader = setForwardHeader;
+    }
+
     public List<Prompt> getPrompts() {
         return prompts;
     }
@@ -75,9 +85,10 @@ implements Cloneable {
 
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
-        if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
+        if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
-        return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
+        if (this.setForwardHeader != that.setForwardHeader) return false;
+        return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
 
@@ -87,6 +98,7 @@ implements Cloneable {
         result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
+        result = 31 * result + (setForwardHeader ? 1 : 0);
         return result;
     }
 }

@@ -1,16 +1,3 @@
-/*
- *  Cloud Foundry
- *  Copyright (c) [2009-2018] Pivotal Software, Inc. All Rights Reserved.
- *  <p/>
- *  This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *  You may not use this product except in compliance with the License.
- *  <p/>
- *  This product includes a number of subcomponents with
- *  separate copyright notices and license terms. Your use of these
- *  subcomponents is subject to the terms and conditions of the
- *  subcomponent's license, as noted in the LICENSE file
- */
-
 package org.cloudfoundry.identity.uaa.authentication.listener;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -24,45 +11,36 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.isA;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-public class AuthenticationSuccessListenerTests {
+class AuthenticationSuccessListenerTests {
 
-    AuthenticationSuccessListener listener;
-    ScimUserProvisioning scimUserProvisioning;
-    UaaAuthentication mockAuth = mock(UaaAuthentication.class);
-    MfaChecker checker;
-    ApplicationEventPublisher publisher;
+    private AuthenticationSuccessListener listener;
+    private ScimUserProvisioning mockScimUserProvisioning;
+    private UaaAuthentication mockUaaAuthentication;
+    private MfaChecker mockMfaChecker;
+    private ApplicationEventPublisher mockApplicationEventPublisher;
     private String id;
     private UaaUserPrototype userPrototype;
     private UaaUser user;
 
-    @Before
-    public void setUp() {
-        publisher = mock(ApplicationEventPublisher.class);
-        checker = mock(MfaChecker.class);
-        scimUserProvisioning = mock(ScimUserProvisioning.class);
-        listener = new AuthenticationSuccessListener(scimUserProvisioning, checker);
-        listener.setApplicationEventPublisher(publisher);
+    @BeforeEach
+    void setUp() {
+        mockUaaAuthentication = mock(UaaAuthentication.class);
+        mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
+        mockMfaChecker = mock(MfaChecker.class);
+        mockScimUserProvisioning = mock(ScimUserProvisioning.class);
+        listener = new AuthenticationSuccessListener(mockScimUserProvisioning, mockMfaChecker);
+        listener.setApplicationEventPublisher(mockApplicationEventPublisher);
         id = "user-id";
         userPrototype = new UaaUserPrototype()
-            .withId(id)
-            .withUsername("testUser")
-            .withEmail("test@email.com");
+                .withId(id)
+                .withUsername("testUser")
+                .withEmail("test@email.com");
         user = new UaaUser(userPrototype);
     }
 
@@ -73,90 +51,87 @@ public class AuthenticationSuccessListenerTests {
     }
 
     @Test
-    public void unverifiedUserBecomesVerifiedIfTheyHaveLegacyFlag() {
+    void unverifiedUserBecomesVerifiedIfTheyHaveLegacyFlag() {
         userPrototype
-            .withVerified(false)
-            .withLegacyVerificationBehavior(true);
+                .withVerified(false)
+                .withLegacyVerificationBehavior(true);
         UserAuthenticationSuccessEvent event = getEvent();
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(scimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
+        final String zoneId = event.getIdentityZoneId();
+        when(mockScimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
         listener.onApplicationEvent(event);
-        verify(scimUserProvisioning).verifyUser(eq(id), eq(-1), eq(zoneId));
-    }
-
-    public UserAuthenticationSuccessEvent getEvent() {
-        user = new UaaUser(userPrototype);
-        return new UserAuthenticationSuccessEvent(
-            user,
-            mockAuth
-        );
+        verify(mockScimUserProvisioning).verifyUser(eq(id), eq(-1), eq(zoneId));
     }
 
     @Test
-    public void unverifiedUserDoesNotBecomeVerifiedIfTheyHaveNoLegacyFlag() {
+    void unverifiedUserDoesNotBecomeVerifiedIfTheyHaveNoLegacyFlag() {
         userPrototype.withVerified(false);
         UserAuthenticationSuccessEvent event = getEvent();
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(scimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
+        final String zoneId = event.getIdentityZoneId();
+        when(mockScimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
         listener.onApplicationEvent(event);
-        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt(), eq(zoneId));
+        verify(mockScimUserProvisioning, never()).verifyUser(anyString(), anyInt(), eq(zoneId));
     }
 
     @Test
-    public void userLastUpdatedGetsCalledOnEvent() {
-
+    void userLastUpdatedGetsCalledOnEvent() {
         UserAuthenticationSuccessEvent event = getEvent();
-        when(scimUserProvisioning.retrieve(id, IdentityZoneHolder.get().getId())).thenReturn(getScimUser(event.getUser()));
+        final String zoneId = event.getIdentityZoneId();
+
+        when(mockScimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
         listener.onApplicationEvent(event);
-        verify(scimUserProvisioning, times(1)).updateLastLogonTime(id, IdentityZoneHolder.get().getId());
+        verify(mockScimUserProvisioning, times(1)).updateLastLogonTime(id, zoneId);
     }
 
     @Test
-    public void previousLoginIsSetOnTheAuthentication() {
+    void previousLoginIsSetOnTheAuthentication() {
         userPrototype
-            .withLastLogonSuccess(123456789L);
+                .withLastLogonSuccess(123456789L);
         UserAuthenticationSuccessEvent event = getEvent();
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(scimUserProvisioning.retrieve(this.id, zoneId)).thenReturn(getScimUser(event.getUser()));
+        final String zoneId = event.getIdentityZoneId();
+        when(mockScimUserProvisioning.retrieve(this.id, zoneId)).thenReturn(getScimUser(event.getUser()));
         UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
         listener.onApplicationEvent(event);
         verify(authentication).setLastLoginSuccessTime(123456789L);
     }
 
     @Test
-    public void provider_authentication_success_triggers_user_authentication_success() throws Exception {
-        when(checker.isMfaEnabled(any(), any())).thenReturn(false);
+    void provider_authentication_success_triggers_user_authentication_success() {
+        when(mockMfaChecker.isMfaEnabledForZoneId(anyString())).thenReturn(false);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
-            user,
-            mockAuth,
-            OriginKeys.UAA
+                user,
+                mockUaaAuthentication,
+                OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
-        verify(publisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
+        verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
     }
 
     @Test
-    public void provider_authentication_success_does_not_trigger_user_authentication_success() throws Exception {
-        when(checker.isMfaEnabled(any(), any())).thenReturn(true);
+    void provider_authentication_success_does_not_trigger_user_authentication_success() {
+        when(mockMfaChecker.isMfaEnabledForZoneId(anyString())).thenReturn(true);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
-            user,
-            mockAuth,
-            OriginKeys.UAA
+                user,
+                mockUaaAuthentication,
+                OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
-        verifyZeroInteractions(publisher);
+        verifyZeroInteractions(mockApplicationEventPublisher);
     }
 
     @Test
-    public void mfa_authentication_success_triggers_user_authentication_success() throws Exception {
-        when(checker.isMfaEnabled(any(), any())).thenReturn(true);
+    void mfa_authentication_success_triggers_user_authentication_success() {
         MfaAuthenticationSuccessEvent event = new MfaAuthenticationSuccessEvent(
-            user,
-            mockAuth,
-            "mfa-type"
+                user,
+                mockUaaAuthentication,
+                "mfa-type", IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
-        verify(publisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
+        verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
+    }
+
+    private UserAuthenticationSuccessEvent getEvent() {
+        user = new UaaUser(userPrototype);
+        return new UserAuthenticationSuccessEvent(user, mockUaaAuthentication, IdentityZoneHolder.getCurrentZoneId());
     }
 
 }

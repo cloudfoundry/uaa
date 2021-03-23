@@ -13,8 +13,10 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
@@ -30,8 +32,8 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
@@ -58,7 +60,7 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 
 public class IdentityProviderBootstrap
     implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
-    private static Log logger = LogFactory.getLog(IdentityProviderBootstrap.class);
+    private static Logger logger = LoggerFactory.getLogger(IdentityProviderBootstrap.class);
 
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProviderWrapper> providers = new LinkedList<>();
@@ -74,7 +76,9 @@ public class IdentityProviderBootstrap
     private List<String> originsToDelete = null;
     private ApplicationEventPublisher publisher;
 
-    public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
+    public IdentityProviderBootstrap(
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
+            Environment environment) {
         if (provisioning==null) {
             throw new NullPointerException("Constructor argument can't be null.");
         }
@@ -244,7 +248,7 @@ public class IdentityProviderBootstrap
     public IdentityProvider getProviderByOriginIgnoreActiveFlag(String origin, String zoneId) {
         try {
             return provisioning.retrieveByOriginIgnoreActiveFlag(origin, zoneId);
-        }catch (EmptyResultDataAccessException x){
+        }catch (EmptyResultDataAccessException ignored){
         }
         return null;
 
@@ -257,7 +261,7 @@ public class IdentityProviderBootstrap
                 IdentityProvider provider = getProviderByOriginIgnoreActiveFlag(origin, zoneId);
                 //delete provider
                 if (provider != null) {
-                    EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION);
+                    EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION, IdentityZoneHolder.getCurrentZoneId());
                     if (this.publisher != null) {
                         publisher.publishEvent(event);
                         logger.debug("Identity provider deactivated:" + origin);
@@ -272,7 +276,7 @@ public class IdentityProviderBootstrap
         }
     }
 
-    protected void updateDefaultZoneUaaIDP() throws JSONException {
+    protected void updateDefaultZoneUaaIDP() {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider internalIDP = getProviderByOriginIgnoreActiveFlag(UAA, IdentityZone.getUaaZoneId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);

@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy.Result;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -30,7 +30,7 @@ import org.springframework.security.core.AuthenticationException;
  */
 public class PeriodLockoutPolicy implements AccountLoginPolicy {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final LoginPolicy loginPolicy;
     private final LoginPolicy mfaPolicy;

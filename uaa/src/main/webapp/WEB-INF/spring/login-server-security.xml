@@ -1,76 +1,70 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-    xmlns:util="http://www.springframework.org/schema/util"
-    xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd">
+       xmlns:sec="http://www.springframework.org/schema/security"
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+        http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
     <oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
-        resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
+                           resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
-    <http name="secFilterLoginServerAuthenticate" request-matcher-ref="loginAuthenticateRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+    <http name="secFilterLoginServerAuthenticate" request-matcher-ref="loginAuthenticateRequestMatcher"
+          create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+          use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <anonymous enabled="false"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
     <bean id="loginAuthenticateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/authenticate" />
-        <property name="accept" value="application/json" />
+        <constructor-arg value="/authenticate"/>
+        <property name="accept" value="application/json"/>
         <property name="headers">
             <map>
-                <entry key="Authorization" value="bearer "  />
+                <entry key="Authorization" value="bearer "/>
             </map>
         </property>
     </bean>
 
-    <sec:http name="secFilterAuthenticateOpen"  pattern="/authenticate/**" security="none" />
+    <sec:http name="secFilterAuthenticateOpen" pattern="/authenticate/**" security="none"/>
 
-    <http name="secFilterLoginServerAuthorize" request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-        authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+    <http name="secFilterLoginServerAuthorize" request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+          use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
-        <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
+        <anonymous enabled="false"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
     <bean id="loginAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/authorize" />
-        <property name="accept" value="application/json" />
+        <constructor-arg value="/oauth/authorize"/>
+        <property name="accept" value="application/json"/>
         <property name="parameters">
             <map>
-                <entry key="source" value="login" />
+                <entry key="source" value="login"/>
             </map>
         </property>
     </bean>
 
-    <http name="secFilterLoginServerToken" request-matcher-ref="loginTokenRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+    <http name="secFilterLoginServerToken" request-matcher-ref="loginTokenRequestMatcher" create-session="never"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+          use-expressions="false">
         <!--
           This represents a /oauth/token requests that gets passed through
           from the login server. It assumes that the User has been authenticated
@@ -79,28 +73,30 @@
            - client_id and client_secret are present
            - Bearer token belongs to login server (oauth.login) validated as resource="oauth"
         -->
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
         <!-- the oauthResourceAuthenticationFilter validates the Bearer token
              What we need is scope=oauth.login
          -->
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
         <!-- filter to validate the client_id and client_secret -->
-        <custom-filter ref="loginClientParameterAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+        <custom-filter ref="loginClientParameterAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
         <!-- The loginServerTokenEndpointAuthenticationFilter validates the user or creates one-->
         <custom-filter ref="loginServerTokenEndpointAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <anonymous enabled="false"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
-    <bean id="oauthLoginScopeAuthenticatingFilter" class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter">
+    <bean id="oauthLoginScopeAuthenticatingFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter">
         <property name="authenticationManager" ref="oauthLoginAuthManager"/>
     </bean>
 
-    <bean id="oauthLoginAuthManager" class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationManager">
+    <bean id="oauthLoginAuthManager"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationManager">
         <property name="requiredScopes">
             <list>
                 <value type="java.lang.String">oauth.login</value>
@@ -109,51 +105,55 @@
     </bean>
 
     <bean id="loginTokenRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/token" />
-        <property name="accept" value="application/json" />
+        <constructor-arg value="/oauth/token"/>
+        <property name="accept" value="application/json"/>
         <property name="headers">
             <map>
-                <entry key="Authorization" value="bearer " />
+                <entry key="Authorization" value="bearer "/>
             </map>
         </property>
         <property name="parameters">
             <map>
-                <entry key="source" value="login" />
-                <entry key="grant_type" value="password" />
-                <entry key="add_new" value="" />
+                <entry key="source" value="login"/>
+                <entry key="grant_type" value="password"/>
+                <entry key="add_new" value=""/>
             </map>
         </property>
     </bean>
 
-    <bean id="loginServerTokenEndpointAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
-        <constructor-arg ref="loginAuthenticationMgr" />
+    <bean id="loginServerTokenEndpointAuthenticationFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
+        <constructor-arg ref="loginAuthenticationMgr"/>
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="addNewUserParameters"/>
-        <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>
     </bean>
 
-    <bean id="loginClientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
+    <bean id="loginClientParameterAuthenticationFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
     </bean>
 
     <!-- Support for older login servers -->
-    <http name="secFilterLoginServerAuthorizeOld" request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
-        authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+    <http name="secFilterLoginServerAuthorizeOld" request-matcher-ref="loginAuthorizeRequestMatcherOld"
+          create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+          use-expressions="false">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
+        <anonymous enabled="false"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
     <bean id="loginAuthorizeRequestMatcherOld" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/authorize" />
-        <property name="accept" value="application/json" />
+        <constructor-arg value="/oauth/authorize"/>
+        <property name="accept" value="application/json"/>
         <property name="parameters">
             <map>
-                <entry key="login" value="{" />
+                <entry key="login" value="{"/>
             </map>
         </property>
     </bean>
@@ -170,58 +170,40 @@
     </util:list>
 
     <bean id="loginAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-        <constructor-arg ref="loginAuthenticationMgr" />
+        <constructor-arg ref="loginAuthenticationMgr"/>
         <property name="parameterNames" ref="addNewUserParameters"/>
     </bean>
 
-    <bean id="loginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
-        <property name="userDatabase" ref="userDatabase" />
+    <bean id="loginAuthenticationMgr"
+          class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+        <property name="userDatabase" ref="userDatabase"/>
     </bean>
-
-    <bean class="org.cloudfoundry.identity.uaa.authentication.RemoteAuthenticationEndpoint">
-        <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
-        <property name="loginAuthenticationManager" ref="loginAuthenticationMgr"/>
-    </bean>
-
 
     <bean id="codeStore" class="org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore">
-        <constructor-arg name="dataSource" ref="dataSource" />
+        <constructor-arg name="dataSource" ref="dataSource"/>
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.account.PasswordResetEndpoint">
-        <constructor-arg ref="resetPasswordService"/>
-        <property name="messageConverters">
-            <list>
-                <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-                <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
-            </list>
-        </property>
-        <property name="codeStore" ref="codeStore"/>
-    </bean>
-
-    <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints">
-        <constructor-arg ref="scimUserProvisioning"/>
-        <constructor-arg ref="codeStore"/>
-        <constructor-arg ref="clientDetailsService"/>
-    </bean>
-
-    <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-        pattern="/password_*" xmlns="http://www.springframework.org/schema/security"  use-expressions="true">
-        <intercept-url pattern="/**" access="#oauth2.hasScope('oauth.login') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" />
-        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+          pattern="/password_*" xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasScope('oauth.login') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"/>
+        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <anonymous enabled="false"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
 
-    <http name="secFilterLoginServerEmailEndpoints" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-          access-decision-manager-ref="accessDecisionManager" pattern="/email_*" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" access="scope=oauth.login" />
-        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <anonymous enabled="false" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    <http name="secFilterLoginServerEmailEndpoints" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+          access-decision-manager-ref="accessDecisionManager" pattern="/email_*"
+          xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+        <intercept-url pattern="/**" access="scope=oauth.login"/>
+        <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <anonymous enabled="false"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 </beans>

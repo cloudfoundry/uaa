@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: uaa
+  labels:
+    app: uaa-deployment
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8080
+    name: http-uaa
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: uaa-deployment

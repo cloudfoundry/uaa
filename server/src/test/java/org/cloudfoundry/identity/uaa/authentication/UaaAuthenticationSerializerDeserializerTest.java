@@ -14,12 +14,13 @@ import static org.junit.Assert.assertEquals;
 public class UaaAuthenticationSerializerDeserializerTest {
 
     @Test
-    public void serializeUaaAuthentication() throws Exception {
+    public void serializeUaaAuthentication() {
         UaaPrincipal p = new UaaPrincipal("user-id", "username", "user@example.com", OriginKeys.UAA, "", IdentityZoneHolder.get().getId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN,"sessionId"));
         auth.setAuthenticationMethods(Collections.singleton("pwd"));
         auth.setAuthContextClassRef(Collections.singleton("test:uri"));
-        auth.setLastLoginSuccessTime(1485305759366l);
+        auth.setAuthenticatedTime(1485314434675L);
+        auth.setLastLoginSuccessTime(1485305759366L);
 
         UaaAuthentication deserializedUaaAuthentication = JsonUtils.readValue(JsonUtils.writeValueAsString(auth), UaaAuthentication.class);
 

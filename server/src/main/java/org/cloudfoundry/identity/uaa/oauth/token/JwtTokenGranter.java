@@ -15,12 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -32,14 +31,20 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 
 public class JwtTokenGranter extends AbstractTokenGranter {
 
+    // TODO: Determine why this needs to be org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor
+    // instead of org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor
+    // The tests fail with the UAA version!
+    final org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor defaultSecurityContextAccessor;
+
     protected JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
-                              ClientServicesExtension clientDetailsService,
+                              MultitenantClientServices clientDetailsService,
                               OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_JWT_BEARER);
+        defaultSecurityContextAccessor = new org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor();
     }
 
     protected Authentication validateRequest(TokenRequest request) {
-        if (new DefaultSecurityContextAccessor().isUser()) {
+        if (defaultSecurityContextAccessor.isUser()) {
             if( request == null ||
                 request.getRequestParameters() == null ||
                 request.getRequestParameters().isEmpty()) {

@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -48,17 +48,16 @@ import java.util.UUID;
  *
  */
 public class UaaTestAccounts implements TestAccounts {
+    private static final Logger logger = LoggerFactory.getLogger(UaaTestAccounts.class);
+
+    static final String UAA_TEST_USERNAME = "uaa.test.username";
+    static final String UAA_TEST_PASSWORD = "uaa.test.password";
 
     public static final String DEFAULT_PASSWORD = "koala";
-
     public static final String DEFAULT_USERNAME = "marissa";
 
-    private static final Log logger = LogFactory.getLog(UaaTestAccounts.class);
-
     private Environment environment = TestProfileEnvironment.getEnvironment();
-
     private UrlHelper server;
-
     private static Map<String, OAuth2ProtectedResourceDetails> clientDetails = new HashMap<String, OAuth2ProtectedResourceDetails>();
 
     private UaaTestAccounts(UrlHelper server) {
@@ -71,12 +70,12 @@ public class UaaTestAccounts implements TestAccounts {
 
     @Override
     public String getUserName() {
-        return environment.getProperty("uaa.test.username", DEFAULT_USERNAME);
+        return environment.getProperty(UAA_TEST_USERNAME, DEFAULT_USERNAME);
     }
 
     @Override
     public String getPassword() {
-        return environment.getProperty("uaa.test.password", DEFAULT_PASSWORD);
+        return environment.getProperty(UAA_TEST_PASSWORD, DEFAULT_PASSWORD);
     }
 
     @Override
@@ -135,8 +134,7 @@ public class UaaTestAccounts implements TestAccounts {
     }
 
     public String getJsonCredentials(String username, String password) {
-        String credentials = String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
-        return credentials;
+        return String.format("{\"username\":\"%s\",\"password\":\"%s\"}", username, password);
     }
 
     public ClientCredentialsResourceDetails getAdminClientCredentialsResource() {
@@ -270,17 +268,31 @@ public class UaaTestAccounts implements TestAccounts {
         return result;
     }
 
-    public static final String INSERT_BARE_BONE_USER = "insert into users (id, username, password, email, identity_zone_id) values (?,?,?,?,?)";
-    public String addRandomUser(JdbcTemplate jdbcTemplate) {
-        String id = UUID.randomUUID().toString();
-        return addRandomUser(jdbcTemplate, id);
+    public String addUser(
+            final JdbcTemplate jdbcTemplate,
+            final String id,
+            final String zoneId) {
+        return addUser(
+                jdbcTemplate,
+                id,
+                zoneId,
+                OriginKeys.UAA
+        );
     }
-    public String addRandomUser(JdbcTemplate jdbcTemplate, String id) {
-        return addRandomUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());
-    }
-    public String addRandomUser(JdbcTemplate jdbcTemplate, String id, String zoneId) {
+
+    public String addUser(
+            final JdbcTemplate jdbcTemplate,
+            final String id,
+            final String zoneId,
+            final String origin) {
         String username = id + "-testuser";
-        jdbcTemplate.update(INSERT_BARE_BONE_USER, id, username, "password", username+"@test.com", zoneId);
+        jdbcTemplate.update("insert into users (id, username, password, email, identity_zone_id, origin) values (?,?,?,?,?,?)",
+                id,
+                username,
+                "password",
+                username+"@test.com",
+                zoneId,
+                origin);
         return id;
     }
 }

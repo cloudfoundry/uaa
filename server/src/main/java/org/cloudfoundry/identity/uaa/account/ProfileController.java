@@ -1,29 +1,16 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -39,7 +26,6 @@ import org.springframework.web.servlet.view.RedirectView;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -51,23 +37,21 @@ import static org.springframework.util.StringUtils.hasText;
 @Controller
 public class ProfileController {
 
-    protected static Log logger = LogFactory.getLog(ProfileController.class);
+    protected static Logger logger = LoggerFactory.getLogger(ProfileController.class);
 
     private final ApprovalStore approvalsService;
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private final SecurityContextAccessor securityContextAccessor;
+    private final IdentityZoneManager identityZoneManager;
 
-    public ProfileController(ApprovalStore approvalsService,
-                             ClientServicesExtension clientDetailsService) {
-        this(approvalsService, clientDetailsService, new DefaultSecurityContextAccessor());
-    }
-
-    public ProfileController(ApprovalStore approvalsService,
-                             ClientServicesExtension clientDetailsService,
-                             SecurityContextAccessor securityContextAccessor) {
+    public ProfileController(final ApprovalStore approvalsService,
+                             final MultitenantClientServices clientDetailsService,
+                             final SecurityContextAccessor securityContextAccessor,
+                             final IdentityZoneManager identityZoneManager) {
         this.approvalsService = approvalsService;
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -79,21 +63,8 @@ public class ProfileController {
         Map<String, String> clientNames = getClientNames(approvals);
         model.addAttribute("clientnames", clientNames);
         model.addAttribute("approvals", approvals);
-        model.addAttribute("isUaaManagedUser", isUaaManagedUser(authentication));
+        extractUaaUserAttributes(authentication, model);
         return "approvals";
-    }
-
-    protected Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
-        Map<String, String> clientNames = new LinkedHashMap<>();
-        for (String clientId : approvals.keySet()) {
-            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-            String name = details.getClientId();
-            if (details.getAdditionalInformation()!=null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME)!=null) {
-                name = (String)details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
-            }
-            clientNames.put(clientId, name);
-        }
-        return clientNames;
     }
 
     /**
@@ -126,8 +97,7 @@ public class ProfileController {
                 }
             }
             updateApprovals(allApprovals);
-        }
-        else if (null != delete) {
+        } else if (null != delete) {
             deleteApprovalsForClient(userId, clientId);
         }
 
@@ -136,21 +106,40 @@ public class ProfileController {
 
     @ExceptionHandler
     public View handleException(NoSuchClientException nsce) {
-        logger.debug("Unable to find client for approvals:"+nsce.getMessage());
+        logger.debug("Unable to find client for approvals:" + nsce.getMessage());
         return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
     }
 
-    private boolean isUaaManagedUser(Authentication authentication) {
-        if (authentication.getPrincipal() instanceof UaaPrincipal) {
-            UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-            return OriginKeys.UAA.equals(principal.getOrigin());
+    private Map<String, String> getClientNames(Map<String, List<DescribedApproval>> approvals) {
+        Map<String, String> clientNames = new LinkedHashMap<>();
+        for (String clientId : approvals.keySet()) {
+            ClientDetails details = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
+            String name = details.getClientId();
+            if (details.getAdditionalInformation() != null && details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME) != null) {
+                name = (String) details.getAdditionalInformation().get(ClientConstants.CLIENT_NAME);
+            }
+            clientNames.put(clientId, name);
         }
-        return false;
+        return clientNames;
     }
 
-    public Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
+    private void extractUaaUserAttributes(Authentication authentication, Model model) {
+        if (authentication.getPrincipal() instanceof UaaPrincipal) {
+            UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+            boolean isUaaManagedUser = OriginKeys.UAA.equals(principal.getOrigin());
+            model.addAttribute("isUaaManagedUser", isUaaManagedUser);
+            if (isUaaManagedUser) {
+                model.addAttribute("email", principal.getEmail());
+            }
+            return;
+        }
+
+        model.addAttribute("isUaaManagedUser", false);
+    }
+
+    private Map<String, List<DescribedApproval>> getCurrentApprovalsForUser(String userId) {
         Map<String, List<DescribedApproval>> result = new HashMap<>();
-        List<Approval> approvalsResponse = approvalsService.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
+        List<Approval> approvalsResponse = approvalsService.getApprovalsForUser(userId, identityZoneManager.getCurrentIdentityZoneId());
 
         List<DescribedApproval> approvals = new ArrayList<>();
         for (Approval approval : approvalsResponse) {
@@ -159,11 +148,10 @@ public class ProfileController {
         }
 
         for (DescribedApproval approval : approvals) {
-            List<DescribedApproval> clientApprovals = result.get(approval.getClientId());
-            if (clientApprovals == null) {
-                clientApprovals = new ArrayList<>();
-                result.put(approval.getClientId(), clientApprovals);
-            }
+            List<DescribedApproval> clientApprovals = result.computeIfAbsent(
+                    approval.getClientId(),
+                    k -> new ArrayList<>()
+            );
 
             String scope = approval.getScope();
             if (!scope.contains(".")) {
@@ -177,18 +165,13 @@ public class ProfileController {
             }
         }
         for (List<DescribedApproval> approvalList : result.values()) {
-            Collections.sort(approvalList, new Comparator<DescribedApproval>() {
-                @Override
-                public int compare(DescribedApproval o1, DescribedApproval o2) {
-                    return o1.getScope().compareTo(o2.getScope());
-                }
-            });
+            approvalList.sort(Comparator.comparing(Approval::getScope));
         }
         return result;
     }
 
-    public void updateApprovals(List<DescribedApproval> approvals) {
-        String zoneId = IdentityZoneHolder.get().getId();
+    private void updateApprovals(List<DescribedApproval> approvals) {
+        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         for (DescribedApproval approval : approvals) {
             approvalsService.revokeApprovalsForClientAndUser(approval.getClientId(), approval.getUserId(), zoneId);
         }
@@ -197,9 +180,9 @@ public class ProfileController {
         }
     }
 
-    public void deleteApprovalsForClient(String userId, String clientId) {
+    private void deleteApprovalsForClient(String userId, String clientId) {
         clientDetailsService.loadClientByClientId(clientId);
-        approvalsService.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
+        approvalsService.revokeApprovalsForClientAndUser(clientId, userId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
     private String getCurrentUserId() {

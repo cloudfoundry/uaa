@@ -1,73 +1,101 @@
-/*
- *  Cloud Foundry
- *  Copyright (c) [2009-2018] Pivotal Software, Inc. All Rights Reserved.
- *  <p/>
- *  This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *  You may not use this product except in compliance with the License.
- *  <p/>
- *  This product includes a number of subcomponents with
- *  separate copyright notices and license terms. Your use of these
- *  subcomponents is subject to the terms and conditions of the
- *  subcomponent's license, as noted in the LICENSE file
- */
-
 package org.cloudfoundry.identity.uaa.mfa;
 
 import com.google.common.collect.Lists;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import org.junit.Before;
-import org.junit.Test;
+import java.util.Arrays;
+import java.util.stream.Stream;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
-public class MfaCheckerTests {
+class MfaCheckerTests {
 
-    private IdentityZone zone;
-    private MfaChecker checker;
-    private IdentityProviderProvisioning providerProvisioning;
+    private IdentityZone identityZone;
+    private MfaChecker mfaChecker;
+    private IdentityZoneProvisioning mockIdentityZoneProvisioning;
+    private RandomValueStringGenerator randomValueStringGenerator;
 
-    @Before
-    public void setUp() throws Exception {
-        providerProvisioning = mock(IdentityProviderProvisioning.class);
-        zone = MultitenancyFixture.identityZone("id", "domain");
-        checker = new MfaChecker(providerProvisioning);
+    @BeforeEach
+    void setUp() {
+        randomValueStringGenerator = new RandomValueStringGenerator();
+
+        identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
+
+        mockIdentityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+        when(mockIdentityZoneProvisioning.retrieve(any())).thenReturn(identityZone);
+
+        mfaChecker = new MfaChecker(mockIdentityZoneProvisioning);
+    }
+
+    static class BooleanArgumentsProvider implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of(true),
+                    Arguments.of(false)
+            );
+        }
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(BooleanArgumentsProvider.class)
+    void isMfaEnabled(final boolean isMfaEnabled) {
+        identityZone.getConfig().getMfaConfig().setEnabled(isMfaEnabled);
+        assertEquals(isMfaEnabled, mfaChecker.isMfaEnabled(identityZone));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(BooleanArgumentsProvider.class)
+    void isMfaEnabledForZoneId(final boolean isMfaEnabled) {
+        final String zoneId = randomValueStringGenerator.generate();
+        identityZone.getConfig().getMfaConfig().setEnabled(isMfaEnabled);
+        assertEquals(isMfaEnabled, mfaChecker.isMfaEnabledForZoneId(zoneId));
+
+        verify(mockIdentityZoneProvisioning).retrieve(zoneId);
     }
 
     @Test
-    public void mfa_zone_enabled() {
-        zone.getConfig().getMfaConfig().setEnabled(true);
-        assertTrue(checker.isMfaEnabled(zone, UAA));
+    void mfaIsRequiredWhenCorrectOriginsAreConfigured() {
+        final String randomIdp = randomValueStringGenerator.generate();
+        identityZone.getConfig().getMfaConfig().setIdentityProviders(
+                Lists.newArrayList("uaa", "george", randomIdp));
+
+        assertThat(mfaChecker.isRequired(identityZone, "uaa"), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, "george"), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, randomIdp), is(true));
+
+        assertThat(mfaChecker.isRequired(identityZone, "other"), is(false));
+        assertThat(mfaChecker.isRequired(identityZone, null), is(false));
+        assertThat(mfaChecker.isRequired(identityZone, ""), is(false));
+        assertThat(mfaChecker.isRequired(identityZone, randomValueStringGenerator.generate()), is(false));
     }
 
     @Test
-    public void mfa_zone_disabled() {
-        zone.getConfig().getMfaConfig().setEnabled(false);
-        assertFalse(checker.isMfaEnabled(zone, UAA));
-    }
+    void mfaConfig_getIdentityProviders_returnsUaaAndLdap() {
+        assertThat(MfaConfig.DEFAULT_MFA_IDENTITY_PROVIDERS, is(Arrays.asList(UAA, LDAP)));
 
-    @Test
-    public void mfa_is_required_when_correct_origins_are_configured() {
-        zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList("uaa", "ldap"));
+        identityZone.getConfig().getMfaConfig().setIdentityProviders(
+                Lists.newArrayList());
 
-        assertThat(checker.isRequired(zone, UAA), is(true));
-    }
-
-    @Test
-    public void when_no_origins_are_configured_checker_should_use_default_providers() {
-        zone.getConfig().getMfaConfig().setIdentityProviders(Lists.newArrayList());
-
-        assertThat(checker.isRequired(zone, UAA), is(true));
-        assertThat(checker.isRequired(zone, LDAP), is(true));
-        assertThat(checker.isRequired(zone, SAML), is(false));
+        assertThat(mfaChecker.isRequired(identityZone, UAA), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, LDAP), is(true));
+        assertThat(mfaChecker.isRequired(identityZone, SAML), is(false));
+        assertThat(mfaChecker.isRequired(identityZone, "other"), is(false));
     }
 }

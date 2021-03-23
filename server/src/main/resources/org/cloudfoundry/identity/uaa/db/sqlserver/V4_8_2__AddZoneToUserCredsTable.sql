@@ -1,1 +1,0 @@
-ALTER TABLE user_google_mfa_credentials ADD zone_id CHAR(36) NOT NULL;

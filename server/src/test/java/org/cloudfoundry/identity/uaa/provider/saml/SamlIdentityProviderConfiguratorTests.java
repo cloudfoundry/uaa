@@ -30,8 +30,8 @@ import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
-import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Timer;
 
@@ -121,10 +121,8 @@ public class SamlIdentityProviderConfiguratorTests {
     IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
 
     @BeforeEach
-    public void setUp() throws Exception {
+    public void setUp() {
         bootstrap = new BootstrapSamlIdentityProviderData();
-        configurator = new SamlIdentityProviderConfigurator();
-        configurator.setParserPool(new BasicParserPool());
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
                 .setIdpEntityAlias(singleAddAlias)
@@ -143,21 +141,20 @@ public class SamlIdentityProviderConfiguratorTests {
                 .setLinkText("sample-link-test")
                 .setIconUrl("sample-icon-url")
                 .setZoneId("uaa");
-        configurator.setIdentityProviderProvisioning(provisioning);
         fixedHttpMetaDataProvider = mock(FixedHttpMetaDataProvider.class);
 
-        configurator.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
+        configurator = new SamlIdentityProviderConfigurator(
+                new BasicParserPool(), provisioning, fixedHttpMetaDataProvider);
+
     }
 
     @Test
     public void testAddNullProvider() {
-        Assertions.assertThrows(NullPointerException.class, () -> {
-            configurator.validateSamlIdentityProviderDefinition(null);
-        });
+        Assertions.assertThrows(NullPointerException.class, () -> configurator.validateSamlIdentityProviderDefinition(null));
     }
 
     @Test
-    public void testAddNullProviderAlias() throws Exception {
+    public void testAddNullProviderAlias() {
         singleAdd.setIdpEntityAlias(null);
 
         Assertions.assertThrows(NullPointerException.class, () -> {
@@ -245,7 +242,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testGetIdentityProviderDefinititonsForAllowedProviders() throws Exception {
+    public void testGetIdentityProviderDefinititonsForAllowedProviders() {
         List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
         List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
         assertEquals(2, clientIdps.size());
@@ -254,8 +251,8 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
-        List<String> clientIdpAliases = asList("non-existent");
+    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() {
+        List<String> clientIdpAliases = Collections.singletonList("non-existent");
         List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
         assertEquals(0, clientIdps.size());
     }
@@ -274,7 +271,7 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void shouldTimeoutWhenFetchingMetadataURL() throws Exception {
+    public void shouldTimeoutWhenFetchingMetadataURL() {
         slowHttpServer.run();
 
         expectedException.expect(NullPointerException.class);

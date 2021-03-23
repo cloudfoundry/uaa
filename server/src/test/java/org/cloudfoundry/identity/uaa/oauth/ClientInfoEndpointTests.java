@@ -1,58 +1,61 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.junit.Test;
-import org.mockito.Mockito;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.when;
 
-/**
- * @author Dave Syer
- *
- */
-public class ClientInfoEndpointTests {
+@ExtendWith(MockitoExtension.class)
+class ClientInfoEndpointTests {
 
-    private ClientInfoEndpoint endpoint = new ClientInfoEndpoint();
+    @Mock
+    private MultitenantClientServices mockMultitenantClientServices;
 
-    private ClientServicesExtension clientDetailsService = Mockito.mock(ClientServicesExtension.class);
+    @Mock
+    private IdentityZoneManager mockIdentityZoneManager;
 
-    private BaseClientDetails foo = new BaseClientDetails("foo", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+    @InjectMocks
+    private ClientInfoEndpoint endpoint;
 
-    {
-        foo.setClientSecret("bar");
-        foo.setAdditionalInformation(Collections.singletonMap("key", "value"));
-        endpoint.setClientDetailsService(clientDetailsService);
+    private String clientId;
+
+    @BeforeEach
+    void setUp() {
+        clientId = "clientId-" + UUID.randomUUID().toString();
+        BaseClientDetails baseClientDetails = new BaseClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        baseClientDetails.setClientSecret("bar");
+        baseClientDetails.setAdditionalInformation(Collections.singletonMap("key", "value"));
+
+        final var currentZoneId = "currentZoneId-" + UUID.randomUUID().toString();
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentZoneId);
+
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, currentZoneId)).thenReturn(baseClientDetails);
     }
 
     @Test
-    public void testClientinfo() {
-        Mockito.when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(foo);
-        ClientDetails client = endpoint.clientinfo(new UsernamePasswordAuthenticationToken("foo", "<NONE>"));
-        assertEquals("foo", client.getClientId());
-        assertNull(client.getClientSecret());
-        assertTrue(client.getAdditionalInformation().isEmpty());
+    void clientinfo() {
+        ClientDetails clientDetails = endpoint.clientinfo(new UsernamePasswordAuthenticationToken(clientId, "<NONE>"));
+
+        assertEquals(clientId, clientDetails.getClientId());
+        assertNull(clientDetails.getClientSecret());
+        assertTrue(clientDetails.getAdditionalInformation().isEmpty());
     }
 
 }

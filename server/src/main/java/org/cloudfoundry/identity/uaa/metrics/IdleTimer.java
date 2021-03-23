@@ -47,16 +47,9 @@ public class IdleTimer {
     }
 
     public synchronized void startRequest() {
-        switch ((int) ++inflightRequests) {
-            case 1:
-                idleTime += (timeService.getCurrentTimeMillis() - lastIdleStart);
-                break;
-            default:
-                break;
+        if ((int) ++inflightRequests == 1) {
+            idleTime += (timeService.getCurrentTimeMillis() - lastIdleStart);
         }
-
-
-
     }
 
 

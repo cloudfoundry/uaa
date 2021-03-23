@@ -23,16 +23,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.jwt.Jwt;
@@ -49,20 +43,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.extracCsrfToken;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.CSRF_PARAMETER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -71,8 +59,6 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_O
  */
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
-
-    private final String userEndpoint = "/Users";
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -92,7 +78,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     private ScimUser user;
 
     @Before
-    public void createRestTemplate() throws Exception {
+    public void createRestTemplate() {
 
         ClientCredentialsResourceDetails clientCredentials =
             getClientCredentialsResource(new String[] {"oauth.login"}, "login", "loginsecret");
@@ -101,12 +87,12 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         loginClient.setErrorHandler(new OAuth2ErrorHandler(clientCredentials) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
 
@@ -114,22 +100,22 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true).getBody();
     }
 
     @Test
-    public void testOpenIdTokenUsingLoginClientOauthTokenEndpoint() throws Exception {
+    public void testOpenIdTokenUsingLoginClientOauthTokenEndpoint() {
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "app");
@@ -147,16 +133,16 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             new HttpEntity<>(postBody, headers),
             Map.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
         Map<String, Object> params = responseEntity.getBody();
 
-        Assert.assertTrue(params.get("jti") != null);
-        Assert.assertEquals("bearer", params.get("token_type"));
-        Assert.assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
+        assertNotNull(params.get("jti"));
+        assertEquals("bearer", params.get("token_type"));
+        assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
 
         String[] scopes = UriUtils.decode((String)params.get("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
+        assertThat(Arrays.asList(scopes), containsInAnyOrder(
             "scim.userids",
             "password.write",
             "cloud_controller.write",
@@ -166,7 +152,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndCode() {
         //non approved
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
         //approved
@@ -176,7 +162,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndTokenAndCode() {
         //non approved
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
         //approved
@@ -186,7 +172,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     @Test
-    public void testOpenIdHybridFlowIdTokenAndToken() throws Exception {
+    public void testOpenIdHybridFlowIdTokenAndToken() {
         //non approved
         doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
         //approved
@@ -246,7 +232,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
     }
 
-    private String doOpenIdHybridFlowIdTokenAndReturnCode(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
+    private String doOpenIdHybridFlowIdTokenAndReturnCode(Set<String> responseTypes, String responseTypeMatcher) {
 
         BasicCookieStore cookies = new BasicCookieStore();
 
@@ -346,14 +332,14 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
         }
         assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher.toString()));
+            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
 
         String code = location.split("code=")[1].split("&")[0];
         exchangeCodeForToken(clientId, redirectUri, clientSecret, code, formData);
         return code;
     }
 
-    private void doOpenIdHybridFlowForLoginClient(Set<String> responseTypes, String responseTypeMatcher) throws Exception {
+    private void doOpenIdHybridFlowForLoginClient(Set<String> responseTypes, String responseTypeMatcher) {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON, MediaType.ALL));
@@ -392,7 +378,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher.toString()));
+            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
 
 
     }
@@ -426,6 +412,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         user.setActive(true);
         user.setPassword("s3Cret");
 
+        String userEndpoint = "/Users";
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }
 

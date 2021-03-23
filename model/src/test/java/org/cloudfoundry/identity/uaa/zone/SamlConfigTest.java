@@ -97,7 +97,7 @@ public class SamlConfigTest {
     }
 
     @Test
-    public void testIsRequestSigned() throws Exception {
+    public void testIsRequestSigned() {
         assertTrue(config.isRequestSigned());
     }
 
@@ -154,12 +154,12 @@ public class SamlConfigTest {
     }
 
     @Test
-    public void testIsWantAssertionSigned() throws Exception {
+    public void testIsWantAssertionSigned() {
         assertTrue(config.isWantAssertionSigned());
     }
 
     @Test
-    public void testSetKeyAndCert() throws CertificateException {
+    public void testSetKeyAndCert() {
         config.setPrivateKey(privateKey);
         config.setPrivateKeyPassword(passphrase);
         config.setCertificate(certificate);
@@ -168,7 +168,7 @@ public class SamlConfigTest {
     }
 
     @Test
-    public void read_old_json_works() throws Exception {
+    public void read_old_json_works() {
         read_json(oldJson);
         assertEquals(privateKey, config.getPrivateKey());
         assertEquals(passphrase, config.getPrivateKeyPassword());
@@ -180,7 +180,7 @@ public class SamlConfigTest {
     }
 
     @Test
-    public void to_json_ignores_legacy_values() throws Exception {
+    public void to_json_ignores_legacy_values() {
         read_json(oldJson);
         String json = JsonUtils.writeValueAsString(config);
         read_json(json);

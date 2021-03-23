@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -21,8 +21,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.http.HttpEntity;
@@ -60,7 +60,7 @@ import org.springframework.web.client.RestTemplate;
  */
 public class RemoteTokenServices implements ResourceServerTokenServices {
 
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private RestOperations restTemplate;
 
@@ -218,11 +218,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
     private String getAuthorizationHeader(String clientId, String clientSecret) {
         String creds = String.format("%s:%s", clientId, clientSecret);
-        try {
-            return "Basic " + new String(Base64.encode(creds.getBytes("UTF-8")));
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("Could not convert String");
-        }
+        return "Basic " + new String(Base64.encode(creds.getBytes(StandardCharsets.UTF_8)));
     }
 
     private Map<String, Object> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {

@@ -1,93 +1,119 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(IdentityZoneHolder.class)
-public class ClientAccessTokenValidityTest {
+class ClientAccessTokenValidityTest {
 
-    ClientAccessTokenValidity clientAccessTokenValidity;
-    ClientDetails clientDetails;
-    ClientServicesExtension clientServicesExtension;
-    private IdentityZone defaultZone;
+    @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
+    @ExtendWith(MockitoExtension.class)
+    class GetValiditySeconds {
 
-    @Before
-    public void setUp() {
-        clientServicesExtension = mock(ClientServicesExtension.class);
+        @Mock
+        private MultitenantClientServices mockMultitenantClientServices;
 
-        clientDetails = mock(ClientDetails.class);
-        when(clientDetails.getAccessTokenValiditySeconds()).thenReturn(42);
+        @Mock
+        private IdentityZoneManager mockIdentityZoneManager;
 
-        defaultZone = IdentityZone.getUaa();
-        PowerMockito.mockStatic(IdentityZoneHolder.class);
-        when(IdentityZoneHolder.get()).thenReturn(defaultZone);
+        @InjectMocks
+        private ClientAccessTokenValidity clientAccessTokenValidity;
 
-        when(clientServicesExtension.loadClientByClientId("clientId", "uaa")).thenReturn(clientDetails);
-        clientAccessTokenValidity = new ClientAccessTokenValidity(clientServicesExtension);
+        @Mock
+        private ClientDetails mockClientDetails;
+
+        private String currentIdentityZoneId;
+
+        @BeforeEach
+        void setUp() {
+            currentIdentityZoneId = "currentIdentityZoneId-" + new RandomValueStringGenerator().generate();
+            when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
+        }
+
+        @Test
+        void whenClientPresent() {
+            when(mockMultitenantClientServices.loadClientByClientId("clientId", currentIdentityZoneId)).thenReturn(mockClientDetails);
+            when(mockClientDetails.getAccessTokenValiditySeconds()).thenReturn(9999);
+
+            assertThat(clientAccessTokenValidity.getValiditySeconds("clientId"), is(9999));
+        }
+
+        @Test
+        void whenClientPresent_doesNotHaveATokenValiditySet() {
+            when(mockMultitenantClientServices.loadClientByClientId("clientId", currentIdentityZoneId)).thenReturn(mockClientDetails);
+            when(mockClientDetails.getAccessTokenValiditySeconds()).thenReturn(null);
+
+            assertThat(clientAccessTokenValidity.getValiditySeconds("clientId"), is(nullValue()));
+        }
+
+        @Test
+        void whenNoClientPresent_ReturnsNull() {
+            when(mockMultitenantClientServices.loadClientByClientId("notExistingClientId", currentIdentityZoneId))
+                    .thenThrow(ClientRegistrationException.class);
+
+            assertThat(clientAccessTokenValidity.getValiditySeconds("notExistingClientId"), is(nullValue()));
+        }
+
+        @Test
+        void whenClientPresent_ButUnableToRetrieveTheClient() {
+            when(mockMultitenantClientServices.loadClientByClientId("clientId", currentIdentityZoneId))
+                    .thenThrow(RuntimeException.class);
+
+            assertThrows(RuntimeException.class,
+                    () -> clientAccessTokenValidity.getValiditySeconds("clientId"));
+        }
     }
 
-    @Test
-    public void testAccessClientValidity_whenClientPresent() {
-        assertThat(clientAccessTokenValidity.getValiditySeconds("clientId"), is(42));
-    }
+    @Nested
+    @ExtendWith(PollutionPreventionExtension.class)
+    @ExtendWith(MockitoExtension.class)
+    class GetZoneValiditySeconds {
+        @Mock
+        private IdentityZoneManager mockIdentityZoneManager;
 
-    @Test
-    public void testAccessClientValidity_whenClientPresentInADifferentZone() {
-        IdentityZone notUaa = new IdentityZone();
-        notUaa.setId("not_uaa");
-        clientDetails = mock(ClientDetails.class);
-        when(IdentityZoneHolder.get()).thenReturn(notUaa);
-        when(clientDetails.getAccessTokenValiditySeconds()).thenReturn(24);
-        when(clientServicesExtension.loadClientByClientId("clientId", "not_uaa")).thenReturn(clientDetails);
+        @InjectMocks
+        private ClientAccessTokenValidity clientAccessTokenValidity;
 
-        Integer validitySeconds = clientAccessTokenValidity.getValiditySeconds("clientId");
+        @ParameterizedTest
+        @ValueSource(ints = {
+                0,
+                -1,
+                97531
+        })
+        void zoneValidityReturnsAccessTokenValidity(final int zoneValiditySeconds) {
+            IdentityZone mockIdentityZone = mock(IdentityZone.class);
+            IdentityZoneConfiguration mockIdentityZoneConfiguration = mock(IdentityZoneConfiguration.class);
+            TokenPolicy mockTokenPolicy = mock(TokenPolicy.class);
 
-        assertThat(validitySeconds, is(24));
-    }
+            when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
+            when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
+            when(mockIdentityZoneConfiguration.getTokenPolicy()).thenReturn(mockTokenPolicy);
+            when(mockTokenPolicy.getAccessTokenValidity()).thenReturn(zoneValiditySeconds);
 
-    @Test
-    public void testAccessClientValidity_whenClientPresent_doesNotHaveATokenValiditySet() {
-        when(clientDetails.getAccessTokenValiditySeconds()).thenReturn(null);
-        assertThat(clientAccessTokenValidity.getValiditySeconds("clientId"), is(nullValue()));
-    }
-
-    @Test
-    public void testAccessClientValidity_whenNoClientPresent_ReturnsNull() {
-        when(clientServicesExtension.loadClientByClientId("notExistingClientId", "uaa")).thenThrow(ClientRegistrationException.class);
-        assertThat(clientAccessTokenValidity.getValiditySeconds("notExistingClientId"), is(nullValue()));
-    }
-
-    @Test(expected = RuntimeException.class)
-    public void testAccessClientValidity_whenClientPresent_ButUnableToRetrieveTheClient() {
-        when(clientServicesExtension.loadClientByClientId("clientId", "uaa")).thenThrow(RuntimeException.class);
-        clientAccessTokenValidity.getValiditySeconds("clientId");
-    }
-
-    @Test
-    public void testZoneValidityReturnsAccessTokenValidity() {
-        assertThat(clientAccessTokenValidity.getZoneValiditySeconds(), is(-1));
-    }
-
-    @Test
-    public void testZoneValidityReturnsCorrectAccessTokenValidity() {
-        defaultZone.getConfig().getTokenPolicy().setAccessTokenValidity(1);
-
-        assertThat(clientAccessTokenValidity.getZoneValiditySeconds(), is(1));
+            assertThat(clientAccessTokenValidity.getZoneValiditySeconds(), is(zoneValiditySeconds));
+        }
     }
 }

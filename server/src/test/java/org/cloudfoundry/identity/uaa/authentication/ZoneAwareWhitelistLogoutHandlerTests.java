@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -26,7 +26,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -39,14 +39,14 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     private MockHttpServletRequest request = new MockHttpServletRequest();
     private MockHttpServletResponse response = new MockHttpServletResponse();
     private BaseClientDetails client = new BaseClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
-    private ClientServicesExtension clientDetailsService =  mock(ClientServicesExtension.class);
+    private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
     private ZoneAwareWhitelistLogoutHandler handler;
     IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
     IdentityZoneConfiguration original;
 
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         original = IdentityZone.getUaa().getConfig();
         configuration.getLinks().getLogout()
             .setRedirectUrl("/login")
@@ -58,7 +58,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         IdentityZoneHolder.clear();
         IdentityZone.getUaa().setConfig(original);
     }
@@ -71,7 +71,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
 
 
     @Test
-    public void test_default_redirect_uri() throws Exception {
+    public void test_default_redirect_uri() {
         assertEquals("/login", handler.determineTargetUrl(request, response));
         assertEquals("/login", handler.determineTargetUrl(request, response));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
@@ -79,8 +79,8 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
-    public void test_whitelist_reject() throws Exception {
-        configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://testing.com"));
+    public void test_whitelist_reject() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://testing.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter("redirect", "http://testing.com");
         assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
@@ -89,7 +89,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
-    public void test_open_redirect_no_longer_allowed() throws Exception {
+    public void test_open_redirect_no_longer_allowed() {
         configuration.getLinks().getLogout().setWhitelist(null);
         configuration.getLinks().getLogout().setRedirectUrl("/login");
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
@@ -100,24 +100,24 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
-    public void test_whitelist_redirect() throws Exception {
-        configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://somethingelse.com"));
+    public void test_whitelist_redirect() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter("redirect", "http://somethingelse.com");
         assertEquals("http://somethingelse.com", handler.determineTargetUrl(request, response));
     }
 
     @Test
-    public void test_whitelist_redirect_with_wildcard() throws Exception {
-        configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://*.somethingelse.com"));
+    public void test_whitelist_redirect_with_wildcard() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://*.somethingelse.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter("redirect", "http://www.somethingelse.com");
         assertEquals("http://www.somethingelse.com", handler.determineTargetUrl(request, response));
     }
 
     @Test
-    public void test_client_redirect() throws Exception {
-        configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://somethingelse.com"));
+    public void test_client_redirect() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter("redirect", "http://testing.com");
         request.setParameter(CLIENT_ID, CLIENT_ID);
@@ -125,9 +125,9 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
-    public void client_not_found_exception() throws Exception {
+    public void client_not_found_exception() {
         when(clientDetailsService.loadClientByClientId("test", "uaa")).thenThrow(new NoSuchClientException("test"));
-        configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://testing.com"));
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://testing.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter("redirect", "http://notwhitelisted.com");
         request.setParameter(CLIENT_ID, "test");
@@ -135,8 +135,8 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
-    public void test_client_redirect_using_wildcard() throws Exception {
-        configuration.getLinks().getLogout().setWhitelist(Arrays.asList("http://testing.com"));
+    public void test_client_redirect_using_wildcard() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://testing.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         request.setParameter(CLIENT_ID, CLIENT_ID);
         request.setParameter("redirect", "http://www.testing.com");

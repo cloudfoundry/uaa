@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -42,7 +42,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     protected static final String selectAllFields = "select " + fields + " from " + tableName + " where code = ? and identity_zone_id = ?";
 
-    private Log logger = LogFactory.getLog(getClass());
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
 
@@ -97,8 +97,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             try {
                 int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data, intent, zoneId);
                 if (update == 1) {
-                    ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
-                    return expiringCode;
+                    return new ExpiringCode(code, expiresAt, data, intent);
                 } else {
                     logger.warn("Unable to store expiring code:" + code);
                 }

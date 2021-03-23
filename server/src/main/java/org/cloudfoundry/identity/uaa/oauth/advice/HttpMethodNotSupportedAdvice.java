@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.advice;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.IntrospectEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
@@ -19,7 +19,7 @@ import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 @ControllerAdvice(assignableTypes = {CheckTokenEndpoint.class, IntrospectEndpoint.class, UaaTokenEndpoint.class})
 public class HttpMethodNotSupportedAdvice {
 
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)

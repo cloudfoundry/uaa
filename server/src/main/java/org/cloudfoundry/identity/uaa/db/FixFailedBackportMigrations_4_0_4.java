@@ -14,8 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,7 +38,7 @@ import java.util.Set;
  */
 public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
 
-    private static final Log logger = LogFactory.getLog(FixFailedBackportMigrations_4_0_4.class);
+    private static final Logger logger = LoggerFactory.getLogger(FixFailedBackportMigrations_4_0_4.class);
 
     private String type;
 
@@ -57,9 +57,9 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
     }
 
     @Override
-    public void migrate(Connection connection) throws Exception {
-        if ("sqlserver".equals(type) || "hsqldb".equals(type)) {
-            //we don't have this problem with sqlserver or in memory DB
+    public void migrate(Connection connection) {
+        if ("hsqldb".equals(type)) {
+            //we don't have this problem with hsqldb
             logger.info("Skipping 4.0.4 migration for " + type + ", not affected by 3.9.9 back ports.");
             return;
         }

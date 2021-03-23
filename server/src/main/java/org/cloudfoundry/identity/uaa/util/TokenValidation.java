@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
@@ -25,7 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
@@ -54,7 +54,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_T
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
 public abstract class TokenValidation {
-    private static final Log logger = LogFactory.getLog(TokenValidation.class);
+    private static final Logger logger = LoggerFactory.getLogger(TokenValidation.class);
     private final Map<String, Object> claims;
     private final Jwt tokenJwt;
     private final String token;
@@ -187,8 +187,6 @@ public abstract class TokenValidation {
                 Assert.notNull(user, "[Assertion failed] - this argument is required; it must not be null");
             } catch (UsernameNotFoundException ex) {
                 throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
-            } catch (InvalidTokenException ex) {
-                throw ex;
             }
 
             if (user == null) {
@@ -306,8 +304,6 @@ public abstract class TokenValidation {
             checkRequestedScopesAreGranted(clientScopes);
         } catch (NoSuchClientException ex) {
             throw new InvalidTokenException("The token refers to a non-existent client: " + clientId, ex);
-        } catch (InvalidTokenException ex) {
-            throw ex;
         }
 
         return this;
@@ -384,7 +380,7 @@ public abstract class TokenValidation {
                 RevocableToken revocableToken = null;
                 try {
                     revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
-                } catch (EmptyResultDataAccessException ex) {
+                } catch (EmptyResultDataAccessException ignored) {
                 }
 
                 if (revocableToken == null) {
@@ -458,7 +454,7 @@ public abstract class TokenValidation {
 
     protected abstract void validateJtiValue(String jtiValue);
 
-    public ClientDetails getClientDetails(ClientServicesExtension clientDetailsService) {
+    public ClientDetails getClientDetails(MultitenantClientServices clientDetailsService) {
         String clientId = (String) claims.get(CID);
         try {
             return clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());

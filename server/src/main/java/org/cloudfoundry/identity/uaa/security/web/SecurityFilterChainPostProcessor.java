@@ -13,8 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.http.HttpStatus;
@@ -86,11 +86,12 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         }
     }
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private boolean requireHttps = false;
     private List<String> redirectToHttps = Collections.emptyList();
     private List<String> ignore = Collections.emptyList();
     private boolean dumpRequests = false;
+    private int httpsPort;
 
     private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
     private Map<FilterPosition,Filter> additionalFilters;
@@ -143,6 +144,10 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         return requireHttps;
     }
 
+    public void setHttpsPort(int httpsPort) {
+        this.httpsPort = httpsPort;
+    }
+
     /**
      * Debugging feature. If enabled, and debug logging is enabled
      */
@@ -175,7 +180,6 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     }
 
     final class HttpsEnforcementFilter extends UaaLoggingFilter {
-        private final int httpsPort = 443;
         private final boolean redirect;
 
         HttpsEnforcementFilter(String name, boolean redirect) {
@@ -230,7 +234,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     }
 
     class UaaLoggingFilter implements Filter {
-        final Log logger = LogFactory.getLog(getClass());
+        final Logger logger = LoggerFactory.getLogger(getClass());
         protected final String name;
 
         UaaLoggingFilter(String name) {
@@ -292,7 +296,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         }
 
         @Override
-        public void init(FilterConfig filterConfig) throws ServletException {
+        public void init(FilterConfig filterConfig) {
         }
 
         @Override

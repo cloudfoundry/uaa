@@ -5,11 +5,11 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
@@ -25,6 +25,11 @@ import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public abstract class UaaUrlUtils {
+
+   /** Pattern that matches valid subdomains.
+    *  According to https://tools.ietf.org/html/rfc3986#section-3.2.2
+    */
+    private static final Pattern VALID_SUBDOMAIN_PATTERN = Pattern.compile("([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
 
     public static String getUaaUrl(String path, IdentityZone currentIdentityZone) {
         return getUaaUrl(path, false, currentIdentityZone);
@@ -71,6 +76,10 @@ public abstract class UaaUrlUtils {
         return false;
     }
 
+    public static boolean isValidSubdomain(String subdomain) {
+        return VALID_SUBDOMAIN_PATTERN.matcher(subdomain).matches();
+    }
+
     /**
      * Finds and returns a matching redirect URL according to the following logic:
      * <ul>
@@ -102,7 +111,7 @@ public abstract class UaaUrlUtils {
 
     public static String getBaseURL(HttpServletRequest request) {
         //returns scheme, host and context path
-        //for example http://localhost:8080/uaa or http://login.oms.identity.team
+        //for example http://localhost:8080/uaa or http://login.uaa-acceptance.cf-app.com
         String requestURL = request.getRequestURL().toString();
         return hasText(request.getServletPath()) ?
                 requestURL.substring(0, requestURL.lastIndexOf(request.getServletPath())) :
@@ -124,11 +133,7 @@ public abstract class UaaUrlUtils {
         String[] result = new String[value.size()];
         int pos = 0;
         for (String s : value) {
-            try {
-                result[pos++] = UriUtils.decode(s, "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalArgumentException(s, e);
-            }
+            result[pos++] = UriUtils.decode(s, "UTF-8");
         }
         return result;
     }
@@ -215,5 +220,20 @@ public abstract class UaaUrlUtils {
         } catch (MalformedURLException e) {
             return false;
         }
+    }
+
+    /* Host and scheme should be case-insensitive, path should be case-sensitive, per RFC 3986 */
+    public static String normalizeUri(String uri) {
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri);
+        UriComponents nonNormalizedUri = uriComponentsBuilder.build();
+
+        try {
+            uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
+            uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
+        } catch (NullPointerException e) {
+            throw new IllegalArgumentException("URI host and scheme must not be null");
+        }
+
+        return uriComponentsBuilder.build().toString();
     }
 }

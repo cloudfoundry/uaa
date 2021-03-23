@@ -14,8 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.common.xml.SAMLConstants;
@@ -50,7 +50,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 
 public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, BeanNameAware {
-    private static final Log logger = LogFactory.getLog(NonSnarlIdpMetadataManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(NonSnarlIdpMetadataManager.class);
 
     private SamlServiceProviderConfigurator configurator;
 
@@ -80,7 +80,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    public void setProviders(List<MetadataProvider> newProviders) throws MetadataProviderException {
+    public void setProviders(List<MetadataProvider> newProviders) {
     }
 
     @Override
@@ -88,7 +88,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    public void addMetadataProvider(MetadataProvider newProvider) throws MetadataProviderException {
+    public void addMetadataProvider(MetadataProvider newProvider) {
     }
 
     @Override
@@ -97,11 +97,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
 
     @Override
     public List<MetadataProvider> getProviders() {
-        List<MetadataProvider> result = new ArrayList<>();
-        for (ExtendedMetadataDelegate delegate : getAvailableProviders()) {
-            result.add(delegate);
-        }
-        return result;
+        return new ArrayList<>(getAvailableProviders());
     }
 
     @Override
@@ -145,7 +141,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    protected void initializeProviderData(ExtendedMetadataDelegate provider) throws MetadataProviderException {
+    protected void initializeProviderData(ExtendedMetadataDelegate provider) {
 
     }
 
@@ -228,7 +224,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     /**
      * {@inheritDoc}
      */
-    public List<RoleDescriptor> getRole(String entityID, QName roleName) throws MetadataProviderException {
+    public List<RoleDescriptor> getRole(String entityID, QName roleName) {
         List<RoleDescriptor> roleDescriptors = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -250,8 +246,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
      * {@inheritDoc}
      */
     @Override
-    public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol)
-        throws MetadataProviderException {
+    public RoleDescriptor getRole(String entityID, QName roleName, String supportedProtocol) {
         RoleDescriptor roleDescriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);
@@ -322,7 +317,7 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     }
 
     @Override
-    public EntityDescriptor getEntityDescriptor(String entityID) throws MetadataProviderException {
+    public EntityDescriptor getEntityDescriptor(String entityID) {
         EntityDescriptor descriptor = null;
         for (MetadataProvider provider : getProviders()) {
             log.debug("Checking child metadata provider for entity descriptor with entity ID: {}", entityID);

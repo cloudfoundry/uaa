@@ -1,135 +1,107 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:aop="http://www.springframework.org/schema/aop"
-    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
-        http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
-        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2.xsd
+        http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <http name="clientSecretSecurity" pattern="/oauth/clients/*/secret" create-session="stateless"
-        authentication-manager-ref="emptyAuthenticationManager" entry-point-ref="oauthAuthenticationEntryPoint"  use-expressions="true"
-        xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/oauth/clients/*/secret" access="#oauth2.hasAnyScope('clients.secret', 'clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" />
-        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-        <expression-handler ref="oauthWebExpressionHandler" />
+          authentication-manager-ref="emptyAuthenticationManager" entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/oauth/clients/*/secret"
+                       access="#oauth2.hasAnyScope('clients.secret', 'clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"/>
+        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
 
-    <http name="clientTxAdminSecurity" pattern="/oauth/clients/tx/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
-        use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
-        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-        <expression-handler ref="oauthWebExpressionHandler" />
+    <http name="clientTxAdminSecurity" pattern="/oauth/clients/tx/**" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PUT"/>
+        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
 
-    <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
-          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/oauth/clients/**/meta" method="GET" access="isFullyAuthenticated()" />
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.read','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
+    <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/oauth/clients/**/meta" method="GET" access="isFullyAuthenticated()"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PUT"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasAnyScope('clients.read','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
         <intercept-url pattern="/**" access="denyAll"/>
-        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" before="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-        <expression-handler ref="oauthWebExpressionHandler" />
+        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
 
     <oauth:resource-server id="clientResourceAuthenticationFilter" token-services-ref="tokenServices"
-        resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint" />
-
-    <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints">
-        <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
-        <property name="clientDetailsService" ref="clientDetailsService" />
-        <property name="clientDetailsResourceMonitor" ref="jdbcClientDetailsService"/>
-        <property name="approvalStore" ref="approvalStore"/>
-        <property name="authenticationManager" ref="clientAuthenticationManager"/>
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
-                <constructor-arg name="paramsMap">
-                    <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="client_id" value="clientId" />
-                        <entry key="resource_ids" value="resourceIds" />
-                        <entry key="authorized_grant_types" value="authorizedGrantTypes" />
-                        <entry key="redirect_uri" value="registeredRedirectUri" />
-                        <entry key="access_token_validity" value="accessTokenValiditySeconds" />
-                        <entry key="refresh_token_validity" value="refreshTokenValiditySeconds" />
-                        <entry key="autoapprove" value="autoApproveScopes" />
-                        <entry key="additionalinformation" value="additionalInformation"/>
-                    </map>
-                </constructor-arg>
-            </bean>
-        </property>
-        <property name="clientDetailsValidator" ref="clientDetailsValidator"/>
-        <property name="restrictedScopesValidator">
-            <bean class="org.cloudfoundry.identity.uaa.client.RestrictUaaScopesClientValidator"
-                  id="restrictUaaScopesClientValidator">
-                <constructor-arg>
-                    <bean class="org.cloudfoundry.identity.uaa.client.UaaScopes" id="uaaScopes"/>
-                </constructor-arg>
-            </bean>
-        </property>
-        <property name="clientMaxCount" value="${clientMaxCount:500}"/>
-    </bean>
-
-    <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">
-        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-        </property>
-    </bean>
+                           resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
-        <property name="clientDetailsService" ref="clientDetailsService" />
+        <property name="clientDetailsService" ref="clientDetailsService"/>
         <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
     </bean>
 
-    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher">
-        <constructor-arg ref="jdbcClientDetailsService" />
-    </bean>
+    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher"/>
 
     <aop:config proxy-target-class="true">
         <aop:aspect ref="clientAdminEventPublisher">
             <aop:after-returning method="create"
-                pointcut="execution(* *..ClientAdminEndpoints+.createClientDetails(..)) and bean(clientAdminEndpoints)" returning="client" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.createClientDetails(..)) and bean(clientAdminEndpoints)"
+                                 returning="client"/>
             <aop:after-returning method="update"
-                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetails(..)) and bean(clientAdminEndpoints)" returning="client" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetails(..)) and bean(clientAdminEndpoints)"
+                                 returning="client"/>
             <aop:around method="delete"
-                pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetails(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+                        pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetails(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"/>
             <aop:after-returning method="secretChange"
-                pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"/>
             <aop:after-throwing method="secretFailure"
-                pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"
-                throwing="e" />
+                                pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"
+                                throwing="e"/>
             <aop:after-returning method="createTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.createClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.createClientDetailsTx(..)) and bean(clientAdminEndpoints)"
+                                 returning="clients"/>
             <aop:after-returning method="updateTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.updateClientDetailsTx(..)) and bean(clientAdminEndpoints)"
+                                 returning="clients"/>
             <aop:after-returning method="deleteTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.removeClientDetailsTx(..)) and bean(clientAdminEndpoints)"
+                                 returning="clients"/>
             <aop:after-returning method="modifyTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.modifyClientDetailsTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.modifyClientDetailsTx(..)) and bean(clientAdminEndpoints)"
+                                 returning="clients"/>
             <aop:after-returning method="secretTx"
-                pointcut="execution(* *..ClientAdminEndpoints+.changeSecretTx(..)) and bean(clientAdminEndpoints)" returning="clients" />
+                                 pointcut="execution(* *..ClientAdminEndpoints+.changeSecretTx(..)) and bean(clientAdminEndpoints)"
+                                 returning="clients"/>
         </aop:aspect>
     </aop:config>
 

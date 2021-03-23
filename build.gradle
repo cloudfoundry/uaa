@@ -3,40 +3,33 @@ import org.apache.tools.ant.filters.ReplaceTokens
 import java.nio.file.Files
 import java.nio.file.Paths
 
-import io.honeycomb.libhoney.HoneyClient
-import io.honeycomb.libhoney.EventFactory
-import static io.honeycomb.libhoney.LibHoney.create
-import static io.honeycomb.libhoney.LibHoney.options
-
 buildscript {
-    apply from: file('shared_versions.gradle')
+    apply(from: "dependencies.gradle")
 
     repositories {
         mavenCentral()
         jcenter()
         maven {
-            url 'https://repo.spring.io/plugins-release'
-        }
-        maven {
-            url 'https://plugins.gradle.org/m2/'
+            url("https://repo.spring.io/plugins-release")
         }
     }
 
     dependencies {
-        classpath group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
-        classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-        classpath 'de.undercouch:gradle-download-task:4.1.1'
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
-        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
-        classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
-  }
+        classpath(libraries.cargoGradlePlugin)
+        classpath(libraries.prodepsGradlePlugin)
+        classpath(libraries.asciidoctorGradlePlugin)
+        classpath(libraries.springDependencyMangementGradlePlugin)
+        classpath(libraries.springBootGradlePlugin)
+        classpath(libraries.coverallsGradlePlugin)
+    }
 }
 
 apply from: file('docker.gradle')
-apply from: file('shared_versions.gradle')
-apply plugin: 'com.bmuschko.cargo'
+apply(from: "dependencies.gradle")
 
+def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
+
+apply(plugin: "com.bmuschko.cargo")
 
 def uaaVersion = version
 def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
@@ -46,23 +39,18 @@ def proxyPort  = System.getenv('PROXY_PORT')
 def nonProxyHosts = 'localhost|*.localhost'
 
 allprojects {
-    apply plugin: 'maven'
-    group = 'org.cloudfoundry.identity'
+    apply(plugin: "propdeps")
+    apply(plugin: "propdeps-maven")
+    apply(plugin: "io.spring.dependency-management")
 
-    apply plugin: 'jacoco'
-    apply plugin: 'propdeps'
-    apply plugin: 'propdeps-maven'
-    apply plugin: 'propdeps-idea'
-    configurations.provided.transitive = false
-    configurations.all {
-        resolutionStrategy {
-            force 'com.google.guava:guava:' + guavaVersion,
-             'com.fasterxml.jackson.core:jackson-core:' + jacksonVersion,
-              'com.fasterxml.jackson.core:jackson-annotations:' + jacksonVersion,
-               'com.fasterxml.jackson.core:jackson-databind:' + jacksonVersion
+    dependencyManagement {
+        imports {
+            mavenBom(libraries.springBom)
+            mavenBom(libraries.springBootBom)
         }
     }
-    apply plugin: 'eclipse-wtp'
+
+    configurations.provided.transitive = false
 
     repositories {
         mavenLocal()
@@ -90,26 +78,9 @@ allprojects {
         maven { url 'https://artifacts.alfresco.com/nexus/content/repositories/public/' }
         maven { url 'https://repository.mulesoft.org/releases/' }
     }
-    task sourceJar(type: Jar) {
-        from sourceSets.main.allJava
-        classifier "sources"
-    }
-    apply plugin: 'maven-publish'
-
-    publishing {
-        repositories {
-            maven {
-                url "https://oss.sonatype.org/content/repositories/releases"
-                credentials {
-                    username "$nexusUsername"
-                    password "$nexusPassword"
-                }
-            }
-        }
-    }
 }
 
-apply plugin: 'jacoco'
+apply(plugin: "jacoco")
 
 def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({
     it.name == 'jacocoagent.jar'
@@ -117,42 +88,45 @@ def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filte
 def jacocoLocation = System.getProperty('java.io.tmpdir') + '/cargo/jacocoagent.jar'
 
 subprojects {
-    EventFactory honeyCombEventFactory = buildEventFactory()
+    apply(plugin: "java")
 
-    apply plugin: 'java'
-
-    dependencies {
-        testCompile("com.github.sbrannen:spring-test-junit5:1.2.0")
-        testCompile("org.junit.jupiter:junit-jupiter-api:${junit5JupiterVersion}")
-        testCompile("org.junit.jupiter:junit-jupiter-params:${junit5JupiterVersion}")
-        testCompile group: "org.hamcrest", name: "hamcrest-all", version: parent.hamcrestVersion
-        testCompile group: 'io.honeycomb.libhoney', name: 'libhoney-java', version: '1.0.2'
-        testRuntime("org.junit.jupiter:junit-jupiter-engine:${junit5JupiterVersion}")
-        testRuntime("org.junit.vintage:junit-vintage-engine:${junit5JupiterVersion}")
+    configurations.all {
+        exclude(group: "org.hamcrest", module: "hamcrest-all")
+        exclude(group: "org.hamcrest", module: "hamcrest-core")
+        exclude(group: "org.hamcrest", module: "hamcrest-library")
+        exclude(group: "org.springframework.boot", module: "spring-boot-starter-logging")
+        exclude(group: "org.apache.directory.server", module: "apacheds-core")
+        exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
+        exclude(group: "org.skyscreamer", module: "jsonassert")
+        exclude(group: "com.vaadin.external.google", module: "android-json")
     }
 
-    [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
-    test {
-        if (System.getenv("DB") == null) {
-            maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
-        }
+    dependencies {
+        testImplementation(libraries.springBootStarterTest)
+        testImplementation(libraries.hamcrest)
+        testImplementation(libraries.junit5JupiterApi)
+        testImplementation(libraries.junit5JupiterParams)
+        testRuntimeOnly(libraries.junit5JupiterEngine)
+        testRuntimeOnly(libraries.junitVintageEngine)
+        testImplementation(libraries.unboundIdLdapSdk)
 
+        compileOnly("org.projectlombok:lombok")
+        annotationProcessor("org.projectlombok:lombok")
+    }
+
+    [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
+
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
+
+    test {
+        maxParallelForks = 6
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
-        afterSuite { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_suite")
-        }
-
-        afterTest { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_test")
-        }
-
         testLogging {
-            events 'skipped', 'failed', 'passed'
-            exceptionFormat 'full'
+            events("skipped", "failed", "passed")
+            exceptionFormat("full")
 
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
@@ -161,26 +135,35 @@ subprojects {
 
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
+        useJUnitPlatform()
 
-        afterSuite { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_suite")
+        testLogging {
+            events("skipped", "failed", "passed")
+            exceptionFormat("full")
+
+            // Uncomment the following line to see all standard output from tests (there's a ton of it!)
+            //showStandardStreams = true
         }
+    }
 
-        afterTest { descriptor, testResult ->
-            sendTestData(honeyCombEventFactory, descriptor, testResult, "after_integration_test")
+    task generateDocs() {}
+
+    task allDeps(type: DependencyReportTask) {}
+
+    task writeNewPom() {
+        doLast {
+            pom {
+                project {
+                    licenses {
+                        license {
+                            name("The Apache Software License, Version 2.0")
+                            url("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                            distribution("repo")
+                        }
+                    }
+                }
+            }.writeTo("./pom.xml")
         }
-    }
-
-    task packageSources(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
-
-    task generateDocs() {
-    }
-
-    artifacts {
-        archives packageSources
     }
 
     repositories {
@@ -224,47 +207,50 @@ subprojects {
 def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
 
 cargo {
-    containerId = 'tomcat9x'
-    port = 8080
+    containerId = "tomcat9x"
+    port = applicationPort
 
     deployable {
-        file = file('statsd/build/libs/cloudfoundry-identity-statsd-' + version + '.war')
-        context = 'statsd'
+        file = file("samples/api/build/libs/cloudfoundry-identity-api-" + version + ".war")
+        context = "api"
     }
 
     deployable {
-        file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
-        context = 'api'
+        file = file("samples/app/build/libs/cloudfoundry-identity-app-" + version + ".war")
+        context = "app"
     }
 
     deployable {
-        file = file('samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
-        context = 'app'
-    }
-
-    deployable {
-        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-        context = 'uaa'
+        file = file("uaa/build/libs/cloudfoundry-identity-uaa-" + version + ".war")
+        context = "uaa"
     }
 
     local {
+        configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
         startStopTimeout = 540000
-        List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
-        jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
-        if (activeProfiles.contains('debug')) {
-            jvmArgs += " -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
-        } else {
-            jvmArgs += " -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+        rmiPort = applicationPort + 10
+
+        jvmArgs = ""
+        jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
+        jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
+        jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
+        if (System.getProperty("spring.profiles.active", "").split(',').contains("debug")) {
+            jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
-        outputFile = file('uaa/build/reports/tests/uaa-server.log')
+
+        outputFile = file("uaa/build/reports/tests/uaa-server.log")
         configFile {
-            files = files('scripts/cargo/tomcat-conf/context.xml')
-            toDir = 'conf'
+            files = files("scripts/cargo/tomcat-conf/context.xml")
+            toDir = "conf"
         }
 
         systemProperties {
-            property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
-            property 'metrics.perRequestMetrics', System.getProperty('metrics.perRequestMetrics', 'true')
+            property("SECRETS_DIR", System.getProperty("SECRETS_DIR", file("scripts/cargo").getAbsolutePath()))
+            property("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+            property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
+            property("smtp.host", "localhost")
+            property("smtp.port", 2525)
+
             if (proxyHost != null && proxyHost.trim() != '') {
                 property 'http.proxyHost', proxyHost
                 property 'http.proxyPort', proxyPort
@@ -275,12 +261,14 @@ cargo {
             property 'NUREGO_BATCH_INTERVAL_SECONDS', '1'
             property 'NUREGO_BATCH_MAX_MAP_SIZE', '1'
             property 'METER_BASE_DOMAIN', 'localhost'
-            property 'smtp.host', 'localhost'
-            property 'smtp.port', 2525
+        }
+
+        containerProperties {
+            property('cargo.tomcat.ajp.port', applicationPort + 20)
         }
 
         installer {
-            installUrl = 'https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
+            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + versions.tomcatCargoVersion + "/tomcat-" + versions.tomcatCargoVersion + ".tar.gz"
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }
@@ -289,8 +277,8 @@ cargo {
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
-        it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
-        it.systemProperty 'testId', System.getProperty('testId', '')
+        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+        it.systemProperty("testId", System.getProperty("testId", ""))
     }
 }
 
@@ -298,118 +286,33 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 task run(dependsOn: cargoRunLocal)
 
 task manifests(dependsOn: assemble, type: Copy) {
-    from('uaa/src/test/resources/sample-manifests') {
-        include '**/*.yml'
+    from("uaa/src/test/resources/sample-manifests") {
+        include("**/*.yml")
         filter(ReplaceTokens,
                 tokens: [
                         version  : version,
-                        app      : System.getProperty('app', 'myuaa'),
-                        appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
+                        app      : System.getProperty("app", "myuaa"),
+                        appdomain: System.getProperty("app-domain", "bosh-lite.com"),
                 ]
         )
     }
-    into 'build/sample-manifests'
+    into("build/sample-manifests")
 }
 
 task cleanCargoConfDir {
-    delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
+    delete(file(System.getProperty("java.io.tmpdir") + "/cargo/uaa-${applicationPort}"))
     delete file(jacocoLocation)
     try {
-        Files.createDirectory(Paths.get(System.getProperty('java.io.tmpdir') + '/cargo'))
-    } catch (all) {
-    }
+        Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
+    } catch (ignored) {}
     Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
 }
 
-apply plugin: 'com.github.kt3k.coveralls'
+apply(plugin: "coveralls-gradle-plugin")
 def publishedProjects = subprojects
 
-task integrationTest(dependsOn: subprojects.integrationTest) {
+task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
-}
-
-def jacocoRootReportConfiguration = {
-    additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
-    sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
-    classDirectories = files(subprojects.sourceSets.main.output)
-    executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
-    reports {
-        html.enabled = true
-        xml.enabled = true
-        xml.destination = file("${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml")
-        csv.enabled = false
-    }
-    onlyIf = {
-        true
-    }
-    doFirst {
-        executionData = files(executionData.findAll {
-            it.exists()
-        })
-    }
-}
-
-task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    configure jacocoRootReportConfiguration
-    dependsOn = [integrationTest]
-}
-
-task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    configure jacocoRootReportConfiguration
-    dependsOn = [test]
-}
-
-task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-    configure jacocoRootReportConfiguration
-    dependsOn(':cloudfoundry-identity-server:test')
-}
-
-task jacocoRootReportUaaTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  configure jacocoRootReportConfiguration
-  dependsOn(':cloudfoundry-identity-uaa:test')
-}
-
-task jacocoRootReportDegradedCloudTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  configure jacocoRootReportConfiguration
-  dependsOn(':cloudfoundry-identity-uaa:degradedTestCloud')
-}
-
-task jacocoRootReportDegradedJwtCloudTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  configure jacocoRootReportConfiguration
-  dependsOn(':cloudfoundry-identity-uaa:degradedJwtTestCloud')
-}
-
-task jacocoRootReportAcceptanceTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  configure jacocoRootReportConfiguration
-  dependsOn(':cloudfoundry-identity-uaa:acceptanceTest')
-}
-
-task mockAssertion(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.saml.MockSamlAssertion'
-    args = System.getProperty("file", null) == null ? [] : [System.getProperty("file")]
-    classpath = files(subprojects.sourceSets.test.runtimeClasspath)
-}
-
-coveralls {
-    sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
-    jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
-}
-
-tasks.coveralls {
-    group = 'Coverage reports'
-    description = 'Uploads the aggregated coverage report to Coveralls'
-}
-
-task encrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Encryptor'
-    args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
-task decrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Decryptor'
-    args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
 }
 
 task setupDegradedTestLocal(type: Exec, dependsOn: cargoStartLocal) {
@@ -435,60 +338,8 @@ task setupDegradedTestCloud(type: Exec) {
 }
 
 // task dependencies
-assemble.dependsOn subprojects.assemble
-test.dependsOn subprojects.test
-test.mustRunAfter integrationTest
-cargoStartLocal.dependsOn assemble
-cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-private EventFactory buildEventFactory() {
-    def honeycombKey = System.getenv("HONEYCOMB_KEY")
-    def honeycombDataset = System.getenv("HONEYCOMB_DATASET")
-
-    if (!honeycombKey?.trim() || !honeycombDataset?.trim()) {
-        return null
-    }
-
-    HoneyClient honeyClient = create(
-            options()
-                    .setWriteKey(honeycombKey)
-                    .setDataset(honeycombDataset)
-                    .build()
-    )
-
-    def uniqueTestID = UUID.randomUUID().toString()
-    System.setProperty("testId", uniqueTestID)
-
-    return honeyClient.buildEventFactory()
-            .addField("testId", uniqueTestID)
-            .addField("cpuCores", Runtime.getRuntime().availableProcessors())
-            .addField("hostname", InetAddress.getLocalHost().getHostName())
-            .build()
-}
-
-private sendTestData(localBuilder, descriptor, testResult, testLifecycle) {
-    if (localBuilder != null) {
-        def event = localBuilder.createEvent()
-
-        event
-                .addField("test_lifecycle", testLifecycle)
-                .addField("testClass", descriptor.className)
-                .addField("testName", descriptor.name)
-                .addField("result", testResult.resultType)
-                .addField("output", testResult.exception)
-                .addField("startTime", testResult.startTime)
-                .addField("endTime", testResult.endTime)
-                .addField("duration", testResult.endTime - testResult.startTime)
-                .setTimestamp(System.currentTimeMillis())
-
-        for (Map.Entry entry : System.getProperties().entrySet()) {
-            event.addField(entry.key, entry.value)
-        }
-
-        event.addField("DB", System.getenv().get("DB"))
-        event.addField("SPRING_PROFILE", System.getenv().get("SPRING_PROFILE"))
-        event.addField("JAVA_HOME", System.getenv().get("JAVA_HOME"))
-
-        event.send()
-    }
-}
+assemble.dependsOn(subprojects.assemble)
+test.dependsOn(subprojects.test)
+test.mustRunAfter(integrationTest)
+cargoStartLocal.dependsOn(assemble)
+cargoRunLocal.dependsOn(cleanCargoConfDir, assemble)

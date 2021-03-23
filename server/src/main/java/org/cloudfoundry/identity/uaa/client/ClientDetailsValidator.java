@@ -22,7 +22,7 @@ public interface ClientDetailsValidator {
      *
      * @return Returns the configured client secret validator
      */
-    public ClientSecretValidator getClientSecretValidator();
+    ClientSecretValidator getClientSecretValidator();
 
     /**
      *

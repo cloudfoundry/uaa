@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -76,8 +77,8 @@ public class ResetPasswordAuthenticationFilterTest {
     }
 
     @Before
-    public void setup() throws Exception {
-        codeStore = new InMemoryExpiringCodeStore();
+    public void setup() {
+        codeStore = new InMemoryExpiringCodeStore(new TimeServiceImpl());
         code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10*60*1000), "", IdentityZoneHolder.get().getId()).getCode();
 
         password = "test";

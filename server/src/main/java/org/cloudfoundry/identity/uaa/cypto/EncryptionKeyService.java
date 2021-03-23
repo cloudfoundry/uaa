@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.cypto;
 
 import org.apache.directory.api.util.Strings;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,7 +15,9 @@ public class EncryptionKeyService {
     private final EncryptionKey activeKey;
     private final List<EncryptionKey> encryptionKeys;
 
-    public EncryptionKeyService(String activeKeyLabel, List<EncryptionKey> encryptionKeys) {
+    public EncryptionKeyService(
+            final @Value("${encryption.active_key_label}") String activeKeyLabel,
+            final @Value("#{@config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
         if (Strings.isEmpty(activeKeyLabel)) {
             throw new NoActiveEncryptionKeyProvided(
               "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
@@ -25,7 +28,7 @@ public class EncryptionKeyService {
         if (!keysWithoutPassphrase.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined",
-                String.join(", ", keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.toList()))
+                      keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
               )
             );
         }
@@ -34,7 +37,7 @@ public class EncryptionKeyService {
         if (!invalidLengthKeys.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("The required length of the encryption passphrases for [%s] need to be at least 8 characters long.",
-                String.join(", ", invalidLengthKeys.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.toList()))
+                      invalidLengthKeys.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
               )
             );
         }
@@ -51,7 +54,7 @@ public class EncryptionKeyService {
         if (!duplicateKeyLabels.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("UAA cannot be started as multiple keys have the same label in uaa.encryption.encryption_keys/[%s]",
-                String.join(", ", duplicateKeyLabels.stream().map(s -> "label=" + s).collect(Collectors.toList()))
+                      duplicateKeyLabels.stream().map(s -> "label=" + s).collect(Collectors.joining(", "))
               )
             );
         }

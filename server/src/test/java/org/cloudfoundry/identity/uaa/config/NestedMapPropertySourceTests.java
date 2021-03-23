@@ -12,9 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
@@ -23,6 +20,8 @@ import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.junit.Test;
 import org.yaml.snakeyaml.Yaml;
 
+import static org.junit.Assert.*;
+
 /**
  * @author Dave Syer
  * 
@@ -30,7 +29,7 @@ import org.yaml.snakeyaml.Yaml;
 public class NestedMapPropertySourceTests {
 
     @Test
-    public void testPropertyResource() throws Exception {
+    public void testPropertyResource() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:\n  foo: baz", Map.class);
@@ -40,7 +39,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testPropertyMap() throws Exception {
+    public void testPropertyMap() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:\n  foo: baz", Map.class);
@@ -50,7 +49,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testPropertyNestedMap() throws Exception {
+    public void testPropertyNestedMap() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:\n  foo:\n    baz: bucket",
@@ -60,17 +59,17 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testPropertyNull() throws Exception {
+    public void testPropertyNull() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:", Map.class);
         NestedMapPropertySource properties = new NestedMapPropertySource("map", map);
         assertEquals("bar", properties.getProperty("foo"));
-        assertEquals(null, properties.getProperty("spam"));
+        assertNull(properties.getProperty("spam"));
     }
 
     @Test
-    public void testPropertyCycle() throws Exception {
+    public void testPropertyCycle() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:", Map.class);
@@ -80,7 +79,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testNestedPropertyCycle() throws Exception {
+    public void testNestedPropertyCycle() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:", Map.class);
@@ -90,7 +89,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testNestedCollectionPropertyCycle() throws Exception {
+    public void testNestedCollectionPropertyCycle() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo: bar\nspam:", Map.class);
@@ -100,7 +99,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testPropertyArrayOfString() throws Exception {
+    public void testPropertyArrayOfString() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo:\n- bar\n- baz", Map.class);
@@ -111,7 +110,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testNestedPropertyArrayOfString() throws Exception {
+    public void testNestedPropertyArrayOfString() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs("foo:\n  baz:\n  - bar\n  - baz", Map.class);
@@ -123,7 +122,7 @@ public class NestedMapPropertySourceTests {
     }
 
     @Test
-    public void testPropertyArrayOfObject() throws Exception {
+    public void testPropertyArrayOfObject() {
         Yaml yaml = new Yaml();
         @SuppressWarnings("unchecked")
         Map<String, Object> map = yaml.loadAs(

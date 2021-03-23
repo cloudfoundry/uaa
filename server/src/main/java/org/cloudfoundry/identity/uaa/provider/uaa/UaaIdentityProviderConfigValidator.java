@@ -5,8 +5,9 @@ import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.springframework.stereotype.Component;
 
-
+@Component
 public class UaaIdentityProviderConfigValidator extends BaseIdentityProviderValidator {
 
     @Override

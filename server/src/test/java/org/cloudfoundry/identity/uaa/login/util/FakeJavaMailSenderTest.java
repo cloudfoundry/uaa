@@ -25,7 +25,7 @@ import static org.junit.Assert.assertSame;
 public class FakeJavaMailSenderTest {
 
     @Test
-    public void testSendDoesntCreateMemoryLeak() throws Exception {
+    public void testSendDoesntCreateMemoryLeak() {
         FakeJavaMailSender sender = new FakeJavaMailSender();
         sender.setMaxMessages(100);
         MimeMessage m = sender.createMimeMessage();
@@ -43,7 +43,7 @@ public class FakeJavaMailSenderTest {
     }
 
     @Test
-    public void testDoesntStore0Messages() throws Exception {
+    public void testDoesntStore0Messages() {
         FakeJavaMailSender sender = new FakeJavaMailSender();
         sender.setMaxMessages(-1);
         MimeMessage m = sender.createMimeMessage();

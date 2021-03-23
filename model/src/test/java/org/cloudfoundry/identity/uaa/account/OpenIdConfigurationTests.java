@@ -1,38 +1,30 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.account;
 
-import org.junit.Before;
-import org.junit.Test;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.cloudfoundry.identity.uaa.test.JsonTranslation;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import java.lang.reflect.Field;
 
-public class OpenIdConfigurationTests {
+import static org.cloudfoundry.identity.uaa.test.JsonMatcher.isJsonFile;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 
-    private OpenIdConfiguration defaultConfig;
+class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
 
-    @Before
-    public void setup() {
-        defaultConfig = new OpenIdConfiguration("/uaa", "issuer");
+    @BeforeEach
+    void setup() {
+        OpenIdConfiguration subject = new OpenIdConfiguration("<context path>", "<issuer>");
+
+        super.setUp(subject, OpenIdConfiguration.class, WithAllNullFields.DONT_CHECK);
     }
 
     @Test
-    public void testDefaultClaims() {
+    void defaultClaims() {
+        OpenIdConfiguration defaultConfig = new OpenIdConfiguration("/uaa", "issuer");
+
         assertEquals("issuer", defaultConfig.getIssuer());
         assertEquals("/uaa/oauth/authorize", defaultConfig.getAuthUrl());
         assertEquals("/uaa/oauth/token", defaultConfig.getTokenUrl());
@@ -47,16 +39,33 @@ public class OpenIdConfigurationTests {
         assertArrayEquals(new String[]{"none"}, defaultConfig.getRequestObjectSigningAlgValues());
         assertArrayEquals(new String[]{"normal"}, defaultConfig.getClaimTypesSupported());
         assertArrayEquals(
-            new String[]{
-                "sub", "user_name", "origin", "iss", "auth_time",
-                "amr", "acr", "client_id", "aud", "zid", "grant_type",
-                "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig",
-                "cid", "given_name", "family_name", "phone_number", "email"},
-            defaultConfig.getClaimsSupported()
+                new String[]{
+                        "sub", "user_name", "origin", "iss", "auth_time",
+                        "amr", "acr", "client_id", "aud", "zid", "grant_type",
+                        "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig",
+                        "cid", "given_name", "family_name", "phone_number", "email"},
+                defaultConfig.getClaimsSupported()
         );
         assertFalse(defaultConfig.isClaimsParameterSupported());
         assertEquals("http://docs.cloudfoundry.org/api/uaa/", defaultConfig.getServiceDocumentation());
         assertArrayEquals(new String[]{"en-US"}, defaultConfig.getUiLocalesSupported());
     }
 
+    @Test
+    void allNulls() throws JsonProcessingException {
+        OpenIdConfiguration openIdConfiguration = new OpenIdConfiguration(null, null);
+
+        for (Field field : OpenIdConfiguration.class.getDeclaredFields()) {
+            if (boolean.class.equals(field.getType())) {
+                ReflectionTestUtils.setField(openIdConfiguration, field.getName(), false);
+                continue;
+            }
+            ReflectionTestUtils.setField(openIdConfiguration, field.getName(), null);
+        }
+
+        String actual = getObjectMapper().writeValueAsString(openIdConfiguration);
+
+        assertThat(actual, isJsonFile(this.getClass(), "OpenIdConfiguration-nulls.json"));
+
+    }
 }

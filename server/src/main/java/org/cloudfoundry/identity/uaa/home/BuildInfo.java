@@ -1,19 +1,7 @@
-/*******************************************************************************
- *     Cloud Foundry 
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.home;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
@@ -25,7 +13,7 @@ import java.util.Date;
 import java.util.Properties;
 
 public class BuildInfo implements InitializingBean {
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Value("${uaa.url:http://localhost:8080/uaa}")
     private String uaaUrl;
@@ -49,10 +37,10 @@ public class BuildInfo implements InitializingBean {
         } catch (IOException e) {
             logger.debug("Exception loading build.properties", e);
         }
-        Assert.hasText(uaaUrl);
-        Assert.hasText(version);
-        Assert.hasText(commitId);
-        Assert.hasText(timestamp);
+        Assert.hasText(uaaUrl, "[Assertion failed] - uaaUrl must have text; it must not be null, empty, or blank");
+        Assert.hasText(version, "[Assertion failed] - version must have text; it must not be null, empty, or blank");
+        Assert.hasText(commitId, "[Assertion failed] - commitId must have text; it must not be null, empty, or blank");
+        Assert.hasText(timestamp, "[Assertion failed] - timestamp must have text; it must not be null, empty, or blank");
     }
 
     public String getVersion() {

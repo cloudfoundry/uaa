@@ -33,7 +33,7 @@ import org.yaml.snakeyaml.Yaml;
 public class YamlPropertiesFactoryBeanTests {
 
     @Test
-    public void testLoadResource() throws Exception {
+    public void testLoadResource() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()) });
         Properties properties = factory.getObject();
@@ -42,7 +42,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadResourcesWithOverride() throws Exception {
+    public void testLoadResourcesWithOverride() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()),
                         new ByteArrayResource("foo:\n  bar: spam".getBytes()) });
@@ -53,7 +53,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadResourceWithMultipleDocuments() throws Exception {
+    public void testLoadResourceWithMultipleDocuments() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource("foo: bar\nspam: baz\n---\nfoo: bag".getBytes()) });
         Properties properties = factory.getObject();
@@ -62,7 +62,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadResourceWithSelectedDocuments() throws Exception {
+    public void testLoadResourceWithSelectedDocuments() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource("foo: bar\nspam: baz\n---\nfoo: bag\nspam: bad"
                         .getBytes()) });
@@ -73,7 +73,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadResourceWithDefaultMatch() throws Exception {
+    public void testLoadResourceWithDefaultMatch() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setMatchDefault(true);
         factory.setResources(new Resource[] { new ByteArrayResource(
@@ -86,7 +86,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadResourceWithDefaultMatchSkippingMissedMatch() throws Exception {
+    public void testLoadResourceWithDefaultMatchSkippingMissedMatch() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setMatchDefault(true);
         factory.setResources(new Resource[] { new ByteArrayResource(
@@ -99,7 +99,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadNonExistentResource() throws Exception {
+    public void testLoadNonExistentResource() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
         factory.setResources(new Resource[] { new ClassPathResource("no-such-file.yml") });
@@ -108,7 +108,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadNull() throws Exception {
+    public void testLoadNull() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource("foo: bar\nspam:".getBytes()) });
         Properties properties = factory.getObject();
@@ -117,7 +117,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadArrayOfString() throws Exception {
+    public void testLoadArrayOfString() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource("foo:\n- bar\n- baz".getBytes()) });
         Properties properties = factory.getObject();
@@ -127,7 +127,7 @@ public class YamlPropertiesFactoryBeanTests {
     }
 
     @Test
-    public void testLoadArrayOfObject() throws Exception {
+    public void testLoadArrayOfObject() {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
         factory.setResources(new Resource[] { new ByteArrayResource(
                         "foo:\n- bar:\n    spam: crap\n- baz\n- one: two\n  three: four".getBytes()) });

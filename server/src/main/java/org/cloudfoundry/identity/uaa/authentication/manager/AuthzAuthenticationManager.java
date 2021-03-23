@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
@@ -30,7 +18,9 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -43,13 +33,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import javax.servlet.http.HttpSession;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.Locale;
 
 public class AuthzAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
-
+    private HttpSession httpSession;
     private final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
     private final PasswordEncoder encoder;
     private final UaaUserDatabase userDatabase;
@@ -60,10 +51,14 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
     private String origin;
     private boolean allowUnverifiedUsers = true;
 
-    public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder, IdentityProviderProvisioning providerProvisioning) {
+    public AuthzAuthenticationManager(UaaUserDatabase userDatabase,
+                                      @Qualifier("nonCachingPasswordEncoder") PasswordEncoder encoder,
+                                      @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
+                                      HttpSession httpSession) {
         this.userDatabase = userDatabase;
         this.encoder = encoder;
         this.providerProvisioning = providerProvisioning;
+        this.httpSession = httpSession;
     }
 
     @Override
@@ -80,7 +75,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
         if (user == null) {
             logger.debug("No user named '" + req.getName() + "' was found for origin:"+ origin);
-            publish(new UserNotFoundEvent(req));
+            publish(new UserNotFoundEvent(req, IdentityZoneHolder.getCurrentZoneId()));
         } else {
             if (!accountLoginPolicy.isAllowed(user, req)) {
                 logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
@@ -94,42 +89,33 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
             if (!passwordMatches) {
                 logger.debug("Password did not match for user " + req.getName());
-                publish(new IdentityProviderAuthenticationFailureEvent(req, req.getName(), OriginKeys.UAA));
-                publish(new UserAuthenticationFailureEvent(user, req));
+                publish(new IdentityProviderAuthenticationFailureEvent(req, req.getName(), OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()));
+                publish(new UserAuthenticationFailureEvent(user, req, IdentityZoneHolder.getCurrentZoneId()));
             } else {
                 logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());
 
-                if (!(allowUnverifiedUsers && user.isLegacyVerificationBehavior()) && !user.isVerified()) {
-                    publish(new UnverifiedUserAuthenticationEvent(user, req));
+                boolean userMustBeVerified = !allowUnverifiedUsers || !user.isLegacyVerificationBehavior();
+                if (userMustBeVerified && !user.isVerified()) {
+                    publish(new UnverifiedUserAuthenticationEvent(user, req, IdentityZoneHolder.getCurrentZoneId()));
                     logger.debug("Account not verified: " + user.getId());
                     throw new AccountNotVerifiedException("Account not verified");
                 }
 
-                UaaAuthentication success = new UaaAuthentication(
+                UaaAuthentication uaaAuthentication = new UaaAuthentication(
                         new UaaPrincipal(user),
                         user.getAuthorities(),
                         (UaaAuthenticationDetails) req.getDetails());
 
-                if (checkPasswordExpired(user.getPasswordLastModified())) {
+                uaaAuthentication.setAuthenticationMethods(Collections.singleton("pwd"));
+
+                if (userMustUpdatePassword(user)) {
+                    logger.info("Password change required for user: " + user.getEmail());
                     user.setPasswordChangeRequired(true);
+                    SessionUtils.setPasswordChangeRequired(httpSession, true);
                 }
 
-                success.setAuthenticationMethods(Collections.singleton("pwd"));
-                Date passwordNewerThan = getPasswordNewerThan();
-                if(passwordNewerThan != null) {
-                    if(user.getPasswordLastModified() == null || (passwordNewerThan.getTime() > user.getPasswordLastModified().getTime())) {
-                        logger.info("Password change required for user: "+user.getEmail());
-                        success.setRequiresPasswordChange(true);
-                    }
-                }
-
-                if(user.isPasswordChangeRequired()){
-                    logger.info("Password change required for user: "+user.getEmail());
-                    success.setRequiresPasswordChange(true);
-                }
-
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, OriginKeys.UAA));
-                return success;
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, uaaAuthentication, OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()));
+                return uaaAuthentication;
             }
         }
 
@@ -138,7 +124,18 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         throw e;
     }
 
-    protected int getPasswordExpiresInMonths() {
+    private boolean userMustUpdatePassword(UaaUser user) {
+        return user.isPasswordChangeRequired() ||
+                afterPasswordExpirationDate(user.getPasswordLastModified()) ||
+                afterSystemWidePasswordExpirationDate(user.getPasswordLastModified());
+    }
+
+    private boolean afterSystemWidePasswordExpirationDate(Date userPasswordLastModified) {
+        Date idpPasswordPolicyNewerThan = getIdpPasswordPolicyNewerThan();
+        return idpPasswordPolicyNewerThan != null && (userPasswordLastModified == null || idpPasswordPolicyNewerThan.getTime() > userPasswordLastModified.getTime());
+    }
+
+    private int getPasswordExpiresInMonths() {
         int result = 0;
         IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (provider!=null) {
@@ -152,8 +149,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         return result;
     }
 
-    protected Date getPasswordNewerThan() {
-        Date result = null;
+    private Date getIdpPasswordPolicyNewerThan() {
         IdentityProvider provider = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if(provider != null) {
             UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(provider.getConfig(),UaaIdentityProviderDefinition.class);
@@ -161,7 +157,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 return idpDefinition.getPasswordPolicy().getPasswordNewerThan();
             }
         }
-        return result;
+        return null;
     }
 
     private UaaUser getUaaUser(Authentication req) {
@@ -170,7 +166,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             if (user!=null) {
                 return user;
             }
-        } catch (UsernameNotFoundException e) {
+        } catch (UsernameNotFoundException ignored) {
         }
         return null;
     }
@@ -206,15 +202,13 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         this.allowUnverifiedUsers = allowUnverifiedUsers;
     }
 
-    private boolean checkPasswordExpired(Date passwordLastModified) {
+    private boolean afterPasswordExpirationDate(Date passwordLastModified) {
         int expiringPassword = getPasswordExpiresInMonths();
         if (expiringPassword>0) {
             Calendar cal = Calendar.getInstance();
             cal.setTimeInMillis(passwordLastModified.getTime());
             cal.add(Calendar.MONTH, expiringPassword);
-            if (cal.getTimeInMillis() < System.currentTimeMillis()) {
-                return true;
-            }
+            return cal.getTimeInMillis() < System.currentTimeMillis();
         }
         return false;
     }

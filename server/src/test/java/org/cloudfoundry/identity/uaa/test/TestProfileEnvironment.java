@@ -16,8 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.impl.config.EnvironmentMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
@@ -35,10 +35,10 @@ import org.springframework.core.io.ResourceLoader;
  */
 public class TestProfileEnvironment {
 
-    private static final Log logger = LogFactory.getLog(TestProfileEnvironment.class);
+    private static final Logger logger = LoggerFactory.getLogger(TestProfileEnvironment.class);
 
     private static final String[] DEFAULT_PROFILE_CONFIG_FILE_LOCATIONS = new String[] { "classpath:uaa.yml",
-                    "file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml", "file:${UAA_CONFIG_FILE}", "${UAA_CONFIG_URL}" };
+                    "file:${CLOUDFOUNDRY_CONFIG_PATH}/uaa.yml", "file:${UAA_CONFIG_FILE}", "${UAA_CONFIG_URL}" };
 
     private StandardEnvironment environment = new StandardEnvironment();
 
@@ -59,7 +59,7 @@ public class TestProfileEnvironment {
         }
 
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
-        factory.setResources(resources.toArray(new Resource[resources.size()]));
+        factory.setResources(resources.toArray(new Resource[0]));
         factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
         Map<String, Object> properties = factory.getObject();
 

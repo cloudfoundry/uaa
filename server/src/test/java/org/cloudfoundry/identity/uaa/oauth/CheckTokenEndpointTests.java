@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
-import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -34,7 +33,14 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,12 +59,25 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -70,10 +89,10 @@ import static org.mockito.Mockito.when;
 @RunWith(Parameterized.class)
 public class CheckTokenEndpointTests {
     private IdentityZone defaultZone;
-    private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
+    private CheckTokenEndpoint endpoint;
     private OAuth2Authentication authentication;
     private UaaTokenServices tokenServices;
-    private InMemoryClientServicesExtentions clientDetailsService = new InMemoryClientServicesExtentions();
+    private InMemoryMultitenantClientServices clientDetailsService;
     private ApprovalStore approvalStore = new InMemoryApprovalStore();
 
     private String userId = "12345";
@@ -103,72 +122,73 @@ public class CheckTokenEndpointTests {
     private TokenValidationService tokenValidationService;
     private Long nowMillis;
     private TimeService timeService;
+    private IdentityZoneManager mockIdentityZoneManager;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {
-                "-----BEGIN RSA PRIVATE KEY-----\n" +
-                    "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
-                    "lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT\n" +
-                    "JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy\n" +
-                    "VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc\n" +
-                    "usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W\n" +
-                    "SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op\n" +
-                    "zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY\n" +
-                    "pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw\n" +
-                    "UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa\n" +
-                    "Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO\n" +
-                    "BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2\n" +
-                    "RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK\n" +
-                    "/sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z\n" +
-                    "cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j\n" +
-                    "UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA\n" +
-                    "jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/\n" +
-                    "+YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr\n" +
-                    "RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4\n" +
-                    "PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna\n" +
-                    "cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I\n" +
-                    "aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4\n" +
-                    "DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq\n" +
-                    "b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv\n" +
-                    "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
-                    "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
-                    "-----END RSA PRIVATE KEY-----\n", false
-            },
-            {
-                "signing_key_does_not_affect_opaque_token", true
-            },
+                {
+                        "-----BEGIN RSA PRIVATE KEY-----\n" +
+                                "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
+                                "lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT\n" +
+                                "JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy\n" +
+                                "VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc\n" +
+                                "usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W\n" +
+                                "SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op\n" +
+                                "zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY\n" +
+                                "pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw\n" +
+                                "UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa\n" +
+                                "Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO\n" +
+                                "BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2\n" +
+                                "RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK\n" +
+                                "/sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z\n" +
+                                "cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j\n" +
+                                "UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA\n" +
+                                "jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/\n" +
+                                "+YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr\n" +
+                                "RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4\n" +
+                                "PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna\n" +
+                                "cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I\n" +
+                                "aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4\n" +
+                                "DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq\n" +
+                                "b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv\n" +
+                                "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
+                                "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
+                                "-----END RSA PRIVATE KEY-----\n", false
+                },
+                {
+                        "signing_key_does_not_affect_opaque_token", true
+                },
         });
     }
 
     private String alternateSignerKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-        "MIIEowIBAAKCAQEAsLZaEu+98J6neClnaCBy82xg9/DdVgLuO4fr0X9N/nmzaJ1L\n" +
-        "vBmhBdRA8zCLMHQXQmNko7vAZa2/L+A1zQL110puyB4YeInE5lJmGuAADVE2s2ep\n" +
-        "dritrHKVVVv2eCucKRMbQSbhXG2YX0QLp0T4z35Mw3Pa2Q1EDKVinL0o6deW4cX6\n" +
-        "AyUhmqanUphIplQKDrSGp4Lk14aPz/05/IJFA73y5qHJEIlmvuH6RZTZC3H1X1Xs\n" +
-        "pEo2dLOKt9rpvBo4tQkBxG6ejTIAfyu4+1429Zuvn5VCTkKHKgRmSgo6totBrBjR\n" +
-        "1Y7U+k8A+8YbZh3TS4t09i9E4jEmSt7lSUhTjQIDAQABAoIBAF8Rm5/4bt1W3Y4d\n" +
-        "6E3ytyUSt5BsewddCEHqvAm3TYSMgOLVTPtjZme2a0LqaNemfSTwSCJ2Tenl8aeW\n" +
-        "HhuvbgdnOfZbipq+s7mdtuTageyoNp+KM3d1n6nY81I66Xx5KchHSTBh9Hg/Vexa\n" +
-        "tVJGHv2yWyYD3EdNhcCv8T+V3L8Aon3a38y+manNNnM/jI9BfOR2reUn6LWGo8S1\n" +
-        "kUP9CA9vnM1MpLyGONHoVSzzIh/TTOR108FWlQr++ez1OB/sjA66Us2P72yFwRdW\n" +
-        "Wq2KSP75/g21x9nXInMhKHMmeO9Wm2QfwXZRDTr/vJ4jvfwLdUl3CMfdMl0bHPNG\n" +
-        "jB36/8ECgYEA2HNGM53fOoxqPzdYGkWNJosaWyyNvyNxIUO6Mb8vB8jQUWus5hIR\n" +
-        "GkL7XBSOGKGOpPN5nkZ79DArXdBZh+cXBGPQ9EGtE8H1E2wTM2l+3Ez3mzFoCISH\n" +
-        "w/fj9pxm/eA+9GPzSJ95j+6zzpMkjhXYQQcGiJc1Y1RUvfWhs0mhhzkCgYEA0QBJ\n" +
-        "C70YqkBFUjCrgtvCZocTc3b3Mh+bF9R/Kn/CTKnF//NjPEr9zMfefhbxhyI+L0U6\n" +
-        "Y7gZHVP32pFXQwnDrD3FmPY50RqTNz4c0ey9v1eEOgOl369HV+E66XuL1A0XUnI4\n" +
-        "wD9QpsoT/WCCy2UG7iruEmkvVUncRsVZUDqHOvUCgYEAzQk9ae3VpP+YMbP6eECE\n" +
-        "Oguw9scYqwQmyUz/1tn08hnPBCHMkdBxdQAYXZx3EmwP1L9y6HR6PNFYczDHbs6A\n" +
-        "Zj8rlAWWr02fGzvYYG5Bpuwd7Vv64X6xoPh0cIqtoTZITHdV4Oh4XdjPaRLHoPSe\n" +
-        "etLt5HvgLeyXra4987j/EzkCgYBCMSjxQs5Q/VH3Gdr38sm61wTeCMt5YHEqNu6f\n" +
-        "cx8CULKYwWioa8e9138rx/Bur/Wp2u8HLgMmOrXAz08nuCv0nQu7yh+9jgEZ+d3+\n" +
-        "zk+6DemexhD+qvCZcIfL8ojye8LrJam7mVHdwRpboPlLmY98VrRXuGB5To8pCs+i\n" +
-        "jSbPEQKBgEbrOYmJ4p2Esse55Bs+NP+HVuYEOBcKUVHxBG2ILMqA2GjQWO886siu\n" +
-        "Fg9454+Y1xN9DT768RIqkadKXR4r4Tnu8SesrqqqsRub8+RCZFe/JRxEetRBfE3g\n" +
-        "xEo7mKPEF+x8IhJuw6m3kMc4nvFg30KzUKgspAJGPo6kwTVNdT/W\n" +
-        "-----END RSA PRIVATE KEY-----\n";
+            "MIIEowIBAAKCAQEAsLZaEu+98J6neClnaCBy82xg9/DdVgLuO4fr0X9N/nmzaJ1L\n" +
+            "vBmhBdRA8zCLMHQXQmNko7vAZa2/L+A1zQL110puyB4YeInE5lJmGuAADVE2s2ep\n" +
+            "dritrHKVVVv2eCucKRMbQSbhXG2YX0QLp0T4z35Mw3Pa2Q1EDKVinL0o6deW4cX6\n" +
+            "AyUhmqanUphIplQKDrSGp4Lk14aPz/05/IJFA73y5qHJEIlmvuH6RZTZC3H1X1Xs\n" +
+            "pEo2dLOKt9rpvBo4tQkBxG6ejTIAfyu4+1429Zuvn5VCTkKHKgRmSgo6totBrBjR\n" +
+            "1Y7U+k8A+8YbZh3TS4t09i9E4jEmSt7lSUhTjQIDAQABAoIBAF8Rm5/4bt1W3Y4d\n" +
+            "6E3ytyUSt5BsewddCEHqvAm3TYSMgOLVTPtjZme2a0LqaNemfSTwSCJ2Tenl8aeW\n" +
+            "HhuvbgdnOfZbipq+s7mdtuTageyoNp+KM3d1n6nY81I66Xx5KchHSTBh9Hg/Vexa\n" +
+            "tVJGHv2yWyYD3EdNhcCv8T+V3L8Aon3a38y+manNNnM/jI9BfOR2reUn6LWGo8S1\n" +
+            "kUP9CA9vnM1MpLyGONHoVSzzIh/TTOR108FWlQr++ez1OB/sjA66Us2P72yFwRdW\n" +
+            "Wq2KSP75/g21x9nXInMhKHMmeO9Wm2QfwXZRDTr/vJ4jvfwLdUl3CMfdMl0bHPNG\n" +
+            "jB36/8ECgYEA2HNGM53fOoxqPzdYGkWNJosaWyyNvyNxIUO6Mb8vB8jQUWus5hIR\n" +
+            "GkL7XBSOGKGOpPN5nkZ79DArXdBZh+cXBGPQ9EGtE8H1E2wTM2l+3Ez3mzFoCISH\n" +
+            "w/fj9pxm/eA+9GPzSJ95j+6zzpMkjhXYQQcGiJc1Y1RUvfWhs0mhhzkCgYEA0QBJ\n" +
+            "C70YqkBFUjCrgtvCZocTc3b3Mh+bF9R/Kn/CTKnF//NjPEr9zMfefhbxhyI+L0U6\n" +
+            "Y7gZHVP32pFXQwnDrD3FmPY50RqTNz4c0ey9v1eEOgOl369HV+E66XuL1A0XUnI4\n" +
+            "wD9QpsoT/WCCy2UG7iruEmkvVUncRsVZUDqHOvUCgYEAzQk9ae3VpP+YMbP6eECE\n" +
+            "Oguw9scYqwQmyUz/1tn08hnPBCHMkdBxdQAYXZx3EmwP1L9y6HR6PNFYczDHbs6A\n" +
+            "Zj8rlAWWr02fGzvYYG5Bpuwd7Vv64X6xoPh0cIqtoTZITHdV4Oh4XdjPaRLHoPSe\n" +
+            "etLt5HvgLeyXra4987j/EzkCgYBCMSjxQs5Q/VH3Gdr38sm61wTeCMt5YHEqNu6f\n" +
+            "cx8CULKYwWioa8e9138rx/Bur/Wp2u8HLgMmOrXAz08nuCv0nQu7yh+9jgEZ+d3+\n" +
+            "zk+6DemexhD+qvCZcIfL8ojye8LrJam7mVHdwRpboPlLmY98VrRXuGB5To8pCs+i\n" +
+            "jSbPEQKBgEbrOYmJ4p2Esse55Bs+NP+HVuYEOBcKUVHxBG2ILMqA2GjQWO886siu\n" +
+            "Fg9454+Y1xN9DT768RIqkadKXR4r4Tnu8SesrqqqsRub8+RCZFe/JRxEetRBfE3g\n" +
+            "xEo7mKPEF+x8IhJuw6m3kMc4nvFg30KzUKgspAJGPo6kwTVNdT/W\n" +
+            "-----END RSA PRIVATE KEY-----\n";
 
     public CheckTokenEndpointTests(String signerKey, boolean useOpaque) {
         this.signerKey = signerKey;
@@ -177,7 +197,6 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() throws Exception {
-        TestUtils.resetIdentityZoneHolder(null);
         setUp(useOpaque);
     }
 
@@ -187,33 +206,41 @@ public class CheckTokenEndpointTests {
     }
 
     public void setUp(boolean opaque) throws Exception {
+        zone = MultitenancyFixture.identityZone("id", "subdomain");
+        defaultZone = IdentityZone.getUaa();
+
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(defaultZone);
+        clientDetailsService = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
+
+        TestUtils.resetIdentityZoneHolder(null);
+
         nowMillis = 10000L;
         timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis);
         when(timeService.getCurrentDate()).thenCallRealMethod();
-        defaultZone = IdentityZone.getUaa();
-        zone = MultitenancyFixture.identityZone("id", "subdomain");
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
         userAuthorities.add(new SimpleGrantedAuthority("write"));
         userAuthorities.add(new SimpleGrantedAuthority("zones.myzone.admin"));
         userAuthorities.addAll(UaaAuthority.USER_AUTHORITIES);
         user = new UaaUser(
-            userId,
-            userName,
-            "password",
-            userEmail,
-            userAuthorities,
-            "GivenName",
-            "FamilyName",
-            new Date(nowMillis - 2000),
-            new Date(nowMillis - 2000),
-            OriginKeys.UAA,
-            "externalId",
-            false,
-            IdentityZoneHolder.get().getId(),
-            "salt",
-            new Date(nowMillis - 2000));
+                userId,
+                userName,
+                "password",
+                userEmail,
+                userAuthorities,
+                "GivenName",
+                "FamilyName",
+                new Date(nowMillis - 2000),
+                new Date(nowMillis - 2000),
+                OriginKeys.UAA,
+                "externalId",
+                false,
+                IdentityZoneHolder.get().getId(),
+                "salt",
+                new Date(nowMillis - 2000));
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client", "scim")));
         Map<String, String> requestParameters = new HashMap<>();
@@ -235,36 +262,35 @@ public class CheckTokenEndpointTests {
         }
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
-            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+                UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         configureDefaultZoneKeys(Collections.singletonMap("testKey", signerKey));
         IdentityZoneHolder.set(defaultZone);
-        when(zoneProvisioning.retrieve("uaa")).thenReturn(defaultZone);
+        when(zoneProvisioning.retrieve(IdentityZone.getUaaZoneId())).thenReturn(defaultZone);
         Date oneSecondAgo = new Date(nowMillis - 1000);
         Date thirtySecondsAhead = new Date(nowMillis + 30000);
 
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(thirtySecondsAhead)
-            .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("client")
+                .setScope("read")
+                .setExpiresAt(thirtySecondsAhead)
+                .setStatus(ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("write")
-            .setExpiresAt(thirtySecondsAhead)
-            .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
-        endpoint.setTimeService(timeService);
+                .setUserId(userId)
+                .setClientId("client")
+                .setScope("write")
+                .setExpiresAt(thirtySecondsAhead)
+                .setStatus(ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password", "scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
         clientDetailsStore =
-            Collections.singletonMap(
-                "client",
-                defaultClient
-            );
+                Collections.singletonMap(
+                        "client",
+                        defaultClient
+                );
         clientDetailsService.setClientDetailsStore(zone.getId(), clientDetailsStore);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
 
@@ -279,9 +305,9 @@ public class CheckTokenEndpointTests {
                 clientDetailsService,
                 tokenProvisioning,
                 tokenValidationService,
-                mock(RefreshTokenCreator.class),
+                null,
                 timeService,
-                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService), Integer.MAX_VALUE, timeService),
+                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, mockIdentityZoneManager), Integer.MAX_VALUE, timeService),
                 userDatabase,
                 Sets.newHashSet(),
                 IdentityZoneHolder.get().getConfig().getTokenPolicy(),
@@ -290,7 +316,8 @@ public class CheckTokenEndpointTests {
                 approvalService);
 
         resetAndMockUserDatabase(userId, user);
-        endpoint.setTokenServices(tokenServices);
+
+        endpoint = new CheckTokenEndpoint(tokenServices, timeService);
     }
 
     private void configureDefaultZoneKeys(Map<String, String> keys) {
@@ -315,7 +342,7 @@ public class CheckTokenEndpointTests {
         BaseClientDetails client =
                 new BaseClientDetails("client", "zones", "zones.*.admin", "authorization_code, password",
                         "scim.read, scim.write", "http://localhost:8080/uaa");
-        client.setAutoApproveScopes(Arrays.asList("zones.*.admin"));
+        client.setAutoApproveScopes(Collections.singletonList("zones.*.admin"));
         Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", client);
 
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
@@ -324,7 +351,7 @@ public class CheckTokenEndpointTests {
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("zones.myzone.admin"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client", "zones")));
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
-            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+                UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         endpoint.checkToken(tokenServices.createAccessToken(authentication).getValue(), Collections.emptyList(), request);
     }
@@ -337,7 +364,7 @@ public class CheckTokenEndpointTests {
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
 
             fail("Token validation should fail");
-        } catch (InvalidTokenException ex) {
+        } catch (InvalidTokenException ignored) {
         }
     }
 
@@ -345,21 +372,21 @@ public class CheckTokenEndpointTests {
     public void testRejectUserSaltChange() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
-            userId,
-            userName,
-            "password",
-            userEmail,
-            userAuthorities,
-            "GivenName",
-            "FamilyName",
-            new Date(nowMillis - 2000),
-            new Date(nowMillis - 2000),
-            OriginKeys.UAA,
-            "externalId",
-            false,
-            IdentityZoneHolder.get().getId(),
-            "changedsalt",
-            new Date(nowMillis - 2000));
+                userId,
+                userName,
+                "password",
+                userEmail,
+                userAuthorities,
+                "GivenName",
+                "FamilyName",
+                new Date(nowMillis - 2000),
+                new Date(nowMillis - 2000),
+                OriginKeys.UAA,
+                "externalId",
+                false,
+                IdentityZoneHolder.get().getId(),
+                "changedsalt",
+                new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
@@ -368,21 +395,21 @@ public class CheckTokenEndpointTests {
     public void testRejectUserUsernameChange() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
-            userId,
-            "newUsername@test.org",
-            "password",
-            userEmail,
-            userAuthorities,
-            "GivenName",
-            "FamilyName",
-            new Date(nowMillis - 2000),
-            new Date(nowMillis - 2000),
-            OriginKeys.UAA,
-            "externalId",
-            false,
-            IdentityZoneHolder.get().getId(),
-            "salt",
-            new Date(nowMillis - 2000));
+                userId,
+                "newUsername@test.org",
+                "password",
+                userEmail,
+                userAuthorities,
+                "GivenName",
+                "FamilyName",
+                new Date(nowMillis - 2000),
+                new Date(nowMillis - 2000),
+                OriginKeys.UAA,
+                "externalId",
+                false,
+                IdentityZoneHolder.get().getId(),
+                "salt",
+                new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
@@ -391,21 +418,21 @@ public class CheckTokenEndpointTests {
     public void testRejectUserEmailChange() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
-            userId,
-            userName,
-            "password",
-            "newEmail@test.org",
-            userAuthorities,
-            "GivenName",
-            "FamilyName",
-            new Date(nowMillis - 2000),
-            new Date(nowMillis - 2000),
-            OriginKeys.UAA,
-            "externalId",
-            false,
-            IdentityZoneHolder.get().getId(),
-            "salt",
-            new Date(nowMillis - 2000));
+                userId,
+                userName,
+                "password",
+                "newEmail@test.org",
+                userAuthorities,
+                "GivenName",
+                "FamilyName",
+                new Date(nowMillis - 2000),
+                new Date(nowMillis - 2000),
+                OriginKeys.UAA,
+                "externalId",
+                false,
+                IdentityZoneHolder.get().getId(),
+                "salt",
+                new Date(nowMillis - 2000));
         resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
@@ -415,21 +442,21 @@ public class CheckTokenEndpointTests {
     public void testRejectUserPasswordChange() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
-            userId,
-            userName,
-            "changedpassword",
-            userEmail,
-            userAuthorities,
-            "GivenName",
-            "FamilyName",
-            new Date(nowMillis - 2000),
-            new Date(nowMillis - 2000),
-            OriginKeys.UAA,
-            "externalId",
-            false,
-            IdentityZoneHolder.get().getId(),
-            "salt",
-            new Date(nowMillis - 2000));
+                userId,
+                userName,
+                "changedpassword",
+                userEmail,
+                userAuthorities,
+                "GivenName",
+                "FamilyName",
+                new Date(nowMillis - 2000),
+                new Date(nowMillis - 2000),
+                OriginKeys.UAA,
+                "externalId",
+                false,
+                IdentityZoneHolder.get().getId(),
+                "salt",
+                new Date(nowMillis - 2000));
 
         resetAndMockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
@@ -457,7 +484,7 @@ public class CheckTokenEndpointTests {
     public void testValidateScopesNotPresent() throws Exception {
         try {
             authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-                Collections.singleton("scim.read")).createOAuth2Request(), null);
+                    Collections.singleton("scim.read")).createOAuth2Request(), null);
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
             endpoint.checkToken(accessToken.getValue(), Collections.singletonList("scim.write"), request);
@@ -471,7 +498,7 @@ public class CheckTokenEndpointTests {
     public void testValidateScopesMultipleNotPresent() throws Exception {
         try {
             authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-                Collections.singletonList("cat.pet")).createOAuth2Request(), null);
+                    Collections.singletonList("cat.pet")).createOAuth2Request(), null);
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
             endpoint.checkToken(accessToken.getValue(), Arrays.asList("scim.write", "scim.read"), request);
@@ -484,7 +511,7 @@ public class CheckTokenEndpointTests {
     @Test
     public void testValidateScopeSinglePresent() throws Exception {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-            Collections.singleton("scim.read")).createOAuth2Request(), null);
+                Collections.singleton("scim.read")).createOAuth2Request(), null);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         endpoint.checkToken(accessToken.getValue(), Collections.singletonList("scim.read"), request);
@@ -493,7 +520,7 @@ public class CheckTokenEndpointTests {
     @Test
     public void testValidateScopesMultiplePresent() throws Exception {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-            Arrays.asList("scim.read", "scim.write")).createOAuth2Request(), null);
+                Arrays.asList("scim.read", "scim.write")).createOAuth2Request(), null);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         endpoint.checkToken(accessToken.getValue(), Arrays.asList("scim.write", "scim.read"), request);
@@ -503,7 +530,7 @@ public class CheckTokenEndpointTests {
     public void testValidateScopesSomeNotPresent() throws Exception {
         try {
             authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-                Arrays.asList("scim.read", "scim.write")).createOAuth2Request(), null);
+                    Arrays.asList("scim.read", "scim.write")).createOAuth2Request(), null);
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
             endpoint.checkToken(accessToken.getValue(), Arrays.asList("scim.read", "ponies.ride"), request);
@@ -536,13 +563,13 @@ public class CheckTokenEndpointTests {
     public void revokingAuthoritiesFromClients_invalidatesToken() throws Exception {
         defaultClient = new BaseClientDetails("client", "scim, cc", "write,read", "authorization_code, password", "scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Collections.singletonMap(
-            "client",
-            defaultClient
+                "client",
+                defaultClient
         );
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         resetAndMockUserDatabase(userId, user);
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-            Collections.singleton("scim.read")).createOAuth2Request(), null);
+                Collections.singleton("scim.read")).createOAuth2Request(), null);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
@@ -568,7 +595,7 @@ public class CheckTokenEndpointTests {
         defaultClient.setClientSecret(firstClientSecret);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        defaultClient.setClientSecret(firstClientSecret + " " +  secondClientSecret);
+        defaultClient.setClientSecret(firstClientSecret + " " + secondClientSecret);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
@@ -579,7 +606,7 @@ public class CheckTokenEndpointTests {
         String firstClientSecret = "oldsecret";
         String secondClientSecret = "newsecret";
 
-        defaultClient.setClientSecret(firstClientSecret + " " +  secondClientSecret);
+        defaultClient.setClientSecret(firstClientSecret + " " + secondClientSecret);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
 
@@ -608,18 +635,18 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testIssuerInResults() throws Exception {
-        tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+        ReflectionTestUtils.setField(tokenEndpointBuilder, "issuer", "http://some.other.issuer");
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertNotNull("iss field is not present", result.getIss());
-        assertEquals("http://some.other.issuer/oauth/token", result.getIss());
+        Claims claims = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
+        assertNotNull("iss field is not present", claims.getIss());
+        assertEquals("http://some.other.issuer/oauth/token", claims.getIss());
     }
 
     @Test
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
             IdentityZoneHolder.set(zone);
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            ReflectionTestUtils.setField(tokenEndpointBuilder, "issuer", "http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
             Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
             assertNotNull("iss field is not present", result.getIss());
@@ -635,18 +662,17 @@ public class CheckTokenEndpointTests {
 
         try {
             zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("testKey",
-                "-----BEGIN RSA PRIVATE KEY-----\n" +
-                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
-                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
-                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
-                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
-                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
-                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
-                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
-                    "-----END RSA PRIVATE KEY-----"));
+                    "-----BEGIN RSA PRIVATE KEY-----\n" +
+                            "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                            "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                            "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                            "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                            "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                            "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                            "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                            "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
             tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();
@@ -659,17 +685,17 @@ public class CheckTokenEndpointTests {
 
         try {
             zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
-                "-----BEGIN RSA PRIVATE KEY-----\n" +
-                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
-                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
-                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
-                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
-                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
-                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
-                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
-                    "-----END RSA PRIVATE KEY-----"));
+                    "-----BEGIN RSA PRIVATE KEY-----\n" +
+                            "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                            "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                            "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                            "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                            "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                            "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                            "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                            "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         } finally {
@@ -682,16 +708,16 @@ public class CheckTokenEndpointTests {
     public void testZoneValidatesTokenSignedWithInactiveKey() throws Exception {
         HashMap<String, String> keys = new HashMap<>();
         keys.put("oldKey", "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
-            "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
-            "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
-            "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
-            "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
-            "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
-            "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
-            "-----END RSA PRIVATE KEY-----");
+                "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                "-----END RSA PRIVATE KEY-----");
         configureDefaultZoneKeys(keys);
-        tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+        tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
@@ -706,16 +732,16 @@ public class CheckTokenEndpointTests {
         try {
             HashMap<String, String> keys = new HashMap<>();
             keys.put("oldKey", "-----BEGIN RSA PRIVATE KEY-----\n" +
-                "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
-                "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
-                "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
-                "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
-                "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
-                "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
-                "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
-                "-----END RSA PRIVATE KEY-----");
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----");
             configureDefaultZoneKeys(keys);
-            tokenEndpointBuilder.setIssuer("http://some.other.issuer");
+            tokenEndpointBuilder = new TokenEndpointBuilder("http://some.other.issuer");
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
             keys.remove("oldKey");
@@ -734,15 +760,15 @@ public class CheckTokenEndpointTests {
     @Test(expected = InvalidTokenException.class)
     public void testDefaultZoneRejectsTokenSignedWithOtherZoneKey() throws Exception {
         zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
-            "-----BEGIN RSA PRIVATE KEY-----\n" +
-                "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
-                "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
-                "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
-                "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
-                "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
-                "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
-                "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
-                "-----END RSA PRIVATE KEY-----"));
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                        "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                        "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                        "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                        "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                        "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                        "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                        "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                        "-----END RSA PRIVATE KEY-----"));
         IdentityZoneHolder.set(zone);
         tokenServices.setTokenEndpointBuilder(new TokenEndpointBuilder("http://some.other.issuer"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -763,7 +789,7 @@ public class CheckTokenEndpointTests {
     @Test
     public void by_default_query_string_is_allowed() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        request.setQueryString("token="+ accessToken.getValue());
+        request.setQueryString("token=" + accessToken.getValue());
         request.setParameter("token", accessToken.getValue());
         Claims claims = endpoint.checkToken(request);
         assertNotNull(claims);
@@ -772,7 +798,7 @@ public class CheckTokenEndpointTests {
     @Test
     public void by_default_get_is_allowed() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        request.setQueryString("token="+ accessToken.getValue());
+        request.setQueryString("token=" + accessToken.getValue());
         request.setParameter("token", accessToken.getValue());
         endpoint.checkToken(request);
     }
@@ -861,20 +887,20 @@ public class CheckTokenEndpointTests {
     public void testUserAuthoritiesNotInResult() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test
     public void testClientAuthoritiesNotInResult() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testExpiredToken() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails("client", "scim, cc", "read, write",
-            "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
+                "authorization_code, password", "scim.read, scim.write", "http://localhost:8080/uaa");
         Integer validitySeconds = 1;
         clientDetails.setAccessTokenValiditySeconds(validitySeconds);
         Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
@@ -892,46 +918,46 @@ public class CheckTokenEndpointTests {
         Date oneSecondAgo = new Date(nowMillis - 1000);
         Date thirtySecondsAhead = new Date(nowMillis + 30000);
         approvalStore.revokeApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(thirtySecondsAhead)
-            .setStatus(ApprovalStatus.APPROVED)
-            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("client")
+                .setScope("read")
+                .setExpiresAt(thirtySecondsAhead)
+                .setStatus(ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(thirtySecondsAhead)
-            .setStatus(ApprovalStatus.DENIED)
-            .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("client")
+                .setScope("read")
+                .setExpiresAt(thirtySecondsAhead)
+                .setStatus(ApprovalStatus.DENIED)
+                .setLastUpdatedAt(oneSecondAgo), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testExpiredApprovals() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         approvalStore.revokeApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(new Date(nowMillis))
-            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("client")
+                .setScope("read")
+                .setExpiresAt(new Date(nowMillis))
+                .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(new Date(nowMillis))
-            .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
+                .setUserId(userId)
+                .setClientId("client")
+                .setScope("read")
+                .setExpiresAt(new Date(nowMillis))
+                .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(null, result.getAuthorities());
+        assertNull(result.getAuthorities());
     }
 
     @Test
     public void testClientOnly() throws Exception {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-            Collections.singleton("scim.read")).createOAuth2Request(), null);
+                Collections.singleton("scim.read")).createOAuth2Request(), null);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         assertEquals("client", result.getClientId());
@@ -950,10 +976,10 @@ public class CheckTokenEndpointTests {
         requestParameters.put("authorities", azAuthoritiesJson);
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
-            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+                UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        assertEquals(result.getAzAttr(),azAttributes);
+        assertEquals(result.getAzAttr(), azAttributes);
     }
 
     @Test
@@ -970,7 +996,7 @@ public class CheckTokenEndpointTests {
         requestParameters.put("authorities", azAuthoritiesJson);
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
-            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+                UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         assertNull(result.getAzAttr());
@@ -988,7 +1014,7 @@ public class CheckTokenEndpointTests {
         requestParameters.put("authorities", azAuthoritiesJson);
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
-            UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
+                UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         assertNull(result.getAzAttr());

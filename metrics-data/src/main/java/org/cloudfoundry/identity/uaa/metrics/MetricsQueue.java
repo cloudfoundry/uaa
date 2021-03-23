@@ -67,8 +67,8 @@ public class MetricsQueue  {
                    time < metric.getUriGroup().getLimit(),
                    metric.getNrOfDatabaseQueries(),
                    metric.getDatabaseQueryTime(),
-                   metric.getQueries().stream().filter(q -> q.isIntolerable()).count(),
-                   metric.getQueries().stream().filter(q -> q.isIntolerable()).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+                   metric.getQueries().stream().filter(QueryMetric::isIntolerable).count(),
+                   metric.getQueries().stream().filter(QueryMetric::isIntolerable).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
         );
         return true;
     }
@@ -92,35 +92,34 @@ public class MetricsQueue  {
         MutableDouble averageDatabaseQueryTime = new MutableDouble(0);
         MutableLong databaseIntolerableQueryCount = new MutableLong(0);
         MutableDouble averageDatabaseIntolerableQueryTime = new MutableDouble(0);
-        statistics.entrySet().stream().forEach( s -> {
-            RequestMetricSummary summary = s.getValue();
+        statistics.forEach((key, summary) -> {
             averageTime.set(addAverages(count.get(),
-                                        averageTime.get(),
-                                        summary.getCount(),
-                                        summary.getAverageTime())
+                    averageTime.get(),
+                    summary.getCount(),
+                    summary.getAverageTime())
             );
             count.add(summary.getCount());
 
             averageIntolerableTime.set(addAverages(intolerableCount.get(),
-                                                   averageIntolerableTime.get(),
-                                                   summary.getIntolerableCount(),
-                                                   summary.getAverageIntolerableTime())
+                    averageIntolerableTime.get(),
+                    summary.getIntolerableCount(),
+                    summary.getAverageIntolerableTime())
             );
             intolerableCount.add(summary.getIntolerableCount());
 
             averageDatabaseQueryTime.set(addAverages(databaseQueryCount.get(),
-                                                     averageDatabaseQueryTime.get(),
-                                                     summary.getDatabaseQueryCount(),
-                                                     summary.getAverageDatabaseQueryTime()
-                                                     )
+                    averageDatabaseQueryTime.get(),
+                    summary.getDatabaseQueryCount(),
+                    summary.getAverageDatabaseQueryTime()
+                    )
             );
             databaseQueryCount.add(summary.getDatabaseQueryCount());
 
             averageDatabaseIntolerableQueryTime.set(addAverages(databaseIntolerableQueryCount.get(),
-                                                           averageDatabaseIntolerableQueryTime.get(),
-                                                     summary.getDatabaseIntolerableQueryCount(),
-                                                     summary.getAverageDatabaseIntolerableQueryTime()
-                                         )
+                    averageDatabaseIntolerableQueryTime.get(),
+                    summary.getDatabaseIntolerableQueryCount(),
+                    summary.getAverageDatabaseIntolerableQueryTime()
+                    )
             );
             databaseIntolerableQueryCount.add(summary.getDatabaseIntolerableQueryCount());
 

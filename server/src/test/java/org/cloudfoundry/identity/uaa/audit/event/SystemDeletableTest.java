@@ -1,158 +1,150 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.slf4j.Logger;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doCallRealMethod;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class SystemDeletableTest {
 
-    private SystemDeletable deletable = mock(SystemDeletable.class);
-    private Authentication authentication = mock(Authentication.class);
-    private IdentityZone zone;
+    private SystemDeletable deletable;
+    private Authentication authentication;
 
     @BeforeEach
     void setup() {
-        zone = MultitenancyFixture.identityZone("zone-id", "zone");
-        IdentityZoneHolder.set(zone);
-        resetDeletable();
-    }
+        deletable = mock(SystemDeletable.class);
+        authentication = mock(Authentication.class);
 
-    @AfterEach
-    void tearDown() {
-        IdentityZoneHolder.clear();
+        doCallRealMethod().when(deletable).onApplicationEvent(any(EntityDeletedEvent.class));
+        when(deletable.getLogger()).thenReturn(mock(Logger.class));
     }
 
     @Test
-    void ignore_unknown_events() {
+    void ignoreUnknownEvents() {
         AbstractUaaEvent event = mock(AbstractUaaEvent.class);
         deletable.onApplicationEvent(event);
         verify(deletable, never()).onApplicationEvent(any(EntityDeletedEvent.class));
         verify(deletable, never()).deleteByIdentityZone(any());
-        verify(deletable, never()).deleteByOrigin(any(),any());
-        verify(deletable, never()).deleteByClient(any(),any());
-        verify(deletable, never()).deleteByUser(any(),any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, never()).deleteByUser(any(), any());
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
-    void uaa_default_zone_is_ignored() {
-        EntityDeletedEvent event = new EntityDeletedEvent(IdentityZone.getUaa(), authentication);
+    void uaaDefaultZoneIsIgnored() {
+        EntityDeletedEvent event = new EntityDeletedEvent<>(IdentityZone.getUaa(), authentication, null);
         deletable.onApplicationEvent(event);
         verify(deletable, never()).deleteByIdentityZone(any());
-        verify(deletable, never()).deleteByOrigin(any(),any());
-        verify(deletable, never()).deleteByClient(any(),any());
-        verify(deletable, never()).deleteByUser(any(),any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, never()).deleteByUser(any(), any());
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
-    void zone_event_received() {
+    void identityZoneEventReceived() {
+        IdentityZone zone = MultitenancyFixture.identityZone("zone-id", "zone");
 
-        EntityDeletedEvent event = new EntityDeletedEvent(zone, authentication);
+        EntityDeletedEvent event = new EntityDeletedEvent<>(zone, authentication, null);
         deletable.onApplicationEvent(event);
         verify(deletable, times(1)).deleteByIdentityZone("zone-id");
-        verify(deletable, never()).deleteByOrigin(any(),any());
-        verify(deletable, never()).deleteByClient(any(),any());
-        verify(deletable, never()).deleteByUser(any(),any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, never()).deleteByUser(any(), any());
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
-    void provider_event_received() {
+    void identityProviderEventReceived() {
         IdentityProvider provider = new IdentityProvider();
         provider.setId("id").setIdentityZoneId("other-zone-id").setOriginKey("origin");
-        EntityDeletedEvent event = new EntityDeletedEvent(provider, authentication);
+        EntityDeletedEvent event = new EntityDeletedEvent<>(provider, authentication, null);
         deletable.onApplicationEvent(event);
         verify(deletable, never()).deleteByIdentityZone(any());
-        verify(deletable, times(1)).deleteByOrigin("origin","other-zone-id");
-        verify(deletable, never()).deleteByClient(any(),any());
-        verify(deletable, never()).deleteByUser(any(),any());
+        verify(deletable, times(1)).deleteByOrigin("origin", "other-zone-id");
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, never()).deleteByUser(any(), any());
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
-    void client_event_received() {
+    void clientDetailsEventReceived() {
         BaseClientDetails client = new BaseClientDetails("clientId", "", "", "client_credentials", "uaa.none");
-        EntityDeletedEvent<ClientDetails> event = new EntityDeletedEvent(client, authentication);
-        for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
-            resetDeletable();
-            IdentityZoneHolder.set(zone);
+        for (String zoneId : Arrays.asList("uaa", "zone1", "other-zone")) {
+            EntityDeletedEvent<ClientDetails> event = new EntityDeletedEvent<>(client, authentication, zoneId);
             deletable.onApplicationEvent(event);
-            verify(deletable, never()).deleteByIdentityZone(any());
-            verify(deletable, never()).deleteByOrigin(any(), any());
-            verify(deletable, times(1)).deleteByClient(client.getClientId(), zone.getId());
-            verify(deletable, never()).deleteByUser(any(), any());
+            verify(deletable, times(1)).deleteByClient(client.getClientId(), zoneId);
         }
+
+        verify(deletable, never()).deleteByIdentityZone(any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByUser(any(), any());
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
-    void user_event_received() {
+    void uaaUserEventReceived() {
         UaaUser uaaUser = new UaaUser(new UaaUserPrototype()
-                                       .withUsername("username")
-                                       .withId("uaaUser-id")
-                                       .withZoneId("other-zone-id")
-                                       .withEmail("test@test.com")
+                .withUsername("username")
+                .withId("uaaUser-id")
+                .withZoneId("other-zone-id")
+                .withEmail("test@test.com")
         );
-        ScimUser scimUser = new ScimUser(uaaUser.getId(), uaaUser.getUsername(), uaaUser.getGivenName(), uaaUser.getFamilyName());
-        scimUser.setPrimaryEmail(uaaUser.getEmail());
-        scimUser.setZoneId(uaaUser.getZoneId());
 
-        for (Object user : Arrays.asList(uaaUser, scimUser)) {
-            for (IdentityZone zone : Arrays.asList(this.zone, IdentityZone.getUaa())) {
-                resetDeletable();
-                IdentityZoneHolder.set(zone);
-                EntityDeletedEvent<UaaUser> event = new EntityDeletedEvent(user, authentication);
-                deletable.onApplicationEvent(event);
-                verify(deletable, never()).deleteByIdentityZone(any());
-                verify(deletable, never()).deleteByOrigin(any(), any());
-                verify(deletable, never()).deleteByClient(any(), any());
-                verify(deletable, times(1)).deleteByUser(uaaUser.getId(), uaaUser.getZoneId());
-            }
-        }
+        EntityDeletedEvent event = new EntityDeletedEvent<>(uaaUser, authentication, null);
+        deletable.onApplicationEvent(event);
+        verify(deletable, never()).deleteByIdentityZone(any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, times(1)).deleteByUser("uaaUser-id", "other-zone-id");
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
-    void mfa_event_received() {
+    void scimUserEventReceived() {
+        ScimUser scimUser = new ScimUser(
+                "scimUserId",
+                null,
+                null,
+                null);
+        scimUser.setZoneId("zoneId");
+
+        EntityDeletedEvent event = new EntityDeletedEvent<>(scimUser, authentication, null);
+        deletable.onApplicationEvent(event);
+        verify(deletable, never()).deleteByIdentityZone(any());
+        verify(deletable, never()).deleteByOrigin(any(), any());
+        verify(deletable, never()).deleteByClient(any(), any());
+        verify(deletable, times(1)).deleteByUser("scimUserId", "zoneId");
+        verify(deletable, never()).deleteByMfaProvider(any(), any());
+    }
+
+    @Test
+    void mfaEventReceived() {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider<GoogleMfaProviderConfig>().setId("provider1");
-        EntityDeletedEvent<MfaProvider> event = new EntityDeletedEvent<>(mfaProvider, authentication);
+        EntityDeletedEvent<MfaProvider> event = new EntityDeletedEvent<>(mfaProvider, authentication, null);
         deletable.onApplicationEvent(event);
         verify(deletable, never()).deleteByIdentityZone(any());
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, never()).deleteByUser(any(), any());
         verify(deletable, times(1)).deleteByMfaProvider(eq("provider1"), any());
-    }
-
-    void resetDeletable() {
-        reset(deletable);
-        doCallRealMethod().when(deletable).onApplicationEvent(any(EntityDeletedEvent.class));
-        doCallRealMethod().when(deletable).onApplicationEvent(any(AbstractUaaEvent.class));
-        doCallRealMethod().when(deletable).isUaaZone(any());
-        when(deletable.getLogger()).thenReturn(mock(Log.class));
     }
 }

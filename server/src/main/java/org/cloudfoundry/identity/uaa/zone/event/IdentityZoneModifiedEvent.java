@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 
 public class IdentityZoneModifiedEvent extends AbstractUaaEvent {
@@ -26,8 +27,8 @@ public class IdentityZoneModifiedEvent extends AbstractUaaEvent {
 
     protected static final String dataFormat = "id=%s; subdomain=%s";
 
-    public IdentityZoneModifiedEvent(IdentityZone identityZone, Authentication authentication, AuditEventType type) {
-        super(identityZone, authentication);
+    public IdentityZoneModifiedEvent(IdentityZone identityZone, Authentication authentication, AuditEventType type, String zoneId) {
+        super(identityZone, authentication, zoneId);
         eventType = type;
     }
 
@@ -46,12 +47,12 @@ public class IdentityZoneModifiedEvent extends AbstractUaaEvent {
 
     public static IdentityZoneModifiedEvent identityZoneCreated(IdentityZone identityZone) {
         return new IdentityZoneModifiedEvent(identityZone, getContextAuthentication(),
-                AuditEventType.IdentityZoneCreatedEvent);
+                AuditEventType.IdentityZoneCreatedEvent, IdentityZoneHolder.getCurrentZoneId());
     }
 
     public static IdentityZoneModifiedEvent identityZoneModified(IdentityZone identityZone) {
         return new IdentityZoneModifiedEvent(identityZone, getContextAuthentication(),
-                AuditEventType.IdentityZoneModifiedEvent);
+                AuditEventType.IdentityZoneModifiedEvent, IdentityZoneHolder.getCurrentZoneId());
     }
 
     public AuditEventType getEventType() {

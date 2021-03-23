@@ -1,26 +1,16 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ParameterParsingException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -61,16 +51,16 @@ public class CheckTokenEndpoint implements InitializingBean {
     //Copy of the value from org.apache.Globals.PARAMETER_PARSE_FAILED_ATTR
     private static final String PARAMETER_PARSE_FAILED_ATTR = "org.apache.catalina.parameter_parse_failed";
 
-    private ResourceServerTokenServices resourceServerTokenServices;
-    private TimeService timeService;
+    private final ResourceServerTokenServices resourceServerTokenServices;
+    private final TimeService timeService;
 
-    protected final Log logger = LogFactory.getLog(getClass());
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
 
-    public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
+    public CheckTokenEndpoint(
+            final @Qualifier("tokenServices") ResourceServerTokenServices resourceServerTokenServices,
+            final @Qualifier("timeService") TimeService timeService) {
         this.resourceServerTokenServices = resourceServerTokenServices;
-    }
-    public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
     }
 
@@ -80,17 +70,20 @@ public class CheckTokenEndpoint implements InitializingBean {
         return (allowQueryString == null) ? true : allowQueryString;
     }
 
+    @Autowired
+    @Qualifier("allowQueryStringForTokens")
     public void setAllowQueryString(boolean allowQueryString) {
         this.allowQueryString = allowQueryString;
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
     }
 
     @RequestMapping(value = "/check_token", method = POST)
     @ResponseBody
+    @Deprecated
     public Claims checkToken(@RequestParam("token") String value,
                              @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes,
                              HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
@@ -124,7 +117,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         List<String> claimScopes = response.getScope().stream().map(String::toLowerCase).collect(Collectors.toList());
 
         List<String> missingScopes = new ArrayList<>();
-        for(String expectedScope : scopes) {
+        for (String expectedScope : scopes) {
             if (!claimScopes.contains(expectedScope.toLowerCase())) {
                 missingScopes.add(expectedScope);
             }
@@ -143,16 +136,17 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     @RequestMapping(value = "/check_token")
     @ResponseBody
+    @Deprecated
     public Claims checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         if (isAllowQueryString()) {
             String token = request.getParameter("token");
             String scope = request.getParameter("scope");
             return
-                checkToken(
-                    token,
-                    hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
-                    request
-                );
+                    checkToken(
+                            token,
+                            hasText(scope) ? new LinkedList<>(commaDelimitedListToSet(scope)) : emptyList(),
+                            request
+                    );
         } else {
             throw new HttpRequestMethodNotSupportedException(request.getMethod());
         }
@@ -199,9 +193,8 @@ public class CheckTokenEndpoint implements InitializingBean {
         return exceptionTranslator.translate(e);
     }
 
-
     @ExceptionHandler(UaaException.class)
-    public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) throws Exception {
+    public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
     }

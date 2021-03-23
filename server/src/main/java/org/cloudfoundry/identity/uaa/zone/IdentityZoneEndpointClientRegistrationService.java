@@ -1,21 +1,23 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.stereotype.Component;
 
+@Component("zoneEndpointsClientRegistrationService")
 public class IdentityZoneEndpointClientRegistrationService {
 
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private final ClientDetailsValidator clientDetailsValidator;
     private final ApprovalStore approvalStore;
 
-
-    public IdentityZoneEndpointClientRegistrationService(ClientServicesExtension clientDetailsService,
-                                                         ClientDetailsValidator clientDetailsValidator,
-                                                         ApprovalStore approvalStore) {
-        super();
+    public IdentityZoneEndpointClientRegistrationService(
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
+            final @Qualifier("zoneEndpointsClientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
+            final @Qualifier("approvalStore") ApprovalStore approvalStore) {
         this.clientDetailsService = clientDetailsService;
         this.clientDetailsValidator = clientDetailsValidator;
         this.approvalStore = approvalStore;

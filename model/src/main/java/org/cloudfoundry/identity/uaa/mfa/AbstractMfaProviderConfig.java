@@ -18,6 +18,8 @@ package org.cloudfoundry.identity.uaa.mfa;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
+import java.util.Objects;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AbstractMfaProviderConfig {
@@ -41,7 +43,7 @@ public abstract class AbstractMfaProviderConfig {
 
         AbstractMfaProviderConfig that = (AbstractMfaProviderConfig) o;
 
-        return issuer != null ? issuer.equals(that.issuer) : that.issuer == null;
+        return Objects.equals(issuer, that.issuer);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
@@ -88,6 +88,19 @@ class UaaUrlUtilsTest {
             "org.cloudfoundry.identity://mobile-windows-app.com/view",
             "org+cloudfoundry+identity://mobile-ios-app.com/view",
            "org-cl0udfoundry-identity://mobile-android-app.com/view"
+    );
+
+    private List<String> validSubdomains = Arrays.asList(
+            "test1",
+            "test-test2",
+            "t"
+    );
+
+    private List<String> invalidSubdomains = Arrays.asList(
+            "",
+            "-t",
+            "t-",
+            "test_test2"
     );
 
     @BeforeEach
@@ -279,7 +292,7 @@ class UaaUrlUtilsTest {
     }
 
     @Test
-    void xForwardedPrefixUrls() {
+    void xForwardedPrefixHeaderIsIgnored() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
         request.setServerName("login.localhost");
@@ -290,7 +303,7 @@ class UaaUrlUtilsTest {
         RequestContextHolder.setRequestAttributes(attrs);
 
         String url = UaaUrlUtils.getUaaUrl("/something", IdentityZone.getUaa());
-        assertThat(url, is("http://login.localhost/prefix/something"));
+        assertThat(url, is("http://login.localhost/something"));
     }
 
     @Test
@@ -444,6 +457,16 @@ class UaaUrlUtilsTest {
         assertThat(UaaUrlUtils.getSubdomain("a"), is("a."));
         assertThat(UaaUrlUtils.getSubdomain("    z     "), is("z."));
         assertThat(UaaUrlUtils.getSubdomain("a.b.c.d.e"), is("a.b.c.d.e."));
+    }
+
+    @Test
+    void validateValidSubdomains() {
+         validSubdomains.forEach(testString -> assertTrue(UaaUrlUtils.isValidSubdomain(testString)));
+    }
+
+    @Test
+    void validateInvalidSubdomains() {
+        invalidSubdomains.forEach(testString -> assertFalse(UaaUrlUtils.isValidSubdomain(testString)));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {

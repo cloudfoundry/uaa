@@ -15,20 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.mfa;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,8 +29,16 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.filter.GenericFilterBean;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 public class MfaUiRequiredFilter extends GenericFilterBean {
-    private static Log logger = LogFactory.getLog(MfaUiRequiredFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(MfaUiRequiredFilter.class);
 
     private final RequestMatcher inProgressMatcher;
     private final RequestMatcher completedMatcher;
@@ -112,9 +111,10 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
               .append(principal.getId());
         } else {
             result
-              .append("Unknown Auth=")
-              .append(a)
-              .append(" Principal=" + a.getPrincipal());
+                    .append("Unknown Auth=")
+                    .append(a)
+                    .append(" Principal=")
+                    .append(a.getPrincipal());
         }
         return result.toString();
     }
@@ -167,7 +167,7 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
     }
 
     protected boolean mfaRequired(String origin) {
-        return checker.isMfaEnabled(IdentityZoneHolder.get(), origin) && checker.isRequired(IdentityZoneHolder.get(), origin);
+        return checker.isMfaEnabled(IdentityZoneHolder.get()) && checker.isRequired(IdentityZoneHolder.get(), origin);
     }
 
     private boolean logoutInProgress(HttpServletRequest request) {

@@ -17,6 +17,7 @@ import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
@@ -29,6 +30,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -52,6 +54,8 @@ import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
+
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -65,6 +69,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 @Ignore // Invitations flow is disabled in Predix.
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@ExtendWith(PollutionPreventionExtension.class)
 public class InvitationsIT {
 
     @Autowired
@@ -88,9 +93,6 @@ public class InvitationsIT {
     @Autowired
     TestClient testClient;
 
-    @Value("${integration.test.uaa_url}")
-    String uaaUrl;
-
     @Value("${integration.test.base_url}")
     String baseUrl;
 
@@ -104,12 +106,30 @@ public class InvitationsIT {
     private String testInviteEmail;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
         screenShootRule.setWebDriver(webDriver);
 
         testInviteEmail = "testinvite@test.org";
+
+        String userId = IntegrationTestUtils.getUserIdByField(scimToken,
+                baseUrl,
+                "simplesamlphp",
+                "userName",
+                "user_only_for_invitations_test");
+        if (userId != null) {
+            IntegrationTestUtils.deleteUser(scimToken, baseUrl, userId);
+        }
+
+        userId = IntegrationTestUtils.getUserIdByField(scimToken,
+                baseUrl,
+                "simplesamlphp",
+                "userName",
+                "testinvite@test.org");
+        if (userId != null) {
+            IntegrationTestUtils.deleteUser(scimToken, baseUrl, userId);
+        }
     }
 
     @Before
@@ -122,7 +142,7 @@ public class InvitationsIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
-        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.manage().deleteAllCookies();
 
         webDriver.get("http://localhost:8080/app/");
@@ -142,7 +162,7 @@ public class InvitationsIT {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(APPLICATION_JSON);
         HttpEntity<String> request = new HttpEntity<>("{\"emails\":[\"marissa@test.org\"]}", headers);
-        ResponseEntity<Void> response = uaaTemplate.exchange(uaaUrl + "/invite_users/?client_id=admin&redirect_uri={uri}", POST, request, Void.class, "https://www.google.com");
+        ResponseEntity<Void> response = uaaTemplate.exchange(baseUrl + "/invite_users/?client_id=admin&redirect_uri={uri}", POST, request, Void.class, "https://www.google.com");
         assertThat(response.getStatusCode(), is(HttpStatus.UNAUTHORIZED));
     }
 
@@ -155,7 +175,7 @@ public class InvitationsIT {
         performInviteUser(userEmail, true);
     }
 
-    public void performInviteUser(String email, boolean isVerified) throws Exception {
+    public void performInviteUser(String email, boolean isVerified) {
         webDriver.get(baseUrl + "/logout.do");
         String redirectUri = baseUrl + "/profile";
         String code = createInvitation(email, email, redirectUri, OriginKeys.UAA);
@@ -168,7 +188,7 @@ public class InvitationsIT {
         String currentUserId = null;
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
-        } catch (RuntimeException x) {
+        } catch (RuntimeException ignored) {
         }
         assertEquals(invitedUserId, currentUserId);
 
@@ -213,7 +233,7 @@ public class InvitationsIT {
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
@@ -234,7 +254,7 @@ public class InvitationsIT {
 
     @Test
     @Ignore
-    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
+    public void testInsecurePasswordDisplaysErrorMessage() {
         String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
@@ -266,7 +286,7 @@ public class InvitationsIT {
         String[] emailList = new String[]{"marissa@test.org"};
         body.setEmails(emailList);
         HttpEntity<InvitationsRequest> request = new HttpEntity<>(body, headers);
-        ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(uaaUrl + "/invite_users?client_id=app&redirect_uri=" + appUrl, POST, request, InvitationsResponse.class);
+        ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(baseUrl + "/invite_users?client_id=app&redirect_uri=" + appUrl, POST, request, InvitationsResponse.class);
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
 
         String userId = response.getBody().getNewInvites().get(0).getUserId();
@@ -282,7 +302,7 @@ public class InvitationsIT {
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertTrue(user.isVerified());
 
-        webDriver.get("https://oidc10.oms.identity.team/logout.do");
+        webDriver.get(IntegrationTestUtils.OIDC_ACCEPTANCE_URL + "logout.do");
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
     }
 
@@ -292,10 +312,10 @@ public class InvitationsIT {
     }
 
     private String createInvitation(String username, String userEmail, String redirectUri, String origin) {
-        return createInvitation(baseUrl, uaaUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
+        return createInvitation(baseUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
     }
 
-    public static String createInvitation(String baseUrl, String uaaUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
+    public static String createInvitation(String baseUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + scimToken);
         RestTemplate uaaTemplate = new RestTemplate();
@@ -310,18 +330,18 @@ public class InvitationsIT {
         try {
             userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
             scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        } catch (RuntimeException x) {
+        } catch (RuntimeException ignored) {
         }
         if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
-            ResponseEntity<ScimUser> response = uaaTemplate.exchange(uaaUrl + "/Users", POST, request, ScimUser.class);
+            ResponseEntity<ScimUser> response = uaaTemplate.exchange(baseUrl + "/Users", POST, request, ScimUser.class);
             if (response.getStatusCode().value()!= HttpStatus.CREATED.value()) {
                 throw new IllegalStateException("Unable to create test user:"+scimUser);
             }
             userId = response.getBody().getId();
         } else {
             scimUser.setVerified(false);
-            IntegrationTestUtils.updateUser(scimToken, uaaUrl, scimUser);
+            IntegrationTestUtils.updateUser(scimToken, baseUrl, scimUser);
         }
 
         HttpHeaders invitationHeaders = new HttpHeaders();
@@ -330,7 +350,7 @@ public class InvitationsIT {
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
         ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
         HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
-        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
+        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(baseUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();
         return expiringCode.getCode();
     }

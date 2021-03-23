@@ -1,25 +1,16 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.listener;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.PrincipalNotFoundEvent;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Component;
 
 /**
  * Spring {@code ApplicationListener} which picks up the listens for Spring
@@ -27,26 +18,32 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
  *
  * @author Dave Syer
  */
-public class BadCredentialsListener implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,
-                ApplicationEventPublisherAware {
+@Component
+public class BadCredentialsListener
+        implements ApplicationListener<AuthenticationFailureBadCredentialsEvent>,
+        ApplicationEventPublisherAware {
+
+    private final IdentityZoneManager identityZoneManager;
 
     private ApplicationEventPublisher publisher;
 
+    public BadCredentialsListener(IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
+
     @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
+    public void setApplicationEventPublisher(@NonNull final ApplicationEventPublisher publisher) {
         this.publisher = publisher;
     }
 
     @Override
     public void onApplicationEvent(AuthenticationFailureBadCredentialsEvent event) {
-        AuthenticationFailureBadCredentialsEvent bce = event;
-        String principal = bce.getAuthentication().getName();
-        UaaAuthenticationDetails details = (UaaAuthenticationDetails) bce.getAuthentication().getDetails();
-        if (bce.getException() instanceof UsernameNotFoundException) {
-            publisher.publishEvent(new PrincipalNotFoundEvent(principal, details));
-        }
-        else {
-            publisher.publishEvent(new PrincipalAuthenticationFailureEvent(principal, details));
+        String principal = event.getAuthentication().getName();
+        UaaAuthenticationDetails details = (UaaAuthenticationDetails) event.getAuthentication().getDetails();
+        if (event.getException() instanceof UsernameNotFoundException) {
+            publisher.publishEvent(new PrincipalNotFoundEvent(principal, details, identityZoneManager.getCurrentIdentityZoneId()));
+        } else {
+            publisher.publishEvent(new PrincipalAuthenticationFailureEvent(principal, details, identityZoneManager.getCurrentIdentityZoneId()));
         }
     }
 

@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.util.StringUtils;
@@ -29,9 +29,10 @@ import java.util.UUID;
 
 public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
 
-    private static Log logger = LogFactory.getLog(Create_Groups_For_Zones_2_5_2.class);
+    private static Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
+
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         String groupCreateSQL = "INSERT INTO groups (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)";
         Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
 

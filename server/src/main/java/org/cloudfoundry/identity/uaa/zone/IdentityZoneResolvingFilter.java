@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -35,9 +35,13 @@ import java.util.Set;
  */
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
-    private IdentityZoneProvisioning dao;
+    private final IdentityZoneProvisioning dao;
     private Set<String> defaultZoneHostnames = new HashSet<>();
-    private Log logger = LogFactory.getLog(getClass());
+    private Logger logger = LoggerFactory.getLogger(getClass());
+
+    public IdentityZoneResolvingFilter(final IdentityZoneProvisioning dao) {
+        this.dao = dao;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -58,6 +62,13 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             }
         }
         if (identityZone == null) {
+            // skip filter to static resources in order to serve images and css in case of invalid zones
+            boolean isStaticResource = request.getRequestURI().startsWith("/uaa/resources/");
+            if(isStaticResource) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             request.setAttribute("error_message_code", "zone.not.found");
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain " + subdomain);
             return;
@@ -89,14 +100,9 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         return null;
     }
 
-    public void setIdentityZoneProvisioning(IdentityZoneProvisioning dao) {
-        this.dao = dao;
-    }
-
     public void setAdditionalInternalHostnames(Set<String> hostnames) {
         if (hostnames!=null) {
             hostnames
-                .stream()
                 .forEach(
                   entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
                  );
@@ -106,7 +112,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     public void setDefaultInternalHostnames(Set<String> hostnames) {
         if (hostnames!=null) {
             hostnames
-                .stream()
                 .forEach(
                         entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
                 );
@@ -117,7 +122,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         this.defaultZoneHostnames.clear();
         if (hostnames!=null) {
             hostnames
-                .stream()
                 .forEach(
                         entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
                 );

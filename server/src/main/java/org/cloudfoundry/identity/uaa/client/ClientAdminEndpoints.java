@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -28,14 +26,16 @@ import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
-import org.springframework.beans.factory.InitializingBean;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -74,7 +74,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -93,85 +92,66 @@ import static java.lang.String.format;
     objectName="cloudfoundry.identity:name=ClientEndpoint",
     description = "UAA Oauth Clients API Metrics"
 )
-public class ClientAdminEndpoints implements InitializingBean, ApplicationEventPublisherAware {
+public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
+    private static final Logger logger = LoggerFactory.getLogger(ClientAdminEndpoints.class);
     private static final String SCIM_CLIENTS_SCHEMA_URI = "http://cloudfoundry.org/schema/scim/oauth-clients-1.0";
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final SecurityContextAccessor securityContextAccessor;
+    private final ClientDetailsValidator clientDetailsValidator;
+    private final AuthenticationManager authenticationManager;
+    private final ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
+    private final ApprovalStore approvalStore;
+    private final MultitenantClientServices clientRegistrationService;
+    private final QueryableResourceManager<ClientDetails> clientDetailsService;
+    private final int clientMaxCount;
 
-    private ClientServicesExtension clientRegistrationService;
+    private final AttributeNameMapper attributeNameMapper;
+    private final RestrictUaaScopesClientValidator restrictedScopesValidator;
+    private final Map<String, AtomicInteger> errorCounts;
+    private final AtomicInteger clientUpdates;
+    private final AtomicInteger clientDeletes;
+    private final AtomicInteger clientSecretChanges;
 
-    private QueryableResourceManager<ClientDetails> clientDetailsService;
-
-    private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
-
-    private AttributeNameMapper attributeNameMapper = new SimpleAttributeNameMapper(
-                    Collections.<String, String> emptyMap());
-
-    private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
-
-    private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<>();
-
-    private AtomicInteger clientUpdates = new AtomicInteger();
-
-    private AtomicInteger clientDeletes = new AtomicInteger();
-
-    private AtomicInteger clientSecretChanges = new AtomicInteger();
-
-    private ClientDetailsValidator clientDetailsValidator;
-
-    private ClientDetailsValidator restrictedScopesValidator;
-
-    private ApprovalStore approvalStore;
-
-    private AuthenticationManager authenticationManager;
     private ApplicationEventPublisher publisher;
-    private int clientMaxCount;
 
-    public ClientDetailsValidator getRestrictedScopesValidator() {
-        return restrictedScopesValidator;
-    }
+    public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
+                                final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
+                                final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
+                                final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
+                                final @Qualifier("approvalStore") ApprovalStore approvalStore,
+                                final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientRegistrationService,
+                                final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
+                                final @Value("${clientMaxCount:500}") int clientMaxCount) {
 
-    public void setRestrictedScopesValidator(ClientDetailsValidator restrictedScopesValidator) {
-        this.restrictedScopesValidator = restrictedScopesValidator;
-    }
+        if (clientMaxCount <= 0) {
+            throw new IllegalArgumentException(
+                    format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
+            );
+        }
 
-    public ApprovalStore getApprovalStore() {
-        return approvalStore;
-    }
-
-    public void setApprovalStore(ApprovalStore approvalStore) {
-        this.approvalStore = approvalStore;
-    }
-
-    public AuthenticationManager getAuthenticationManager() {
-        return authenticationManager;
-    }
-
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
-    }
-
-    public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
-        this.attributeNameMapper = attributeNameMapper;
-    }
-
-    /**
-     * @param clientRegistrationService the clientRegistrationService to set
-     */
-    public void setClientRegistrationService(ClientServicesExtension clientRegistrationService) {
-        this.clientRegistrationService = clientRegistrationService;
-    }
-
-    /**
-     * @param clientDetailsService the clientDetailsService to set
-     */
-    public void setClientDetailsService(QueryableResourceManager<ClientDetails> clientDetailsService) {
-        this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
+        this.clientDetailsValidator = clientDetailsValidator;
+        this.authenticationManager = authenticationManager;
+        this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
+        this.approvalStore = approvalStore;
+        this.clientRegistrationService = clientRegistrationService;
+        this.clientDetailsService = clientDetailsService;
+        this.clientMaxCount = clientMaxCount;
+        this.attributeNameMapper = new SimpleAttributeNameMapper(Map.of(
+                "client_id", "clientId",
+                "resource_ids", "resourceIds",
+                "authorized_grant_types", "authorizedGrantTypes",
+                "redirect_uri", "registeredRedirectUri",
+                "access_token_validity", "accessTokenValiditySeconds",
+                "refresh_token_validity", "refreshTokenValiditySeconds",
+                "autoapprove", "autoApproveScopes",
+                "additionalinformation", "additionalInformation"));
+        this.restrictedScopesValidator = new RestrictUaaScopesClientValidator(new UaaScopes());
+        this.errorCounts = new ConcurrentHashMap<>();
+        this.clientUpdates = new AtomicInteger();
+        this.clientDeletes = new AtomicInteger();
+        this.clientSecretChanges = new AtomicInteger();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
@@ -199,16 +179,9 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         return errorCounts;
     }
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        Assert.state(clientRegistrationService != null, "A ClientRegistrationService must be provided");
-        Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
-        Assert.state(clientDetailsValidator != null, "A ClientDetailsValidator must be provided");
-    }
-
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
     @ResponseBody
-    public ClientDetails getClientDetails(@PathVariable String client) throws Exception {
+    public ClientDetails getClientDetails(@PathVariable String client) {
         try {
             return removeSecret(clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId()));
         } catch (InvalidClientException e) {
@@ -223,30 +196,25 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
+    public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
-        ClientDetails ret = removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
 
-        return ret;
+        return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
     }
 
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public List<String> getRestrictedClientScopes() throws Exception {
-        if (restrictedScopesValidator instanceof RestrictUaaScopesClientValidator) {
-            return ((RestrictUaaScopesClientValidator)restrictedScopesValidator).getUaaScopes().getUaaScopes();
-        } else {
-            return null;
-        }
+    public List<String> getRestrictedClientScopes() {
+        return restrictedScopesValidator.getUaaScopes().getUaaScopes();
     }
 
 
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) throws Exception {
-        getRestrictedScopesValidator().validate(client, Mode.CREATE);
+    public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) {
+        restrictedScopesValidator.validate(client, Mode.CREATE);
         return createClientDetails(client);
     }
 
@@ -254,7 +222,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
-    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) {
         if (clients==null || clients.length==0) {
             throw new NoSuchClientException("Message body does not contain any clients.");
         }
@@ -277,7 +245,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
+    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) {
         if (clients==null || clients.length==0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
@@ -311,7 +279,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseBody
     public ClientDetails updateRestrictedClientDetails(@RequestBody BaseClientDetails client,
                                                        @PathVariable("client") String clientId) throws Exception {
-        getRestrictedScopesValidator().validate(client, Mode.MODIFY);
+        restrictedScopesValidator.validate(client, Mode.MODIFY);
         return updateClientDetails(client, clientId);
     }
 
@@ -319,7 +287,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails updateClientDetails(@RequestBody BaseClientDetails client,
-                    @PathVariable("client") String clientId) throws Exception {
+                    @PathVariable("client") String clientId) {
         Assert.state(clientId.equals(client.getClientId()),
                         format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
         ClientDetails details = client;
@@ -342,7 +310,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public ClientDetails removeClientDetails(@PathVariable String client) throws Exception {
+    public ClientDetails removeClientDetails(@PathVariable String client) {
         ClientDetails details = clientDetailsService.retrieve(client, IdentityZoneHolder.get().getId());
         doProcessDeletes(new ClientDetails[]{details});
         return removeSecret(details);
@@ -352,7 +320,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) throws Exception {
+    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId());
@@ -364,7 +332,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetailsModification[] modifyClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
+    public ClientDetailsModification[] modifyClientDetailsTx(@RequestBody ClientDetailsModification[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
@@ -445,7 +413,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
-            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication()));
+            publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
             clientDeletes.incrementAndGet();
             result[i] = removeSecret(details[i]);
             result[i].setApprovalsDeleted(true);
@@ -454,13 +422,8 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     }
 
     protected void deleteApprovals(String clientId) {
-        if (approvalStore!=null) {
-            approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
-        } else {
-            throw new UnsupportedOperationException("No approval store configured on "+getClass().getName());
-        }
+        approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
     }
-
 
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
     @ResponseBody
@@ -470,7 +433,7 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
                     @RequestParam(required = false, defaultValue = "client_id") String sortBy,
                     @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
-                    @RequestParam(required = false, defaultValue = "100") int count) throws Exception {
+                    @RequestParam(required = false, defaultValue = "100") int count) {
 
         if (count > clientMaxCount) {
             count = clientMaxCount;
@@ -495,14 +458,14 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<>(Arrays.asList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
+            return new SearchResults<>(Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
                 clients.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
-                            attributeNameMapper, Arrays.asList(SCIM_CLIENTS_SCHEMA_URI));
+                            attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
         } catch (SpelParseException e) {
             throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
                             HttpStatus.BAD_REQUEST.value());
@@ -560,17 +523,11 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     }
 
     private boolean validateCurrentClientSecretAdd(String clientSecret) {
-        if(clientSecret != null && clientSecret.split(" ").length != 1){
-            return false;
-        }
-        return true;
+        return clientSecret == null || clientSecret.split(" ").length == 1;
     }
 
     private boolean validateCurrentClientSecretDelete(String clientSecret) {
-        if(clientSecret != null && clientSecret.split(" ").length == 2){
-            return true;
-        }
-        return false;
+        return clientSecret != null && clientSecret.split(" ").length == 2;
     }
 
     @ExceptionHandler(InvalidClientSecretException.class)
@@ -605,12 +562,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
 
 
     private void checkPasswordChangeIsAllowed(ClientDetails clientDetails, String oldSecret) {
-
-        if (!securityContextAccessor.isClient()) {
-            // Trusted client (not acting on behalf of user)
-            throw new IllegalStateException("Only a client can change client secret");
-        }
-
         String clientId = clientDetails.getClientId();
 
         // Call is by client
@@ -716,18 +667,6 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
         return details;
     }
 
-    public void setClientDetailsValidator(ClientAdminEndpointsValidator clientDetailsValidator) {
-        this.clientDetailsValidator = clientDetailsValidator;
-    }
-
-    public ClientDetailsValidator getClientDetailsValidator() {
-        return clientDetailsValidator;
-    }
-
-    public void setClientDetailsResourceMonitor(ResourceMonitor<ClientDetails> clientDetailsResourceMonitor) {
-        this.clientDetailsResourceMonitor = clientDetailsResourceMonitor;
-    }
-
     public void publish(ApplicationEvent event) {
         if (publisher!=null) {
             publisher.publishEvent(event);
@@ -737,14 +676,5 @@ public class ClientAdminEndpoints implements InitializingBean, ApplicationEventP
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         publisher = applicationEventPublisher;
-    }
-
-    public void setClientMaxCount(int clientMaxCount) {
-        if (clientMaxCount <= 0) {
-            throw new IllegalArgumentException(
-                format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
-            );
-        }
-        this.clientMaxCount = clientMaxCount;
     }
 }

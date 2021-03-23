@@ -62,7 +62,7 @@ public class X509ExpiryCheckingTrustManagerTest {
   }
 
   @Test
-  public void checkAcceptedIssuers_callsDelegate() throws Exception {
+  public void checkAcceptedIssuers_callsDelegate() {
     X509ExpiryCheckingTrustManager manager = new X509ExpiryCheckingTrustManager();
     X509TrustManager mockedDelegate = Mockito.mock(X509TrustManager.class);
     manager.setDelegate(mockedDelegate);

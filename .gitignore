@@ -29,6 +29,9 @@ build/
 /classes/
 bin
 phantomjsdriver.log
+statsd/logs
+server/logs
+uaa/logs
 
 uaa/node_modules
 # Docs
@@ -38,3 +41,4 @@ uaa/slate/node_modules/**/*
 uaa/slateCustomizations/source/versionfile
 
 ci/dockerfile/Dockerfile
+logs/**

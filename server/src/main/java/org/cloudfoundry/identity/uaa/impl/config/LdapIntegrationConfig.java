@@ -27,7 +27,7 @@ public class LdapIntegrationConfig {
   }
 
   @Bean
-  public Map ldapProperties(Environment environment) throws NoSuchAlgorithmException, KeyManagementException {
+  public Map ldapProperties(Environment environment) {
     Map initialLdapProperties = new HashMap();
     initialLdapProperties.put("com.sun.jndi.ldap.connect.pool", false);
     initialLdapProperties.put("java.naming.referral", ofNullable(environment.getProperty("ldap.base.referral")).orElse("follow"));

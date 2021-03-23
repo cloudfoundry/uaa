@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
@@ -29,11 +29,10 @@ import static org.springframework.web.bind.annotation.RequestMethod.*;
 @RequestMapping("/mfa-providers")
 @RestController
 public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
-    protected static Log logger = LogFactory.getLog(MfaProviderEndpoints.class);
+    protected static Logger logger = LoggerFactory.getLogger(MfaProviderEndpoints.class);
     private ApplicationEventPublisher publisher;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private MfaProviderValidator mfaProviderValidator;
-    private IdentityZoneProvisioning identityZoneProvisioning;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
@@ -78,7 +77,7 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
         if(currentMfaConfig.isEnabled() && currentMfaConfig.getProviderName().equals(existing.getName())) {
             throw new MfaAlreadyExistsException("MFA provider is currently active on zone: " + IdentityZoneHolder.get().getId() + ". Please deactivate it from the zone or set another MFA provider");
         }
-        publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication()));
+        publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
         return new ResponseEntity<>(existing, HttpStatus.OK);
     }
 
@@ -113,9 +112,5 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
         this.mfaProviderValidator = mfaProviderValidator;
-    }
-
-    public void setIdentityZoneProvisioning(IdentityZoneProvisioning identityZoneProvisioning) {
-        this.identityZoneProvisioning = identityZoneProvisioning;
     }
 }

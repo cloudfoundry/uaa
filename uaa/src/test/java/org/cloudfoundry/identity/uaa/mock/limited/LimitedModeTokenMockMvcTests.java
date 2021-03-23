@@ -28,7 +28,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @LimitedMode
-class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
+public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
+    // To set Predix UAA limited/degraded mode, use environment variable instead of StatusFile
 
     @Test
     void check_token_while_limited() throws Exception {
@@ -49,5 +50,4 @@ class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
             .andExpect(jsonPath("$.client_id").value(client.getClientId()))
             .andExpect(jsonPath("$.jti").value(token));
     }
-
 }

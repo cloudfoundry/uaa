@@ -49,7 +49,7 @@ public class UserInfoEndpointIntegrationTests {
      * tests a happy-day flow of the <code>/userinfo</code> endpoint
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
         ResponseEntity<String> user = serverRunning.getForString("/userinfo");
         assertEquals(HttpStatus.OK, user.getStatusCode());
 

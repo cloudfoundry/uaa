@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache.ClientRedirectSavedRequest;
 import org.junit.After;
 import org.junit.Before;
@@ -37,7 +38,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
-import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -128,7 +128,7 @@ public class UaaSavedRequestCacheTests {
     }
 
     @Test
-    public void saveClientRedirect_On_Regular_Get() throws Exception {
+    public void saveClientRedirect_On_Regular_Get() {
         request.setSession(session);
         request.setScheme("http");
         request.setServerName("localhost");
@@ -140,7 +140,7 @@ public class UaaSavedRequestCacheTests {
 
 
     @Test
-    public void saveFormRedirectRequest_GET_Method() throws Exception {
+    public void saveFormRedirectRequest_GET_Method() {
         request.setSession(session);
         request.setParameter(FORM_REDIRECT_PARAMETER, "http://login");
         request.setMethod(HttpMethod.GET.name());
@@ -161,7 +161,7 @@ public class UaaSavedRequestCacheTests {
     }
 
     @Test
-    public void do_not_save_form() throws Exception {
+    public void do_not_save_form() {
         request.setSession(session);
         spy.saveRequest(request, new MockHttpServletResponse());
         verify(spy, never()).saveClientRedirect(request, request.getParameter(FORM_REDIRECT_PARAMETER));
@@ -191,8 +191,7 @@ public class UaaSavedRequestCacheTests {
         request.setSession(session);
         assertTrue(cache.shouldSaveFormRedirectParameter(request));
 
-        ClientRedirectSavedRequest savedRequest = new ClientRedirectSavedRequest(request, redirectUri);
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        SessionUtils.setSavedRequestSession(session, new ClientRedirectSavedRequest(request, redirectUri));
         assertFalse(cache.shouldSaveFormRedirectParameter(request));
     }
 
@@ -202,7 +201,7 @@ public class UaaSavedRequestCacheTests {
         cache.saveClientRedirect(request, request.getParameter(FORM_REDIRECT_PARAMETER));
         HttpSession session = request.getSession(false);
         assertNotNull(session);
-        SavedRequest savedRequest = (SavedRequest) session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(session);
         assertNotNull(savedRequest);
         assertEquals(redirectUri, savedRequest.getRedirectUrl());
         assertEquals(GET.name(), savedRequest.getMethod());

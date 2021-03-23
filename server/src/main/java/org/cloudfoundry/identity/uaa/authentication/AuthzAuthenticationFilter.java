@@ -1,41 +1,11 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
-
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -46,12 +16,30 @@ import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEn
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.util.Assert;
 
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import static java.util.Optional.ofNullable;
 
 /**
  * Filter which processes authentication submitted through the
  * <code>/authorize</code> endpoint.
- *
+ * <p>
  * Checks the submitted information for a parameter named "credentials" (or
  * specified via the {@link #setParameterNames(List) parameter name}), in JSON
  * format.
@@ -62,14 +50,14 @@ import static java.util.Optional.ofNullable;
  * context and allows the request to continue.
  * <p>
  * If the parameter is not present, the filter will have no effect.
- *
+ * <p>
  * See <a
  * href="https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.md">UUA
  * API Docs</a>
  */
 public class AuthzAuthenticationFilter implements Filter {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private AuthenticationManager authenticationManager;
 
@@ -118,13 +106,13 @@ public class AuthzAuthenticationFilter implements Filter {
     }
 
     public AuthzAuthenticationFilter(AuthenticationManager authenticationManager) {
-        Assert.notNull(authenticationManager);
+        Assert.notNull(authenticationManager, "[Assertion failed] - authenticationManager is required; it must not be null");
         this.authenticationManager = authenticationManager;
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-        ServletException {
+            ServletException {
 
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
@@ -136,31 +124,23 @@ public class AuthzAuthenticationFilter implements Filter {
         try {
             if (loginInfo.isEmpty()) {
                 throw new BadCredentialsException("Request does not contain credentials.");
-            }
-            else {
+            } else {
                 logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
                 if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }
                 Authentication result = authenticationManager.authenticate(new AuthzAuthenticationRequest(loginInfo,
-                    new UaaAuthenticationDetails(req)));
+                        new UaaAuthenticationDetails(req)));
 
                 if (result.isAuthenticated()) {
                     SecurityContextHolder.getContext().setAuthentication(result);
-                    ofNullable(successHandler).ifPresent(
-                        s -> s.setSavedAccountOptionCookie(req, res, result)
-                    );
-
+                    ofNullable(successHandler).ifPresent(s -> s.setSavedAccountOptionCookie(req, res, result));
 
                     UaaAuthentication uaaAuthentication = (UaaAuthentication) result;
-                    if (uaaAuthentication.isRequiresPasswordChange()) {
+                    if (SessionUtils.isPasswordChangeRequired(req.getSession())) {
                         throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
                     }
-
                 }
-
-
-
             }
         } catch (AuthenticationException e) {
             logger.debug("Authentication failed");
@@ -174,7 +154,6 @@ public class AuthzAuthenticationFilter implements Filter {
             if (buggyVmcAcceptHeader) {
                 HttpServletRequest jsonAcceptingRequest = new HttpServletRequestWrapper(req) {
 
-                    @SuppressWarnings("unchecked")
                     @Override
                     public Enumeration<String> getHeaders(String name) {
                         if ("accept".equalsIgnoreCase(name)) {
@@ -195,8 +174,7 @@ public class AuthzAuthenticationFilter implements Filter {
                 };
 
                 authenticationEntryPoint.commence(jsonAcceptingRequest, res, e);
-            }
-            else {
+            } else {
                 authenticationEntryPoint.commence(req, res, e);
             }
             return;
@@ -206,7 +184,7 @@ public class AuthzAuthenticationFilter implements Filter {
     }
 
     private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<String, String>();
+        Map<String, String> credentials = new HashMap<>();
 
         for (String paramName : parameterNames) {
             String value = request.getParameter(paramName);
@@ -214,14 +192,13 @@ public class AuthzAuthenticationFilter implements Filter {
                 if (value.startsWith("{")) {
                     try {
                         Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                            new TypeReference<Map<String, String>>() {
-                            });
+                                new TypeReference<>() {
+                                });
                         credentials.putAll(jsonCredentials);
                     } catch (JsonUtils.JsonUtilException e) {
                         logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
                     }
-                }
-                else {
+                } else {
                     credentials.put(paramName, value);
                 }
             }
@@ -231,7 +208,7 @@ public class AuthzAuthenticationFilter implements Filter {
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
     }
 
     @Override

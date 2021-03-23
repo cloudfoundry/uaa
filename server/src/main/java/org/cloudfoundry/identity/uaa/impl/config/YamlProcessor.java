@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -36,9 +36,9 @@ public class YamlProcessor {
         void process(Properties properties, Map<String, Object> map);
     }
 
-    private static final Log logger = LogFactory.getLog(YamlProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(YamlProcessor.class);
 
-    public static enum ResolutionMethod {
+    public enum ResolutionMethod {
         OVERRIDE, OVERRIDE_AND_IGNORE, FIRST_FOUND
     }
 

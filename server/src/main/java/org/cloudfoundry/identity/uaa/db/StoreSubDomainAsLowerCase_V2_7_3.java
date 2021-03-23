@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
@@ -31,24 +31,17 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
 
     static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
     static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
-    Log logger = LogFactory.getLog(StoreSubDomainAsLowerCase_V2_7_3.class);
+    Logger logger = LoggerFactory.getLogger(StoreSubDomainAsLowerCase_V2_7_3.class);
 
     @Override
-    public synchronized void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public synchronized void migrate(JdbcTemplate jdbcTemplate) {
         RandomValueStringGenerator generator = new RandomValueStringGenerator(3);
         Map<String, List<IdentityZone>> zones = new HashMap<>();
         Set<String> duplicates = new HashSet<>();
@@ -72,7 +65,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
                 logger.debug(String.format("Updating zone id:%s; old subdomain: %s; new subdomain: %s;", dupZone.getId(), dupZone.getSubdomain(), newsubdomain));
                 dupZone.setSubdomain(newsubdomain);
                 dupZone = updateIdentityZone(dupZone, jdbcTemplate);
-                zones.put(newsubdomain, Arrays.asList(dupZone));
+                zones.put(newsubdomain, Collections.singletonList(dupZone));
             }
         }
         for (IdentityZone zone : identityZones) {
@@ -112,8 +105,7 @@ public class StoreSubDomainAsLowerCase_V2_7_3 implements SpringJdbcMigration {
     private IdentityZone retrieveIdentityZone(String id, JdbcTemplate jdbcTemplate) {
         String IDENTITY_ZONE_BY_ID_QUERY = IDENTITY_ZONES_QUERY + "where id=?";
         try {
-            IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
-            return identityZone;
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }

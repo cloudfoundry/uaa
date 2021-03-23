@@ -19,15 +19,28 @@ case "$1" in
         PROFILE_NAME=mysql
         ;;
 
-    postgresql|sqlserver|mysql)
+    postgresql|mysql)
         DB_IMAGE_NAME=$1
         DB=$1
         PROFILE_NAME=$1
         ;;
 
     *)
-        echo $"$1 is not a known database type. Supported types are: hsqldb, percona, postgresql, sqlserver, mysql"
+        echo $"ERROR: $1 is not a known database type. Supported types are: hsqldb, percona, postgresql, mysql"
         exit 1
 esac
 
-docker run --privileged -t -i --shm-size=1G --env DB=${DB} -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" -v "${GRADLE_LOCK_DIR}" "cfidentity/uaa-${DB_IMAGE_NAME}" /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
+if [[ -z "${DOCKER_IMAGE+x}" ]]; then
+    DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
+fi
+
+docker run \
+  --privileged \
+  --tty \
+  --interactive \
+  --shm-size=1G \
+  --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
+  --volume "${GRADLE_LOCK_DIR}" \
+  --env DB="${DB}" \
+  "${DOCKER_IMAGE}" \
+  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME},default" "${CONTAINER_SCRIPT_DIR}"

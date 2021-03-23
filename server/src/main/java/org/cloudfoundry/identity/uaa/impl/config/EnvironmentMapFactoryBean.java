@@ -1,51 +1,30 @@
-/*******************************************************************************
- *     Cloud Foundry 
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.EnvironmentAware;
-import org.springframework.core.env.ConfigurableEnvironment;
-import org.springframework.core.env.EnumerablePropertySource;
-import org.springframework.core.env.Environment;
-import org.springframework.core.env.PropertySource;
-import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.env.*;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Factory for Maps that reads from the Spring context {@link Environment} where
  * it can.
- * 
+ *
  * @author Dave Syer
- * 
  */
 public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, EnvironmentAware {
 
-    private static Log logger = LogFactory.getLog(EnvironmentMapFactoryBean.class);
+    private static Logger logger = LoggerFactory.getLogger(EnvironmentMapFactoryBean.class);
 
     private static final Collection<String> STATIC_PROPERTY_SOURCES = Arrays.asList(
-                    StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,
-                    StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
+            StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,
+            StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
 
     private Environment environment;
 
-    private Map<String, ?> defaultProperties = new HashMap<String, Object>();
+    private Map<String, ?> defaultProperties = new HashMap<>();
 
     public void setDefaultProperties(Map<String, ?> defaultProperties) {
         this.defaultProperties = defaultProperties;
@@ -58,7 +37,7 @@ public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, E
 
     @Override
     public Map<String, ?> getObject() {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
+        Map<String, Object> result = new LinkedHashMap<>();
         // The result is the default application properties overridden with
         // Spring environment values - reversing the
         // order of the placeholder configurers in the application context.
@@ -68,8 +47,7 @@ public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, E
                 Object value = environment.getProperty(name, Object.class);
                 logger.debug("From Environment: " + name);
                 result.put(name, value);
-            }
-            else {
+            } else {
                 logger.debug("From Defaults: " + name);
                 result.put(name, defaultProperties.get(key));
             }

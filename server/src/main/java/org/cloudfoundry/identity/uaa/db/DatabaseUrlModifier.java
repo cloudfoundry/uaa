@@ -53,10 +53,6 @@ public class DatabaseUrlModifier {
                 appendParameter(result, "connectTimeout", getConnectTimeoutSeconds());
                 break;
             }
-            case sqlserver : {
-                appendParameter(result, "loginTimeout", getConnectTimeoutSeconds());
-                break;
-            }
             case hsqldb : {break;}
             default : throw new IllegalStateException("Unrecognized database: "+ databaseType);
         }

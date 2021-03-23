@@ -1,74 +1,50 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.springframework.mock.env.MockEnvironment;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.stream.Stream;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@RunWith(Parameterized.class)
-public class OauthCodeIndexTest extends JdbcTestBase {
+@WithDatabaseContext
+class OauthCodeIndexTest {
 
-    private String springProfile;
-    private String tableName;
-    private String indexName;
-    private boolean unique;
+    @Autowired
+    private DataSource dataSource;
 
-    public OauthCodeIndexTest(String springProfile, String tableName, String indexName, boolean unique) {
-        this.springProfile = springProfile;
-        this.tableName = tableName;
-        this.indexName = indexName;
-        this.unique = unique;
-    }
+    static class ExistingIndiciesProvider implements ArgumentsProvider {
 
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]; name[{2}]; unique[{3}];")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {null, "oauth_code", "oauth_code_uq_idx", true},
-            {null, "oauth_code", "oauth_code_expiresat_idx", false},
-//            {"sqlserver, "oauth_code", "oauth_code_uq_idx", true},
-//            {"sqlserver, "oauth_code", "oauth_code_expiresat_idx", false},
-        });
-    }
-
-    @Override
-    public void setUp() throws Exception {
-        MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
-            environment.setActiveProfiles(springProfile);
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of("oauth_code", "oauth_code_uq_idx", true),
+                    Arguments.of("oauth_code", "oauth_code_expiresat_idx", false)
+            );
         }
-        setUp(environment);
     }
 
-
-    @Test
-    public void test_existing_indicies() throws Exception {
+    @ParameterizedTest
+    @ArgumentsSource(ExistingIndiciesProvider.class)
+    void existingIndicies(
+            final String uncasedTableName,
+            final String indexName,
+            final boolean unique
+    ) throws Exception {
         boolean found = false;
-        for (String tableName : Arrays.asList(tableName.toLowerCase(), tableName.toUpperCase())) {
+        for (String tableName : Arrays.asList(uncasedTableName.toLowerCase(), uncasedTableName.toUpperCase())) {
             try (
-                Connection connection = dataSource.getConnection();
-                ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true);
+                    Connection connection = dataSource.getConnection();
+                    ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true)
             ) {
                 while (!found && rs.next()) {
                     found = indexName.equalsIgnoreCase(rs.getString("INDEX_NAME"));
@@ -79,7 +55,7 @@ public class OauthCodeIndexTest extends JdbcTestBase {
             }
         }
 
-        assertTrue(String.format("Expected to find index %s.%s", tableName, indexName), found);
+        assertTrue(found, String.format("Expected to find index %s.%s", uncasedTableName, indexName));
     }
 
 }

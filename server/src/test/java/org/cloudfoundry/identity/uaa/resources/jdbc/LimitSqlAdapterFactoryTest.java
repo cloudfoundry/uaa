@@ -1,95 +1,77 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.apache.commons.lang.StringUtils;
+import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 
 import java.util.Arrays;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.Collections.EMPTY_LIST;
-import static org.junit.Assert.assertSame;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
+@ExtendWith(SpringProfileCleanupExtension.class)
+class LimitSqlAdapterFactoryTest {
 
-public class LimitSqlAdapterFactoryTest {
+    static class LimitSqlAdapterArgumentsProvider implements ArgumentsProvider {
 
-    private static String defaultProfiles = null;
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of(null, HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(EMPTY_LIST, HsqlDbLimitSqlAdapter.class),
 
-    @BeforeClass
-    public static void saveProfiles() {
-        defaultProfiles = System.getProperty("spring.profiles.active");
-        System.clearProperty("spring.profiles.active");
-    }
+                    Arguments.of(Collections.singletonList("hsqldb"), HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "default"), HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("default", "hsqldb"), HsqlDbLimitSqlAdapter.class),
 
-    @AfterClass
-    public static void restoreProfiles() {
-        if (defaultProfiles!=null) {
-            System.setProperty("spring.profiles.active", defaultProfiles);
+                    Arguments.of(Collections.singletonList("postgresql"), PostgresLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("postgresql", "default"), PostgresLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("default", "postgresql"), PostgresLimitSqlAdapter.class),
+
+                    Arguments.of(Collections.singletonList("mysql"), MySqlLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("mysql", "default"), MySqlLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("default", "mysql"), MySqlLimitSqlAdapter.class),
+
+                    Arguments.of(Arrays.asList("hsqldb", "mysql", "postgresql", "default"), PostgresLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "mysql", "default"), MySqlLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "default"), HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(Collections.singletonList("hsqldb"), HsqlDbLimitSqlAdapter.class),
+
+                    Arguments.of(Collections.singletonList("anything"), HsqlDbLimitSqlAdapter.class)
+            );
         }
     }
 
-    @Test
-    public void getLimitSqlAdapter_no_args() throws Exception {
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "mysql");
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "postgresql");
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "mysql,default");
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "");
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "sqlserver");
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "default,sqlserver");
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.setProperty("spring.profiles.active", "sqlserver,default");
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
-        System.clearProperty("spring.profiles.active");
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
+    @ParameterizedTest
+    @ArgumentsSource(LimitSqlAdapterArgumentsProvider.class)
+    void getLimitSqlAdapter(List<String> profiles, Class<?> expectedClazz) {
+        if (profiles == null) {
+            System.clearProperty("spring.profiles.active");
+        } else {
+            System.setProperty("spring.profiles.active", StringUtils.join(profiles, ","));
+        }
+
+        assertSame(expectedClazz, LimitSqlAdapterFactory.getLimitSqlAdapter().getClass());
     }
 
-    @Test
-    public void getLimitSqlAdapter_profiles_arg() throws Exception {
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((String) null).getClass());
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql").getClass());
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("mysql,default").getClass());
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("").getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("sqlserver").getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("default,sqlserver").getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("sqlserver,default").getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("postgresql").getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("default,postgresql").getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter("postgresql,default").getClass());
+    @ParameterizedTest
+    @ArgumentsSource(LimitSqlAdapterArgumentsProvider.class)
+    void getLimitSqlAdapter_withStringProfiles(List<String> profiles, Class<?> expectedClazz) {
+        assertSame(expectedClazz, LimitSqlAdapterFactory.getLimitSqlAdapter(StringUtils.join(profiles, ",")).getClass());
     }
 
-    @Test
-    public void getLimitSqlAdapter_list_args() throws Exception {
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter((Collection<String>) null).getClass());
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql")).getClass());
-        assertSame(MySqlLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("mysql","default")).getClass());
-        assertSame(HsqlDbLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(EMPTY_LIST).getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("sqlserver")).getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("default","sqlserver")).getClass());
-        assertSame(SQLServerLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("sqlserver","default")).getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("postgresql")).getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("default","postgresql")).getClass());
-        assertSame(PostgresLimitSqlAdapter.class, LimitSqlAdapterFactory.getLimitSqlAdapter(Arrays.asList("postgresql","default")).getClass());
+    @ParameterizedTest
+    @ArgumentsSource(LimitSqlAdapterArgumentsProvider.class)
+    void getLimitSqlAdapter_withListProfiles(List<String> profiles, Class<?> expectedClazz) {
+        assertSame(expectedClazz, LimitSqlAdapterFactory.getLimitSqlAdapter(profiles).getClass());
     }
 
 }

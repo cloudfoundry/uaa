@@ -1,9 +1,8 @@
-description = 'CloudFoundry Identity Metrics Data Jar'
+description = "CloudFoundry Identity Metrics Data Jar"
 
 dependencies {
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
-  compile group: 'com.fasterxml.jackson.core', name: 'jackson-annotations', version: parent.jacksonVersion
-  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
+  implementation(libraries.jacksonDatabind)
+  implementation(libraries.jacksonAnnotations)
 }
 
 processResources {
@@ -11,17 +10,3 @@ processResources {
   //https://www.pivotaltracker.com/story/show/74344574
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-metrics-data') : line }
 }
-
-
-publishing {
-  publications {
-    metrics(MavenPublication) {
-      groupId 'org.cloudfoundry.identity'
-      artifactId 'cloudfoundry-identity-metrics-data'
-
-      from components.java
-      artifact sourceJar
-    }
-  }
-}
-

@@ -12,19 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -37,7 +35,7 @@ import java.util.UUID;
  */
 public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderProvisioning, SamlServiceProviderDeletable {
 
-    private static final Log LOGGER = LogFactory.getLog(JdbcIdentityProviderProvisioning.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(JdbcIdentityProviderProvisioning.class);
 
     public static final String SERVICE_PROVIDER_FIELDS = "id,version,created,lastmodified,name,entity_id,config,identity_zone_id,active";
 
@@ -79,8 +77,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     @Override
     public SamlServiceProvider retrieve(String id, String zoneId) {
-        SamlServiceProvider serviceProvider = jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
-        return serviceProvider;
+        return jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
     }
 
     @Override
@@ -114,9 +111,8 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     @Override
     public SamlServiceProvider retrieveByEntityId(String entityId, String zoneId) {
-        SamlServiceProvider serviceProvider = jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ENTITY_ID_QUERY, mapper,
+        return jdbcTemplate.queryForObject(SERVICE_PROVIDER_BY_ENTITY_ID_QUERY, mapper,
                 entityId, zoneId);
-        return serviceProvider;
     }
 
     @Override
@@ -124,20 +120,17 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
         validate(serviceProvider);
         final String id = UUID.randomUUID().toString();
         try {
-            jdbcTemplate.update(CREATE_SERVICE_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    int pos = 1;
-                    ps.setString(pos++, id);
-                    ps.setInt(pos++, serviceProvider.getVersion());
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                    ps.setString(pos++, serviceProvider.getName());
-                    ps.setString(pos++, serviceProvider.getEntityId());
-                    ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
-                    ps.setString(pos++, zoneId);
-                    ps.setBoolean(pos++, serviceProvider.isActive());
-                }
+            jdbcTemplate.update(CREATE_SERVICE_PROVIDER_SQL, ps -> {
+                int pos = 1;
+                ps.setString(pos++, id);
+                ps.setInt(pos++, serviceProvider.getVersion());
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setString(pos++, serviceProvider.getName());
+                ps.setString(pos++, serviceProvider.getEntityId());
+                ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
+                ps.setString(pos++, zoneId);
+                ps.setBoolean(pos++, serviceProvider.isActive());
             });
         } catch (DuplicateKeyException e) {
             throw new SamlSpAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -148,18 +141,15 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     @Override
     public SamlServiceProvider update(final SamlServiceProvider serviceProvider, String zoneId) {
         validate(serviceProvider);
-        jdbcTemplate.update(UPDATE_SERVICE_PROVIDER_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setInt(pos++, serviceProvider.getVersion() + 1);
-                ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
-                ps.setString(pos++, serviceProvider.getName());
-                ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
-                ps.setBoolean(pos++, serviceProvider.isActive());
-                ps.setString(pos++, serviceProvider.getId().trim());
-                ps.setString(pos++, zoneId);
-            }
+        jdbcTemplate.update(UPDATE_SERVICE_PROVIDER_SQL, ps -> {
+            int pos = 1;
+            ps.setInt(pos++, serviceProvider.getVersion() + 1);
+            ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+            ps.setString(pos++, serviceProvider.getName());
+            ps.setString(pos++, JsonUtils.writeValueAsString(serviceProvider.getConfig()));
+            ps.setBoolean(pos++, serviceProvider.isActive());
+            ps.setString(pos++, serviceProvider.getId().trim());
+            ps.setString(pos++, zoneId);
         });
         return retrieve(serviceProvider.getId(), zoneId);
     }
@@ -198,7 +188,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
 
         return LOGGER;
     }

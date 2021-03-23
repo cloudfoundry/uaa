@@ -2,7 +2,6 @@
 <html xmlns="http://www.w3.org/1999/html"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3"
       layout:decorator="layouts/main">
 <head>
     <th:block layout:include="nav :: head"></th:block>
@@ -36,7 +35,7 @@
         <div class="panel-content">
             <h2>Profile</h2>
             <p class="profile">
-                <span class="email" sec:authentication="principal.email">user@example.com</span><a href="/change_email" th:href="@{/change_email}" th:if="${isUaaManagedUser}">Change Email</a>
+                <span class="email" th:text="|${email}|">user@example.com</span><a href="/change_email" th:href="@{/change_email}" th:if="${isUaaManagedUser}">Change Email</a>
                 <span class="password">********</span><a href="/change_password" th:href="@{/change_password}" th:if="${isUaaManagedUser}">Change Password</a>
             </p>
             <h2>Third Party Access</h2>

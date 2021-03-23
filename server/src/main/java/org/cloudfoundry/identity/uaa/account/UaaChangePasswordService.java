@@ -12,9 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
-import java.util.Date;
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -24,13 +21,15 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.Date;
+import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
@@ -52,7 +51,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
             throw new BadCredentialsException(username);
         }
         passwordValidator.validate(newPassword);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \""+UAA +"\"", IdentityZoneHolder.get().getId());
+        List<ScimUser> results = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(username, UAA, IdentityZoneHolder.getCurrentZoneId());
         if (results.isEmpty()) {
             throw new ScimResourceNotFoundException("User not found");
         }
@@ -64,9 +63,9 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
                 throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword, IdentityZoneHolder.get().getId());
-            publish(new PasswordChangeEvent("Password changed", uaaUser, authentication));
+            publish(new PasswordChangeEvent("Password changed", uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
         } catch (Exception e) {
-            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication));
+            publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
             throw e;
         }
     }

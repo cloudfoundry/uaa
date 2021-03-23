@@ -10,14 +10,14 @@ import com.google.zxing.WriterException;
 import com.warrenstrange.googleauth.GoogleAuthenticator;
 import com.warrenstrange.googleauth.GoogleAuthenticatorKey;
 import com.warrenstrange.googleauth.ICredentialRepository;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
 
 public class UserGoogleMfaCredentialsProvisioning implements ICredentialRepository {
-    private static Log logger = LogFactory.getLog(UserGoogleMfaCredentialsProvisioning.class);
+    private static Logger logger = LoggerFactory.getLogger(UserGoogleMfaCredentialsProvisioning.class);
     private MfaProviderProvisioning mfaProviderProvisioning;
     private GoogleAuthenticator authenticator;
     private UserMfaCredentialsProvisioning<UserGoogleMfaCredentials> jdbcProvisioner;
@@ -54,11 +54,10 @@ public class UserGoogleMfaCredentialsProvisioning implements ICredentialReposito
 
     public UserGoogleMfaCredentials createUserCredentials(String userId) {
         GoogleAuthenticatorKey credentials = authenticator.createCredentials(userId);
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(userId,
+        return new UserGoogleMfaCredentials(userId,
                                                                       credentials.getKey(),
                                                                       credentials.getVerificationCode(),
                                                                       credentials.getScratchCodes());
-        return creds;
     }
 
     public boolean isValidCode(UserGoogleMfaCredentials credentials, Integer code) {

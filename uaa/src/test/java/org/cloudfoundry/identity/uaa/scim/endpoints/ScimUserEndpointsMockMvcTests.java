@@ -12,8 +12,12 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
-import org.cloudfoundry.identity.uaa.mfa.*;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -25,10 +29,16 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
-import org.cloudfoundry.identity.uaa.test.*;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.json.JSONObject;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +46,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -43,13 +54,11 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.nio.charset.Charset;
@@ -59,21 +68,38 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.csrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performGet;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.unauthenticated;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(ZoneSeederExtension.class)
@@ -91,10 +117,13 @@ class ScimUserEndpointsMockMvcTests {
     private ExpiringCodeStore codeStore;
     private JdbcUserGoogleMfaCredentialsProvisioning mfaCredentialsProvisioning;
     private MfaProviderProvisioning mfaProviderProvisioning;
+
+    @Value("${userMaxCount}")
     private int usersMaxCount;
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
     private TestClient testClient;
 
@@ -105,10 +134,6 @@ class ScimUserEndpointsMockMvcTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
         testClient = new TestClient(mockMvc);
 
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
@@ -125,8 +150,6 @@ class ScimUserEndpointsMockMvcTests {
         mfaCredentialsProvisioning = webApplicationContext.getBean(JdbcUserGoogleMfaCredentialsProvisioning.class);
         mfaProviderProvisioning = webApplicationContext.getBean(JdbcMfaProviderProvisioning.class);
         uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
-
-        usersMaxCount = Integer.parseInt(webApplicationContext.getEnvironment().getProperty("userMaxCount"));
     }
 
     @AfterEach
@@ -260,7 +283,7 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
     }
@@ -268,10 +291,19 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void verification_link_in_non_default_zone() throws Exception {
         String subdomain = generator.generate().toLowerCase();
-        MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zonedClientId = "zonedClientId";
         String zonedClientSecret = "zonedClientSecret";
-        BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(mockMvc, zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials"}), "scim.create", null, zoneResult.getIdentityZone());
+        BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(mockMvc,
+                zoneResult.getZoneAdminToken(),
+                zonedClientId,
+                zonedClientSecret,
+                Collections.singleton("oauth"),
+                null,
+                Collections.singletonList("client_credentials"),
+                "scim.create",
+                null,
+                zoneResult.getIdentityZone());
         zonedClientDetails.setClientSecret(zonedClientSecret);
         String zonedScimCreateToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, zonedClientDetails.getClientId(), zonedClientDetails.getClientSecret(), "scim.create", subdomain);
 
@@ -301,7 +333,7 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is(zonedClientDetails.getClientId()));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
     }
@@ -309,7 +341,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void verification_link_in_non_default_zone_using_switch() throws Exception {
         String subdomain = generator.generate().toLowerCase();
-        MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zonedClientId = "admin";
         String zonedClientSecret = "adminsecret";
         String zonedScimCreateToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, zonedClientId, zonedClientSecret, "uaa.admin", null);
@@ -341,7 +373,7 @@ class ScimUserEndpointsMockMvcTests {
         assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
         });
-        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is("admin"));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
     }
@@ -494,7 +526,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void listUsers_in_anotherZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zoneAdminToken = result.getZoneAdminToken();
 
         int usersMaxCountWithOffset = usersMaxCount + 1;
@@ -529,7 +561,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testCreateUserInZoneUsingAdminClient() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
@@ -539,7 +571,7 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testCreateUserInZoneUsingZoneAdminUser() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zoneAdminToken = result.getZoneAdminToken();
         createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
     }
@@ -563,10 +595,10 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testCreateUserInOtherZoneIsUnauthorized() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         String otherSubdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(otherSubdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(otherSubdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
@@ -591,7 +623,8 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/"));
@@ -604,7 +637,8 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(userToLockout, new UserAccountStatus())
                 .andExpect(status().isOk())
-                .andExpect(content().json("{}"));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string("{}"));
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/login?error=account_locked"));
@@ -631,7 +665,8 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
                 .andExpect(redirectedUrl("/"));
@@ -674,7 +709,8 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(user, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().json(JsonUtils.writeValueAsString(alteredAccountStatus)));
+                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));
     }
@@ -873,9 +909,7 @@ class ScimUserEndpointsMockMvcTests {
 
                 zoneSeeder.withClientWithImplicitPasswordRefreshTokenGrants()
                         .withUser(user)
-                        .afterSeeding(zs -> {
-                            regularUser = zs.getUserByEmail("initialEmail@test.org");
-                        });
+                        .afterSeeding(zs -> regularUser = zs.getUserByEmail("initialEmail@test.org"));
             }
 
             @Test
@@ -1258,7 +1292,8 @@ class ScimUserEndpointsMockMvcTests {
         ScimUser user = createUser(uaaAdminToken);
         MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
         IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234,
+                Collections.singletonList(123456)).setMfaProviderId(provider.getId());
         mfaCredentialsProvisioning.save(creds, IdentityZoneHolder.get().getId());
 
         assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
@@ -1283,7 +1318,8 @@ class ScimUserEndpointsMockMvcTests {
         MfaProvider provider = createMfaProvider(identityZone.getId());
         identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234,
+                Collections.singletonList(123456)).setMfaProviderId(provider.getId());
         mfaCredentialsProvisioning.save(creds, identityZone.getId());
 
         assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
@@ -1354,7 +1390,8 @@ class ScimUserEndpointsMockMvcTests {
         ScimUser user = createUser(uaaAdminToken);
         MfaProvider provider = createMfaProvider(IdentityZoneHolder.get().getId());
         IdentityZoneHolder.get().getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234, Arrays.asList(123456)).setMfaProviderId(provider.getId());
+        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(user.getId(), "ABCDEFGHIJKLMNOP", 1234,
+                Collections.singletonList(123456)).setMfaProviderId(provider.getId());
         mfaCredentialsProvisioning.save(creds, IdentityZoneHolder.get().getId());
 
         assertNotNull(mfaCredentialsProvisioning.retrieve(user.getId(), provider.getId()));
@@ -1437,7 +1474,7 @@ class ScimUserEndpointsMockMvcTests {
 
     private IdentityZone getIdentityZone() throws Exception {
         String subdomain = generator.generate();
-        return MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        return MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
     }
 
     private ScimUser createUser(String token) throws Exception {

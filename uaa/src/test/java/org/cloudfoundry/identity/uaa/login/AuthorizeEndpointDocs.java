@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
@@ -60,7 +61,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
     private JdbcScimUserProvisioning userProvisioning;
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         principal = new UaaAuthentication(uaaPrincipal, Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
@@ -80,7 +81,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "login")
                 .param(SCOPE, "openid oauth.approvals")
                 .param(REDIRECT_URI, "http://localhost/app")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -127,8 +128,8 @@ class AuthorizeEndpointDocs extends EndpointDocs {
         mockMvc.perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        requestParameters).snippets(requestHeaders(
-                        headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
+                        requestParameters,
+                        requestHeaders(headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
     }
 
     @Test
@@ -145,7 +146,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -209,7 +210,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -246,7 +247,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(
@@ -284,7 +285,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(CLIENT_ID, "app")
                 .param(SCOPE, "openid")
                 .param(REDIRECT_URI, "http://localhost:8080/app/")
-                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", "utf-8"))
+                .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
         Snippet requestParameters = requestParameters(

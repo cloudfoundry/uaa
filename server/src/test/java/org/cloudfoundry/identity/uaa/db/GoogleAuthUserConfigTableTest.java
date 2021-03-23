@@ -1,24 +1,27 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
-    public String tableName = "user_google_mfa_credentials";
+@WithDatabaseContext
+class GoogleAuthUserConfigTableTest {
+    String tableName = "user_google_mfa_credentials";
 
     private List<TestColumn> TEST_COLUMNS = Arrays.asList(
-            new TestColumn("user_id", "nvarchar/varchar",  36),
-            new TestColumn("secret_key","nvarchar/varchar", 255),
-            new TestColumn("encryption_key_label","nvarchar/varchar", 255),
+            new TestColumn("user_id", "nvarchar/varchar", 36),
+            new TestColumn("secret_key", "nvarchar/varchar", 255),
+            new TestColumn("encryption_key_label", "nvarchar/varchar", 255),
             new TestColumn("encrypted_validation_code", "nvarchar/varchar", 255),
             new TestColumn("validation_code", "integer/int4/int", -1),
             new TestColumn("scratch_codes", "nvarchar/varchar", 255),
@@ -26,8 +29,8 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
             new TestColumn("zone_id", "char/character/bpchar", 36));
 
     @Test
-    public void validate_table() throws Exception {
-        try(Connection connection = dataSource.getConnection()) {
+    void validate_table(@Autowired DataSource dataSource) throws Exception {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             int foundColumn = 0;
@@ -44,35 +47,23 @@ public class GoogleAuthUserConfigTableTest extends JdbcTestBase{
                 }
             }
             rs.close();
-            assertTrue("Table " + tableName + " not found!", foundTable);
-            assertEquals("Table " + tableName + " is missing columns!", TEST_COLUMNS.size(), foundColumn);
+            assertTrue(foundTable, "Table " + tableName + " not found!");
+            assertEquals(TEST_COLUMNS.size(), foundColumn, "Table " + tableName + " is missing columns!");
         }
     }
 
-    public void testColumn(String name, String actualType, int size) {
+    void testColumn(String name, String actualType, int size) {
         testColumn(TEST_COLUMNS, name, actualType, size);
     }
 
-    public void testColumn(List<TestColumn> columns, String name, String actualType, int size) {
+    void testColumn(List<TestColumn> columns, String name, String actualType, int size) {
         for (TestColumn c : columns) {
             if (c.name.equalsIgnoreCase(name)) {
-                assertTrue("Error for column: " + c.name + " was type " + actualType.toLowerCase(), c.type.toLowerCase().contains(actualType.toLowerCase()));
-                if(c.size > 0) {
-                    assertEquals("Error for column: " + c.name, c.size, size);
+                assertTrue(c.type.toLowerCase().contains(actualType.toLowerCase()), "Error for column: " + c.name + " was type " + actualType.toLowerCase());
+                if (c.size > 0) {
+                    assertEquals(c.size, size, "Error for column: " + c.name);
                 }
             }
-        }
-    }
-
-    public static class TestColumn {
-        public final String name;
-        public final String type;
-        public final int size;
-
-        public TestColumn(String name, String type, int size) {
-            this.name = name;
-            this.type = type;
-            this.size = size;
         }
     }
 }

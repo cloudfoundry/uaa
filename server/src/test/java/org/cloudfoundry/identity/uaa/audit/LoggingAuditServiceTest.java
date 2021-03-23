@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.audit;
 
 
-import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.logging.LogSanitizerUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -35,12 +35,11 @@ class LoggingAuditServiceTest {
 
     @Autowired
     private LoggingAuditService loggingAuditService;
-
-    private Log mockLogger;
+    private Logger mockLogger;
 
     @BeforeEach
     void setup() {
-        mockLogger = mock(Log.class);
+        mockLogger = mock(Logger.class);
         ReflectionTestUtils.setField(loggingAuditService, "logger", mockLogger);
     }
 

@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -196,7 +197,7 @@ class ZonesWriteScopeMockMvcTest {
     }
 
     private IdentityZone createZoneWithClient(String subdomain) throws Exception {
-        MockMvcUtils.IdentityZoneCreationResult izCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, adminClient);
+        MockMvcUtils.IdentityZoneCreationResult izCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, adminClient, IdentityZoneHolder.getCurrentZoneId());
         return izCreationResult.getIdentityZone();
     }
 

@@ -1,23 +1,14 @@
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- *
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.util.FakePasswordEncoder;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Before;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -28,26 +19,36 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
+@WithDatabaseContext
+class UaaClientAuthenticationProviderTest {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private MultitenantJdbcClientDetailsService jdbcClientDetailsService;
     private ClientDetails client;
     private ClientDetailsAuthenticationProvider authenticationProvider;
 
-    @Before
-    public void setUpForClientTests() {
-        PasswordEncoder encoder = new FakePasswordEncoder();
-        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
-        jdbcClientDetailsService.setPasswordEncoder(encoder);
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    @BeforeEach
+    void setUpForClientTests() {
+        IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+
+        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         ClientDetailsUserDetailsService clientDetailsService = new ClientDetailsUserDetailsService(jdbcClientDetailsService);
         client = createClient();
-        authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, encoder);
+        authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder);
     }
-
 
     public BaseClientDetails createClient() {
         BaseClientDetails details = new BaseClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
@@ -56,7 +57,7 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
         return details;
     }
 
-    public UsernamePasswordAuthenticationToken getToken(String clientId, String clientSecret) {
+    private UsernamePasswordAuthenticationToken getToken(String clientId, String clientSecret) {
         return new UsernamePasswordAuthenticationToken(clientId, clientSecret);
     }
 
@@ -66,31 +67,27 @@ public class UaaClientAuthenticationProviderTest extends JdbcTestBase {
         assertTrue(authentication.isAuthenticated());
     }
 
-
     @Test
-    public void provider_authenticate_client_with_one_password() throws Exception {
+    void provider_authenticate_client_with_one_password() {
         Authentication a = getToken(client.getClientId(), SECRET);
         testClientAuthentication(a);
     }
 
-
     @Test
-    public void provider_authenticate_client_with_two_passwords_test_1() throws Exception {
+    void provider_authenticate_client_with_two_passwords_test_1() {
         jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2", IdentityZoneHolder.get().getId());
         testClientAuthentication(getToken(client.getClientId(), SECRET));
     }
 
     @Test
-    public void provider_authenticate_client_with_two_passwords_test_2() throws Exception {
+    void provider_authenticate_client_with_two_passwords_test_2() {
         jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2", IdentityZoneHolder.get().getId());
         testClientAuthentication(getToken(client.getClientId(), "secret2"));
     }
 
-    @Test(expected = AuthenticationException.class)
-    public void provider_authenticate_client_with_two_passwords_test_3() throws Exception {
+    @Test
+    void provider_authenticate_client_with_two_passwords_test_3() {
         jdbcClientDetailsService.addClientSecret(client.getClientId(), "secret2", IdentityZoneHolder.get().getId());
-        testClientAuthentication(getToken(client.getClientId(), "secret3"));
+        assertThrows(AuthenticationException.class, () -> testClientAuthentication(getToken(client.getClientId(), "secret3")));
     }
-
-
 }

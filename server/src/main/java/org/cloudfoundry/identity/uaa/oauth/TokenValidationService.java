@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -22,18 +22,18 @@ public class TokenValidationService {
     private RevocableTokenProvisioning revocableTokenProvisioning;
     private TokenEndpointBuilder tokenEndpointBuilder;
     private UaaUserDatabase userDatabase;
-    private ClientServicesExtension clientServicesExtension;
+    private MultitenantClientServices multitenantClientServices;
     private KeyInfoService keyInfoService;
 
     public TokenValidationService(RevocableTokenProvisioning revocableTokenProvisioning,
                                   TokenEndpointBuilder tokenEndpointBuilder,
                                   UaaUserDatabase userDatabase,
-                                  ClientServicesExtension clientServicesExtension,
+                                  MultitenantClientServices multitenantClientServices,
                                   KeyInfoService keyInfoService) {
         this.revocableTokenProvisioning = revocableTokenProvisioning;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.userDatabase = userDatabase;
-        this.clientServicesExtension = clientServicesExtension;
+        this.multitenantClientServices = multitenantClientServices;
         this.keyInfoService = keyInfoService;
     }
 
@@ -52,9 +52,9 @@ public class TokenValidationService {
                 buildAccessTokenValidator(token, keyInfoService) : buildRefreshTokenValidator(token, keyInfoService);
         tokenValidation
                 .checkRevocableTokenStore(revocableTokenProvisioning)
-                .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());
+                .checkIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
 
-        ClientDetails client = tokenValidation.getClientDetails(clientServicesExtension);
+        ClientDetails client = tokenValidation.getClientDetails(multitenantClientServices);
         UaaUser user = tokenValidation.getUserDetails(userDatabase);
         tokenValidation
                 .checkClientAndUser(client, user);

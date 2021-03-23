@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authorization;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -33,7 +33,7 @@ public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappin
 
     private ScimGroupProvisioning scimGroupProvisioning;
 
-    private static final Log logger = LogFactory.getLog(LdapGroupMappingAuthorizationManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(LdapGroupMappingAuthorizationManager.class);
 
     @Override
     public Set<? extends GrantedAuthority> findScopesFromAuthorities(Set<? extends GrantedAuthority> authorities) {

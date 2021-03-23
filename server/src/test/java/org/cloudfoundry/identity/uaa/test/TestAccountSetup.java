@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -44,7 +44,6 @@ import org.springframework.web.client.RestOperations;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -60,7 +59,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class TestAccountSetup extends TestWatchman {
 
-    private static Log logger = LogFactory.getLog(TestAccountSetup.class);
+    private static Logger logger = LoggerFactory.getLogger(TestAccountSetup.class);
 
     private final UrlHelper serverRunning;
 
@@ -244,7 +243,7 @@ public class TestAccountSetup extends TestWatchman {
         String email = user.getEmail();
         if (email != null) {
             @SuppressWarnings("unchecked")
-            List<Map<String, String>> emails = Arrays.asList(Collections.singletonMap("value", email));
+            List<Map<String, String>> emails = Collections.singletonList(Collections.singletonMap("value", email));
             result.put("emails", emails);
         }
         String givenName = user.getGivenName();
@@ -273,12 +272,12 @@ public class TestAccountSetup extends TestWatchman {
         client.setErrorHandler(new OAuth2ErrorHandler(client.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         List<HttpMessageConverter<?>> list = new ArrayList<HttpMessageConverter<?>>();

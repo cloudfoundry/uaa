@@ -84,8 +84,7 @@ public class PasscodeInformation {
     }
 
     public void setSamlAuthorities(ArrayList<SamlUserAuthority> authorities) {
-        Set<SamlUserAuthority> set = new HashSet<SamlUserAuthority>();
-        set.addAll(authorities);
+        Set<SamlUserAuthority> set = new HashSet<>(authorities);
         authorizationParameters.put("authorities", set);
     }
 

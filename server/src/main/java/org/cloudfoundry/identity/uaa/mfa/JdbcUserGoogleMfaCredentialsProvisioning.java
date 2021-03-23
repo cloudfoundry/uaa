@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionServiceException;
@@ -132,8 +130,8 @@ public class JdbcUserGoogleMfaCredentialsProvisioning implements SystemDeletable
 
 
     @Override
-    public Log getLogger() {
-        return LogFactory.getLog(JdbcUserGoogleMfaCredentialsProvisioning.class);
+    public Logger getLogger() {
+        return LoggerFactory.getLogger(JdbcUserGoogleMfaCredentialsProvisioning.class);
     }
 
     private String toCSScratchCode(List<Integer> scratchCodes) {

@@ -12,22 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.security.web;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.*;
+import java.util.Map.Entry;
 
 /**
  * Custom request matcher which allows endpoints in the UAA to be matched as
@@ -42,7 +37,7 @@ import org.springframework.util.Assert;
  */
 public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
-    private static final Log logger = LogFactory.getLog(UaaRequestMatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(UaaRequestMatcher.class);
 
     private final String path;
 
@@ -230,8 +225,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     public void setHeaders(Map<String, List<String>> headers) {
         for (String headerName : headers.keySet()) {
-            List<String> expectedValues = new ArrayList<String>();
-            expectedValues.addAll(headers.get(headerName));
+            List<String> expectedValues = new ArrayList<>(headers.get(headerName));
             expectedHeaders.put(headerName, expectedValues);
         }
     }

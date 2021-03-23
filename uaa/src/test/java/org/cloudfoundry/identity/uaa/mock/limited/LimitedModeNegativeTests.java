@@ -1,18 +1,3 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.mock.limited;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -23,16 +8,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import static org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter.DEGRADED;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.http.HttpStatus.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -45,14 +30,11 @@ class LimitedModeNegativeTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
     void setUp() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc,
                 "admin",
                 "adminsecret",

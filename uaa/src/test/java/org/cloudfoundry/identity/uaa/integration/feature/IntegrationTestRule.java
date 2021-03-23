@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
@@ -28,7 +28,7 @@ import java.util.Map;
 import static org.junit.Assert.assertTrue;
 
 public class IntegrationTestRule implements TestRule {
-    private static Log logger = LogFactory.getLog(IntegrationTestRule.class);
+    private static Logger logger = LoggerFactory.getLogger(IntegrationTestRule.class);
 
     private static Map<String, Boolean> sharedStatuses = new HashMap<>();
 

@@ -1,21 +1,5 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -27,6 +11,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -55,18 +42,27 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 @Controller
 public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
-    protected final Log logger = LogFactory.getLog(getClass());
-    private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
-    private final ScimUserProvisioning userProvisioning;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
+
     private final MultitenantJdbcClientDetailsService clientDetailsService;
-    private final RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+    private final ScimUserProvisioning userProvisioning;
     private final RevocableTokenProvisioning tokenProvisioning;
+
+    private final WebResponseExceptionTranslator exceptionTranslator;
+    private final RandomValueStringGenerator generator;
+
     private ApplicationEventPublisher eventPublisher;
 
-    public TokenRevocationEndpoint(MultitenantJdbcClientDetailsService clientDetailsService, ScimUserProvisioning userProvisioning, RevocableTokenProvisioning tokenProvisioning) {
+    public TokenRevocationEndpoint(
+            final @Qualifier("jdbcClientDetailsService") MultitenantJdbcClientDetailsService clientDetailsService,
+            final @Qualifier("scimUserProvisioning") ScimUserProvisioning userProvisioning,
+            final @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning tokenProvisioning) {
         this.clientDetailsService = clientDetailsService;
         this.userProvisioning = userProvisioning;
         this.tokenProvisioning = tokenProvisioning;
+
+        this.exceptionTranslator = new DefaultWebResponseExceptionTranslator();
+        this.generator = new RandomValueStringGenerator(8);
     }
 
     @RequestMapping("/oauth/token/revoke/user/{userId}")
@@ -86,7 +82,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         String zoneId = IdentityZoneHolder.get().getId();
         logger.debug("Revoking tokens for user " + userId + " and client " + clientId);
         List<RevocableToken> tokens = tokenProvisioning.getUserTokens(userId, clientId, zoneId);
-        for (RevocableToken token: tokens) {
+        for (RevocableToken token : tokens) {
             tokenProvisioning.delete(token.getTokenId(), -1, zoneId);
         }
         eventPublisher.publishEvent(new TokenRevocationEvent(userId, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
@@ -98,18 +94,18 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
         String zoneId = IdentityZoneHolder.get().getId();
-        BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId, zoneId);
-        client.addAdditionalInformation(ClientConstants.TOKEN_SALT,generator.generate());
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
+        client.addAdditionalInformation(ClientConstants.TOKEN_SALT, generator.generate());
         clientDetailsService.updateClientDetails(client, zoneId);
         eventPublisher.publishEvent(new TokenRevocationEvent(null, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Tokens revoked for client: " + clientId);
-        ((SystemDeletable)tokenProvisioning).deleteByClient(clientId, zoneId);
+        ((SystemDeletable) tokenProvisioning).deleteByClient(clientId, zoneId);
         return new ResponseEntity<>(OK);
     }
 
     @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = DELETE)
     public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
-        logger.debug("Revoking token with ID:"+tokenId);
+        logger.debug("Revoking token with ID:" + tokenId);
         String zoneId = IdentityZoneHolder.get().getId();
         RevocableToken revokedToken = tokenProvisioning.delete(tokenId, -1, zoneId);
         eventPublisher.publishEvent(new TokenRevocationEvent(revokedToken.getUserId(), revokedToken.getClientId(), zoneId, SecurityContextHolder.getContext().getAuthentication()));
@@ -122,19 +118,19 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
         String userId = principal.getId();
         String clientId = authentication.getOAuth2Request().getClientId();
-        logger.debug("Listing revocable tokens access token userId:"+ userId +" clientId:"+ clientId);
+        logger.debug("Listing revocable tokens access token userId:" + userId + " clientId:" + clientId);
         List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, clientId, IdentityZoneHolder.get().getId());
         removeTokenValues(result);
         return new ResponseEntity<>(result, OK);
     }
 
     protected void removeTokenValues(List<RevocableToken> result) {
-        result.stream().forEach(t -> t.setValue(null));
+        result.forEach(t -> t.setValue(null));
     }
 
     @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
     public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId, OAuth2Authentication authentication) {
-        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for user:" + userId);
             List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, IdentityZoneHolder.get().getId());
             removeTokenValues(result);
@@ -146,7 +142,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "/oauth/token/list/client/{clientId}", method = GET)
     public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId, OAuth2Authentication authentication) {
-        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for client:" + clientId);
             List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId, IdentityZoneHolder.get().getId());
             removeTokenValues(result);

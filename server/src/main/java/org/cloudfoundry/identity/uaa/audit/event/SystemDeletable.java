@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.apache.commons.logging.Log;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -23,33 +22,36 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
     default void onApplicationEvent(EntityDeletedEvent<?> event) {
-        if (event==null || event.getDeleted()==null) {
+        if (event == null || event.getDeleted() == null) {
             return;
         } else if (event.getDeleted() instanceof IdentityZone) {
-            String zoneId = ((IdentityZone)event.getDeleted()).getId();
+            IdentityZone identityZone = (IdentityZone) event.getDeleted();
+
+            String zoneId = identityZone.getId();
             getLogger().debug(String.format("Received zone deletion event for id:%s", zoneId));
-            if (isUaaZone(zoneId)) {
-                getLogger().debug("Attempt to delete default zone ignored:"+event.getDeleted());
+            if (identityZone.isUaa()) {
+                getLogger().debug("Attempt to delete default zone ignored:" + event.getDeleted());
                 return;
             }
             deleteByIdentityZone(zoneId);
         } else if (event.getDeleted() instanceof IdentityProvider) {
-            String zoneId = ((IdentityProvider)event.getDeleted()).getIdentityZoneId();
-            String origin = ((IdentityProvider)event.getDeleted()).getOriginKey();
+            String zoneId = ((IdentityProvider) event.getDeleted()).getIdentityZoneId();
+            String origin = ((IdentityProvider) event.getDeleted()).getOriginKey();
             getLogger().debug(String.format("Received provider deletion event for zone_id:%s and origin:%s", zoneId, origin));
             if (OriginKeys.UAA.equals(origin)) {
-                getLogger().debug("Attempt to delete default UAA provider ignored:"+event.getDeleted());
+                getLogger().debug("Attempt to delete default UAA provider ignored:" + event.getDeleted());
                 return;
             }
             deleteByOrigin(origin, zoneId);
         } else if (event.getDeleted() instanceof ClientDetails) {
             String clientId = ((ClientDetails) event.getDeleted()).getClientId();
-            String zoneId = IdentityZoneHolder.get().getId();
+            String zoneId = event.getIdentityZoneId();
             getLogger().debug(String.format("Received client deletion event for zone_id:%s and client:%s", zoneId, clientId));
             deleteByClient(clientId, zoneId);
         } else if (event.getDeleted() instanceof UaaUser) {
@@ -67,18 +69,14 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
             String zoneId = IdentityZoneHolder.get().getId();
             deleteByMfaProvider(providerId, zoneId);
         } else {
-            getLogger().debug("Unsupported deleted event for deletion of object:"+event.getDeleted());
+            getLogger().debug("Unsupported deleted event for deletion of object:" + event.getDeleted());
         }
     }
 
     default void onApplicationEvent(AbstractUaaEvent event) {
         if (event instanceof EntityDeletedEvent) {
-            onApplicationEvent((EntityDeletedEvent)event);
+            onApplicationEvent((EntityDeletedEvent) event);
         }
-    }
-
-    default boolean isUaaZone(String zoneId) {
-        return IdentityZone.getUaaZoneId().equals(zoneId);
     }
 
     default int deleteByIdentityZone(String zoneId) {
@@ -101,5 +99,5 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
         return 0;
     }
 
-    Log getLogger();
+    Logger getLogger();
 }

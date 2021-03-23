@@ -10,11 +10,7 @@ import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.test.network.NetworkTestUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,12 +19,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLHandshakeException;
 import java.io.File;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 import static org.junit.Assert.assertEquals;
@@ -42,7 +33,7 @@ public class UaaHttpRequestUtilsTest {
     private static final String HTTPS_HOST_PROPERTY = "https.proxyHost";
     private static final String HTTPS_PORT_PROPERTY = "https.proxyPort";
 
-    private static Map<String,String> systemProxyConfig = new HashMap<>();
+    private static Map<String, String> systemProxyConfig = new HashMap<>();
     private NetworkTestUtils.SimpleHttpResponseHandler httpResponseHandler;
     private NetworkTestUtils.SimpleHttpResponseHandler httpsResponseHandler;
 
@@ -52,11 +43,14 @@ public class UaaHttpRequestUtilsTest {
             systemProxyConfig.put(s, System.getProperty(s));
         }
     }
+
     @AfterClass
     public static void restoreSystemProxyConfig() {
-        for (Map.Entry<String,String> entry : systemProxyConfig.entrySet()) {
-            if (entry.getValue()!=null) {
+        for (Map.Entry<String, String> entry : systemProxyConfig.entrySet()) {
+            if (entry.getValue() != null) {
                 System.setProperty(entry.getKey(), entry.getValue());
+            } else {
+                System.clearProperty(entry.getKey());
             }
         }
     }
@@ -89,7 +83,7 @@ public class UaaHttpRequestUtilsTest {
     }
 
     @After
-    public void teardown() throws Exception {
+    public void teardown() {
         httpsServer.stop(0);
         httpServer.stop(0);
     }
@@ -126,15 +120,15 @@ public class UaaHttpRequestUtilsTest {
         testHttpProxy("https://google.com:443/", httpServer.getAddress().getPort(), ip, false);
     }
 
-    public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) throws Exception {
-        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true);
+    public void testHttpProxy(String url, int expectedPort, String expectedHost, boolean wantHandlerInvoked) {
+        HttpClientBuilder builder = UaaHttpRequestUtils.getClientBuilder(true, 20, 2, 5);
         HttpRoutePlanner planner = (HttpRoutePlanner) ReflectionTestUtils.getField(builder.build(), "routePlanner");
         SystemProxyRoutePlanner routePlanner = new SystemProxyRoutePlanner(planner);
         builder.setRoutePlanner(routePlanner);
         RestTemplate template = new RestTemplate(UaaHttpRequestUtils.createRequestFactory(builder, Integer.MAX_VALUE));
         try {
-            template.getForObject(url,String.class);
-        } catch (Exception e) {
+            template.getForObject(url, String.class);
+        } catch (Exception ignored) {
         }
         assertEquals(1, routePlanner.routes.size());
         assertEquals(expectedHost, routePlanner.routes.get(0).getProxyHost().getHostName());
@@ -146,10 +140,7 @@ public class UaaHttpRequestUtilsTest {
     public void skipSslValidation() {
         RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 10_000));
         assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
-        restTemplate.setRequestFactory(UaaHttpRequestUtils.createRequestFactory(true, 10_000));
-        assertEquals(OK, restTemplate.getForEntity(httpsUrl, String.class).getStatusCode());
     }
-
 
     @Test
     public void trustedOnly() {

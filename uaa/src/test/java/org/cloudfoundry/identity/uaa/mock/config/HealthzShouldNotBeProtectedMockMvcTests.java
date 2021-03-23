@@ -1,16 +1,3 @@
-/*
- * *****************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.mock.config;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
@@ -33,6 +20,7 @@ import java.util.stream.Stream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
@@ -78,6 +66,25 @@ class HealthzShouldNotBeProtectedMockMvcTests {
             chainPostProcessor.setRequireHttps(true);
         }
 
+        @DefaultTestContext
+        @Nested
+        class WithHttpPortSetToNonDefaultValue {
+            @BeforeEach
+            void setUp() {
+                chainPostProcessor.setHttpsPort(9998);
+            }
+
+            @Test
+            void redirectedRequestsGoToTheConfiguredPort() throws Exception {
+                MockHttpServletRequestBuilder getRequest = get("/login")
+                        .accept(MediaType.TEXT_HTML);
+
+                mockMvc.perform(getRequest)
+                        .andExpect(status().is3xxRedirection())
+                        .andExpect(header().string("Location", "https://localhost:9998/login"));
+            }
+        }
+
         @ParameterizedTest
         @ArgumentsSource(HealthzGetRequestParams.class)
         void healthzIsNotRejected(MockHttpServletRequestBuilder getRequest) throws Exception {
@@ -92,7 +99,8 @@ class HealthzShouldNotBeProtectedMockMvcTests {
                     .accept(MediaType.TEXT_HTML);
 
             mockMvc.perform(getRequest)
-                    .andExpect(status().is3xxRedirection());
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(header().string("Location", "https://localhost/login"));
         }
 
         @Test
@@ -101,7 +109,8 @@ class HealthzShouldNotBeProtectedMockMvcTests {
                     .accept(MediaType.ALL);
 
             mockMvc.perform(getRequest)
-                    .andExpect(status().is3xxRedirection());
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(header().string("Location", "https://localhost/saml/metadata"));
         }
     }
 

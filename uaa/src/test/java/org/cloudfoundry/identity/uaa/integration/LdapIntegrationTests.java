@@ -35,7 +35,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +68,7 @@ public class LdapIntegrationTests {
     }
 
     @Test
-    public void test_LDAP_Custom_User_Attributes_In_ID_Token() throws Exception {
+    public void test_LDAP_Custom_User_Attributes_In_ID_Token() {
         assertSupportsZoneDNS();
 
         final String COST_CENTER = "costCenter";
@@ -147,7 +146,7 @@ public class LdapIntegrationTests {
 
         assertEquals(OriginKeys.LDAP, provider.getOriginKey());
 
-        List<String> idps = Arrays.asList(provider.getOriginKey());
+        List<String> idps = Collections.singletonList(provider.getOriginKey());
 
         String adminClientInZone = new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "password,authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);

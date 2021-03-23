@@ -12,32 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.util.*;
+
 import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class BootstrapSamlIdentityProviderDataTests {
 
@@ -154,7 +143,7 @@ public class BootstrapSamlIdentityProviderDataTests {
         ;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         bootstrap = new BootstrapSamlIdentityProviderData();
         singleAdd = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
@@ -173,7 +162,7 @@ public class BootstrapSamlIdentityProviderDataTests {
         List<Resource> resources = new ArrayList<>();
         ByteArrayResource resource = new ByteArrayResource(sampleYaml.getBytes());
         resources.add(resource);
-        factory.setResources(resources.toArray(new Resource[resources.size()]));
+        factory.setResources(resources.toArray(new Resource[0]));
         Map<String, Object> tmpdata = factory.getObject();
         Map<String, Map<String, Object>> dataMap = new HashMap<>();
         for (Map.Entry<String, Object> entry : ((Map<String, Object>)tmpdata.get("providers")).entrySet()) {
@@ -185,7 +174,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     private Map<String, Map<String, Object>> sampleData = parseYaml(sampleYaml);
 
     @Test
-    public void testCloneIdentityProviderDefinition() throws Exception {
+    public void testCloneIdentityProviderDefinition() {
         SamlIdentityProviderDefinition clone = singleAdd.clone();
         assertEquals(singleAdd, clone);
         assertNotSame(singleAdd, clone);
@@ -197,7 +186,6 @@ public class BootstrapSamlIdentityProviderDataTests {
         bootstrap.afterPropertiesSet();
         testGetIdentityProviderDefinitions(4, false);
         bootstrap.getSamlProviders()
-            .stream()
             .forEach(p -> assertThat(p.isOverride(), is(true)));
     }
 
@@ -228,7 +216,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     protected void testGetIdentityProviderDefinitions(int count) throws Exception {
         testGetIdentityProviderDefinitions(count, true);
     }
-    protected void testGetIdentityProviderDefinitions(int count, boolean addData) throws Exception {
+    protected void testGetIdentityProviderDefinitions(int count, boolean addData) {
         if (addData) {
             bootstrap.setIdentityProviders(sampleData);
             bootstrap.afterPropertiesSet();
@@ -246,14 +234,14 @@ public class BootstrapSamlIdentityProviderDataTests {
                     assertEquals("http://link.to/icon.jpg", idp.getIconUrl());
                     Map<String, Object> attributeMappings = new HashMap<>();
                     attributeMappings.put("given_name", "first_name");
-                    attributeMappings.put("external_groups", asList("roles"));
+                    attributeMappings.put("external_groups", Collections.singletonList("roles"));
                     assertEquals(attributeMappings, idp.getAttributeMappings());
                     assertEquals(asList("admin", "user"), idp.getExternalGroupsWhitelist());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
                     assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
                     assertTrue(idp.isStoreCustomAttributes());
-                    assertEquals(null, idp.getAuthnContext());
+                    assertNull(idp.getAuthnContext());
                     break;
                 }
                 case "okta-local-2" : {
@@ -316,7 +304,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
 
     @Test
-    public void testCanParseASimpleSamlConfig() throws Exception {
+    public void testCanParseASimpleSamlConfig() {
         String yaml = "  providers:\n" +
           "    my-okta:\n" +
           "      assertionConsumerIndex: 0\n" +
@@ -338,7 +326,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
     
     @Test
-    public void testSetAddShadowUserOnLoginFromYaml() throws Exception {
+    public void testSetAddShadowUserOnLoginFromYaml() {
         String yaml = "  providers:\n" +
             "    provider-without-shadow-user-definition:\n" +
             "      storeCustomAttributes: true\n" +

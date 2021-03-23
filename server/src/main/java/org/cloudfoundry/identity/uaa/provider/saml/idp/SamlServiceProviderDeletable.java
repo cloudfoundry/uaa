@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.logging.Log;
+import org.slf4j.Logger;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.context.ApplicationListener;
@@ -41,5 +41,5 @@ public interface SamlServiceProviderDeletable extends ApplicationListener<Entity
 
     int deleteByIdentityZone(String zoneId);
 
-    Log getLogger();
+    Logger getLogger();
 }

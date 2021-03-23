@@ -21,8 +21,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
@@ -40,7 +40,7 @@ import org.springframework.web.servlet.View;
  */
 public class ConvertingExceptionView implements View {
 
-    private static final Log logger = LogFactory.getLog(ConvertingExceptionView.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConvertingExceptionView.class);
 
     private ResponseEntity<? extends ExceptionReport> responseEntity;
 
@@ -58,7 +58,7 @@ public class ConvertingExceptionView implements View {
     }
 
     @Override
-    public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) throws Exception {
+    public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response) {
         try {
             HttpInputMessage inputMessage = createHttpInputMessage(request);
             HttpOutputMessage outputMessage = createHttpOutputMessage(response);
@@ -77,9 +77,8 @@ public class ConvertingExceptionView implements View {
      * 
      * @param servletRequest current HTTP request
      * @return the HttpInputMessage instance to use
-     * @throws Exception in case of errors
      */
-    protected HttpInputMessage createHttpInputMessage(HttpServletRequest servletRequest) throws Exception {
+    protected HttpInputMessage createHttpInputMessage(HttpServletRequest servletRequest) {
         return new ServletServerHttpRequest(servletRequest);
     }
 
@@ -92,9 +91,8 @@ public class ConvertingExceptionView implements View {
      * 
      * @param servletResponse current HTTP response
      * @return the HttpInputMessage instance to use
-     * @throws Exception in case of errors
      */
-    protected HttpOutputMessage createHttpOutputMessage(HttpServletResponse servletResponse) throws Exception {
+    protected HttpOutputMessage createHttpOutputMessage(HttpServletResponse servletResponse) {
         return new ServletServerHttpResponse(servletResponse);
     }
 

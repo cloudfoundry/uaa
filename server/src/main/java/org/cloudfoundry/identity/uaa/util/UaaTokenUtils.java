@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -203,10 +203,10 @@ public final class UaaTokenUtils {
         return jwtPattern.matcher(token).matches();
     }
 
-    public static String constructTokenEndpointUrl(String issuer) throws URISyntaxException {
+    public static String constructTokenEndpointUrl(String issuer, IdentityZone identityZone) throws URISyntaxException {
         URI uri;
-        if (!IdentityZoneHolder.isUaa()) {
-            String zone_issuer = IdentityZoneHolder.get().getConfig() != null ? IdentityZoneHolder.get().getConfig().getIssuer() : null;
+        if (!identityZone.isUaa()) {
+            String zone_issuer = identityZone.getConfig() != null ? identityZone.getConfig().getIssuer() : null;
             if(zone_issuer != null) {
                 uri = validateIssuer(zone_issuer);
                 return UriComponentsBuilder.fromUri(uri).pathSegment("oauth/token").build().toUriString();
@@ -214,8 +214,8 @@ public final class UaaTokenUtils {
         }
         uri = validateIssuer(issuer);
         String hostToUse = uri.getHost();
-        if (hasText(IdentityZoneHolder.get().getSubdomain())) {
-            hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
+        if (hasText(identityZone.getSubdomain())) {
+            hostToUse = identityZone.getSubdomain() + "." + hostToUse;
         }
         return UriComponentsBuilder.fromUri(uri).host(hostToUse).pathSegment("oauth/token").build().toUriString();
     }

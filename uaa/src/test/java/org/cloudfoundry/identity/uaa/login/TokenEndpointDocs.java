@@ -24,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.ManualRestDocumentation;
@@ -41,13 +40,12 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -60,6 +58,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -100,7 +99,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
-    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque and revocable token.");
+    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque and revocable token or to `" + JWT.getStringValue() + "` to retrieve a JWT token. If not set the zone setting config.tokenPolicy.jwtRevocable is used.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
 
@@ -233,6 +232,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(CLIENT_ID, "login")
                 .param("client_secret", "loginsecret")
+                .param(SCOPE, "scim.write")
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
 
@@ -240,6 +240,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 clientIdParameter,
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
                 clientSecretParameter,
+                scopeParameter,
                 opaqueFormatParameter
         );
 
@@ -263,11 +264,13 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
+                .param(SCOPE, "scim.write")
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .header("Authorization", "Basic " + clientAuthorization);
 
         Snippet requestParameters = requestParameters(
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
+                scopeParameter,
                 opaqueFormatParameter
         );
 
@@ -419,7 +422,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
         String origin = subdomain + ".cloudfoundry-saml-login";
 
-        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, this.webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, this.webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
 
         //create an actual IDP, so we can fetch metadata
         String idpMetadata = MockMvcUtils.getIDPMetaData(mockMvc, subdomain);
@@ -451,14 +454,11 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
         //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
-                .with(new RequestPostProcessor() {
-                    @Override
-                    public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-                        request.setServerPort(8080);
-                        request.setRequestURI(fullPath);
-                        request.setServerName(host);
-                        return request;
-                    }
+                .with(request -> {
+                    request.setServerPort(8080);
+                    request.setRequestURI(fullPath);
+                    request.setServerName(host);
+                    return request;
                 })
                 .contextPath("/uaa")
                 .accept(APPLICATION_JSON)
@@ -535,7 +535,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     void getTokenUsingPasscode() throws Exception {
         ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
-        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")), null);
+        UaaAuthentication principal = new UaaAuthentication(uaaPrincipal,
+                Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
 
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(

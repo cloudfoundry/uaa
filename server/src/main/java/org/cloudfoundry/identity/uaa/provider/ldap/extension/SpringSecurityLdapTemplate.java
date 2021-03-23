@@ -15,8 +15,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.ldap.core.ContextExecutor;
 import org.springframework.ldap.core.ContextMapper;
@@ -53,7 +53,7 @@ import java.util.Set;
  */
 public class SpringSecurityLdapTemplate extends LdapTemplate {
     //~ Static fields/initializers =====================================================================================
-    private static final Log logger = LogFactory.getLog(SpringSecurityLdapTemplate.class);
+    private static final Logger logger = LoggerFactory.getLogger(SpringSecurityLdapTemplate.class);
 
     public static final String[] NO_ATTRS = new String[0];
     public static final String DN_KEY = "spring.security.ldap.dn";
@@ -97,16 +97,14 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
 
                 NamingEnumeration<SearchResult> results = ctx.search(dn, comparisonFilter, new Object[] {value}, ctls);
 
-                Boolean match = Boolean.valueOf(results.hasMore());
+                Boolean match = results.hasMore();
                 LdapUtils.closeEnumeration(results);
 
                 return match;
             }
         }
 
-        Boolean matches = (Boolean) executeReadOnly(new LdapCompareCallback());
-
-        return matches.booleanValue();
+        return (Boolean) executeReadOnly(new LdapCompareCallback());
     }
 
     /**

@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,8 +27,8 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.Ext
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 
 import static java.util.Collections.emptyList;
@@ -42,7 +41,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.springframework.util.StringUtils.hasText;
 
 public class BootstrapSamlIdentityProviderData implements InitializingBean {
-    private static Log logger = LogFactory.getLog(BootstrapSamlIdentityProviderData.class);
+    private static Logger logger = LoggerFactory.getLogger(BootstrapSamlIdentityProviderData.class);
     private String legacyIdpIdentityAlias;
     private volatile String legacyIdpMetaData;
     private String legacyNameId;
@@ -56,12 +55,9 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
-        return Collections.unmodifiableList(
-            samlProviders
+        return samlProviders
                 .stream()
-                .map(p -> p.getProvider().getConfig())
-                .collect(Collectors.toList())
-        );
+                .map(p -> p.getProvider().getConfig()).collect(Collectors.toUnmodifiableList());
     }
 
     protected void parseIdentityProviderDefinitions() {
@@ -128,11 +124,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             }
 
             if (skipSslValidation==null) {
-                if (socketFactoryClassName != null) {
-                    skipSslValidation = false;
-                } else {
-                    skipSslValidation = true;
-                }
+                skipSslValidation = socketFactoryClassName == null;
             }
 
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
@@ -247,7 +239,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         parseIdentityProviderDefinitions();
     }
 

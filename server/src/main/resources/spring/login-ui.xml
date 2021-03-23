@@ -1,41 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
-
 <beans
         xmlns="http://www.springframework.org/schema/beans"
         xmlns:security="http://www.springframework.org/schema/security"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xmlns:context="http://www.springframework.org/schema/context"
         xmlns:mvc="http://www.springframework.org/schema/mvc"
         xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
         xmlns:util="http://www.springframework.org/schema/util"
-        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-    http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-    http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
-    http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
-    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd
-    http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd">
+        xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+    http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+    http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd
+    http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd">
 
     <authentication-manager xmlns="http://www.springframework.org/schema/security"/>
 
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials"/>
 
-    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate" />
-
-    <context:annotation-config/>
+    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate"/>
 
     <bean id="notificationsUrl" class="java.lang.String">
         <constructor-arg value="${notifications.url:}"/>
@@ -176,12 +158,12 @@
     <bean id="accountSavingAuthenticationSuccessHandler"
           class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler">
         <constructor-arg name="redirectingHandler" ref="successRedirectHandler"/>
-        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
     </bean>
 
-    <bean id="currentUserCookieFactory"
-          class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
-        <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}" />
+    <bean id="currentUserCookieFactory" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
+        <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}"/>
+        <constructor-arg name="secure" value="${require_https:false}"/>
     </bean>
 
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
@@ -211,16 +193,11 @@
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
-    <bean name="forcePasswordChangeController" class="org.cloudfoundry.identity.uaa.login.ForcePasswordChangeController">
-        <property name="resourcePropertySource" ref="messagePropertiesSource"/>
-    </bean>
-
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
         <property name="requestMatcher" ref="uiAuthorizeRequestMatcher"/>
     </bean>
 
     <bean id="mfaChecker" class="org.cloudfoundry.identity.uaa.mfa.MfaChecker">
-        <constructor-arg name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="mfaUiRequiredFilter" class="org.cloudfoundry.identity.uaa.mfa.MfaUiRequiredFilter">
@@ -275,17 +252,10 @@
         </constructor-arg>
     </bean>
 
-    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter">
-        <constructor-arg name="redirectUri" value="/force_password_change"/>
-        <constructor-arg name="cache" ref="clientRedirectStateCache"/>
-        <constructor-arg name="ignoreUris">
-            <array>
-                <value>/login/mfa/**</value>
-            </array>
-        </constructor-arg>
-    </bean>
+    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter" />
 
-    <bean id="reAuthenticationRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
+    <bean id="reAuthenticationRequiredFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
     </bean>
 
     <http name="idpSecurity"
@@ -354,9 +324,10 @@
         <property name="defaultFailureUrl" value="/login?error=login_failure"/>
     </bean>
 
-    <bean id="uaaAuthenticationFailureHandler" class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
+    <bean id="uaaAuthenticationFailureHandler"
+          class="org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler">
         <constructor-arg name="delegate" ref="errorMessageAuthenticationFailureHandler"/>
-        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory" />
+        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
     </bean>
 
 
@@ -379,21 +350,8 @@
         <constructor-arg value="#{@config['links']==null ? T(java.util.Collections).EMPTY_MAP : @config['links']}"/>
     </bean>
 
-    <bean id="homeController" class="org.cloudfoundry.identity.uaa.home.HomeController">
-        <constructor-arg ref="environment"/>
-        <property name="uaaBaseUrl" ref="uaaUrl"/>
-        <property name="globalLinks" ref="globalLinks"/>
-    </bean>
-
-    <bean id="sessionController" class="org.cloudfoundry.identity.uaa.login.SessionController"/>
-
     <!--apply the oauth client context -->
     <oauth:client id="oauth2ClientFilter"/>
-
-    <bean id="approvalsController" class="org.cloudfoundry.identity.uaa.account.ProfileController">
-        <constructor-arg index="0" ref="approvalStore"/>
-        <constructor-arg index="1" ref="jdbcClientDetailsService"/>
-    </bean>
 
     <util:map id="notifications" key-type="org.cloudfoundry.identity.uaa.message.MessageType">
         <entry key="CREATE_ACCOUNT_CONFIRMATION">
@@ -476,28 +434,7 @@
     <bean id="successRedirectHandler"
           class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
 
-    <bean id="openIdUserDetailsService" class="org.cloudfoundry.identity.uaa.account.OpenIdUserDetailsService"/>
-
-    <context:annotation-config/>
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
-
-    <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">
-        <constructor-arg name="invitationsService" ref="invitationsService"/>
-        <property name="spEntityID" ref="samlEntityID"/>
-        <property name="expiringCodeStore" ref="codeStore"/>
-        <property name="userDatabase" ref="userDatabase"/>
-        <property name="passwordValidator" ref="uaaPasswordValidator"/>
-        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
-        <property name="zoneAwareAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
-        <property name="userProvisioning" ref="scimUserProvisioning"/>
-    </bean>
-
-    <bean name="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint">
-        <constructor-arg name="users" ref="scimUserProvisioning"/>
-        <constructor-arg name="providers" ref="identityProviderProvisioning"/>
-        <constructor-arg name="clients" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="expiringCodeStore" ref="codeStore"/>
-    </bean>
 
     <mvc:resources mapping="/resources/**" location="/resources/"/>
     <mvc:default-servlet-handler/>
@@ -546,21 +483,14 @@
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
         <constructor-arg ref="globalPasswordPolicy"/>
-        <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
-
-    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService"/>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.account.UaaChangePasswordService">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
-    <bean id="changePasswordController" class="org.cloudfoundry.identity.uaa.account.ChangePasswordController">
-        <constructor-arg ref="changePasswordService"/>
-    </bean>
-
-    <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource" >
+    <bean id="messagePropertiesSource" class="org.springframework.core.io.support.ResourcePropertySource">
         <constructor-arg value="messages.properties"/>
     </bean>
 
@@ -580,45 +510,23 @@
         <constructor-arg ref="codeStore"/>
     </bean>
 
-    <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.account.ResetPasswordController">
-        <constructor-arg ref="resetPasswordService"/>
-        <constructor-arg ref="messageService"/>
-        <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="codeStore"/>
-        <constructor-arg ref="userDatabase"/>
-    </bean>
-
-    <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.account.ChangeEmailController">
-        <constructor-arg ref="changeEmailService"/>
-        <property name="uaaUserDatabase" ref="userDatabase"/>
-    </bean>
-
-    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService">
-        <constructor-arg index="0" value="${encryption.active_key_label}"/>
-        <constructor-arg index="1" value="#{@config['encryption']['encryption_keys']}"/>
-    </bean>
+    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService" />
 
     <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
         <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
     </bean>
 
-    <bean id="jdbcUserGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
+    <bean id="jdbcUserGoogleMfaCredentialsProvisioning"
+          class="org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning">
         <constructor-arg index="0" ref="jdbcTemplate"/>
         <constructor-arg index="1" ref="activeKeyService"/>
     </bean>
 
-    <bean id="userGoogleMfaCredentialsProvisioning" class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
-        <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning"></property>
+    <bean id="userGoogleMfaCredentialsProvisioning"
+          class="org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning">
+        <property name="jdbcProvisioner" ref="jdbcUserGoogleMfaCredentialsProvisioning" />
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="authenticator" ref="googleAuthenticator"/>
-    </bean>
-
-    <bean id="totpEndpoint" class="org.cloudfoundry.identity.uaa.login.TotpMfaEndpoint">
-        <property name="userGoogleMfaCredentialsProvisioning" ref="userGoogleMfaCredentialsProvisioning"/>
-        <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning" />
-        <property name="mfaCompleteUrl" ref="mfaCompleteUrl"/>
-        <property name="userDatabase" ref="userDatabase" />
-        <property name="mfaPolicy" ref="mfaGlobalUserLoginPolicy"/>
     </bean>
 
     <bean id="mfaCompleteUrl" class="java.lang.String">
@@ -630,9 +538,9 @@
         <property name="credentialRepository" ref="userGoogleMfaCredentialsProvisioning"/>
     </bean>
 
-    <bean id ="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
-        factory-bean="googleAuthenticatorConfigFactory"
-        factory-method="build" />
+    <bean id="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
+          factory-bean="googleAuthenticatorConfigFactory"
+          factory-method="build"/>
 
     <bean id="googleAuthenticatorConfigFactory"
           class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>

@@ -3,32 +3,37 @@ package org.cloudfoundry.identity.uaa.login;
 import lombok.SneakyThrows;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.http.HttpSession;
-
 import java.util.Date;
 import java.util.stream.Stream;
 
@@ -37,8 +42,13 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProce
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @DefaultTestContext
 class ForcePasswordChangeControllerMockMvcTest {
@@ -50,16 +60,11 @@ class ForcePasswordChangeControllerMockMvcTest {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
 
     @BeforeEach
     void setup() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-
-
         String username = new RandomValueStringGenerator().generate() + "@test.org";
         user = new ScimUser(null, username, "givenname", "familyname");
         user.setPrimaryEmail(username);
@@ -108,12 +113,12 @@ class ForcePasswordChangeControllerMockMvcTest {
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/"));
             assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-            assertTrue(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+            assertTrue(SessionUtils.isPasswordChangeRequired(session));
 
             getRootPath(session)
                     .andExpect(redirectedUrl("/force_password_change"));
             assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-            assertTrue(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+            assertTrue(SessionUtils.isPasswordChangeRequired(session));
 
             getForcePasswordChangeForm(mockMvc, session);
 
@@ -125,12 +130,12 @@ class ForcePasswordChangeControllerMockMvcTest {
                     .andExpect(status().isFound())
                     .andExpect(redirectedUrl(("/force_password_change_completed")));
             assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-            assertFalse(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+            assertFalse(SessionUtils.isPasswordChangeRequired(session));
 
             getForcePasswordChangeCompleted(session)
                     .andExpect(redirectedUrl("http://localhost/"));
             assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-            assertFalse(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+            assertFalse(SessionUtils.isPasswordChangeRequired(session));
         }
 
         @Nested
@@ -169,12 +174,12 @@ class ForcePasswordChangeControllerMockMvcTest {
                         .andExpect(status().isFound())
                         .andExpect(redirectedUrl(("/force_password_change_completed")));
                 assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-                assertFalse(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+                assertFalse(SessionUtils.isPasswordChangeRequired(session));
 
                 getForcePasswordChangeCompleted(session)
                         .andExpect(redirectedUrl("http://localhost/"));
                 assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-                assertFalse(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+                assertFalse(SessionUtils.isPasswordChangeRequired(session));
             }
         }
     }
@@ -272,7 +277,7 @@ class ForcePasswordChangeControllerMockMvcTest {
             getForcePasswordChangeCompleted(session)
                     .andExpect(redirectedUrl("http://localhost/"));
             assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
-            assertFalse(((UaaAuthentication) ((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication()).isRequiresPasswordChange());
+            assertFalse(SessionUtils.isPasswordChangeRequired(session));
         }
     }
 

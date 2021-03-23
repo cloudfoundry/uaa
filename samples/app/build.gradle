@@ -1,26 +1,23 @@
-apply plugin: 'war'
-apply plugin: 'eclipse-wtp'
-eclipse {
-	wtp {
-	    component {
-	      contextPath = 'app'
-	    }
-	}
-}
+apply(plugin: "war")
 
-description = 'Sample user webapp for Cloudfoundry Identity Services'
+description = "Sample user webapp for Cloudfoundry Identity Services"
 dependencies {
-  Project identityParent = parent.parent
-  Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+    Project identityParent = parent.parent
+    Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-  compile identityServer
+    implementation(identityServer)
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
 
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
-  runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
-  runtime(group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion) {
-    exclude(module: 'spring-aop')
-  }
+    providedCompile(libraries.tomcatEmbed)
+    runtimeOnly(libraries.javaxServlet)
+    runtimeOnly(libraries.springSecurityConfig) {
+        exclude(module: "spring-aop")
+    }
 
-  testCompile identityServer.configurations.testCompile.dependencies
-  testCompile identityServer.sourceSets.test.output
+    testImplementation(identityServer.configurations.testImplementation.dependencies)
+    testImplementation(identityServer.sourceSets.test.output)
 }

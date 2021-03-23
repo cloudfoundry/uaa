@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 
 import java.util.HashMap;
@@ -18,7 +19,7 @@ public class TokenRevocationEvent extends AbstractUaaEvent {
     private String zoneId;
 
     public TokenRevocationEvent(String userId, String clientId, String zoneId, Authentication authentication){
-        super(authentication);
+        super(authentication, IdentityZoneHolder.getCurrentZoneId());
         this.userId = userId;
         this.zoneId = zoneId;
         this.clientId  = clientId;

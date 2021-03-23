@@ -12,13 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.beans.factory.InitializingBean;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
@@ -31,32 +30,25 @@ import java.util.Collections;
  * @author Dave Syer
  */
 @Controller
-public class ClientInfoEndpoint implements InitializingBean {
+public class ClientInfoEndpoint {
 
-    private ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
+    private final IdentityZoneManager identityZoneManager;
 
-    /**
-     * @param clientDetailsService the clientDetailsService to set
-     */
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public ClientInfoEndpoint(
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        Assert.notNull(clientDetailsService, "clientDetailsService must be set");
+        this.identityZoneManager = identityZoneManager;
     }
 
     @RequestMapping(value = "/clientinfo")
     @ResponseBody
     public ClientDetails clientinfo(Principal principal) {
-
         String clientId = principal.getName();
-        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId()));
+        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
         client.setClientSecret(null);
         client.setAdditionalInformation(Collections.<String, Object> emptyMap());
         return client;
-
     }
-
 }

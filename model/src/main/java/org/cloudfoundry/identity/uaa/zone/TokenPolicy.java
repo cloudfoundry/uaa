@@ -28,13 +28,13 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenForm
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TokenPolicy {
-    private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> outputCollector = Collectors.toMap(e -> e.getKey(), e -> {
+    private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> outputCollector = Collectors.toMap(Map.Entry::getKey, e -> {
         KeyInformation keyInformation = new KeyInformation();
         keyInformation.setSigningKey(e.getValue());
         return keyInformation;
     });
     private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, String>> inputCollector
-        = Collectors.toMap(e -> e.getKey(), e -> e.getValue().getSigningKey());
+        = Collectors.toMap(Map.Entry::getKey, e -> e.getValue().getSigningKey());
 
     private int accessTokenValidity;
     private int refreshTokenValidity;
@@ -68,7 +68,7 @@ public class TokenPolicy {
 
     public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, Map<String, ? extends Map<String, String>> signingKeysMap) {
         this(accessTokenValidity, refreshTokenValidity);
-        setKeysLegacy(signingKeysMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> {
+        setKeysLegacy(signingKeysMap.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, e -> {
             KeyInformation keyInformation = new KeyInformation();
             keyInformation.setSigningKey(e.getValue().get("signingKey"));
             return keyInformation;
@@ -99,8 +99,8 @@ public class TokenPolicy {
     @JsonIgnore
     public void setKeys(Map<String, String> keys) {
         if (keys != null) {
-            keys.entrySet().stream().forEach(e -> {
-                if (!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
+            keys.forEach((key, value) -> {
+                if (!StringUtils.hasText(value) || !StringUtils.hasText(key)) {
                     throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
                 }
             });

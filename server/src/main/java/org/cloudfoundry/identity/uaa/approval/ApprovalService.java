@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.approval;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -18,7 +18,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class ApprovalService {
     TimeService timeService;
     ApprovalStore approvalStore;
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public ApprovalService(TimeService timeService, ApprovalStore approvalStore) {
         this.timeService = timeService;

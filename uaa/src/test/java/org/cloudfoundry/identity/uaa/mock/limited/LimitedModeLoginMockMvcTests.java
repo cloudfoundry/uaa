@@ -46,5 +46,4 @@ class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
                         "It is therefore redundant to run such a nested class in both parent and subclass."
         );
     }
-
 }

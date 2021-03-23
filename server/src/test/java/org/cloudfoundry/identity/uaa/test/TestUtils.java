@@ -16,6 +16,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
 import java.util.*;
@@ -38,22 +39,12 @@ public class TestUtils {
     }
 
     public static void restoreToDefaults(ApplicationContext applicationContext) {
-        cleanAndMigrateDb(applicationContext);
+        cleanAndSeedDb(applicationContext);
         resetIdentityZoneHolder(applicationContext);
+        SecurityContextHolder.clearContext();
     }
 
-    private static void cleanAndMigrateDb(ApplicationContext applicationContext) {
-        if (applicationContext == null) {
-            return;
-        }
-
-        JdbcTemplate jdbcTemplate;
-        try {
-            jdbcTemplate = applicationContext.getBean(JdbcTemplate.class);
-        } catch (NoSuchBeanDefinitionException ignored) {
-            return;
-        }
-
+    public static void cleanAndSeedDb(JdbcTemplate jdbcTemplate) {
         jdbcTemplate.update("DELETE FROM authz_approvals");
         jdbcTemplate.update("DELETE FROM expiring_code_store");
         jdbcTemplate.update("DELETE FROM external_group_mapping");
@@ -71,6 +62,21 @@ public class TestUtils {
         jdbcTemplate.update("DELETE FROM mfa_providers");
 
         seedUaaZoneSimilarToHowTheRealFlywayMigrationDoesIt(jdbcTemplate);
+    }
+
+    private static void cleanAndSeedDb(ApplicationContext applicationContext) {
+        if (applicationContext == null) {
+            return;
+        }
+
+        JdbcTemplate jdbcTemplate;
+        try {
+            jdbcTemplate = applicationContext.getBean(JdbcTemplate.class);
+        } catch (NoSuchBeanDefinitionException ignored) {
+            return;
+        }
+
+        cleanAndSeedDb(jdbcTemplate);
 
         bootstrapDb(applicationContext);
     }

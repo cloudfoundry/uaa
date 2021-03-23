@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db.mysql;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3;
 import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,7 +26,7 @@ import java.util.List;
  */
 public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5_3 implements SpringJdbcMigration {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private String colQuery = "SELECT CONCAT(\n"
                     +
@@ -43,7 +43,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     "ORDER BY line";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         logger.info("[V1_5_4] Running SQL: " + colQuery);
         List<DatabaseInformation1_5_3.ColumnInfo> columns = jdbcTemplate.query(colQuery,
                         new DatabaseInformation1_5_3.ColumnMapper());

@@ -9,16 +9,15 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.Collections;
 import java.util.UUID;
@@ -145,7 +144,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
         group.setMembers(Collections.singletonList(new ScimGroupMember(createdUser.getId())));
         MockMvcUtils.createGroup(mockMvc, adminToken, group);
-        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", createdUser.getId(), createdUser.getUserName(), "secret", null);
+        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", createdUser.getId(), createdUser.getUserName(), "secret", null, IdentityZoneHolder.getCurrentZoneId());
         createClientInOtherZone(mockMvc, generator, userToken, status().isCreated(), HEADER, zoneId);
     }
 

@@ -1,138 +1,226 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
-public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
+@WithDatabaseContext
+class JdbcClientMetadataProvisioningTest {
 
-    public static final String CLIENT_NAME = "Test name";
-    JdbcClientMetadataProvisioning db;
+    private static final String base64EncodedImg = getResourceAsString(
+            JdbcClientMetadataProvisioningTest.class,
+            "base64EncodedImg");
 
-    private String randomGUID = "4097895b-ebc1-4732-b6e5-2c33dd2c7cd1";
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+    private RandomValueStringGenerator randomValueStringGenerator;
+    private String createdBy;
+    private String identityZoneId;
+    private String clientId;
 
-    @Before
-    public void createDatasource() throws Exception {
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate);
-        db = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
-    }
+    private JdbcClientMetadataProvisioning jdbcClientMetadataProvisioning;
 
-    @Test(expected = EmptyResultDataAccessException.class)
-    public void constraintViolation_WhenNoMatchingClientFound() throws Exception {
-        ClientMetadata clientMetadata = createTestClientMetadata(generator.generate(), true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.update(clientMetadata, IdentityZoneHolder.get().getId());
-    }
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
-    @Test
-    public void retrieveClientMetadata() throws Exception {
-        String clientId = generator.generate();
-        jdbcTemplate.execute(
-            String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
-                clientId, IdentityZone.getUaaZoneId(), randomGUID)
-            );
-        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetadata createdClientMetadata = db.update(clientMetadata, IdentityZoneHolder.get().getId());
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-        ClientMetadata retrievedClientMetadata = db.retrieve(createdClientMetadata.getClientId(), IdentityZoneHolder.get().getId());
+    @BeforeEach
+    void createDatasource() {
+        randomValueStringGenerator = new RandomValueStringGenerator(8);
+        createdBy = "createdBy-" + randomValueStringGenerator.generate();
+        identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
+        clientId = "clientId-" + randomValueStringGenerator.generate();
 
-        assertThat(retrievedClientMetadata.getClientId(), is(clientMetadata.getClientId()));
-        assertThat(retrievedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaaZoneId()));
-        assertThat(retrievedClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
-        assertThat(retrievedClientMetadata.getAppLaunchUrl(), is(clientMetadata.getAppLaunchUrl()));
-        assertThat(retrievedClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
-        assertThat(retrievedClientMetadata.getCreatedBy(), is(clientMetadata.getCreatedBy()));
-    }
-
-    @Test(expected = EmptyResultDataAccessException.class)
-    public void retrieveClientMetadata_ThatDoesNotExist() throws Exception {
-        String clientId = generator.generate();
-        db.retrieve(clientId, IdentityZoneHolder.get().getId());
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, passwordEncoder);
+        jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 
     @Test
-    public void retrieveAllClientMetadata() throws Exception {
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
-        ClientMetadata clientMetadata1 = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.update(clientMetadata1, IdentityZoneHolder.get().getId());
-        String clientId2 = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId2 + "', '" + IdentityZone.getUaaZoneId() + "')");
-        ClientMetadata clientMetadata2 = createTestClientMetadata(clientId2, true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.update(clientMetadata2, IdentityZoneHolder.get().getId());
+    void constraintViolation_WhenNoMatchingClientFound() throws Exception {
+        ClientMetadata clientMetadata = createTestClientMetadata(
+                randomValueStringGenerator.generate(),
+                true,
+                new URL("http://app.launch/url"),
+                base64EncodedImg,
+                createdBy);
 
-        List<ClientMetadata> clientMetadatas = db.retrieveAll(IdentityZoneHolder.get().getId());
-
-
-        assertThat(clientMetadatas, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId)));
-        assertThat(clientMetadatas, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2)));
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcClientMetadataProvisioning.update(clientMetadata, identityZoneId));
     }
 
     @Test
-    public void updateClientMetadata() throws Exception {
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaaZoneId() + "')");
-        ClientMetadata newClientMetadata = createTestClientMetadata(clientId, false, new URL("http://updated.app/launch/url"), base64EncodedImg);
+    void createdByPadsTo36Chars() {
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, identityZoneId, "abcdef"));
 
-        ClientMetadata updatedClientMetadata = db.update(newClientMetadata, IdentityZoneHolder.get().getId());
+        ClientMetadata retrievedClientMetadata = jdbcClientMetadataProvisioning.retrieve(
+                clientId,
+                identityZoneId);
+
+        assertThat(retrievedClientMetadata.getCreatedBy().length(), is(36));
+    }
+
+    @Test
+    void retrieve() throws Exception {
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, identityZoneId, createdBy));
+        ClientMetadata clientMetadata = createTestClientMetadata(
+                clientId,
+                true,
+                new URL("http://app.launch/url"),
+                base64EncodedImg,
+                createdBy);
+
+        jdbcClientMetadataProvisioning.update(clientMetadata, identityZoneId);
+
+        ClientMetadata retrievedClientMetadata = jdbcClientMetadataProvisioning.retrieve(clientId, identityZoneId);
+
+        assertThat(retrievedClientMetadata.getClientId(), is(clientId));
+        assertThat(retrievedClientMetadata.getIdentityZoneId(), is(identityZoneId));
+        assertThat(retrievedClientMetadata.isShowOnHomePage(), is(true));
+        assertThat(retrievedClientMetadata.getAppLaunchUrl(), is(new URL("http://app.launch/url")));
+        assertThat(retrievedClientMetadata.getAppIcon(), is(base64EncodedImg));
+        assertThat(retrievedClientMetadata.getCreatedBy(), containsString(createdBy));
+    }
+
+    @Test
+    void retrieve_ThatDoesNotExist() {
+        String clientId1 = randomValueStringGenerator.generate();
+        String clientId2 = randomValueStringGenerator.generate();
+        jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId1, "zone1", "createdBy", "appLaunchUrl"));
+        jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId2, "zone2", "createdBy", "appLaunchUrl"));
+
+
+        assertDoesNotThrow(
+                () -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone1"));
+        assertDoesNotThrow(
+                () -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone2"));
+
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone2"));
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone1"));
+    }
+
+    @Test
+    void retrieveAll() {
+        String clientId1 = randomValueStringGenerator.generate();
+        String clientId2 = randomValueStringGenerator.generate();
+        String clientId3 = randomValueStringGenerator.generate();
+        jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId1, identityZoneId, "createdBy", "appLaunchUrl"));
+        jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId2, identityZoneId, "createdBy", "appLaunchUrl"));
+        jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId3, "other-zone", "createdBy", "appLaunchUrl"));
+
+        List<String> clientIds = jdbcClientMetadataProvisioning
+                .retrieveAll(identityZoneId)
+                .stream()
+                .map(ClientMetadata::getClientId)
+                .collect(Collectors.toList());
+
+        assertThat(clientIds, hasItem(clientId1));
+        assertThat(clientIds, hasItem(clientId2));
+        assertThat(clientIds, not(hasItem(clientId3)));
+    }
+
+    @Test
+    void update() throws Exception {
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, identityZoneId));
+        ClientMetadata newClientMetadata = createTestClientMetadata(
+                clientId,
+                false,
+                new URL("http://updated.app/launch/url"),
+                base64EncodedImg,
+                createdBy);
+
+        ClientMetadata updatedClientMetadata = jdbcClientMetadataProvisioning.update(newClientMetadata, identityZoneId);
 
         assertThat(updatedClientMetadata.getClientId(), is(clientId));
-        assertThat(updatedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaaZoneId()));
+        assertThat(updatedClientMetadata.getIdentityZoneId(), is(identityZoneId));
         assertThat(updatedClientMetadata.isShowOnHomePage(), is(newClientMetadata.isShowOnHomePage()));
         assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
         assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));
     }
 
     @Test
-    public void test_set_and_get_ClientName() throws Exception {
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZoneHolder.get().getId() + "')");
-        ClientMetadata data = createTestClientMetadata(clientId,
-                                                       false,
-                                                       null,
-                                                       null);
-        data.setClientName(CLIENT_NAME);
-        db.update(data, IdentityZoneHolder.get().getId());
-        data = db.retrieve(clientId, IdentityZoneHolder.get().getId());
-        assertEquals(CLIENT_NAME, data.getClientName());
+    void setAndGetClientName() {
+        jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, identityZoneId));
+        ClientMetadata data = createTestClientMetadata(
+                clientId,
+                false,
+                null,
+                null,
+                createdBy);
+        String clientName = "clientName" + randomValueStringGenerator.generate();
+        data.setClientName(clientName);
+        jdbcClientMetadataProvisioning.update(data, identityZoneId);
+        data = jdbcClientMetadataProvisioning.retrieve(clientId, identityZoneId);
+        assertEquals(clientName, data.getClientName());
     }
 
-    private ClientMetadata createTestClientMetadata(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
+    private static ClientMetadata createTestClientMetadata(
+            final String clientId,
+            final boolean showOnHomePage,
+            final URL appLaunchUrl,
+            final String appIcon,
+            final String createdBy) {
         ClientMetadata clientMetadata = new ClientMetadata();
         clientMetadata.setClientId(clientId);
         clientMetadata.setShowOnHomePage(showOnHomePage);
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
         clientMetadata.setAppIcon(appIcon);
-        clientMetadata.setCreatedBy(randomGUID);
+        clientMetadata.setCreatedBy(createdBy);
         return clientMetadata;
     }
 
-    private static final String base64EncodedImg = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAXRQTFRFAAAAOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ozk4Ojo6Ojk5NkZMFp/PFqDPNkVKOjo6Ojk5MFhnEq3nEqvjEqzjEbDpMFdlOjo5Ojo6Ojo6Ozg2GZ3TFqXeFKfgF6DVOjo6Ozg2G5jPGZ7ZGKHbGZvROjo6Ojo5M1FfG5vYGp3aM1BdOjo6Ojo6Ojk4KHWeH5PSHpTSKHSbOjk4Ojo6Ojs8IY/QIY/QOjs7Ojo6Ojo6Ozc0JYfJJYjKOzYyOjo5Ozc0KX7AKH/AOzUxOjo5Ojo6Ojo6Ojo6Ojs8LHi6LHi6Ojs7Ojo6Ojo6Ojo6Ojo6Ojo6L3K5L3S7LnW8LnS7Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6NlFvMmWeMmaeNVJwOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojk5Ojk4Ojk4Ojk5Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6FaXeFabfGZ/aGKDaHJnVG5rW////xZzURgAAAHV0Uk5TAAACPaXbAVzltTa4MykoM5HlPY/k5Iw85QnBs2D7+lzAtWD7+lyO6EKem0Ey47Mx2dYvtVZVop5Q2i4qlZAnBiGemh0EDXuddqypcHkShPJwYufmX2rvihSJ+qxlg4JiqP2HPtnW1NjZ2svRVAglGTi91RAXr3/WIQAAAAFiS0dEe0/StfwAAAAJcEhZcwAAAEgAAABIAEbJaz4AAADVSURBVBjTY2BgYGBkYmZhZWVhZmJkAANGNnYODk5ODg52NrAIIyMXBzcPLx8/NwcXIyNYQEBQSFhEVExcQgAiICklLSNbWiYnLy0lCRFQUFRSLq9QUVVUgAgwqqlraFZWaWmrqzFCTNXR1dM3MDQy1tWB2MvIaMJqamZuYWnCCHeIlbWNrZ0VG5QPFLF3cHRydoErcHVz9/D08nb3kYSY6evnHxAYFBwSGhYeAbbWNzIqOiY2Lj4hMckVoiQ5JTUtPSMzKzsH6pfcvPyCwqKc4pJcoAAA2pghnaBVZ0kAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTUtMTAtMDhUMTI6NDg6MDkrMDA6MDDsQS6eAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE1LTEwLTA4VDEyOjQ4OjA5KzAwOjAwnRyWIgAAAEZ0RVh0c29mdHdhcmUASW1hZ2VNYWdpY2sgNi43LjgtOSAyMDE0LTA1LTEyIFExNiBodHRwOi8vd3d3LmltYWdlbWFnaWNrLm9yZ9yG7QAAAAAYdEVYdFRodW1iOjpEb2N1bWVudDo6UGFnZXMAMaf/uy8AAAAYdEVYdFRodW1iOjpJbWFnZTo6aGVpZ2h0ADE5Mg8AcoUAAAAXdEVYdFRodW1iOjpJbWFnZTo6V2lkdGgAMTky06whCAAAABl0RVh0VGh1bWI6Ok1pbWV0eXBlAGltYWdlL3BuZz+yVk4AAAAXdEVYdFRodW1iOjpNVGltZQAxNDQ0MzA4NDg5qdC9PQAAAA90RVh0VGh1bWI6OlNpemUAMEJClKI+7AAAAFZ0RVh0VGh1bWI6OlVSSQBmaWxlOi8vL21udGxvZy9mYXZpY29ucy8yMDE1LTEwLTA4LzJiMjljNmYwZWRhZWUzM2ViNmM1Mzg4ODMxMjg3OTg1Lmljby5wbmdoJKG+AAAAAElFTkSuQmCC";
+    private static String insertIntoOauthClientDetails(
+            final String clientId,
+            final String identityZoneId
+    ) {
+        return String.format("insert into oauth_client_details(client_id, identity_zone_id) values ('%s', '%s')",
+                clientId,
+                identityZoneId);
+    }
+
+    private static String insertIntoOauthClientDetails(
+            final String clientId,
+            final String identityZoneId,
+            final String createdBy
+    ) {
+        return String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
+                clientId,
+                identityZoneId,
+                createdBy);
+    }
+
+    private static String insertIntoOauthClientDetailsWithMetadata(
+            final String clientId,
+            final String identityZoneId,
+            final String createdBy,
+            final String appLaunchUrl
+    ) {
+        return String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by, app_launch_url) values ('%s', '%s', '%s', '%s')",
+                clientId,
+                identityZoneId,
+                createdBy,
+                appLaunchUrl);
+    }
 
 }

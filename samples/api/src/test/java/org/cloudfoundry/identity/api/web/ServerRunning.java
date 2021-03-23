@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.api.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.test.UrlHelper;
 import org.junit.Assume;
 import org.junit.internal.AssumptionViolatedException;
@@ -65,7 +65,7 @@ import static org.junit.Assert.fail;
  */
 public class ServerRunning extends TestWatchman implements RestTemplateHolder, UrlHelper {
 
-    private static Log logger = LogFactory.getLog(ServerRunning.class);
+    private static Logger logger = LoggerFactory.getLogger(ServerRunning.class);
 
     private static int DEFAULT_PORT = 8080;
 
@@ -211,12 +211,12 @@ public class ServerRunning extends TestWatchman implements RestTemplateHolder, U
         client.setErrorHandler(new ResponseErrorHandler() {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         return client;

@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -41,7 +41,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
 
     private static final String GROUP_BY_NAME_AND_ZONE_FILTER = "displayName eq \"%s\" and identity_zone_id eq \"%s\"";
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public boolean isAddNonExistingGroups() {
         return addNonExistingGroups;
@@ -79,7 +79,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         for (String origin : externalGroupMaps.keySet()) {
             Map<String, List> externalGroupMappingsByOrigin = externalGroupMaps.get(origin);
             if (externalGroupMappingsByOrigin != null) {

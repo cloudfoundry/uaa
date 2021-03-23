@@ -27,8 +27,8 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
 
     protected static final String dataFormat = "id=%s; type=%s; origin=%s; zone=%s";
 
-    public IdentityProviderModifiedEvent(IdentityProvider identityProvider, Authentication authentication, AuditEventType type) {
-        super(identityProvider, authentication);
+    IdentityProviderModifiedEvent(IdentityProvider identityProvider, Authentication authentication, AuditEventType type, String zoneId) {
+        super(identityProvider, authentication, zoneId);
         eventType = type;
     }
 
@@ -46,12 +46,12 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
         );
     }
 
-    public static IdentityProviderModifiedEvent identityProviderCreated(IdentityProvider identityProvider) {
-        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderCreatedEvent);
+    public static IdentityProviderModifiedEvent identityProviderCreated(IdentityProvider identityProvider, String zoneId) {
+        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderCreatedEvent, zoneId);
     }
 
-    public static IdentityProviderModifiedEvent identityProviderModified(IdentityProvider identityProvider) {
-        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderModifiedEvent);
+    public static IdentityProviderModifiedEvent identityProviderModified(IdentityProvider identityProvider, String zoneId) {
+        return new IdentityProviderModifiedEvent(identityProvider, getContextAuthentication(), AuditEventType.IdentityProviderModifiedEvent, zoneId);
     }
 
 }

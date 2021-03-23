@@ -1,157 +1,138 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertNotNull;
-import static junit.framework.Assert.assertSame;
-import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThan;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class CachingPasswordEncoderTest  {
+class CachingPasswordEncoderTest {
 
+    private PasswordEncoder passwordEncoder;
     private CachingPasswordEncoder cachingPasswordEncoder;
     private String password;
 
-    @Before
-    public void setUp() throws Exception {
-        cachingPasswordEncoder = new CachingPasswordEncoder();
-        cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder(4)); // 4 mean as fast/weak as possible
+    @BeforeEach
+    void setUp() throws Exception {
+        passwordEncoder = new BCryptPasswordEncoder(4); // 4 mean as fast/weak as possible
+        cachingPasswordEncoder = new CachingPasswordEncoder(passwordEncoder);
         password = new RandomValueStringGenerator().generate();
     }
 
     @Test
-    public void testSetPasswordEncoder() {
-        PasswordEncoder encoder = new BCryptPasswordEncoder();
-        cachingPasswordEncoder.setPasswordEncoder(encoder);
-        assertSame(encoder, cachingPasswordEncoder.getPasswordEncoder());
-    }
-
-    @Test
-    public void testEncode() {
+    void encode() {
         String encode1 = cachingPasswordEncoder.encode(password);
-        String encode2 = cachingPasswordEncoder.getPasswordEncoder().encode(password);
-        assertFalse(encode1.equals(encode2));
-        assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encode1));
-        assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encode2));
+        String encode2 = passwordEncoder.encode(password);
+        assertNotEquals(encode1, encode2);
+        assertTrue(passwordEncoder.matches(password, encode1));
+        assertTrue(passwordEncoder.matches(password, encode2));
         assertTrue(cachingPasswordEncoder.matches(password, encode1));
         assertTrue(cachingPasswordEncoder.matches(password, encode2));
     }
 
     @Test
-    public void testMatches() {
+    void matches() {
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         int iterations = 5;
-        for (int i=0; i<iterations; i++) {
-            assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
+        for (int i = 0; i < iterations; i++) {
+            assertTrue(passwordEncoder.matches(password, encoded));
             assertTrue(cachingPasswordEncoder.matches(password, encoded));
         }
     }
 
     @Test
-    public void testMatches_But_Expires() throws Exception {
-        cachingPasswordEncoder.setExpiryInSeconds(1);
+    void matchesButExpires() throws Exception {
+        Duration shortTTL = Duration.ofSeconds(1);
+        ReflectionTestUtils.setField(cachingPasswordEncoder, "CACHE_TTL", shortTTL);
+        cachingPasswordEncoder.buildCache();
         String encoded = cachingPasswordEncoder.encode(password);
         String cacheKey = cachingPasswordEncoder.cacheEncode(password);
 
-        assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
+        assertTrue(passwordEncoder.matches(password, encoded));
         assertTrue(cachingPasswordEncoder.matches(password, encoded));
 
-        assertTrue("Password is no longer cached when we expected it to be cached",
-                cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() > 0);
+        assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() > 0,
+                "Password is no longer cached when we expected it to be cached");
 
-        Thread.sleep(1001);
+        Thread.sleep(shortTTL.toMillis() + 100);
 
-        assertTrue("Password is still cached when we expected it to be expired",
-                cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() == 0);
+        assertEquals(0, cachingPasswordEncoder.getOrCreateHashList(cacheKey).size(), "Password is still cached when we expected it to be expired");
     }
 
     @Test
-    public void testNotMatches() {
+    void notMatches() {
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         password = new RandomValueStringGenerator().generate();
         int iterations = 5;
-        for (int i=0; i<iterations; i++) {
-            assertFalse(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
+        for (int i = 0; i < iterations; i++) {
+            assertFalse(passwordEncoder.matches(password, encoded));
             assertFalse(cachingPasswordEncoder.matches(password, encoded));
         }
     }
 
     @Test
-    public void cacheIs10XFasterThanNonCached() {
-        cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder());
+    void cacheIs10XFasterThanNonCached() throws NoSuchAlgorithmException {
+        passwordEncoder = new BCryptPasswordEncoder();
+        cachingPasswordEncoder = new CachingPasswordEncoder(passwordEncoder);
 
         int iterations = 10;
 
         String password = new RandomValueStringGenerator().generate();
-        String encodedBcrypt = cachingPasswordEncoder.encode(password);
-        PasswordEncoder nonCachingPasswordEncoder = cachingPasswordEncoder.getPasswordEncoder();
+        String encodedBCrypt = cachingPasswordEncoder.encode(password);
+        PasswordEncoder nonCachingPasswordEncoder = passwordEncoder;
 
-        assertTrue(cachingPasswordEncoder.matches(password, encodedBcrypt)); // warm the cache
+        assertTrue(cachingPasswordEncoder.matches(password, encodedBCrypt)); // warm the cache
 
         Instant start = Instant.now();
         for (int i = 0; i < iterations; i++) {
-            assertTrue(nonCachingPasswordEncoder.matches(password, encodedBcrypt));
+            assertTrue(nonCachingPasswordEncoder.matches(password, encodedBCrypt));
         }
         Instant middle = Instant.now();
         for (int i = 0; i < iterations; i++) {
-            assertTrue(cachingPasswordEncoder.matches(password, encodedBcrypt));
+            assertTrue(cachingPasswordEncoder.matches(password, encodedBCrypt));
         }
         Instant end = Instant.now();
 
-        Duration bcryptTime = Duration.between(start, middle);
+        Duration bCryptTime = Duration.between(start, middle);
         Duration cacheTime = Duration.between(middle, end);
 
         assertThat(
                 "cache wasn't fast enough (see ISO-8601 for understanding the strings)",
                 cacheTime.multipliedBy(10L),
-                is(lessThan(bcryptTime))
+                is(lessThan(bCryptTime))
         );
     }
 
     @Test
-    public void testEnsureNoMemoryLeak() {
-        int maxkeys = 10;
-        int maxpasswords = 4;
-        cachingPasswordEncoder.setMaxKeys(maxkeys);
-        assertEquals(maxkeys, cachingPasswordEncoder.getMaxKeys());
-        cachingPasswordEncoder.setMaxEncodedPasswords(4);
-        assertEquals(maxpasswords, cachingPasswordEncoder.getMaxEncodedPasswords());
+    // TODO: This test takes a long time to run :(
+    void ensureNoMemoryLeak() {
         assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
-        for (int i=0; i<cachingPasswordEncoder.getMaxKeys(); i++) {
+        for (int i = 0; i < cachingPasswordEncoder.getMaxKeys(); i++) {
             String password = new RandomValueStringGenerator().generate();
-            for (int j=0; j<cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
+            for (int j = 0; j < cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
                 String encoded = cachingPasswordEncoder.encode(password);
                 assertTrue(cachingPasswordEncoder.matches(password, encoded));
             }
         }
-        assertEquals(maxkeys, cachingPasswordEncoder.getNumberOfKeys());
+        assertEquals(cachingPasswordEncoder.getMaxKeys(), cachingPasswordEncoder.getNumberOfKeys());
         String password = new RandomValueStringGenerator().generate();
         String encoded = cachingPasswordEncoder.encode(password);
         assertTrue(cachingPasswordEncoder.matches(password, encoded));
@@ -159,7 +140,7 @@ public class CachingPasswordEncoderTest  {
         assertEquals(1, cachingPasswordEncoder.getNumberOfKeys());
 
 
-        for (int j=1; j<cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
+        for (int j = 1; j < cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
             encoded = cachingPasswordEncoder.encode(password);
             assertTrue(cachingPasswordEncoder.matches(password, encoded));
         }
@@ -168,34 +149,8 @@ public class CachingPasswordEncoderTest  {
         assertNotNull(cache);
         Set<String> passwords = cache.get(cachingPasswordEncoder.cacheEncode(password));
         assertNotNull(passwords);
-        assertEquals(maxpasswords, passwords.size());
+        assertEquals(cachingPasswordEncoder.getMaxEncodedPasswords(), passwords.size());
         cachingPasswordEncoder.matches(password, cachingPasswordEncoder.encode(password));
         assertEquals(1, passwords.size());
-    }
-
-
-    @Test
-    public void testDisabledMatchesSpeedTest() throws Exception {
-        int iterations = 15;
-        cachingPasswordEncoder.setEnabled(false);
-        assertFalse(cachingPasswordEncoder.isEnabled());
-
-        String password = new RandomValueStringGenerator().generate();
-        String encodedBcrypt = cachingPasswordEncoder.encode(password);
-        long nanoStart = System.nanoTime();
-        for (int i=0; i<iterations; i++) {
-            assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encodedBcrypt));
-        }
-        long nanoStop = System.nanoTime();
-        long bcryptTime = nanoStop - nanoStart;
-        nanoStart = System.nanoTime();
-        for (int i=0; i<iterations; i++) {
-            assertTrue(cachingPasswordEncoder.matches(password, encodedBcrypt));
-        }
-        nanoStop = System.nanoTime();
-        long cacheTime = nanoStop - nanoStart;
-        //assert that the cache is at least 10 times faster
-        assertFalse(bcryptTime > (10 * cacheTime));
-        assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
     }
 }

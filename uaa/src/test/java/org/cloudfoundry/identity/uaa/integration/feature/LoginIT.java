@@ -12,8 +12,24 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.startsWith;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
+
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -22,9 +38,10 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
-import org.hamcrest.Matchers;
 import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -51,24 +68,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.CSRF_PARAMETER_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -93,7 +95,6 @@ public class LoginIT {
 
     @Autowired
     SimpleSmtpServer simpleSmtpServer;
-    private String testzone3;
     private static ServerRunning serverRunning = ServerRunning.isRunning();
 
     String originKey = "oidc-idp";
@@ -111,10 +112,10 @@ public class LoginIT {
     }
 
     @Test
-    public void check_JSESSIONID_defaults() throws Exception {
+    public void check_JSESSIONID_defaults() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        List<String> cookies = Collections.EMPTY_LIST;
+        List<String> cookies;
         LinkedMultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
         requestBody.add("username", testAccounts.getUserName());
         requestBody.add("password", testAccounts.getPassword());
@@ -215,7 +216,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testSuccessfulLoginNewUser() throws Exception {
+    public void testSuccessfulLoginNewUser() {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
@@ -229,21 +230,21 @@ public class LoginIT {
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(),
                 containsString("You should not see this page. Set up your redirect URI."));
 
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
     }
 
     @Test
-    public void testLoginHint() throws Exception {
+    public void testLoginHint() {
         String newUserEmail = createAnotherUser();
         webDriver.get(baseUrl + "/logout.do");
-        String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", "UTF-8");
+        String ldapLoginHint = URLEncoder.encode("{\"origin\":\"ldap\"}", StandardCharsets.UTF_8);
         webDriver.get(baseUrl + "/login?login_hint=" + ldapLoginHint);
         assertEquals("Predix", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
         attemptLogin(newUserEmail, USER_PASSWORD);
-        assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Unable to verify email or password. Please try again."));
+        assertThat(webDriver.findElement(By.className("alert-error")).getText(), containsString("Provided credentials are invalid. Please try again."));
 
-        String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", "UTF-8");
+        String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8);
         webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
         assertEquals("Predix", webDriver.getTitle());
         assertThat(webDriver.getPageSource(), not(containsString("or sign in with:")));
@@ -253,7 +254,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testNoZoneFound() throws Exception {
+    public void testNoZoneFound() {
         assertSupportsZoneDNS();
         webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
         assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
@@ -267,7 +268,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testPasscodeRedirect() throws Exception {
+    public void testPasscodeRedirect() {
         webDriver.get(baseUrl + "/passcode");
         assertEquals("Predix", webDriver.getTitle());
 
@@ -277,7 +278,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testUnsuccessfulLogin() throws Exception {
+    public void testUnsuccessfulLogin() {
         webDriver.get(baseUrl + "/login");
         assertEquals("Predix", webDriver.getTitle());
 
@@ -286,7 +287,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testAccessDeniedIfCsrfIsMissing() throws Exception {
+    public void testAccessDeniedIfCsrfIsMissing() {
         RestTemplate template = new RestTemplate();
         template.setErrorHandler(new ResponseErrorHandler() {
             @Override
@@ -295,7 +296,7 @@ public class LoginIT {
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
 
         });
@@ -303,7 +304,7 @@ public class LoginIT {
         body.add("username", testAccounts.getUserName());
         body.add("password", testAccounts.getPassword());
         HttpHeaders headers = new HttpHeaders();
-        headers.add(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login.do",
             HttpMethod.POST,
             new HttpEntity<>(body, headers),
@@ -313,11 +314,11 @@ public class LoginIT {
     }
 
     @Test
-    public void testRedirectAfterUnsuccessfulLogin() throws Exception {
+    public void testRedirectAfterUnsuccessfulLogin() {
         RestTemplate template = new RestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
             HttpMethod.GET,
             new HttpEntity<>(null, headers),
@@ -347,7 +348,7 @@ public class LoginIT {
     }
 
     @Test
-    public void userLockedoutAfterUnsuccessfulAttempts() throws Exception {
+    public void userLockedoutAfterUnsuccessfulAttempts() {
         String userEmail = createAnotherUser();
 
         webDriver.get(baseUrl + "/logout.do");
@@ -368,7 +369,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testBuildInfo() throws Exception {
+    public void testBuildInfo() {
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
@@ -399,7 +400,7 @@ public class LoginIT {
     }
 
     @Test
-    public void testAccountChooserFlow() throws Exception {
+    public void testAccountChooserFlow()  throws Exception {
         String zoneUrl = createDiscoveryZone();
 
         String userEmail = createAnotherUser(zoneUrl);
@@ -410,10 +411,12 @@ public class LoginIT {
         webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
-        assertEquals(userEmail, webDriver.findElement(By.className("email-address")).getText());
+        assertThat(webDriver.findElement(By.className("email-address")).getText(), startsWith(userEmail));
+        assertThat(webDriver.findElement(By.className("email-address")).getText(), containsString(OriginKeys.UAA));
         webDriver.findElement(By.className("email-address")).click();
 
         assertEquals(userEmail, webDriver.findElement(By.id("username")).getAttribute("value"));
+        assertThat(webDriver.getCurrentUrl(), containsString("login_hint"));
         webDriver.findElement(By.id("password")).sendKeys(USER_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
         assertThat(webDriver.findElement(By.cssSelector(".island h1")).getText(),
@@ -478,7 +481,7 @@ public class LoginIT {
     }
 
     private String createDiscoveryZone() throws Exception {
-        testzone3 = "testzone3";
+        String testzone3 = "testzone3";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
@@ -514,7 +517,8 @@ public class LoginIT {
         return res;
     }
 
-    private void deleteDiscoveryZoneIdentityProvider() throws Exception {
+    private void deleteDiscoveryZoneIdentityProvider() {
+        String testzone3 = "testzone3";
         String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning, testzone3);
         IntegrationTestUtils.deleteProvider(zoneAdminToken, baseUrl, testzone3, originKey);
     }

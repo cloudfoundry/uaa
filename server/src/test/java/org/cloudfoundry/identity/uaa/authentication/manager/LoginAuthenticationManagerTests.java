@@ -5,13 +5,17 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mockito;
@@ -25,9 +29,12 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.user.UaaUserMatcher.aUaaUser;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -38,11 +45,13 @@ class LoginAuthenticationManagerTests {
     private LoginAuthenticationManager manager;
     private UaaUserDatabase userDatabase;
     private TestApplicationEventPublisher<IdentityProviderAuthenticationSuccessEvent> publisher;
+    private IdentityZoneManager mockIdentityZoneManager;
 
     @BeforeEach
     void setUp() {
         publisher = TestApplicationEventPublisher.forEventClass(IdentityProviderAuthenticationSuccessEvent.class);
-        manager = new LoginAuthenticationManager();
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        manager = new LoginAuthenticationManager(mockIdentityZoneManager);
         manager.setApplicationEventPublisher(publisher);
         userDatabase = mock(UaaUserDatabase.class);
         manager.setUserDatabase(userDatabase);
@@ -108,48 +117,11 @@ class LoginAuthenticationManagerTests {
         assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
     }
 
-    @Test
-    void testHappyDayAutoAddButWithNewUser() {
-        UaaUser user = UaaUserTestFactory.getUser("FOO", "foo", "fo@test.org", "Foo", "Bar");
-        Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"))
-                .thenReturn(user);
-        Authentication authentication = manager.authenticate(UaaAuthenticationTestFactory
-                .getAuthenticationRequest("foo", true));
-        assertEquals(user.getUsername(), ((UaaPrincipal) authentication.getPrincipal()).getName());
-        assertEquals(user.getId(), ((UaaPrincipal) authentication.getPrincipal()).getId());
-    }
 
     @Test
     void testUnsuccessfulAutoAddButWithNewUser() {
         Mockito.when(userDatabase.retrieveUserByName("foo", OriginKeys.LOGIN_SERVER)).thenThrow(new UsernameNotFoundException("planned"));
         assertThrows(BadCredentialsException.class, () -> manager.authenticate(UaaAuthenticationTestFactory.getAuthenticationRequest("foo", true)));
-    }
-
-    @Test
-    void testAuthenticateWithStrangeNameAndMissingEmail() {
-        String username1 = "a@";
-        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
-        UaaUser u1 = manager.getUser(req1, req1.getInfo());
-        assertEquals(username1, u1.getUsername());
-
-        String username2 = "@a";
-        AuthzAuthenticationRequest req2 = UaaAuthenticationTestFactory.getAuthenticationRequest(username2, true);
-        UaaUser u2 = manager.getUser(req2, req2.getInfo());
-        assertEquals(username2, u2.getUsername());
-
-        String username3 = "a@b@c";
-        AuthzAuthenticationRequest req3 = UaaAuthenticationTestFactory.getAuthenticationRequest(username3, true);
-        UaaUser u3 = manager.getUser(req3, req3.getInfo());
-        assertEquals(username3, u3.getUsername());
-    }
-
-    @Test
-    void uaaOriginNotAllowedForExternalLogin() {
-        String username1 = "a@";
-        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
-        Map<String, String> info = new HashMap<>(req1.getInfo());
-        info.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        assertThrows(BadCredentialsException.class, () -> manager.getUser(req1, info), "uaa origin not allowed for external login server");
     }
 
     @Test
@@ -163,19 +135,60 @@ class LoginAuthenticationManagerTests {
         assertEquals("foo", publisher.getLatestEvent().getUser().getUsername());
     }
 
-    @Test
-    void testNoOutOfBoundsInCaseOfWrongEmailFormat() {
-        // use an email without the '@' sign and provide no name and familyname to trigger the potential bug
-        String username = "newuser";
-        String email = "noAtSign";
-        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username, true);
-        Map<String, String> info = new HashMap<>(req1.getInfo());
-        info.put("email", email);
-        UaaUser u1 = manager.getUser(req1, info);
-        assertNotNull(u1);
-        assertEquals(username, u1.getUsername());
-        assertNotNull(u1.getFamilyName());
-        assertNotNull(u1.getGivenName());
-    }
 
+    @Nested
+    class GetUser {
+        @Test
+        void uaaOriginNotAllowedForExternalLogin() {
+            AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest("user", true);
+            assertThrowsWithMessageThat(
+                    BadCredentialsException.class,
+                    () -> manager.getUser(req1, Collections.singletonMap(OriginKeys.ORIGIN, OriginKeys.UAA)),
+                    is("uaa origin not allowed for external login server")
+            );
+        }
+
+        @Test
+        void byDefault() {
+            AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest("user", true);
+            HashMap<String, String> info = new HashMap<>();
+            info.put("email", "user@example.com");
+            info.put("given_name", "Jane");
+            info.put("family_name", "Doe");
+            info.put(OriginKeys.ORIGIN, "test-origin");
+            UaaUser user = manager.getUser(req1, info);
+
+            assertThat(user, is(
+                aUaaUser()
+                    .withUsername("user")
+                    .withEmail("user@example.com")
+                    .withGivenName("Jane")
+                    .withFamilyName("Doe")
+                    .withPassword("")
+                    .withAuthorities(Matchers.equalTo(UaaAuthority.USER_AUTHORITIES))
+                    .withOrigin("test-origin")
+                    .withExternalId("user")
+                    .withZoneId(mockIdentityZoneManager.getCurrentIdentityZoneId())
+            ));
+        }
+
+        @Test
+        void withoutOrigin() {
+            AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest("user", true);
+            HashMap<String, String> info = new HashMap<>();
+            info.put("email", "user@example.com");
+            UaaUser user = manager.getUser(req1, info);
+
+            assertThat(user, is(
+                    aUaaUser()
+                            .withUsername("user")
+                            .withEmail("user@example.com")
+                            .withPassword("")
+                            .withAuthorities(Matchers.equalTo(UaaAuthority.USER_AUTHORITIES))
+                            .withOrigin(OriginKeys.LOGIN_SERVER)
+                            .withExternalId("user")
+                            .withZoneId(mockIdentityZoneManager.getCurrentIdentityZoneId())
+            ));
+        }
+    }
 }

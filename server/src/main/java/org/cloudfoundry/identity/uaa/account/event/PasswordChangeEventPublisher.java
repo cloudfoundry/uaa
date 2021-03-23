@@ -1,16 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.account.event;
 
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
@@ -19,7 +6,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser.Email;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
@@ -36,16 +23,19 @@ import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.
  * according to the input and outcome. Can be
  * used as an aspect intercepting calls to a component that changes user
  * password.
- *
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
 
+    private IdentityZoneManager identityZoneManager;
+
+    static final String DEFAULT_EMAIL_DOMAIN = "this-default-was-not-configured.invalid";
     private ScimUserProvisioning dao;
 
     private ApplicationEventPublisher publisher;
 
-    public PasswordChangeEventPublisher(ScimUserProvisioning provisioning) {
+    public PasswordChangeEventPublisher(ScimUserProvisioning provisioning, IdentityZoneManager identityZoneManager) {
         this.dao = provisioning;
+        this.identityZoneManager = identityZoneManager;
     }
 
     @Override
@@ -55,36 +45,36 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
 
     public void passwordFailure(String userId, Exception e) {
         UaaUser user = getUser(userId);
-        publish(new PasswordChangeFailureEvent(e.getMessage(), user, getPrincipal()));
+        publish(new PasswordChangeFailureEvent(e.getMessage(), user, getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     public void passwordChange(String userId) {
-        publish(new PasswordChangeEvent("Password changed", getUser(userId), getPrincipal()));
+        publish(new PasswordChangeEvent("Password changed", getUser(userId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
     }
 
-    private UaaUser getUser(String userId) {
+    UaaUser getUser(String userId) {
         try {
             // If the request came in for a user by id we should be able to
             // retrieve the username
-            ScimUser scimUser = dao.retrieve(userId, IdentityZoneHolder.get().getId());
+            ScimUser scimUser = dao.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
             Date today = new Date();
             if (scimUser != null) {
                 return new UaaUser(
-                    scimUser.getId(),
-                    scimUser.getUserName(),
-                    "N/A",
-                    getEmail(scimUser),
-                    null,
-                    scimUser.getGivenName(),
-                    scimUser.getFamilyName(),
-                    today,
-                    today,
-                    scimUser.getOrigin(),
-                    scimUser.getExternalId(),
-                    scimUser.isVerified(),
-                    scimUser.getZoneId(),
-                    scimUser.getSalt(),
-                    scimUser.getPasswordLastModified());
+                        scimUser.getId(),
+                        scimUser.getUserName(),
+                        "N/A",
+                        getEmail(scimUser),
+                        null,
+                        scimUser.getGivenName(),
+                        scimUser.getFamilyName(),
+                        today,
+                        today,
+                        scimUser.getOrigin(),
+                        scimUser.getExternalId(),
+                        scimUser.isVerified(),
+                        scimUser.getZoneId(),
+                        scimUser.getSalt(),
+                        scimUser.getPasswordLastModified());
             }
         } catch (ScimResourceNotFoundException e) {
             // ignore
@@ -92,11 +82,11 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return null;
     }
 
-    private String getEmail(ScimUser scimUser) {
+    String getEmail(ScimUser scimUser) {
         List<Email> emails = scimUser.getEmails();
         if (emails == null || emails.isEmpty()) {
             return scimUser.getUserName().contains("@") ? scimUser.getUserName() : scimUser.getUserName()
-                            + "@unknown.org";
+                    + "@" + DEFAULT_EMAIL_DOMAIN;
         }
         for (Email email : emails) {
             if (email.isPrimary()) {
@@ -106,9 +96,9 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
         return scimUser.getEmails().get(0).getValue();
     }
 
-    protected Authentication getPrincipal() {
+    Authentication getPrincipal() {
         return ofNullable(SecurityContextHolder.getContext().getAuthentication())
-            .orElse(SYSTEM_AUTHENTICATION);
+                .orElse(SYSTEM_AUTHENTICATION);
     }
 
     private void publish(AbstractUaaEvent event) {

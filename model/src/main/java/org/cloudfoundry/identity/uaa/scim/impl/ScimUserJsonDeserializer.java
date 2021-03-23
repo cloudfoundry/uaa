@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.scim.impl;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -32,7 +31,7 @@ import java.util.HashSet;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
     @Override
-    public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+    public ScimUser deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         ScimUser user = new ScimUser();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {

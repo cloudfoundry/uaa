@@ -171,7 +171,7 @@ public class RsaJsonWebKeyTests {
         try {
             new VerificationKeyResponse(p);
             fail("Creation of key with properties:" + p + " should fail.");
-        } catch (IllegalArgumentException x) {
+        } catch (IllegalArgumentException ignored) {
         }
     }
 

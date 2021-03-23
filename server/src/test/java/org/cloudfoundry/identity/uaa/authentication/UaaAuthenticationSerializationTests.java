@@ -53,7 +53,7 @@ public class UaaAuthenticationSerializationTests {
     public static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
 
     @Test
-    public void test_serialization() throws Exception {
+    public void test_serialization() {
         UaaPrincipal principal = new UaaPrincipal("id","username","email","origin","externalId","zoneId");
         HttpSession session = mock(HttpSession.class);
         when(session.getId()).thenReturn("id");
@@ -84,7 +84,7 @@ public class UaaAuthenticationSerializationTests {
         assertEquals("remoteAddr", actualDetails.getOrigin());
         assertEquals("id", actualDetails.getSessionId());
         assertEquals("clientId", actualDetails.getClientId());
-        assertEquals(true, actualDetails.isAddNew());
+        assertTrue(actualDetails.isAddNew());
 
         //validate principal
         UaaPrincipal actualPrincipal = actual.getPrincipal();
@@ -118,7 +118,7 @@ public class UaaAuthenticationSerializationTests {
     }
 
     @Test
-    public void testDeserializationWithoutAuthenticatedTime() throws Exception {
+    public void testDeserializationWithoutAuthenticatedTime() {
         String data ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\"}";
         UaaAuthentication authentication1 = JsonUtils.readValue(data, UaaAuthentication.class);
         assertEquals(1438649464353l, authentication1.getAuthenticatedTime());
@@ -146,7 +146,7 @@ public class UaaAuthenticationSerializationTests {
     }
 
     @Test
-    public void deserialization_with_external_groups() throws Exception {
+    public void deserialization_with_external_groups() {
         String dataWithExternalGroups ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\"}";
         UaaAuthentication authentication = JsonUtils.readValue(dataWithExternalGroups, UaaAuthentication.class);
         assertEquals(3, authentication.getExternalGroups().size());
@@ -155,7 +155,7 @@ public class UaaAuthenticationSerializationTests {
     }
 
     @Test
-    public void deserialization_with_user_attributes() throws Exception {
+    public void deserialization_with_user_attributes() {
         String dataWithoutUserAttributes ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\", \"previousLoginSuccessTime\":1485305759347}";
         UaaAuthentication authentication = JsonUtils.readValue(dataWithoutUserAttributes, UaaAuthentication.class);
         assertEquals(3, authentication.getExternalGroups().size());

@@ -14,8 +14,8 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -61,7 +61,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  */
 public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpointAuthenticationFilter {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private List<String> parameterNames = Collections.emptyList();
 
@@ -70,7 +70,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
             new ExpiringCodeAuthenticationManager(
                 uaaUserDatabase,
                 authenticationManager,
-                LogFactory.getLog(PasscodeAuthenticationFilter.class),
+                LoggerFactory.getLogger(PasscodeAuthenticationFilter.class),
                 expiringCodeStore,
                 Collections.singleton(HttpMethod.POST.toString())),
             oAuth2RequestFactory);
@@ -155,13 +155,13 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     }
 
     protected static class ExpiringCodeAuthenticationManager implements AuthenticationManager {
-        private final Log logger;
+        private final Logger logger;
         private final ExpiringCodeStore expiringCodeStore;
         private final Set<String> methods;
         private final AuthenticationManager parent;
         private final UaaUserDatabase uaaUserDatabase;
 
-        public ExpiringCodeAuthenticationManager(UaaUserDatabase uaaUserDatabase, AuthenticationManager parent, Log logger, ExpiringCodeStore expiringCodeStore, Set<String> methods) {
+        public ExpiringCodeAuthenticationManager(UaaUserDatabase uaaUserDatabase, AuthenticationManager parent, Logger logger, ExpiringCodeStore expiringCodeStore, Set<String> methods) {
             this.logger = logger;
             this.expiringCodeStore = expiringCodeStore;
             this.methods = methods;
@@ -277,7 +277,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
     }
 
     @Override

@@ -1,17 +1,15 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.StringUtils;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -20,7 +18,7 @@ import java.util.UUID;
 
 public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, SystemDeletable {
 
-    private static Log logger = LogFactory.getLog(JdbcMfaProviderProvisioning.class);
+    private static Logger logger = LoggerFactory.getLogger(JdbcMfaProviderProvisioning.class);
     public static final String TABLE_NAME = "mfa_providers";
     public static final String MFA_PROVIDER_FIELDS = "id,name,type,config,identity_zone_id,created,lastmodified";
     public static final String CREATE_PROVIDER_SQL = "insert into " + TABLE_NAME + "(" + MFA_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?)";
@@ -50,18 +48,15 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
         mfaProviderValidator.validate(provider);
         final String id = UUID.randomUUID().toString();
         try {
-            jdbcTemplate.update(CREATE_PROVIDER_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    int pos = 1;
-                    ps.setString(pos++, id);
-                    ps.setString(pos++, provider.getName());
-                    ps.setString(pos++, provider.getType().toValue());
-                    ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
-                    ps.setString(pos++, zoneId);
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                    ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                }
+            jdbcTemplate.update(CREATE_PROVIDER_SQL, ps -> {
+                int pos = 1;
+                ps.setString(pos++, id);
+                ps.setString(pos++, provider.getName());
+                ps.setString(pos++, provider.getType().toValue());
+                ps.setString(pos++, JsonUtils.writeValueAsString(provider.getConfig()));
+                ps.setString(pos++, zoneId);
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
             });
         } catch (DuplicateKeyException e) {
             String message = e.getMostSpecificCause().getMessage();
@@ -101,14 +96,12 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
 
     @Override
     public MfaProvider retrieve(String id, String zoneId) {
-        MfaProvider provider = jdbcTemplate.queryForObject(MFA_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
-        return provider;
+        return jdbcTemplate.queryForObject(MFA_PROVIDER_BY_ID_QUERY, mapper, id, zoneId);
     }
 
     @Override
     public MfaProvider retrieveByName(String name, String zoneId) {
-        MfaProvider provider = jdbcTemplate.queryForObject(MFA_PROVIDER_BY_NAME_QUERY, mapper, name, zoneId);
-        return provider;
+        return jdbcTemplate.queryForObject(MFA_PROVIDER_BY_NAME_QUERY, mapper, name, zoneId);
     }
 
     @Override
@@ -127,7 +120,7 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
     }
 
     @Override
-    public Log getLogger() {
+    public Logger getLogger() {
         return logger;
     }
 
@@ -143,12 +136,8 @@ public class JdbcMfaProviderProvisioning implements MfaProviderProvisioning, Sys
             //deserialize based on type
             String config = rs.getString(pos++);
             AbstractMfaProviderConfig definition = null;
-            switch(result.getType()) {
-                case GOOGLE_AUTHENTICATOR:
-                    definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
-                    break;
-                default:
-                    break;
+            if (result.getType() == MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR) {
+                definition = StringUtils.hasText(config) ? JsonUtils.readValue(config, GoogleMfaProviderConfig.class) : new GoogleMfaProviderConfig();
             }
             result.setConfig(definition);
             result.setIdentityZoneId(rs.getString(pos++));

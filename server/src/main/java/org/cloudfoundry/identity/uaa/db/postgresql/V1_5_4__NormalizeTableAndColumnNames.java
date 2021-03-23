@@ -14,8 +14,8 @@ package org.cloudfoundry.identity.uaa.db.postgresql;
 
 import java.util.List;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3;
 import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -27,7 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
  */
 public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5_3 implements SpringJdbcMigration {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private String colQuery = "SELECT 'noop', \n" +
                     "  c.relname as table_name,\n" +
@@ -45,7 +45,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     "ORDER BY 1,2";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) throws Exception {
+    public void migrate(JdbcTemplate jdbcTemplate) {
         logger.info("[V1_5_4] Running SQL: " + colQuery);
         List<ColumnInfo> columns = jdbcTemplate.query(colQuery, new ColumnMapper());
         for (ColumnInfo column : columns) {

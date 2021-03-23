@@ -8,8 +8,6 @@ import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.util.StringUtils.hasText;
@@ -108,14 +106,16 @@ public final class SnippetUtils {
             type(subFieldDescriptor.getType());
             description(subFieldDescriptor.getDescription());
             if(subFieldDescriptor.isIgnored()) { ignored(); }
-            List<Attributes.Attribute> attributes = subFieldDescriptor.getAttributes().entrySet().stream().map(e -> key(e.getKey()).value(e.getValue())).collect(Collectors.toList());
-            attributes(attributes.toArray(new Attributes.Attribute[attributes.size()]));
+            attributes(
+                    subFieldDescriptor.getAttributes().entrySet().stream()
+                            .map(e -> key(e.getKey()).value(e.getValue()))
+                            .toArray(Attributes.Attribute[]::new)
+            );
             if(subFieldDescriptor.isOptional()) { optional(); }
         }
     }
 
     public static FieldDescriptor[] subFields(String path, FieldDescriptor... fieldDescriptors) {
-        List<SubField> subFields = Arrays.asList(fieldDescriptors).stream().map(field -> new SubField(path, field)).collect(Collectors.toList());
-        return subFields.toArray(new FieldDescriptor[subFields.size()]);
+        return Arrays.stream(fieldDescriptors).map(field -> new SubField(path, field)).toArray(FieldDescriptor[]::new);
     }
 }

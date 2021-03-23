@@ -20,8 +20,6 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -48,20 +46,22 @@ import static org.springframework.util.StringUtils.hasText;
 public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = -7639844193401892160L;
-    private transient final IdentityZone identityZone = IdentityZoneHolder.get();
+    private transient final String zoneId;
 
     private Authentication authentication;
 
-    protected AbstractUaaEvent(Object source) {
+    protected AbstractUaaEvent(Object source, String zoneId) {
         super(source);
         if (source instanceof Authentication) {
             this.authentication = (Authentication)source;
         }
+        this.zoneId = zoneId;
     }
 
-    protected AbstractUaaEvent(Object source, Authentication authentication) {
+    protected AbstractUaaEvent(Object source, Authentication authentication, String zoneId) {
         super(source);
         this.authentication = authentication;
+        this.zoneId = zoneId;
     }
 
     public void process(UaaAuditService auditor) {
@@ -69,15 +69,15 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin) {
-        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), identityZone.getId(), null, null);
+        return new AuditEvent(type, principalId, origin, null, System.currentTimeMillis(), zoneId, null, null);
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data) {
-        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId(), null, null);
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, null, null);
     }
 
     protected AuditEvent createAuditRecord(String principalId, AuditEventType type, String origin, String data, String authenticationType, String message) {
-        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), identityZone.getId(), authenticationType, message);
+        return new AuditEvent(type, principalId, origin, data, System.currentTimeMillis(), zoneId, authenticationType, message);
     }
 
     public Authentication getAuthentication() {
@@ -202,8 +202,8 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         return a;
     }
 
-    public IdentityZone getIdentityZone() {
-        return identityZone;
+    public String getIdentityZoneId() {
+        return zoneId;
     }
 
 }

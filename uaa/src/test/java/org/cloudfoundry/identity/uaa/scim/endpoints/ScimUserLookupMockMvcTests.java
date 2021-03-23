@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +45,6 @@ class ScimUserLookupMockMvcTests {
 
     private static String[][] testUsers;
 
-    private boolean originalIsUserIdConversionEndpointsEnabled;
-
     private ScimUser user;
 
     private WebApplicationContext webApplicationContext;
@@ -70,19 +67,12 @@ class ScimUserLookupMockMvcTests {
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(this.mockMvc, adminToken, user);
 
-        originalIsUserIdConversionEndpointsEnabled = this.webApplicationContext.getBean(UserIdConversionEndpoints.class).isEnabled();
-        this.webApplicationContext.getBean(UserIdConversionEndpoints.class).setEnabled(true);
         List<String> scopes = Arrays.asList("scim.userids", "cloud_controller.read");
         MockMvcUtils.createClient(this.mockMvc, adminToken, clientId, clientSecret, Collections.singleton("scim"), scopes, Arrays.asList("client_credentials", "password"), "uaa.none");
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers == null) {
             testUsers = createUsers(adminToken);
         }
-    }
-
-    @AfterEach
-    void restoreEnabled() {
-        webApplicationContext.getBean(UserIdConversionEndpoints.class).setEnabled(originalIsUserIdConversionEndpointsEnabled);
     }
 
     @Test
@@ -221,6 +211,7 @@ class ScimUserLookupMockMvcTests {
         String[] usernames = new String[25];
         int index = 0;
         for (String[] entry : testUsers) {
+            // TODO: do this more elegantly please. Maybe use a join?
             builder.append("userName eq \"" + entry[1] + "\"");
             builder.append(" or ");
             usernames[index++] = entry[1];
@@ -301,7 +292,7 @@ class ScimUserLookupMockMvcTests {
         final int count = 25;
         String[][] result = new String[count][];
         for (int i = 0; i < count; i++) {
-            String id = i > 99 ? String.valueOf(i) : i > 9 ? "0" + String.valueOf(i) : "00" + String.valueOf(i);
+            String id = i > 9 ? "0" + i : "00" + i;
             String email = "joe" + id + "@" + generator.generate().toLowerCase() + ".com";
 
             ScimUser user = new ScimUser();

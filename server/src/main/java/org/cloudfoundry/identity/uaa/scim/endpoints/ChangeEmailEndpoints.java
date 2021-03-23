@@ -12,90 +12,96 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
-import java.io.IOException;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.http.HttpStatus.*;
 
 @Controller
 public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
+
+    private static final long EMAIL_CHANGE_LIFETIME = Duration.ofMinutes(30L).toMillis();
+    private static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
+
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
-    private ApplicationEventPublisher publisher;
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
-    private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
+    private final IdentityZoneManager identityZoneManager;
 
-    public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
+    private ApplicationEventPublisher publisher;
 
-    public ChangeEmailEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, QueryableResourceManager<ClientDetails> clientDetailsService) {
+    public ChangeEmailEndpoints(
+            final ScimUserProvisioning scimUserProvisioning,
+            final ExpiringCodeStore expiringCodeStore,
+            final QueryableResourceManager<ClientDetails> clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
         this.clientDetailsService = clientDetailsService;
+        this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value="/email_verifications", method = RequestMethod.POST)
+    @RequestMapping(value = "/email_verifications", method = RequestMethod.POST)
     public ResponseEntity<String> generateEmailVerificationCode(@RequestBody EmailChange emailChange) {
-        String userId = emailChange.getUserId();
-        String email = emailChange.getEmail();
+        final String userId = emailChange.getUserId();
+        final String email = emailChange.getEmail();
 
-        ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
+        final ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
         if (user.getUserName().equals(user.getPrimaryEmail())) {
-            List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", IdentityZoneHolder.get().getId());
+            final List<ScimUser> results = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!results.isEmpty()) {
-                    return new ResponseEntity<>(CONFLICT);
+                return new ResponseEntity<>(CONFLICT);
             }
         }
 
-        String code;
         try {
-            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name(), IdentityZoneHolder.get().getId()).getCode();
+            final String code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
+            return new ResponseEntity<>(code, CREATED);
         } catch (JsonUtils.JsonUtilException e) {
             throw new UaaException("Error while generating change email code", e);
         }
-
-        return new ResponseEntity<>(code, CREATED);
     }
 
-    @RequestMapping(value="/email_changes", method = RequestMethod.POST)
-    public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) throws IOException {
-        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+    @RequestMapping(value = "/email_changes", method = RequestMethod.POST)
+    public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) {
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         if ((null != expiringCode) && ((null == expiringCode.getIntent()) || EMAIL.name().equals(expiringCode.getIntent()))) {
-            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
+            });
+            assert data != null;
             String userId = data.get("userId");
             String email = data.get("email");
-            ScimUser user = scimUserProvisioning.retrieve(userId, IdentityZoneHolder.get().getId());
+            ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
             if (user.getUserName().equals(user.getPrimaryEmail())) {
                 user.setUserName(email);
             }
             user.setPrimaryEmail(email);
 
-            scimUserProvisioning.update(userId, user, IdentityZoneHolder.get().getId());
+            scimUserProvisioning.update(userId, user, identityZoneManager.getCurrentIdentityZoneId());
 
             String redirectLocation = null;
             String clientId = data.get("client_id");
 
             if (clientId != null && !clientId.equals("")) {
-                ClientDetails clientDetails = clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId());
+                ClientDetails clientDetails = clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId());
                 redirectLocation = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
             }
 
-            publisher.publishEvent(UserModifiedEvent.emailChanged(userId, user.getUserName(), user.getPrimaryEmail()));
+            publisher.publishEvent(UserModifiedEvent.emailChanged(user, identityZoneManager.getCurrentIdentityZoneId()));
 
             EmailChangeResponse emailChangeResponse = new EmailChangeResponse();
             emailChangeResponse.setEmail(email);
@@ -109,7 +115,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
     }
 
     @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+    public void setApplicationEventPublisher(@NonNull ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
     }
 

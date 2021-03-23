@@ -14,11 +14,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.net.URL;
@@ -38,26 +36,22 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 public class ClientMetadataAdminEndpointsMockMvcTest {
+
     @Autowired
     public WebApplicationContext webApplicationContext;
     private String adminClientTokenWithClientsWrite;
     private MultitenantJdbcClientDetailsService clients;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
-    private UaaTestAccounts testAccounts;
     private String adminClientTokenWithClientsRead;
+    @Autowired
     private MockMvc mockMvc;
     private TestClient testClient;
 
     @BeforeEach
     void setUp() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-
         testClient = new TestClient(mockMvc);
 
-        testAccounts = UaaTestAccounts.standard(null);
+        UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         adminClientTokenWithClientsRead = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -81,7 +75,11 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     private String getUserAccessToken(String clientId) throws Exception {
-        BaseClientDetails newClient = new BaseClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login");
+        BaseClientDetails newClient = new BaseClientDetails(clientId,
+                "oauth",
+                "oauth.approvals",
+                "password",
+                "oauth.login");
         newClient.setClientSecret("secret");
         clients.addClientDetails(newClient);
         return testClient.getUserOAuthAccessToken(clientId, "secret", "marissa", "koala", "oauth.approvals");
@@ -126,13 +124,18 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
         MockHttpServletResponse response = mockMvc.perform(get("/oauth/clients/meta")
                 .header("Authorization", "Bearer " + marissaToken)
                 .accept(APPLICATION_JSON)).andExpect(status().isOk()).andReturn().getResponse();
-        ArrayList<ClientMetadata> clientMetadataList = JsonUtils.readValue(response.getContentAsString(), new TypeReference<ArrayList<ClientMetadata>>() {
-        });
+        ArrayList<ClientMetadata> clientMetadataList = JsonUtils.readValue(response.getContentAsString(),
+                new TypeReference<ArrayList<ClientMetadata>>() {
+                });
 
-        assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId1))));
-        assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2))));
-        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId3) && m.getAppIcon().equals(client3Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client3Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client3Metadata.isShowOnHomePage()));
-        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId4) && m.getAppIcon().equals(client4Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client4Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client4Metadata.isShowOnHomePage()));
+        assertThat(clientMetadataList, not(PredicateMatcher.has(m -> m.getClientId().equals(clientId1))));
+        assertThat(clientMetadataList, not(PredicateMatcher.has(m -> m.getClientId().equals(clientId2))));
+        assertThat(clientMetadataList,
+                PredicateMatcher.has(m -> m.getClientId().equals(clientId3) && m.getAppIcon().equals(client3Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(
+                        client3Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client3Metadata.isShowOnHomePage()));
+        assertThat(clientMetadataList,
+                PredicateMatcher.has(m -> m.getClientId().equals(clientId4) && m.getAppIcon().equals(client4Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(
+                        client4Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client4Metadata.isShowOnHomePage()));
     }
 
     @Test

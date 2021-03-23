@@ -1,75 +1,30 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.springframework.mock.env.MockEnvironment;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
+import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
-import java.util.Collection;
 
-import static org.hamcrest.Matchers.isIn;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.in;
+import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@RunWith(Parameterized.class)
-public class ClientDetailsHasRequiredUserScopes extends JdbcTestBase {
-
-    private String springProfile;
-    private String tableName;
-    private String columnName;
-
-    public ClientDetailsHasRequiredUserScopes(String springProfile, String tableName, String columnName) {
-        this.springProfile = springProfile;
-        this.tableName = tableName;
-        this.columnName = columnName;
-    }
-
-    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-            {null, "oauth_client_details", "required_user_groups"},
-//            {"sqlserver", "oauth_client_details", "required_user_groups"},
-//            {"mysql", "oauth_client_details", "required_user_groups"},
-//            {"hsqldb", "oauth_client_details", "required_user_groups"},
-//            {"postgresql", "oauth_client_details", "required_user_groups"},
-        });
-    }
-
-    @Override
-    public void setUp() throws Exception {
-        MockEnvironment environment = new MockEnvironment();
-        if ( springProfile!=null ) {
-            environment.setActiveProfiles(springProfile);
-        }
-        setUp(environment);
-    }
-
+@WithDatabaseContext
+class ClientDetailsHasRequiredUserScopes {
 
     @Test
-    public void test_That_required_user_groups_is_1024() throws Exception {
-        Connection connection = dataSource.getConnection();
-        try {
+    void requiredUserGroupsIs1024(
+            @Autowired DataSource dataSource
+    ) throws Exception {
+        try (Connection connection = dataSource.getConnection()) {
             DatabaseMetaData meta = connection.getMetaData();
             boolean foundTable = false;
             boolean foundColumn = false;
@@ -78,25 +33,19 @@ public class ClientDetailsHasRequiredUserScopes extends JdbcTestBase {
                 String rstableName = rs.getString("TABLE_NAME");
                 String rscolumnName = rs.getString("COLUMN_NAME");
                 int columnSize = rs.getInt("COLUMN_SIZE");
-                if ((foundTable=tableName.equalsIgnoreCase(rstableName)) && columnName.equalsIgnoreCase(rscolumnName)) {
-                    assertEquals("Table:"+rstableName+" Column:"+rscolumnName+" should be 1024 in size.", 1024, columnSize);
+                if ((foundTable = "oauth_client_details".equalsIgnoreCase(rstableName)) && "required_user_groups".equalsIgnoreCase(rscolumnName)) {
+                    assertEquals(1024, columnSize, "Table:" + rstableName + " Column:" + rscolumnName + " should be 1024 in size.");
                     foundColumn = true;
                     String columnType = rs.getString("TYPE_NAME");
                     assertNotNull("Table:" + rstableName + " Column:" + rscolumnName + " should have a column type.", columnType);
-                    assertThat("Table:" + rstableName + " Column:" + rscolumnName+" should be varchar", columnType.toLowerCase(), isIn(Arrays.asList("varchar","nvarchar")));
+                    assertThat("Table:" + rstableName + " Column:" + rscolumnName + " should be varchar", columnType.toLowerCase(), is(in(Arrays.asList("varchar", "nvarchar"))));
                     break;
                 }
             }
             rs.close();
 
-            assertTrue("["+springProfile+"] I was expecting to find table:" + tableName, foundTable);
-            assertTrue("["+springProfile+"] I was expecting to find column: "+columnName, foundColumn);
-
-        } finally {
-            connection.close();
+            assertTrue(foundTable, "I was expecting to find table: oauth_client_details");
+            assertTrue(foundColumn, "I was expecting to find column: required_user_groups");
         }
-
-
     }
-
 }

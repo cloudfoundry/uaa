@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import java.io.IOException;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -59,7 +57,7 @@ public class IdpSamlAuthenticationSuccessHandler implements AuthenticationSucces
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
-            Authentication authentication) throws IOException, ServletException {
+            Authentication authentication) throws ServletException {
 
         SAMLMessageContext context = ((UaaAuthentication) authentication).getSamlMessageContext();
 

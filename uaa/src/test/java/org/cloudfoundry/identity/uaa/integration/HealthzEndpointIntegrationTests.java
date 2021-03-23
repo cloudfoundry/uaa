@@ -34,7 +34,7 @@ public class HealthzEndpointIntegrationTests {
      * tests a happy-day flow of the <code>/healthz</code> endpoint
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<String> response = serverRunning.getForString("/healthz/", headers);

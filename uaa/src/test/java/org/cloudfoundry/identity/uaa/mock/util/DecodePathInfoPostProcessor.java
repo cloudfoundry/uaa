@@ -1,11 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.util.UriUtils;
@@ -18,7 +16,7 @@ import org.springframework.web.util.WebUtils;
 
 public class DecodePathInfoPostProcessor  implements RequestPostProcessor {
 
-    private static Log logger = LogFactory.getLog(DecodePathInfoPostProcessor.class);
+    private static Logger logger = LoggerFactory.getLogger(DecodePathInfoPostProcessor.class);
 
     @Override
     public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
@@ -36,16 +34,7 @@ public class DecodePathInfoPostProcessor  implements RequestPostProcessor {
      */
     private String decodeRequestString(HttpServletRequest request, String source) {
         String enc = determineEncoding(request);
-        try {
-            return UriUtils.decode(source, enc);
-        }
-        catch (UnsupportedEncodingException ex) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Could not decode request string [" + source + "] with encoding '" + enc +
-                                "': falling back to platform default encoding; exception message: " + ex.getMessage());
-            }
-            return URLDecoder.decode(source);
-        }
+        return UriUtils.decode(source, enc);
     }
 
     /**

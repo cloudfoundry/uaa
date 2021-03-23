@@ -1,162 +1,163 @@
-Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+Project identityServer = parent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-apply plugin: 'war'
-apply plugin: 'org.asciidoctor.convert'
-apply plugin: 'com.moowork.node'
+apply(plugin: "war")
+apply(plugin: "org.asciidoctor.convert")
 
 processResources {
-  //maven replaces project.artifactId in the log4j.properties file
-  //https://www.pivotaltracker.com/story/show/74344574
-  from(new File('../common/src/main/resources/log4j.properties'))
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-uaa') : line }
+    //maven replaces project.artifactId in the log4j.properties file
+    //https://www.pivotaltracker.com/story/show/74344574
+    from(new File('../common/src/main/resources/log4j.properties'))
+    filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-uaa') : line }
 }
 
-apply plugin: 'eclipse-wtp'
-eclipse {
-  wtp {
-    component {
-      contextPath = 'uaa'
-    }
-  }
-}
+apply(plugin: "org.springframework.boot")
+bootWar { enabled = false }
+war { enabled = true }
+
 
 repositories {
-  maven { url 'https://repo.spring.io/libs-milestone' }
-  mavenLocal()
-  mavenCentral()
+    maven { url("https://repo.spring.io/libs-milestone") }
 }
 
-description = 'UAA'
+description = "UAA"
 dependencies {
-  compile(project(':cloudfoundry-identity-server')){
-    exclude(module: 'jna')
-  }
+    implementation(project(":cloudfoundry-identity-server")) {
+        exclude(module: "jna")
+    }
 
-  compile group: 'cglib', name: 'cglib', version:parent.cglibVersion
-  compile(group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.3') {
-    exclude(group: 'javax.mail')
-  }
-  // For dynamic log level configuration
-  compile group: 'com.ge.predix', name: 'security-dynamic-log-configurer', version: '1.1.1'
+    implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.springBootStarter)
+    implementation(libraries.springBootStarterWeb)
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
+    runtimeOnly(libraries.springSecurityConfig)
+    runtimeOnly(libraries.springRetry)
+    runtimeOnly(libraries.aspectJWeaver)
+    runtimeOnly(libraries.postgresql)
 
-  runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
-  runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
-  runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
-  runtime group: 'org.postgresql', name: 'postgresql', version:parent.postgresqlVersion
+    implementation(libraries.javaxXmlBindApi)
+    implementation(libraries.javaxXmlBindCore)
+    implementation(libraries.javaxXmlBindImpl)
 
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+    providedCompile(libraries.tomcatEmbed)
 
-  runtime group: 'org.apache.httpcomponents', name: 'httpasyncclient', version:'4.1'
-  runtime group: 'org.springframework.data', name: 'spring-data-commons', version:'1.9.1.RELEASE'
-  runtime group: 'com.nurego', name: 'nurego-java', version:'1.0.18'
+    implementation(libraries.springMeteringFilter) {
+        exclude(module: "javax.mail")
+    }
+    implementation(libraries.dynamicLogConfigurer)
+    runtimeOnly(libraries.nurego)
 
+    testImplementation(identityServer.sourceSets.test.output)
 
-  testCompile identityServer.configurations.testCompile.dependencies
-  testCompile identityServer.sourceSets.test.output
-  testCompileOnly group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
-  testAnnotationProcessor group: 'org.projectlombok', name: 'lombok', version: parent.lombokVersion
-  testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
-    exclude(module: 'bcprov-jdk15')
-    exclude(module: 'slf4j-api')
-    exclude(module: 'slf4j-log4j12')
-  }
-  testCompile(group: 'org.apache.directory.server', name: 'apacheds-protocol-ldap', version:'1.5.5') {
-    exclude(module: 'bcprov-jdk15')
-    exclude(module: 'slf4j-api')
-    exclude(module: 'slf4j-log4j12')
-  }
-  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
-  testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version: parent.seleniumJavaVersion
-  testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
-  testCompile group: 'com.google.zxing', name: 'core', version: parent.zxingVersion
-  testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
-  testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
-  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
-  testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
-  testCompile group: 'org.mockito', name: 'mockito-core', version: parent.mockitoVersion
-  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
-  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
-  testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.2.0.RC1'
-  testCompile group: 'com.nurego', name: 'nurego-java', version:'1.0.18'
-}
+    testImplementation(project(":cloudfoundry-identity-model"))
+    testImplementation(project(":cloudfoundry-identity-metrics-data"))
+    testImplementation(libraries.apacheDsProtocolLdap) {
+        exclude(module: "bcprov-jdk15")
+        exclude(module: "slf4j-api")
+        exclude(module: "slf4j-log4j12")
+    }
+    testImplementation(libraries.apacheLdapApi) {
+        exclude(module: "slf4j-api")
+    }
+    testImplementation(libraries.flywayCore)
+    testImplementation(libraries.googleAuth)
+    testImplementation(libraries.hibernateValidator)
+    testImplementation(libraries.junit)
+    testImplementation(libraries.selenium)
+    testImplementation(libraries.dumbster)
+    testImplementation(libraries.zxing)
+    testImplementation(libraries.jsonAssert)
+    testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.unboundIdScimSdk) {
+        exclude(module: "servlet-api")
+        exclude(module: "commons-logging")
+        exclude(module: "httpclient")
+        exclude(module: "wink-client-apache-httpclient")
+    }
+    testImplementation(libraries.springBootStarterLog4j2)
+    testImplementation(libraries.springContextSupport)
+    testImplementation(libraries.springSessionJdbc)
+    testImplementation(libraries.springTest)
+    testImplementation(libraries.springSecurityJwt)
+    testImplementation(libraries.springSecurityLdap)
+    testImplementation(libraries.springSecuritySaml)
+    testImplementation(libraries.springSecurityTest)
+    testImplementation(libraries.mockito)
+    testImplementation(libraries.tomcatJdbc)
+    testImplementation(libraries.springRestdocs)
+    testImplementation(libraries.javaxMail)
+    testImplementation(libraries.greenmail)
+    testImplementation(libraries.lombok)
 
-node {
-  npmVersion = '2.1.5'
+    testImplementation(libraries.nurego)
 
-  // If true, it will download node using above parameters.
-  // If false, it will try to use globally installed node.
-  download = true
-
-  // Set the work directory for NPM
-  npmWorkDir = file("${project.buildDir}/npm")
-
-  // Set the work directory where node_modules should be located
-  nodeModulesDir = file("${project.projectDir}")
-}
-task jasmineTests {
-  dependsOn(npm_install)
-  dependsOn(npm_test)
+    testAnnotationProcessor(libraries.lombok)
 }
 
 ext {
-  snippetsDir = file('build/generated-snippets')
+    snippetsDir = file("build/generated-snippets")
 }
+
 test {
-  exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
-  exclude '**/*IT.class'
-  exclude '**/*AT.class'
-  exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
-  exclude '**/*Docs.class'
-  systemProperty 'java.io.tmpdir', '/tmp'
-  systemProperty "mock.suite.test", "true"
+    exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
+    exclude '**/*IT.class'
+    exclude '**/*AT.class'
+    exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
+    exclude '**/*Docs.class'
+    systemProperty 'java.io.tmpdir', '/tmp'
+    systemProperty("mock.suite.test", "true")
 }
 
 task populateVersionfile {
-  def versionfile = new File("$projectDir/slateCustomizations/source/versionfile")
-  versionfile.createNewFile()
-  assert versionfile.exists()
-  versionfile.text = version.toString().substring(0, version.toString().lastIndexOf('.')) + ".0"
+    def versionFile = new File("$projectDir/slateCustomizations/source/versionfile")
+    versionFile.createNewFile()
+    assert versionFile.exists()
+    versionFile.text = version.toString().substring(0, version.toString().lastIndexOf(".")) + ".0"
 }
 task customizeSlate(type: Copy) {
-  dependsOn populateVersionfile
-  from 'slate'
-  from 'slateCustomizations'
-  into 'build/slate'
+    dependsOn populateVersionfile
+    from("slate")
+    from("slateCustomizations")
+    into("build/slate")
 }
 task docsTestRestDocs(type: Test) {
-  useJUnitPlatform()
-  include '**/*Docs.class'
+    useJUnitPlatform()
+    include("**/*Docs.class")
+    systemProperty("docs.build.generated.snippets.dir", snippetsDir.getPath())
 }
 
 task(bundleInstall, type: Exec) {
-  dependsOn 'customizeSlate'
-  workingDir file('build/slate')
-  executable 'bundle'
-  args 'install'
+    dependsOn("customizeSlate")
+    workingDir(file("build/slate"))
+    executable("bundle")
+    args("install")
 }
 
 task(deleteDefaultContent, type: Delete) {
-    delete 'build/slate/source/index.html.md'
+    delete("build/slate/source/index.html.md")
 }
-
 
 task(slate, type: Exec) {
-  dependsOn 'customizeSlate', 'deleteDefaultContent', 'bundleInstall', 'docsTestRestDocs'
-      workingDir file('build/slate')
-      executable 'bundle'
-      args 'exec', 'middleman', 'build', '--verbose', '--build-dir=../docs/version/' + version.toString().substring(0, version.toString().lastIndexOf('.')) + ".0"
+    dependsOn("customizeSlate", "deleteDefaultContent", "bundleInstall", "docsTestRestDocs")
+    workingDir(file("build/slate"))
+    executable("bundle")
+    args("exec", "middleman", "build", "--verbose", "--build-dir=../docs/version/" + version.toString().substring(0, version.toString().lastIndexOf(".")) + ".0")
 }
+
 generateDocs {
-  dependsOn slate
+    dependsOn(slate)
 }
 
 integrationTest {
-  filter {
-    exclude '**/*AT.class'
-    exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
-    includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
-    includeTestsMatching "*IT"
-  }
+    filter {
+        exclude '**/*AT.class'
+        exclude 'org/cloudfoundry/identity/uaa/degraded/*.class'
+        includeTestsMatching("org.cloudfoundry.identity.uaa.integration.*")
+        includeTestsMatching("*IT")
+    }
 }
 
 task acceptanceTest(type: Test) {
@@ -177,22 +178,6 @@ task degradedTestLocal(type: Test) {
 }
 
 war {
-  //workaround for maven <scope>optional</scope>
-  rootSpec.exclude("**/spring-security-oauth-*.jar")
-}
-
-  
-
-publishing {
-  publications {
-    uaa_war(MavenPublication) {
-      apply plugin: 'war'
-      groupId 'org.cloudfoundry.identity'
-      artifactId 'cloudfoundry-identity-uaa'
-
-      from components.web
-      artifact sourceJar
-    }
-
-  }
+    //workaround for maven <scope>optional</scope>
+    rootSpec.exclude("**/spring-security-oauth-*.jar")
 }

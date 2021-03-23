@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -19,109 +7,77 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthori
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import javax.validation.constraints.NotNull;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
 
+import static java.util.Collections.emptyList;
+import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
-import static java.util.Collections.emptyList;
-import static java.util.Optional.ofNullable;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}
  * instances.
- *
- * @author Luke Taylor
- * @author Dave Syer
  */
 public class ScimUserBootstrap implements
-    InitializingBean, ApplicationListener<ApplicationEvent>, ApplicationEventPublisherAware {
+        InitializingBean,
+        ApplicationListener<ApplicationEvent>,
+        ApplicationEventPublisherAware {
 
-    private static final Log logger = LogFactory.getLog(ScimUserBootstrap.class);
+    private static final Logger logger = LoggerFactory.getLogger(ScimUserBootstrap.class);
 
     private final ScimUserProvisioning scimUserProvisioning;
-
     private final ScimGroupProvisioning scimGroupProvisioning;
-
     private final ScimGroupMembershipManager membershipManager;
-
-    private boolean override = false;
-
     private final Collection<UaaUser> users;
-
-    private List<String> usersToDelete;
-
+    private final boolean override;
+    private final List<String> usersToDelete;
     private ApplicationEventPublisher publisher;
 
     /**
-     * Flag to indicate that user accounts can be updated as well as created.
      *
-     * @param override the override flag to set (default false)
+     * @param users Users to create
+     * @param override Flag to indicate that user accounts can be updated as well as created
      */
-    public void setOverride(boolean override) {
-        this.override = override;
-    }
-
-    public boolean isOverride() {
-        return override;
-    }
-
-    public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning,
-                             ScimGroupProvisioning scimGroupProvisioning,
-                             ScimGroupMembershipManager membershipManager,
-                             Collection<UaaUser> users) {
-        Assert.notNull(scimUserProvisioning, "scimUserProvisioning cannot be null");
-        Assert.notNull(scimGroupProvisioning, "scimGroupProvisioning cannont be null");
-        Assert.notNull(membershipManager, "memberShipManager cannot be null");
-        Assert.notNull(users, "users list cannot be null");
+    public ScimUserBootstrap(final ScimUserProvisioning scimUserProvisioning,
+                             final ScimGroupProvisioning scimGroupProvisioning,
+                             final ScimGroupMembershipManager membershipManager,
+                             final Collection<UaaUser> users,
+                             @Value("${scim.user.override:false}") final boolean override,
+                             @Value("${delete.users:#{null}}") final List<String> usersToDelete) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.membershipManager = membershipManager;
         this.users = Collections.unmodifiableCollection(users);
-    }
-
-    public void setUsersToDelete(List<String> usersToDelete) {
+        this.override = override;
         this.usersToDelete = usersToDelete;
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        List<UaaUser> users = new LinkedList(ofNullable(this.users).orElse(emptyList()));
+    public void afterPropertiesSet() {
+        List<UaaUser> users = new LinkedList<>(ofNullable(this.users).orElse(emptyList()));
         List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
         users.removeIf(u -> deleteMe.contains(u.getUsername()));
         for (UaaUser u : users) {
@@ -130,38 +86,38 @@ public class ScimUserBootstrap implements
         }
     }
 
-    public void deleteUsers(@NotNull  List<String> deleteList) throws Exception {
-        if (deleteList.size()==0) {
+    private void deleteUsers(@NotNull List<String> deleteList) {
+        if (deleteList.size() == 0) {
             return;
         }
         StringBuilder filter = new StringBuilder();
-        for (int i = deleteList.size()-1; i>=0; i--) {
+        for (int i = deleteList.size() - 1; i >= 0; i--) {
             filter.append("username eq \"");
             filter.append(deleteList.get(i));
             filter.append("\"");
-            if (i>0) {
+            if (i > 0) {
                 filter.append(" or ");
             }
         }
         List<ScimUser> list = scimUserProvisioning.query("origin eq \"uaa\" and (" + filter.toString() + ")", IdentityZoneHolder.get().getId());
         for (ScimUser delete : list) {
-            publish(new EntityDeletedEvent<>(delete, SystemAuthentication.SYSTEM_AUTHENTICATION));
+            publish(new EntityDeletedEvent<>(delete, SystemAuthentication.SYSTEM_AUTHENTICATION, IdentityZoneHolder.getCurrentZoneId()));
         }
     }
 
-    protected ScimUser getScimUser(UaaUser user) {
+    private ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
-            " and origin eq \"" +
-            (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"", IdentityZoneHolder.get().getId());
+                " and origin eq \"" +
+                (user.getOrigin() == null ? OriginKeys.UAA : user.getOrigin()) + "\"", IdentityZoneHolder.get().getId());
 
         if (users.isEmpty() && StringUtils.hasText(user.getId())) {
             try {
-                users = Arrays.asList(scimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId()));
+                users = Collections.singletonList(scimUserProvisioning.retrieve(user.getId(), IdentityZoneHolder.get().getId()));
             } catch (ScimResourceNotFoundException x) {
-                logger.debug("Unable to find scim user based on ID:"+user.getId());
+                logger.debug("Unable to find scim user based on ID:" + user.getId());
             }
         }
-        return users.isEmpty()?null:users.get(0);
+        return users.isEmpty() ? null : users.get(0);
     }
 
     /**
@@ -169,16 +125,15 @@ public class ScimUserBootstrap implements
      *
      * @param user a UaaUser
      */
-    protected void addUser(UaaUser user) {
+    private void addUser(UaaUser user) {
         ScimUser scimUser = getScimUser(user);
-        if (scimUser==null) {
+        if (scimUser == null) {
             if (isEmpty(user.getPassword()) && user.getOrigin().equals(OriginKeys.UAA)) {
                 logger.debug("User's password cannot be empty");
                 throw new InvalidPasswordException("Password cannot be empty", BAD_REQUEST);
             }
             createNewUser(user);
-        }
-        else {
+        } else {
             if (override) {
                 updateUser(scimUser, user);
             } else {
@@ -231,7 +186,7 @@ public class ScimUserBootstrap implements
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
         if (event instanceof AuthEvent) {
-            onApplicationEvent((AuthEvent)event);
+            onApplicationEvent((AuthEvent) event);
         } else if (event instanceof ContextRefreshedEvent) {
             List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
             try {
@@ -257,13 +212,13 @@ public class ScimUserBootstrap implements
             return;
         }
         if (event instanceof ExternalGroupAuthorizationEvent) {
-            ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent)event;
+            ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent) event;
             //delete previous membership relation ships
             String origin = exEvent.getUser().getOrigin();
             if (!OriginKeys.UAA.equals(origin)) {
-                Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin);
+                Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin, IdentityZoneHolder.get().getId());
                 Map<String, ScimGroup> groupsMap = groupsWithMember.stream().collect(Collectors.toMap(ScimGroup::getDisplayName, Function.identity()));
-                Collection<? extends GrantedAuthority> externalAuthorities = exEvent.getExternalAuthorities();
+                Collection<? extends GrantedAuthority> externalAuthorities = new LinkedHashSet<>(exEvent.getExternalAuthorities());
                 for (GrantedAuthority authority : externalAuthorities) {
                     if (groupsMap.containsKey(authority.getAuthority())) {
                         groupsMap.remove(authority.getAuthority());
@@ -276,7 +231,7 @@ public class ScimUserBootstrap implements
                 }
             }
             //update the user itself
-            if(event.isUserModified()) {
+            if (event.isUserModified()) {
                 //update the user itself
                 ScimUser user = getScimUser(uaaUser);
                 updateUser(user, uaaUser, false);
@@ -286,12 +241,11 @@ public class ScimUserBootstrap implements
 
         if (event instanceof NewUserAuthenticatedEvent) {
             addUser(uaaUser);
-            return;
         }
     }
 
     private void addToGroup(String scimUserId, String gName) {
-        addToGroup(scimUserId,gName, OriginKeys.UAA, true);
+        addToGroup(scimUserId, gName, OriginKeys.UAA, true);
     }
 
     private void addToGroup(String scimUserId, String gName, String origin, boolean addGroup) {
@@ -302,10 +256,10 @@ public class ScimUserBootstrap implements
         List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName), IdentityZoneHolder.get().getId());
         ScimGroup group;
         if ((g == null || g.isEmpty()) && (!addGroup)) {
-            logger.debug("No group found with name:"+gName+". Group membership will not be added.");
+            logger.debug("No group found with name:" + gName + ". Group membership will not be added.");
             return;
         } else if (g == null || g.isEmpty()) {
-            group = new ScimGroup(null,gName,IdentityZoneHolder.get().getId());
+            group = new ScimGroup(null, gName, IdentityZoneHolder.get().getId());
             group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
         } else {
             group = g.get(0);
@@ -328,8 +282,7 @@ public class ScimUserBootstrap implements
         ScimGroup group;
         if (g == null || g.isEmpty()) {
             return;
-        }
-        else {
+        } else {
             group = g.get(0);
         }
         try {
@@ -341,7 +294,6 @@ public class ScimUserBootstrap implements
 
     /**
      * Convert UaaUser to SCIM data.
-     *
      */
     private ScimUser convertToScimUser(UaaUser user) {
         ScimUser scim = new ScimUser(user.getId(), user.getUsername(), user.getGivenName(), user.getFamilyName());
@@ -357,7 +309,7 @@ public class ScimUserBootstrap implements
      * Convert authorities to group names.
      */
     private Collection<String> convertToGroups(List<? extends GrantedAuthority> authorities) {
-        List<String> groups = new ArrayList<String>();
+        List<String> groups = new ArrayList<>();
         for (GrantedAuthority authority : authorities) {
             groups.add(authority.getAuthority());
         }
@@ -365,7 +317,7 @@ public class ScimUserBootstrap implements
     }
 
     public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }

@@ -27,6 +27,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -204,10 +205,10 @@ public class SamlServiceProviderDefinition {
         if (singleSignOnServiceIndex != that.singleSignOnServiceIndex) return false;
         if (metadataTrustCheck != that.metadataTrustCheck) return false;
         if (skipSslValidation != that.skipSslValidation) return false;
-        if (metaDataLocation != null ? !metaDataLocation.equals(that.metaDataLocation) : that.metaDataLocation != null)
+        if (!Objects.equals(metaDataLocation, that.metaDataLocation))
             return false;
-        if (nameID != null ? !nameID.equals(that.nameID) : that.nameID != null) return false;
-        return attributeMappings != null ? attributeMappings.equals(that.attributeMappings) : that.attributeMappings == null;
+        if (!Objects.equals(nameID, that.nameID)) return false;
+        return Objects.equals(attributeMappings, that.attributeMappings);
     }
 
     @Override

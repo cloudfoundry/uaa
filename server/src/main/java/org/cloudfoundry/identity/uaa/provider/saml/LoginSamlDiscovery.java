@@ -22,8 +22,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.saml.SAMLDiscovery;
@@ -34,7 +34,7 @@ import org.springframework.security.saml.metadata.MetadataManager;
 
 public class LoginSamlDiscovery extends SAMLDiscovery {
 
-    private static final Log logger = LogFactory.getLog(LoginSamlDiscovery.class);
+    private static final Logger logger = LoggerFactory.getLogger(LoginSamlDiscovery.class);
 
     private MetadataManager metadata;
 
@@ -43,7 +43,7 @@ public class LoginSamlDiscovery extends SAMLDiscovery {
         try {
             super.doFilter(request, response, chain);
         } catch (UnableToFindSamlIDPException x) {
-            logger.warn(x);
+            logger.warn("Unable to find SAML IDP", x);
             HttpServletResponse httpServletResponse = (HttpServletResponse)response;
             HttpServletRequest httpServletRequest = (HttpServletRequest)request;
             httpServletResponse.sendRedirect(

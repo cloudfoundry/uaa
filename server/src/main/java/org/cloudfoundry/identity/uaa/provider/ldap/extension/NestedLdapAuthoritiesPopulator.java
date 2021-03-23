@@ -15,8 +15,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.ldap.core.ContextSource;
 import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
@@ -64,7 +64,7 @@ import static java.util.Collections.EMPTY_LIST;
 
 public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
     public static final String MEMBER_OF = "memberOf";
-    private static final Log logger = LogFactory.getLog(NestedLdapAuthoritiesPopulator.class);
+    private static final Logger logger = LoggerFactory.getLogger(NestedLdapAuthoritiesPopulator.class);
 
     private Set<String> attributeNames;
 
@@ -129,7 +129,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
             getGroupSearchBase(),
             getGroupSearchFilter(),
             new String[]{userDn, username},
-            getAttributeNames().toArray(new String[getAttributeNames().size()]));
+            getAttributeNames().toArray(new String[0]));
 
         if (logger.isDebugEnabled()) {
             logRoles(userRoles);
@@ -139,8 +139,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
             boolean circular = false;
             String dn = record.get(SpringSecurityLdapTemplate.DN_KEY)[0];
             String[] roleValues = record.get(getGroupRoleAttribute());
-            Set<String> roles = new HashSet<String>();
-            roles.addAll(Arrays.asList(roleValues!=null?roleValues:new String[0]));
+            Set<String> roles = new HashSet<>(Arrays.asList(roleValues != null ? roleValues : new String[0]));
             for (String role : roles) {
                 if (isConvertToUpperCase()) {
                     role = role.toUpperCase();

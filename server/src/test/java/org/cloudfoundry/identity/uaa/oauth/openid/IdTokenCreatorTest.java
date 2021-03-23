@@ -3,22 +3,19 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.joda.time.DateTimeUtils;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
@@ -30,18 +27,15 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.TOKEN_SALT;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest({UaaTokenUtils.class, IdentityZoneHolder.class})
-public class IdTokenCreatorTest {
+@ExtendWith(PollutionPreventionExtension.class)
+class IdTokenCreatorTest {
     private String issuerUrl;
     private String uaaUrl;
     private String clientId;
@@ -53,11 +47,12 @@ public class IdTokenCreatorTest {
     private Set<String> amr;
     private Set<String> acr;
 
-    private UaaUserDatabase uaaUserDatabase;
+    private UaaUserDatabase mockUaaUserDatabase;
     private String givenName;
     private String familyName;
     private String email;
     private UaaUser user;
+    private BaseClientDetails clientDetails;
     private long previousLogonTime;
     private String phoneNumber;
     private Set<String> roles;
@@ -73,9 +68,10 @@ public class IdTokenCreatorTest {
     private String jti;
     private String clientsecret;
     private String tokensalt;
+    private IdentityZoneManager mockIdentityZoneManager;
 
-    @Before
-    public void setup() throws Exception {
+    @BeforeEach
+    void setup() throws Exception {
         issuerUrl = "http://localhost:8080/uaa/oauth/token";
         uaaUrl = "http://localhost:8080/uaa";
         clientId = "clientId";
@@ -121,48 +117,44 @@ public class IdTokenCreatorTest {
         userName = "username";
 
         user = new UaaUser(new UaaUserPrototype()
-            .withEmail(email)
-            .withGivenName(givenName)
-            .withFamilyName(familyName)
-            .withPhoneNumber(phoneNumber)
-            .withId("id1234")
-            .withEmail("spongebob@krustykrab.com")
-            .withUsername(userName)
-            .withPreviousLogonSuccess(previousLogonTime)
-            .withVerified(true)
-            .withOrigin(origin)
+                .withEmail(email)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withPhoneNumber(phoneNumber)
+                .withId("id1234")
+                .withEmail("spongebob@krustykrab.com")
+                .withUsername(userName)
+                .withPreviousLogonSuccess(previousLogonTime)
+                .withVerified(true)
+                .withOrigin(origin)
         );
 
         iatDate = new Date(1L);
 
-        TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
-        when(tokenValidityResolver.resolve(clientId)).thenReturn(expDate);
+        TokenValidityResolver mockTokenValidityResolver = mock(TokenValidityResolver.class);
+        when(mockTokenValidityResolver.resolve(clientId)).thenReturn(expDate);
 
-        PowerMockito.mockStatic(UaaTokenUtils.class);
-        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn(issuerUrl);
+        mockIdentityZoneManager = mock(IdentityZoneManager.class);
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
 
-        when(UaaTokenUtils.getRevocableTokenSignature(user, tokensalt, clientId, clientsecret)).thenReturn("Signature");
-
-        PowerMockito.mockStatic(IdentityZoneHolder.class);
-        when(IdentityZoneHolder.get()).thenReturn(new IdentityZone() {{ setId(zoneId); }});
-
-        uaaUserDatabase = mock(UaaUserDatabase.class);
-        when(uaaUserDatabase.retrieveUserById(userId)).thenReturn(user);
+        mockUaaUserDatabase = mock(UaaUserDatabase.class);
+        when(mockUaaUserDatabase.retrieveUserById(userId)).thenReturn(user);
 
         userAuthenticationData = new UserAuthenticationData(
-            authTime,
-            amr,
-            acr,
-            scopes,
-            roles,
-            userAttributes,
-            nonce,
-            grantType,
-            jti);
+                authTime,
+                amr,
+                acr,
+                scopes,
+                roles,
+                userAttributes,
+                nonce,
+                grantType,
+                jti);
         excludedClaims = new HashSet<>();
 
-        ClientServicesExtension clientDetailsService = mock(ClientServicesExtension.class);
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
+        clientDetails = new BaseClientDetails();
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(clientsecret);
 
@@ -170,25 +162,32 @@ public class IdTokenCreatorTest {
             put(TOKEN_SALT, tokensalt);
         }};
         clientDetails.setAdditionalInformation(additionalInfo);
-        when(clientDetailsService.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
-        TimeService timeService = mock(TimeService.class);
-        when(timeService.getCurrentDate()).thenCallRealMethod();
-        when(timeService.getCurrentTimeMillis()).thenReturn(1L);
-        tokenCreator = new IdTokenCreator(new TokenEndpointBuilder(uaaUrl), timeService, tokenValidityResolver, uaaUserDatabase, clientDetailsService, excludedClaims);
+        TimeService mockTimeService = mock(TimeService.class);
+        when(mockTimeService.getCurrentDate()).thenCallRealMethod();
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(1L);
+        tokenCreator = new IdTokenCreator(
+                new TokenEndpointBuilder(uaaUrl),
+                mockTimeService,
+                mockTokenValidityResolver,
+                mockUaaUserDatabase,
+                mockMultitenantClientServices,
+                excludedClaims,
+                mockIdentityZoneManager);
     }
 
-    @After
-    public void teardown() {
+    @AfterEach
+    void teardown() {
         DateTimeUtils.setCurrentMillisSystem();
     }
 
     @Test
-    public void create_includesStandardClaims() throws IdTokenCreationException {
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+    void create_includesStandardClaims() throws IdTokenCreationException {
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken, is(notNullValue()));
-        assertThat(idToken.sub, is(userId));
+        assertThat(idToken.sub, is("id1234"));
         assertThat(idToken.aud, hasItem(clientId));
         assertThat(idToken.iss, is(issuerUrl));
         assertThat(idToken.exp, is(expDate));
@@ -200,8 +199,8 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_includesAdditionalClaims() throws IdTokenCreationException {
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+    void create_includesAdditionalClaims() throws IdTokenCreationException {
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken, is(notNullValue()));
         assertThat(idToken.givenName, is(givenName));
@@ -220,86 +219,86 @@ public class IdTokenCreatorTest {
         assertThat(idToken.zid, is(zoneId));
         assertThat(idToken.origin, is(origin));
         assertThat(idToken.jti, is("accessTokenId"));
-        assertThat(idToken.revSig, is("Signature"));
+        assertThat(idToken.revSig, is("a039bd5"));
     }
 
     @Test
-    public void create_includesEmailVerified() throws IdTokenCreationException {
+    void create_includesEmailVerified() throws IdTokenCreationException {
         user.setVerified(false);
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
         assertThat(idToken.emailVerified, is(false));
     }
 
     @Test
-    public void create_doesntPopulateRolesWhenScopeDoesntContainRoles() throws IdTokenCreationException {
+    void create_doesntPopulateRolesWhenScopeDoesntContainRoles() throws IdTokenCreationException {
         scopes.clear();
         scopes.add("openid");
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.roles, nullValue());
     }
 
     @Test
-    public void create_setsRolesToNullIfThereAreNoRoles() throws IdTokenCreationException {
+    void create_setsRolesToNullIfThereAreNoRoles() throws IdTokenCreationException {
         roles.clear();
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.roles, nullValue());
     }
 
     @Test
-    public void create_setsRolesToNullIfRolesAreNull() throws IdTokenCreationException {
+    void create_setsRolesToNullIfRolesAreNull() throws IdTokenCreationException {
         userAuthenticationData = new UserAuthenticationData(
-            authTime,
-            amr,
-            acr,
-            scopes,
-            null,
-            userAttributes,
-            nonce,
-            grantType,
-            jti);
+                authTime,
+                amr,
+                acr,
+                scopes,
+                null,
+                userAttributes,
+                nonce,
+                grantType,
+                jti);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.roles, nullValue());
     }
 
     @Test
-    public void create_doesntPopulateUserAttributesWhenScopeDoesntContainUserAttributes() throws IdTokenCreationException {
+    void create_doesntPopulateUserAttributesWhenScopeDoesntContainUserAttributes() throws IdTokenCreationException {
         scopes.clear();
         scopes.add("openid");
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.userAttributes, nullValue());
     }
 
     @Test
-    public void create_doesntSetUserAttributesIfTheyAreNull() throws IdTokenCreationException {
+    void create_doesntSetUserAttributesIfTheyAreNull() throws IdTokenCreationException {
         userAuthenticationData = new UserAuthenticationData(
-            authTime,
-            amr,
-            acr,
-            scopes,
-            roles,
-            null,
-            nonce,
-            grantType,
-            jti);
+                authTime,
+                amr,
+                acr,
+                scopes,
+                roles,
+                null,
+                nonce,
+                grantType,
+                jti);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.userAttributes, nullValue());
     }
 
     @Test
-    public void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() throws IdTokenCreationException {
+    void create_doesntPopulateNamesAndPhone_whenNoProfileScopeGiven() throws IdTokenCreationException {
         scopes.remove("profile");
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.givenName, is(nullValue()));
         assertThat(idToken.familyName, is(nullValue()));
@@ -307,7 +306,7 @@ public class IdTokenCreatorTest {
     }
 
     @Test
-    public void create_doesntIncludesExcludedClaims() throws IdTokenCreationException {
+    void create_doesntIncludesExcludedClaims() throws IdTokenCreationException {
         excludedClaims.add(ClaimConstants.USER_ID);
         excludedClaims.add(ClaimConstants.AUD);
         excludedClaims.add(ClaimConstants.ISS);
@@ -334,7 +333,7 @@ public class IdTokenCreatorTest {
         excludedClaims.add(ClaimConstants.JTI);
         excludedClaims.add(ClaimConstants.REVOCATION_SIGNATURE);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.sub, is(nullValue()));
         assertThat(idToken.aud, is(nullValue()));
@@ -363,18 +362,14 @@ public class IdTokenCreatorTest {
         assertThat(idToken.revSig, is(nullValue()));
     }
 
-    @Test(expected = IdTokenCreationException.class)
-    public void whenUserIdNotFound_throwsException() throws Exception {
-        when(uaaUserDatabase.retrieveUserById("missing-user")).thenThrow(UsernameNotFoundException.class);
-
-        tokenCreator.create(clientId, "missing-user", userAuthenticationData);
-    }
-
     @Test
-    public void idToken_containsZonifiedIssuerUrl() throws Exception {
-        when(UaaTokenUtils.constructTokenEndpointUrl(uaaUrl)).thenReturn("http://myzone.localhost:8080/uaa/oauth/token");
+    void idToken_containsZonifiedIssuerUrl() throws Exception {
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        when(mockIdentityZone.isUaa()).thenReturn(false);
+        when(mockIdentityZone.getSubdomain()).thenReturn("myzone");
+        when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
 
-        IdToken idToken = tokenCreator.create(clientId, userId, userAuthenticationData);
+        IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
 
         assertThat(idToken.iss, is("http://myzone.localhost:8080/uaa/oauth/token"));
     }

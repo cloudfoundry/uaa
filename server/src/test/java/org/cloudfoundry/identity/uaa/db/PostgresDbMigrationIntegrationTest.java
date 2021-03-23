@@ -1,36 +1,18 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.flywaydb.core.Flyway;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import java.util.List;
 
 import static java.lang.String.format;
-import static java.lang.System.getProperties;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.fail;
-import static org.junit.Assume.assumeTrue;
 
-
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath*:/spring/data-source.xml", "classpath*:/spring/env.xml"})
-public class PostgresDbMigrationIntegrationTest {
-    @Autowired
-    private Flyway flyway;
-
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+public class PostgresDbMigrationIntegrationTest extends DbMigrationIntegrationTestParent {
 
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_CATALOG = ? AND TABLE_NAME = LOWER(?) AND CONSTRAINT_NAME LIKE LOWER(?)";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_CATALOG = ? and TABLE_NAME != 'schema_version'";
@@ -38,19 +20,9 @@ public class PostgresDbMigrationIntegrationTest {
     private String fetchColumnTypeFromTable = "SELECT udt_name FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
     private String fetchIsNullableFromTable = "SELECT is_nullable FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
 
-    private MigrationTestRunner migrationTestRunner;
-
-    @Before
-    public void setup() {
-        assumeTrue("Expected db profile to be enabled", getProperties().getProperty("spring.profiles.active").contains("postgresql"));
-
-        flyway.clean();
-        migrationTestRunner = new MigrationTestRunner(flyway);
-    }
-
-    @After
-    public void cleanup() {
-        flyway.clean();
+    @Override
+    protected String onlyRunTestsForActiveSpringProfileName() {
+        return "postgresql";
     }
 
     @Test
@@ -66,7 +38,7 @@ public class PostgresDbMigrationIntegrationTest {
 
         try {
             jdbcTemplate.execute(insertNewOauthCodeRecord);
-        } catch (Exception _) {
+        } catch (Exception e) {
             fail("oauth_code table should auto increment primary key when inserting data.");
         }
     }

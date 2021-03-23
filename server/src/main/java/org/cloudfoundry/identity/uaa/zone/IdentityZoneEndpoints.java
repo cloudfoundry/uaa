@@ -1,15 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -25,7 +13,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.MessageSource;
@@ -53,7 +41,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -72,36 +59,35 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
-@RestController
+@RestController("identityZoneEndpoints")
 @RequestMapping("/identity-zones")
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
-    @Autowired
-    private MessageSource messageSource;
-
-    private ApplicationEventPublisher publisher;
-
     private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
+
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
     private final ScimGroupProvisioning groupProvisioning;
+    private final IdentityZoneValidator validator;
+    private final MessageSource messageSource;
+
+    private ApplicationEventPublisher publisher;
     private SignatureAlgorithm defaultSamlSignatureAlgorithm;
 
-    private IdentityZoneValidator validator;
-
-    public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
-                                 IdentityZoneEndpointClientRegistrationService clientRegistrationService,
-                                 ScimGroupProvisioning groupProvisioning) {
+    public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
+                                 final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning idpDao,
+                                 final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
+                                 final ScimGroupProvisioning groupProvisioning,
+                                 final IdentityZoneValidator validator,
+                                 final MessageSource messageSource) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
         this.groupProvisioning = groupProvisioning;
-    }
-
-    public void setValidator(IdentityZoneValidator validator) {
         this.validator = validator;
+        this.messageSource = messageSource;
     }
 
     public void setDefaultSamlSignatureAlgorithm(SignatureAlgorithm samlSignatureAlgorithm) {
@@ -116,7 +102,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
-        List<IdentityZone> result = filterForCurrentZone(Arrays.asList(zoneDao.retrieveIgnoreActiveFlag(id)));
+        List<IdentityZone> result = filterForCurrentZone(Collections.singletonList(zoneDao.retrieveIgnoreActiveFlag(id)));
         if (result.size() == 0) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
@@ -130,12 +116,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (identityZone.getConfig() != null && identityZone.getConfig().getSamlConfig() != null) {
             identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(null);
             identityZone.getConfig().getSamlConfig().setPrivateKey(null);
-            identityZone.getConfig().getSamlConfig().getKeys().entrySet().forEach(
-                entry -> {
-                    entry.getValue().setPassphrase(null);
-                    entry.getValue().setKey(null);
-                }
-            );
+            identityZone.getConfig().getSamlConfig().getKeys().forEach((key, value) -> {
+                value.setPassphrase(null);
+                value.setKey(null);
+            });
         }
         return identityZone;
     }
@@ -208,7 +192,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         try {
             body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            String errorMessage = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "";
             throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         }
 
@@ -246,12 +230,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             for (String group : defaultGroups) {
                 logger.debug(String.format("Creating zone default group: %s for subdomain: %s", group, zone.getSubdomain()));
                 groupProvisioning.createOrGet(
-                    new ScimGroup(
-                        null,
-                        group,
+                        new ScimGroup(
+                                null,
+                                group,
+                                zone.getId()
+                        ),
                         zone.getId()
-                    ),
-                    zone.getId()
                 );
             }
         }
@@ -267,7 +251,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityZone> updateIdentityZone(
-        @RequestBody @Valid IdentityZone body, @PathVariable String id) {
+            @RequestBody @Valid IdentityZone body, @PathVariable String id) {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             if (id == null) {
@@ -277,7 +261,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
                 throw new AccessDeniedException("Zone admins can only update their own zone.");
             }
 
-            if(body.getId() != null && !body.getId().equals(id)) {
+            if (body.getId() != null && !body.getId().equals(id)) {
                 throw new UnprocessableEntityException("The identity zone id from the request body does not match id in the url");
             }
 
@@ -298,7 +282,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             createUserGroups(updated);
             return new ResponseEntity<>(removeKeys(updated), OK);
         } catch (InvalidIdentityZoneDetailsException ex) {
-            String errorMessage = StringUtils.hasText(ex.getMessage())?ex.getMessage():"";
+            String errorMessage = StringUtils.hasText(ex.getMessage()) ? ex.getMessage() : "";
             throw new UnprocessableEntityException("The identity zone details are invalid. " + errorMessage, ex);
         } finally {
             IdentityZoneHolder.set(previous);
@@ -319,10 +303,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
                 for (Map.Entry<String, SamlKey> entry : config.getKeys().entrySet()) {
                     SamlKey original = oldConfig.getKeys().get(entry.getKey());
                     if (entry.getValue().getKey() == null &&
-                        entry.getValue().getPassphrase() == null &&
-                        original != null &&
-                        original.getCertificate() != null &&
-                        original.getCertificate().equals(entry.getValue().getCertificate())) {
+                            entry.getValue().getPassphrase() == null &&
+                            original != null &&
+                            original.getCertificate() != null &&
+                            original.getCertificate().equals(entry.getValue().getCertificate())) {
                         entry.getValue().setKey(original.getKey());
                         entry.getValue().setPassphrase(original.getPassphrase());
                     }
@@ -348,7 +332,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
             if (publisher != null && zone != null) {
-                publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication()));
+                publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(removeKeys(zone), OK);
             } else {
@@ -361,7 +345,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(method = POST, value = "{identityZoneId}/clients")
     public ResponseEntity<? extends ClientDetails> createClient(
-        @PathVariable String identityZoneId, @RequestBody BaseClientDetails clientDetails) {
+            @PathVariable String identityZoneId, @RequestBody BaseClientDetails clientDetails) {
         if (identityZoneId == null) {
             throw new ZoneDoesNotExistsException(identityZoneId);
         }
@@ -389,7 +373,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(method = DELETE, value = "{identityZoneId}/clients/{clientId}")
     public ResponseEntity<? extends ClientDetails> deleteClient(
-        @PathVariable String identityZoneId, @PathVariable String clientId) {
+            @PathVariable String identityZoneId, @PathVariable String clientId) {
         if (identityZoneId == null) {
             throw new ZoneDoesNotExistsException(identityZoneId);
         }
@@ -420,14 +404,14 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
     @ExceptionHandler(NoSuchClientException.class)
-    public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
+    public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException ignored) {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ClientAlreadyExistsException.class)
     public ResponseEntity<InvalidClientDetailsException> handleClientAlreadyExists(ClientAlreadyExistsException e) {
         return new ResponseEntity<>(new InvalidClientDetailsException(e.getMessage()),
-                                    HttpStatus.CONFLICT);
+                HttpStatus.CONFLICT);
     }
 
     @ExceptionHandler(ZoneDoesNotExistsException.class)

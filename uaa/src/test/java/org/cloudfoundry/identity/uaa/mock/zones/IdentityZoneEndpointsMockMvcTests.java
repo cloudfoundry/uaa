@@ -377,10 +377,9 @@ class IdentityZoneEndpointsMockMvcTests {
         String id = generator.generate();
         createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
         List<String> groups = webApplicationContext.getBean(JdbcScimGroupProvisioning.class)
-                .retrieveAll(id).stream().map(g -> g.getDisplayName()).collect(Collectors.toList());
+                .retrieveAll(id).stream().map(ScimGroup::getDisplayName).collect(Collectors.toList());
 
         ZoneManagementScopes.getSystemScopes()
-                .stream()
                 .forEach(
                         scope ->
                                 assertTrue("Scope:" + scope + " should have been bootstrapped into the new zone", groups.contains(scope))
@@ -1005,7 +1004,7 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityProvider idp2 = idpp.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         assertNotEquals(idp1, idp2);
 
-        IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) webApplicationContext.getBean("identityZoneProvisioning");
+        IdentityZoneProvisioning identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
 
         assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(createdZone.getConfig()));
@@ -1778,7 +1777,7 @@ class IdentityZoneEndpointsMockMvcTests {
         try {
             externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId());
             fail("no external groups should be found");
-        } catch (ScimResourceNotFoundException e) {
+        } catch (ScimResourceNotFoundException ignored) {
         }
 
         assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class), is(0));
@@ -1811,7 +1810,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         deletedZone = (IdentityZone) deletedEvent.getDeleted();
         assertThat(deletedZone.getId(), is(id));
-        assertThat(deletedEvent.getIdentityZone().getId(), is(id));
+        assertThat(deletedEvent.getIdentityZoneId(), is(id));
         String auditedIdentityZone = deletedEvent.getAuditEvent().getData();
         assertThat(auditedIdentityZone, containsString(id));
     }
@@ -1938,8 +1937,8 @@ class IdentityZoneEndpointsMockMvcTests {
         String zone1 = generator.generate().toLowerCase();
         String zone2 = generator.generate().toLowerCase();
 
-        IdentityZoneCreationResult result1 = MockMvcUtils.createOtherIdentityZoneAndReturnResult(zone1, mockMvc, webApplicationContext, null);
-        IdentityZoneCreationResult result2 = MockMvcUtils.createOtherIdentityZoneAndReturnResult(zone2, mockMvc, webApplicationContext, null);
+        IdentityZoneCreationResult result1 = MockMvcUtils.createOtherIdentityZoneAndReturnResult(zone1, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult result2 = MockMvcUtils.createOtherIdentityZoneAndReturnResult(zone2, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
 
         MvcResult result = mockMvc.perform(
                 get("/identity-zones")
@@ -1992,7 +1991,7 @@ class IdentityZoneEndpointsMockMvcTests {
         String subdomain = generator.generate().toLowerCase();
         BaseClientDetails adminClient = new BaseClientDetails("admin", null, null, "client_credentials", "scim.read,scim.write");
         adminClient.setClientSecret("admin-secret");
-        IdentityZoneCreationResult creationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, adminClient);
+        IdentityZoneCreationResult creationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, adminClient, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = creationResult.getIdentityZone();
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
@@ -2041,7 +2040,7 @@ class IdentityZoneEndpointsMockMvcTests {
     @Test
     void testCreateAndListUsersInOtherZoneIsUnauthorized() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
 
@@ -2071,7 +2070,7 @@ class IdentityZoneEndpointsMockMvcTests {
         ScimUser user = createUser(scimWriteToken, null);
 
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext);
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
 
@@ -2120,7 +2119,7 @@ class IdentityZoneEndpointsMockMvcTests {
                     .andExpect(status().isCreated());
         }
 
-        String userAccessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read");
+        String userAccessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read", IdentityZoneHolder.getCurrentZoneId());
 
         MvcResult result = mockMvc.perform(
                 get("/identity-zones/" + identityZone.getId())
@@ -2137,7 +2136,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals(Collections.EMPTY_MAP, zoneResult.getConfig().getTokenPolicy().getKeys());
 
 
-        String userAccessTokenReadAndAdmin = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ");
+        String userAccessTokenReadAndAdmin = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ", IdentityZoneHolder.getCurrentZoneId());
 
         result = mockMvc.perform(
                 get("/identity-zones/" + identityZone.getId())

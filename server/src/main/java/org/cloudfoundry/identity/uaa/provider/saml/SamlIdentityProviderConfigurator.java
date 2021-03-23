@@ -1,29 +1,19 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.net.URI;
@@ -34,12 +24,19 @@ import java.util.List;
 
 import static org.springframework.util.StringUtils.hasText;
 
-public class SamlIdentityProviderConfigurator implements InitializingBean {
-    private BasicParserPool parserPool;
-    private IdentityProviderProvisioning providerProvisioning;
-    private FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
+@Component("metaDataProviders")
+public class SamlIdentityProviderConfigurator {
+    private final BasicParserPool parserPool;
+    private final IdentityProviderProvisioning providerProvisioning;
+    private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
 
-    public SamlIdentityProviderConfigurator() {
+    public SamlIdentityProviderConfigurator(
+            final BasicParserPool parserPool,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
+            final FixedHttpMetaDataProvider fixedHttpMetaDataProvider) {
+        this.parserPool = parserPool;
+        this.providerProvisioning = providerProvisioning;
+        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
@@ -99,7 +96,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
             ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
             if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
-              !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
+                    !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
                 entityIDexists = true;
                 break;
             }
@@ -134,7 +131,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
 
     protected ExtendedMetadataDelegate configureXMLMetadata(SamlIdentityProviderDefinition def) {
         ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), def.getMetaDataLocation());
-        configMetadataProvider.setParserPool(getParserPool());
+        configMetadataProvider.setParserPool(parserPool);
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setLocal(false);
         extendedMetadata.setAlias(def.getIdpEntityAlias());
@@ -172,30 +169,5 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         } catch (URISyntaxException e) {
             throw new MetadataProviderException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
         }
-    }
-
-    public IdentityProviderProvisioning getIdentityProviderProvisioning() {
-        return providerProvisioning;
-    }
-
-    public void setIdentityProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
-        this.providerProvisioning = providerProvisioning;
-    }
-
-
-    public BasicParserPool getParserPool() {
-        return parserPool;
-    }
-
-    public void setParserPool(BasicParserPool parserPool) {
-        this.parserPool = parserPool;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-    }
-
-    public void setFixedHttpMetaDataProvider(FixedHttpMetaDataProvider fixedHttpMetaDataProvider) {
-        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
     }
 }

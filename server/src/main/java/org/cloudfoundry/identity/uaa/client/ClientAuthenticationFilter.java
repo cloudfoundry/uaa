@@ -110,8 +110,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
     @Override
     protected Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
         try {
-            Object result = principalSource.getPrincipal();
-            return result;
+            return principalSource.getPrincipal();
         } catch (UserRedirectRequiredException e) {
             throw new SocialRedirectException(e);
         }

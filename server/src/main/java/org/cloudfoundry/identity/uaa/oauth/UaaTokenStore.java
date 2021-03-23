@@ -16,8 +16,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -67,7 +67,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     public static final String OAUTH2_REQUEST_REDIRECT_URI = "oauth2Request.redirectUri";
     public static final String OAUTH2_REQUEST_RESPONSE_TYPES = "oauth2Request.responseTypes";
 
-    protected static Log logger = LogFactory.getLog(UaaTokenStore.class);
+    protected static Logger logger = LoggerFactory.getLogger(UaaTokenStore.class);
 
     private static final String SQL_SELECT_STATEMENT = "select code, user_id, client_id, expiresat, created, authentication from oauth_code where code = ?";
     private static final String SQL_INSERT_STATEMENT = "insert into oauth_code (code, user_id, client_id, expiresat, authentication, identity_zone_id) values (?, ?, ?, ?, ?, ?)";
@@ -142,7 +142,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     template.update(SQL_DELETE_STATEMENT, code);
                 }
             }
-        }catch (EmptyResultDataAccessException x) {
+        }catch (EmptyResultDataAccessException ignored) {
         }
         throw new InvalidGrantException("Invalid authorization code: " + code);
     }

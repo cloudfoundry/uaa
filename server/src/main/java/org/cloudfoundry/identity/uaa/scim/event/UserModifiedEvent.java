@@ -1,112 +1,73 @@
-/*
- * ******************************************************************************
- *      Cloud Foundry
- *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *      You may not use this product except in compliance with the License.
- *
- *      This product includes a number of subcomponents with
- *      separate copyright notices and license terms. Your use of these
- *      subcomponents is subject to the terms and conditions of the
- *      subcomponent's license, as noted in the LICENSE file.
- * ******************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.scim.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.springframework.security.core.Authentication;
 
 public class UserModifiedEvent extends AbstractUaaEvent {
 
     private static final long serialVersionUID = 8139998613071093676L;
-    private String userId;
-    private String username;
-    private String email;
-    private AuditEventType eventType;
+    private final ScimUser scimUser;
+    private final AuditEventType eventType;
 
-
-    protected UserModifiedEvent(String userId, String username, AuditEventType type, Authentication authentication) {
-        super(authentication);
-        this.userId = userId;
-        this.username = username;
-        this.eventType = type;
+    private UserModifiedEvent(
+            final ScimUser scimUser,
+            final AuditEventType eventType,
+            final String zoneId) {
+        super(getContextAuthentication(), zoneId);
+        this.scimUser = scimUser;
+        this.eventType = eventType;
     }
 
-    protected UserModifiedEvent(String userId, String username, String email, AuditEventType type, Authentication authentication) {
-        super(authentication);
-        this.userId = userId;
-        this.username = username;
-        this.eventType = type;
-        this.email = email;
+    static UserModifiedEvent userCreated(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserCreatedEvent, zoneId);
     }
 
-    public static UserModifiedEvent userCreated(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserCreatedEvent,
-            getContextAuthentication());
+    static UserModifiedEvent userModified(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserModifiedEvent, zoneId);
     }
 
-    public static UserModifiedEvent userModified(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserModifiedEvent,
-            getContextAuthentication());
+    static UserModifiedEvent userDeleted(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserDeletedEvent, zoneId);
     }
 
-    public static UserModifiedEvent userDeleted(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserDeletedEvent,
-            getContextAuthentication());
+    static UserModifiedEvent userVerified(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.UserVerifiedEvent, zoneId);
     }
 
-    public static UserModifiedEvent userVerified(String userId, String username) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            AuditEventType.UserVerifiedEvent,
-            getContextAuthentication());
-    }
-
-    public static UserModifiedEvent emailChanged(String userId, String username, String email) {
-        return new UserModifiedEvent(
-            userId,
-            username,
-            email,
-            AuditEventType.EmailChangedEvent,
-            getContextAuthentication());
+    public static UserModifiedEvent emailChanged(final ScimUser scimUser, final String zoneId) {
+        return new UserModifiedEvent(scimUser, AuditEventType.EmailChangedEvent, zoneId);
     }
 
     @Override
     public AuditEvent getAuditEvent() {
-        String[] details = {"user_id="+userId, "username="+username};
-        String data = JsonUtils.writeValueAsString(details);
+        String data = JsonUtils.writeValueAsString(buildDetails());
         return createAuditRecord(
-            userId,
-            eventType,
-            getOrigin(getAuthentication()),
-            data);
+                scimUser.getId(),
+                eventType,
+                getOrigin(getAuthentication()),
+                data);
+    }
+
+    private String[] buildDetails() {
+        return new String[]{
+                "user_id=" + scimUser.getId(),
+                "username=" + scimUser.getUserName()
+        };
     }
 
     public String getUserId() {
-        return userId;
+        return scimUser.getId();
     }
 
     public String getUsername() {
-        return username;
+        return scimUser.getUserName();
     }
 
     public String getEmail() {
-        return email;
+        return scimUser.getPrimaryEmail();
     }
 
 }

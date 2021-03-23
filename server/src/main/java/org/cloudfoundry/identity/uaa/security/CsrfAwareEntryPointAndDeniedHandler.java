@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.security;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,7 +39,7 @@ import java.io.IOException;
 
 public class CsrfAwareEntryPointAndDeniedHandler implements AccessDeniedHandler, AuthenticationEntryPoint {
 
-    private static Log logger = LogFactory.getLog(CsrfAwareEntryPointAndDeniedHandler.class);
+    private static Logger logger = LoggerFactory.getLogger(CsrfAwareEntryPointAndDeniedHandler.class);
 
     private LoginUrlAuthenticationEntryPoint notloggedInCsrfEntryPoint;
     private LoginUrlAuthenticationEntryPoint loggedInCsrfEntryPoint;

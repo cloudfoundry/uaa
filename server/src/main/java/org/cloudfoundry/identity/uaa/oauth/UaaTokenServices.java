@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthUserAuthority;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -39,7 +39,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.slf4j.Logger;
@@ -59,7 +59,6 @@ import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -127,7 +126,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_A
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 import static org.springframework.util.StringUtils.hasText;
 
 
@@ -148,7 +146,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     );
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
     private UaaUserDatabase userDatabase;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private ApprovalService approvalService;
     private ApplicationEventPublisher applicationEventPublisher;
     private TokenPolicy tokenPolicy;
@@ -166,7 +164,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public UaaTokenServices(IdTokenCreator idTokenCreator,
                             TokenEndpointBuilder tokenEndpointBuilder,
-                            ClientServicesExtension clientDetailsService,
+                            MultitenantClientServices clientDetailsService,
                             RevocableTokenProvisioning revocableTokenProvisioning,
                             TokenValidationService tokenValidationService,
                             RefreshTokenCreator refreshTokenCreator,
@@ -314,7 +312,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
-                    user.getId(),
                     user,
                     AuthTimeDateConverter.authTimeToDate(authTime),
                     getClientPermissions(client),
@@ -384,7 +381,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private CompositeToken createCompositeToken(String tokenId,
-                                                String userId,
                                                 UaaUser user,
                                                 Date userAuthenticationTime,
                                                 Collection<GrantedAuthority> clientScopes,
@@ -426,7 +422,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String content;
         Map<String, ?> jwtAccessToken = createJWTAccessToken(
                 compositeToken,
-                userId,
                 user,
                 userAuthenticationTime,
                 clientScopes,
@@ -446,18 +441,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         compositeToken.setValue(token);
         BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        if (idTokenGranter.shouldSendIdToken(userId, clientDetails, requestedScopes, grantType)) {
+        if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             String idTokenContent;
             try {
-                idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientId, userId, userAuthenticationData));
-            } catch (RuntimeException | IdTokenCreationException e) {
+                idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientDetails, user, userAuthenticationData));
+            } catch (RuntimeException | IdTokenCreationException ignored) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
             String encodedIdTokenContent = JwtHelper.encode(idTokenContent, keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
-        publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication()));
+        publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
 
         return compositeToken;
     }
@@ -468,7 +463,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token,
-                                                String userId,
                                                 UaaUser user,
                                                 Date userAuthenticationTime,
                                                 Collection<GrantedAuthority> clientScopes,
@@ -505,14 +499,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != grantType) {
             claims.put(GRANT_TYPE, grantType);
         }
-        if (user!=null && userId!=null) {
-            claims.put(USER_ID, userId);
+        if (user!=null) {
+            claims.put(USER_ID, user.getId());
             String origin = user.getOrigin();
             if (StringUtils.hasLength(origin)) {
                 claims.put(ORIGIN, origin);
             }
             String username = user.getUsername();
-            claims.put(USER_NAME, username == null ? userId : username);
+            claims.put(USER_NAME, username == null ? user.getId() : username);
             String userEmail = user.getEmail();
             if (userEmail != null) {
                 claims.put(EMAIL, userEmail);
@@ -520,7 +514,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             if (userAuthenticationTime!=null) {
                 claims.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
             }
-            claims.put(SUB, userId);
+            claims.put(SUB, user.getId());
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
@@ -530,8 +524,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
         claims.put(EXP, token.getExpiration().getTime() / 1000);
 
-        if (tokenEndpointBuilder.getTokenEndpoint() != null) {
-            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
+        if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
+            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
@@ -614,10 +608,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Set<String> modifiableUserScopes = new LinkedHashSet<>(userScopes);
 
-        Set<String> externalGroupsForIdToken = Sets.newHashSet();
         Map<String,List<String>> userAttributesForIdToken = Maps.newHashMap();
         if (authentication.getUserAuthentication() instanceof UaaAuthentication) {
-            externalGroupsForIdToken = ((UaaAuthentication)authentication.getUserAuthentication()).getExternalGroups();
             userAttributesForIdToken = ((UaaAuthentication)authentication.getUserAuthentication()).getUserAttributes();
         }
 
@@ -632,7 +624,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authenticationMethods,
                 authNContextClassRef,
                 modifiableUserScopes,
-                externalGroupsForIdToken,
+                rolesAsSet(userId),
                 userAttributesForIdToken,
                 nonce,
                 grantType,
@@ -643,7 +635,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         CompositeToken accessToken =
                 createCompositeToken(
                         tokenId,
-                        userId,
                         user,
                         userAuthenticationTime,
                         clientScopes,
@@ -667,7 +658,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Collection<GrantedAuthority> clientScopes;
         clientScopes = new ArrayList<>();
         for(String scope : client.getScope()) {
-            clientScopes.add(new XOAuthUserAuthority(scope));
+            clientScopes.add(new ExternalOAuthUserAuthority(scope));
         }
         return clientScopes;
     }
@@ -890,7 +881,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return null;
     }
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

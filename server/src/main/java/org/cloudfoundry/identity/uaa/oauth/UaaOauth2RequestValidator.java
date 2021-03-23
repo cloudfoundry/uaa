@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
@@ -34,9 +34,9 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 
 public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
 
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

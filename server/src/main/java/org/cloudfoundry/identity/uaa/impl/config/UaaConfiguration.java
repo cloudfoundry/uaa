@@ -48,7 +48,7 @@ public class UaaConfiguration {
     public boolean disableInternalAuth;
 
     public String name;
-    @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle|sqlserver)")
+    @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
     public String platform;
     public String spring_profiles;
 
@@ -238,23 +238,23 @@ public class UaaConfiguration {
         public UaaConfigConstructor() {
             super(UaaConfiguration.class);
 
-            TypeDescription oauthDesc = new TypeDescription(OAuth.class);
+            TypeDescription oauthDesc = createTypeDescription(OAuth.class);
             oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
             addTypeDescription(oauthDesc);
 
-            TypeDescription clientDesc = new TypeDescription(Client.class);
+            TypeDescription clientDesc = createTypeDescription(Client.class);
             clientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(clientDesc);
 
-            TypeDescription oauthClientDesc = new TypeDescription(OAuthClient.class);
+            TypeDescription oauthClientDesc = createTypeDescription(OAuthClient.class);
             oauthClientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(oauthClientDesc);
 
-            TypeDescription claimsDesc = new TypeDescription(Claims.class);
+            TypeDescription claimsDesc = createTypeDescription(Claims.class);
             claimsDesc.putListPropertyType("exclusions", String.class);
             addTypeDescription(clientDesc);
 
-            TypeDescription policyDesc = new TypeDescription(Policy.class);
+            TypeDescription policyDesc = createTypeDescription(Policy.class);
             policyDesc.putMapPropertyType("keys", String.class, KeySpec.class);
             addTypeDescription(policyDesc);
 

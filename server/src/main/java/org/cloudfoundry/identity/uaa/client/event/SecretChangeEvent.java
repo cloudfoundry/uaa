@@ -19,8 +19,8 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 
 public class SecretChangeEvent extends AbstractClientAdminEvent {
 
-    public SecretChangeEvent(ClientDetails client, Authentication principal) {
-        super(client, principal);
+    public SecretChangeEvent(ClientDetails client, Authentication principal, String zoneId) {
+        super(client, principal, zoneId);
     }
 
     @Override

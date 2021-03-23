@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.*;
 import static org.springframework.util.StringUtils.hasText;
 
 public class ProcessLdapProperties {
@@ -38,13 +39,10 @@ public class ProcessLdapProperties {
     public static final String LDAP_SSL_SOCKET_FACTORY = "org.cloudfoundry.identity.ldap.ssl.factory.socket";
     public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = DummySSLSocketFactory.class.getName();
     public static final String EXPIRY_CHECKING_SOCKET_FACTORY = LdapSocketFactory.class.getName();
-    public static final String NONE = "none";
-    public static final String SIMPLE = "simple";
-    public static final String EXTERNAL = "external";
 
     private boolean disableSslVerification;
     private String baseUrl;
-    private String tlsConfig = NONE;
+    private String tlsConfig;
 
     public ProcessLdapProperties(String baseUrl,
                                  boolean disableSslVerification,
@@ -54,7 +52,7 @@ public class ProcessLdapProperties {
         this.tlsConfig = tlsConfig;
     }
 
-    public Map process(Map map) throws KeyManagementException, NoSuchAlgorithmException {
+    public Map process(Map map) {
         Map result = new LinkedHashMap(map);
         if (isDisableSslVerification()) {
             result.put(LDAP_SSL_SOCKET_FACTORY, SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
@@ -76,7 +74,7 @@ public class ProcessLdapProperties {
         return disableSslVerification;
     }
 
-    public SSLSocketFactory getSSLSocketFactory() throws NoSuchAlgorithmException, KeyManagementException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public SSLSocketFactory getSSLSocketFactory() throws IllegalAccessException, InstantiationException, ClassNotFoundException {
         Class<?> clazz = Class.forName((String) (process(new HashMap()).get(LDAP_SSL_SOCKET_FACTORY)), true, ProcessLdapProperties.class.getClassLoader());
         return (SSLSocketFactory) clazz.newInstance();
     }
@@ -92,16 +90,16 @@ public class ProcessLdapProperties {
 
     public DirContextAuthenticationStrategy getAuthenticationStrategy() throws ClassNotFoundException, NoSuchAlgorithmException, IllegalAccessException, InstantiationException, KeyManagementException {
         if (!hasText(tlsConfig)) {
-            tlsConfig = NONE;
+            tlsConfig = LDAP_TLS_NONE;
         }
         AbstractTlsDirContextAuthenticationStrategy tlsStrategy;
         switch (tlsConfig) {
-            case NONE:
+            case LDAP_TLS_NONE:
                 return new SimpleDirContextAuthenticationStrategy();
-            case SIMPLE:
+            case LDAP_TLS_SIMPLE:
                 tlsStrategy = new DefaultTlsDirContextAuthenticationStrategy();
                 break;
-            case EXTERNAL:
+            case LDAP_TLS_EXTERNAL:
                 tlsStrategy = new ExternalTlsDirContextAuthenticationStrategy();
                 break;
             default:

@@ -15,9 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.mfa;
 
+import java.io.Serializable;
 import java.util.List;
 
-public class UserGoogleMfaCredentials {
+public class UserGoogleMfaCredentials implements Serializable {
     private String userId;
     private String secretKey;
     private List<Integer> scratchCodes;

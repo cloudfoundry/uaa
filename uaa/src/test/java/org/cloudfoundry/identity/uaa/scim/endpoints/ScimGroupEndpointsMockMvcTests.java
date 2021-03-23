@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,6 +40,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -96,7 +98,6 @@ public class ScimGroupEndpointsMockMvcTests {
     private String clientSecret;
     private JdbcTemplate template;
     private ScimExternalGroupBootstrap bootstrap;
-    private int groupMaxCount;
 
     private ArrayList<String[]> ephemeralResources = new ArrayList<>();
 
@@ -146,8 +147,6 @@ public class ScimGroupEndpointsMockMvcTests {
         scimUser = createUserAndAddToGroups(IdentityZone.getUaa(), Sets.newHashSet(Arrays.asList("scim.read", "scim.write", "scim.me")));
         scimReadUserToken = testClient.getUserOAuthAccessToken("cf", "", scimUser.getUserName(), "password", "scim.read");
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "");
-
-        groupMaxCount = Integer.parseInt(this.webApplicationContext.getEnvironment().getProperty("groupMaxCount"));
     }
 
     @AfterEach
@@ -156,8 +155,6 @@ public class ScimGroupEndpointsMockMvcTests {
             template.update("delete from group_membership where member_id = ? and member_type = ?", resource);
         }
         ephemeralResources.clear();
-
-        webApplicationContext.getBean(ScimGroupEndpoints.class).setGroupMaxCount(groupMaxCount);
     }
 
     @Test
@@ -289,7 +286,7 @@ public class ScimGroupEndpointsMockMvcTests {
     @Test
     void testGroupOperations_as_Zone_Admin() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null);
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zoneAdminToken = result.getZoneAdminToken();
         IdentityZone zone = result.getIdentityZone();
 
@@ -398,65 +395,136 @@ public class ScimGroupEndpointsMockMvcTests {
         assertThat("Search results: " + body, searchResults.getResources(), hasSize(4));
     }
 
-    @Test
-    void getGroupsInOtherZone_withZoneAdminToken_returnsOkWithResults() throws Exception {
-        webApplicationContext.getBean(ScimGroupEndpoints.class).setGroupMaxCount(50);
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = {
+            "groupMaxCount=50"
+    })
+    class WithGroupMaxCount50 {
 
-        String subdomain = new RandomValueStringGenerator(8).generate();
-        BaseClientDetails bootstrapClient = null;
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
-                subdomain, mockMvc, webApplicationContext, bootstrapClient
-        );
+        @Autowired
+        private MockMvc mockMvc;
 
-        ScimGroup group1 = new ScimGroup(null, "scim.whatever", result.getIdentityZone().getId());
-        ScimGroup group2 = new ScimGroup(null, "another.group", result.getIdentityZone().getId());
+        @Autowired
+        private WebApplicationContext webApplicationContext;
 
-        mockMvc.perform(post("/Groups")
-                .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
-                .header("Authorization", "bearer " + result.getZoneAdminToken())
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(group1)))
-                .andExpect(status().isCreated());
+        @Test
+        void getGroupsInOtherZone_withZoneAdminToken_returnsOkWithResults() throws Exception {
+            String subdomain = new RandomValueStringGenerator(8).generate();
+            BaseClientDetails bootstrapClient = null;
+            MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+                    subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
+            );
 
-        mockMvc.perform(post("/Groups")
-                .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
-                .header("Authorization", "bearer " + result.getZoneAdminToken())
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(group2)))
-                .andExpect(status().isCreated());
+            ScimGroup group1 = new ScimGroup(null, "scim.whatever", result.getIdentityZone().getId());
+            ScimGroup group2 = new ScimGroup(null, "another.group", result.getIdentityZone().getId());
 
-        MockHttpServletRequestBuilder get = get("/Groups")
-                .header("Authorization", "Bearer " + result.getZoneAdminToken())
-                .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
-                .param("attributes", "displayName")
-                .param("filter", "displayName co \"scim\"")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(APPLICATION_JSON);
-        MvcResult mvcResult = mockMvc.perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
+            mockMvc.perform(post("/Groups")
+                    .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+                    .header("Authorization", "bearer " + result.getZoneAdminToken())
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(group1)))
+                    .andExpect(status().isCreated());
 
-        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertEquals(searchResults.getResources().size(), getSystemScopes("scim").size() + 1);
+            mockMvc.perform(post("/Groups")
+                    .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+                    .header("Authorization", "bearer " + result.getZoneAdminToken())
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(group2)))
+                    .andExpect(status().isCreated());
 
-        get = get("/Groups")
-                .header("Authorization", "Bearer " + result.getZoneAdminToken())
-                .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(APPLICATION_JSON);
-        mvcResult = mockMvc.perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
+            MockHttpServletRequestBuilder get = get("/Groups")
+                    .header("Authorization", "Bearer " + result.getZoneAdminToken())
+                    .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+                    .param("attributes", "displayName")
+                    .param("filter", "displayName co \"scim\"")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(APPLICATION_JSON);
+            MvcResult mvcResult = mockMvc.perform(get)
+                    .andExpect(status().isOk())
+                    .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertEquals(searchResults.getResources().size(),
-                UserConfig.DEFAULT_ZONE_GROUPS.size() +
-                        getSystemScopes(null).size() + 2 - 1 //two added groups, password.write exist in both default
-        );
+            SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+            assertEquals(searchResults.getResources().size(), getSystemScopes("scim").size() + 1);
+
+            get = get("/Groups")
+                    .header("Authorization", "Bearer " + result.getZoneAdminToken())
+                    .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(APPLICATION_JSON);
+            mvcResult = mockMvc.perform(get)
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+            assertEquals(searchResults.getResources().size(),
+                    UserConfig.DEFAULT_ZONE_GROUPS.size() +
+                            getSystemScopes(null).size() + 2 - 1 //two added groups, password.write exist in both default
+            );
+        }
+
+        @Test
+        void getGroupsInOtherZone_withZoneUserToken_returnsOkWithResults() throws Exception {
+            String subdomain = new RandomValueStringGenerator(8).generate();
+            BaseClientDetails bootstrapClient = null;
+            MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+                    subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
+            );
+
+            String zonedClientId = "zonedClientId";
+            String zonedClientSecret = "zonedClientSecret";
+            BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(mockMvc, result.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"),
+                    Collections.singletonList("scim.read"), Arrays.asList("client_credentials", "password"), "scim.read", null, result.getIdentityZone());
+            zonedClientDetails.setClientSecret(zonedClientSecret);
+
+            ScimUser zoneUser = createUserAndAddToGroups(result.getIdentityZone(), Sets.newHashSet(Collections.singletonList("scim.read")));
+
+            String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64((zonedClientId + ":" + zonedClientSecret).getBytes()));
+            MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+                    .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
+                    .header("Authorization", basicDigestHeaderValue)
+                    .param("grant_type", "password")
+                    .param("client_id", zonedClientId)
+                    .param("username", zoneUser.getUserName())
+                    .param("password", "password")
+                    .param("scope", "scim.read");
+            MvcResult tokenResult = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+            OAuthToken oauthToken = JsonUtils.readValue(tokenResult.getResponse().getContentAsString(), OAuthToken.class);
+            String zoneUserToken = oauthToken.accessToken;
+
+            MockHttpServletRequestBuilder get = get("/Groups")
+                    .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
+                    .header("Authorization", "Bearer " + zoneUserToken)
+                    .param("attributes", "displayName")
+                    .param("filter", "displayName co \"scim\"")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(APPLICATION_JSON);
+            MvcResult mvcResult = mockMvc.perform(get)
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+            assertThat(searchResults.getResources().size(), is(getSystemScopes("scim").size()));
+
+            get = get("/Groups")
+                    .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
+                    .header("Authorization", "Bearer " + zoneUserToken)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(APPLICATION_JSON);
+            mvcResult = mockMvc.perform(get)
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+            assertEquals(searchResults.getResources().size(),
+                    UserConfig.DEFAULT_ZONE_GROUPS.size() +
+                            getSystemScopes(null).size() - 1 //password.write exists in both list
+            );
+        }
     }
-
+    
     List<String> getSystemScopes(String containing) {
         List<String> systemScopes = ZoneManagementScopes.getSystemScopes();
         if (hasText(containing)) {
@@ -464,67 +532,6 @@ public class ScimGroupEndpointsMockMvcTests {
         } else {
             return systemScopes;
         }
-    }
-
-    @Test
-    void getGroupsInOtherZone_withZoneUserToken_returnsOkWithResults() throws Exception {
-        webApplicationContext.getBean(ScimGroupEndpoints.class).setGroupMaxCount(50);
-
-        String subdomain = new RandomValueStringGenerator(8).generate();
-        BaseClientDetails bootstrapClient = null;
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
-                subdomain, mockMvc, webApplicationContext, bootstrapClient
-        );
-
-        String zonedClientId = "zonedClientId";
-        String zonedClientSecret = "zonedClientSecret";
-        BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(mockMvc, result.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read"), Arrays.asList("client_credentials", "password"), "scim.read", null, result.getIdentityZone());
-        zonedClientDetails.setClientSecret(zonedClientSecret);
-
-        ScimUser zoneUser = createUserAndAddToGroups(result.getIdentityZone(), Sets.newHashSet(Collections.singletonList("scim.read")));
-
-        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64((zonedClientId + ":" + zonedClientSecret).getBytes()));
-        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-                .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
-                .header("Authorization", basicDigestHeaderValue)
-                .param("grant_type", "password")
-                .param("client_id", zonedClientId)
-                .param("username", zoneUser.getUserName())
-                .param("password", "password")
-                .param("scope", "scim.read");
-        MvcResult tokenResult = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        OAuthToken oauthToken = JsonUtils.readValue(tokenResult.getResponse().getContentAsString(), OAuthToken.class);
-        String zoneUserToken = oauthToken.accessToken;
-
-        MockHttpServletRequestBuilder get = get("/Groups")
-                .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
-                .header("Authorization", "Bearer " + zoneUserToken)
-                .param("attributes", "displayName")
-                .param("filter", "displayName co \"scim\"")
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(APPLICATION_JSON);
-        MvcResult mvcResult = mockMvc.perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-
-        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(getSystemScopes("scim").size()));
-
-        get = get("/Groups")
-                .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
-                .header("Authorization", "Bearer " + zoneUserToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .accept(APPLICATION_JSON);
-        mvcResult = mockMvc.perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertEquals(searchResults.getResources().size(),
-                UserConfig.DEFAULT_ZONE_GROUPS.size() +
-                        getSystemScopes(null).size() - 1 //password.write exists in both list
-        );
-
     }
 
     @Test
@@ -613,12 +620,6 @@ public class ScimGroupEndpointsMockMvcTests {
         for (Map<String, Object> attMap : attList) {
             assertNull(attMap.get(nonexistentAttribute));
         }
-    }
-
-    @Test
-    void testExternalGroupMembershipManagerNotNull() {
-        ScimGroupEndpoints sge = webApplicationContext.getBean(ScimGroupEndpoints.class);
-        assertNotNull(sge.getExternalMembershipManager());
     }
 
     @Test
@@ -1311,7 +1312,7 @@ public class ScimGroupEndpointsMockMvcTests {
         validateMembers(defaultExternalMembers, members.getResources());
     }
 
-    String getGroupId(String displayName) throws Exception {
+    String getGroupId(String displayName) {
         JdbcScimGroupProvisioning gp = (JdbcScimGroupProvisioning) webApplicationContext.getBean("scimGroupProvisioning");
         List<ScimGroup> result = gp.query("displayName eq \"" + displayName + "\"", IdentityZoneHolder.get().getId());
         if (result == null || result.size() == 0) {
@@ -1358,7 +1359,7 @@ public class ScimGroupEndpointsMockMvcTests {
         }
     }
 
-    private ScimUser createUserAndAddToGroups(IdentityZone zone, Set<String> groupNames) throws Exception {
+    private ScimUser createUserAndAddToGroups(IdentityZone zone, Set<String> groupNames) {
         if (zone == null) {
             zone = IdentityZone.getUaa();
         }
@@ -1395,7 +1396,7 @@ public class ScimGroupEndpointsMockMvcTests {
                 ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER);
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
-                } catch (MemberAlreadyExistsException x) {
+                } catch (MemberAlreadyExistsException ignored) {
                 }
             }
         } finally {
@@ -1404,7 +1405,7 @@ public class ScimGroupEndpointsMockMvcTests {
         return user;
     }
 
-    private ScimGroup createGroupWithinGroups(IdentityZone zone, Set<String> groupNames) throws Exception {
+    private ScimGroup createGroupWithinGroups(IdentityZone zone, Set<String> groupNames) {
         if (zone == null) {
             zone = IdentityZone.getUaa();
         }
@@ -1436,7 +1437,7 @@ public class ScimGroupEndpointsMockMvcTests {
                 ScimGroupMember member = new ScimGroupMember(newGroup.getId(), ScimGroupMember.Type.GROUP);
                 try {
                     scimGroupMembershipManager.addMember(group.getId(), member, IdentityZoneHolder.get().getId());
-                } catch (MemberAlreadyExistsException x) {
+                } catch (MemberAlreadyExistsException ignored) {
                 }
             }
         } finally {

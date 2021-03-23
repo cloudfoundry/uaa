@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.event.AbstractUaaAuthenticationEvent;
@@ -19,7 +20,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
-import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.removeEventListener;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -79,9 +79,9 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
 
         validateAuthEvents(
-            asList(
-                MfaAuthenticationSuccessEvent.class
-            ), "marissa"
+                Collections.singletonList(
+                        MfaAuthenticationSuccessEvent.class
+                ), "marissa"
         );
     }
 
@@ -120,9 +120,9 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(jsonPath("error").value("unauthorized"))
             .andExpect(jsonPath("error_description").value(containsString("Bad credentials")));
         validateAuthEvents(
-            asList(
-                MfaAuthenticationFailureEvent.class
-            ), "marissa"
+                Collections.singletonList(
+                        MfaAuthenticationFailureEvent.class
+                ), "marissa"
         );
     }
 
@@ -145,9 +145,9 @@ public class MfaPasswordGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(jsonPath("error").value("invalid_request"))
             .andExpect(jsonPath("error_description").value(containsString("register a multi-factor")));
         validateAuthEvents(
-            asList(
-                MfaAuthenticationFailureEvent.class
-            ), "marissa"
+                Collections.singletonList(
+                        MfaAuthenticationFailureEvent.class
+                ), "marissa"
         );
     }
 }

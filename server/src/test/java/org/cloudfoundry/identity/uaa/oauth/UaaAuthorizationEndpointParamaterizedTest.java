@@ -1,22 +1,7 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,7 +40,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
     private BaseClientDetails client;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private RedirectResolver redirectResolver;
     private OpenIdSessionStateCalculator calculator;
 
@@ -70,30 +55,36 @@ public class UaaAuthorizationEndpointParamaterizedTest {
     @Parameterized.Parameters(name = "{index}: {0}")
     public static Collection<Object[]> parameters() {
         return Arrays.asList(new Object[][]{
-          {"code"},
-          {"token"},
-          {"id_token"},
-          {"token id_token"}
+                {"code"},
+                {"token"},
+                {"id_token"},
+                {"token id_token"}
         });
     }
 
     @Before
     public void setup() {
         client = new BaseClientDetails("id", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUrl);
-        clientDetailsService = mock(ClientServicesExtension.class);
+        clientDetailsService = mock(MultitenantClientServices.class);
         redirectResolver = mock(RedirectResolver.class);
         calculator = mock(OpenIdSessionStateCalculator.class);
 
         String zoneID = IdentityZoneHolder.get().getId();
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), eq(zoneID))).thenReturn(client);
         when(redirectResolver.resolveRedirect(eq(redirectUrl), same(client))).thenReturn(redirectUrl);
-        when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(""));
+        when(redirectResolver.resolveRedirect(eq(HTTP_SOME_OTHER_SITE_CALLBACK), same(client))).thenThrow(new RedirectMismatchException(null));
         when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionstate.salt");
 
-        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint();
-        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(calculator);
-        uaaAuthorizationEndpoint.setRedirectResolver(redirectResolver);
-        uaaAuthorizationEndpoint.setClientDetailsService(clientDetailsService);
+        uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(
+                redirectResolver,
+                null,
+                null,
+                null,
+                null,
+                calculator,
+                null,
+                clientDetailsService,
+                null);
 
         request = new MockHttpServletRequest("GET", "/oauth/authorize");
         request.setParameter(OAuth2Utils.CLIENT_ID, client.getClientId());

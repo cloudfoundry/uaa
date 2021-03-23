@@ -1,10 +1,6 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xmlns:aop="http://www.springframework.org/schema/aop"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
-       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="mfaProviderProvisioning" class="org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning">
         <constructor-arg type="org.springframework.jdbc.core.JdbcTemplate" ref="jdbcTemplate"/>
@@ -12,15 +8,14 @@
                          ref="mfaProviderValidator"/>
     </bean>
 
-    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator" />
+    <bean id="mfaProviderValidator" class="org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator"/>
 
     <bean id="mfaProviderEndpoints" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderEndpoints">
         <property name="mfaProviderProvisioning" ref="mfaProviderProvisioning"/>
         <property name="mfaProviderValidator" ref="mfaProviderValidator"/>
-        <property name="identityZoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
-    <bean id="runtimeEnvironment" class="org.cloudfoundry.identity.uaa.util.RuntimeEnvironment" />
+    <bean id="runtimeEnvironment" class="org.cloudfoundry.identity.uaa.util.RuntimeEnvironment"/>
 
     <http name="mfaProviderSecurity" pattern="/mfa-providers/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
@@ -49,7 +44,8 @@
     </http>
 
     <bean name="mfaProviderBootstrap" class="org.cloudfoundry.identity.uaa.mfa.MfaProviderBootstrap">
-        <constructor-arg name="provisioning" ref="mfaProviderProvisioning" />
-        <property name="mfaProviders" value="#{@config['login']==null ? null : @config['login']['mfa']==null ? null : @config['login']['mfa']['providers']}" />
+        <constructor-arg name="provisioning" ref="mfaProviderProvisioning"/>
+        <property name="mfaProviders"
+                  value="#{@config['login']==null ? null : @config['login']['mfa']==null ? null : @config['login']['mfa']['providers']}"/>
     </bean>
 </beans>

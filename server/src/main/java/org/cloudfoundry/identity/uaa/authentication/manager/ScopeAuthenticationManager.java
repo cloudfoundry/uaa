@@ -76,7 +76,6 @@ public class ScopeAuthenticationManager implements AuthenticationManager{
 
 
     public List<String> dedup(Collection<String> list) {
-        List<String> deduped = new ArrayList<>(new LinkedHashSet<>(list));
-        return deduped;
+        return new ArrayList<>(new LinkedHashSet<>(list));
     }
 }

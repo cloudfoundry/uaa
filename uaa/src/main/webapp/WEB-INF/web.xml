@@ -1,23 +1,22 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <web-app xmlns="http://java.sun.com/xml/ns/javaee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd" version="3.0"
-    metadata-complete="true">
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd"
+         version="3.0"
+         metadata-complete="true">
     <absolute-ordering/>
     <display-name>Oauth 2 / Open ID / Identity Server</display-name>
     <description>CloudFoundry Identity Server</description>
+
+    <filter>
+        <filter-name>springSessionRepositoryFilter</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+    </filter>
+
+    <filter>
+        <filter-name>springRequestContextFilter</filter-name>
+        <filter-class>org.springframework.web.filter.RequestContextFilter</filter-class>
+    </filter>
+
     <filter>
         <filter-name>springSecurityFilterChain</filter-name>
         <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
@@ -26,6 +25,49 @@
             <param-value>org.springframework.web.servlet.FrameworkServlet.CONTEXT.spring</param-value>
         </init-param>
     </filter>
+    
+    <filter>
+        <filter-name>backwardsCompatibleScopeParameter</filter-name>
+        <filter-class>org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter</filter-class>
+    </filter>
+
+    <filter>
+        <filter-name>HttpHeaderSecurityFilter</filter-name>
+        <filter-class>org.apache.catalina.filters.HttpHeaderSecurityFilter</filter-class>
+        <init-param>
+            <param-name>hstsEnabled</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        <init-param>
+            <param-name>antiClickJackingEnabled</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        <init-param>
+            <param-name>blockContentTypeSniffingEnabled</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <init-param>
+            <param-name>xssProtectionEnabled</param-name>
+            <param-value>false</param-value>
+        </init-param>
+    </filter>
+
+    <filter-mapping>
+        <filter-name>HttpHeaderSecurityFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>springSessionRepositoryFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+        <dispatcher>REQUEST</dispatcher>
+        <dispatcher>ERROR</dispatcher>
+    </filter-mapping>
+
+    <filter-mapping>
+        <filter-name>springRequestContextFilter</filter-name>
+        <url-pattern>/*</url-pattern>
+    </filter-mapping>
 
     <filter-mapping>
         <filter-name>springSecurityFilterChain</filter-name>
@@ -38,31 +80,16 @@
         <url-pattern>/*</url-pattern>
     </filter-mapping>
 
-    <filter>
-        <filter-name>backwardsCompatibleScopeParameter</filter-name>
-        <filter-class>org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter</filter-class>
-    </filter>
-
-    <listener>
-        <listener-class>
-            org.springframework.web.context.request.RequestContextListener
-        </listener-class>
-    </listener>
-
     <servlet>
         <servlet-name>spring</servlet-name>
-        <servlet-class>org.cloudfoundry.identity.uaa.web.RecognizeFailureDispatcherServlet</servlet-class>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
         <init-param>
             <param-name>contextInitializerClasses</param-name>
             <param-value>org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer</param-value>
         </init-param>
         <init-param>
-            <param-name>environmentConfigDefaults</param-name>
-            <param-value>uaa.yml,login.yml</param-value>
-        </init-param>
-        <init-param>
-            <param-name>environmentConfigLocations</param-name>
-            <param-value>${LOGIN_CONFIG_URL},file:${LOGIN_CONFIG_PATH}/login.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/login.yml,${UAA_CONFIG_URL},file:${UAA_CONFIG_FILE},file:${UAA_CONFIG_PATH}/uaa.yml,file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml</param-value>
+            <param-name>dispatchTraceRequest</param-name>
+            <param-value>true</param-value>
         </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
@@ -85,5 +112,4 @@
     <error-page>
         <location>/error</location>
     </error-page>
-
 </web-app>

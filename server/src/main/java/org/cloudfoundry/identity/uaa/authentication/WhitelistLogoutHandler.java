@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver;
+import org.cloudfoundry.identity.uaa.oauth.beans.LegacyRedirectResolver;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -23,18 +23,18 @@ import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirec
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
-    private static final Log logger = LogFactory.getLog(WhitelistLogoutHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(WhitelistLogoutHandler.class);
 
     private List<String> whitelist = null;
 
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
 
     private RedirectResolver redirectResolver;
 
 
     public WhitelistLogoutHandler(List<String> whitelist) {
         this.whitelist = whitelist;
-        this.redirectResolver = new AntPathRedirectResolver();
+        this.redirectResolver = new LegacyRedirectResolver();
     }
 
     @Override
@@ -46,11 +46,11 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         this.whitelist = whitelist;
     }
 
-    public ClientServicesExtension getClientDetailsService() {
+    public MultitenantClientServices getClientDetailsService() {
         return clientDetailsService;
     }
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -96,7 +96,6 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
             logger.info(e.getMessage());
             whiteListRedirect = findMatchingRedirectUri(whitelist, targetUrl, defaultTargetUrl);
         }
-
 
         return whiteListRedirect;
     }

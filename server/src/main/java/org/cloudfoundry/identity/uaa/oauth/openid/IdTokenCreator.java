@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -9,8 +10,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
@@ -49,65 +49,58 @@ import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getRevocableToken
 
 public class IdTokenCreator {
     private final String ROLES_SCOPE = "roles";
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private final IdentityZoneManager identityZoneManager;
     private TimeService timeService;
     private TokenValidityResolver tokenValidityResolver;
     private UaaUserDatabase uaaUserDatabase;
-    private ClientServicesExtension clientServicesExtension;
+    private MultitenantClientServices multitenantClientServices;
     private Set<String> excludedClaims;
 
-    public IdTokenCreator(TokenEndpointBuilder tokenEndpointBuilder,
-                          TimeService timeService,
-                          TokenValidityResolver tokenValidityResolver,
-                          UaaUserDatabase uaaUserDatabase,
-                          ClientServicesExtension clientServicesExtension,
-                          Set<String> excludedClaims) {
+    public IdTokenCreator(final TokenEndpointBuilder tokenEndpointBuilder,
+                          final TimeService timeService,
+                          final TokenValidityResolver tokenValidityResolver,
+                          final UaaUserDatabase uaaUserDatabase,
+                          final MultitenantClientServices multitenantClientServices,
+                          final Set<String> excludedClaims,
+                          final IdentityZoneManager identityZoneManager) {
         this.timeService = timeService;
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
-        this.clientServicesExtension = clientServicesExtension;
+        this.multitenantClientServices = multitenantClientServices;
         this.excludedClaims = excludedClaims;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
+        this.identityZoneManager = identityZoneManager;
     }
 
-    public IdToken create(String clientId,
-                          String userId,
+    public IdToken create(ClientDetails clientDetails,
+                          UaaUser uaaUser,
                           UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
-        Date expiryDate = tokenValidityResolver.resolve(clientId);
+        Date expiryDate = tokenValidityResolver.resolve(clientDetails.getClientId());
         Date issuedAt = timeService.getCurrentDate();
-
-        UaaUser uaaUser;
-        try {
-            uaaUser = uaaUserDatabase.retrieveUserById(userId);
-        } catch (UsernameNotFoundException e) {
-            logger.error("Could not create ID token for unknown user " + userId, e);
-            throw new IdTokenCreationException();
-        }
-
 
         String givenName = getIfScopeContainsProfile(uaaUser.getGivenName(), userAuthenticationData.scopes);
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
         String phoneNumber = getIfScopeContainsProfile(uaaUser.getPhoneNumber(), userAuthenticationData.scopes);
 
-        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint();
-        String identityZoneId = IdentityZoneHolder.get().getId();
+        String issuerUrl = tokenEndpointBuilder.getTokenEndpoint(identityZoneManager.getCurrentIdentityZone());
+        String identityZoneId = identityZoneManager.getCurrentIdentityZoneId();
         Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData, uaaUser);
         Set<String> roles = buildRoles(userAuthenticationData, uaaUser);
 
-        ClientDetails clientDetails = clientServicesExtension.loadClientByClientId(clientId, identityZoneId);
         String clientTokenSalt = (String) clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
-        String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientId, clientDetails.getClientSecret());
+        String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientDetails.getClientId(), clientDetails.getClientSecret());
         return new IdToken(
-            getIfNotExcluded(userId, USER_ID),
-            getIfNotExcluded(newArrayList(clientId), AUD),
+            getIfNotExcluded(uaaUser.getId(), USER_ID),
+            getIfNotExcluded(newArrayList(clientDetails.getClientId()), AUD),
             getIfNotExcluded(issuerUrl, ISS),
             getIfNotExcluded(expiryDate, EXP),
             getIfNotExcluded(issuedAt, IAT),
             getIfNotExcluded(userAuthenticationData.authTime, AUTH_TIME),
             getIfNotExcluded(userAuthenticationData.authenticationMethods, AMR),
             getIfNotExcluded(userAuthenticationData.contextClassRef, ACR),
-            getIfNotExcluded(clientId, AZP),
+            getIfNotExcluded(clientDetails.getClientId(), AZP),
             getIfNotExcluded(givenName, GIVEN_NAME),
             getIfNotExcluded(familyName, FAMILY_NAME),
             getIfNotExcluded(uaaUser.getPreviousLogonTime(), PREVIOUS_LOGON_TIME),
@@ -117,7 +110,7 @@ public class IdTokenCreator {
             getIfNotExcluded(uaaUser.isVerified(), EMAIL_VERIFIED),
             getIfNotExcluded(userAuthenticationData.nonce, NONCE),
             getIfNotExcluded(uaaUser.getEmail(), EMAIL),
-            getIfNotExcluded(clientId, CID),
+            getIfNotExcluded(clientDetails.getClientId(), CID),
             getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
             getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
             getIfNotExcluded(identityZoneId, ZONE_ID),
@@ -142,7 +135,7 @@ public class IdTokenCreator {
         }
 
         if (requestedAttributes && attributes == null) {
-            logger.debug(String.format("Requested id_token containing %s, but no saved attributes available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", ClaimConstants.USER_ATTRIBUTES, user.getId(), user.getOrigin(), IdentityZoneHolder.get().getId()));
+            logger.debug(String.format("Requested id_token containing %s, but no saved attributes available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", ClaimConstants.USER_ATTRIBUTES, user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
         }
 
         return attributes;
@@ -158,7 +151,7 @@ public class IdTokenCreator {
         }
 
         if (requestedRoles && roles == null) {
-            logger.debug(String.format("Requested id_token containing user roles, but no saved roles available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", user.getId(), user.getOrigin(), IdentityZoneHolder.get().getId()));
+            logger.debug(String.format("Requested id_token containing user roles, but no saved roles available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
         }
 
         return roles;

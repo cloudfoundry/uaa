@@ -55,7 +55,7 @@ public class UaaOauth2ErrorHandlerTests {
     }
 
     @Test
-    public void testSetErrorLevel() throws Exception {
+    public void testSetErrorLevel() {
         handler.setErrorAtLevel(HttpStatus.Series.SERVER_ERROR);
         Assert.assertEquals(HttpStatus.Series.SERVER_ERROR, handler.getErrorAtLevel());
         handler.setErrorAtLevel(HttpStatus.Series.CLIENT_ERROR);
@@ -63,7 +63,7 @@ public class UaaOauth2ErrorHandlerTests {
     }
 
     @Test
-    public void testSetErrorLevelThroughConstructor() throws Exception {
+    public void testSetErrorLevelThroughConstructor() {
         handler = new UaaOauth2ErrorHandler(null, HttpStatus.Series.SERVER_ERROR);
         Assert.assertEquals(HttpStatus.Series.SERVER_ERROR, handler.getErrorAtLevel());
         handler = new UaaOauth2ErrorHandler(null, HttpStatus.Series.CLIENT_ERROR);

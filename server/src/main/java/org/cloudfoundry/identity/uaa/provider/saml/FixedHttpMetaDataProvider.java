@@ -1,16 +1,3 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
@@ -22,12 +9,20 @@ import java.net.URISyntaxException;
 
 public class FixedHttpMetaDataProvider {
 
-    private RestTemplate trustingRestTemplate;
-    private RestTemplate nonTrustingRestTemplate;
-    private UrlContentCache cache;
+    private final RestTemplate trustingRestTemplate;
+    private final RestTemplate nonTrustingRestTemplate;
+    private final UrlContentCache cache;
 
+    public FixedHttpMetaDataProvider(
+            final RestTemplate trustingRestTemplate,
+            final RestTemplate nonTrustingRestTemplate,
+            final UrlContentCache cache) {
+        this.trustingRestTemplate = trustingRestTemplate;
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
+        this.cache = cache;
+    }
 
-    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException, URISyntaxException {
+    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException {
         validateMetadataURL(metadataURL);
 
         if (isSkipSSLValidation) {
@@ -44,15 +39,4 @@ public class FixedHttpMetaDataProvider {
         }
     }
 
-    public void setTrustingRestTemplate(RestTemplate trustingRestTemplate) {
-        this.trustingRestTemplate = trustingRestTemplate;
-    }
-
-    public void setNonTrustingRestTemplate(RestTemplate nonTrustingRestTemplate) {
-        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
-    }
-
-    public void setCache(UrlContentCache cache) {
-        this.cache = cache;
-    }
 }

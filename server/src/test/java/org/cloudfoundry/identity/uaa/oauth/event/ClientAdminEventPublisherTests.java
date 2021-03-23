@@ -1,112 +1,94 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.oauth.event;
 
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
-import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
-import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
-import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
-import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
-import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatchers;
-import org.mockito.Mockito;
+import org.cloudfoundry.identity.uaa.client.event.*;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Arrays;
+import java.util.Collections;
 
-/**
- * @author Dave Syer
- *
- */
-public class ClientAdminEventPublisherTests {
+import static org.mockito.Mockito.*;
 
-    private ClientServicesExtension clientDetailsService = Mockito.mock(ClientServicesExtension.class);
+class ClientAdminEventPublisherTests {
 
-    private ClientAdminEventPublisher subject = new ClientAdminEventPublisher(clientDetailsService);
+    private MultitenantClientServices mockMultitenantClientServices;
+    private ApplicationEventPublisher mockApplicationEventPublisher;
+    private ClientAdminEventPublisher subject;
 
-    private ApplicationEventPublisher publisher = Mockito.mock(ApplicationEventPublisher.class);
+    @BeforeEach
+    void setUp() {
+        mockMultitenantClientServices = mock(MultitenantClientServices.class);
+        subject = new ClientAdminEventPublisher(mockMultitenantClientServices, mock(IdentityZoneManager.class));
+        mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
 
-    @Before
-    public void init() {
-        subject.setApplicationEventPublisher(publisher);
-        Authentication authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-                        Arrays.asList("read")).createOAuth2Request(), UaaAuthenticationTestFactory.getAuthentication("ID", "joe",
-                        "joe@test.org"));
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        subject.setApplicationEventPublisher(mockApplicationEventPublisher);
+        OAuth2Request oAuth2Request = new AuthorizationRequest("client", Collections.singletonList("read")).createOAuth2Request();
+        UaaAuthentication authentication1 = UaaAuthenticationTestFactory.getAuthentication("ID", "joe", "joe@test.org");
+        OAuth2Authentication oAuth2Authentication = new OAuth2Authentication(oAuth2Request, authentication1);
+        SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
     }
 
-    @After
-    public void destroy() {
+    @AfterEach
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void testCreate() {
+    void create() {
         BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
         subject.create(client);
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(ClientCreateEvent.class));
+        verify(mockApplicationEventPublisher).publishEvent(isA(ClientCreateEvent.class));
     }
 
     @Test
-    public void testUpdate() {
+    void update() {
         BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
         subject.update(client);
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(ClientUpdateEvent.class));
+        verify(mockApplicationEventPublisher).publishEvent(isA(ClientUpdateEvent.class));
     }
 
     @Test
-    public void testDelete() throws Throwable {
+    void delete() throws Throwable {
         BaseClientDetails client = new BaseClientDetails("foo", null, null, "client_credentials", "none");
-        ProceedingJoinPoint jp = Mockito.mock(ProceedingJoinPoint.class);
-        Mockito.when(jp.proceed()).thenReturn(client);
+        ProceedingJoinPoint jp = mock(ProceedingJoinPoint.class);
+        when(jp.proceed()).thenReturn(client);
         subject.delete(jp, "foo");
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(ClientDeleteEvent.class));
+        verify(mockApplicationEventPublisher).publishEvent(isA(ClientDeleteEvent.class));
     }
 
     @Test
-    public void testSecretChange() {
-        Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(
-                        new BaseClientDetails("foo", null, null, "client_credentials", "none"));
+    void secretChange() {
+        when(mockMultitenantClientServices.loadClientByClientId("foo")).thenReturn(
+                new BaseClientDetails("foo", null, null, "client_credentials", "none"));
         subject.secretChange("foo");
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(SecretChangeEvent.class));
+        verify(mockApplicationEventPublisher).publishEvent(isA(SecretChangeEvent.class));
     }
 
     @Test
-    public void testSecretFailure() {
-        Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenReturn(
-                        new BaseClientDetails("foo", null, null, "client_credentials", "none"));
+    void secretFailure() {
+        when(mockMultitenantClientServices.loadClientByClientId("foo")).thenReturn(
+                new BaseClientDetails("foo", null, null, "client_credentials", "none"));
         subject.secretFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(SecretFailureEvent.class));
+        verify(mockApplicationEventPublisher).publishEvent(isA(SecretFailureEvent.class));
     }
 
     @Test
-    public void testSecretFailureMissingClient() {
-        Mockito.when(clientDetailsService.loadClientByClientId("foo")).thenThrow(
-                        new InvalidClientException("Not found"));
+    void secretFailureMissingClient() {
+        when(mockMultitenantClientServices.loadClientByClientId("foo")).thenThrow(
+                new InvalidClientException("Not found"));
         subject.secretFailure("foo", new RuntimeException("planned"));
-        Mockito.verify(publisher).publishEvent(ArgumentMatchers.isA(SecretFailureEvent.class));
+        verify(mockApplicationEventPublisher).publishEvent(isA(SecretFailureEvent.class));
     }
 }

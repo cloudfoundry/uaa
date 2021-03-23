@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.validate;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -14,6 +15,7 @@ import org.passay.PasswordData;
 import org.passay.PropertiesMessageResolver;
 import org.passay.Rule;
 import org.passay.RuleResult;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -49,7 +51,8 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
     }
 
-    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy, IdentityProviderProvisioning provisioning) {
+    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
+                                      final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }
@@ -76,10 +79,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         org.passay.PasswordValidator validator = validator(policy, messageResolver);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {
-            List<String> errorMessages = new LinkedList<>();
-            for (String s : validator.getMessages(result)) {
-                errorMessages.add(s);
-            }
+            List<String> errorMessages = new LinkedList<>(validator.getMessages(result));
             if (!errorMessages.isEmpty()) {
                 throw new InvalidPasswordException(errorMessages);
             }

@@ -1,24 +1,11 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
 package org.cloudfoundry.identity.uaa.web;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.lang.NonNull;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -43,24 +30,25 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
     public static final String ERROR_MESSAGE = "UAA intentionally in limited mode, operation not permitted. Please try later.";
     public static final long STATUS_INTERVAL_MS = 5000;
     public static final String DEGRADED = "degraded";
-    private static Log logger = LogFactory.getLog(LimitedModeUaaFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(LimitedModeUaaFilter.class);
 
-    private Set<String> permittedEndpoints = emptySet();
     private Set<String> permittedMethods = emptySet();
     private List<AntPathRequestMatcher> endpoints = emptyList();
 
-
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(
+            final @NonNull HttpServletRequest request,
+            final @NonNull HttpServletResponse response,
+            final @NonNull FilterChain filterChain) throws ServletException, IOException {
         if (isEnabled()) {
             logger.debug("Degraded profile is enabled.");
-            if ( isMethodAllowed(request) || isEndpointAllowed(request)) {
+            if (isMethodAllowed(request) || isEndpointAllowed(request)) {
                 filterChain.doFilter(request, response);
             } else {
                 logger.debug(format("Operation Not permitted in limited mode for URL:%s and method:%s",
-                                    request.getRequestURI(),
-                                    request.getMethod()
-                             )
+                        request.getRequestURI(),
+                        request.getMethod()
+                        )
                 );
                 Map<String, String> json = getErrorData();
                 if (acceptsJson(request)) {
@@ -83,51 +71,34 @@ public class LimitedModeUaaFilter extends OncePerRequestFilter {
     }
 
     protected Map<String, String> getErrorData() {
-        String error = ERROR_CODE;
-        String description  = ERROR_MESSAGE;
         Map<String, String> json = new HashMap<>();
-        json.put("error", error);
-        json.put("error_description", description);
+        json.put("error", ERROR_CODE);
+        json.put("error_description", ERROR_MESSAGE);
         return json;
     }
 
-    protected boolean acceptsJson(HttpServletRequest request) {
+    private static boolean acceptsJson(HttpServletRequest request) {
         List<MediaType> mediaTypes = MediaType.parseMediaTypes(request.getHeader(HttpHeaders.ACCEPT));
         return mediaTypes.stream().anyMatch(m -> m.isCompatibleWith(MediaType.APPLICATION_JSON));
     }
 
-    protected boolean isMethodAllowed(HttpServletRequest request) {
-        return getPermittedMethods().contains(request.getMethod().toUpperCase());
+    private boolean isMethodAllowed(HttpServletRequest request) {
+        return permittedMethods.contains(request.getMethod().toUpperCase());
     }
 
-    public boolean isEndpointAllowed(HttpServletRequest request) {
+    private boolean isEndpointAllowed(HttpServletRequest request) {
         return endpoints.stream().anyMatch(m -> m.matches(request));
     }
 
     public void setPermittedEndpoints(Set<String> permittedEndpoints) {
-        this.permittedEndpoints = permittedEndpoints;
-        if (permittedEndpoints==null) {
-            this.endpoints = emptyList();
-        } else {
-            this.endpoints =
-                permittedEndpoints
-                    .stream()
-                    .map(s -> new AntPathRequestMatcher(s))
-                    .collect(toList());
-        }
-    }
-
-
-    public Set<String> getPermittedEndpoints() {
-        return permittedEndpoints;
-    }
-
-    public Set<String> getPermittedMethods() {
-        return permittedMethods;
+        this.endpoints = ofNullable(permittedEndpoints)
+                .orElse(emptySet())
+                .stream()
+                .map(AntPathRequestMatcher::new)
+                .collect(toList());
     }
 
     public void setPermittedMethods(Set<String> permittedMethods) {
         this.permittedMethods = ofNullable(permittedMethods).orElse(emptySet());
     }
-
 }

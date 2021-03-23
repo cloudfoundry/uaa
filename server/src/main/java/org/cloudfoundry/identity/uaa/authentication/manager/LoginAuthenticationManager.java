@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -23,7 +21,9 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -34,22 +34,23 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
-import java.util.Date;
 import java.util.Map;
 
-public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
-    public static final String NotANumber = OriginKeys.NotANumber;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 
-    private final Log logger = LogFactory.getLog(getClass());
+public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final IdentityZoneManager identityZoneManager;
 
     private ApplicationEventPublisher eventPublisher;
 
     private UaaUserDatabase userDatabase;
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    public LoginAuthenticationManager(IdentityZoneManager identityZoneManager) {
+        this.identityZoneManager = identityZoneManager;
+    }
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
@@ -107,7 +108,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
                     }
                 }
                 Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin()));
+                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
                 return success;
             }
         }
@@ -123,60 +124,28 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     }
 
     protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
-        String name = req.getName();
-        String email = info.get("email");
-        String userId = info.get("user_id")!=null?info.get("user_id"):NotANumber;
-
         if(info.get(OriginKeys.ORIGIN)!=null && info.get(OriginKeys.ORIGIN).equals(OriginKeys.UAA)){
             throw new BadCredentialsException("uaa origin not allowed for external login server");
         }
-        String origin = info.get(OriginKeys.ORIGIN)!=null?info.get(OriginKeys.ORIGIN): OriginKeys.LOGIN_SERVER;
 
-        if (name == null && email != null) {
-            name = email;
-        }
-        if (name == null && NotANumber.equals(userId)) {
+        // TODO: Verify this can be removed
+        // AuthzAuthenticationRequest requires name. This condition can never happen.
+        if (req.getName() == null && info.get("email") == null && info.get("user_id") == null) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
-        } else if (name==null) {
-            //we have user_id, name is irrelevant
-            name="unknown";
         }
-        if (email == null) {
-            if (name.contains("@")) {
-                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                    email = name;
-                } else {
-                    email = name.replaceAll("@", "") + "@unknown.org";
-                }
-            }
-            else {
-                email = name + "@unknown.org";
-            }
-        }
-        String givenName = info.get("given_name");
-        if (givenName == null) {
-            givenName = email.split("@")[0];
-        }
-        String familyName = info.get("family_name");
-        if (familyName == null) {
-            familyName = (email.split("@").length > 1 ? email.split("@")[1] : email);
-        }
-        return new UaaUser(
-            userId,
-            name,
-            "" /*zero length password for login server */,
-            email,
-            UaaAuthority.USER_AUTHORITIES,
-            givenName,
-            familyName,
-            new Date(),
-            new Date(),
-            origin,
-            name,
-            false,
-            IdentityZoneHolder.get().getId(),
-            null,
-            null);
 
+        String name = req.getName();
+        return UaaUser.createWithDefaults(u ->
+            u.withId(info.getOrDefault("user_id", NotANumber))
+                .withUsername(name)
+                .withEmail(info.get("email"))
+                .withGivenName(info.get("given_name"))
+                .withFamilyName(info.get("family_name"))
+                .withPassword("")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withOrigin(info.getOrDefault(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER))
+                .withExternalId(name)
+                .withZoneId(identityZoneManager.getCurrentIdentityZoneId())
+        );
     }
 }

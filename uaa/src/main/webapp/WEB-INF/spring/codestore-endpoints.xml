@@ -1,36 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.2.xsd
-       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
+       xsi:schemaLocation="http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+       http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints">
-        <property name="expiringCodeStore" ref="codeStore" />
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-        </property>
-    </bean>
+    <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter"/>
 
-    <http  name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-           entry-point-ref="oauthAuthenticationEntryPoint"
-           xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+    <http name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless"
+          authentication-manager-ref="emptyAuthenticationManager"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          xmlns="http://www.springframework.org/schema/security" use-expressions="true">
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('oauth.login')"/>
-        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <anonymous enabled="false" />
-        <expression-handler ref="oauthWebExpressionHandler" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <anonymous enabled="false"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 </beans>

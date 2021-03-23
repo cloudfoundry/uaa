@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -36,7 +36,7 @@ public class TokenValidationServiceTest {
     private TokenValidationService tokenValidationService;
     private UaaUserDatabase userDatabase;
     private TokenEndpointBuilder tokenEndpointBuilder;
-    private ClientServicesExtension clientServicesExtension;
+    private MultitenantClientServices mockMultitenantClientServices;
     private RevocableTokenProvisioning revocableTokenProvisioning;
     private Map<String, Object> header;
     private RsaSigner signer;
@@ -62,10 +62,10 @@ public class TokenValidationServiceTest {
 
         userDatabase = mock(UaaUserDatabase.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
-        clientServicesExtension = mock(ClientServicesExtension.class);
+        mockMultitenantClientServices = mock(MultitenantClientServices.class);
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
-        when(clientServicesExtension.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenReturn(new BaseClientDetails(clientId, null, "foo.bar", null, null));
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenReturn(new BaseClientDetails(clientId, null, "foo.bar", null, null));
         UaaUser user = new UaaUser(userId, "marrisa", "koala", "marissa@gmail.com", buildGrantedAuthorities("foo.bar"), "Marissa", "Bloggs", null, null, null, null, true, null, null, null);
         when(userDatabase.retrieveUserById(userId)).thenReturn(user);
 
@@ -73,7 +73,7 @@ public class TokenValidationServiceTest {
                 revocableTokenProvisioning,
                 tokenEndpointBuilder,
                 userDatabase,
-                clientServicesExtension,
+                mockMultitenantClientServices,
                 new KeyInfoService("http://localhost:8080/uaa")
         );
     }
@@ -118,7 +118,7 @@ public class TokenValidationServiceTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid client ID "+clientId);
 
-        when(clientServicesExtension.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenThrow(NoSuchClientException.class);
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenThrow(NoSuchClientException.class);
         String accessToken = UaaTokenUtils.constructToken(header, content, signer);
 
         tokenValidationService.validateToken(accessToken, true);

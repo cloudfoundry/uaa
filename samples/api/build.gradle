@@ -1,37 +1,34 @@
-apply plugin: 'war'
-apply plugin: 'eclipse-wtp'
-eclipse {
-	wtp {
-	    component {
-	      contextPath = 'api'
-	    }
-	}
-}
+apply(plugin: "war")
 
-description = 'Sample resource server for Cloudfoundry Identity Services'
+description = "Sample resource server for Cloudfoundry Identity Services"
 dependencies {
-  Project identityParent = parent.parent
-  Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
+    Project identityParent = parent.parent
+    Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-  compile identityServer
+    implementation(identityServer)
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
 
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
-  compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.springSecurityVersion) {
-    exclude(module: 'spring-jdbc')
-    exclude(module: 'spring-tx')
-  }
-  compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion
+    providedCompile(libraries.tomcatEmbed)
+    implementation(libraries.springSecurityTaglibs) {
+        exclude(module: "spring-jdbc")
+        exclude(module: "spring-tx")
+    }
+    implementation(libraries.springSecurityConfig)
 
-  testCompile identityServer.configurations.testCompile.dependencies
-  testCompile identityServer.sourceSets.test.output
+    testImplementation(identityServer.configurations.testImplementation.dependencies)
+    testImplementation(identityServer.sourceSets.test.output)
 }
 
 test {
-  exclude 'org/cloudfoundry/identity/api/web/*IntegrationTests.class'
+    exclude("org/cloudfoundry/identity/api/web/*IntegrationTests.class")
 }
 
 integrationTest {
-  filter {
-    includeTestsMatching "org.cloudfoundry.identity.api.web.*IntegrationTests"
-  }
+    filter {
+        includeTestsMatching("org.cloudfoundry.identity.api.web.*IntegrationTests")
+    }
 }

@@ -10,8 +10,8 @@ public class UnverifiedUserAuthenticationEvent extends AbstractUaaAuthentication
 
     private final UaaUser user;
 
-    public UnverifiedUserAuthenticationEvent(UaaUser user, Authentication authentication) {
-        super(authentication);
+    public UnverifiedUserAuthenticationEvent(UaaUser user, Authentication authentication, String zoneId) {
+        super(authentication, zoneId);
         Assert.notNull(user, "UaaUser object cannot be null");
         this.user = user;
     }

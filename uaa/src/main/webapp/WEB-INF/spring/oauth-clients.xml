@@ -1,135 +1,111 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
-
-    <bean id="jdbcClientDetailsService" class="org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService">
-        <constructor-arg ref="jdbcTemplate" />
-        <property name="passwordEncoder" ref="cachingPasswordEncoder" />
-    </bean>
-
-    <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService">
-        <constructor-arg name="delegate" ref="jdbcClientDetailsService" />
-        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-    </bean>
-
-    <bean id="jdbcClientMetadataProvisioning" class="org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning">
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="template" ref="jdbcTemplate" />
-
-    </bean>
+       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
-        <constructor-arg ref="passwdEncoder"/>
-        <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
-        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
-        <property name="defaultOverride" value="${oauth.client.override:true}" />
-        <property name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
-        <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
-        <property name="autoApproveClients"
-            value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
+        <constructor-arg ref="nonCachingPasswordEncoder"/>
+        <constructor-arg name="defaultOverride" value="${oauth.client.override:true}"/>
+        <constructor-arg name="clientsToDelete"
+                         value="#{@config['delete']==null ? null : @config['delete']['clients']}"/>
+        <constructor-arg name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}"/>
+        <constructor-arg name="autoApproveClients"
+                         value="#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}"/>
     </bean>
 
     <beans profile="default">
         <bean id="defaultClientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
-            <constructor-arg ref="passwdEncoder"/>
-            <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
-            <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
-            <property name="clientsToDelete" value="#{@config['delete']==null ? null : @config['delete']['clients']}" />
-            <property name="clients">
+            <constructor-arg ref="nonCachingPasswordEncoder"/>
+            <constructor-arg name="defaultOverride" value="${oauth.client.override:true}"/>
+            <constructor-arg name="clientsToDelete"
+                             value="#{@config['delete']==null ? null : @config['delete']['clients']}"/>
+            <constructor-arg name="clients">
                 <map>
                     <entry key="admin">
                         <map>
-                            <entry key="authorized-grant-types" value="client_credentials" />
-                            <entry key="scope" value="uaa.none" />
-                            <entry key="authorities" value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin" />
-                            <entry key="secret" value="adminsecret" />
+                            <entry key="authorized-grant-types" value="client_credentials"/>
+                            <entry key="scope" value="uaa.none"/>
+                            <entry key="authorities"
+                                   value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin"/>
+                            <entry key="secret" value="adminsecret"/>
                         </map>
                     </entry>
                     <entry key="cf">
                         <map>
-                            <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
+                            <entry key="authorized-grant-types" value="implicit,password,refresh_token"/>
                             <entry key="scope"
-                                value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
-                            <entry key="redirect-uri" value="http://localhost:8080/**" />
-                            <entry key="authorities" value="uaa.none" />
-                            <entry key="autoapprove" value="true" />
+                                   value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write"/>
+                            <entry key="redirect-uri" value="http://localhost:8080/**,http://localhost:7000/**"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="true"/>
                         </map>
                     </entry>
                     <entry key="app">
                         <map>
-                            <entry key="secret" value="appclientsecret" />
-                            <entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials,refresh_token" />
+                            <entry key="secret" value="appclientsecret"/>
+                            <entry key="authorized-grant-types"
+                                   value="password,implicit,authorization_code,client_credentials,refresh_token"/>
                             <entry key="scope"
-                                value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme" />
-                            <entry key="authorities" value="uaa.resource" />
+                                   value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme"/>
+                            <entry key="authorities" value="uaa.resource"/>
                             <entry key="autoapprove">
                                 <list>
                                     <value>openid</value>
                                 </list>
                             </entry>
-                            <entry key="redirect-uri" value="http://localhost:8080/**" />
-                            <entry key="signup_redirect_url" value="http://localhost:8080/app/" />
-                            <entry key="change_email_redirect_url" value="http://localhost:8080/app/" />
-                            <entry key="name" value="The Ultimate Oauth App" />
+                            <entry key="redirect-uri" value="http://localhost:8080/**,http://localhost:7000/**"/>
+                            <entry key="signup_redirect_url" value="http://localhost:8080/app/"/>
+                            <entry key="change_email_redirect_url" value="http://localhost:8080/app/"/>
+                            <entry key="name" value="The Ultimate Oauth App"/>
                         </map>
                     </entry>
                     <entry key="login">
                         <map>
-                            <entry key="secret" value="loginsecret" />
-                            <entry key="scope" value="openid,oauth.approvals" />
-                            <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
-                            <entry key="redirect-uri" value="http://localhost/**" />
-                            <entry key="authorities" value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write" />
-                            <entry key="autoapprove" value="true" />
+                            <entry key="secret" value="loginsecret"/>
+                            <entry key="scope" value="openid,oauth.approvals"/>
+                            <entry key="authorized-grant-types" value="client_credentials,authorization_code"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
+                            <entry key="authorities"
+                                   value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write"/>
+                            <entry key="autoapprove" value="true"/>
                         </map>
                     </entry>
                     <entry key="dashboard">
                         <map>
-                            <entry key="secret" value="dashboardsecret" />
-                            <entry key="scope" value="dashboard.user,openid" />
-                            <entry key="authorized-grant-types" value="authorization_code" />
-                            <entry key="authorities" value="uaa.resource" />
-                            <entry key="redirect-uri" value="http://localhost:8080/uaa/" />
+                            <entry key="secret" value="dashboardsecret"/>
+                            <entry key="scope" value="dashboard.user,openid"/>
+                            <entry key="authorized-grant-types" value="authorization_code"/>
+                            <entry key="authorities" value="uaa.resource"/>
+                            <entry key="redirect-uri" value="http://localhost:8080/uaa/"/>
                         </map>
                     </entry>
                     <entry key="notifications">
                         <map>
-                            <entry key="secret" value="notificationssecret" />
-                            <entry key="authorized-grant-types" value="client_credentials" />
-                            <entry key="authorities" value="cloud_controller.admin,scim.read" />
+                            <entry key="secret" value="notificationssecret"/>
+                            <entry key="authorized-grant-types" value="client_credentials"/>
+                            <entry key="authorities" value="cloud_controller.admin,scim.read"/>
                         </map>
                     </entry>
                     <entry key="identity">
                         <map>
-                            <entry key="secret" value="identitysecret" />
-                            <entry key="authorized-grant-types" value="authorization_code,client_credentials,refresh_token,password" />
-                            <entry key="scope" value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write" />
-                            <entry key="authorities" value="scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write" />
-                            <entry key="autoapprove" value="true" />
-                            <entry key="redirect-uri" value="http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**"/>
+                            <entry key="secret" value="identitysecret"/>
+                            <entry key="authorized-grant-types"
+                                   value="authorization_code,client_credentials,refresh_token,password"/>
+                            <entry key="scope"
+                                   value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write"/>
+                            <entry key="authorities"
+                                   value="scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="redirect-uri"
+                                   value="http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_authorization_code">
                         <map>
-                            <entry key="secret" value="secret" />
-                            <entry key="authorized-grant-types" value="authorization_code" />
-                            <entry key="scope" value="openid" />
-                            <entry key="authorities" value="uaa.resource" />
-                            <entry key="redirect-uri" value="http://localhost:8080/uaa/" />
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="authorization_code"/>
+                            <entry key="scope" value="openid"/>
+                            <entry key="authorities" value="uaa.resource"/>
+                            <entry key="redirect-uri" value="http://localhost:8080/uaa/"/>
                             <entry key="allowedproviders">
                                 <array>
                                     <value>uaa</value>
@@ -139,52 +115,92 @@
                     </entry>
                     <entry key="oauth_showcase_client_credentials">
                         <map>
-                            <entry key="secret" value="secret" />
-                            <entry key="authorized-grant-types" value="client_credentials" />
-                            <entry key="scope" value="uaa.none" />
-                            <entry key="authorities" value="uaa.resource,clients.read" />
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="client_credentials"/>
+                            <entry key="scope" value="uaa.none"/>
+                            <entry key="authorities" value="uaa.resource,clients.read"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_password_grant">
                         <map>
-                            <entry key="secret" value="secret" />
-                            <entry key="authorized-grant-types" value="password" />
-                            <entry key="scope" value="openid" />
-                            <entry key="authorities" value="uaa.resource" />
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password"/>
+                            <entry key="scope" value="openid"/>
+                            <entry key="authorities" value="uaa.resource"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_implicit_grant">
                         <map>
-                            <entry key="authorized-grant-types" value="implicit" />
-                            <entry key="scope" value="openid" />
-                            <entry key="authorities" value="uaa.resource" />
-                            <entry key="redirect-uri" value="http://localhost:8080/uaa/" />
+                            <entry key="authorized-grant-types" value="implicit"/>
+                            <entry key="scope" value="openid"/>
+                            <entry key="authorities" value="uaa.resource"/>
+                            <entry key="redirect-uri" value="http://localhost:8080/uaa/"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_user_token">
                         <map>
-                            <entry key="authorized-grant-types" value="user_token,password" />
-                            <entry key="scope" value="openid,uaa.user" />
-                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types" value="user_token,password"/>
+                            <entry key="scope" value="openid,uaa.user"/>
+                            <entry key="secret" value="secret"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_saml2_bearer">
                         <map>
-                            <entry key="authorized-grant-types" value="password,urn:ietf:params:oauth:grant-type:saml2-bearer" />
-                            <entry key="scope" value="openid,uaa.user" />
-                            <entry key="secret" value="secret" />
+                            <entry key="authorized-grant-types"
+                                   value="password,urn:ietf:params:oauth:grant-type:saml2-bearer"/>
+                            <entry key="scope" value="openid,uaa.user"/>
+                            <entry key="secret" value="secret"/>
                         </map>
                     </entry>
                     <entry key="some_client_that_contains_redirect_uri_matching_request_param">
                         <map>
-                            <entry key="authorized-grant-types" value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin" />
-                            <entry key="scope" value="openid" />
-                            <entry key="authorities" value="uaa.resource" />
-                            <entry key="redirect-uri" value="http://redirect.localhost" />
+                            <entry key="authorized-grant-types"
+                                   value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin"/>
+                            <entry key="scope" value="openid"/>
+                            <entry key="authorities" value="uaa.resource"/>
+                            <entry key="redirect-uri" value="http://redirect.localhost"/>
+                        </map>
+                    </entry>
+                    <entry key="client_with_bcrypt_prefix">
+                        <map>
+                            <entry key="secret" value="password"/>
+                            <entry key="authorized-grant-types" value="client_credentials"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="use-bcrypt-prefix" value="true"/>
+                        </map>
+                    </entry>
+                    <entry key="jku_test">
+                        <map>
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password,client_credentials,refresh_token,authorization_code"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="scope" value="openid,oauth.approvals,user_attributes"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
+                        </map>
+                    </entry>
+                    <entry key="jku_test_without_autoapprove">
+                        <map>
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password,client_credentials,refresh_token,authorization_code"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="false"/>
+                            <entry key="scope" value="openid,oauth.approvals,user_attributes"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
+                        </map>
+                    </entry>
+                    <entry key="client_without_openid">
+                        <map>
+                            <entry key="secret" value="secret"/>
+                            <entry key="authorized-grant-types" value="password,client_credentials,refresh_token,authorization_code"/>
+                            <entry key="authorities" value="uaa.none"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="scope" value="password.write"/>
+                            <entry key="redirect-uri" value="http://localhost/**"/>
                         </map>
                     </entry>
                 </map>
-            </property>
+            </constructor-arg>
         </bean>
     </beans>
 </beans>

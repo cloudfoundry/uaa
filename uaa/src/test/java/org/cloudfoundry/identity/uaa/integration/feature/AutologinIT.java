@@ -25,7 +25,6 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -110,7 +109,7 @@ public class AutologinIT {
     public void testAutologinFlow_JSON() throws Exception {
         testAutologinFlow(MediaType.APPLICATION_JSON_VALUE, map.toSingleValueMap());
     }
-    public void testAutologinFlow(String contentType, Map body) throws Exception {
+    public void testAutologinFlow(String contentType, Map body) {
         webDriver.get(baseUrl + "/logout.do");
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
         headers.add(HttpHeaders.CONTENT_TYPE, contentType);
@@ -135,11 +134,10 @@ public class AutologinIT {
         webDriver.get(authorizeUrl);
 
         webDriver.get(baseUrl);
-        
+
         //Predix branded UAA does not have the header and nav div blocks...
         //Assert.assertEquals(testAccounts.getUserName(), webDriver.findElement(By.cssSelector(".header .nav")).getText());
-        //TODO newly added by HEAD
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver);
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
     }
 
     @Test
@@ -288,7 +286,7 @@ public class AutologinIT {
     }
 
     @Test
-    public void testFormEncodedAutologinRequest() throws Exception {
+    public void testFormEncodedAutologinRequest() {
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -306,7 +304,7 @@ public class AutologinIT {
     }
 
     @Test
-    public void testPasswordRequired() throws Exception {
+    public void testPasswordRequired() {
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
 
         Map<String, String> requestBody = new HashMap<>();
@@ -323,7 +321,7 @@ public class AutologinIT {
     }
 
     @Test
-    public void testClientAuthorization() throws Exception {
+    public void testClientAuthorization() {
         Map<String, String> requestBody = new HashMap<>();
         requestBody.put("username", testAccounts.getUserName());
         requestBody.put("password", testAccounts.getPassword());
@@ -339,7 +337,7 @@ public class AutologinIT {
     }
 
     @Test
-    public void testClientIdMustBeConsistent() throws Exception {
+    public void testClientIdMustBeConsistent() {
         webDriver.get(baseUrl + "/logout.do");
 
         HttpHeaders headers = getAppBasicAuthHttpHeaders();

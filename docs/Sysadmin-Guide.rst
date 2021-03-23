@@ -92,8 +92,8 @@ Configuration
 uaa.yml drives uaa behavior.  There is a default file in the WAR that
 you should not touch.  Overrides and additions can come from an external
 location, the most convenient way to specify that is through an
-environment variable (or system property in the JVM) named CLOUD\_FOUNDRY\_CONFIG\_PATH.
-The UAA will then look for a file named $CLOUD\_FOUNDRY\_CONFIG\_PATH/uaa.yml.
+environment variable (or system property in the JVM) named CLOUDFOUNDRY\_CONFIG\_PATH.
+The UAA will then look for a file named $CLOUDFOUNDRY\_CONFIG\_PATH/uaa.yml.
 
 In addition to be able to override configuration through file based locations, complete Yaml can also be
 written as an environment variable. For a Cloud Foundry application this could look like.

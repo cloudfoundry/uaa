@@ -1,35 +1,21 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.home;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
-import java.net.URISyntaxException;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,49 +26,33 @@ import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class HomeController {
-    private final Log logger = LogFactory.getLog(getClass());
-    protected final Environment environment;
-    private String baseUrl;
-    private Links globalLinks;
+    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final JdbcClientMetadataProvisioning clientMetadataProvisioning;
+    private final Links globalLinks;
 
-    @Autowired
-    private JdbcClientMetadataProvisioning clientMetadataProvisioning;
-
-    public HomeController(Environment environment) {
-        this.environment = environment;
-    }
-
-    public Links getGlobalLinks() {
-        return globalLinks;
-    }
-
-    public void setGlobalLinks(Links globalLinks) {
+    /**
+     * @param buildInfo This is required for Thymeleaf templates
+     */
+    public HomeController(
+            final JdbcClientMetadataProvisioning clientMetadataProvisioning,
+            @SuppressWarnings("unused") final BuildInfo buildInfo,
+            @Qualifier("globalLinks") final Links globalLinks) {
+        this.clientMetadataProvisioning = clientMetadataProvisioning;
         this.globalLinks = globalLinks;
     }
 
-    /**
-     * @param baseUrl the base uaa url
-     */
-    public void setUaaBaseUrl(String baseUrl) {
-        this.baseUrl = baseUrl;
-    }
-
-    protected String getUaaBaseUrl() {
-        return baseUrl;
-    }
-
-    protected void populateBuildAndLinkInfo(Model model) {
-        Map<String, Object> attributes = new HashMap<String, Object>();
+    private void populateBuildAndLinkInfo(Model model) {
+        Map<String, Object> attributes = new HashMap<>();
         model.addAllAttributes(attributes);
     }
 
-    @RequestMapping(value = { "/", "/home" })
+    @RequestMapping(value = {"/", "/home"})
     public String home(Model model, Principal principal) {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         String homePage =
-            config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
-                getGlobalLinks() != null && getGlobalLinks().getHomeRedirect() != null ?
-                    getGlobalLinks().getHomeRedirect() : null;
+                config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
+                        globalLinks != null && globalLinks.getHomeRedirect() != null ?
+                                globalLinks.getHomeRedirect() : null;
         if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
             homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
             return "redirect:" + homePage;
@@ -94,9 +64,9 @@ public class HomeController {
         List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
 
         clientMetadataList.stream()
-            .filter(this::shouldShowClient)
-            .map(this::tileDataForClient)
-            .forEach(tiles::add);
+                .filter(this::shouldShowClient)
+                .map(this::tileDataForClient)
+                .forEach(tiles::add);
 
         model.addAttribute("tiles", tiles);
 
@@ -115,10 +85,10 @@ public class HomeController {
         }
 
         return new TileData(
-            clientMetadata.getClientId(),
-            clientMetadata.getAppLaunchUrl().toString(),
-            "data:image/png;base64," + clientMetadata.getAppIcon(),
-            clientName
+                clientMetadata.getClientId(),
+                clientMetadata.getAppLaunchUrl().toString(),
+                "data:image/png;base64," + clientMetadata.getAppIcon(),
+                clientName
         );
     }
 
@@ -142,7 +112,7 @@ public class HomeController {
 
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
-        AuthenticationException exception = (AuthenticationException) request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
+        AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
         if (exception == null) {
             model.addAttribute("saml_error", "The server received a request for '/saml_error' but there was no SAML error information stored for the session.");
         } else {
@@ -152,7 +122,7 @@ public class HomeController {
     }
 
     @RequestMapping("/oauth_error")
-    public String error_oauth() throws URISyntaxException {
+    public String error_oauth() {
         return "external_auth_error";
     }
 

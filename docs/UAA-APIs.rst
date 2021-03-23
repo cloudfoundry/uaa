@@ -665,7 +665,7 @@ Notes:
 * Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/rfc6749#section-5.2>`_ and this addition::
 
             HTTP/1.1 400 Bad Request
-            Content-Type: application/json;charset=UTF-8
+            Content-Type: application/json
             Cache-Control: no-store
             Pragma: no-cache
 
@@ -1353,7 +1353,7 @@ Fields            *Available Fields* ::
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
                     providerDescription      String                  Optional Human readable name/description of this provider
 
-                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition
+                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.ExternalOAuthIdentityProviderDefinition
                     ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
                     alias                    String                  Required Must match ``originKey`` in the provider definition
                     authUrl                  URL                     Required Must be a valid URL that returns the authorization code.
@@ -1381,7 +1381,7 @@ Fields            *Available Fields* ::
                     groupSearchBase             String                  Required search base - defines where in the LDAP tree the UAA will search for user groups, use the value `memberOf` to skip group search, and use the memberOf attributes of the user.
                     groupSearchFilter           String                  Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
                     mailAttributeName           String                  Required the name of the attribute that contains the user's email address. In most cases this is "mail"
-                    mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
+                    mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@this-default-was-not-configured.invalid" where
                     mailSubstituteOverridesLdap boolean                 Optional Set to true only if you always wish to override the LDAP supplied user email address
                     autoAddGroups               boolean                 Required Currently not used
                     groupSearchSubTree          boolean                 Required Should the sub tree be searched for user groups
@@ -1399,7 +1399,7 @@ Curl Example      POST (Creating a SAML provider)::
                       -H"Accept:application/json" \
                       -H"Content-Type:application/json" \
                       -H"X-Identity-Zone-Id:testzone1" \
-                      -d '{"originKey":"simplesamlphp","name":"simplesamlphp for testzone1","type":"saml","config":"{\"metaDataLocation\":\"<?xml version=\\\"1.0\\\"?>\\n<md:EntityDescriptor xmlns:md=\\\"urn:oasis:names:tc:SAML:2.0:metadata\\\" xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\" entityID=\\\"http://simplesamlphp.cfapps.io/saml2/idp/metadata.php\\\" ID=\\\"pfx06ad4153-c17c-d286-194c-dec30bb92796\\\"><ds:Signature>\\n  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\\\"http://www.w3.org/2001/10/xml-exc-c14n#\\\"/>\\n    <ds:SignatureMethod Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\\\"/>\\n  <ds:Reference URI=\\\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\\\"><ds:Transforms><ds:Transform Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\\\"/><ds:Transform Algorithm=\\\"http://www.w3.org/2001/10/xml-exc-c14n#\\\"/></ds:Transforms><ds:DigestMethod Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#sha1\\\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\\n<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\\n  <md:IDPSSODescriptor protocolSupportEnumeration=\\\"urn:oasis:names:tc:SAML:2.0:protocol\\\">\\n    <md:KeyDescriptor use=\\\"signing\\\">\\n      <ds:KeyInfo xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\">\\n        <ds:X509Data>\\n          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\\n        </ds:X509Data>\\n      </ds:KeyInfo>\\n    </md:KeyDescriptor>\\n    <md:KeyDescriptor use=\\\"encryption\\\">\\n      <ds:KeyInfo xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\">\\n        <ds:X509Data>\\n          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\\n        </ds:X509Data>\\n      </ds:KeyInfo>\\n    </md:KeyDescriptor>\\n    <md:SingleLogoutService Binding=\\\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\\\" Location=\\\"http://simplesamlphp.cfapps.io/saml2/idp/SingleLogoutService.php\\\"/>\\n    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\\n    <md:SingleSignOnService Binding=\\\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\\\" Location=\\\"http://simplesamlphp.cfapps.io/saml2/idp/SSOService.php\\\"/>\\n  </md:IDPSSODescriptor>\\n  <md:ContactPerson contactType=\\\"technical\\\">\\n    <md:GivenName>Filip</md:GivenName>\\n    <md:SurName>Hanik</md:SurName>\\n    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\\n  </md:ContactPerson>\\n</md:EntityDescriptor>\",\"idpEntityAlias\":\"simplesamlphp\",\"zoneId\":\"testzone1\",\"nameID\":\"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\",\"assertionConsumerIndex\":0,\"metadataTrustCheck\":false,\"showSamlLink\":true,\"socketFactoryClassName\":\"org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory\",\"linkText\":\"Login with TestZone1 Simple SAML PHP\",\"iconUrl\":null}","active":true,"identityZoneId":"testzone1"}' \
+                      -d '{"originKey":"simplesamlphp","name":"simplesamlphp for testzone1","type":"saml","config":"{\"metaDataLocation\":\"<?xml version=\\\"1.0\\\"?>\\n<md:EntityDescriptor xmlns:md=\\\"urn:oasis:names:tc:SAML:2.0:metadata\\\" xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\" entityID=\\\"http://example.com/saml2/idp/metadata.php\\\" ID=\\\"pfx06ad4153-c17c-d286-194c-dec30bb92796\\\"><ds:Signature>\\n  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\\\"http://www.w3.org/2001/10/xml-exc-c14n#\\\"/>\\n    <ds:SignatureMethod Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\\\"/>\\n  <ds:Reference URI=\\\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\\\"><ds:Transforms><ds:Transform Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\\\"/><ds:Transform Algorithm=\\\"http://www.w3.org/2001/10/xml-exc-c14n#\\\"/></ds:Transforms><ds:DigestMethod Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#sha1\\\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\\n<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\\n  <md:IDPSSODescriptor protocolSupportEnumeration=\\\"urn:oasis:names:tc:SAML:2.0:protocol\\\">\\n    <md:KeyDescriptor use=\\\"signing\\\">\\n      <ds:KeyInfo xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\">\\n        <ds:X509Data>\\n          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\\n        </ds:X509Data>\\n      </ds:KeyInfo>\\n    </md:KeyDescriptor>\\n    <md:KeyDescriptor use=\\\"encryption\\\">\\n      <ds:KeyInfo xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\">\\n        <ds:X509Data>\\n          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\\n        </ds:X509Data>\\n      </ds:KeyInfo>\\n    </md:KeyDescriptor>\\n    <md:SingleLogoutService Binding=\\\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\\\" Location=\\\"http://example.com/saml2/idp/SingleLogoutService.php\\\"/>\\n    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\\n    <md:SingleSignOnService Binding=\\\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\\\" Location=\\\"http://example.com/saml2/idp/SSOService.php\\\"/>\\n  </md:IDPSSODescriptor>\\n  <md:ContactPerson contactType=\\\"technical\\\">\\n    <md:GivenName>Filip</md:GivenName>\\n    <md:SurName>Hanik</md:SurName>\\n    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\\n  </md:ContactPerson>\\n</md:EntityDescriptor>\",\"idpEntityAlias\":\"simplesamlphp\",\"zoneId\":\"testzone1\",\"nameID\":\"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\",\"assertionConsumerIndex\":0,\"metadataTrustCheck\":false,\"showSamlLink\":true,\"socketFactoryClassName\":\"org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory\",\"linkText\":\"Login with TestZone1 Simple SAML PHP\",\"iconUrl\":null}","active":true,"identityZoneId":"testzone1"}' \
                       http://localhost:8080/uaa/identity-providers
 
 Curl Example      POST (Creating a OAuth provider)::
@@ -1932,7 +1932,7 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "status":"ok",
@@ -1982,7 +1982,7 @@ Reset Password Flow:
 * Response::
 
         HTTP/1.1 201 Created
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "code":"1yw7VS",
@@ -2025,7 +2025,7 @@ Reset Password Flow:
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "username": "example",
@@ -2075,7 +2075,7 @@ Change Email Flow:
 * Response::
 
         HTTP/1.1 201 Created
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         6FfI4o       // verification code
 
@@ -2112,7 +2112,7 @@ Change Email Flow:
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "username": "example",
@@ -2313,25 +2313,6 @@ Wildcard searches such as ``sw`` or ``co`` are not allowed. This endpoint requir
     }
 
 
-Query the strength of a password: ``POST /password/score``
-----------------------------------------------------------
-
-ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
-
-* Request: ``POST /password/score``
-
-    POST /password/score HTTP/1.1
-    Host: uaa.example.com
-    Content-Type: application/x-www-form-encoded
-
-    password=password1&userData=jane,janesdogsname,janescity
-
-* Response
-    HTTP/1.1 200 OK
-    Content-Type: application/json
-    X-Cf-Warnings: Endpoint+deprecated
-
-    {"score": 0, "requiredScore": 0}
 
 
 Inviting Users
@@ -2904,7 +2885,7 @@ Get the Token Signing Key: ``GET /token_key``
 An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
-JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/check_token`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
+JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/introspect`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
 
 JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token. In the case that this is not the primary key, use ``GET /token_keys`` to retrieve all currently valid keys, and select the key that matches the token's ``kid``.
 

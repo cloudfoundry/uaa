@@ -1,22 +1,11 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -40,22 +29,23 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
- *
  */
 @Controller
 public class TokenKeyEndpoint {
 
-    protected final Log logger = LogFactory.getLog(getClass());
-    private KeyInfoService keyInfoService;
+    protected final Logger logger = LoggerFactory.getLogger(getClass());
 
-    public TokenKeyEndpoint(KeyInfoService keyInfoService) {
+    private final KeyInfoService keyInfoService;
+
+    public TokenKeyEndpoint(
+            final @Qualifier("keyInfoService") KeyInfoService keyInfoService) {
         this.keyInfoService = keyInfoService;
     }
 
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
-            @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
+                                                          @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
         String lastModified = ((Long) IdentityZoneHolder.get().getLastModified().getTime()).toString();
         if (unmodifiedResource(eTag, lastModified)) {
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
@@ -70,7 +60,7 @@ public class TokenKeyEndpoint {
     @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationKeysListResponse> getKeys(Principal principal,
-            @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
+                                                                @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
         String lastModified = ((Long) IdentityZoneHolder.get().getLastModified().getTime()).toString();
         if (unmodifiedResource(eTag, lastModified)) {
             return new ResponseEntity<>(HttpStatus.NOT_MODIFIED);
@@ -129,12 +119,12 @@ public class TokenKeyEndpoint {
     }
 
     protected boolean includeSymmetricalKeys(Principal principal) {
-        if (principal!=null) {
+        if (principal != null) {
             if (principal instanceof AnonymousAuthenticationToken) {
                 return false;
             } else if (principal instanceof Authentication) {
-                Authentication auth = (Authentication)principal;
-                if (auth.getAuthorities()!=null) {
+                Authentication auth = (Authentication) principal;
+                if (auth.getAuthorities() != null) {
                     for (GrantedAuthority authority : auth.getAuthorities()) {
                         if ("uaa.resource".equals(authority.getAuthority())) {
                             return true;

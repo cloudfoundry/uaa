@@ -27,12 +27,12 @@ import org.junit.Test;
 public class MessageTests {
 
     @Test
-    public void testSerialize() throws Exception {
+    public void testSerialize() {
         assertEquals("{\"status\":\"ok\",\"message\":\"done\"}", JsonUtils.writeValueAsString(new ActionResult("ok", "done")));
     }
 
     @Test
-    public void testDeserialize() throws Exception {
+    public void testDeserialize() {
         String value = "{\"status\":\"ok\",\"message\":\"done\"}";
         ActionResult message = JsonUtils.readValue(value, ActionResult.class);
         assertEquals(new ActionResult("ok", "done"), message);

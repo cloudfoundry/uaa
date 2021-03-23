@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -30,7 +30,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
 public class DomainFilter {
 
-    private static Log logger = LogFactory.getLog(DomainFilter.class);
+    private static Logger logger = LoggerFactory.getLogger(DomainFilter.class);
 
     public static List<IdentityProvider> filter(List<IdentityProvider> activeProviders, ClientDetails client, String email) {
         return filter(activeProviders, client, email, true);

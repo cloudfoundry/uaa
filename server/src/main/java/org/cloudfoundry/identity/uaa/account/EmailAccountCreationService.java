@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -15,7 +15,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -25,7 +25,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
-import org.thymeleaf.spring4.SpringTemplateEngine;
+import org.thymeleaf.spring5.SpringTemplateEngine;
 
 import java.util.*;
 
@@ -35,7 +35,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 public class EmailAccountCreationService implements AccountCreationService {
 
-    private final Log logger = LogFactory.getLog(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final String SIGNUP_REDIRECT_URL = "signup_redirect_url";
 
@@ -43,7 +43,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final MessageService messageService;
     private final ExpiringCodeStore codeStore;
     private final ScimUserProvisioning scimUserProvisioning;
-    private final ClientServicesExtension clientDetailsService;
+    private final MultitenantClientServices clientDetailsService;
     private final PasswordValidator passwordValidator;
     private final IdentityZoneManager identityZoneManager;
 
@@ -52,7 +52,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             MessageService messageService,
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
-            ClientServicesExtension clientDetailsService,
+            MultitenantClientServices clientDetailsService,
             PasswordValidator passwordValidator,
             IdentityZoneManager identityZoneManager) {
 
@@ -74,7 +74,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
         } catch (ScimResourceAlreadyExistsException e) {
-            List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"", identityZoneManager.getCurrentIdentityZoneId());
+            List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (users.size() > 0) {
                 if (users.get(0).isVerified()) {
                     throw new UaaException("User already active.", HttpStatus.CONFLICT.value());

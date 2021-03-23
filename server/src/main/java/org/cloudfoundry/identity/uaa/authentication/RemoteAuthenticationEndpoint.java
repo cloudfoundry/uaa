@@ -1,31 +1,10 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
-import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AuthenticationResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -43,32 +22,33 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * A username/password authentication endpoint (only intended) for use by the
  * login server.
- *
- * @author Luke Taylor
  */
 @Controller
 public class RemoteAuthenticationEndpoint {
-    private final Log logger = LogFactory.getLog(getClass());
+    private static final Logger logger = LoggerFactory.getLogger(RemoteAuthenticationEndpoint.class);
 
-    private AuthenticationManager authenticationManager;
-    private AuthenticationManager loginAuthenticationManager;
+    private final AuthenticationManager authenticationManager;
+    private final AuthenticationManager loginAuthenticationManager;
 
-    public void setLoginAuthenticationManager(AuthenticationManager loginAuthenticationManager) {
+    public RemoteAuthenticationEndpoint(
+            final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
+            final @Qualifier("loginAuthenticationMgr") AuthenticationManager loginAuthenticationManager) {
+        this.authenticationManager = authenticationManager;
         this.loginAuthenticationManager = loginAuthenticationManager;
     }
 
-    public RemoteAuthenticationEndpoint(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
-    }
-
-    @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST)
+    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST)
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                    @RequestParam(value = "username", required = true) String username,
-                    @RequestParam(value = "password", required = true) String password) {
+                                                           @RequestParam(value = "username") String username,
+                                                           @RequestParam(value = "password") String password) {
         AuthenticationResponse response = new AuthenticationResponse();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
@@ -97,12 +77,12 @@ public class RemoteAuthenticationEndpoint {
         return new ResponseEntity<>(response, status);
     }
 
-    @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST, params = {"source","origin", UaaAuthenticationDetails.ADD_NEW})
+    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                        @RequestParam(value = "username", required = true) String username,
-                                                        @RequestParam(value = OriginKeys.ORIGIN, required = true) String origin,
-                                                        @RequestParam(value = "email", required = false) String email) {
+                                                           @RequestParam(value = "username") String username,
+                                                           @RequestParam(value = OriginKeys.ORIGIN) String origin,
+                                                           @RequestParam(value = "email", required = false) String email) {
         AuthenticationResponse response = new AuthenticationResponse();
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
@@ -138,7 +118,7 @@ public class RemoteAuthenticationEndpoint {
     private void processAdditionalInformation(AuthenticationResponse response, Authentication a) {
         if (hasClientOauth2Authentication()) {
             UaaPrincipal principal = getPrincipal(a);
-            if (principal!=null) {
+            if (principal != null) {
                 response.setOrigin(principal.getOrigin());
                 response.setUserId(principal.getId());
             }
@@ -147,7 +127,7 @@ public class RemoteAuthenticationEndpoint {
 
     protected UaaPrincipal getPrincipal(Authentication a) {
         if (a.getPrincipal() instanceof UaaPrincipal) {
-            return (UaaPrincipal)a.getPrincipal();
+            return (UaaPrincipal) a.getPrincipal();
         } else {
             return null;
         }
@@ -158,9 +138,7 @@ public class RemoteAuthenticationEndpoint {
 
         if (context.getAuthentication() instanceof OAuth2Authentication) {
             OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
-            if (authentication.isClientOnly()) {
-                return true;
-            }
+            return authentication.isClientOnly();
         }
         return false;
     }

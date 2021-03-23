@@ -14,8 +14,8 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -28,7 +28,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.ClientServicesExtension;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -46,17 +46,17 @@ import java.util.Map;
  */
 public class AutologinAuthenticationManager implements AuthenticationManager {
 
-    private Log logger = LogFactory.getLog(getClass());
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
     private ExpiringCodeStore codeStore;
-    private ClientServicesExtension clientDetailsService;
+    private MultitenantClientServices clientDetailsService;
     private UaaUserDatabase userDatabase;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.codeStore= expiringCodeStore;
     }
 
-    public void setClientDetailsService(ClientServicesExtension clientDetailsService) {
+    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 

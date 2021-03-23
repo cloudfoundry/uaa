@@ -35,7 +35,8 @@ class UserInfoEndpointDocs extends EndpointDocs {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,openid";
-        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("openid"), Arrays.asList("client_credentials", "password"), authorities);
+        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, Collections.singleton("oauth"),
+                Collections.singletonList("openid"), Arrays.asList("client_credentials", "password"), authorities);
 
         String userName = new RandomValueStringGenerator().generate() + "@test.org";
         user = new ScimUser(null, userName, "PasswordResetUserFirst", "PasswordResetUserLast");
@@ -58,7 +59,7 @@ class UserInfoEndpointDocs extends EndpointDocs {
 
         Snippet requestHeaders = requestHeaders(
                 headerWithName("Authorization")
-                        .description("Access token with openid required. If the `" + USER_ATTRIBUTES + "` scope is in the token, " +
+                        .description("Access token with `openid` required. If the `" + USER_ATTRIBUTES + "` scope is in the token, " +
                                 "the response object will contain custom attributes, if mapped to the external identity provider." +
                                 "If  the `roles` scope is present, the response object will contain group memberships  from the external identity provider."
 

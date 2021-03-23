@@ -14,7 +14,7 @@ import static org.junit.Assert.assertThat;
 public class ScimExternalGroupsTypeResolvingFactoryBeanTest {
 
     @Test
-    public void resultingExternalGroupsMap_withExternalGroupExtraSpaces() throws Exception {
+    public void resultingExternalGroupsMap_withExternalGroupExtraSpaces() {
         List<String> internalToExternalGroups = Arrays.asList("acme|   cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com   cn=mgmt,ou=groups,dc=example,dc=com ",
             "acme.dev|cn=Engineering,ou=groups,dc=example,dc=com  ");
 
@@ -26,7 +26,7 @@ public class ScimExternalGroupsTypeResolvingFactoryBeanTest {
     }
 
     @Test
-    public void canAddExternalGroupsWithOrigin() throws Exception {
+    public void canAddExternalGroupsWithOrigin() {
         List<String> internalToExternalGroups = Arrays.asList("acme|cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com cn=mgmt,ou=groups,dc=example,dc=com|uaa",
             "acme.dev|cn=Engineering,ou=groups,dc=example,dc=com|uaa");
 
