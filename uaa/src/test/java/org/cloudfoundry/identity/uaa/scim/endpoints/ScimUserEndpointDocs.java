@@ -666,7 +666,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 preprocessRequest(prettyPrint()),
                                 preprocessResponse(prettyPrint()),
                                 requestHeaders(
-                                        headerWithName("Authorization").description(scimWriteOrUaaAdminRequired),
+                                        headerWithName("Authorization").description("Access token with `scim.write` or `uaa.admin` required"),
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                 ),

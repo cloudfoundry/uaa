@@ -507,6 +507,17 @@ public class IntegrationTestUtils {
         return null;
     }
 
+    public static ScimGroup getGroup(RestTemplate client,
+                                     String url,
+                                     String groupName) {
+        String id = findGroupId(client, url, groupName);
+        if (id != null) {
+            ResponseEntity<ScimGroup> group = client.getForEntity(url + "/Groups/{id}", ScimGroup.class, id);
+            return group.getBody();
+        }
+        return null;
+    }
+
     public static ScimGroup getGroup(String token,
                                      String zoneId,
                                      String url,
@@ -578,6 +589,30 @@ public class IntegrationTestUtils {
         );
         assertEquals(HttpStatus.OK, updateGroup.getStatusCode());
         return updateGroup.getBody();
+    }
+
+    public static ScimGroup createOrUpdateGroup(RestTemplate client,
+                                                String url,
+                                                ScimGroup scimGroup) {
+        //dont modify the actual argument
+        LinkedList<ScimGroupMember> members = new LinkedList<>(scimGroup.getMembers());
+        ScimGroup existing = getGroup(client, url, scimGroup.getDisplayName());
+        if (existing != null) {
+            members.addAll(existing.getMembers());
+        }
+        scimGroup.setMembers(members);
+        if (existing != null) {
+            scimGroup.setId(existing.getId());
+            client.put(url + "/Groups/{id}", scimGroup, scimGroup.getId());
+            return scimGroup;
+        } else {
+            ResponseEntity<String> group = client.postForEntity(url + "/Groups", scimGroup, String.class);
+            if (group.getStatusCode() == HttpStatus.CREATED) {
+                return JsonUtils.readValue(group.getBody(), ScimGroup.class);
+            } else {
+                throw new IllegalStateException("Invalid return code:" + group.getStatusCode());
+            }
+        }
     }
 
     public static ScimGroup createOrUpdateGroup(String token,

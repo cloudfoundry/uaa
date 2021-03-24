@@ -12,6 +12,9 @@ buildscript {
         maven {
             url("https://repo.spring.io/plugins-release")
         }
+        maven {
+            url("https://plugins.gradle.org/m2/")
+        }
     }
 
     dependencies {
@@ -31,7 +34,6 @@ def applicationPort = project.hasProperty('port') ? project.getProperty('port').
 
 apply(plugin: "com.bmuschko.cargo")
 
-def uaaVersion = version
 def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
 def geArtifactoryReaderPassword  = System.getenv('ARTIFACTORY_READER_PW')
 def proxyHost  = System.getenv('PROXY_HOST')
@@ -42,6 +44,7 @@ allprojects {
     apply(plugin: "propdeps")
     apply(plugin: "propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
+    apply(plugin: "jacoco")
 
     dependencyManagement {
         imports {
@@ -81,11 +84,10 @@ allprojects {
 }
 
 apply(plugin: "jacoco")
+apply(plugin: "com.github.kt3k.coveralls")
 
-def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({
-    it.name == 'jacocoagent.jar'
-}).asPath
-def jacocoLocation = System.getProperty('java.io.tmpdir') + '/cargo/jacocoagent.jar'
+def jacocoJarPath = configurations.jacocoAgent.asPath
+def jacocoLocation = System.getProperty('java.io.tmpdir') + '/jacocoagent.jar'
 
 subprojects {
     apply(plugin: "java")
@@ -167,9 +169,16 @@ subprojects {
     }
 
     repositories {
-        maven { url 'https://jitpack.io' }
-        maven { url "https://repo.spring.io/release" }
-        maven { url "https://repo.maven.apache.org/maven2" }
+        mavenCentral()
+        maven {
+            url("https://jitpack.io")
+        }
+        maven {
+            url("https://repo.spring.io/release")
+        }
+        maven {
+            url("https://repo.maven.apache.org/maven2")
+        }
         maven {
             credentials {
                 username geArtifactoryReader
@@ -185,9 +194,9 @@ subprojects {
     }
 
     jacocoTestReport {
-        additionalSourceDirs = files(sourceSets.main.allSource.srcDirs)
-        sourceDirectories = files(sourceSets.main.allSource.srcDirs)
-        classDirectories = files(sourceSets.main.output)
+        additionalSourceDirs.setFrom(files(sourceSets.main.allSource.srcDirs))
+        sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
+        classDirectories.setFrom(files(sourceSets.main.output))
         reports {
             html.enabled = true
             xml.enabled = true
@@ -230,7 +239,7 @@ cargo {
         startStopTimeout = 540000
         rmiPort = applicationPort + 10
 
-        jvmArgs = ""
+        jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
         jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
         jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
         jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
@@ -300,7 +309,7 @@ task manifests(dependsOn: assemble, type: Copy) {
 }
 
 task cleanCargoConfDir {
-    delete(file(System.getProperty("java.io.tmpdir") + "/cargo/uaa-${applicationPort}"))
+    delete(file(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
     delete file(jacocoLocation)
     try {
         Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
@@ -308,11 +317,76 @@ task cleanCargoConfDir {
     Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
 }
 
-apply(plugin: "coveralls-gradle-plugin")
 def publishedProjects = subprojects
 
 task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
+}
+
+def jacocoRootReportConfiguration = {
+    additionalSourceDirs.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    sourceDirectories.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    classDirectories.setFrom(files(subprojects.sourceSets.main.output))
+    executionData.setFrom(files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData))
+    reports {
+        html.enabled = true
+        xml.enabled = true
+        xml.destination = file("${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml")
+        csv.enabled = false
+    }
+    onlyIf = {
+        true
+    }
+    doFirst {
+        executionData = files(executionData.findAll {
+            it.exists()
+        })
+    }
+}
+
+task jacocoRootReportIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn = [integrationTest]
+}
+
+task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn = [test]
+}
+
+task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn(':cloudfoundry-identity-server:test')
+}
+
+task jacocoRootReportUaaTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn(':cloudfoundry-identity-uaa:test')
+}
+
+task jacocoRootReportDegradedCloudTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn(':cloudfoundry-identity-uaa:degradedTestCloud')
+}
+
+task jacocoRootReportDegradedJwtCloudTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn(':cloudfoundry-identity-uaa:degradedJwtTestCloud')
+}
+
+task jacocoRootReportAcceptanceTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn(':cloudfoundry-identity-uaa:acceptanceTest')
+}
+
+coveralls {
+    sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
+    jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
+}
+
+tasks.coveralls {
+    group = 'Coverage reports'
+    description = 'Uploads the aggregated coverage report to Coveralls'
 }
 
 task setupDegradedTestLocal(type: Exec, dependsOn: cargoStartLocal) {

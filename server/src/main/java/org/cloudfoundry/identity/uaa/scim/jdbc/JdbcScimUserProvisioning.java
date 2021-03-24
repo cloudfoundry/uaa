@@ -180,7 +180,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public List<ScimUser> query(String filter, String sortBy, boolean ascending, String zoneId) {
         //validate syntax
-        getQueryConverter().convert(filter, sortBy, ascending);
+        getQueryConverter().convert(filter, sortBy, ascending, zoneId);
 
         if (hasText(filter)) {
             filter = "("+ filter+ ") and";

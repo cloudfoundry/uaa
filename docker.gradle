@@ -17,7 +17,7 @@ docker container run -e CATALINA_OPTS="-Dspring.profiles.active=<desired uaa pro
 */
 
 buildscript {
-  apply from: file('shared_versions.gradle')
+  apply from: file('dependencies.gradle')
 
   repositories {
     maven {
@@ -26,14 +26,13 @@ buildscript {
   }
 
   dependencies {
-    classpath 'com.bmuschko:gradle-docker-plugin:3.0.11'
-    classpath 'de.undercouch:gradle-download-task:4.1.1'
+    classpath(libraries.cargoDockerPlugin)
+    classpath(libraries.downloadGradlePlugin)
   }
 }
 
 apply plugin: com.bmuschko.gradle.docker.DockerRemoteApiPlugin
-apply plugin: 'de.undercouch.download'
-apply plugin: 'java'
+apply(plugin: "java")
 
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 import com.bmuschko.gradle.docker.tasks.image.DockerBuildImage

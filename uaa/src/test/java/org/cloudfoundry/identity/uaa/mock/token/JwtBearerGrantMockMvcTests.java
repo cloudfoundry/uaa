@@ -66,8 +66,8 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         originClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
         originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext,
-                                                                         originClient, IdentityZoneHolder.getCurrentZoneId(),
-                                                                         false);
+                                                                         originClient, false,
+                                                                         IdentityZoneHolder.getCurrentZoneId());
         originUser = createUser(originZone.getIdentityZone());
     }
 

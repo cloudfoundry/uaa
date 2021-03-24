@@ -1535,7 +1535,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+ generator.generate();
         String userScopes = scopes;
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes,
+                  OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
             .param("username", username)
@@ -1565,7 +1566,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
           String username = "testuser"+ generator.generate();
           String userScopes = scopes;
-          setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+          setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes,
+                    OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
           MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                   .param("username", username)
@@ -1591,7 +1593,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String username = "testuser"+ generator.generate();
         String userScopes = scopes;
-        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes,
+                  OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .param("username", username)
@@ -2065,11 +2068,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String scopes = "openid";
         BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
         client.setRegisteredRedirectUri(redirectUris);
-        webApplicationContext.getBean(ClientServicesExtension.class).updateClientDetails(client);
+        clientDetailsService.updateClientDetails(client);
 
         String username = "authuser"+ generator.generate();
         String userScopes = "openid";
-        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning,
+                                       username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
         MockHttpSession session = getAuthenticatedSession(developer);
 
         String state = generator.generate();
@@ -2107,11 +2111,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String scopes = "openid";
         BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
         client.setRegisteredRedirectUri(redirectUris);
-        webApplicationContext.getBean(ClientServicesExtension.class).updateClientDetails(client);
+        clientDetailsService.updateClientDetails(client);
 
         String username = "authuser"+ generator.generate();
         String userScopes = "openid";
-        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning,
+                                       username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
         MockHttpSession session = getAuthenticatedSession(developer);
 
         String state = generator.generate();
@@ -2154,13 +2159,14 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         List<String> allowedIdps = Arrays.asList(OriginKeys.UAA);
         BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri, allowedIdps , -1, identityZone);
         client.setRegisteredRedirectUri(redirectUris);
-        webApplicationContext.getBean(ClientServicesExtension.class).updateClientDetails(client);
+        clientDetailsService.updateClientDetails(client);
         
         setupIdentityProvider(OriginKeys.UAA);
 
         String username = "authuser"+ generator.generate();
         String userScopes = "openid";
-        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning,
+                                       username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
         MockHttpSession session = getAuthenticatedSession(developer);
 
         String state = generator.generate();

@@ -33,6 +33,8 @@ dependencies {
         exclude(module: "spring-security-web")
     }
 
+    implementation(libraries.springCloudServiceConnector)
+
     implementation(libraries.bouncyCastleProv)
     implementation(libraries.bouncyCastlePkix)
 
@@ -77,6 +79,12 @@ dependencies {
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.javaxXmlBindCore)
     implementation(libraries.javaxXmlBindImpl)
+
+    implementation(libraries.predixAudit) {
+        exclude(module: 'httpclient')
+        //excluded to avoid bringing in jackson core < 2.9
+        exclude(module: 'predix-event-hub-sdk')
+    }
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
