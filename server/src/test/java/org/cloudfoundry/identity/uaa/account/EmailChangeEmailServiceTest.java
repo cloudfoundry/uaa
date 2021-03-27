@@ -363,7 +363,9 @@ class EmailChangeEmailServiceTest {
 
         assertThat(emailBody, containsString(String.format("A request has been made to change the email for %s from %s to %s", zoneName, "user@example.com", "new@example.com")));
         assertThat(emailBody, containsString("<a href=\"http://test.localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("Thank you,<br />\n    " + zoneName));
+        //For Predix
+        assertThat(emailBody, containsString("Thank you"));
+        assertThat(emailBody, containsString(zoneName));
     }
 
 }

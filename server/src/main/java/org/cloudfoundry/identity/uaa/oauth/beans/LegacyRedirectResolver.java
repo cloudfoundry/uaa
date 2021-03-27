@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
@@ -81,28 +82,32 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
 
     @Override
     public String resolveRedirect(String requestedRedirect, ClientDetails client) throws OAuth2Exception {
-        Set<String> registeredRedirectUris = ofNullable(client.getRegisteredRedirectUri()).orElse(emptySet());
+        if(IdentityZoneHolder.get().isEnableRedirectUriCheck()) {
+            Set<String> registeredRedirectUris = ofNullable(client.getRegisteredRedirectUri()).orElse(emptySet());
 
-        if (registeredRedirectUris.isEmpty()) {
-            throw new RedirectMismatchException("Client registration is missing redirect_uri");
+            if (registeredRedirectUris.isEmpty()) {
+                throw new RedirectMismatchException("Client registration is missing redirect_uri");
+            }
+
+            List<String> invalidUrls = registeredRedirectUris.stream()
+                                                             .filter(url -> !UaaUrlUtils.isValidRegisteredRedirectUrl(url))
+                                                             .collect(toList());
+
+            if (!invalidUrls.isEmpty()) {
+                throw new RedirectMismatchException("Client registration contains invalid redirect_uri: " + invalidUrls);
+            }
+
+            String resolveRedirect = super.resolveRedirect(requestedRedirect, client);
+
+            // This legacy resolver decided that the requested redirect URI was a match for one
+            // of the configured redirect uris (i.e. super.resolveRedirect() did not throw), so
+            // check to see if we need to log some warnings before returning.
+            logConfiguredRedirectUrisWhichOnlyMatchFuzzily(client.getClientId(), registeredRedirectUris, requestedRedirect);
+
+            return resolveRedirect;
+        } else {
+            return super.resolveRedirect(requestedRedirect, client);
         }
-
-        List<String> invalidUrls = registeredRedirectUris.stream()
-                .filter(url -> !UaaUrlUtils.isValidRegisteredRedirectUrl(url))
-                .collect(toList());
-
-        if (!invalidUrls.isEmpty()) {
-            throw new RedirectMismatchException("Client registration contains invalid redirect_uri: " + invalidUrls);
-        }
-
-        String resolveRedirect = super.resolveRedirect(requestedRedirect, client);
-
-        // This legacy resolver decided that the requested redirect URI was a match for one
-        // of the configured redirect uris (i.e. super.resolveRedirect() did not throw), so
-        // check to see if we need to log some warnings before returning.
-        logConfiguredRedirectUrisWhichOnlyMatchFuzzily(client.getClientId(), registeredRedirectUris, requestedRedirect);
-
-        return resolveRedirect;
     }
 
     private void logConfiguredRedirectUrisWhichOnlyMatchFuzzily(String clientId, Set<String> registeredRedirectUris, String requestedRedirect) {

@@ -67,8 +67,13 @@ class RedirectResolverTest {
         assertResolveRedirect("http://user:pass@uaa.com", is("http://user:pass@uaa.com"), shouldThrow());
         assertResolveRedirect("http://uaa.com/xyz", is("http://uaa.com/xyz"), shouldThrow());
         assertResolveRedirect("http://uaa.com/xyz/abc/1234", is("http://uaa.com/xyz/abc/1234"), shouldThrow());
-        assertResolveRedirect("http://subdomain.uaa.com", is("http://subdomain.uaa.com"), shouldThrow());
-        assertResolveRedirect("http://subdomain1.subdomain2.subdomain3.uaa.com", is("http://subdomain1.subdomain2.subdomain3.uaa.com"), shouldThrow());
+
+        // In Predix, domain expansion is not allowed
+        // so requested URL http://subdomain.uaa.com should not match http://uaa.com registered URL
+        // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
+        assertResolveRedirect("http://subdomain.uaa.com", shouldThrow());
+        assertResolveRedirect("http://subdomain1.subdomain2.subdomain3.uaa.com", shouldThrow());
+
         assertResolveRedirect("http://uaa.com/xyz?foo=bar", is("http://uaa.com/xyz?foo=bar"), shouldThrow());
         assertResolveRedirect("http://uaa.com?foo=bar", is("http://uaa.com?foo=bar"), is("http://uaa.com?foo=bar"));
         assertResolveRedirect("http://uaa.com/xyz?foo=bar#fragment", is("http://uaa.com/xyz?foo=bar#fragment"), shouldThrow());
@@ -135,8 +140,13 @@ class RedirectResolverTest {
         assertResolveRedirect("http://user:pass@uaa.com:8080", is("http://user:pass@uaa.com:8080"), shouldThrow());
         assertResolveRedirect("http://uaa.com:8080/xyz", is("http://uaa.com:8080/xyz"), shouldThrow());
         assertResolveRedirect("http://uaa.com:8080/xyz/abc/1234", is("http://uaa.com:8080/xyz/abc/1234"), shouldThrow());
-        assertResolveRedirect("http://subdomain.uaa.com:8080", is("http://subdomain.uaa.com:8080"), shouldThrow());
-        assertResolveRedirect("http://subdomain1.subdomain2.subdomain3.uaa.com:8080", is("http://subdomain1.subdomain2.subdomain3.uaa.com:8080"), shouldThrow());
+
+        // In Predix, domain expansion is not allowed
+        // so requested URL http://subdomain.uaa.com should not match http://uaa.com registered URL
+        // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
+        assertResolveRedirect("http://subdomain.uaa.com:8080", shouldThrow());
+        assertResolveRedirect("http://subdomain1.subdomain2.subdomain3.uaa.com:8080", shouldThrow());
+
         assertResolveRedirect("http://uaa.com:8080/xyz?foo=bar", is("http://uaa.com:8080/xyz?foo=bar"), shouldThrow());
         assertResolveRedirect("http://uaa.com:8080?foo=bar", is("http://uaa.com:8080?foo=bar"));
         assertResolveRedirect("http://uaa.com:8080/xyz?foo=bar#fragment", is("http://uaa.com:8080/xyz?foo=bar#fragment"), shouldThrow());
@@ -153,8 +163,13 @@ class RedirectResolverTest {
         assertResolveRedirect("http://user:pass@uaa.com/", is("http://user:pass@uaa.com/"), shouldThrow());
         assertResolveRedirect("http://uaa.com/xyz", is("http://uaa.com/xyz"), shouldThrow());
         assertResolveRedirect("http://uaa.com/xyz/abc/1234", is("http://uaa.com/xyz/abc/1234"), shouldThrow());
-        assertResolveRedirect("http://subdomain.uaa.com/", is("http://subdomain.uaa.com/"), shouldThrow());
-        assertResolveRedirect("http://subdomain1.subdomain2.subdomain3.uaa.com/", is("http://subdomain1.subdomain2.subdomain3.uaa.com/"), shouldThrow());
+
+        // In Predix, domain expansion is not allowed
+        // so requested URL http://subdomain.uaa.com should not match http://uaa.com registered URL
+        // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
+        assertResolveRedirect("http://subdomain.uaa.com/", shouldThrow());
+        assertResolveRedirect("http://subdomain1.subdomain2.subdomain3.uaa.com/", shouldThrow());
+
         assertResolveRedirect("http://uaa.com/xyz?foo=bar", is("http://uaa.com/xyz?foo=bar"), shouldThrow());
         assertResolveRedirect("http://uaa.com/?foo=bar", is("http://uaa.com/?foo=bar"));
         assertResolveRedirect("http://uaa.com/xyz?foo=bar#fragment", is("http://uaa.com/xyz?foo=bar#fragment"), shouldThrow());

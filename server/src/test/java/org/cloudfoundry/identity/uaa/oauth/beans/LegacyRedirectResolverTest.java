@@ -10,6 +10,7 @@ import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,9 +29,9 @@ import java.util.List;
 import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.core.IsNot.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
@@ -115,6 +116,10 @@ class LegacyRedirectResolverTest {
         }
 
         @Test
+        @Disabled
+        // In Predix, domain expansion is not allowed
+        // so requested URL https://subdomain.example.com should not match https://example.com/ configured URL
+        // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
         void warnsOnImplicitDomainExpansion() {
             final String configuredRedirectUri = "https://example.com";
             final String requestedRedirectUri = "https://subdomain.example.com";
@@ -135,14 +140,18 @@ class LegacyRedirectResolverTest {
         }
 
         @Test
+        @Disabled
+        // In Predix, domain expansion is not allowed
+        // so requested URL https://another.subdomain.example.com should not match https://example.com/ configured URL
+        // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
         void warnsOnImplicitMultipleDomainExpansion() {
             final String configuredRedirectUri = "https://example.com";
             final String requestedRedirectUri = "https://another.subdomain.example.com";
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
+            assertThat(logEvents, not(hasItem(
+                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri))))
             );
         }
 
@@ -200,11 +209,21 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredExplicitRedirectUri, configuredImplicitRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri))));
+
+            // In Predix, domain expansion is not allowed
+            // so requested URL https://an.example.com/ should not match https://example.com/ configured URL
+            // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
+            assertThat(logEvents, not(hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri,
+                                                                   configuredImplicitRedirectUri)))));
+
             assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredExplicitRedirectUri))));
         }
 
         @Test
+        @Disabled
+        // In Predix, domain expansion is not allowed
+        // so requested URL https://an.example.com/ should not match https://example.com/ configured URL
+        // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
         void warnsOnlyAboutMatchingConfiguredUrisMWhenThereIsAMatch() {
             final String configuredImplicitRedirectUri = "https://example.com";
             final String configuredOtherRedirectUri = "https://other.com/";
