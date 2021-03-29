@@ -406,7 +406,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
 
         //we must check and see if the email address has changed between authentications
-        if (haveUserAttributesChanged(userFromDb, userFromRequest) && !isIdTokenIssuedByUaaWithoutIdpRegistration(request)) {
+        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication(request)) {
             logger.debug("User attributed have changed, updating them.");
             userFromDb = userFromDb.modifyAttributes(email,
                                                      userFromRequest.getGivenName(),
@@ -423,10 +423,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
 
-    private boolean isIdTokenIssuedByUaaWithoutIdpRegistration(Authentication request) {
+    private boolean isRegisteredIdpAuthentication(Authentication request) {
         String idToken = ((ExternalOAuthCodeToken) request).getIdToken();
         if (idToken == null) {
-            return false;
+            return true;
         }
         String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
         Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
@@ -434,12 +434,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (idTokenWasIssuedByTheUaa(issuer)) {
             try {
                 ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
-                return false;
-            } catch (IncorrectResultSizeDataAccessException e) {
                 return true;
+            } catch (IncorrectResultSizeDataAccessException e) {
+                return false;
             }
         } else {
-            return false;
+            return true;
         }
     }
 
