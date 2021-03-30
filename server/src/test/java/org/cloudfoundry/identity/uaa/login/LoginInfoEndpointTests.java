@@ -73,6 +73,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -1111,15 +1112,59 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void loginHintOriginUaaSkipAccountChooser() throws Exception {
+    void testNoLoginHintAccountChooser() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        savedAccount.setUsername("tim");
+        savedAccount.setEmail("tim@example.org");
+        savedAccount.setUserId("zzzz");
+        savedAccount.setOrigin("ldap");
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        mockHttpServletRequest.setCookies(cookie1, cookie2);
 
         MultitenantClientServices clientDetailsService = mockClientService();
-
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
-
-
         SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("idp_discovery/account_chooser", redirect);
+    }
+
+    @Test
+    void loginHintOriginUaaSkipAccountChooser() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        savedAccount.setUsername("tim");
+        savedAccount.setEmail("tim@example.org");
+        savedAccount.setUserId("zzzz");
+        savedAccount.setOrigin("ldap");
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", URLEncoder.encode(JsonUtils.writeValueAsString(savedAccount), UTF_8.name()));
+
+        mockHttpServletRequest.setCookies(cookie1, cookie2);
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
+
         when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"uaa\"}"});
 
         IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
@@ -1128,7 +1173,7 @@ class LoginInfoEndpointTests {
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertEquals("{\"origin\":\"uaa\"}", extendedModelMap.get("login_hint"));
-        assertEquals("idp_discovery/password", redirect);
+        assertEquals("idp_discovery/email", redirect);
     }
 
     @Test

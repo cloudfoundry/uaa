@@ -281,7 +281,9 @@ public class LoginInfoEndpoint {
         boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
         boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
         boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
-        boolean accountChooserNeeded = accountChooserEnabled && !(otherAccountSignIn || savedAccountsEmpty) && discoveryEnabled &&!discoveryPerformed;
+        boolean accountChooserNeeded = accountChooserEnabled
+                && !(otherAccountSignIn || savedAccountsEmpty)
+                && !discoveryPerformed;
 
         String loginHintParam = extractLoginHintParam(session, request);
         UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHintParam);
@@ -307,6 +309,7 @@ public class LoginInfoEndpoint {
                 oauthIdentityProviders = Collections.emptyMap();
                 samlIdentityProviders = Collections.emptyMap();
             } else {
+                accountChooserNeeded = false;
                 samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
                 oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
                 allIdentityProviders = new HashMap<>();
@@ -418,9 +421,6 @@ public class LoginInfoEndpoint {
         }
 
         if (discoveryEnabled) {
-            if (model.containsAttribute("login_hint")) {
-                return goToPasswordPage(request.getParameter("email"), model);
-            }
             if (accountChooserNeeded) {
                 return "idp_discovery/account_chooser";
             }
