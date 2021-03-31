@@ -451,6 +451,28 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    void originChooserCarriesLoginHint() {
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        String redirect = endpoint.loginUsingOrigin("providedOrigin", extendedModelMap, session, request);
+
+        assertThat(redirect, startsWith("redirect:/login?discoveryPerformed=true"));
+        assertThat(redirect, containsString("login_hint"));
+        assertThat(redirect, containsString("providedOrigin"));
+    }
+
+    @Test
+    void originChooserDefaultsToNoLoginHint() {
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpSession session = new MockHttpSession();
+        String redirect = endpoint.loginUsingOrigin(null, extendedModelMap, session, request);
+
+        assertEquals(redirect, "redirect:/login?discoveryPerformed=true");
+    }
+
+    @Test
     void use_login_url_if_present() {
         check_links_urls(IdentityZone.getUaa());
     }
@@ -1068,6 +1090,26 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    void loginHintOriginUaa_onlyAccountChooser() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"uaa\"}"});
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("idp_discovery/password", redirect);
+        assertEquals("{\"origin\":\"uaa\"}", extendedModelMap.get("login_hint"));
+    }
+
+    @Test
     void loginHintOriginUaaDirectCall() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         mockHttpServletRequest.setParameter("login_hint", "{\"origin\":\"uaa\"}");
@@ -1232,6 +1274,27 @@ class LoginInfoEndpointTests {
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertEquals("idp_discovery/email", redirect);
+    }
+
+    @Test
+    void invalidLoginHintErrorOnAccountChooserPage() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"invalidorigin\"}"});
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("idp_discovery/account_chooser", redirect);
+        assertTrue(extendedModelMap.containsKey("error"));
     }
 
     @Test
@@ -1440,6 +1503,7 @@ class LoginInfoEndpointTests {
 
         assertEquals("login", redirect);
         assertEquals("{\"origin\":\"uaa\"}", extendedModelMap.get("login_hint"));
+        assertEquals("uaa", extendedModelMap.get("defaultIdpName"));
     }
 
     @Test
@@ -1498,6 +1562,63 @@ class LoginInfoEndpointTests {
 
         assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
         assertThat(redirect, containsString("my-OIDC-idp1"));
+    }
+
+    @Test
+    void discoveryPerformedWithAccountChooserOnlyReturnsLoginPage() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+        mockHttpServletRequest.setParameter("discoveryPerformed", "true");
+
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("idp_discovery/password", redirect);
+    }
+
+    @Test
+    void discoveryPerformedWithAccountChooserOnlyReturnsDefaultIdp() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        mockOidcProvider(mockIdentityProviderProvisioning);
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+        mockHttpServletRequest.setParameter("discoveryPerformed", "true");
+
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+        assertThat(redirect, startsWith("redirect:http://localhost:8080/uaa"));
+        assertThat(redirect, containsString("my-OIDC-idp1"));
+    }
+
+    @Test
+    void accountChooserOnlyReturnsOriginChooser() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        mockOidcProvider(mockIdentityProviderProvisioning);
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        MultitenantClientServices clientDetailsService = mockClientService();
+
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+        assertEquals("idp_discovery/origin", redirect);
     }
 
     @Test
