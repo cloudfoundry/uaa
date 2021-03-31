@@ -89,7 +89,7 @@ login:
     url: http://localhost:8080/uaa/oauth/authorize
   branding:
     companyName: Predix
-    footerLegalText:  "Copyright © 2019 General Electric Company. All rights reserved."
+    footerLegalText:  "Copyright © 2021 General Electric Company. All rights reserved."
     footerLinks:
       Contact Us: mailto:info@predix.io
 

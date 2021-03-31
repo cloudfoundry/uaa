@@ -117,7 +117,7 @@ libraries.lombok = "org.projectlombok:lombok:1.18.8"
 libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:1.2.3"
 libraries.dynamicLogConfigurer = "com.ge.predix:security-dynamic-log-configurer:1.1.1"
 libraries.nurego = "com.nurego:nurego-java:1.0.18"
-libraries.predixAudit = "com.ge.predix.audit:audit-sdk:0.0.8"
+libraries.predixAudit = "com.ge.predix.audit:audit-sdk:0.0.6"
 libraries.springLogFilter = "com.ge.predix:spring-log-filter:1.1.3"
 
 // gradle plugins

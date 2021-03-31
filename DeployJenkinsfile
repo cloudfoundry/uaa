@@ -2,7 +2,7 @@
 def buildGeArtServer = Artifactory.server('build.ge')
 
 library "security-ci-commons-shared-lib"
-def NODE = nodeDetails("uaa")
+def NODE = nodeDetails("uaa-upgrade")
 
 pipeline {
     agent none
@@ -73,7 +73,7 @@ pipeline {
                 source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
                 unset_env
 
-                export JRE_VERSION="{ jre: { version: 1.8.+}}"
+                export JRE_VERSION="{ jre: { version: 11.+ }}"
 
                 pushd uaa-cf-release
                     source combine-inline-config.sh

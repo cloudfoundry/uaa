@@ -113,9 +113,7 @@ public class HomeController {
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
-        if (exception == null) {
-            model.addAttribute("saml_error", "The server received a request for '/saml_error' but there was no SAML error information stored for the session.");
-        } else {
+        if (exception != null) {
             model.addAttribute("saml_error", exception.getMessage());
         }
         return "external_auth_error";

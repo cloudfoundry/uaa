@@ -2,7 +2,7 @@
 def buildGeArtServer = Artifactory.server('build.ge')
 
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
-def NODE = nodeDetails("uaa")
+def NODE = nodeDetails("uaa-upgrade")
 def APP_VERSION = 'UNKNOWN'
 
 pipeline {
@@ -223,8 +223,8 @@ pipeline {
                             ### start slapd and add entries to ldap for tests
                             /etc/init.d/slapd start
                             /etc/init.d/slapd status
-                            ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/uaa/src/main/resources/ldap_db_init.ldif
-                            ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/uaa/src/main/resources/ldap_init.ldif
+                            ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/uaa/src/test/resources/ldap_db_init.ldif
+                            ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/uaa/src/test/resources/ldap_init.ldif
 
                             ### run integration tests
                             pushd uaa
