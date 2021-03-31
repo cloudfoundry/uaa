@@ -85,6 +85,9 @@ dependencies {
         //excluded to avoid bringing in jackson core < 2.9
         exclude(module: 'predix-event-hub-sdk')
     }
+    implementation(libraries.springLogFilter) {
+        exclude(group: 'ch.qos.logback')
+    }
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 

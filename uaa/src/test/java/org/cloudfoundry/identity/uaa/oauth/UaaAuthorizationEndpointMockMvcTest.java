@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -104,6 +105,10 @@ class UaaAuthorizationEndpointMockMvcTest {
             }
 
             @Test
+            @Disabled
+            // In Predix, domain expansion is not allowed
+            // so requested URL http://subdomain.sample.com/path should not match http://sample.com client's configured URL
+            // https://github.com/GESoftware-CF/uaa/commit/1404e58467a323aee44841e158580323bbcc9b8b
             void shouldRedirect_whenItReliesOnLegacyImplicitMatchingBehavior() throws Exception {
                 mockMvc.perform(implicitGrantAuthorizeRequest("http://subdomain.sample.com/path"))
                         .andExpect(status().isFound())

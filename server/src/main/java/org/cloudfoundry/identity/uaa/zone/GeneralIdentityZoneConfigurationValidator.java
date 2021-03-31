@@ -4,6 +4,9 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -15,7 +18,7 @@ import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.*
 @Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
-    private MfaConfigValidator mfaConfigValidator;
+    private final MfaConfigValidator mfaConfigValidator;
 
     private SignatureAlgorithm defaultSamlSignatureAlgorithm;
 
@@ -53,7 +56,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     switch(samlConfig.getSignatureAlgorithm()) {
 
                         case UNKNOWN :
-                            throw new InvalidIdentityZoneConfigurationException(String.format("Invalid SAML signatureAlgorithm. Must be one of : %s", JsonUtils.writeValueAsString(SignatureAlgorithm.values())));
+                            throw new InvalidIdentityZoneConfigurationException(String.format("Invalid SAML signatureAlgorithm. Must be one of : %s", JsonUtils.writeValueAsString(values())));
                         case SHA1:
                             if(mode == IdentityZoneValidator.Mode.CREATE && defaultSamlSignatureAlgorithm != SHA1) {
                                 invalidSignatureAlgorithm = true;
@@ -118,12 +121,8 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be udpated with partial Saml CertKey config.", null);
     }
 
-    public GeneralIdentityZoneConfigurationValidator setMfaConfigValidator(MfaConfigValidator mfaConfigValidator) {
-        this.mfaConfigValidator = mfaConfigValidator;
-        return this;
-    }
-
-    public void setDefaultSamlSignatureAlgorithm(SignatureAlgorithm samlSignatureAlgorithm) {
+    @Autowired
+    public void setDefaultSamlSignatureAlgorithm(@Qualifier("globalSamlSignatureAlgorithm") SignatureAlgorithm samlSignatureAlgorithm) {
         this.defaultSamlSignatureAlgorithm = samlSignatureAlgorithm;
     }
 }

@@ -13,7 +13,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.MessageSource;
@@ -73,6 +75,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final MessageSource messageSource;
 
     private ApplicationEventPublisher publisher;
+
     private SignatureAlgorithm defaultSamlSignatureAlgorithm;
 
     public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
@@ -90,7 +93,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         this.messageSource = messageSource;
     }
 
-    public void setDefaultSamlSignatureAlgorithm(SignatureAlgorithm samlSignatureAlgorithm) {
+    @Autowired
+    public void setDefaultSamlSignatureAlgorithm(@Qualifier("globalSamlSignatureAlgorithm") SignatureAlgorithm samlSignatureAlgorithm) {
         this.defaultSamlSignatureAlgorithm = samlSignatureAlgorithm;
     }
 

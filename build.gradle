@@ -194,7 +194,7 @@ subprojects {
     }
 
     jacocoTestReport {
-        additionalSourceDirs.setFrom(files(sourceSets.main.allSource.srcDirs))
+        additionalSourceDirs(files(sourceSets.main.allSource.srcDirs))
         sourceDirectories.setFrom(files(sourceSets.main.allSource.srcDirs))
         classDirectories.setFrom(files(sourceSets.main.output))
         reports {
@@ -324,10 +324,10 @@ task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
 }
 
 def jacocoRootReportConfiguration = {
-    additionalSourceDirs.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
+    additionalSourceDirs(files(subprojects.sourceSets.main.allSource.srcDirs))
     sourceDirectories.setFrom(files(subprojects.sourceSets.main.allSource.srcDirs))
     classDirectories.setFrom(files(subprojects.sourceSets.main.output))
-    executionData.setFrom(files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData))
+    executionData(files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData))
     reports {
         html.enabled = true
         xml.enabled = true
@@ -337,10 +337,11 @@ def jacocoRootReportConfiguration = {
     onlyIf = {
         true
     }
+
     doFirst {
-        executionData = files(executionData.findAll {
+        executionData(files(executionData.findAll {
             it.exists()
-        })
+        }))
     }
 }
 

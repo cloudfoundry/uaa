@@ -485,9 +485,10 @@ class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testCreateWithSamlConfig() throws Exception {
         String id = generator.generate();
-        
-        SamlConfig samlConfig = new SamlConfig();
+
         SignatureAlgorithm uaaDefaultSignatureAlgorthm = webApplicationContext.getBean("defaultUaaSamlSignatureAlgorithm", SignatureAlgorithm.class);
+
+        SamlConfig samlConfig = new SamlConfig();
         samlConfig.setSignatureAlgorithm(SignatureAlgorithm.SHA512);
         
         IdentityZoneConfiguration zoneConfiguration = new IdentityZoneConfiguration();
@@ -503,7 +504,6 @@ class IdentityZoneEndpointsMockMvcTests {
     @Test
     public void testDefaultSignatureAlgorithmFromGlobalDefault() throws Exception{
         IdentityZoneEndpoints zoneEndpoints = webApplicationContext.getBean(IdentityZoneEndpoints.class);
-        SignatureAlgorithm originalDefaultSignatureAlgorithm = webApplicationContext.getBean("globalSamlSignatureAlgorithm", SignatureAlgorithm.class);
         zoneEndpoints.setDefaultSamlSignatureAlgorithm(SignatureAlgorithm.SHA512);
         String id = new RandomValueStringGenerator(5).generate();
 
@@ -511,7 +511,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         assertEquals(SignatureAlgorithm.SHA512, zone.getConfig().getSamlConfig().getSignatureAlgorithm());
 
-        zoneEndpoints.setDefaultSamlSignatureAlgorithm(originalDefaultSignatureAlgorithm);
+        zoneEndpoints.setDefaultSamlSignatureAlgorithm(globalDefaultSamlSignatureAlgorithm);
     }
 
     @Test
