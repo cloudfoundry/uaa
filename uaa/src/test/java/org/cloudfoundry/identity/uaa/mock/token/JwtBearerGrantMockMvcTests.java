@@ -118,21 +118,21 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         Map<String, Object> originUserClaims = JwtTokenUtils.getClaimsForToken(accessTokenForOriginZoneUser);
 
         //Verify values for new shadow user set
-        ScimUser originShadowUser = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
-        assertEquals(originShadowUser.getUserName(), originUserClaims.get("user_name"));
-        assertEquals(originShadowUser.getExternalId(), originUser.getId());
+        ScimUser shadowUser = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        assertEquals(shadowUser.getUserName(), originUserClaims.get("user_name"));
+        assertEquals(shadowUser.getExternalId(), originUser.getId());
 
         //JWT Bearer with token from target Zone and external User
         performJWTBearerGrantForJWT(targetZone, accessTokenForOriginZoneUser);
 
         //Verify username and External ID not changed after this internal grant
-        ScimUser originShadowUserAfterExchange = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
-        assertEquals(originShadowUser.getUserName(), originShadowUserAfterExchange.getUserName());
-        assertEquals(originShadowUser.getExternalId(), originShadowUserAfterExchange.getExternalId());
+        ScimUser shadowUserAfterExchange = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        assertEquals(shadowUser.getUserName(), shadowUserAfterExchange.getUserName());
+        assertEquals(shadowUser.getExternalId(), shadowUserAfterExchange.getExternalId());
     }
 
     @Test
-    void default_zone_jwt_grant_user_update_same_zone_with_registration() throws Exception {
+    void non_default_zone_jwt_grant_user_update_same_zone_with_registration() throws Exception {
         BaseClientDetails targetZoneClient = new BaseClientDetails(generator.generate(), "", "openid", "password",
                 null);
         targetZoneClient.setClientSecret(SECRET);
