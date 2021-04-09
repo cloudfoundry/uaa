@@ -143,6 +143,13 @@ integrationTest {
     }
 }
 
+task checkmarxDependencies(type: Copy) {
+    group 'checkmarx'
+    description 'Copies runtime dependencies into folder for Checkmarx OSA scanning'
+    into "$buildDir/checkmarx"
+    from configurations.runtimeClasspath
+}
+
 war {
     //workaround for maven <scope>optional</scope>
     rootSpec.exclude("**/spring-security-oauth-*.jar")
