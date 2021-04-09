@@ -140,15 +140,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
         try {
-            String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
-            Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
             String issuer = (String) claims.get(ClaimConstants.ISS);
             if (isEmpty(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
             //1. Check if issuer is registered provider
             try {
-                return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+                return retrieveRegisteredIdentityProviderByIssuer(issuer);
             } catch (IncorrectResultSizeDataAccessException x) {
                 logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
@@ -165,6 +164,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         } catch (IllegalArgumentException | JsonUtils.JsonUtilException x) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
+    }
+
+    private IdentityProvider retrieveRegisteredIdentityProviderByIssuer(String issuer) {
+        return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+    }
+
+    private Map<String, Object> parseClaimsFromIdTokenString(String idToken) {
+        String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
+        return JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
     }
 
     private boolean idTokenWasIssuedByTheUaa(String issuer) {
@@ -428,12 +436,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (idToken == null) {
             return true;
         }
-        String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
-        Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
         String issuer = (String) claims.get(ClaimConstants.ISS);
         if (idTokenWasIssuedByTheUaa(issuer)) {
             try {
-                ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+                // check if the UAA Identity Zone is registered as an external Idp of itself
+                retrieveRegisteredIdentityProviderByIssuer(issuer);
                 return true;
             } catch (IncorrectResultSizeDataAccessException e) {
                 return false;
