@@ -370,13 +370,8 @@ public class LoginInfoEndpoint {
         }
 
         boolean linkCreateAccountShow = fieldUsernameShow;
-        if (fieldUsernameShow && (allowedIdentityProviderKeys != null) && (!discoveryEnabled || discoveryPerformed)) {
-            if (!allowedIdentityProviderKeys.contains(OriginKeys.UAA)) {
-                linkCreateAccountShow = false;
-                model.addAttribute("login_hint", new UaaLoginHint(OriginKeys.LDAP).toString());
-            } else if (!allowedIdentityProviderKeys.contains(OriginKeys.LDAP)) {
-                model.addAttribute("login_hint", new UaaLoginHint(OriginKeys.UAA).toString());
-            }
+        if (fieldUsernameShow && (allowedIdentityProviderKeys != null && !allowedIdentityProviderKeys.contains(OriginKeys.UAA))) {
+            linkCreateAccountShow = false;
         }
 
         String zonifiedEntityID = getZonifiedEntityId();
