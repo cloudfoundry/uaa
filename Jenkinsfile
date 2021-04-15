@@ -326,6 +326,8 @@ pipeline {
                                     fi
                                     echo 'DEGRADED_TEST_ARGS=$DEGRADED_TEST_ARGS'
 
+                                    export JRE_VERSION="{ jre: { version: 11.+ }}"
+
                                     ./uaa-cf-release/uaa-degraded-tests-cf.sh $DEGRADED_TEST_ARGS
                                 fi
                             fi

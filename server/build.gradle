@@ -34,6 +34,7 @@ dependencies {
     }
 
     implementation(libraries.springCloudServiceConnector)
+    implementation(libraries.springCloudCFConnector)
 
     implementation(libraries.bouncyCastleProv)
     implementation(libraries.bouncyCastlePkix)
@@ -73,7 +74,6 @@ dependencies {
 
     implementation(libraries.googleAuth)
 
-    implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
 
     implementation(libraries.javaxXmlBindApi)
