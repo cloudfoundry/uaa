@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
@@ -16,7 +17,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.request.RequestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.Arrays;

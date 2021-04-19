@@ -4,7 +4,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -18,6 +20,7 @@ import static org.mockito.Mockito.when;
 
 public class ChainedAuthenticationManagerTest {
 
+    private Authentication success;
     private Authentication failure;
     private AuthenticationManager authenticateTrue;
     private AuthenticationManager authenticateFalse;
@@ -26,9 +29,19 @@ public class ChainedAuthenticationManagerTest {
     private ChainedAuthenticationManager authMgr = new ChainedAuthenticationManager();
     private AuthenticationManager loginAuthenticationManager;
 
+    private class UsernamePasswordAuthenticationManager implements AuthenticationManager {
+        @Override
+        public Authentication authenticate(Authentication authentication)
+                throws AuthenticationException {
+            final UsernamePasswordAuthenticationToken userToken = (UsernamePasswordAuthenticationToken) authentication;
+            String password = (String) authentication.getCredentials();
+            return authentication;
+        }
+    }
+    
     @Before
     public void setUp() {
-        Authentication success = mock(Authentication.class);
+        success = mock(Authentication.class);
         failure = mock(Authentication.class);
 
         authenticateTrue = mock(AuthenticationManager.class);
@@ -111,5 +124,23 @@ public class ChainedAuthenticationManagerTest {
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
         verify(authenticateTrue, times(1)).authenticate(any(Authentication.class));
         verify(loginAuthenticationManager, times(1)).authenticate(any(Authentication.class));
+    }
+    
+    @Test
+    public void testNonStringCredential() {
+        when(success.getCredentials()).thenReturn(new Object());
+        
+        managers[0].setAuthenticationManager(authenticateThrow);
+        managers[1].setAuthenticationManager(new UsernamePasswordAuthenticationManager());
+        Authentication result = authMgr.authenticate(success);
+        assertNotNull(result);
+        assertTrue(result.isAuthenticated());
+        verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
+    }
+
+    @Test
+    public void testNullAuthentication() {
+        Authentication result = authMgr.authenticate(null);
+        assertNull(result);
     }
 }

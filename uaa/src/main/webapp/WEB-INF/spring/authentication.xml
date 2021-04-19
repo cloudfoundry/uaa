@@ -8,5 +8,5 @@
         <property name="realmName" value="UAA/oauth"/>
     </bean>
 
-    <authentication-manager id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security"/>
+    <authentication-manager alias="emptyAuthenticationManager" id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security"/>
 </beans>

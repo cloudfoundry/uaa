@@ -12,7 +12,7 @@
     http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd
     http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd">
 
-    <authentication-manager xmlns="http://www.springframework.org/schema/security"/>
+    <authentication-manager alias="authenticationManager" xmlns="http://www.springframework.org/schema/security"/>
 
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials"/>

@@ -152,7 +152,7 @@ var _ = Describe("Deployment", func() {
 					pod.WithServiceAccountMatching("uaa")
 					pod.WithContainerMatching(func(container *ContainerMatcher) {
 						container.WithName("uaa")
-						container.WithImageContaining("cfidentity/uaa@sha256:")
+						container.WithImageContaining("cloudfoundry/uaa@sha256:")
 						container.WithEnvVar("BPL_TOMCAT_ACCESS_LOGGING", "y")
 						container.WithEnvVar("JAVA_OPTS", strings.Join(expectedJavaOpts, " "))
 						container.WithVolumeMount("uaa-config", Not(BeNil()))

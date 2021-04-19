@@ -296,7 +296,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
         if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
-            !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
+            !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail()) || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId())) {
             return true;
         }
         return false;

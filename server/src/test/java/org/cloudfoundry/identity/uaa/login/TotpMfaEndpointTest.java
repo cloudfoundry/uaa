@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationFailu
 import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
@@ -45,7 +46,6 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.support.SessionStatus;
