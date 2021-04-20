@@ -6,6 +6,6 @@
         profile="!servertest"
 >
 
-    <import resource="classpath:META-INF/spring/tasks.xml"/>
+<!--    <import resource="classpath:META-INF/spring/tasks.xml"/>-->
 
 </beans>

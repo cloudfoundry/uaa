@@ -47,7 +47,7 @@ dependencies {
     implementation(libraries.springMeteringFilter) {
         exclude(module: "javax.mail")
     }
-    implementation(libraries.dynamicLogConfigurer)
+    //implementation(libraries.dynamicLogConfigurer)
     runtimeOnly(libraries.nurego)
 
     testImplementation(identityServer.sourceSets.test.output)
