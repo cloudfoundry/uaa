@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -145,7 +144,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         // first validate the supplied groupId, memberId
         validateRequest(groupId, member, zoneId);
         final String type = (member.getType() == null ? ScimGroupMember.Type.USER : member.getType()).toString();
-        if (exits(groupId, member.getMemberId(), zoneId)) {
+        if (exists(groupId, member.getMemberId(), zoneId)) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
         }
         logger.debug("Associating group:" + groupId + " with member:" + member);
@@ -270,7 +269,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         return sgm;
     }
 
-    private boolean exits(String groupId, String memberId, String zoneId) {
+    private boolean exists(String groupId, String memberId, String zoneId) {
         List<String> idResults = jdbcTemplate.queryForList(GET_SINGLE_MEMBER_SQL, String.class, memberId, groupId, zoneId);
         if (idResults != null && idResults.size() == 1) {
             return true;

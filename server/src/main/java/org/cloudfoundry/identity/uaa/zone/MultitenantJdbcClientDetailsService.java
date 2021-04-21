@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -132,13 +131,13 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     @Override
     public void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException {
-        if (exits(clientDetails.getClientId(), zoneId)) {
+        if (exists(clientDetails.getClientId(), zoneId)) {
             throw new ClientAlreadyExistsException("Client already exists: " + clientDetails.getClientId());
         }
         jdbcTemplate.update(DEFAULT_INSERT_STATEMENT, getInsertClientDetailsFields(clientDetails, zoneId));
     }
 
-    private boolean exits(String clientId, String zoneId) {
+    private boolean exists(String clientId, String zoneId) {
         List<String> idResults = jdbcTemplate.queryForList(SINGLE_SELECT_STATEMENT, String.class, clientId, zoneId);
         if (idResults != null && idResults.size() == 1) {
             return true;

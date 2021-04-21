@@ -63,7 +63,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return null;
     }
 
-    private boolean exits(String id, boolean checkExpired, String zoneId) {
+    private boolean exists(String id, boolean checkExpired, String zoneId) {
         if (checkExpired) {
             checkExpired();
         }
@@ -98,7 +98,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     public void createIfNotExists(RevocableToken t, String zoneId) {
-        if (exits(t.getTokenId(), true, zoneId)) {
+        if (exists(t.getTokenId(), true, zoneId)) {
             return;
         }
         template.update(INSERT_QUERY,
@@ -148,7 +148,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     }
 
     public void upsert(String id, RevocableToken t, String zoneId) {
-        if (exits(t.getTokenId(), true, zoneId)) {
+        if (exists(t.getTokenId(), true, zoneId)) {
             template.update(UPDATE_QUERY, // NOSONAR
                     t.getClientId(),
                     t.getUserId(),
