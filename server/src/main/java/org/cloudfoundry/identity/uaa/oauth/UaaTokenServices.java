@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2Refres
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
@@ -692,11 +693,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(token.getValue());
-            try {
-                tokenProvisioning.create(revocableAccessToken, IdentityZoneHolder.get().getId());
-            } catch (DuplicateKeyException updateInstead) {
-                tokenProvisioning.update(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
-            }
+            tokenProvisioning.upsert(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
         }
 
         boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
@@ -714,14 +711,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(refreshToken.getValue());
-            try {
-                if(refreshTokenUnique) {
-                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
-                }
-                tokenProvisioning.create(revocableRefreshToken, IdentityZoneHolder.get().getId());
-            } catch (DuplicateKeyException ignore) {
-                //no need to store refresh tokens again
+            if(refreshTokenUnique) {
+                tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
             }
+            tokenProvisioning.createIfNotExists(revocableRefreshToken, IdentityZoneHolder.get().getId());
         }
 
         CompositeToken result = new CompositeToken(isOpaque ? tokenId : token.getValue());
