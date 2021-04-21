@@ -76,6 +76,9 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     private static final String DEFAULT_SELECT_STATEMENT =
             BASE_FIND_STATEMENT + " where client_id = ? and identity_zone_id = ?";
 
+    private static final String SINGLE_SELECT_STATEMENT =
+            "select client_id from oauth_client_details where client_id = ? and identity_zone_id = ?";
+
     private static final String DEFAULT_INSERT_STATEMENT =
             "insert into oauth_client_details (" + CLIENT_FIELDS
                     + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -129,11 +132,18 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     @Override
     public void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException {
-        try {
-            jdbcTemplate.update(DEFAULT_INSERT_STATEMENT, getInsertClientDetailsFields(clientDetails, zoneId));
-        } catch (DuplicateKeyException e) {
-            throw new ClientAlreadyExistsException("Client already exists: " + clientDetails.getClientId(), e);
+        if (exits(clientDetails.getClientId(), zoneId)) {
+            throw new ClientAlreadyExistsException("Client already exists: " + clientDetails.getClientId());
         }
+        jdbcTemplate.update(DEFAULT_INSERT_STATEMENT, getInsertClientDetailsFields(clientDetails, zoneId));
+    }
+
+    private boolean exits(String clientId, String zoneId) {
+        List<String> idResults = jdbcTemplate.queryForList(SINGLE_SELECT_STATEMENT, String.class, clientId, zoneId);
+        if (idResults != null && idResults.size() == 1) {
+            return true;
+        }
+        return false;
     }
 
     @Override
