@@ -75,6 +75,7 @@ dependencies {
 
     implementation(libraries.googleAuth)
 
+    implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
 
     implementation(libraries.javaxXmlBindApi)
