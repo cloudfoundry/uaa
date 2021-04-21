@@ -7,7 +7,10 @@
                 companyName=${branding.getZoneCompanyName() ?: ''},
                 copyrightCompanyName=${branding.getCompanyName() ?: 'General Electric Company'},
                 copyrightFallback=${'Copyright &#169; ' + #dates.year(#dates.createNow()) + ' ' + copyrightCompanyName + '. All Rights Reserved.'},
-                copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
+                copyright=${branding.getFooterLegalText() ?: copyrightFallback},
+                brandingLogo=${branding.getProductLogo()},
+                fallbackLogo=${assetBaseUrl+'/images/predix-word.svg'},
+                logo=${brandingLogo != null and !brandingLogo.isEmpty() ? 'data:image/png;base64,'+#strings.replace(brandingLogo,T(java.lang.System).getProperty('line.separator'),'') : fallbackLogo}" >
 <head>
     <title th:text="${!companyName.isEmpty() ? companyName : zoneName}" th:inline="text"></title>
     <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null and !icon.isEmpty() ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
@@ -22,7 +25,8 @@
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
     <link th:href="@{${assetBaseUrl}+'/stylesheets/predix-styles.css'}" rel="stylesheet"/>
     <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/chooser.css" th:href="@{/resources/oss/stylesheets/chooser.css}"/>
-    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header {' + (|background-image: url(@{${logo != null and !logo.isEmpty() ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : assetBaseUrl+'/images/predix-word.svg' }});|) + '}'">
+    <style th:with="brandingLogo=${branding.getProductLogo()}"
+           th:text="'.header {' + (|background-image: url(@{${logo}});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
         }
