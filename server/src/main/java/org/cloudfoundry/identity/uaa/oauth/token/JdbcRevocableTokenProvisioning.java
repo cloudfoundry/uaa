@@ -29,6 +29,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private static final String SELECT = "SELECT ";
     private static final String FROM = " FROM ";
     private final static String GET_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
+    private final static String GET_COUNT_QUERY = "SELECT COUNT(*) FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
     private final static String GET_BY_USER_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE user_id=? AND identity_zone_id=?";
     private final static String GET_BY_CLIENT_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE client_id=? AND identity_zone_id=?";
     private final static String UPDATE_QUERY = "UPDATE " + TABLE + " SET " + UPDATE_FIELDS + " WHERE token_id=? and identity_zone_id=?";
@@ -67,12 +68,8 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         if (checkExpired) {
             checkExpired();
         }
-        List<String> idResults = template.queryForList(SELECT + " token_id " + FROM + TABLE + " WHERE token_id=? AND identity_zone_id=?",
-                String.class, id, zoneId);
-        if (idResults != null && idResults.size() == 1) {
-            return true;
-        }
-        return false;
+        Integer idResults = template.queryForObject(GET_COUNT_QUERY, Integer.class, id, zoneId);
+        return idResults != null && idResults == 1;
     }
 
     public RevocableToken retrieve(String id, boolean checkExpired, String zoneId) {

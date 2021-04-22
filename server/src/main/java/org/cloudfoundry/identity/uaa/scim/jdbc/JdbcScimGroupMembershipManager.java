@@ -45,7 +45,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
-    private static final String GET_SINGLE_MEMBER_SQL = String.format("select member_id from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
+    private static final String GET_MEMBER_COUNT_SQL = String.format("select count(*) from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
     private static final String DELETE_MEMBER_WITH_ORIGIN_SQL = String.format("delete from %s where member_id=? and origin = ? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
@@ -270,11 +270,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     }
 
     private boolean exists(String groupId, String memberId, String zoneId) {
-        List<String> idResults = jdbcTemplate.queryForList(GET_SINGLE_MEMBER_SQL, String.class, memberId, groupId, zoneId);
-        if (idResults != null && idResults.size() == 1) {
-            return true;
-        }
-        return false;
+        Integer idResults = jdbcTemplate.queryForObject(GET_MEMBER_COUNT_SQL, Integer.class, memberId, groupId, zoneId);
+        return idResults != null && idResults == 1;
     }
 
     @Override
