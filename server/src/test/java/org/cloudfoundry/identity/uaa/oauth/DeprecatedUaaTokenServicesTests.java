@@ -151,7 +151,8 @@ public class DeprecatedUaaTokenServicesTests {
           true);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertThat(rt.getAllValues().size(), equalTo(2));
         assertNotNull(rt.getAllValues().get(0));
@@ -176,7 +177,8 @@ public class DeprecatedUaaTokenServicesTests {
           true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -194,7 +196,8 @@ public class DeprecatedUaaTokenServicesTests {
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
         verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -312,7 +315,7 @@ public class DeprecatedUaaTokenServicesTests {
           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertEquals(1, rt.getAllValues().size());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(0).getResponseType());
