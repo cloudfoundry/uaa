@@ -11,7 +11,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
+// import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -21,7 +21,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.TimeUnit;
 
-@Component
+// @Component
 public class ExpiringUrlCache implements UrlContentCache {
     private static final Logger logger = LoggerFactory.getLogger(ExpiringUrlCache.class);
     private static final int DEFAULT_MAX_ENTRIES = 10_000;
