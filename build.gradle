@@ -86,10 +86,6 @@ allprojects {
 apply(plugin: "jacoco")
 apply(plugin: "com.github.kt3k.coveralls")
 
-def jacocoJarPath = configurations.jacocoAgent.asPath
-def jacocoLocation = System.getProperty('java.io.tmpdir') + "/jacocoagent.jar"
-println("jacocoLocation = " + file(jacocoLocation).getAbsolutePath())
-
 subprojects {
     apply(plugin: "java")
 
@@ -215,6 +211,11 @@ subprojects {
     }
 }
 
+def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({
+    it.name == 'jacocoagent.jar'
+}).asPath
+def jacocoLocation = System.getProperty('java.io.tmpdir') + "jacocoagent.jar"
+
 def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
 
 cargo {
@@ -242,8 +243,8 @@ cargo {
         rmiPort = applicationPort + 10
 
         jvmArgs = ""
-//        jvmArgs = String.format("%s -javaagent:%s=output=file,dumponexit=true,append=false,destfile=%s", jvmArgs,
-//            file(${jacocoLocation}).getAbsolutePath(), ${integrationTestCoverageExecutionData})
+        jvmArgs = String.format("%s -javaagent:%s=output=file,dumponexit=true,append=false,destfile=%s", jvmArgs,
+            file(jacocoLocation).getAbsolutePath(), integrationTestCoverageExecutionData)
         jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
         jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
         jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
@@ -318,6 +319,7 @@ task cleanCargoConfDir {
     try {
         Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
     } catch (ignored) {}
+    delete file(jacocoLocation)
     Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
 }
 
