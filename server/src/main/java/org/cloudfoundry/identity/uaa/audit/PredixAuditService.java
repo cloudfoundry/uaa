@@ -226,6 +226,28 @@ public class PredixAuditService implements UaaAuditService {
                 category = AuditEnums.CategoryType.API_CALLS;
                 type = AuditEnums.EventType.SUCCESS_API_REQUEST;
                 break;
+            case TokenRevocationEvent:
+                category = AuditEnums.CategoryType.AUTHORIZATION;
+                type = AuditEnums.EventType.ACCOUNT_PRIVILEGE_SUCCESS_MODIFICATION;
+                break;
+            case IdentityProviderAuthenticationSuccess:
+                category = AuditEnums.CategoryType.AUTHENTICATIONS;
+                type = AuditEnums.EventType.LOGIN_SUCCESS;
+                break;
+            case IdentityProviderAuthenticationFailure:
+                category = AuditEnums.CategoryType.AUTHENTICATIONS;
+                type = AuditEnums.EventType.LOGIN_FAILURE;
+                status = AuditEnums.Classifier.FAILURE;
+                break;
+            case MfaAuthenticationSuccess:
+                category = AuditEnums.CategoryType.AUTHENTICATIONS;
+                type = AuditEnums.EventType.LOGIN_SUCCESS;
+                break;
+            case MfaAuthenticationFailure:
+                category = AuditEnums.CategoryType.AUTHENTICATIONS;
+                type = AuditEnums.EventType.LOGIN_FAILURE;
+                status = AuditEnums.Classifier.FAILURE;
+                break;
             default:
                 return null;
         }
