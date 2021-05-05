@@ -316,7 +316,7 @@ public class LoginInfoEndpoint {
                 allIdentityProviders.putAll(samlIdentityProviders);
                 allIdentityProviders.putAll(oauthIdentityProviders);
             }
-        } else if (accountChooserNeeded || (discoveryEnabled && !discoveryPerformed)) {
+        } else if (!jsonResponse && (accountChooserNeeded || (discoveryEnabled && !discoveryPerformed))) {
             //Account Chooser and discovery do not need any IdP information
             oauthIdentityProviders = Collections.emptyMap();
             samlIdentityProviders = Collections.emptyMap();
