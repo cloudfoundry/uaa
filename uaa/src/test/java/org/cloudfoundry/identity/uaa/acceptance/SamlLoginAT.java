@@ -52,6 +52,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.util.List;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -158,17 +159,16 @@ public class SamlLoginAT {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createGESSOIdentityProvider(SAML_ENTITY_ID);
         this.webDriver.get(this.baseUrl + firstUrl);
         this.webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        logger.info(this.webDriver.getCurrentUrl());
-        String page = this.webDriver.getPageSource();
-        logger.info(page);
-        this.webDriver.findElement(By.xpath("//h1[contains(text(), 'GE Single Sign On')]"));
-        this.webDriver.findElement(By.name("username")).clear();
-        this.webDriver.findElement(By.name("username")).sendKeys(this.GESSOUsername);
-        this.webDriver.findElement(By.name("password")).sendKeys(this.GESSOPassword);
-        this.webDriver.findElement(By.xpath("//input[@value='Log In To A Shared Computer']")).click();
-        page = this.webDriver.getPageSource();
-        logger.info("************************:" + this.webDriver.getCurrentUrl());
-        logger.info(page);
+
+        assertEquals("GE Single Sign On", this.webDriver.getTitle());
+        this.webDriver.findElement(By.id("identifierInput")).clear();
+        this.webDriver.findElement(By.id("identifierInput")).sendKeys(this.GESSOUsername);
+        this.webDriver.findElement(By.id("post-button")).click();
+
+        assertEquals(this.GESSOUsername, this.webDriver.findElement(By.id("username")).getAttribute("value"));
+        this.webDriver.findElement(By.id("password")).sendKeys(this.GESSOPassword);
+        this.webDriver.findElement(By.id("shared-computer-login-button")).click();
+
         assertThat(this.webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
     }
 
