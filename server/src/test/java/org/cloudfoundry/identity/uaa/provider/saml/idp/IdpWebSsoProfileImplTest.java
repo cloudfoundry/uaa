@@ -230,8 +230,9 @@ public class IdpWebSsoProfileImplTest {
 
     @Test
     public void testCustomUserAttributes() throws Exception {
-        LinkedHashMap<String, String> customAttributes = new LinkedHashMap<>();
-        customAttributes.put("accountNumber", "12345");
+        LinkedHashMap<String, Object> customAttributes = new LinkedHashMap<>();
+        customAttributes.put("accountNumbers", Arrays.asList("123","456"));
+        customAttributes.put("appUserName", "jbourne");
         user.setCustomAttributes(customAttributes);
 
         String authenticationId = UUID.randomUUID().toString();
@@ -248,7 +249,10 @@ public class IdpWebSsoProfileImplTest {
 
         List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
 
-        assertAttributeValue(attributes, "accountNumber", user.getCustomAttributes().get("accountNumber"));
+        String[] accountNumbers =
+                ((List<String>) user.getCustomAttributes().get("accountNumbers")).toArray(new String[0]);
+        assertAttributeValue(attributes, "accountNumbers",accountNumbers);
+        assertAttributeValue(attributes, "appUserName","jbourne");
     }
 
     private void verifyAssertionAttributes(String authenticationId, Assertion assertion) {
