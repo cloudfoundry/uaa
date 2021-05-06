@@ -15,14 +15,17 @@ package org.cloudfoundry.identity.uaa.scim;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
 import org.springframework.util.Assert;
-import org.springframework.util.LinkedMultiValueMap;
 
+import java.io.IOException;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -351,14 +354,15 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private Long lastLogonTime = null;
 
-    private LinkedHashMap<String, String> customAttributes = null;
+    private LinkedHashMap<String, Object> customAttributes = null;
 
-    public LinkedHashMap<String, String> getCustomAttributes() {
+    @JsonSerialize(using = JsonCustomAttributeSerializer.class)
+    public LinkedHashMap<String, Object> getCustomAttributes() {
         return customAttributes;
     }
 
     public void setCustomAttributes(
-            LinkedHashMap<String, String> customAttributes) {
+            LinkedHashMap<String, Object> customAttributes) {
         this.customAttributes = customAttributes;
     }
 
@@ -842,4 +846,19 @@ public class ScimUser extends ScimCore<ScimUser> {
         }
     }
 
+    public static class JsonCustomAttributeSerializer extends JsonSerializer<LinkedHashMap<String, Object>> {
+        @Override
+        public void serialize(LinkedHashMap<String, Object> map, JsonGenerator gen,
+                SerializerProvider serializers) throws IOException {
+            gen.writeStartObject();
+            for(String e : map.keySet()) {
+                if (map.get(e) instanceof String) {
+                   gen.writeStringField(e, (String) map.get(e));
+                } else if (map.get(e) instanceof List) {
+                    gen.writeObjectField(e, map.get(e));
+                }
+            }
+            gen.writeEndObject();
+        }
+    }
 }

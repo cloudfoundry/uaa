@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.springframework.util.LinkedMultiValueMap;
 
 import java.io.IOException;
 import java.util.*;

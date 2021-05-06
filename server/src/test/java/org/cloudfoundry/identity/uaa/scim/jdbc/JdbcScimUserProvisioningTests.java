@@ -1042,13 +1042,18 @@ class JdbcScimUserProvisioningTests {
         String userName = "jo!!@foo.com";
         ScimUser user = new ScimUser(null, userName, "Jo", "User");
         user.addEmail("email");
-        LinkedHashMap<String, String> map = new LinkedHashMap<>();
-        map.put("accountNumber", "12345");
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+        map.put("accountNumbers", Arrays.asList("123", "456"));
+        map.put("appUserName", "jo!!");
         user.setCustomAttributes(map);
 
         ScimUser createdUser = jdbcScimUserProvisioning.createUser(user, "j7hyqpassX", currentIdentityZoneId);
 
         assertNotNull(createdUser.getCustomAttributes());
+        assertEquals("jo!!", createdUser.getCustomAttributes().get("appUserName"));
+        assertEquals("123", ((List)createdUser.getCustomAttributes().get("accountNumbers")).get(0));
+        assertEquals("456", ((List)createdUser.getCustomAttributes().get("accountNumbers")).get(1));
+
     }
 
     @Test
@@ -1056,20 +1061,20 @@ class JdbcScimUserProvisioningTests {
         String userName = "jo!!@foo.com";
         ScimUser user = new ScimUser(null, userName, "Jo", "User");
         user.addEmail("email");
-        LinkedHashMap<String, String> map = new LinkedHashMap<>();
-        map.put("accountNumber", "12345");
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+        map.put("accountNumbers", Arrays.asList("123", "456"));
         user.setCustomAttributes(map);
 
         ScimUser createdUser = jdbcScimUserProvisioning.createUser(user, "j7hyqpassX", currentIdentityZoneId);
 
-        map.remove("accountNumber");
-        map.put("pcUsername", "jo!!");
+        map.remove("accountNumbers");
+        map.put("appUserName", "jo!!");
         createdUser.setCustomAttributes(map);
 
         ScimUser updatedUser = jdbcScimUserProvisioning.update(createdUser.getId(), createdUser, currentIdentityZoneId);
         assertNotNull(updatedUser.getCustomAttributes());
-        assertNull(updatedUser.getCustomAttributes().get("accountNumber"));
-        assertEquals("jo!!", updatedUser.getCustomAttributes().get("pcUsername"));
+        assertNull(updatedUser.getCustomAttributes().get("accountNumbers"));
+        assertEquals("jo!!", updatedUser.getCustomAttributes().get("appUserName"));
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
