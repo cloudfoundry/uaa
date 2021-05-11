@@ -910,6 +910,44 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithAccountChooser() throws Exception {
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+
+        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
+                .setAuthUrl(new URL("http://auth.url"))
+                .setTokenUrl(new URL("http://token.url"));
+
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        identityProvider.setConfig(definition);
+
+        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
+        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+
+        Map mapPrompts = (Map) extendedModelMap.get("prompts");
+        assertNotNull(mapPrompts.get("passcode"));
+    }
+
+    @Test
+    void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithDiscovery() throws Exception {
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+
+        RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
+                .setAuthUrl(new URL("http://auth.url"))
+                .setTokenUrl(new URL("http://token.url"));
+
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        identityProvider.setConfig(definition);
+
+        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
+        endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
+
+        Map mapPrompts = (Map) extendedModelMap.get("prompts");
+        assertNotNull(mapPrompts.get("passcode"));
+    }
+
+    @Test
     void we_return_both_oauth_and_oidc_providers() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
