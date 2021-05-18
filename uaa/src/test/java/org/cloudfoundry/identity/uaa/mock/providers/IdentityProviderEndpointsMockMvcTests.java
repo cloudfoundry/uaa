@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
@@ -213,6 +214,43 @@ class IdentityProviderEndpointsMockMvcTests {
                 delete("/identity-providers/invalid-id")
                         .header("Authorization", "Bearer" + accessToken)
         ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void test_delete_response_not_containing_relying_partySecret() throws Exception {
+        BaseClientDetails client = getBaseClientDetails();
+
+        ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write", IdentityZone.getUaaZoneId());
+        String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
+
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+        definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
+        definition.setSkipSslValidation(true);
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setUserPropagationParameter("username");
+        definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
+        List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
+                new Prompt("password", "password", "Password"),
+                new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
+        definition.setPrompts(prompts);
+
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaaZoneId());
+        newIdp.setConfig(definition);
+
+        IdentityProvider createdIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
+
+        MockHttpServletRequestBuilder requestBuilder = delete("/identity-providers/" + createdIdp.getId())
+                .header("Authorization", "Bearer" + accessToken)
+                .contentType(APPLICATION_JSON);
+
+        MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
+        IdentityProvider returnedIdentityProvider = JsonUtils.readValue(
+                result.getResponse().getContentAsString(), IdentityProvider.class);
+        assertNull(((AbstractExternalOAuthIdentityProviderDefinition)returnedIdentityProvider.getConfig())
+                .getRelyingPartySecret());
     }
 
     @Test
