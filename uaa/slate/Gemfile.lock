@@ -94,7 +94,7 @@ GEM
     parallel (1.10.0)
     public_suffix (2.0.5)
     racc (1.5.2)
-    rack (2.0.1)
+    rack (2.2.3)
     rb-fsevent (0.9.8)
     rb-inotify (0.9.8)
       ffi (>= 0.5.0)
