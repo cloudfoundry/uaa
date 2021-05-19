@@ -149,6 +149,10 @@ cargo {
     containerId = "tomcat9x"
     port = 8080
 
+    if (JavaVersion.current() != JavaVersion.VERSION_11) {
+        throw new GradleException("This build must be run with java 11")
+    }
+
     deployable {
         file = file("statsd/build/libs/cloudfoundry-identity-statsd-" + version + ".war")
         context = "statsd"
