@@ -31,7 +31,7 @@ public class CurrentUserCookieFactory {
     private String urlEncode(String value) throws CurrentUserCookieEncodingException {
         try {
             return URLEncoder.encode(value, StandardCharsets.UTF_8);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             throw new CurrentUserCookieEncodingException(e);
         }
     }

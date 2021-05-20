@@ -150,7 +150,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
                         try {
                             OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
                             p.setConfig(overlayedDefinition);
-                        } catch (Exception e) {
+                        } catch (RuntimeException e) {
                             LOGGER.error("Identity provider excluded from login page due to a problem.", e);
                             return;
                         }

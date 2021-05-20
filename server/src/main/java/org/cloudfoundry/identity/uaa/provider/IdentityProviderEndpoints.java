@@ -126,7 +126,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(createdIdp, CREATED);
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
-        } catch (Exception x) {
+        } catch (RuntimeException x) {
             logger.error("Unable to create IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"]", x);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
@@ -240,7 +240,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         } catch (InternalAuthenticationServiceException x) {
             status = BAD_REQUEST;
             exception = getExceptionString(x);
-        } catch (Exception x) {
+        } catch (RuntimeException x) {
             logger.error("Identity provider validation failed.", x);
             status = INTERNAL_SERVER_ERROR;
             exception = "check server logs";

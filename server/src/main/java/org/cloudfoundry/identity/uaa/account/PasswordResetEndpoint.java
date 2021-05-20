@@ -108,7 +108,7 @@ public class PasswordResetEndpoint {
                 return new ResponseEntity<>(NOT_FOUND);
             } catch (InvalidPasswordException | InvalidCodeException e) {
                 throw e;
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
             }
         } else {

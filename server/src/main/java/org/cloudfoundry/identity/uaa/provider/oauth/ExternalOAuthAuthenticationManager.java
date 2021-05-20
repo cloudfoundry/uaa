@@ -519,7 +519,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 }
                 //logger.debug("Deserializing id_token claims: " + decodeIdToken.getClaims());
                 return jsonData;
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 logger.error("Exception", e);
                 return null;
             }

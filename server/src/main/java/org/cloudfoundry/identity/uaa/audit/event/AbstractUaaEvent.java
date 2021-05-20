@@ -115,7 +115,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
                         builder.append("remoteAddress=").append(map.get("remoteAddress")).append(", ");
                     }
                     builder.append("type=").append(caller.getDetails().getClass().getSimpleName());
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
                     // ignore
                     builder.append(caller.getDetails());
                 }
@@ -146,7 +146,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
                     String issuer = claims.get(ClaimConstants.ISS).toString();
                     String subject = claims.get(ClaimConstants.SUB).toString();
                     builder.append(", sub=").append(subject).append(", ").append("iss=").append(issuer);
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
                     builder.append(", <token extraction failed>");
                 }
             } else {

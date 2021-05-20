@@ -120,7 +120,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             applySpringProfiles(applicationContext.getEnvironment());
             applyLog4jConfiguration(applicationContext.getEnvironment(), contextPath);
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             System.err.println("Error loading YAML environment properties from location: " + resources.toString());
             e.printStackTrace();
         }

@@ -68,7 +68,7 @@ public class RemoteAuthenticationEndpoint {
             status = HttpStatus.FORBIDDEN;
         } catch (AuthenticationException e) {
             response.setError("authentication failed");
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.debug("Failed to authenticate user ", e);
             response.setError("error");
             status = HttpStatus.INTERNAL_SERVER_ERROR;
@@ -106,7 +106,7 @@ public class RemoteAuthenticationEndpoint {
             status = HttpStatus.OK;
         } catch (AuthenticationException e) {
             response.setError("authentication failed");
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.debug("Failed to authenticate user ", e);
             response.setError("error");
             status = HttpStatus.INTERNAL_SERVER_ERROR;

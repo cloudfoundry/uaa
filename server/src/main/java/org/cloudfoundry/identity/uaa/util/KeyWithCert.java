@@ -76,7 +76,7 @@ public class KeyWithCert {
             ver.update(data);
 
             return ver.verify(signature);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return false;
         }
     }

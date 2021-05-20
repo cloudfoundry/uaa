@@ -63,7 +63,7 @@ public class ConvertingExceptionView implements View {
             HttpInputMessage inputMessage = createHttpInputMessage(request);
             HttpOutputMessage outputMessage = createHttpOutputMessage(response);
             handleHttpEntityResponse(responseEntity, inputMessage, outputMessage);
-        } catch (Exception invocationEx) {
+        } catch (RuntimeException invocationEx) {
             logger.error("Invoking request method resulted in exception", invocationEx);
         }
     }

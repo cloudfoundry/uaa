@@ -52,7 +52,7 @@ public class Origin {
             if (id!=null) {
                 return id.toString();
             }
-        } catch (Exception ignored) {
+        } catch (RuntimeException ignored) {
         }
         return null;
     }

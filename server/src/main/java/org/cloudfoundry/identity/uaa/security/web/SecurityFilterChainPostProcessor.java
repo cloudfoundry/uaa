@@ -257,7 +257,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             }
             try {
                 chain.doFilter(request, response);
-            }catch (Exception x) {
+            }catch (RuntimeException x) {
                 logger.error("Uncaught Exception:", x);
                 if (req.getAttribute("javax.servlet.error.exception") == null) {
                     req.setAttribute("javax.servlet.error.exception", x);

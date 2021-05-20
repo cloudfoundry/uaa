@@ -193,7 +193,7 @@ public class ScimUserBootstrap implements
                 //we do delete users here, because only now are all components started
                 //and ready to receive events
                 deleteUsers(deleteMe);
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 logger.warn("Unable to delete users from manifest.", e);
                 throw new RuntimeException(e);
             }

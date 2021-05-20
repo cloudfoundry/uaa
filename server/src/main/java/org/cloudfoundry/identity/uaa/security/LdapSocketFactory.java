@@ -43,7 +43,7 @@ public class LdapSocketFactory extends SSLSocketFactory {
             SSLContext sc = SSLContext.getInstance("TLS");
             sc.init(null, tma, new SecureRandom());
             this.delegate = sc.getSocketFactory();
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             throw new RuntimeException(e);
         }
     }

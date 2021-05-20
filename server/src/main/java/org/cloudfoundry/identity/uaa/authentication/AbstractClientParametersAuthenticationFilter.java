@@ -135,7 +135,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
             return result;
         } catch (AuthenticationException e) {
             throw new BadCredentialsException(e.getMessage(), e);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.debug("Unable to authenticate client: " + clientId, e);
             throw new BadCredentialsException(e.getMessage(), e);
         }

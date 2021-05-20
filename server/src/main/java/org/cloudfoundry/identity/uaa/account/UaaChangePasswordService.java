@@ -64,7 +64,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
             }
             scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword, IdentityZoneHolder.get().getId());
             publish(new PasswordChangeEvent("Password changed", uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             publish(new PasswordChangeFailureEvent(e.getMessage(), uaaUser, authentication, IdentityZoneHolder.getCurrentZoneId()));
             throw e;
         }

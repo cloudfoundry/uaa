@@ -57,7 +57,7 @@ public class ZoneAwareMetadataDisplayFilter extends MetadataDisplayFilter {
         } catch (MarshallingException e) {
             log.error("Error marshalling entity descriptor", e);
             throw new ServletException(e);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Error retrieving metadata", e);
             throw new ServletException("Error retrieving metadata", e);
         }

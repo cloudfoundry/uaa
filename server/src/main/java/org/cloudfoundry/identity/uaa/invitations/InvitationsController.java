@@ -331,7 +331,7 @@ public class InvitationsController {
         } catch (EmptyResultDataAccessException e) {
             //ldap provider was not available
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
-        } catch (Exception x) {
+        } catch (RuntimeException x) {
             logger.error("Unable to retrieve LDAP config.", x);
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
@@ -361,7 +361,7 @@ public class InvitationsController {
             }
         } catch (AuthenticationException x) {
             return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
-        } catch (Exception x) {
+        } catch (RuntimeException x) {
             logger.error("Unable to authenticate against LDAP", x);
             model.addAttribute("ldap", true);
             model.addAttribute("email", email);

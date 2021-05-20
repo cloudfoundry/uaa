@@ -49,7 +49,7 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
                 delegate.verify(content, signature);
                 //success
                 return;
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 last = e;
             }
         }

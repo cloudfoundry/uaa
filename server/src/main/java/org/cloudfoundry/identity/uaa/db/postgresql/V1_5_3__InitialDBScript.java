@@ -28,7 +28,7 @@ public class V1_5_3__InitialDBScript extends InitialPreDatabaseVersioningSchemaC
         try {
             super.migrate(con);
         } finally {
-            try { con.close(); } catch (Exception ignore) {}
+            try { con.close(); } catch (RuntimeException ignore) {}
         }
     }
     

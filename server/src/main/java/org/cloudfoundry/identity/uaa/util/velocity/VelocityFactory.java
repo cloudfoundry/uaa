@@ -32,7 +32,7 @@ public class VelocityFactory {
 
             velocityEngine.init();
             return velocityEngine;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             throw new RuntimeException("Error configuring velocity", e);
         }
 

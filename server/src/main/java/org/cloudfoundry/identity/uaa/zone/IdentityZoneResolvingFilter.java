@@ -54,7 +54,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
                 identityZone = dao.retrieveBySubdomain(subdomain);
             } catch (EmptyResultDataAccessException ex) {
                 logger.debug("Cannot find identity zone for subdomain " + subdomain);
-            } catch (Exception ex) {
+            } catch (RuntimeException ex) {
                 String message = "Internal server error while fetching identity zone for subdomain" + subdomain;
                 logger.warn(message, ex);
                 response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);

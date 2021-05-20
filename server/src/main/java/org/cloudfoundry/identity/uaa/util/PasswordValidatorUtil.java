@@ -41,7 +41,7 @@ public final class PasswordValidatorUtil {
                     messagesResourcePath);
             props.load(in);
             return new PropertiesMessageResolver(props);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             throw new IllegalStateException(
                     "Error loading default message properties.",
                     e);

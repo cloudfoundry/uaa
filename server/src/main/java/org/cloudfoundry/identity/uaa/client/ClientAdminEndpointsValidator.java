@@ -164,7 +164,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             ClientDetails caller = null;
             try {
                 caller = clientDetailsService.retrieve(callerId, IdentityZoneHolder.get().getId());
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 // best effort to get the caller, but the caller might not belong to this zone.
             }
             if (callerId != null && caller != null) {

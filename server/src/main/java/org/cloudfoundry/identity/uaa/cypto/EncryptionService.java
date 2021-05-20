@@ -49,7 +49,7 @@ public class EncryptionService {
             byte[] bytes = plaintext.getBytes();
 
             return Arrays.concatenate(newNonce, newSalt, myCipher.doFinal(bytes));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.error("Encryption failed", e);
             throw new EncryptionServiceException(e);
         }
@@ -71,7 +71,7 @@ public class EncryptionService {
 
             myCipher.init(Cipher.DECRYPT_MODE, key, spec);
             return myCipher.doFinal(Arrays.copyOfRange(encrypt, GCM_IV_NONCE_SIZE_BYTES + PBKDF2_SALT_SIZE_BYTES, encrypt.length));
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.error("Decryption failed", e);
             throw new EncryptionServiceException(e);
         }

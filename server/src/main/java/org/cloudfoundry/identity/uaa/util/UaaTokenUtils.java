@@ -247,7 +247,7 @@ public final class UaaTokenUtils {
         Jwt jwt;
         try {
             jwt = JwtHelper.decode(jwtToken);
-        } catch (Exception ex) {
+        } catch (RuntimeException ex) {
             throw new InvalidTokenException("Invalid token (could not decode): " + jwtToken, ex);
         }
 

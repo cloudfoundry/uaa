@@ -298,7 +298,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             } else {
                 details = syncWithExisting(existing, client);
             }
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.warn("Couldn't fetch client config for client_id: " + clientId, e);
         }
         details = clientDetailsValidator.validate(details, Mode.MODIFY);
@@ -598,7 +598,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             return auth.isAuthenticated();
         } catch (AuthenticationException e) {
             return false;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.debug("Unable to authenticate/validate "+clientId, e);
             return false;
         }

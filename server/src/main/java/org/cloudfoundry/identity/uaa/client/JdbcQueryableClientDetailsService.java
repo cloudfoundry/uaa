@@ -111,7 +111,7 @@ public class JdbcQueryableClientDetailsService
                     @SuppressWarnings("unchecked")
                     Map<String, Object> additionalInformation = JsonUtils.readValue(json, Map.class);
                     details.setAdditionalInformation(additionalInformation);
-                } catch (Exception e) {
+                } catch (RuntimeException e) {
                     logger.warn("Could not decode JSON for additional information: " + details, e);
                 }
             }

@@ -118,7 +118,7 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
       // TODO: :eyes_narrowed:
       // should be an instance of AuthenticationException
       // but can we trust it?
-    } catch (Exception ex) {
+    } catch (RuntimeException ex) {
       logger.error("ExternalOAuth Authentication exception", ex);
       String message = ex.getMessage();
       if (!hasText(message)) {

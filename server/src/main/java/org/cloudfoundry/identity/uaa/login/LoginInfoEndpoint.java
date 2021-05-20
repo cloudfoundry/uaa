@@ -245,7 +245,7 @@ public class LoginInfoEndpoint {
     private static String decodeCookieValue(String inValue) {
         try {
             return URLDecoder.decode(inValue, UTF_8.name());
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             logger.debug("URLDecoder.decode failed for " + inValue, e);
             return "";
         }

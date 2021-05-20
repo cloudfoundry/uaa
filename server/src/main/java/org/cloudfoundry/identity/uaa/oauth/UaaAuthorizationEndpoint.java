@@ -255,7 +255,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         } catch (RedirectMismatchException e) {
             sessionStatus.setComplete();
             throw e;
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             sessionStatus.setComplete();
             logger.debug("Unable to handle /oauth/authorize, internal error", e);
             if ("none".equals(authorizationRequest.getRequestParameters().get("prompt"))) {
@@ -796,7 +796,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
         try {
             return getOAuth2RequestFactory().createAuthorizationRequest(parameters);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             return getDefaultOAuth2RequestFactory().createAuthorizationRequest(parameters);
         }
 
