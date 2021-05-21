@@ -23,7 +23,7 @@ pipeline {
                     }
                     agent {
                         docker {
-                            image 'openjdk:8'
+                            image 'openjdk:11'
                             label 'dind'
                             args '-v /var/lib/docker/.gradle:/root/.gradle'
                         }
@@ -120,10 +120,8 @@ pipeline {
                         stage('Install tools') {
                             steps {
                                 sh '''
-                                    JQ=/usr/bin/jq
-                                    curl https://stedolan.github.io/jq/download/linux64/jq > $JQ && chmod +x $JQ
-                                    ls -la $JQ
-                                    jq --version
+                                    # Install Java 11 and JQ
+                                    apt update && apt install -y --no-install-recommends openjdk-11-jdk jq
                                 '''
                             }
                         }
@@ -132,9 +130,9 @@ pipeline {
                                 COVERITY = credentials('Coverity_Token')
                                 COVERITY_HOST = 'pdx.coverity.build.ge.com'
                                 COVERITY_PORT = '8443'
-                                COVERITY_STREAM = 'Predix UAA v4.30'
+                                COVERITY_STREAM = 'Predix UAA'
                                 COVERITY_PROJECT = 'Predix%20UAA'
-                                COVERITY_VIEW = 'Jenkins_Predix_UAA_4_30'
+                                COVERITY_VIEW = 'Jenkins_Predix_UAA'
                             }
                             steps {
                                 sh label: 'Run Gradle build with Coverity agent', script: '''#!/usr/bin/env bash
@@ -147,6 +145,9 @@ pipeline {
                                     unset http_proxy
                                     unset https_proxy
                                     unset GRADLE_OPTS
+
+                                    export JAVA_HOME='/usr/lib/jvm/java-11-openjdk-amd64'
+                                    export PATH="$JAVA_HOME/bin:$PATH"
 
                                     cov-build --dir ${WORKSPACE}/covscan \
                                               ./gradlew \
