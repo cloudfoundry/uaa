@@ -57,7 +57,7 @@ public class ScimUserTests {
 
     @Test
     public void testSerializeNullPhoneNumber() {
-        ScimUser user = new ScimUser("id","username","giveName","familyName");
+        ScimUser user = new ScimUser("id", "username", "giveName", "familyName");
         String json = JsonUtils.writeValueAsString(user);
         ScimUser user1 = JsonUtils.readValue(json, ScimUser.class);
 
@@ -72,13 +72,12 @@ public class ScimUserTests {
         json = json.replace("\"phoneNumbers\":[]", "\"phoneNumbers\":null");
         user1 = JsonUtils.readValue(json, ScimUser.class);
         assertNotNull(user1.getPhoneNumbers());
-
-
     }
 
     @Test
     public void test_logon_timestamps_are_null() {
-        String oldJson = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+        String oldJson =
+                "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         for (String json : Arrays.asList(oldJson, JsonUtils.writeValueAsString(new ScimUser()))) {
             ScimUser user = JsonUtils.readValue(json, ScimUser.class);
             assertNull(json, user.getPreviousLogonTime());
@@ -88,15 +87,16 @@ public class ScimUserTests {
 
     @Test
     public void testDeserializeNullPasswordLastModified() {
-        String json = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+        String json =
+                "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         JsonUtils.readValue(json, ScimUser.class);
     }
 
     @Test
     public void minimalJsonMapsToUser() {
         String minimal = "{" + SCHEMAS +
-                        "  \"userName\": \"bjensen@example.com\"\n" +
-                        "}";
+                "  \"userName\": \"bjensen@example.com\"\n" +
+                "}";
 
         ScimUser user = JsonUtils.readValue(minimal, ScimUser.class);
         assertEquals("bjensen@example.com", user.getUserName());
@@ -106,9 +106,9 @@ public class ScimUserTests {
     @Test
     public void passwordJsonMapsToUser() {
         String minimal = "{" + SCHEMAS +
-                        "  \"userName\": \"bjensen@example.com\",\n" +
-                        "  \"password\": \"foo\"\n" +
-                        "}";
+                "  \"userName\": \"bjensen@example.com\",\n" +
+                "  \"password\": \"foo\"\n" +
+                "}";
 
         ScimUser user = JsonUtils.readValue(minimal, ScimUser.class);
         assertEquals("foo", user.getPassword());
@@ -129,7 +129,6 @@ public class ScimUserTests {
         assertTrue(json.contains("\"created\":\"2011-11-30"));
         assertTrue(json.matches(".*\\\"created\\\":\\\"([0-9-]*-?)T([0-9:.]*)Z\\\".*"));
         assertFalse(json.contains("\"lastModified\":"));
-
     }
 
     @Test
@@ -145,7 +144,6 @@ public class ScimUserTests {
         // System.err.println(json);
         assertTrue(json.contains("\"emails\":"));
         assertTrue(json.contains("\"phoneNumbers\":"));
-
     }
 
     @Test
@@ -163,12 +161,12 @@ public class ScimUserTests {
     @Test
     public void emailsAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
-                        "\"emails\": [\n" +
-                        "{\"value\": \"bj@jensen.org\",\"type\": \"other\"}," +
-                        "{\"value\": \"bjensen@example.com\", \"type\": \"work\",\"primary\": true}," +
-                        "{\"value\": \"babs@jensen.org\",\"type\": \"home\"}" +
-                        "],\n" +
-                        "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+                "\"emails\": [\n" +
+                "{\"value\": \"bj@jensen.org\",\"type\": \"other\"}," +
+                "{\"value\": \"bjensen@example.com\", \"type\": \"work\",\"primary\": true}," +
+                "{\"value\": \"babs@jensen.org\",\"type\": \"home\"}" +
+                "],\n" +
+                "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(3, user.getEmails().size());
         assertEquals("bjensen@example.com", user.getEmails().get(1).getValue());
@@ -180,11 +178,11 @@ public class ScimUserTests {
     @Test
     public void groupsAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
-                        "\"groups\": [\n" +
-                        "{\"value\": \"12345\",\"display\": \"uaa.admin\"}," +
-                        "{\"value\": \"123456\",\"display\": \"dash.admin\"}" +
-                        "],\n" +
-                        "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+                "\"groups\": [\n" +
+                "{\"value\": \"12345\",\"display\": \"uaa.admin\"}," +
+                "{\"value\": \"123456\",\"display\": \"dash.admin\"}" +
+                "],\n" +
+                "\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(2, user.getGroups().size());
     }
@@ -192,7 +190,7 @@ public class ScimUserTests {
     @Test
     public void datesAreMappedCorrectly() {
         String json = "{ \"userName\":\"bjensen\"," +
-                        "\"meta\":{\"version\":10,\"created\":\"2011-11-30T10:46:16.475Z\"}}";
+                "\"meta\":{\"version\":10,\"created\":\"2011-11-30T10:46:16.475Z\"}}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
         assertEquals(10, user.getVersion());
         assertEquals("2011-11-30", new SimpleDateFormat("yyyy-MM-dd").format(user.getMeta().getCreated()));
@@ -215,7 +213,7 @@ public class ScimUserTests {
         assertEquals("roz1", roz.getUserName());
         assertEquals("Roslyn", roz.getGivenName());
         assertEquals("MacRae", roz.getFamilyName());
-        ScimUser.Name name = new ScimUser.Name("Roslyn","MacRae");
+        ScimUser.Name name = new ScimUser.Name("Roslyn", "MacRae");
         roz.setName(name);
         assertSame(name, roz.getName());
         assertNull(roz.getApprovals());
@@ -266,11 +264,11 @@ public class ScimUserTests {
         roz.setTimezone("Timezone");
         assertEquals("Timezone", roz.getTimezone());
 
-        assertEquals("",roz.getOrigin());
+        assertEquals("", roz.getOrigin());
         roz.setOrigin("Origin");
         assertEquals("Origin", roz.getOrigin());
 
-        assertEquals("",roz.getExternalId());
+        assertEquals("", roz.getExternalId());
         roz.setExternalId("ExternalId");
         assertEquals("ExternalId", roz.getExternalId());
 
@@ -293,14 +291,13 @@ public class ScimUserTests {
         user.setEmails(Collections.singletonList(email));
         StandardEvaluationContext context = new StandardEvaluationContext(user);
         assertTrue(new SpelExpressionParser().parseExpression(
-                        "userName == 'joe' and !(emails.?[value=='foo@bar.com']).empty").getValue(context,
-                        Boolean.class));
+                "userName == 'joe' and !(emails.?[value=='foo@bar.com']).empty").getValue(context,
+                Boolean.class));
     }
 
     @Test
     public void testSetPrimaryEmail() {
         ScimUser user = new ScimUser();
-
 
         assertNull(user.getPrimaryEmail());
         user.setPrimaryEmail("email0@bar.com");
@@ -440,7 +437,7 @@ public class ScimUserTests {
         assertNull(p1.getValue());
         p1.setValue("value");
         p1.setType("type");
-        assertEquals("value",p1.getValue());
+        assertEquals("value", p1.getValue());
         assertEquals("type", p1.getType());
         ScimUser user = new ScimUser();
         user.setPhoneNumbers(Collections.singletonList(p1));
@@ -448,10 +445,9 @@ public class ScimUserTests {
             p1.setType(null);
             user.addPhoneNumber(p1.getValue());
             fail();
-        }catch (IllegalArgumentException ignored) {
+        } catch (IllegalArgumentException ignored) {
 
         }
-
     }
 
     @Test
@@ -465,7 +461,6 @@ public class ScimUserTests {
         user.setPasswordLastModified(d);
         assertNotNull(user.getPasswordLastModified());
         assertSame(d, user.getPasswordLastModified());
-
     }
 
     @Test
@@ -487,7 +482,6 @@ public class ScimUserTests {
         user.patch(patch);
         assertNull(user.getPreviousLogonTime());
     }
-
 
     @Test
     public void testPatchUserSetPrimaryEmail() {
@@ -514,7 +508,7 @@ public class ScimUserTests {
         assertEquals(3, user.getEmails().size());
 
         //drop the email first
-        patch.getMeta().setAttributes(new String[] {"emails"});
+        patch.getMeta().setAttributes(new String[]{"emails"});
         user.patch(patch);
         assertEquals("secondTest@example.org", user.getPrimaryEmail());
         assertEquals(2, user.getEmails().size());
@@ -527,7 +521,7 @@ public class ScimUserTests {
         assertEquals("newUsername", user.getUserName());
 
         //username is a required field
-        patch.getMeta().setAttributes(new String[] {"username"});
+        patch.getMeta().setAttributes(new String[]{"username"});
         patch.setUserName(null);
         try {
             user.patch(patch);
@@ -552,7 +546,7 @@ public class ScimUserTests {
 
     @Test
     public void testPatchUserDropName() {
-        patch.setName(new ScimUser.Name("given-only",null));
+        patch.setName(new ScimUser.Name("given-only", null));
         user.patch(patch);
         assertEquals("given-only", user.getName().getGivenName());
         assertNotNull(user.getName().getFamilyName());
@@ -596,7 +590,7 @@ public class ScimUserTests {
         setAndPatchAndValidate("preferredlanguage", pos++);
 
         pos--;
-        patch.setName(new ScimUser.Name(null,null));
+        patch.setName(new ScimUser.Name(null, null));
         patch.getName().setFormatted(null);
 
         patch.setPreferredLanguage("test");
@@ -639,30 +633,16 @@ public class ScimUserTests {
         setAndPatchAndValidate("displayname", --pos);
 
         assertEquals(0, pos);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     public void setAndPatchAndValidate(String attribute, int nullable) {
-        patch.getMeta().setAttributes(new String[] {attribute});
+        patch.getMeta().setAttributes(new String[]{attribute});
         user.patch(patch);
         allSet(nullable);
     }
 
     public void doAssertNull(int skip, int pos, Object value) {
-        if (skip<=pos) {
+        if (skip <= pos) {
             assertNotNull(value);
         } else {
             assertNull(value);
@@ -812,30 +792,55 @@ public class ScimUserTests {
     }
 
     @Test
-    public void testCustomAttributeAccountNumber() {
-        String json = "{\"userName\":\"jbourne\",\"customAttributes\":{\"accountNumber\":12345," +
-                "\"ccUserName\":\"jbourne@acme.com\"}}";
+    public void testCustomAttributes() {
+        String json = "{\"userName\":\"jbourne\"," +
+                "\"customAttributes\":{" +
+                "\"arrayAttributeMultipleValue\":[\"123\",\"456\"]," +
+                "\"arrayAttributeSingleValue\":[\"12345\"]," +
+                "\"stringAttribute\":\"jbourne@acme.com\"" +
+                "}}";
+        ScimUser user = JsonUtils.readValue(json, ScimUser.class);
+        List<String> arrayAttributeSingleValue =
+                (List<String>) user.getCustomAttributes().get("arrayAttributeSingleValue");
+        List<String> arrayAttributeMultipleValue =
+                (List<String>) user.getCustomAttributes().get("arrayAttributeMultipleValue");
+        assertEquals("123", arrayAttributeMultipleValue.get(0));
+        assertEquals("456", arrayAttributeMultipleValue.get(1));
+        assertEquals("12345", arrayAttributeSingleValue.get(0));
+        assertEquals("jbourne@acme.com", user.getCustomAttributes().get("stringAttribute"));
+    }
+
+    @Test
+    public void testCustomAttributeSerializationWithSingleAndArrayValues() {
+        String json = "{\"userName\":\"jbourne\"," +
+                "\"customAttributes\":{" +
+                "\"arrayAttributeMultipleValue\":[\"123\",\"456\"]," +
+                "\"arrayAttributeSingleValue\":[\"12345\"]," +
+                "\"stringAttribute\":\"jbourne@acme.com\"" +
+                "}}";
         ScimUser user = JsonUtils.readValue(json, ScimUser.class);
 
-        assertEquals(12345, user.getCustomAttributes().get("accountNumber"));
-        assertEquals("jbourne@acme.com", user.getCustomAttributes().get("ccUserName"));
+        String newJson = JsonUtils.writeValueAsString(user);
+
+        assertTrue(newJson.contains("\"arrayAttributeMultipleValue\":[\"123\",\"456\"]"));
+        assertTrue(newJson.contains("\"arrayAttributeSingleValue\":[\"12345\"]"));
+        assertTrue(newJson.contains("\"stringAttribute\":\"jbourne@acme.com\""));
     }
 
     @Test
     public void testCustomAttributeSerialization() {
         ScimUser user = new ScimUser();
         user.setUserName("jbourne");
-        LinkedHashMap<String, String> map = new LinkedHashMap<>();
-        map.put("accountNumber", "12345");
-        map.put("ccUserName", "jbourne@acme.com");
+        LinkedHashMap<String, Object> map = new LinkedHashMap<>();
+        map.put("accountNumber", Collections.singletonList("12345"));
+        map.put("appUserName", Collections.singletonList("jbourne@acme.com"));
+        map.put("stringAttribute", "jbourneSingle@acme.com");
         user.setCustomAttributes(map);
 
         String json = JsonUtils.writeValueAsString(user);
-        ScimUser user1 = JsonUtils.readValue(json, ScimUser.class);
 
-        assertTrue(json.contains("\"accountNumber\":\"12345\""));
-        assertTrue(json.contains("\"ccUserName\":\"jbourne@acme.com\""));
-        assertEquals("12345", user1.getCustomAttributes().get("accountNumber"));
-        assertEquals("jbourne@acme.com", user1.getCustomAttributes().get("ccUserName"));
+        assertTrue(json.contains("\"accountNumber\":[\"12345\"]"));
+        assertTrue(json.contains("\"appUserName\":[\"jbourne@acme.com\"]"));
+        assertTrue(json.contains("\"stringAttribute\":\"jbourneSingle@acme.com\""));
     }
 }

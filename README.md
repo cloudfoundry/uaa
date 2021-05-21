@@ -92,6 +92,19 @@ which you should find under something like:-
 
     $TMPDIR/cargo/conf/logs/
 
+## Creating self-signed certificate for when using UAA as IdP
+When Integrating a local UAA with another system like Okta, UAA has to be configured with correct signing keys and cert.
+The default one in `scripts/cargo/uaa.yml` expired Nov'16. You can use the following commands to generate a cert-key
+pair that is acceptable.
+```
+openssl genrsa -aes256 -passout pass:<password> -out server.pass.key 4096
+openssl rsa -passin pass:<password> -in server.pass.key -out server.key
+openssl req -new -key server.key -out server.csr
+openssl x509 -req -sha256 -days 365 -in server.csr -signkey server.key -out server.crt
+```
+
+Copy the contents of `server.key` and `server.crt` into the appropriate sections in `scripts/cargo/uaa.yml`.
+>Note: Okta expects cert in .pem format. Just rename `server.crt` to `server.pem`
 ### Demo of command line usage on local server
 
 First run the UAA server as described above:
