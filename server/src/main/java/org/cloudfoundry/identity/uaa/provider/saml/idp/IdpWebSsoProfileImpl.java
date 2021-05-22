@@ -73,7 +73,6 @@ import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 
-
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
 
     private JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning;
@@ -339,13 +338,13 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
         ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
 
-        if(user.getCustomAttributes() != null) {
-            for(Map.Entry<String, Object> entry : user.getCustomAttributes().entrySet()) {
+        if (user.getCustomAttributes() != null) {
+            for (Map.Entry<String, Object> entry : user.getCustomAttributes().entrySet()) {
                 String attributeName = entry.getKey();
                 Object attributeValue = entry.getValue();
-                if(attributeValue instanceof String) {
+                if (attributeValue instanceof String) {
                     addStringAttribute(attributeName, (String) attributeValue, attributeStatement);
-                } else if(attributeValue instanceof List) {
+                } else if (attributeValue instanceof List) {
                     addListAttribute(attributeName, (List<String>) attributeValue, attributeStatement);
                 }
             }
@@ -382,7 +381,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
     private void addListAttribute(String attributeName, List<String> attributeValue,
             AttributeStatement attributeStatement) {
-        if(!CollectionUtils.isEmpty(attributeValue)) {
+        if (!CollectionUtils.isEmpty(attributeValue)) {
             Attribute customAttribute = buildStringAttribute(attributeName,
                     attributeValue);
             attributeStatement.getAttributes().add(customAttribute);
@@ -391,7 +390,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
     private void addStringAttribute(String attributeName, String attributeValue,
             AttributeStatement attributeStatement) {
-        if(StringUtils.hasText(attributeValue)) {
+        if (StringUtils.hasText(attributeValue)) {
             Attribute customAttribute = buildStringAttribute(attributeName,
                     Collections.singletonList(attributeValue));
             attributeStatement.getAttributes().add(customAttribute);
