@@ -851,11 +851,14 @@ public class ScimUser extends ScimCore<ScimUser> {
         public void serialize(LinkedHashMap<String, Object> map, JsonGenerator gen,
                 SerializerProvider serializers) throws IOException {
             gen.writeStartObject();
-            for(String e : map.keySet()) {
+            for (String e : map.keySet()) {
                 if (map.get(e) instanceof String) {
                    gen.writeStringField(e, (String) map.get(e));
                 } else if (map.get(e) instanceof List) {
                     gen.writeObjectField(e, map.get(e));
+                } else {
+                    log.warn("Custom attribute {} with type {} is not supported, skipping", attributeName,
+                            attributeValue.getClass());
                 }
             }
             gen.writeEndObject();
