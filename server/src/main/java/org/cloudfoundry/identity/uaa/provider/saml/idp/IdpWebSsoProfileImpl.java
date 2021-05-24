@@ -346,6 +346,9 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
                     addStringAttribute(attributeName, (String) attributeValue, attributeStatement);
                 } else if (attributeValue instanceof List) {
                     addListAttribute(attributeName, (List<String>) attributeValue, attributeStatement);
+                } else {
+                    log.warn("Custom attribute {} with type {} is not supported, skipping", attributeName,
+                            attributeValue.getClass());
                 }
             }
         }
