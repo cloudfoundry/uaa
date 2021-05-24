@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
 import java.io.IOException;
@@ -43,6 +45,7 @@ import static org.springframework.util.StringUtils.hasText;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
 public class ScimUser extends ScimCore<ScimUser> {
+    private static final Logger logger = LoggerFactory.getLogger(ScimUser.class);
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -852,13 +855,14 @@ public class ScimUser extends ScimCore<ScimUser> {
                 SerializerProvider serializers) throws IOException {
             gen.writeStartObject();
             for (String e : map.keySet()) {
-                if (map.get(e) instanceof String) {
-                   gen.writeStringField(e, (String) map.get(e));
-                } else if (map.get(e) instanceof List) {
-                    gen.writeObjectField(e, map.get(e));
+                Object valueAsObject = map.get(e);
+                if (valueAsObject instanceof String) {
+                   gen.writeStringField(e, (String) valueAsObject);
+                } else if (valueAsObject instanceof List) {
+                    gen.writeObjectField(e, valueAsObject);
                 } else {
-                    log.warn("Custom attribute {} with type {} is not supported, skipping", attributeName,
-                            attributeValue.getClass());
+                    logger.warn("Custom attribute {} with type {} is not supported, skipping", e,
+                            valueAsObject.getClass().getName());
                 }
             }
             gen.writeEndObject();
