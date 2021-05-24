@@ -474,4 +474,22 @@ class IdentityProviderEndpointsTest {
         assertNull(((AbstractExternalOAuthIdentityProviderDefinition)deleteResponse
                 .getBody().getConfig()).getRelyingPartySecret());
     }
+
+    @Test
+    void testDeleteIdentityProviderResponseNotContainingBindPassword() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider identityProvider = getLdapDefinition();
+        when(mockIdentityProviderProvisioning.retrieve(
+                identityProvider.getId(), zoneId)).thenReturn(identityProvider);
+        identityProviderEndpoints.setApplicationEventPublisher(
+                mock(ApplicationEventPublisher.class));
+
+        // Verify that the response's config does not contain bindPassword
+        ResponseEntity<IdentityProvider> deleteResponse =
+                identityProviderEndpoints.deleteIdentityProvider(
+                        identityProvider.getId(), false);
+        assertEquals(HttpStatus.OK, deleteResponse.getStatusCode());
+        assertNull(((LdapIdentityProviderDefinition)deleteResponse
+                .getBody().getConfig()).getBindPassword());
+    }
 }
