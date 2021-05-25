@@ -150,7 +150,7 @@ cargo {
     port = 8080
 
     if (JavaVersion.current() != JavaVersion.VERSION_11) {
-        throw new GradleException("This build must be run with java 11")
+        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_11 + " ]. Your version is: [ " + JavaVersion.current() + " ]")
     }
 
     deployable {
