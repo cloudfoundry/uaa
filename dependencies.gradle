@@ -116,11 +116,11 @@ libraries.zxing = "com.google.zxing:javase:3.4.0"
 libraries.lombok = "org.projectlombok:lombok:1.18.8"
 
 // Predix dependencies
-libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:2.0.0-SNAPSHOT"
+libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:2.0.0"
 //libraries.dynamicLogConfigurer = "com.ge.predix:security-dynamic-log-configurer:1.1.1"
 libraries.nurego = "com.nurego:nurego-java:2.1"
 libraries.predixAudit = "com.ge.predix.audit:audit-sdk:0.0.6"
-libraries.springLogFilter = "com.ge.predix:spring-log-filter:3.0.0-SNAPSHOT"
+libraries.springLogFilter = "com.ge.predix:spring-log-filter:3.0.0"
 
 // gradle plugins
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
