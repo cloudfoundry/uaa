@@ -20,14 +20,17 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import java.net.URL;
+import java.time.Duration;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager.AuthenticationData;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.MatcherAssert;
@@ -85,12 +88,18 @@ public class ExternalOAuthAuthenticationManagerGithubTest {
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
-        
+
         RestTemplate trustingRestTemplate = null;
         RestTemplate nonTrustingRestTemplate = new RestTemplate();
         mockGithubServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
-        
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl));
+
+        OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
+            new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+            trustingRestTemplate,
+            nonTrustingRestTemplate
+        );
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, trustingRestTemplate,
+                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 
     @After
