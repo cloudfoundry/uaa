@@ -31,6 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -280,6 +281,29 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken, is(notNullValue()));
         }
 
+        @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")
+        @ParameterizedTest
+        void authTime(Date authTimeDate) {
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    authTimeDate,
+                    null,
+                    null
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            assertThat(refreshToken, is(notNullValue()));
+            OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(refreshedToken, is(notNullValue()));
+        }
+
         @Nested
         @DisplayName("when ACR claim is present")
         @DefaultTestContext
@@ -507,5 +531,14 @@ class UaaTokenServicesTests {
             }
         }
         return false;
+    }
+
+    private static Stream<Arguments> dates() {
+        return Stream.of(
+                GregorianCalendar.getInstance(),
+                new GregorianCalendar(2038, Calendar.FEBRUARY, 1),
+                new GregorianCalendar(1970, Calendar.JANUARY, 1),
+                new GregorianCalendar(10000, Calendar.MAY, 20)
+        ).map(Calendar::getTime).map(Arguments::of);
     }
 }

@@ -15,7 +15,7 @@ public class AuthTimeDateConverterTest {
 
     @Test
     public void authTimeToDate_whenNotNull() {
-        Date date = AuthTimeDateConverter.authTimeToDate(1);
+        Date date = AuthTimeDateConverter.authTimeToDate(1l);
         assertEquals(new Date(1000l), date);
     }
 
