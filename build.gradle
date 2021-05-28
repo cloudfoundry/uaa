@@ -149,8 +149,8 @@ cargo {
     containerId = "tomcat9x"
     port = 8080
 
-    if (JavaVersion.current() != JavaVersion.VERSION_11) {
-        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_11 + " ]. Your version is: [ " + JavaVersion.current() + " ]")
+    if (JavaVersion.current() < JavaVersion.VERSION_11) {
+        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_11 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
     }
 
     deployable {
