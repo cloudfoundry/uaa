@@ -18,7 +18,6 @@ buildscript {
         classpath libraries.gradleCargoPlugin
         classpath libraries.prodepsPlugin
         classpath libraries.asciidoctorGradlePlugin
-        classpath libraries.gradleNodePlugin
         classpath libraries.springDependencyMgmtPlugin
         classpath libraries.springBootGradlePlugin
     }
