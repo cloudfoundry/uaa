@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -18,6 +19,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -411,5 +413,82 @@ public class IdentityProviderEndpointsTest {
         when(identityProviderProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(validIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    }
+
+    @Test
+    public void testDeleteIdentityProviderExisting() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider validIDP = new IdentityProvider();
+        validIDP.setType(OriginKeys.UAA);
+        validIDP.setConfig(new UaaIdentityProviderDefinition(
+                new PasswordPolicy(), null));
+        String identityProviderIdentifier = UUID.randomUUID().toString();
+        when(identityProviderProvisioning.retrieve(
+                identityProviderIdentifier, zoneId)).thenReturn(validIDP);
+        identityProviderEndpoints.setApplicationEventPublisher(
+                mock(ApplicationEventPublisher.class));
+
+        // Verify that delete succeeds
+        ResponseEntity<IdentityProvider> deleteResponse =
+                identityProviderEndpoints.deleteIdentityProvider(
+                        identityProviderIdentifier, false);
+        assertEquals(HttpStatus.OK, deleteResponse.getStatusCode());
+        assertEquals(validIDP, deleteResponse.getBody());
+    }
+
+    @Test
+    public void testDeleteIdentityProviderNotExisting() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        String identityProviderIdentifier = UUID.randomUUID().toString();
+        when(identityProviderProvisioning.retrieve(
+                identityProviderIdentifier, zoneId)).thenReturn(null);
+
+        ResponseEntity<IdentityProvider> deleteResponse =
+                identityProviderEndpoints.deleteIdentityProvider(
+                        identityProviderIdentifier, false);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY,
+                deleteResponse.getStatusCode());
+    }
+
+    @Test
+    public void testDeleteIdentityProviderResponseNotContainingRelyingPartySecret() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider validIDP = new IdentityProvider();
+        validIDP.setType(OIDC10);
+        OIDCIdentityProviderDefinition identityProviderDefinition =
+                new OIDCIdentityProviderDefinition();
+        identityProviderDefinition.setRelyingPartySecret("myRelyingPartySecret");
+        validIDP.setConfig(identityProviderDefinition);
+        String identityProviderIdentifier = UUID.randomUUID().toString();
+        when(identityProviderProvisioning.retrieve(
+                identityProviderIdentifier, zoneId)).thenReturn(validIDP);
+        identityProviderEndpoints.setApplicationEventPublisher(
+                mock(ApplicationEventPublisher.class));
+
+        // Verify that the response's config does not contain relyingPartySecret
+        ResponseEntity<IdentityProvider> deleteResponse =
+                identityProviderEndpoints.deleteIdentityProvider(
+                        identityProviderIdentifier, false);
+        assertEquals(HttpStatus.OK, deleteResponse.getStatusCode());
+        assertNull(((AbstractXOAuthIdentityProviderDefinition)deleteResponse
+                .getBody().getConfig()).getRelyingPartySecret());
+    }
+
+    @Test
+    public void testDeleteIdentityProviderResponseNotContainingBindPassword() {
+        String zoneId = IdentityZone.getUaaZoneId();
+        IdentityProvider identityProvider = getLdapDefinition();
+        when(identityProviderProvisioning.retrieve(
+                identityProvider.getId(), zoneId)).thenReturn(identityProvider);
+        identityProviderEndpoints.setApplicationEventPublisher(
+                mock(ApplicationEventPublisher.class));
+
+        // Verify that the response's config does not contain bindPassword
+        ResponseEntity<IdentityProvider> deleteResponse =
+                identityProviderEndpoints.deleteIdentityProvider(
+                        identityProvider.getId(), false);
+        assertEquals(HttpStatus.OK, deleteResponse.getStatusCode());
+        assertNull(((LdapIdentityProviderDefinition)deleteResponse
+                .getBody().getConfig()).getBindPassword());
     }
 }
