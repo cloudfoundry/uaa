@@ -31,6 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +44,7 @@ import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
+import java.time.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -269,6 +271,29 @@ class UaaTokenServicesTests {
                     "jku_test",
                     false,
                     new Date(),
+                    null,
+                    null
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            assertThat(refreshToken, is(notNullValue()));
+            OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(refreshedToken, is(notNullValue()));
+        }
+
+        @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")
+        @ParameterizedTest
+        void authTime(Date authTimeDate) {
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    authTimeDate,
                     null,
                     null
             );
@@ -507,5 +532,15 @@ class UaaTokenServicesTests {
             }
         }
         return false;
+    }
+
+    private static Stream<Arguments> dates() {
+        return Stream.of(
+                Instant.ofEpochSecond(0),
+                Instant.ofEpochSecond(-1),
+                Instant.ofEpochSecond(1),
+                Instant.now(),
+                Instant.ofEpochSecond(Integer.MAX_VALUE)
+        ).map(Date::from).map(Arguments::of);
     }
 }
