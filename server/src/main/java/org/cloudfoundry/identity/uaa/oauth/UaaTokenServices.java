@@ -242,7 +242,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String revocableHashSignature = (String) refreshTokenClaims.get(REVOCATION_SIGNATURE);
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) refreshTokenClaims.get(ADDITIONAL_AZ_ATTR);
         Set<String> audience = new HashSet<>((ArrayList<String>) refreshTokenClaims.get(AUD));
-        Integer authTime = (Integer) refreshTokenClaims.get(AUTH_TIME);
+        Number authTimeNumber= (Number) refreshTokenClaims.get(AUTH_TIME);
+        Long authTime;
+        if (authTimeNumber instanceof Integer) {
+            authTime = authTimeNumber.longValue();
+        } else {
+            authTime = (Long)authTimeNumber;
+        }
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();

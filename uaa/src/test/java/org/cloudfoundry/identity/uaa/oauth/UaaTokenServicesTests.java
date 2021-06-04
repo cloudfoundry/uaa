@@ -540,7 +540,13 @@ class UaaTokenServicesTests {
                 Instant.ofEpochSecond(-1),
                 Instant.ofEpochSecond(1),
                 Instant.now(),
-                Instant.ofEpochSecond(Integer.MAX_VALUE)
+                Instant.ofEpochSecond(Integer.MAX_VALUE),
+                Instant.ofEpochSecond(Integer.MAX_VALUE + 1L),
+                Instant.from(ZonedDateTime.of(
+                        LocalDate.of(10000, Month.MAY, 20),
+                        LocalTime.of(0, 0),
+                        ZoneId.systemDefault())
+                )
         ).map(Date::from).map(Arguments::of);
     }
 }
