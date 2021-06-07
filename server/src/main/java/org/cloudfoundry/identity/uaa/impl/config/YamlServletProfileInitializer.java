@@ -86,6 +86,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             servletContext.addListener(publisher);
         }
 
+        JacksonObjectMapperConfig.configureJsonPathForJackson();
+
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
                 servletContext, applicationContext.getServletConfig());
 
