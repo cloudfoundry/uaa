@@ -75,7 +75,7 @@ function bootDB {
       echo "Connection established to $db"
       sleep 1
 
-      for attempt in $(seq 1 10); do
+      for attempt in $(seq 1 7); do
           if eval "$initDB"; then
               echo 'DB initialized'
               break
