@@ -70,8 +70,7 @@ import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.*;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
@@ -167,12 +166,13 @@ public class LoginMockMvcTests {
         identityZoneConfigurationBootstrap.afterPropertiesSet();
     }
 
-    private static MockHttpSession setupUAA_23_Support(
+    private static MockHttpSession configure_UAA_for_idp_discovery(
             WebApplicationContext webApplicationContext,
             JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
             RandomValueStringGenerator generator,
             String originKey,
             IdentityZone zone, List<String> allowedProviders) {
+
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
@@ -193,44 +193,30 @@ public class LoginMockMvcTests {
 
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
-        client.setClientSecret("secret");
-        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, allowedProviders);
-        MockMvcUtils.createClient(webApplicationContext, client, zone);
 
+        MockMvcUtils.createClient(webApplicationContext, client, zone);
         SavedRequest savedRequest = getSavedRequest(client);
+
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
         return session;
     }
 
-    @Test
-    void UAA_23_SUPPORT_ISSUE_WORKING_AS_EXPECTED(
-            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
-            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
-        String originKey = generator.generate();
-        List<String> allowedProviders = asList(originKey, UAA, LDAP);
-        UAA_23_SUPPORT_ISSUE(identityProviderProvisioning, identityZoneProvisioning, originKey, allowedProviders);
-    }
-
-    @Test
-    void UAA_23_SUPPORT_ISSUE_BROKEN(
-            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
-            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
-        String originKey = generator.generate();
-        List<String> allowedProviders = asList(originKey, UAA);
-        UAA_23_SUPPORT_ISSUE(identityProviderProvisioning, identityZoneProvisioning, originKey, allowedProviders);
-    }
-
-    void UAA_23_SUPPORT_ISSUE(
+    private void expect_idp_discovery(
             JdbcIdentityProviderProvisioning identityProviderProvisioning,
-            JdbcIdentityZoneProvisioning identityZoneProvisioning, String originKey, List<String> allowedProviders
+            JdbcIdentityZoneProvisioning identityZoneProvisioning,
+            List<String> allowedProviders
     ) throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
+
         IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        MockHttpSession session = setupUAA_23_Support(webApplicationContext, identityProviderProvisioning, generator, originKey, zone, allowedProviders);
+        String originKey = "fake-origin-key";
+        allowedProviders.add(originKey);
+
+        MockHttpSession session = configure_UAA_for_idp_discovery(webApplicationContext, identityProviderProvisioning, generator, originKey, zone, allowedProviders);
 
         mockMvc.perform(get("/login")
                 .session(session)
@@ -238,10 +224,52 @@ public class LoginMockMvcTests {
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
-                .andExpect(content().string(containsString("Sign in to continue to woohoo")))
-                .andExpect(xpath("//input[@name='email']").exists())
-                .andExpect(xpath("//div[@class='action']//a").string("Create account"))
-                .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
+                .andExpect(xpath("//input[@name='email']").exists());
+    }
+
+    @Test
+    void access_discovery_when_expected(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+
+        List<List<String>> allowedProvidersPermutations = new ArrayList<>();
+        allowedProvidersPermutations.add(new ArrayList<>(asList(UAA, LDAP, SAML))); // Model should not contain a login hint if we allow both UAA and LDAP
+        allowedProvidersPermutations.add(new ArrayList<>(asList(UAA, LDAP      ))); // Model should not contain a login hint if we allow both UAA and LDAP
+        allowedProvidersPermutations.add(new ArrayList<>(asList(UAA,       SAML))); // Model should contain a login hint if we exclude LDAP from allowed providers
+        allowedProvidersPermutations.add(new ArrayList<>(asList(     LDAP, SAML))); // Model should contain a login hint if we exclude UAA from allowed providers
+
+        allowedProvidersPermutations.add(new ArrayList<>(singletonList(UAA)));  // Model should contain a login hint if we exclude LDAP from allowed providers
+        allowedProvidersPermutations.add(new ArrayList<>(singletonList(LDAP))); // Model should contain a login hint if we exclude UAA from allowed providers
+
+        for (List<String> allowedProviders : allowedProvidersPermutations) {
+            expect_idp_discovery(identityProviderProvisioning, identityZoneProvisioning, allowedProviders);
+        }
+    }
+
+    @Test
+    void redirect_when_only_saml_allowed(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+        String originKey = "fake-origin-key";
+
+        MockHttpSession session = configure_UAA_for_idp_discovery(
+                webApplicationContext,
+                identityProviderProvisioning,
+                generator,
+                originKey,
+                zone,
+                new ArrayList<>(asList(originKey, SAML)));
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test
@@ -1938,7 +1966,7 @@ public class LoginMockMvcTests {
         inviteContext.setAuthentication(inviteToken);
         inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
 
-        Map<String, String> codeData = new HashMap();
+        Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", ((UaaPrincipal) marissaContext.getAuthentication().getPrincipal()).getId());
         codeData.put("email", ((UaaPrincipal) marissaContext.getAuthentication().getPrincipal()).getEmail());
         codeData.put("origin", OriginKeys.UAA);
