@@ -81,6 +81,11 @@ function bootDB {
               echo 'DB initialized'
               break
           else
+              if [[ ${attempt} == ${number_attempts} ]]; then
+                  echo 'error initializing the DB, aborting'
+                  exit 2
+              fi
+
               local wait_time="$((2 ** (attempt - 1)))"
               echo "Error initializing the DB, retrying in ${wait_time} seconds"
               sleep "${wait_time}"
