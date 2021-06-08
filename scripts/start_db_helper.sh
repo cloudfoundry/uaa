@@ -63,7 +63,7 @@ function bootDB {
   echo -n "Booting $db"
   set -x
   eval "$launchDB"
-  
+
   for i in {0..600} # wait at most 10 mins to the database to start
   do
     set +ex
