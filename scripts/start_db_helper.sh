@@ -74,7 +74,18 @@ function bootDB {
       set -x
       echo "Connection established to $db"
       sleep 1
-      eval "$initDB"
+
+      for attempt in $(seq 1 10); do
+          if eval "$initDB"; then
+              echo 'DB initialized'
+              break
+          else
+              local wait_time="$((2 ** (attempt - 1)))"
+              echo "Error initializing the DB, retrying in ${wait_time} seconds"
+              sleep "${wait_time}"
+          fi
+      done
+
 
       for db_id in `seq 1 $NUM_OF_DATABASES_TO_CREATE`; do
         createDB $db_id
