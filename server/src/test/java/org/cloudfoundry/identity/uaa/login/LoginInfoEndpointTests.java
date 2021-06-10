@@ -1526,6 +1526,7 @@ public class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
+        assertEquals("{\"origin\":\"ldap\"}", model.get("login_hint"));
         assertEquals("login", redirect);
     }
 
@@ -1548,6 +1549,7 @@ public class LoginInfoEndpointTests {
 
         String redirect = endpoint.loginForHtml(model, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
+        assertEquals("{\"origin\":\"uaa\"}", model.get("login_hint"));
         assertEquals("login", redirect);
 
         Map<String, String> oauthLinks = (Map<String, String>)model.get(OAUTH_LINKS);
