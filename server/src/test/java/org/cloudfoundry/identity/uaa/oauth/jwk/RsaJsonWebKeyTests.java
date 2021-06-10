@@ -16,6 +16,8 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jose.util.BigIntegerUtils;
 import org.apache.commons.collections.map.HashedMap;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -76,7 +78,7 @@ public class RsaJsonWebKeyTests {
         BigInteger modulus = ((RSAPublicKey) pk).getModulus();
         java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
         assertEquals(encoder.encodeToString(exponent.toByteArray()), key.getKeyProperties().get("e"));
-        assertEquals(encoder.encodeToString(modulus.toByteArray()), key.getKeyProperties().get("n"));
+        assertEquals(encoder.encodeToString(BigIntegerUtils.toBytesUnsigned(modulus)), key.getKeyProperties().get("n"));
     }
 
     @Test
@@ -101,7 +103,7 @@ public class RsaJsonWebKeyTests {
 
         java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
         assertEquals(encoder.encodeToString(exponent.toByteArray()), key.getKeyProperties().get("e"));
-        assertEquals(encoder.encodeToString(modulus.toByteArray()), key.getKeyProperties().get("n"));
+        assertEquals(encoder.encodeToString(BigIntegerUtils.toBytesUnsigned(modulus)), key.getKeyProperties().get("n"));
     }
 
     @Test
@@ -300,5 +302,32 @@ public class RsaJsonWebKeyTests {
         } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    // see https://github.com/cloudfoundry/uaa/issues/1514
+    private static final String issue1514Key = "-----BEGIN PUBLIC KEY-----\\n" + "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyH6kYCP29faDAUPKtei3\\n"
+        + "V/Zh8eCHyHRDHrD0iosvgHuaakK1AFHjD19ojuPiTQm8r8nEeQtHb6mDi1LvZ03e\\n" + "EWxpvWwFfFVtCyBqWr5wn6IkY+ZFXfERLn2NCn6sMVxcFV12sUtuqD+jrW8MnTG7\\n"
+        + "hofQqxmVVKKsZiXCvUSzfiKxDgoiRuD3MJSoZ0nQTHVmYxlFHuhTEETuTqSPmOXd\\n" + "/xJBVRi5WYCjt1aKRRZEz04zVEBVhVkr2H84qcVJHcfXFu4JM6dg0nmTjgd5cZUN\\n"
+        + "cwA1KhK2/Qru9N0xlk9FGD2cvrVCCPWFPvZ1W7U7PBWOSBBH6GergA+dk2vQr7Ho\\n" + "lQIDAQAB\\n" + "-----END PUBLIC KEY-----";
+
+    public static final String issue1514KeyJson = "{\n" +
+        "    \"alg\": \"RS256\",\n" +
+        "    \"e\": \"AQAB\",\n" +
+        "    \"kid\": \"legacy\",\n" +
+        "    \"kty\": \"RSA\",\n" +
+        "    \"n\": \"yH6kYCP29faDAUPKtei3V_Zh8eCHyHRDHrD0iosvgHuaakK1AFHjD19ojuPiTQm8r8nEeQtHb6mDi1LvZ03eEWxpvWwFfFVtCyBqWr5wn6IkY-ZFXfERLn2NCn6sMVxcFV12sUtuqD-jrW8MnTG7hofQqxmVVKKsZiXCvUSzfiKxDgoiRuD3MJSoZ0nQTHVmYxlFHuhTEETuTqSPmOXd_xJBVRi5WYCjt1aKRRZEz04zVEBVhVkr2H84qcVJHcfXFu4JM6dg0nmTjgd5cZUNcwA1KhK2_Qru9N0xlk9FGD2cvrVCCPWFPvZ1W7U7PBWOSBBH6GergA-dk2vQr7HolQ\",\n" +
+        "    \"use\": \"sig\",\n" +
+        "    \"value\": \"" + issue1514Key +"\"\n" +
+        "}";
+    @Test
+    public void test_jwtKeyEndoding() {
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.deserialize(issue1514KeyJson);
+        PublicKey pk = parseKeyPair(issue1514Key.replace("\\n", "\n")).getPublic();
+        assertNotNull(keys);
+        assertNotNull(keys.getKeys());
+        JsonWebKey key = keys.getKeys().get(0);
+        BigInteger exponent = ((RSAPublicKey) pk).getPublicExponent();
+        BigInteger modulus = ((RSAPublicKey) pk).getModulus();
+        assertEquals(key.getKeyProperties().get("n"), Base64URL.encode(((RSAPublicKey) pk).getModulus()).toString());
     }
 }

@@ -79,6 +79,10 @@ dependencies {
     implementation(libraries.javaxXmlBindCore)
     implementation(libraries.javaxXmlBindImpl)
 
+    implementation(libraries.nimbusJwt) {
+        exclude(module: "json-smart")
+    }
+
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
     testImplementation(libraries.springTest)
