@@ -10,16 +10,13 @@ pipeline {
         skipDefaultCheckout()
         buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
     }
-    parameters  {
-        choice(name: 'DEPLOYMENT_TYPE', choices:'govw', description: 'This specifies which point of presence to deploy to')
-        booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
-        booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: false, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
-    }
     stages {
-        stage('Deploy to govcloud') {
+        stage('Run acceptance tests in govcloud') {
             environment {
                 CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
                 ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                RUN_FULL_ACCEPTANCE_TESTS = true
+                DEPLOYMENT_TYPE = 'govw'
             }
             agent {
                 docker {
@@ -79,7 +76,7 @@ pipeline {
                     export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
                     echo "APP_VERSION is:$APP_VERSION"
                     export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
-                    source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
+                    source uaa-cf-release/config-govw/set-env.sh
                     unset_env
 
                     # build tests before connecting to govcloud vpn to download dependencies
@@ -90,14 +87,10 @@ pipeline {
                     startvpn.sh
 
                     pushd uaa-cf-release
-                        source combine-inline-config.sh
-                        echo "$UAA_CONFIG_YAML"
-                        echo "$APP_NAME"
-                        export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
-                        ./ci_deploy.sh
-
-                        # run service broker acceptance tests
-                        ./uaa-sb-acceptance-tests.sh
+                        export NEW_APP_NAME=${APP_NAME}-active
+                        export JRE_VERSION="{ jre: { version: 11.+ }}"
+                        cf login -a $CF_ENDPOINT -u ${CF_USERNAME} -p ${CF_PASSWORD} -o ${CF_ORG} -s ${CF_SPACE}
+                        ./uaa-acceptance-tests.sh
                     popd
 
                     stopvpn.sh 
