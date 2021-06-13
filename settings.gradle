@@ -18,3 +18,4 @@ project(":cloudfoundry-identity-statsd-lib").projectDir = "$rootDir/statsd-lib" 
 project(":cloudfoundry-identity-samples:cloudfoundry-identity-api").projectDir = "$rootDir/samples/api" as File
 project(":cloudfoundry-identity-samples:cloudfoundry-identity-app").projectDir = "$rootDir/samples/app" as File
 project(":cloudfoundry-identity-samples").projectDir = "$rootDir/samples" as File
+
