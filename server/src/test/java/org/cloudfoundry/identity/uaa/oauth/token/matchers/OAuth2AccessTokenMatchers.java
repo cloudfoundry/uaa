@@ -61,7 +61,7 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
         return new OAuth2AccessTokenMatchers(ClaimConstants.SCOPE, scopes);
     }
 
-    public static Matcher<OAuth2AccessToken> audience(Matcher<Object> resourceIds) {
+    public static Matcher<OAuth2AccessToken> audience(Matcher<Iterable<? extends String>> resourceIds) {
         return new OAuth2AccessTokenMatchers(ClaimConstants.AUD, resourceIds);
     }
 

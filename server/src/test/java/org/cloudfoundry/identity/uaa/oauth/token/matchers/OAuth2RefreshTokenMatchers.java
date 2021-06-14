@@ -62,7 +62,7 @@ public class OAuth2RefreshTokenMatchers extends AbstractOAuth2AccessTokenMatcher
         return new OAuth2RefreshTokenMatchers(ClaimConstants.GRANTED_SCOPES, scopes);
     }
 
-    public static Matcher<OAuth2RefreshToken> audience(Matcher<Object> resourceIds) {
+    public static Matcher<OAuth2RefreshToken> audience(Matcher<Iterable<? extends String>> resourceIds) {
         return new OAuth2RefreshTokenMatchers(ClaimConstants.AUD, resourceIds);
     }
 
