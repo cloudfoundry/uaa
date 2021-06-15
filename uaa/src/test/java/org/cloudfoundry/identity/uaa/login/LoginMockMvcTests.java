@@ -300,11 +300,36 @@ public class LoginMockMvcTests {
 
         allowedProvidersPermutations.add(new ArrayList<>(singletonList(UAA)));  // Model should contain a login hint if we exclude LDAP from allowed providers
         allowedProvidersPermutations.add(new ArrayList<>(singletonList(LDAP))); // Model should contain a login hint if we exclude UAA from allowed providers
-        allowedProvidersPermutations.add(new ArrayList<>(singletonList(SAML))); // Model should not contain a login hint if we exclude both UAA and LDAP
 
         for (List<String> allowedProviders : allowedProvidersPermutations) {
             expect_idp_discovery(identityProviderProvisioning, identityZoneProvisioning, allowedProviders);
         }
+    }
+
+    @Test
+    void redirect_when_only_saml_allowed(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+        String originKey = "fake-origin-key";
+
+        MockHttpSession session = configure_UAA_for_idp_discovery(
+                webApplicationContext,
+                identityProviderProvisioning,
+                generator,
+                originKey,
+                zone,
+                new ArrayList<>(asList(originKey, SAML)));
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test
