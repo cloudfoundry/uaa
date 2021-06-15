@@ -75,6 +75,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
@@ -2103,7 +2104,7 @@ public class DeprecatedUaaTokenServicesTests {
           username(is(nullValue())),
           cid(is(CLIENT_ID)),
           scope(is(tokenSupport.clientScopes)),
-          audience(is(tokenSupport.resourceIds)),
+          audience(containsInAnyOrder(tokenSupport.resourceIds.toArray(new String[]{}))),
           jwtId(not(isEmptyString())),
           issuedAt(is(greaterThan(0))),
           expiry(is(greaterThan(0)))));
@@ -2114,7 +2115,7 @@ public class DeprecatedUaaTokenServicesTests {
         assertThat(accessToken, allOf(username(is(tokenSupport.username)),
           clientId(is(clientId)),
           subject(is(tokenSupport.userId)),
-          audience(is(tokenSupport.resourceIds)),
+          audience(containsInAnyOrder(tokenSupport.resourceIds.toArray(new String[]{}))),
           origin(is(OriginKeys.UAA)),
           revocationSignature(is(not(nullValue()))),
           cid(is(clientId)),
@@ -2132,7 +2133,7 @@ public class DeprecatedUaaTokenServicesTests {
           OAuth2RefreshTokenMatchers.username(is(tokenSupport.username)),
           OAuth2RefreshTokenMatchers.clientId(is(CLIENT_ID)),
           OAuth2RefreshTokenMatchers.subject(is(not(nullValue()))),
-          OAuth2RefreshTokenMatchers.audience(is(tokenSupport.resourceIds)),
+          OAuth2RefreshTokenMatchers.audience(containsInAnyOrder(tokenSupport.resourceIds.toArray(new String[]{}))),
           OAuth2RefreshTokenMatchers.origin(is(OriginKeys.UAA)),
           OAuth2RefreshTokenMatchers.revocationSignature(is(not(nullValue()))),
           OAuth2RefreshTokenMatchers.jwtId(not(isEmptyString())),
