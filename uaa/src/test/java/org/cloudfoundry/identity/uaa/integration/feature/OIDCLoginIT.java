@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -51,6 +52,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -78,6 +80,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -260,10 +263,35 @@ public class OIDCLoginIT {
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         String origUserId = IntegrationTestUtils.getUserId(adminToken, baseUrl, "uaa", testAccounts.getUserName());
+        ScimUser user = IntegrationTestUtils
+                .getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+        assertEquals(origUserId, user.getExternalId());
+        assertEquals(user.getGivenName(), user.getUserName());
+    }
+
+    @Test
+    public void loginWithOIDCProviderUpdatesExternalId() {
+        Long beforeTest = System.currentTimeMillis();
+
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        String zoneClientToken = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret());
+        ScimUser minimalShadowUser = new ScimUser();
+        minimalShadowUser.setUserName(testAccounts.getUserName());
+        minimalShadowUser.addEmail(testAccounts.getUserName());
+        minimalShadowUser.setOrigin(identityProvider.getOriginKey());
+        IntegrationTestUtils.createUser(zoneClientToken, zoneUrl, minimalShadowUser, null);
+        ScimUser userCreated = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
+        assertFalse(StringUtils.hasText(userCreated.getExternalId()));
+
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        Long afterTest = System.currentTimeMillis();
+        String origUserId = IntegrationTestUtils.getUserId(adminToken, baseUrl, "uaa", testAccounts.getUserName());
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
         assertEquals(origUserId, user.getExternalId());
         assertEquals(user.getGivenName(), user.getUserName());
+        assertTrue(StringUtils.hasText(user.getExternalId()));
     }
 
     @Test

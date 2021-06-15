@@ -357,6 +357,7 @@ public class UaaUser {
                                     String givenName,
                                     String familyName,
                                     String phoneNumber,
+                                    String externalId,
                                     boolean verified) {
         return new UaaUser(new UaaUserPrototype()
                 .withEmail(email)

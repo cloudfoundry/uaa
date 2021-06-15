@@ -15,11 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.zone.event;
 
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import static org.junit.Assert.assertEquals;
 

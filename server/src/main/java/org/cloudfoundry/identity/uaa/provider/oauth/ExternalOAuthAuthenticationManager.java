@@ -140,15 +140,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
         try {
-            String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
-            Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
             String issuer = (String) claims.get(ClaimConstants.ISS);
             if (isEmpty(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
             //1. Check if issuer is registered provider
             try {
-                return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+                return retrieveRegisteredIdentityProviderByIssuer(issuer);
             } catch (IncorrectResultSizeDataAccessException x) {
                 logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
@@ -167,6 +166,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
+    private IdentityProvider retrieveRegisteredIdentityProviderByIssuer(String issuer) {
+        return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+    }
+
+    private Map<String, Object> parseClaimsFromIdTokenString(String idToken) {
+        String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
+        return JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+    }
+
     private boolean idTokenWasIssuedByTheUaa(String issuer) {
         return issuer.equals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
     }
@@ -174,6 +182,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private IdentityProvider buildInternalUaaIdpConfig(String issuer, String originKey) {
         OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
         uaaOidcProviderConfig.setIssuer(issuer);
+        Map<String, Object> userNameMapping = Collections.singletonMap(USER_NAME_ATTRIBUTE_NAME, USER_NAME_ATTRIBUTE_NAME);
+        uaaOidcProviderConfig.setAttributeMappings(userNameMapping);
         IdentityProvider<OIDCIdentityProviderDefinition> uaaIdp = new IdentityProvider<>();
         uaaIdp.setOriginKey(originKey);
         uaaIdp.setConfig(uaaOidcProviderConfig);
@@ -404,20 +414,41 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
 
         //we must check and see if the email address has changed between authentications
-            if (haveUserAttributesChanged(userFromDb, userFromRequest)) {
-                logger.debug("User attributed have changed, updating them.");
-                userFromDb = userFromDb.modifyAttributes(email,
-                                                         userFromRequest.getGivenName(),
-                                                         userFromRequest.getFamilyName(),
-                                                         userFromRequest.getPhoneNumber(),
-                                                         userFromDb.isVerified() || userFromRequest.isVerified())
-                    .modifyUsername(userFromRequest.getUsername());
-                userModified = true;
-            }
+        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication(request)) {
+            logger.debug("User attributed have changed, updating them.");
+            userFromDb = userFromDb.modifyAttributes(email,
+                                                     userFromRequest.getGivenName(),
+                                                     userFromRequest.getFamilyName(),
+                                                     userFromRequest.getPhoneNumber(),
+                                                     userFromRequest.getExternalId(),
+                                                     userFromDb.isVerified() || userFromRequest.isVerified())
+                .modifyUsername(userFromRequest.getUsername());
+            userModified = true;
+        }
 
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());
+    }
+
+    private boolean isRegisteredIdpAuthentication(Authentication request) {
+        String idToken = ((ExternalOAuthCodeToken) request).getIdToken();
+        if (idToken == null) {
+            return true;
+        }
+        Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
+        String issuer = (String) claims.get(ClaimConstants.ISS);
+        if (idTokenWasIssuedByTheUaa(issuer)) {
+            try {
+                // check if the UAA Identity Zone is registered as an external Idp of itself
+                retrieveRegisteredIdentityProviderByIssuer(issuer);
+                return true;
+            } catch (IncorrectResultSizeDataAccessException e) {
+                return false;
+            }
+        } else {
+            return true;
+        }
     }
 
     @Override

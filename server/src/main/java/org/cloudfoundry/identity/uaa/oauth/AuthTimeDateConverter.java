@@ -12,9 +12,9 @@ import java.util.Date;
  * http://openid.net/specs/openid-connect-core-1_0.html#IDToken
  */
 public class AuthTimeDateConverter {
-    public static Date authTimeToDate(Integer authTime) {
+    public static Date authTimeToDate(Long authTime) {
         if (null != authTime) {
-            return new Date(authTime.longValue() * 1000l);
+            return new Date(authTime * 1000l);
         }
         return null;
     }

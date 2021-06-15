@@ -177,7 +177,7 @@ public class ExternalOAuthAuthenticationManagerTest {
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
                 entry(AUD, "uaa-relying-party"),
-                entry(EXP, ((int) (System.currentTimeMillis()/1000L)) + 60),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
                 entry(SUB, "abc-def-asdf")
         );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
@@ -200,7 +200,7 @@ public class ExternalOAuthAuthenticationManagerTest {
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
                 entry(AUD, "uaa-relying-party"),
-                entry(EXP, ((int) (System.currentTimeMillis()/1000L)) + 60),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
                 entry(SUB, "abc-def-asdf")
         );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));

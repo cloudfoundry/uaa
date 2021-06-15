@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
@@ -73,7 +74,6 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -2585,7 +2585,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, Object> claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
         });
-        Integer expirationTime = (Integer) claims.get(ClaimConstants.EXP);
+        Integer expirationTime = (Integer) claims.get(ClaimConstants.EXPIRY_IN_SECONDS);
 
         Calendar nineYearsAhead = new GregorianCalendar();
         nineYearsAhead.setTimeInMillis(System.currentTimeMillis());
@@ -4142,7 +4142,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(userId, sub);
         List<String> aud = (List<String>) result.get(ClaimConstants.AUD);
         assertTrue(aud.contains(clientId));
-        Integer exp = (Integer) result.get(ClaimConstants.EXP);
+        Integer exp = (Integer) result.get(ClaimConstants.EXPIRY_IN_SECONDS);
         assertNotNull(exp);
         Integer iat = (Integer) result.get(ClaimConstants.IAT);
         assertNotNull(iat);

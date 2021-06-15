@@ -50,7 +50,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
@@ -83,6 +83,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
@@ -621,7 +622,7 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
@@ -635,7 +636,7 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(userToLockout, new UserAccountStatus())
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(content().string("{}"));
 
         attemptLogin(userToLockout)
@@ -663,7 +664,7 @@ class ScimUserEndpointsMockMvcTests {
         alteredAccountStatus.setLocked(false);
         updateAccountStatus(userToLockout, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         attemptLogin(userToLockout)
@@ -707,7 +708,7 @@ class ScimUserEndpointsMockMvcTests {
 
         updateAccountStatus(user, alteredAccountStatus)
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
                 .andExpect(content().string(JsonUtils.writeValueAsString(alteredAccountStatus)));
 
         assertTrue(usersRepository.checkPasswordChangeIndividuallyRequired(user.getId(), IdentityZoneHolder.get().getId()));

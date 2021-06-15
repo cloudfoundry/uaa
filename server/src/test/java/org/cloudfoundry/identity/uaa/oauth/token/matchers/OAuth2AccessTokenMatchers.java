@@ -61,7 +61,7 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
         return new OAuth2AccessTokenMatchers(ClaimConstants.SCOPE, scopes);
     }
 
-    public static Matcher<OAuth2AccessToken> audience(Matcher<Object> resourceIds) {
+    public static Matcher<OAuth2AccessToken> audience(Matcher<Iterable<? extends String>> resourceIds) {
         return new OAuth2AccessTokenMatchers(ClaimConstants.AUD, resourceIds);
     }
 
@@ -74,7 +74,7 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
     }
 
     public static Matcher<OAuth2AccessToken> expiry(Matcher<Integer> expiry) {
-        return new OAuth2AccessTokenMatchers(ClaimConstants.EXP, expiry);
+        return new OAuth2AccessTokenMatchers(ClaimConstants.EXPIRY_IN_SECONDS, expiry);
     }
 
     public static Matcher<OAuth2AccessToken> username(Matcher<Object> username) {
@@ -104,8 +104,8 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
             protected boolean matchesSafely(OAuth2AccessToken token) {
                 Map<String, Object> claims = getClaims(token);
                 assertTrue(((Integer) claims.get(ClaimConstants.IAT)) > 0);
-                assertTrue(((Integer) claims.get(ClaimConstants.EXP)) > 0);
-                return value.matches(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
+                assertTrue(((Integer) claims.get(ClaimConstants.EXPIRY_IN_SECONDS)) > 0);
+                return value.matches(((Integer) claims.get(ClaimConstants.EXPIRY_IN_SECONDS)) - ((Integer) claims.get(ClaimConstants.IAT)));
             }
 
             @Override
@@ -117,7 +117,7 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
             protected void describeMismatchSafely(OAuth2AccessToken accessToken, Description mismatchDescription) {
                 if (accessToken != null) {
                     Map<String, Object> claims = getClaims(accessToken);
-                    mismatchDescription.appendText(" but was ").appendValue(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
+                    mismatchDescription.appendText(" but was ").appendValue(((Integer) claims.get(ClaimConstants.EXPIRY_IN_SECONDS)) - ((Integer) claims.get(ClaimConstants.IAT)));
                 }
             }
         };
