@@ -22,14 +22,11 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.joda.time.DateTime;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -478,6 +475,94 @@ class UaaTokenServicesTests {
                 List<String> actualAmrs = (List<String>) claims.get(ClaimConstants.AMR);
                 assertThat(actualAmrs, containsInAnyOrder(amrs.toArray()));
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("when the client was created with refresh_token_validity specified")
+    @DefaultTestContext
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
+    @DirtiesContext
+    class WhenRefreshTokenValidityIsSpecified {
+        private RefreshTokenCreator refreshTokenCreator;
+        private RefreshTokenRequestData refreshTokenRequestData;
+        private UaaUser uaaUser;
+        private TokenRequest tokenRequest;
+
+        @Autowired
+        private TokenEndpointBuilder tokenEndpointBuilder;
+        @Autowired
+        private TimeService timeService;
+        @Autowired
+        private KeyInfoService keyInfoService;
+
+        @BeforeEach
+        void init() {
+            refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(),
+                    null,
+                    null
+            );
+            uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            tokenRequest = new TokenRequest(new HashMap<>(), "jku_test",
+                    Lists.newArrayList("openid", "user_attributes"),
+                    GRANT_TYPE_REFRESH_TOKEN);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = { 3600, 24*3600*15, Integer.MAX_VALUE })
+        void validExpClaim(int validitySeconds) {
+            RefreshTokenCreator refreshTokenCreator = createRefreshTokenCreator(
+                    validitySeconds);
+            CompositeExpiringOAuth2RefreshToken refreshToken =
+                    refreshTokenCreator.createRefreshToken(uaaUser,
+                            refreshTokenRequestData, null);
+            Assertions.assertNotNull(refreshToken);
+
+            OAuth2AccessToken accessToken = tokenServices.refreshAccessToken(
+                    refreshToken.getValue(), tokenRequest);
+            Assertions.assertNotNull(accessToken);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = { -3600, Integer.MIN_VALUE })
+        void invalidExpClaim(int validitySeconds) {
+            RefreshTokenCreator refreshTokenCreator = createRefreshTokenCreator(
+                    validitySeconds);
+            CompositeExpiringOAuth2RefreshToken refreshToken =
+                    refreshTokenCreator.createRefreshToken(uaaUser,
+                            refreshTokenRequestData, null);
+            Assertions.assertNotNull(refreshToken);
+
+            // Verifying with generic Exception instead of specific type because
+            // refreshAccessToken() throws an Exception of which type is
+            // different from the one that is declared in its method signature
+            Assertions.assertThrows(Exception.class, () ->
+                    tokenServices.refreshAccessToken(refreshToken.getValue(),
+                            tokenRequest));
+        }
+
+        private RefreshTokenCreator createRefreshTokenCreator(
+                int validitySeconds) {
+            TokenValidityResolver tokenValidityResolver =
+                    new TokenValidityResolver(
+                            new ClientTokenValidity() {
+                                public Integer getValiditySeconds(String clientId) {
+                                    return validitySeconds;
+                                }
+                                public Integer getZoneValiditySeconds() {
+                                    return 2592000;
+                                }
+                            }, 2592000, timeService);
+            return new RefreshTokenCreator(false, tokenValidityResolver,
+                    tokenEndpointBuilder, timeService, keyInfoService);
         }
     }
 
