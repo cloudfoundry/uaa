@@ -316,11 +316,6 @@ public class LoginInfoEndpoint {
                 allIdentityProviders.putAll(samlIdentityProviders);
                 allIdentityProviders.putAll(oauthIdentityProviders);
             }
-        } else if (!jsonResponse && (accountChooserNeeded || (discoveryEnabled && !discoveryPerformed))) {
-            // when `/login` is requested to return html response (as opposed to json response)
-            //Account Chooser and discovery do not need any IdP information
-            oauthIdentityProviders = Collections.emptyMap();
-            samlIdentityProviders = Collections.emptyMap();
         } else {
             samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
             oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
