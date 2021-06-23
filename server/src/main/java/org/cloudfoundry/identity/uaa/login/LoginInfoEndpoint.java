@@ -322,6 +322,11 @@ public class LoginInfoEndpoint {
                 allIdentityProviders.putAll(samlIdentityProviders);
                 allIdentityProviders.putAll(oauthIdentityProviders);
             }
+        } else if (!jsonResponse && (accountChooserNeeded || (accountChooserEnabled && !discoveryEnabled && !discoveryPerformed))) {
+            // when `/login` is requested to return html response (as opposed to json response)
+            //Account and origin chooser do not need idp information
+            oauthIdentityProviders = Collections.emptyMap();
+            samlIdentityProviders = Collections.emptyMap();
         } else {
             samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
             oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
@@ -422,17 +427,14 @@ public class LoginInfoEndpoint {
         if (hasText(formRedirectUri)) {
             model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
         }
+        if (accountChooserNeeded) {
+            return "idp_discovery/account_chooser";
+        }
         if (discoveryEnabled) {
-            if (accountChooserNeeded) {
-                return "idp_discovery/account_chooser";
-            }
             if (!discoveryPerformed) {
                 return "idp_discovery/email";
             }
             return goToPasswordPage(request.getParameter("email"), model);
-        }
-        if (accountChooserNeeded) {
-            return "idp_discovery/account_chooser";
         }
         if (accountChooserEnabled) {
             if (model.containsAttribute("login_hint")) {
