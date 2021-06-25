@@ -100,6 +100,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -1220,6 +1221,8 @@ class LoginInfoEndpointTests {
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
         assertEquals("idp_discovery/account_chooser", redirect);
+        verify(mockIdentityProviderProvisioning, times(0)).retrieveAll(eq(true), anyString());
+        verify(mockSamlIdentityProviderConfigurator, times(0)).getIdentityProviderDefinitions(any(), any());
     }
 
     @Test
@@ -1619,6 +1622,8 @@ class LoginInfoEndpointTests {
         String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
 
         assertEquals("idp_discovery/origin", redirect);
+        verify(mockIdentityProviderProvisioning, times(0)).retrieveAll(eq(true), anyString());
+        verify(mockSamlIdentityProviderConfigurator, times(0)).getIdentityProviderDefinitions(any(), any());
     }
 
     @Test
