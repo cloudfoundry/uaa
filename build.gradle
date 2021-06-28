@@ -180,6 +180,11 @@ cargo {
         if (System.getProperty("spring.profiles.active", "").split(',').contains("debug")) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
+        else if (Boolean.valueOf(System.getProperty("xdebug"))) {
+            jvmArgs = String.format("%s -Xdebug " +
+                    "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 " +
+                    "-Xnoagent -Djava.compiler=NONE", jvmArgs)
+        }
 
         outputFile = file("uaa/build/reports/tests/uaa-server.log")
         configFile {
