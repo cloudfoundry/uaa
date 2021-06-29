@@ -125,6 +125,7 @@ public class OauthIDPWrapperFactoryBean {
                 idpDefinition.setAuthUrl(new URL((String) idpDefinitionMap.get("authUrl")));
                 idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
                 idpDefinition.setTokenUrl(new URL((String) idpDefinitionMap.get("tokenUrl")));
+                idpDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
             }
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL is malformed.", e);
