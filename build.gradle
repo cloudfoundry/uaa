@@ -170,7 +170,7 @@ cargo {
 
     local {
         configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
-        startStopTimeout = System.getProperty("startStopTimeout", "540000")
+        startStopTimeout = Integer.parseInt(System.getProperty("startStopTimeout", "540000"))
         rmiPort = applicationPort + 10
 
         jvmArgs = ""
