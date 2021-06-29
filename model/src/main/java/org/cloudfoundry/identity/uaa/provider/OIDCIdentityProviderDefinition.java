@@ -24,21 +24,11 @@ import java.util.Objects;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
-    private URL userInfoUrl;
     private URL discoveryUrl;
     private boolean passwordGrantEnabled = false;
     private boolean setForwardHeader = false;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
-
-    public URL getUserInfoUrl() {
-        return userInfoUrl;
-    }
-
-    public OIDCIdentityProviderDefinition setUserInfoUrl(URL userInfoUrl) {
-        this.userInfoUrl = userInfoUrl;
-        return this;
-    }
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -85,7 +75,6 @@ implements Cloneable {
 
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
-        if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         if (this.setForwardHeader != that.setForwardHeader) return false;
         return Objects.equals(discoveryUrl, that.discoveryUrl);
@@ -95,7 +84,6 @@ implements Cloneable {
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         result = 31 * result + (setForwardHeader ? 1 : 0);
