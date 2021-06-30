@@ -95,7 +95,7 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
-    testImplementation('com.google.guava:guava-testlib:30.1.1-jre')
+    testImplementation(libraries.guavaTestLib)
 }
 
 configurations.all {
