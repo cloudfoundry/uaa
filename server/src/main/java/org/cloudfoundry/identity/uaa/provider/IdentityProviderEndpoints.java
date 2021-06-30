@@ -127,7 +127,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (Exception x) {
-            logger.debug("Unable to create IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"]", x);
+            logger.error("Unable to create IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"]", x);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
     }
@@ -139,6 +139,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         if (publisher!=null && existing!=null) {
             existing.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication(), identityZoneManager.getCurrentIdentityZoneId()));
+            redactSensitiveData(existing);
             return new ResponseEntity<>(existing, OK);
         } else {
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
@@ -240,7 +241,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             status = BAD_REQUEST;
             exception = getExceptionString(x);
         } catch (Exception x) {
-            logger.debug("Identity provider validation failed.", x);
+            logger.error("Identity provider validation failed.", x);
             status = INTERNAL_SERVER_ERROR;
             exception = "check server logs";
         }finally {

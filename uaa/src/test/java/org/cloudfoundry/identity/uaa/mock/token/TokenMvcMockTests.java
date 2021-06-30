@@ -2585,7 +2585,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, Object> claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
         });
-        Integer expirationTime = (Integer) claims.get(ClaimConstants.EXP);
+        Integer expirationTime = (Integer) claims.get(ClaimConstants.EXPIRY_IN_SECONDS);
 
         Calendar nineYearsAhead = new GregorianCalendar();
         nineYearsAhead.setTimeInMillis(System.currentTimeMillis());
@@ -4142,7 +4142,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(userId, sub);
         List<String> aud = (List<String>) result.get(ClaimConstants.AUD);
         assertTrue(aud.contains(clientId));
-        Integer exp = (Integer) result.get(ClaimConstants.EXP);
+        Integer exp = (Integer) result.get(ClaimConstants.EXPIRY_IN_SECONDS);
         assertNotNull(exp);
         Integer iat = (Integer) result.get(ClaimConstants.IAT);
         assertNotNull(iat);

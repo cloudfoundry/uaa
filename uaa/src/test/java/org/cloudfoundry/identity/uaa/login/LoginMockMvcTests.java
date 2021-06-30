@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -38,6 +37,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
@@ -82,6 +82,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -97,6 +98,8 @@ import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -104,6 +107,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoog
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
+import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -220,6 +224,112 @@ public class LoginMockMvcTests {
 
     private void resetUaaZoneConfigToDefault(IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws InvalidIdentityZoneDetailsException {
         identityZoneConfigurationBootstrap.afterPropertiesSet();
+    }
+
+    private static MockHttpSession configure_UAA_for_idp_discovery(
+            WebApplicationContext webApplicationContext,
+            JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
+            RandomValueStringGenerator generator,
+            String originKey,
+            IdentityZone zone, List<String> allowedProviders) {
+
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
+                .setMetaDataLocation(metadata)
+                .setIdpEntityAlias(originKey)
+                .setLinkText("Active SAML Provider")
+                .setZoneId(zone.getId())
+                .setEmailDomain(Collections.singletonList("test.org"));
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
+        identityProvider.setType(SAML);
+        identityProvider.setConfig(config);
+        createIdentityProvider(jdbcIdentityProviderProvisioning, zone, identityProvider);
+
+        identityProvider = MultitenancyFixture.identityProvider(LDAP, zone.getId());
+        identityProvider.setType(LDAP);
+        identityProvider.setConfig(new LdapIdentityProviderDefinition().setEmailDomain(Collections.singletonList("testLdap.org")));
+        createIdentityProvider(jdbcIdentityProviderProvisioning, zone, identityProvider);
+
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, allowedProviders);
+
+        MockMvcUtils.createClient(webApplicationContext, client, zone);
+        SavedRequest savedRequest = getSavedRequest(client);
+
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, savedRequest);
+        return session;
+    }
+
+    private void expect_idp_discovery(
+            JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            JdbcIdentityZoneProvisioning identityZoneProvisioning,
+            List<String> allowedProviders
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        String originKey = "fake-origin-key";
+        allowedProviders.add(originKey);
+
+        MockHttpSession session = configure_UAA_for_idp_discovery(webApplicationContext, identityProviderProvisioning, generator, originKey, zone, allowedProviders);
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/email"))
+                .andExpect(xpath("//input[@name='email']").exists());
+    }
+
+    @Test
+    void access_discovery_when_expected(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+
+        List<List<String>> allowedProvidersPermutations = new ArrayList<>();
+        allowedProvidersPermutations.add(new ArrayList<>(asList(UAA, LDAP, SAML))); // Model should not contain a login hint if we allow both UAA and LDAP
+        allowedProvidersPermutations.add(new ArrayList<>(asList(UAA, LDAP      ))); // Model should not contain a login hint if we allow both UAA and LDAP
+        allowedProvidersPermutations.add(new ArrayList<>(asList(UAA,       SAML))); // Model should contain a login hint if we exclude LDAP from allowed providers
+        allowedProvidersPermutations.add(new ArrayList<>(asList(     LDAP, SAML))); // Model should contain a login hint if we exclude UAA from allowed providers
+
+        allowedProvidersPermutations.add(new ArrayList<>(singletonList(UAA)));  // Model should contain a login hint if we exclude LDAP from allowed providers
+        allowedProvidersPermutations.add(new ArrayList<>(singletonList(LDAP))); // Model should contain a login hint if we exclude UAA from allowed providers
+
+        for (List<String> allowedProviders : allowedProvidersPermutations) {
+            expect_idp_discovery(identityProviderProvisioning, identityZoneProvisioning, allowedProviders);
+        }
+    }
+
+    @Test
+    void redirect_when_only_saml_allowed(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+        String originKey = "fake-origin-key";
+
+        MockHttpSession session = configure_UAA_for_idp_discovery(
+                webApplicationContext,
+                identityProviderProvisioning,
+                generator,
+                originKey,
+                zone,
+                new ArrayList<>(asList(originKey, SAML)));
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test
@@ -1239,7 +1349,7 @@ public class LoginMockMvcTests {
                 .setShowSamlLink(true)
                 .setZoneId(identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
+        activeIdentityProvider.setType(SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
         activeIdentityProvider.setActive(true);
@@ -1253,7 +1363,7 @@ public class LoginMockMvcTests {
                 .setLinkText("You should not see me")
                 .setZoneId(identityZone.getId());
         IdentityProvider inactiveIdentityProvider = new IdentityProvider();
-        inactiveIdentityProvider.setType(OriginKeys.SAML);
+        inactiveIdentityProvider.setType(SAML);
         inactiveIdentityProvider.setName("Inactive SAML Provider");
         inactiveIdentityProvider.setConfig(inactiveSamlIdentityProviderDefinition);
         inactiveIdentityProvider.setActive(false);
@@ -1285,7 +1395,7 @@ public class LoginMockMvcTests {
                 .setLinkText("Active SAML Provider")
                 .setZoneId(identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
+        activeIdentityProvider.setType(SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setActive(true);
         activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
@@ -1349,7 +1459,7 @@ public class LoginMockMvcTests {
                 .setLinkText("Active SAML Provider")
                 .setZoneId(identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
+        activeIdentityProvider.setType(SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setActive(true);
         activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
@@ -1568,7 +1678,7 @@ public class LoginMockMvcTests {
                 .setLinkText("Active SAML Provider")
                 .setZoneId(identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(OriginKeys.SAML);
+        activeIdentityProvider.setType(SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setActive(true);
         activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
@@ -1622,7 +1732,7 @@ public class LoginMockMvcTests {
                 .setLinkText("Active3 SAML Provider")
                 .setZoneId(identityZone.getId());
         IdentityProvider activeIdentityProvider3 = new IdentityProvider();
-        activeIdentityProvider3.setType(OriginKeys.SAML);
+        activeIdentityProvider3.setType(SAML);
         activeIdentityProvider3.setName("Active 3 SAML Provider");
         activeIdentityProvider3.setActive(true);
         activeIdentityProvider3.setConfig(activeSamlIdentityProviderDefinition3);
@@ -1635,7 +1745,7 @@ public class LoginMockMvcTests {
                 .setLinkText("Active2 SAML Provider")
                 .setZoneId(identityZone.getId());
         IdentityProvider activeIdentityProvider2 = new IdentityProvider();
-        activeIdentityProvider2.setType(OriginKeys.SAML);
+        activeIdentityProvider2.setType(SAML);
         activeIdentityProvider2.setName("Active 2 SAML Provider");
         activeIdentityProvider2.setActive(true);
         activeIdentityProvider2.setConfig(activeSamlIdentityProviderDefinition2);
@@ -1720,7 +1830,7 @@ public class LoginMockMvcTests {
                 .setShowSamlLink(true)
                 .setZoneId(identityZone.getId());
         IdentityProvider identityProvider = new IdentityProvider();
-        identityProvider.setType(OriginKeys.SAML);
+        identityProvider.setType(SAML);
         identityProvider.setName("SAML Provider");
         identityProvider.setActive(true);
         identityProvider.setConfig(samlIdentityProviderDefinition);
@@ -1923,7 +2033,7 @@ public class LoginMockMvcTests {
         Map<String, String> codeData = new HashMap();
         codeData.put("user_id", ((UaaPrincipal) marissaContext.getAuthentication().getPrincipal()).getId());
         codeData.put("email", ((UaaPrincipal) marissaContext.getAuthentication().getPrincipal()).getEmail());
-        codeData.put("origin", OriginKeys.UAA);
+        codeData.put("origin", UAA);
 
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 1000 * 60), null, IdentityZoneHolder.get().getId());
 
@@ -2637,7 +2747,7 @@ public class LoginMockMvcTests {
             .setEmailDomain(Collections.singletonList("test.org"));
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
-        identityProvider.setType(OriginKeys.SAML);
+        identityProvider.setType(SAML);
         identityProvider.setConfig(config);
         createIdentityProvider(jdbcIdentityProviderProvisioning, zone, identityProvider);
 
@@ -2815,7 +2925,7 @@ public class LoginMockMvcTests {
         }
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
-        identityProvider.setType(OriginKeys.OIDC10);
+        identityProvider.setType(OIDC10);
         identityProvider.setConfig(definition);
         createIdentityProvider(jdbcIdentityProviderProvisioning, zone, identityProvider);
         return originKey;

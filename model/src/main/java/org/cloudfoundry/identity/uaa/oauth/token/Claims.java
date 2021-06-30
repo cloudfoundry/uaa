@@ -41,7 +41,7 @@ public class Claims {
     private String email;
     @JsonProperty(ClaimConstants.CLIENT_ID)
     private String clientId;
-    @JsonProperty(ClaimConstants.EXP)
+    @JsonProperty(ClaimConstants.EXPIRY_IN_SECONDS)
     private Long exp;
     @JsonProperty(ClaimConstants.AUTHORITIES)
     private List<String> authorities;

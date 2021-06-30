@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.util.Date;
@@ -28,7 +27,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
@@ -95,7 +94,7 @@ public class IdTokenCreator {
             getIfNotExcluded(uaaUser.getId(), USER_ID),
             getIfNotExcluded(newArrayList(clientDetails.getClientId()), AUD),
             getIfNotExcluded(issuerUrl, ISS),
-            getIfNotExcluded(expiryDate, EXP),
+            getIfNotExcluded(expiryDate, EXPIRY_IN_SECONDS),
             getIfNotExcluded(issuedAt, IAT),
             getIfNotExcluded(userAuthenticationData.authTime, AUTH_TIME),
             getIfNotExcluded(userAuthenticationData.authenticationMethods, AMR),
