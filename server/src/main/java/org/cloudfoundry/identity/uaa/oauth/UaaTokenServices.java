@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -265,7 +266,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
-        UaaUser user = userDatabase.retrieveUserById(userId);
+        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(userId));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
@@ -823,7 +824,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Authentication userAuthentication = null;
         // Is this a user token - minimum info is user_id
         if (claims.containsKey(USER_ID)) {
-            UaaUser user = userDatabase.retrieveUserById((String)claims.get(USER_ID));
+            UaaUserPrototype user = userDatabase.retrieveUserPrototypeById((String)claims.get(USER_ID));
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
         } else {
