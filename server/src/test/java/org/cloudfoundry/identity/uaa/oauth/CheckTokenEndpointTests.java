@@ -49,6 +49,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.stubbing.Answer;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.GrantedAuthority;
@@ -83,6 +84,7 @@ import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -259,6 +261,16 @@ public class CheckTokenEndpointTests {
                 String id = (String) invocation.getArguments()[0];
                 return tokenMap.get(id);
             });
+            doAnswer((Answer<Void>) invocation -> {
+                RevocableToken arg = (RevocableToken)invocation.getArguments()[1];
+                tokenMap.put(arg.getTokenId(), arg);
+                return null;
+            }).when(tokenProvisioning).upsert(anyString(), any(), anyString());
+            doAnswer((Answer<Void>) invocation -> {
+                RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
+                tokenMap.put(arg.getTokenId(), arg);
+                return null;
+            }).when(tokenProvisioning).createIfNotExists(any(), anyString());
 
 
             requestParameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());

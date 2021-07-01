@@ -26,7 +26,10 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private final static String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
     private final static String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
     private final static String TABLE = "revocable_tokens";
+    private static final String SELECT = "SELECT ";
+    private static final String FROM = " FROM ";
     private final static String GET_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
+    private final static String GET_COUNT_QUERY = "SELECT COUNT(*) FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
     private final static String GET_BY_USER_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE user_id=? AND identity_zone_id=?";
     private final static String GET_BY_CLIENT_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE client_id=? AND identity_zone_id=?";
     private final static String UPDATE_QUERY = "UPDATE " + TABLE + " SET " + UPDATE_FIELDS + " WHERE token_id=? and identity_zone_id=?";
@@ -61,6 +64,14 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return null;
     }
 
+    private boolean exists(String id, boolean checkExpired, String zoneId) {
+        if (checkExpired) {
+            checkExpired();
+        }
+        Integer idResults = template.queryForObject(GET_COUNT_QUERY, Integer.class, id, zoneId);
+        return idResults != null && idResults == 1;
+    }
+
     public RevocableToken retrieve(String id, boolean checkExpired, String zoneId) {
         if (checkExpired) {
             checkExpired();
@@ -81,6 +92,23 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     @Override
     public int deleteRefreshTokensForClientAndUserId(String clientId, String userId, String zoneId) {
         return template.update(DELETE_REFRESH_TOKEN_QUERY, userId, clientId, zoneId);
+    }
+
+    public void createIfNotExists(RevocableToken t, String zoneId) {
+        if (exists(t.getTokenId(), true, zoneId)) {
+            return;
+        }
+        template.update(INSERT_QUERY,
+                t.getTokenId(),
+                t.getClientId(),
+                t.getUserId(),
+                t.getFormat(),
+                t.getResponseType().toString(),
+                t.getIssuedAt(),
+                t.getExpiresAt(),
+                t.getScope(),
+                t.getValue(),
+                zoneId);
     }
 
     @Override
@@ -114,6 +142,34 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
                 id,
                 zoneId);
         return retrieve(id, false, zoneId);
+    }
+
+    public void upsert(String id, RevocableToken t, String zoneId) {
+        if (exists(t.getTokenId(), true, zoneId)) {
+            template.update(UPDATE_QUERY, // NOSONAR
+                    t.getClientId(),
+                    t.getUserId(),
+                    t.getFormat(),
+                    t.getResponseType().toString(),
+                    t.getIssuedAt(),
+                    t.getExpiresAt(),
+                    t.getScope(),
+                    t.getValue(),
+                    id,
+                    zoneId);
+        } else {
+            template.update(INSERT_QUERY,
+                    t.getTokenId(),
+                    t.getClientId(),
+                    t.getUserId(),
+                    t.getFormat(),
+                    t.getResponseType().toString(),
+                    t.getIssuedAt(),
+                    t.getExpiresAt(),
+                    t.getScope(),
+                    t.getValue(),
+                    zoneId);
+        }
     }
 
     @Override
