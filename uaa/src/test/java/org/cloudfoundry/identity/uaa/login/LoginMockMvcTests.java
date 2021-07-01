@@ -2411,6 +2411,84 @@ public class LoginMockMvcTests {
     }
 
     @Test
+    void accountChooserWithoutDiscovery(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(false);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        MockHttpSession session = new MockHttpSession();
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/origin"));
+    }
+
+    @Test
+    void accountChooserWithoutDiscovery_loginWithProvidedLoginHint(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning, @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(false);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        String originKey = createOIDCProvider(jdbcIdentityProviderProvisioning, generator, zone, "id_token code");
+        String loginHint = "%7B%22origin%22%3A%22"+originKey+"%22%7D";
+
+        MvcResult mvcResult = mockMvc.perform(post("/origin-chooser")
+                .with(cookieCsrf())
+                .header("Accept", TEXT_HTML)
+                .servletPath("/origin-chooser")
+                .param("login_hint", originKey)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("/login"));
+        assertThat(queryParams, hasEntry("login_hint", loginHint));
+        assertThat(queryParams, hasEntry("discoveryPerformed", "true"));
+    }
+
+    @Test
+    void accountChooserWithoutDiscovery_noDefaultReturnsLoginPage(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning, @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(false);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        createOIDCProvider(jdbcIdentityProviderProvisioning, generator, zone, "id_token code");
+
+        MvcResult mvcResult = mockMvc.perform(post("/origin-chooser")
+                .with(cookieCsrf())
+                .header("Accept", TEXT_HTML)
+                .servletPath("/origin-chooser")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("/login"));
+        assertThat(queryParams, not(hasKey("login_hint")));
+        assertThat(queryParams, hasEntry("discoveryPerformed", "true"));
+    }
+
+    @Test
     void emailPageIdpDiscoveryEnabled_SelfServiceLinksDisabled(
             @Autowired IdentityZoneProvisioning identityZoneProvisioning
     ) throws Exception {
