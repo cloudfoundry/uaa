@@ -300,11 +300,36 @@ public class LoginMockMvcTests {
 
         allowedProvidersPermutations.add(new ArrayList<>(singletonList(UAA)));  // Model should contain a login hint if we exclude LDAP from allowed providers
         allowedProvidersPermutations.add(new ArrayList<>(singletonList(LDAP))); // Model should contain a login hint if we exclude UAA from allowed providers
-        allowedProvidersPermutations.add(new ArrayList<>(singletonList(SAML))); // Model should not contain a login hint if we exclude both UAA and LDAP
 
         for (List<String> allowedProviders : allowedProvidersPermutations) {
             expect_idp_discovery(identityProviderProvisioning, identityZoneProvisioning, allowedProviders);
         }
+    }
+
+    @Test
+    void redirect_when_only_saml_allowed(
+            @Autowired JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            @Autowired JdbcIdentityZoneProvisioning identityZoneProvisioning) throws Exception {
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+        String originKey = "fake-origin-key";
+
+        MockHttpSession session = configure_UAA_for_idp_discovery(
+                webApplicationContext,
+                identityProviderProvisioning,
+                generator,
+                originKey,
+                zone,
+                new ArrayList<>(asList(originKey, SAML)));
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().is3xxRedirection());
     }
 
     @Test
@@ -2383,6 +2408,84 @@ public class LoginMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/account_chooser"));
+    }
+
+    @Test
+    void accountChooserWithoutDiscovery(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(false);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        MockHttpSession session = new MockHttpSession();
+
+        mockMvc.perform(get("/login")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/origin"));
+    }
+
+    @Test
+    void accountChooserWithoutDiscovery_loginWithProvidedLoginHint(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning, @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(false);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        String originKey = createOIDCProvider(jdbcIdentityProviderProvisioning, generator, zone, "id_token code");
+        String loginHint = "%7B%22origin%22%3A%22"+originKey+"%22%7D";
+
+        MvcResult mvcResult = mockMvc.perform(post("/origin-chooser")
+                .with(cookieCsrf())
+                .header("Accept", TEXT_HTML)
+                .servletPath("/origin-chooser")
+                .param("login_hint", originKey)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("/login"));
+        assertThat(queryParams, hasEntry("login_hint", loginHint));
+        assertThat(queryParams, hasEntry("discoveryPerformed", "true"));
+    }
+
+    @Test
+    void accountChooserWithoutDiscovery_noDefaultReturnsLoginPage(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning, @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(false);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        createOIDCProvider(jdbcIdentityProviderProvisioning, generator, zone, "id_token code");
+
+        MvcResult mvcResult = mockMvc.perform(post("/origin-chooser")
+                .with(cookieCsrf())
+                .header("Accept", TEXT_HTML)
+                .servletPath("/origin-chooser")
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isFound())
+                .andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Map<String, String> queryParams =
+                UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
+
+        assertThat(location, startsWith("/login"));
+        assertThat(queryParams, not(hasKey("login_hint")));
+        assertThat(queryParams, hasEntry("discoveryPerformed", "true"));
     }
 
     @Test

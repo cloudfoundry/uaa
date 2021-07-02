@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
@@ -358,10 +359,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
             }
         } catch (UsernameNotFoundException e) {
-            UaaUser uaaUser = userDatabase.retrieveUserByEmail(userWithSamlAttributes.getEmail(), samlPrincipal.getOrigin());
+            UaaUserPrototype uaaUser = userDatabase.retrieveUserPrototypeByEmail(userWithSamlAttributes.getEmail(), samlPrincipal.getOrigin());
             if (uaaUser != null) {
                 userModified = true;
-                user = uaaUser.modifyUsername(samlPrincipal.getName());
+                user = new UaaUser(uaaUser.withUsername(samlPrincipal.getName()));
             } else {
                 if (!addNew) {
                     throw new LoginSAMLException("SAML user does not exist. "
@@ -369,7 +370,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 }
                 publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
                 try {
-                    user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
+                    user = new UaaUser(userDatabase.retrieveUserPrototypeByName(samlPrincipal.getName(), samlPrincipal.getOrigin()));
                 } catch (UsernameNotFoundException ex) {
                     throw new BadCredentialsException("Unable to establish shadow user for SAML user:" + samlPrincipal.getName());
                 }

@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -48,6 +49,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.stubbing.Answer;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.GrantedAuthority;
@@ -82,6 +84,7 @@ import static org.mockito.AdditionalMatchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
@@ -103,6 +106,7 @@ public class CheckTokenEndpointTests {
     private boolean useOpaque;
 
     private AuthorizationRequest authorizationRequest = null;
+    private UaaUserPrototype uaaUserPrototype;
     private UaaUser user;
     private BaseClientDetails defaultClient;
     private Map<String, BaseClientDetails> clientDetailsStore;
@@ -241,6 +245,7 @@ public class CheckTokenEndpointTests {
                 IdentityZoneHolder.get().getId(),
                 "salt",
                 new Date(nowMillis - 2000));
+        uaaUserPrototype = new UaaUserPrototype(user).withAuthorities(null);
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client", "scim")));
         Map<String, String> requestParameters = new HashMap<>();
@@ -256,6 +261,16 @@ public class CheckTokenEndpointTests {
                 String id = (String) invocation.getArguments()[0];
                 return tokenMap.get(id);
             });
+            doAnswer((Answer<Void>) invocation -> {
+                RevocableToken arg = (RevocableToken)invocation.getArguments()[1];
+                tokenMap.put(arg.getTokenId(), arg);
+                return null;
+            }).when(tokenProvisioning).upsert(anyString(), any(), anyString());
+            doAnswer((Answer<Void>) invocation -> {
+                RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
+                tokenMap.put(arg.getTokenId(), arg);
+                return null;
+            }).when(tokenProvisioning).createIfNotExists(any(), anyString());
 
 
             requestParameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
@@ -335,6 +350,8 @@ public class CheckTokenEndpointTests {
         reset(userDatabase);
         when(userDatabase.retrieveUserById(eq(userId))).thenReturn(user);
         when(userDatabase.retrieveUserById(not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
+        when(userDatabase.retrieveUserPrototypeById(eq(userId))).thenReturn(uaaUserPrototype);
+        when(userDatabase.retrieveUserPrototypeById(not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
     }
 
     @Test

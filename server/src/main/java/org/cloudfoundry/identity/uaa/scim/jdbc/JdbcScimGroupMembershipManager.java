@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -45,6 +44,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     private static final String GET_MEMBERS_SQL = String.format("select %s from %s where group_id=? and identity_zone_id=?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
     private static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
+
+    private static final String GET_MEMBER_COUNT_SQL = String.format("select count(*) from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
     private static final String DELETE_MEMBER_WITH_ORIGIN_SQL = String.format("delete from %s where member_id=? and origin = ? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
@@ -143,21 +144,20 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         // first validate the supplied groupId, memberId
         validateRequest(groupId, member, zoneId);
         final String type = (member.getType() == null ? ScimGroupMember.Type.USER : member.getType()).toString();
-        try {
-            logger.debug("Associating group:" + groupId + " with member:" + member);
-            jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
-                ps.setString(1, groupId);
-                ps.setString(2, member.getMemberId());
-                ps.setString(3, type);
-                ps.setNull(4, Types.VARCHAR);
-                ps.setTimestamp(5, new Timestamp(new Date().getTime()));
-                ps.setString(6, member.getOrigin());
-                ps.setString(7, zoneId);
-            });
-        } catch (DuplicateKeyException e) {
+        if (exists(groupId, member.getMemberId(), zoneId)) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
         }
-        return getMemberById(groupId, member.getMemberId(), zoneId);
+        logger.debug("Associating group:" + groupId + " with member:" + member);
+        jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
+            ps.setString(1, groupId);
+            ps.setString(2, member.getMemberId());
+            ps.setString(3, type);
+            ps.setNull(4, Types.VARCHAR);
+            ps.setTimestamp(5, new Timestamp(new Date().getTime()));
+            ps.setString(6, member.getOrigin());
+            ps.setString(7, zoneId);
+        });
+        return getMemberById(groupId, member, ScimGroupMember.Type.valueOf(type));
     }
 
     @Override
@@ -261,6 +261,17 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         } catch (EmptyResultDataAccessException e) {
             throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
         }
+    }
+
+    private ScimGroupMember getMemberById(String groupId, ScimGroupMember member, ScimGroupMember.Type type) {
+        ScimGroupMember sgm = new ScimGroupMember(member.getMemberId(), type);
+        sgm.setOrigin(member.getOrigin());
+        return sgm;
+    }
+
+    private boolean exists(String groupId, String memberId, String zoneId) {
+        Integer idResults = jdbcTemplate.queryForObject(GET_MEMBER_COUNT_SQL, Integer.class, memberId, groupId, zoneId);
+        return idResults != null && idResults == 1;
     }
 
     @Override

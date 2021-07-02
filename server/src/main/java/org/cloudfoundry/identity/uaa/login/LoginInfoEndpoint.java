@@ -70,6 +70,7 @@ import javax.servlet.http.HttpSession;
 import java.awt.*;
 import java.io.IOException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
@@ -278,12 +279,17 @@ public class LoginInfoEndpoint {
         boolean discoveryEnabled = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled();
         boolean discoveryPerformed = Boolean.parseBoolean(request.getParameter("discoveryPerformed"));
         String defaultIdentityProviderName = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
+        if (defaultIdentityProviderName != null) {
+            model.addAttribute("defaultIdpName", defaultIdentityProviderName);
+        }
         boolean accountChooserEnabled = IdentityZoneHolder.get().getConfig().isAccountChooserEnabled();
         boolean otherAccountSignIn = Boolean.parseBoolean(request.getParameter("otherAccountSignIn"));
         boolean savedAccountsEmpty = getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty();
         boolean accountChooserNeeded = accountChooserEnabled
                 && !(otherAccountSignIn || savedAccountsEmpty)
                 && !discoveryPerformed;
+        boolean newLoginPageEnabled = accountChooserEnabled || discoveryEnabled;
+
 
         String loginHintParam = extractLoginHintParam(session, request);
         UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHintParam);
@@ -316,9 +322,9 @@ public class LoginInfoEndpoint {
                 allIdentityProviders.putAll(samlIdentityProviders);
                 allIdentityProviders.putAll(oauthIdentityProviders);
             }
-        } else if (!jsonResponse && (accountChooserNeeded || (discoveryEnabled && !discoveryPerformed))) {
+        } else if (!jsonResponse && (accountChooserNeeded || (accountChooserEnabled && !discoveryEnabled && !discoveryPerformed))) {
             // when `/login` is requested to return html response (as opposed to json response)
-            //Account Chooser and discovery do not need any IdP information
+            //Account and origin chooser do not need idp information
             oauthIdentityProviders = Collections.emptyMap();
             samlIdentityProviders = Collections.emptyMap();
         } else {
@@ -359,7 +365,7 @@ public class LoginInfoEndpoint {
                 oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, loginHintParam, uaaLoginHint, loginHintProviders);
 
         idpForRedirect = evaluateIdpDiscovery(model, samlIdentityProviders, oauthIdentityProviders,
-                allIdentityProviders, allowedIdentityProviderKeys, idpForRedirect, discoveryEnabled, discoveryPerformed, defaultIdentityProviderName);
+                allIdentityProviders, allowedIdentityProviderKeys, idpForRedirect, discoveryPerformed, newLoginPageEnabled, defaultIdentityProviderName);
         if (idpForRedirect == null && !jsonResponse && !fieldUsernameShow && allIdentityProviders.size() == 1) {
             idpForRedirect = allIdentityProviders.entrySet().stream().findAny().get();
         }
@@ -404,7 +410,7 @@ public class LoginInfoEndpoint {
                 excludedPrompts, returnLoginPrompts);
 
         if (principal == null) {
-            return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed, accountChooserNeeded);
+            return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed, accountChooserNeeded ,accountChooserEnabled);
         }
         return "home";
     }
@@ -414,21 +420,33 @@ public class LoginInfoEndpoint {
             HttpServletRequest request,
             boolean discoveryEnabled,
             boolean discoveryPerformed,
-            boolean accountChooserNeeded
+            boolean accountChooserNeeded,
+            boolean accountChooserEnabled
     ) {
         String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
         if (hasText(formRedirectUri)) {
             model.addAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER, formRedirectUri);
         }
-
+        if (accountChooserNeeded) {
+            return "idp_discovery/account_chooser";
+        }
         if (discoveryEnabled) {
-            if (accountChooserNeeded) {
-                return "idp_discovery/account_chooser";
-            }
             if (!discoveryPerformed) {
                 return "idp_discovery/email";
             }
             return goToPasswordPage(request.getParameter("email"), model);
+        }
+        if (accountChooserEnabled) {
+            if (model.containsAttribute("login_hint")) {
+                return goToPasswordPage(request.getParameter("email"), model);
+            }
+            if (model.containsAttribute("error")) {
+                return "idp_discovery/account_chooser";
+            }
+            if (discoveryPerformed) {
+                return goToPasswordPage(request.getParameter("email"), model);
+            }
+            return "idp_discovery/origin";
         }
         return "login";
     }
@@ -490,11 +508,11 @@ public class LoginInfoEndpoint {
             Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
             List<String> allowedIdentityProviderKeys,
             Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect,
-            boolean discoveryEnabled,
             boolean discoveryPerformed,
+            boolean newLoginPageEnabled,
             String defaultIdentityProviderName
     ) {
-        if (idpForRedirect == null && (discoveryPerformed || !discoveryEnabled) && defaultIdentityProviderName != null && !model.containsAttribute("login_hint")) { //Default set, no login_hint given, discovery disabled or performed
+        if (idpForRedirect == null && (discoveryPerformed || !newLoginPageEnabled) && defaultIdentityProviderName != null && !model.containsAttribute("login_hint") && !model.containsAttribute("error")) { //Default set, no login_hint given, no error, discovery performed
             if (!OriginKeys.UAA.equals(defaultIdentityProviderName) && !OriginKeys.LDAP.equals(defaultIdentityProviderName)) {
                 if (allIdentityProviders.containsKey(defaultIdentityProviderName)) {
                     idpForRedirect =
@@ -763,6 +781,16 @@ public class LoginInfoEndpoint {
         }
         return null;
     }
+
+    @RequestMapping(value = "/origin-chooser", method = RequestMethod.POST)
+    public String loginUsingOrigin(@RequestParam(required = false, name = "login_hint") String loginHint, Model model, HttpSession session, HttpServletRequest request) {
+        if (!StringUtils.hasText(loginHint)) {
+            return "redirect:/login?discoveryPerformed=true";
+        }
+        UaaLoginHint uaaLoginHint = new UaaLoginHint(loginHint);
+        return "redirect:/login?discoveryPerformed=true&login_hint=" + URLEncoder.encode(uaaLoginHint.toString(), UTF_8);
+    }
+
 
     @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
     public String discoverIdentityProvider(@RequestParam String email, @RequestParam(required = false) String skipDiscovery, @RequestParam(required = false, name = "login_hint") String loginHint,  @RequestParam(required = false, name = "username") String username,Model model, HttpSession session, HttpServletRequest request) {

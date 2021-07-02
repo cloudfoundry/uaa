@@ -284,10 +284,13 @@ class ExternalOAuthAuthenticationManagerIT {
     void get_response_type_for_oauth2() {
         RawExternalOAuthIdentityProviderDefinition signed = new RawExternalOAuthIdentityProviderDefinition();
         signed.setResponseType("signed_request");
+        RawExternalOAuthIdentityProviderDefinition code = new RawExternalOAuthIdentityProviderDefinition();
         RawExternalOAuthIdentityProviderDefinition token = new RawExternalOAuthIdentityProviderDefinition();
+        token.setResponseType("token");
         OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
 
         assertEquals("signed_request", externalOAuthAuthenticationManager.getResponseType(signed));
+        assertEquals("code", externalOAuthAuthenticationManager.getResponseType(code));
         assertEquals("token", externalOAuthAuthenticationManager.getResponseType(token));
         assertEquals("id_token", externalOAuthAuthenticationManager.getResponseType(oidcIdentityProviderDefinition));
     }
