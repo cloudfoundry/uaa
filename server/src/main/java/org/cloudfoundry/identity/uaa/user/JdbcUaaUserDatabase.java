@@ -49,6 +49,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private int maxSqlParameters;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
+    private final RowMapper<UaaUserPrototype> minimalMapper = new UaaUserPrototypeRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
 
     RowMapper<UaaUser> getMapper() {
@@ -85,6 +86,16 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     }
 
     @Override
+    public UaaUserPrototype retrieveUserPrototypeByName(String username, String origin) throws UsernameNotFoundException {
+        try {
+            String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY;
+            return jdbcTemplate.queryForObject(sql, minimalMapper, username.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
+        } catch (EmptyResultDataAccessException e) {
+            throw new UsernameNotFoundException(username);
+        }
+    }
+
+    @Override
     public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
         try {
             return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true, identityZoneManager.getCurrentIdentityZoneId());
@@ -94,9 +105,31 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     }
 
     @Override
+    public UaaUserPrototype retrieveUserPrototypeById(String id) throws UsernameNotFoundException {
+        try {
+            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, minimalMapper, id, true, identityZoneManager.getCurrentIdentityZoneId());
+        } catch (EmptyResultDataAccessException e) {
+            throw new UsernameNotFoundException(id);
+        }
+    }
+
+    @Override
     public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
         String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
         List<UaaUser> results = jdbcTemplate.query(sql, mapper, email.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
+        if (results.size() == 0) {
+            return null;
+        } else if (results.size() == 1) {
+            return results.get(0);
+        } else {
+            throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
+        }
+    }
+
+    @Override
+    public UaaUserPrototype retrieveUserPrototypeByEmail(String email, String origin) throws UsernameNotFoundException {
+        String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
+        List<UaaUserPrototype> results = jdbcTemplate.query(sql, minimalMapper, email.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
         if (results.size() == 0) {
             return null;
         } else if (results.size() == 1) {
@@ -139,6 +172,39 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         jdbcTemplate.update(DEFAULT_UPDATE_USER_LAST_LOGON, timeService.getCurrentTimeMillis(), userId, identityZoneManager.getCurrentIdentityZoneId());
     }
 
+    private UaaUserPrototype getUaaUserPrototype(ResultSet rs) throws SQLException {
+        String id = rs.getString("id");
+        UaaUserPrototype prototype = new UaaUserPrototype().withId(id)
+            .withUsername(rs.getString("username"))
+            .withPassword(rs.getString("password"))
+            .withEmail(rs.getString("email"))
+            .withGivenName(rs.getString("givenName"))
+            .withFamilyName(rs.getString("familyName"))
+            .withCreated(rs.getTimestamp("created"))
+            .withModified(rs.getTimestamp("lastModified"))
+            .withOrigin(rs.getString("origin"))
+            .withExternalId(rs.getString("external_id"))
+            .withVerified(rs.getBoolean("verified"))
+            .withZoneId(rs.getString("identity_zone_id"))
+            .withSalt(rs.getString("salt"))
+            .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
+            .withPhoneNumber(rs.getString("phoneNumber"))
+            .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
+            .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"));
+
+        Long lastLogon = rs.getLong("last_logon_success_time");
+        if (rs.wasNull()) {
+            lastLogon = null;
+        }
+        Long previousLogon = rs.getLong("previous_logon_success_time");
+        if (rs.wasNull()) {
+            previousLogon = null;
+        }
+        prototype.withLastLogonSuccess(lastLogon)
+            .withPreviousLogonSuccess(previousLogon);
+        return prototype;
+    }
+
     private final class UserInfoRowMapper implements RowMapper<UserInfo> {
         @Override
         public UserInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -147,45 +213,21 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
     }
 
-    private final class UaaUserRowMapper implements RowMapper<UaaUser> {
+    private final class UaaUserPrototypeRowMapper implements RowMapper<UaaUserPrototype> {
         @Override
-
-        public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String id = rs.getString("id");
-            UaaUserPrototype prototype = new UaaUserPrototype().withId(id)
-                    .withUsername(rs.getString("username"))
-                    .withPassword(rs.getString("password"))
-                    .withEmail(rs.getString("email"))
-                    .withGivenName(rs.getString("givenName"))
-                    .withFamilyName(rs.getString("familyName"))
-                    .withCreated(rs.getTimestamp("created"))
-                    .withModified(rs.getTimestamp("lastModified"))
-                    .withOrigin(rs.getString("origin"))
-                    .withExternalId(rs.getString("external_id"))
-                    .withVerified(rs.getBoolean("verified"))
-                    .withZoneId(rs.getString("identity_zone_id"))
-                    .withSalt(rs.getString("salt"))
-                    .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
-                    .withPhoneNumber(rs.getString("phoneNumber"))
-                    .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
-                    .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"));
-
-            Long lastLogon = rs.getLong("last_logon_success_time");
-            if (rs.wasNull()) {
-                lastLogon = null;
-            }
-            Long previousLogon = rs.getLong("previous_logon_success_time");
-            if (rs.wasNull()) {
-                previousLogon = null;
-            }
-            prototype.withLastLogonSuccess(lastLogon)
-                    .withPreviousLogonSuccess(previousLogon);
-
-
-            List<GrantedAuthority> authorities =
-                    AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(id));
-            return new UaaUser(prototype.withAuthorities(authorities));
+        public UaaUserPrototype mapRow(ResultSet rs, int rowNum) throws SQLException {
+            return getUaaUserPrototype(rs);
         }
+    }
+
+     private final class UaaUserRowMapper implements RowMapper<UaaUser> {
+            @Override
+            public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
+                UaaUserPrototype prototype = getUaaUserPrototype(rs);
+                List<GrantedAuthority> authorities =
+                    AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(prototype.getId()));
+                return new UaaUser(prototype.withAuthorities(authorities));
+            }
 
         private String getAuthorities(final String userId) {
             Set<String> authorities = new HashSet<>();

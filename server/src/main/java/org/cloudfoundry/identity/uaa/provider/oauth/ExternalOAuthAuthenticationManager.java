@@ -406,14 +406,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (is_invitation_acceptance) {
             String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
             logger.debug("ExternalOAuth user accepted invitation, user_id:"+invitedUserId);
-            userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
+            userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
             if (email != null) {
                 if (!email.equalsIgnoreCase(userFromDb.getEmail())) {
                     throw new BadCredentialsException("OAuth User email mismatch. Authenticated email doesn't match invited email.");
                 }
             }
             publish(new InvitedUserAuthenticatedEvent(userFromDb));
-            userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
+            userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
         }
 
         //we must check and see if the email address has changed between authentications

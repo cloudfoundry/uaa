@@ -152,7 +152,8 @@ public class DeprecatedUaaTokenServicesTests {
           true);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertThat(rt.getAllValues().size(), equalTo(2));
         assertNotNull(rt.getAllValues().get(0));
@@ -177,7 +178,8 @@ public class DeprecatedUaaTokenServicesTests {
           true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -195,7 +197,8 @@ public class DeprecatedUaaTokenServicesTests {
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
         verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -236,9 +239,12 @@ public class DeprecatedUaaTokenServicesTests {
         when(jwt.getEncoded()).thenReturn("encoded");
 
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser(new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com"));
+        UaaUserPrototype uaaUserPrototype = new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com");
+        UaaUser user = new UaaUser(uaaUserPrototype);
         when(userDatabase.retrieveUserById(userId))
           .thenReturn(user);
+        when(userDatabase.retrieveUserPrototypeById(userId))
+          .thenReturn(uaaUserPrototype);
 
         ArgumentCaptor<UserAuthenticationData> userAuthenticationDataArgumentCaptor =
           ArgumentCaptor.forClass(UserAuthenticationData.class);
@@ -276,7 +282,7 @@ public class DeprecatedUaaTokenServicesTests {
         String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
         uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
 
-        verify(idTokenCreator).create(eq(clientDetails), eq(user), userAuthenticationDataArgumentCaptor.capture());
+        verify(idTokenCreator).create(eq(clientDetails), any(), userAuthenticationDataArgumentCaptor.capture());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
         Set<String> expectedRoles = Sets.newHashSet("custom_role");
         assertEquals(expectedRoles, userData.roles);
@@ -313,7 +319,7 @@ public class DeprecatedUaaTokenServicesTests {
           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertEquals(1, rt.getAllValues().size());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(0).getResponseType());

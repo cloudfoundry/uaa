@@ -29,12 +29,14 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -265,7 +267,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
-        UaaUser user = userDatabase.retrieveUserById(userId);
+        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(userId));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
@@ -700,11 +702,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(token.getValue());
-            try {
-                tokenProvisioning.create(revocableAccessToken, IdentityZoneHolder.get().getId());
-            } catch (DuplicateKeyException updateInstead) {
-                tokenProvisioning.update(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
-            }
+            tokenProvisioning.upsert(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
         }
 
         boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
@@ -722,14 +720,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(refreshToken.getValue());
-            try {
-                if(refreshTokenUnique) {
-                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
-                }
-                tokenProvisioning.create(revocableRefreshToken, IdentityZoneHolder.get().getId());
-            } catch (DuplicateKeyException ignore) {
-                //no need to store refresh tokens again
+            if(refreshTokenUnique) {
+                tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
             }
+            tokenProvisioning.createIfNotExists(revocableRefreshToken, IdentityZoneHolder.get().getId());
         }
 
         CompositeToken result = new CompositeToken(isOpaque ? tokenId : token.getValue());
@@ -823,7 +817,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Authentication userAuthentication = null;
         // Is this a user token - minimum info is user_id
         if (claims.containsKey(USER_ID)) {
-            UaaUser user = userDatabase.retrieveUserById((String)claims.get(USER_ID));
+            UaaUserPrototype user = userDatabase.retrieveUserPrototypeById((String)claims.get(USER_ID));
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
         } else {
