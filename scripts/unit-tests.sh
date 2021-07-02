@@ -41,7 +41,7 @@ pushd $(dirname $SCRIPT_DIR)
             --exclude-task ':cloudfoundry-identity-samples:assemble'
 
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
-            test jacocoAggregatedReport \
+            test \
             --no-daemon \
             --stacktrace \
             --console=plain \
