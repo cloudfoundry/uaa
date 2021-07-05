@@ -138,6 +138,8 @@ public class IdentityZoneEndpointsIntegrationTests {
                 new HttpEntity<>(null, headers),
                 new ParameterizedTypeReference<List<IdentityProvider>>() {});
 
+        assertTrue(idpList.getHeaders().getContentType().includes(MediaType.APPLICATION_JSON_UTF8));
+
         IdentityProvider identityProvider = idpList.getBody().get(0);
         assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
         assertThat(identityProvider.getOriginKey(), is(OriginKeys.UAA));
