@@ -23,7 +23,8 @@ import java.net.URL;
 import java.time.Duration;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import com.google.common.testing.FakeTicker;
+import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -94,7 +95,7 @@ public class ExternalOAuthAuthenticationManagerGithubTest {
         mockGithubServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
 
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
-            new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+            new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, new FakeTicker()),
             trustingRestTemplate,
             nonTrustingRestTemplate
         );

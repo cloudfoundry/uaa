@@ -97,6 +97,7 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.guavaTestLib)
 }
 
 configurations.all {
