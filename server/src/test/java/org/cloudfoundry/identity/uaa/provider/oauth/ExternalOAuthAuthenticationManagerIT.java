@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.testing.FakeTicker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
@@ -8,7 +9,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
-import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -79,6 +81,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -132,6 +135,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     private MockRestServiceServer mockUaaServer;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
+    private UrlContentCache urlContentCache;
     private IdentityProviderProvisioning provisioning;
     private InMemoryUaaUserDatabase userDatabase;
     private ExternalOAuthCodeToken xCodeToken;
@@ -175,7 +179,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @BeforeEach
     void setUp() throws Exception {
-        RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+        RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
         RestTemplate nonTrustingRestTemplate = restTemplateConfig.nonTrustingRestTemplate();
         RestTemplate trustingRestTemplate = restTemplateConfig.trustingRestTemplate();
         SecurityContextHolder.clearContext();
@@ -203,8 +207,9 @@ class ExternalOAuthAuthenticationManagerIT {
         publisher = mock(ApplicationEventPublisher.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
         when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn(UAA_ISSUER_URL);
+        urlContentCache = spy(new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, new FakeTicker()));
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
-                new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+                urlContentCache,
                 trustingRestTemplate,
                 nonTrustingRestTemplate
         );
@@ -214,7 +219,7 @@ class ExternalOAuthAuthenticationManagerIT {
                         oidcMetadataFetcher,
                         mock(UaaRandomStringUtil.class))
         );
-        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL)));
+        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);
@@ -280,10 +285,13 @@ class ExternalOAuthAuthenticationManagerIT {
     void get_response_type_for_oauth2() {
         RawExternalOAuthIdentityProviderDefinition signed = new RawExternalOAuthIdentityProviderDefinition();
         signed.setResponseType("signed_request");
+        RawExternalOAuthIdentityProviderDefinition code = new RawExternalOAuthIdentityProviderDefinition();
         RawExternalOAuthIdentityProviderDefinition token = new RawExternalOAuthIdentityProviderDefinition();
+        token.setResponseType("token");
         OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
 
         assertEquals("signed_request", externalOAuthAuthenticationManager.getResponseType(signed));
+        assertEquals("code", externalOAuthAuthenticationManager.getResponseType(code));
         assertEquals("token", externalOAuthAuthenticationManager.getResponseType(token));
         assertEquals("id_token", externalOAuthAuthenticationManager.getResponseType(oidcIdentityProviderDefinition));
     }
@@ -439,7 +447,9 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
         String username = RandomStringUtils.random(50);
-        claims.put("sub", username);
+        String userid = UUID.randomUUID().toString();
+        claims.put("sub", userid);
+        claims.put("user_name", username);
         claims.put("iss", "http://localhost/oauth/token");
         claims.put("origin", UAA_ORIGIN);
 
@@ -482,7 +492,9 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
 
         String username = RandomStringUtils.random(50);
-        claims.put("sub", username);
+        String userid = UUID.randomUUID().toString();
+        claims.put("sub", userid);
+        claims.put("user_name", username);
         claims.put("iss", UAA_ISSUER_URL);
         claims.put("origin", idpProvider.getOriginKey());
 
@@ -695,6 +707,32 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void null_key_invalid() throws Exception {
+        String json = new String("");
+        configureTokenKeyResponse("http://localhost/token_key", json);
+        addTheUserOnAuth();
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof OidcMetadataFetchingException);
+        }
+    }
+
+    @Test
+    void invalid_key() throws Exception {
+        String json = new String("{x}");
+        configureTokenKeyResponse("http://localhost/token_key", json);
+        addTheUserOnAuth();
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e.getCause() instanceof OidcMetadataFetchingException);
+        }
+    }
+
+    @Test
     void multi_key_response() throws Exception {
         configureTokenKeyResponse(
                 "http://localhost/token_key",
@@ -703,6 +741,24 @@ class ExternalOAuthAuthenticationManagerIT {
                 true);
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
+        verify(urlContentCache, times(1)).getUrlContent(any(), any(), any(), any());
+    }
+
+    @Test
+    void null_key_config_invalid() throws Exception {
+        configureTokenKeyResponse(
+                "http://localhost/token_key",
+                PRIVATE_KEY,
+                "correctKey",
+                true);
+        addTheUserOnAuth();
+        config.setTokenKeyUrl(null);
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertTrue(e instanceof IllegalArgumentException);
+        }
     }
 
     @Test

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorator="layouts/main">
+      layout:decorate="~{layouts/main}">
 <div class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
         <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? companyName + ' account': 'account'}">account</th:block></h1>

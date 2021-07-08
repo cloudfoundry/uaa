@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -38,6 +37,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -48,7 +48,6 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -65,10 +64,10 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.servlet.support.RequestContextUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -99,6 +98,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
@@ -108,6 +108,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
+    private final OidcMetadataFetcher oidcMetadataFetcher;
 
     private TokenEndpointBuilder tokenEndpointBuilder;
     private KeyInfoService keyInfoService;
@@ -119,12 +120,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                                               RestTemplate trustingRestTemplate,
                                               RestTemplate nonTrustingRestTemplate,
                                               TokenEndpointBuilder tokenEndpointBuilder,
-                                              KeyInfoService keyInfoService) {
+                                              KeyInfoService keyInfoService,
+                                              OidcMetadataFetcher oidcMetadataFetcher) {
         super(providerProvisioning);
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.keyInfoService = keyInfoService;
+        this.oidcMetadataFetcher = oidcMetadataFetcher;
     }
 
     @Override
@@ -140,15 +143,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
         try {
-            String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
-            Map<String, Object> claims = JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+            Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
             String issuer = (String) claims.get(ClaimConstants.ISS);
             if (isEmpty(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
             //1. Check if issuer is registered provider
             try {
-                return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+                return retrieveRegisteredIdentityProviderByIssuer(issuer);
             } catch (IncorrectResultSizeDataAccessException x) {
                 logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
@@ -167,6 +169,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
+    private IdentityProvider retrieveRegisteredIdentityProviderByIssuer(String issuer) {
+        return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
+    }
+
+    private Map<String, Object> parseClaimsFromIdTokenString(String idToken) {
+        String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
+        return JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {});
+    }
+
     private boolean idTokenWasIssuedByTheUaa(String issuer) {
         return issuer.equals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
     }
@@ -174,6 +185,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private IdentityProvider buildInternalUaaIdpConfig(String issuer, String originKey) {
         OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
         uaaOidcProviderConfig.setIssuer(issuer);
+        Map<String, Object> userNameMapping = Collections.singletonMap(USER_NAME_ATTRIBUTE_NAME, USER_NAME_ATTRIBUTE_NAME);
+        uaaOidcProviderConfig.setAttributeMappings(userNameMapping);
         IdentityProvider<OIDCIdentityProviderDefinition> uaaIdp = new IdentityProvider<>();
         uaaIdp.setOriginKey(originKey);
         uaaIdp.setConfig(uaaOidcProviderConfig);
@@ -393,31 +406,52 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (is_invitation_acceptance) {
             String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
             logger.debug("ExternalOAuth user accepted invitation, user_id:"+invitedUserId);
-            userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
+            userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
             if (email != null) {
                 if (!email.equalsIgnoreCase(userFromDb.getEmail())) {
                     throw new BadCredentialsException("OAuth User email mismatch. Authenticated email doesn't match invited email.");
                 }
             }
             publish(new InvitedUserAuthenticatedEvent(userFromDb));
-            userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
+            userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
         }
 
         //we must check and see if the email address has changed between authentications
-            if (haveUserAttributesChanged(userFromDb, userFromRequest)) {
-                logger.debug("User attributed have changed, updating them.");
-                userFromDb = userFromDb.modifyAttributes(email,
-                                                         userFromRequest.getGivenName(),
-                                                         userFromRequest.getFamilyName(),
-                                                         userFromRequest.getPhoneNumber(),
-                                                         userFromDb.isVerified() || userFromRequest.isVerified())
-                    .modifyUsername(userFromRequest.getUsername());
-                userModified = true;
-            }
+        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication(request)) {
+            logger.debug("User attributed have changed, updating them.");
+            userFromDb = userFromDb.modifyAttributes(email,
+                                                     userFromRequest.getGivenName(),
+                                                     userFromRequest.getFamilyName(),
+                                                     userFromRequest.getPhoneNumber(),
+                                                     userFromRequest.getExternalId(),
+                                                     userFromDb.isVerified() || userFromRequest.isVerified())
+                .modifyUsername(userFromRequest.getUsername());
+            userModified = true;
+        }
 
         ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());
+    }
+
+    private boolean isRegisteredIdpAuthentication(Authentication request) {
+        String idToken = ((ExternalOAuthCodeToken) request).getIdToken();
+        if (idToken == null) {
+            return true;
+        }
+        Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
+        String issuer = (String) claims.get(ClaimConstants.ISS);
+        if (idTokenWasIssuedByTheUaa(issuer)) {
+            try {
+                // check if the UAA Identity Zone is registered as an external Idp of itself
+                retrieveRegisteredIdentityProviderByIssuer(issuer);
+                return true;
+            } catch (IncorrectResultSizeDataAccessException e) {
+                return false;
+            }
+        } else {
+            return true;
+        }
     }
 
     @Override
@@ -441,6 +475,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
             if ("signed_request".equals(config.getResponseType()))
                 return "signed_request";
+            else if ("code".equals(config.getResponseType()))
+                return "code";
             else
                 return "token";
         } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
@@ -492,6 +528,33 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 logger.error("Exception", e);
                 return null;
             }
+        } else if ("code".equals(config.getResponseType())
+                && RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())
+                && ((RawExternalOAuthIdentityProviderDefinition) config).getUserInfoUrl() != null) {
+            RawExternalOAuthIdentityProviderDefinition narrowedConfig = (RawExternalOAuthIdentityProviderDefinition) config;
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Authorization", "token " + idToken);
+            headers.add("Accept", "application/json");
+
+            URI requestUri;
+            HttpEntity<Object> requestEntity = new HttpEntity<>(headers);
+            try {
+                requestUri = narrowedConfig.getUserInfoUrl().toURI();
+            } catch (URISyntaxException exc) {
+                logger.error("Invalid user info URI configured: <" + narrowedConfig.getUserInfoUrl() + ">", exc);
+                return null;
+            }
+
+            logger.debug(String.format("Performing token check with url:%s", requestUri));
+            ResponseEntity<Map<String, Object>> responseEntity =
+                getRestTemplate(config)
+                    .exchange(requestUri, GET, requestEntity,
+                              new ParameterizedTypeReference<Map<String, Object>>() {
+                              }
+                    );
+            logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
+            return responseEntity.getBody();
         } else {
             TokenValidation validation = validateToken(idToken, config);
             logger.debug("Decoding id_token");
@@ -547,22 +610,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             logger.debug("Key configured, returning.");
             return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
         }
-        URL tokenKeyUrl = config.getTokenKeyUrl();
-        if (tokenKeyUrl == null || !StringUtils.hasText(tokenKeyUrl.toString())) {
-            return new JsonWebKeySet<>(Collections.emptyList());
-        }
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Authorization", getClientAuthHeader(config));
-        headers.add("Accept", "application/json");
-        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        logger.debug("Fetching token keys from:"+tokenKeyUrl);
-        ResponseEntity<String> responseEntity = getRestTemplate(config).exchange(tokenKeyUrl.toString(), HttpMethod.GET, tokenKeyRequest, String.class);
-        logger.debug("Token key response:"+responseEntity.getStatusCode());
-        if (responseEntity.getStatusCode() == HttpStatus.OK) {
-            return JsonWebKeyHelper.deserialize(responseEntity.getBody());
-        } else {
-            throw new InvalidTokenException("Unable to fetch verification keys, status:" + responseEntity.getStatusCode());
+        try {
+            return oidcMetadataFetcher.fetchWebKeySet(config);
+        } catch (OidcMetadataFetchingException e) {
+            throw new InvalidTokenException(e.getMessage(), e);
         }
     }
 
@@ -577,9 +628,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         MultiValueMap<String, String> body = new LinkedMaskingMultiValueMap<>("code", "client_secret");
         body.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
-        body.add("response_type", getResponseType(config));
+        body.add("response_type", getResponseType(config)); // not required by the Oauth 2.0 standard in this 'Access Token Request'
         body.add("code", codeToken.getCode());
         body.add("redirect_uri", codeToken.getRedirectUrl());
+        // NOTE: the "state" body parameter is optional. We also are in
+        // trouble here about how to obtain the correct 'httpSession' to use.
+//         body.add("state", SessionUtils.getStateParam(RequestContextHolder...httpSession, SessionUtils.stateParameterAttributeKeyForIdp(codeToken.getOrigin())));
 
         logger.debug("Adding new client_id and client_secret for token exchange");
         body.add("client_id", config.getRelyingPartyId());
@@ -615,12 +669,20 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                           }
                 );
         logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-        return responseEntity.getBody().get(getResponseType(config));
+        return responseEntity.getBody().get(getTokenFieldName(config));
     }
 
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
+    }
+
+    private String getTokenFieldName(AbstractExternalOAuthIdentityProviderDefinition config) {
+        String responseType = getResponseType(config);
+        if (responseType == "code" || responseType == "token") {
+            return "access_token"; // Oauth 2.0
+        }
+        return responseType;
     }
 
     public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {

@@ -267,7 +267,7 @@
         <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
     </bean>
 
-    <authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+    <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
         <authentication-provider ref="clientAuthenticationProvider"/>
     </authentication-manager>
 
@@ -388,6 +388,7 @@
         <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>
         <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
         <property name="userDatabase" ref="userDatabase"/>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
     </bean>

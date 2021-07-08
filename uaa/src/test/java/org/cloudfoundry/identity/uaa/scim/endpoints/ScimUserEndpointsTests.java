@@ -163,8 +163,10 @@ class ScimUserEndpointsTests {
 
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);
+        joel.setExternalId("b2f345ee-d893-44a9-b6ee-0abe865ff886");
         dale = new ScimUser(null, "olds", "Dale", "Olds");
         dale.addEmail("olds@vmware.com");
+        dale.setExternalId("dc2d1cdf-15a1-4faf-8320-07eb8e8f864d");
     }
 
     private IdentityZone identityZone;
@@ -797,6 +799,31 @@ class ScimUserEndpointsTests {
         assertEquals(2, results.getTotalResults());
         assertTrue(getSetFromMaps(results.getResources(), "id").contains(joel.getId()),
                 "Couldn't find id: " + results.getResources());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void findIdsByExternalId() {
+        SearchResults<?> results = scimUserEndpoints.findUsers("id", "external_id eq \"b2f345ee-d893-44a9-b6ee-0abe865ff886\"", null, "ascending", 1, 100);
+        assertEquals(1, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size());
+        assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
+    }
+
+    @Test
+    void findIdsByExternalIdNonExistent() {
+        SearchResults<?> results = scimUserEndpoints.findUsers("id", "external_id eq \"does-not-exist\"", null, "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size());
+        assertEquals(0, results.getResources().size());
+    }
+
+    @Test
+    void findIdsByExternalIdWrongFormat() {
+        SearchResults<?> results = scimUserEndpoints.findUsers("id", "external_id eq \"#######\"", null, "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+        assertEquals(1, results.getSchemas().size());
+        assertEquals(0, results.getResources().size());
     }
 
     @Test

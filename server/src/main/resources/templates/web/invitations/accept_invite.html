@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorator="layouts/main" th:with="isLdap=${provider=='ldap'}">
-<div class="island-landscape" layout:fragment="page-content">
+      layout:decorate="~{layouts/main}">
+<div class="island-landscape" layout:fragment="page-content" th:with="isLdap=${provider=='ldap'}">
     <div class="island-title">
         <h1><th:block th:unless="${isLdap}">Create</th:block><th:block th:if="${isLdap}">Link</th:block> your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
     </div>

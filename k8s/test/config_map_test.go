@@ -71,7 +71,7 @@ var _ = Describe("Uaa ConfigMap", func() {
 dest = err
 name = UaaLog
 
-property.log_pattern=[%d{yyyy-MM-dd HH:mm:ss.SSS}] uaa%X{context} - %pid [%t] .... %5p --- %c{1}: %replace{%m}{(?<=password=|client_secret=)([^&]*)}{<redacted>}%n
+property.log_pattern=[%d{yyyy-MM-dd'T'HH:mm:ss.nnnnnn}{GMT+0}Z] uaa%X{context} - %pid [%t] .... %5p --- %c{1}: %replace{%m}{(?<=password=|client_secret=)([^&]*)}{<redacted>}%n
 
 appender.uaaDefaultAppender.type = Console
 appender.uaaDefaultAppender.name = UaaDefaultAppender
@@ -121,7 +121,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 				)
 			})
 		})
-		Context("with overriden values", func() {
+		Context("with overridden values", func() {
 			It("produces yaml", func() {
 				ctx := NewRenderingContext(templates...).WithData(map[string]string{
 					"database.scheme":   "postgres",
@@ -130,6 +130,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 					"smtp.port":         "smtp port",
 					"smtp.starttls":     "smtp starttls",
 					"smtp.from_address": "smtp from_address",
+					"issuer.uri":        "http://some.example.com/with/path",
 				})
 
 				Expect(ctx).To(
@@ -137,7 +138,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 						RepresentingConfigMap().WithDataFieldMatching(UaaYmlConfigKey, func(uaaYml *DataFieldMatcher) {
 							uaaYml.WithFields(Fields{
 								"LoginSecret": Equal("loginsecret"),
-								"Issuer":      Equal(Issuer{Uri: "http://localhost:8080/uaa"}),
+								"Issuer":      Equal(Issuer{Uri: "http://some.example.com/with/path"}),
 								"Database": MatchFields(IgnoreExtras, Fields{
 									"Username": BeEmpty(),
 									"Password": BeEmpty(),

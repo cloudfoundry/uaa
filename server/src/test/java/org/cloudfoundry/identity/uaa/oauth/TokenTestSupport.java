@@ -79,6 +79,7 @@ import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -238,6 +239,16 @@ public class TokenTestSupport {
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsMap);
 
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
+        doAnswer((Answer<Void>) invocation -> {
+            RevocableToken arg = (RevocableToken)invocation.getArguments()[1];
+            tokens.put(arg.getTokenId(), arg);
+            return null;
+        }).when(tokenProvisioning).upsert(anyString(), any(), anyString());
+        doAnswer((Answer<Void>) invocation -> {
+            RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
+            tokens.put(arg.getTokenId(), arg);
+            return null;
+        }).when(tokenProvisioning).createIfNotExists(any(), anyString());
         when(tokenProvisioning.create(any(), anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
             RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
             tokens.put(arg.getTokenId(), arg);

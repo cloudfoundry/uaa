@@ -116,7 +116,7 @@
     "map-obj": "^1.0.1",
     "media-typer": "^0.3.0",
     "meow": "^3.7.0",
-    "mime": "^1.3.4",
+    "mime": "^2.5.0",
     "mime-db": "^1.22.0",
     "mime-types": "^2.1.10",
     "minimatch": "^3.0.0",
@@ -179,7 +179,7 @@
     "through2": "^2.0.1",
     "tildify": "^1.1.2",
     "tiny-lr": "^0.2.1",
-    "trim-newlines": "^1.0.0",
+    "trim-newlines": "^3.0.1"
     "type-is": "^1.6.12",
     "unique-stream": "^2.2.1",
     "unpipe": "^1.0.0",

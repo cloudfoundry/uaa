@@ -15,10 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -63,7 +63,7 @@ public class SessionResetFilter extends OncePerRequestFilter {
 
                 try {
                     logger.debug("Evaluating user-id for session reset:"+userId);
-                    UaaUser uaaUser = userDatabase.retrieveUserById(userId);
+                    UaaUser uaaUser = userDatabase.retrieveUserPrototypeById(userId);
                     if (passwordModifiedAfterLastAuthentication(uaaUser, authentication)) {
                         logger.debug(String.format("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s", uaaUser.getId(), authentication.getAuthenticatedTime(), uaaUser.getPasswordLastModified().getTime()));
                         redirect = true;

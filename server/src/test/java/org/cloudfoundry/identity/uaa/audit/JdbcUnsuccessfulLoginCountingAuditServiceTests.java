@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.audit;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -58,7 +57,7 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         Thread.sleep(100);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
-        List<AuditEvent> events = auditService.find("1", 0, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("1", 0, IdentityZone.getUaaZoneId());
         assertEquals(2, events.size());
         assertEquals("1", events.get(0).getPrincipalId());
         assertEquals("joe", events.get(0).getData());
@@ -131,17 +130,18 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
     @Test
     void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
+        when(mockTimeService.getCurrentTimeMillis()).thenReturn(now);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
         // Set the created column to 2 hour past
-        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 2 * 3600 * 1000));
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(UserAuthenticationFailure, "2", "joe"), getAuditEvent(UserAuthenticationFailure, "2", "joe").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "client", "testman"), getAuditEvent(ClientAuthenticationFailure, "client", "testman").getIdentityZoneId());
         auditService.log(getAuditEvent(ClientAuthenticationFailure, "otherclient", "testman"), getAuditEvent(ClientAuthenticationFailure, "otherclient", "testman").getIdentityZoneId());
         // Find events within last 2 mins
-        List<AuditEvent> userEvents = auditService.find("1", now - 120 * 1000, IdentityZoneHolder.get().getId());
-        List<AuditEvent> clientEvents = auditService.find("client", now - 120 * 1000, IdentityZoneHolder.get().getId());
+        List<AuditEvent> userEvents = auditService.find("1", now - 2 * 60 * 1000, IdentityZone.getUaaZoneId());
+        List<AuditEvent> clientEvents = auditService.find("client", now - 2 * 60 * 1000, IdentityZone.getUaaZoneId());
         assertEquals(1, userEvents.size());
         assertEquals(0, clientEvents.size());
     }
