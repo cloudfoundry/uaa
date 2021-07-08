@@ -158,7 +158,6 @@ class StaleUrlCacheTests {
     ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
     when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
     when(responseEntity.getStatusCode()).thenReturn(HttpStatus.TEMPORARY_REDIRECT);
-    //cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity);
     assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity));
   }
 
