@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -138,6 +140,35 @@ class StaleUrlCacheTests {
     assertSame(c1, c2);
   }
 
+  @Test
+  public void extended_method_invoked_on_rest_template() throws URISyntaxException {
+    HttpEntity httpEntity = mock(HttpEntity.class);
+    ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
+    when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
+    when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
+    when(responseEntity.getBody()).thenReturn(new byte[1]);
+    cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity);
+    verify(mockRestTemplate, times(1)).exchange(eq(new URI(uri)),
+        eq(HttpMethod.GET), any(HttpEntity.class),same(byte[].class));
+  }
+
+  @Test
+  public void extended_method_invoked_on_rest_template_invalid_http_response() throws URISyntaxException {
+    HttpEntity httpEntity = mock(HttpEntity.class);
+    ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
+    when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
+    when(responseEntity.getStatusCode()).thenReturn(HttpStatus.TEMPORARY_REDIRECT);
+    //cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity);
+    assertThrows(IllegalArgumentException.class, () -> cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity));
+  }
+
+  @Test
+  public void constructor_executed() throws URISyntaxException {
+    StaleUrlCache urlCache = new StaleUrlCache(mockTimeService);
+    urlCache.clear();
+    assertEquals(0, urlCache.size());
+  }
+
   @Nested
   @DisplayName("When a http server never returns a http response")
   class DeadHttpServer {
@@ -164,5 +195,4 @@ class StaleUrlCacheTests {
           () -> cache.getUrlContent(slowHttpServer.getUrl(), restTemplate)));
     }
   }
-
 }
