@@ -205,7 +205,7 @@ class BootstrapTests {
     private static ConfigurableApplicationContext getServletContext(
             final String profiles,
             final String uaaYamlPath) {
-        System.setProperty("LOGIN_CONFIG_URL", "classpath:required_configuration.yml");
+        System.setProperty("LOGIN_CONFIG_URL", "file:" + System.getProperty("user.dir") + "/../scripts/cargo/uaa.yml");
         System.setProperty("UAA_CONFIG_URL", "classpath:" + uaaYamlPath);
 
         abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);

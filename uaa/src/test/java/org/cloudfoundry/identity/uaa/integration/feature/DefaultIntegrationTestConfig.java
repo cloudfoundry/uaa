@@ -35,6 +35,15 @@ import java.util.logging.Level;
 
 @PropertySource("classpath:integration.test.properties")
 public class DefaultIntegrationTestConfig {
+    static final int IMPLICIT_WAIT_TIME = 15;
+    static final int PAGE_LOAD_TIMEOUT = 20;
+    static final int SCRIPT_TIMEOUT = 15;
+
+    private final int timeoutMultiplier;
+
+    public DefaultIntegrationTestConfig(@Value("${integration.test.timeout_multiplier}") int timeoutMultiplier) {
+        this.timeoutMultiplier = timeoutMultiplier;
+    }
 
     @Bean
     public IntegrationTestRule integrationTestRule(
@@ -71,9 +80,10 @@ public class DefaultIntegrationTestConfig {
 
         ChromeDriver driver = new ChromeDriver(options);
 
-        driver.manage().timeouts().implicitlyWait(15, TimeUnit.SECONDS);
-        driver.manage().timeouts().pageLoadTimeout(20, TimeUnit.SECONDS);
-        driver.manage().timeouts().setScriptTimeout(15, TimeUnit.SECONDS);
+        driver.manage().timeouts()
+                .implicitlyWait(IMPLICIT_WAIT_TIME * timeoutMultiplier, TimeUnit.SECONDS)
+                .pageLoadTimeout(PAGE_LOAD_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS)
+                .setScriptTimeout(SCRIPT_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS);
         driver.manage().window().setSize(new Dimension(1024, 768));
         return driver;
     }

@@ -17,6 +17,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -36,7 +37,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -448,7 +448,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setType(OAUTH20);
         identityProvider.setName("UAA Provider");
         identityProvider.setOriginKey("my-oauth2-provider");
-        AbstractXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition();
+        AbstractExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
         definition.setTokenKey("token-key");
@@ -456,6 +456,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
+        definition.setUserPropagationParameter("username");
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
@@ -466,6 +467,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenUrl").required().type(STRING).description("The OAuth 2.0 token endpoint URL"),
                 fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures"),
                 fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures, set to null if a `tokenKeyUrl` is provided."),
+                fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
@@ -475,6 +477,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
                 fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
         }, attributeMappingFields));
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relyingPartySecret));
@@ -522,6 +525,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
+        definition.setUserPropagationParameter("username");
         definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
         List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
                 new Prompt("password", "password", "Password"),
@@ -549,6 +553,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective, if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),

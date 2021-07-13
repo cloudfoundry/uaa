@@ -1,20 +1,4 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.namespace.QName;
 
 import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
@@ -22,6 +6,10 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.transport.http.HTTPInTransport;
 import org.springframework.security.saml.context.SAMLContextProviderImpl;
 import org.springframework.security.saml.context.SAMLMessageContext;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.namespace.QName;
 
 /**
  * Use this class in conjuction with
@@ -46,7 +34,7 @@ public class IdpSamlContextProviderImpl extends SAMLContextProviderImpl {
      * <p>
      * In case alias entity id isn't found an exception is raised.
      *
-     * @param context     context to populate fields localEntityId and localEntityRole for
+     * @param context    context to populate fields localEntityId and localEntityRole for
      * @param requestURI context path to parse entityId and entityRole from
      * @throws MetadataProviderException in case entityId can't be populated
      */

@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
@@ -35,7 +36,6 @@ import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -60,6 +60,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
@@ -101,7 +102,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header.");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
-    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque and revocable token.");
+    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque and revocable token or to `" + JWT.getStringValue() + "` to retrieve a JWT token. If not set the zone setting config.tokenPolicy.jwtRevocable is used.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 4.19.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
     private final ParameterDescriptor codeVerifier = parameterWithName(PkceValidationService.CODE_VERIFIER).description("<small><mark>UAA 4.26.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Verifier. A `code_verifier` parameter must be provided if a `code_challenge` parameter was present in the previous call to `/oauth/authorize`. The `code_verifier` must match the used `code_challenge` (according to the selected `code_challenge_method`)").attributes(key("constraints").value("Optional"), key("type").value(STRING));
@@ -239,6 +240,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(CLIENT_ID, "login")
                 .param("client_secret", "loginsecret")
+                .param(SCOPE, "scim.write")
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue());
 
@@ -246,6 +248,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 clientIdParameter,
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
                 clientSecretParameter,
+                scopeParameter,
                 opaqueFormatParameter
         );
 
@@ -269,11 +272,13 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
                 .param(GRANT_TYPE, GRANT_TYPE_CLIENT_CREDENTIALS)
+                .param(SCOPE, "scim.write")
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
                 .header("Authorization", "Basic " + clientAuthorization);
 
         Snippet requestParameters = requestParameters(
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`"),
+                scopeParameter,
                 opaqueFormatParameter
         );
 

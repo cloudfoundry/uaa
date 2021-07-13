@@ -140,7 +140,7 @@ class LoginSamlAuthenticationProviderTests {
     private static final String JOHN_THE_SLOTH = "John the Sloth";
     private static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
 
-    private IdentityProviderProvisioning providerProvisioning;
+    private JdbcIdentityProviderProvisioning providerProvisioning;
     private CreateUserPublisher publisher;
     private JdbcUaaUserDatabase userDatabase;
     private LoginSamlAuthenticationProvider authprovider;
@@ -204,13 +204,14 @@ class LoginSamlAuthenticationProviderTests {
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
 
-        authprovider = new LoginSamlAuthenticationProvider(identityZoneManager);
-        authprovider.setUserDatabase(userDatabase);
-        authprovider.setIdentityProviderProvisioning(providerProvisioning);
+        authprovider = new LoginSamlAuthenticationProvider(
+                identityZoneManager,
+                userDatabase,
+                providerProvisioning,
+                externalManager);
         authprovider.setApplicationEventPublisher(publisher);
         authprovider.setConsumer(consumer);
         authprovider.setSamlLogger(samlLogger);
-        authprovider.setExternalMembershipManager(externalManager);
 
         provider = new IdentityProvider();
         provider.setIdentityZoneId(IdentityZone.getUaaZoneId());

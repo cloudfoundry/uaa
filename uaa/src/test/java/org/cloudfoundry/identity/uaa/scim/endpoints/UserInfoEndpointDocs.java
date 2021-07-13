@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -7,7 +8,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +59,7 @@ class UserInfoEndpointDocs extends EndpointDocs {
 
         Snippet requestHeaders = requestHeaders(
                 headerWithName("Authorization")
-                        .description("Access token with openid required. If the `" + USER_ATTRIBUTES + "` scope is in the token, " +
+                        .description("Access token with `openid` required. If the `" + USER_ATTRIBUTES + "` scope is in the token, " +
                                 "the response object will contain custom attributes, if mapped to the external identity provider." +
                                 "If  the `roles` scope is present, the response object will contain group memberships  from the external identity provider."
 

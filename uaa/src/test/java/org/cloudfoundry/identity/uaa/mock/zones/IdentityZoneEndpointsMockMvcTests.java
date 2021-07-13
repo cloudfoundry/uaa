@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -46,7 +47,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
@@ -899,7 +899,7 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityProvider idp2 = idpp.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         assertNotEquals(idp1, idp2);
 
-        IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) webApplicationContext.getBean("identityZoneProvisioning");
+        IdentityZoneProvisioning identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
 
         assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(createdZone.getConfig()));

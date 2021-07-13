@@ -315,8 +315,8 @@ In addition the requesting client must either allow the IDP in `allowedproviders
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
 
 This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
-The endpoint of the bearer assertion is `/oauth/token` so the Recipient attribute in
-the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token.
+The endpoint of the bearer assertion is `/oauth/token/alias/<endityid>` so the Recipient attribute in
+the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login.
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md') %>
@@ -460,7 +460,7 @@ _Request Header_
 
 ### List all tokens for a user
 
-The `/oauth/token/list/user/{userId}` will return all the tokens that match the user_id in the path parameter.
+The `/oauth/token/list/user/{userId}` will return all the metadata for tokens that match the user_id in the path parameter.
 This token requires the `tokens.list` scope.
 
 

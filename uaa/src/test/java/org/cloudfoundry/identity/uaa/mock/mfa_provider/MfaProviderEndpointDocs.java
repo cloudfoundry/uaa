@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.mfa_provider;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
@@ -14,7 +15,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.ResultActions;
 
 import static org.cloudfoundry.identity.uaa.mfa.MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR;

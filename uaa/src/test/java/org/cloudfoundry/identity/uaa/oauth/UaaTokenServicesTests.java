@@ -22,25 +22,26 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.joda.time.DateTime;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 
+import java.time.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -67,6 +68,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @DisplayName("Uaa Token Services Tests")
 @DefaultTestContext
@@ -81,6 +83,8 @@ class UaaTokenServicesTests {
 
     @Autowired
     private JdbcUaaUserDatabase jdbcUaaUserDatabase;
+    @Autowired
+    private MultitenantClientServices jdbcClientDetailsService;
 
     @Nested
     @DisplayName("when building an id token")
@@ -90,8 +94,9 @@ class UaaTokenServicesTests {
         private String requestedScope;
 
         @BeforeEach
-        void setupRequest() {
+        void setupRequest() throws InterruptedException {
             requestedScope = "openid";
+            assumeTrue(waitForClient(clientId, 3), "Test client jku_test not up yet");
         }
 
         @DisplayName("id token should contain jku header")
@@ -274,6 +279,29 @@ class UaaTokenServicesTests {
             assertThat(refreshedToken, is(notNullValue()));
         }
 
+        @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")
+        @ParameterizedTest
+        void authTime(Date authTimeDate) {
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    authTimeDate,
+                    null,
+                    null
+            );
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            assertThat(refreshToken, is(notNullValue()));
+            OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(refreshedToken, is(notNullValue()));
+        }
+
         @Nested
         @DisplayName("when ACR claim is present")
         @DefaultTestContext
@@ -303,7 +331,7 @@ class UaaTokenServicesTests {
             @DisplayName("an ID token is returned with ACR claim")
             void happyCase(List<String> acrs) {
                 setup(new HashSet<>(acrs));
-
+                assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
                 CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
                         refreshToken.getValue(),
                         new TokenRequest(
@@ -359,6 +387,7 @@ class UaaTokenServicesTests {
             @DisplayName("an ID token is not returned")
             void idTokenNotReturned(String grantType) {
                 String nonOpenIdScope = "password.write";
+                assumeTrue(waitForClient("client_without_openid", 5), "Test client needs to be setup for this test");
                 AuthorizationRequest authorizationRequest = constructAuthorizationRequest("client_without_openid", grantType, nonOpenIdScope);
                 OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
                 CompositeToken compositeToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
@@ -449,6 +478,94 @@ class UaaTokenServicesTests {
         }
     }
 
+    @Nested
+    @DisplayName("when the client was created with refresh_token_validity specified")
+    @DefaultTestContext
+    @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
+    @DirtiesContext
+    class WhenRefreshTokenValidityIsSpecified {
+        private RefreshTokenCreator refreshTokenCreator;
+        private RefreshTokenRequestData refreshTokenRequestData;
+        private UaaUser uaaUser;
+        private TokenRequest tokenRequest;
+
+        @Autowired
+        private TokenEndpointBuilder tokenEndpointBuilder;
+        @Autowired
+        private TimeService timeService;
+        @Autowired
+        private KeyInfoService keyInfoService;
+
+        @BeforeEach
+        void init() {
+            refreshTokenRequestData = new RefreshTokenRequestData(
+                    GRANT_TYPE_AUTHORIZATION_CODE,
+                    Sets.newHashSet("openid", "user_attributes"),
+                    null,
+                    "",
+                    Sets.newHashSet(""),
+                    "jku_test",
+                    false,
+                    new Date(),
+                    null,
+                    null
+            );
+            uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            tokenRequest = new TokenRequest(new HashMap<>(), "jku_test",
+                    Lists.newArrayList("openid", "user_attributes"),
+                    GRANT_TYPE_REFRESH_TOKEN);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = { 3600, 24*3600*15, Integer.MAX_VALUE })
+        void validExpClaim(int validitySeconds) {
+            RefreshTokenCreator refreshTokenCreator = createRefreshTokenCreator(
+                    validitySeconds);
+            CompositeExpiringOAuth2RefreshToken refreshToken =
+                    refreshTokenCreator.createRefreshToken(uaaUser,
+                            refreshTokenRequestData, null);
+            Assertions.assertNotNull(refreshToken);
+
+            OAuth2AccessToken accessToken = tokenServices.refreshAccessToken(
+                    refreshToken.getValue(), tokenRequest);
+            Assertions.assertNotNull(accessToken);
+        }
+
+        @ParameterizedTest
+        @ValueSource(ints = { -3600, Integer.MIN_VALUE })
+        void invalidExpClaim(int validitySeconds) {
+            RefreshTokenCreator refreshTokenCreator = createRefreshTokenCreator(
+                    validitySeconds);
+            CompositeExpiringOAuth2RefreshToken refreshToken =
+                    refreshTokenCreator.createRefreshToken(uaaUser,
+                            refreshTokenRequestData, null);
+            Assertions.assertNotNull(refreshToken);
+
+            // Verifying with generic Exception instead of specific type because
+            // refreshAccessToken() throws an Exception of which type is
+            // different from the one that is declared in its method signature
+            Assertions.assertThrows(Exception.class, () ->
+                    tokenServices.refreshAccessToken(refreshToken.getValue(),
+                            tokenRequest));
+        }
+
+        private RefreshTokenCreator createRefreshTokenCreator(
+                int validitySeconds) {
+            TokenValidityResolver tokenValidityResolver =
+                    new TokenValidityResolver(
+                            new ClientTokenValidity() {
+                                public Integer getValiditySeconds(String clientId) {
+                                    return validitySeconds;
+                                }
+                                public Integer getZoneValiditySeconds() {
+                                    return 2592000;
+                                }
+                            }, 2592000, timeService);
+            return new RefreshTokenCreator(false, tokenValidityResolver,
+                    tokenEndpointBuilder, timeService, keyInfoService);
+        }
+    }
+
     private OAuth2Authentication constructUserAuthenticationFromAuthzRequest(AuthorizationRequest authzRequest,
                                                                              String userId,
                                                                              String userOrigin,
@@ -483,5 +600,38 @@ class UaaTokenServicesTests {
         azParameters.put(GRANT_TYPE, grantType);
         authorizationRequest.setRequestParameters(azParameters);
         return authorizationRequest;
+    }
+
+    private boolean waitForClient(String clientId, int max) {
+        int retry = 0;
+        while(retry++ < max) {
+            try {
+                jdbcClientDetailsService.loadClientByClientId(clientId);
+                return true;
+            } catch (NoSuchClientException e) {
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException interruptedException) {
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static Stream<Arguments> dates() {
+        return Stream.of(
+                Instant.ofEpochSecond(0),
+                Instant.ofEpochSecond(-1),
+                Instant.ofEpochSecond(1),
+                Instant.now(),
+                Instant.ofEpochSecond(Integer.MAX_VALUE),
+                Instant.ofEpochSecond(Integer.MAX_VALUE + 1L),
+                Instant.from(ZonedDateTime.of(
+                        LocalDate.of(10000, Month.MAY, 20),
+                        LocalTime.of(0, 0),
+                        ZoneId.systemDefault())
+                )
+        ).map(Date::from).map(Arguments::of);
     }
 }

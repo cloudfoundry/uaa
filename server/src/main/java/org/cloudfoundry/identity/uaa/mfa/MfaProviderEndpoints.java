@@ -33,7 +33,6 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
     private ApplicationEventPublisher publisher;
     private MfaProviderProvisioning mfaProviderProvisioning;
     private MfaProviderValidator mfaProviderValidator;
-    private IdentityZoneProvisioning identityZoneProvisioning;
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
@@ -113,9 +112,5 @@ public class MfaProviderEndpoints implements ApplicationEventPublisherAware{
 
     public void setMfaProviderValidator(MfaProviderValidator mfaProviderValidator) {
         this.mfaProviderValidator = mfaProviderValidator;
-    }
-
-    public void setIdentityZoneProvisioning(IdentityZoneProvisioning identityZoneProvisioning) {
-        this.identityZoneProvisioning = identityZoneProvisioning;
     }
 }

@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -21,7 +22,7 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -51,6 +52,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -67,6 +69,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -76,6 +80,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -117,7 +122,7 @@ public class OIDCLoginIT {
     private String adminToken;
     private String subdomain;
     private String zoneUrl;
-    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
+    private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider;
     private String clientCredentialsToken;
     private BaseClientDetails zoneClient;
     private ScimGroup createdGroup;
@@ -258,10 +263,35 @@ public class OIDCLoginIT {
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         String origUserId = IntegrationTestUtils.getUserId(adminToken, baseUrl, "uaa", testAccounts.getUserName());
+        ScimUser user = IntegrationTestUtils
+                .getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+        assertEquals(origUserId, user.getExternalId());
+        assertEquals(user.getGivenName(), user.getUserName());
+    }
+
+    @Test
+    public void loginWithOIDCProviderUpdatesExternalId() {
+        Long beforeTest = System.currentTimeMillis();
+
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        String zoneClientToken = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, zoneClient.getClientId(), zoneClient.getClientSecret());
+        ScimUser minimalShadowUser = new ScimUser();
+        minimalShadowUser.setUserName(testAccounts.getUserName());
+        minimalShadowUser.addEmail(testAccounts.getUserName());
+        minimalShadowUser.setOrigin(identityProvider.getOriginKey());
+        IntegrationTestUtils.createUser(zoneClientToken, zoneUrl, minimalShadowUser, null);
+        ScimUser userCreated = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
+        assertFalse(StringUtils.hasText(userCreated.getExternalId()));
+
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+        Long afterTest = System.currentTimeMillis();
+        String origUserId = IntegrationTestUtils.getUserId(adminToken, baseUrl, "uaa", testAccounts.getUserName());
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, subdomain, testAccounts.getUserName());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
         assertEquals(origUserId, user.getExternalId());
         assertEquals(user.getGivenName(), user.getUserName());
+        assertTrue(StringUtils.hasText(user.getExternalId()));
     }
 
     @Test
@@ -429,7 +459,7 @@ public class OIDCLoginIT {
             Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
 
             webDriver.findElement(By.linkText("SAML Login")).click();
-            webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+            webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
             webDriver.findElement(By.name("username")).clear();
             webDriver.findElement(By.name("username")).sendKeys("marissa6");
             webDriver.findElement(By.name("password")).sendKeys("saml6");

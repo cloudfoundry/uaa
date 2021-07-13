@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.util.Date;
@@ -28,7 +27,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
@@ -74,20 +73,11 @@ public class IdTokenCreator {
         this.identityZoneManager = identityZoneManager;
     }
 
-    public IdToken create(String clientId,
-                          String userId,
+    public IdToken create(ClientDetails clientDetails,
+                          UaaUser uaaUser,
                           UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
-        Date expiryDate = tokenValidityResolver.resolve(clientId);
+        Date expiryDate = tokenValidityResolver.resolve(clientDetails.getClientId());
         Date issuedAt = timeService.getCurrentDate();
-
-        UaaUser uaaUser;
-        try {
-            uaaUser = uaaUserDatabase.retrieveUserById(userId);
-        } catch (UsernameNotFoundException e) {
-            logger.error("Could not create ID token for unknown user " + userId, e);
-            throw new IdTokenCreationException();
-        }
-
 
         String givenName = getIfScopeContainsProfile(uaaUser.getGivenName(), userAuthenticationData.scopes);
         String familyName = getIfScopeContainsProfile(uaaUser.getFamilyName(), userAuthenticationData.scopes);
@@ -98,19 +88,18 @@ public class IdTokenCreator {
         Map<String, List<String>> userAttributes = buildUserAttributes(userAuthenticationData, uaaUser);
         Set<String> roles = buildRoles(userAuthenticationData, uaaUser);
 
-        ClientDetails clientDetails = multitenantClientServices.loadClientByClientId(clientId, identityZoneId);
         String clientTokenSalt = (String) clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
-        String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientId, clientDetails.getClientSecret());
+        String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientDetails.getClientId(), clientDetails.getClientSecret());
         return new IdToken(
-            getIfNotExcluded(userId, USER_ID),
-            getIfNotExcluded(newArrayList(clientId), AUD),
+            getIfNotExcluded(uaaUser.getId(), USER_ID),
+            getIfNotExcluded(newArrayList(clientDetails.getClientId()), AUD),
             getIfNotExcluded(issuerUrl, ISS),
-            getIfNotExcluded(expiryDate, EXP),
+            getIfNotExcluded(expiryDate, EXPIRY_IN_SECONDS),
             getIfNotExcluded(issuedAt, IAT),
             getIfNotExcluded(userAuthenticationData.authTime, AUTH_TIME),
             getIfNotExcluded(userAuthenticationData.authenticationMethods, AMR),
             getIfNotExcluded(userAuthenticationData.contextClassRef, ACR),
-            getIfNotExcluded(clientId, AZP),
+            getIfNotExcluded(clientDetails.getClientId(), AZP),
             getIfNotExcluded(givenName, GIVEN_NAME),
             getIfNotExcluded(familyName, FAMILY_NAME),
             getIfNotExcluded(uaaUser.getPreviousLogonTime(), PREVIOUS_LOGON_TIME),
@@ -120,7 +109,7 @@ public class IdTokenCreator {
             getIfNotExcluded(uaaUser.isVerified(), EMAIL_VERIFIED),
             getIfNotExcluded(userAuthenticationData.nonce, NONCE),
             getIfNotExcluded(uaaUser.getEmail(), EMAIL),
-            getIfNotExcluded(clientId, CID),
+            getIfNotExcluded(clientDetails.getClientId(), CID),
             getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
             getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
             getIfNotExcluded(identityZoneId, ZONE_ID),

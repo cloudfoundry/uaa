@@ -136,7 +136,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 }
             } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = UAA;
-            } else if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = OAUTH20;
             } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = OIDC10;
@@ -340,7 +340,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
                     case OAUTH20:
-                        definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
+                        definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
                         break;
                     case OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);

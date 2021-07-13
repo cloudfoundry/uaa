@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone.event;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
@@ -8,7 +9,6 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.*;
 

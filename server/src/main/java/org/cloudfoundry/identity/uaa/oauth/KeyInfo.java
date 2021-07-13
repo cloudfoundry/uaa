@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.nimbusds.jose.util.Base64URL;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
@@ -262,9 +263,8 @@ class RsaKeyInfo extends KeyInfo {
 
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
         if (rsaKey != null) {
-            java.util.Base64.Encoder encoder = java.util.Base64.getUrlEncoder().withoutPadding();
-            String n = encoder.encodeToString(rsaKey.getModulus().toByteArray());
-            String e = encoder.encodeToString(rsaKey.getPublicExponent().toByteArray());
+            String n = Base64URL.encode(rsaKey.getModulus()).toString();
+            String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
             result.put("n", n);
             result.put("e", e);
         }

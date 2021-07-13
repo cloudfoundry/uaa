@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/html"
       xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorator="layouts/main">
+      layout:decorate="~{layouts/main}">
 <head>
     <th:block layout:include="nav :: head"></th:block>
 </head>
@@ -21,7 +21,7 @@
             <p>
                 <th:block th:text="${client_display_name}">Cloudbees</th:block> has requested permission to
                 access your account. If you do not recognize this application or
-                its URL, you should click deny. The application will not see your password.
+                its URL, you should click Deny. The application will not see your password.
             </p>
             <ul class="application-scopes">
                 <th:block th:each="scope, iter : ${undecided_scopes}">
@@ -51,7 +51,7 @@
             </ul>
             <p>
                 You can change your approval of permissions or revoke access for this application
-                at any time from account settings. By approving access, you agree to
+                at any time from the account settings. By approving access, you agree to
                 <th:block th:text="${client_display_name}">Cloudbees</th:block>'s terms of service and privacy policy.
             </p>
             <div class="actions">

@@ -4,7 +4,7 @@ Thanks for taking the time to file an issue. You'll minimize back and forth and 
 
 ### What version of UAA are you running?
 
-What output do you see from `curl <YOUR_UAA>/info -H'Accept: application/json'`
+What output do you see from `curl <YOUR_UAA>/info -H'Accept: application/json'`?
 
 
 ### How are you deploying the UAA?

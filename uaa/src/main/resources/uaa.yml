@@ -560,6 +560,14 @@ uaa:
 #  user:
 #  password:
 
+# Configure Rest Templates
+#rest:
+#  template:
+#    timeout: 10000
+#    maxTotal: 20
+#    maxPerRoute: 2
+#    maxKeepAlive: 0
+
 ldap:
   profile:
     file: ldap/ldap-search-and-bind.xml
