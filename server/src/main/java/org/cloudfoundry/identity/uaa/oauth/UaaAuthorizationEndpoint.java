@@ -4,6 +4,7 @@ import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -119,6 +120,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     private final SessionAttributeStore sessionAttributeStore;
     private final Object implicitLock;
+    private final PkceValidationService pkceValidationService;
 
     /**
      * @param tokenGranter created by <oauth:authorization-server/>
@@ -132,13 +134,15 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             final @Qualifier("openIdSessionStateCalculator") OpenIdSessionStateCalculator openIdSessionStateCalculator,
             final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
             final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
-            final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter) {
+            final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter,
+            final @Qualifier("pkceValidationServices") PkceValidationService pkceValidationService) {
         this.redirectResolver = redirectResolver;
         this.userApprovalHandler = userApprovalHandler;
         this.oauth2RequestValidator = oauth2RequestValidator;
         this.authorizationCodeServices = authorizationCodeServices;
         this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
         this.openIdSessionStateCalculator = openIdSessionStateCalculator;
+        this.pkceValidationService = pkceValidationService;
 
         super.setOAuth2RequestFactory(oAuth2RequestFactory);
         super.setClientDetailsService(clientDetailsService);
@@ -184,6 +188,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         if (authorizationRequest.getClientId() == null) {
             throw new InvalidClientException("A client id must be provided");
         }
+        
+        validateAuthorizationRequestPkceParameters(authorizationRequest.getRequestParameters());
 
         String resolvedRedirect = "";
         try {
@@ -267,6 +273,32 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             throw e;
         }
 
+    }
+    
+    /**
+     * PKCE parameters check: 
+     *      code_challenge: (Optional) Must be provided for PKCE and must not be empty.
+     *      code_challenge_method: (Optional) Default value is "plain". See .well-known 
+     *                             endpoint for supported code challenge methods list.  
+     * @param authorizationRequestParameters Authorization request parameters.
+     */
+    protected void validateAuthorizationRequestPkceParameters(Map<String, String> authorizationRequestParameters) {
+        if (pkceValidationService != null) {
+    	    String codeChallenge = authorizationRequestParameters.get(PkceValidationService.CODE_CHALLENGE);
+            if (codeChallenge != null) {
+                if(!PkceValidationService.isCodeChallengeParameterValid(codeChallenge)) {
+                    throw new InvalidRequestException("Code challenge length must between 43 and 128 and use only [A-Z],[a-z],[0-9],_,.,-,~ characters.");
+                }
+                String codeChallengeMethod = authorizationRequestParameters.get(PkceValidationService.CODE_CHALLENGE_METHOD);
+                if (codeChallengeMethod == null) {
+                    codeChallengeMethod = "plain";
+                }
+                if (!pkceValidationService.isCodeChallengeMethodSupported(codeChallengeMethod)) {
+                    throw new InvalidRequestException("Unsupported code challenge method. Supported: " +
+                        pkceValidationService.getSupportedCodeChallengeMethods().toString());
+                }
+            }
+        }   
     }
 
     // This method handles /oauth/authorize calls when user is not logged in and the prompt=none param is used
