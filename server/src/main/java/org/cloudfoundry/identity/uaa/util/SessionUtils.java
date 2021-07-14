@@ -24,6 +24,7 @@ public final class SessionUtils {
     public static final String SPRING_SECURITY_CONTEXT = "SPRING_SECURITY_CONTEXT";
 
     private static final String EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX = "external-oauth-state-";
+    private static final String EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX = "external-oauth-verifier-";
 
     private SessionUtils() {}
 
@@ -79,5 +80,9 @@ public final class SessionUtils {
 
     public static String stateParameterAttributeKeyForIdp(String idpOriginKey) {
         return EXTERNAL_OAUTH_STATE_ATTRIBUTE_PREFIX + idpOriginKey;
+    }
+
+    public static String codeVerifierParameterAttributeKeyForIdp(String idpOriginKey) {
+        return EXTERNAL_OAUTH_CODE_VERIFIER_ATTRIBUTE_PREFIX + idpOriginKey;
     }
 }

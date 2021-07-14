@@ -64,7 +64,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.servlet.support.RequestContextUtils;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -640,11 +640,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         HttpHeaders headers = new HttpHeaders();
 
-        if(config.isClientAuthInBody()) {
-            body.add("client_secret", config.getRelyingPartySecret());
+        if (config.getRelyingPartySecret() == null) {
+            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            var codeVerifier = (String) SessionUtils
+                .getStateParam(attr.getRequest().getSession(false), SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin()));
+            body.add("code_verifier", codeVerifier);
         } else {
-            String clientAuthHeader = getClientAuthHeader(config);
-            headers.add("Authorization", clientAuthHeader);
+            if (config.isClientAuthInBody()) {
+                body.add("client_secret", config.getRelyingPartySecret());
+            } else {
+                String clientAuthHeader = getClientAuthHeader(config);
+                headers.add("Authorization", clientAuthHeader);
+            }
         }
         headers.add("Accept", "application/json");
 

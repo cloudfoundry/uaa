@@ -28,18 +28,22 @@ public class S256PkceVerifier implements PkceVerifier {
         if (codeVerifier == null || codeChallenge == null) {
             return false;
         }
+        return codeChallenge.contentEquals(compute(codeVerifier));
+    }
+
+    public String compute(String codeVerifier) {
         try {
             byte[] bytes = codeVerifier.getBytes("US-ASCII");
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(bytes, 0, bytes.length);
             byte[] digest = md.digest();
-            return codeChallenge.contentEquals(Base64.encodeBase64URLSafeString(digest));
+            return Base64.encodeBase64URLSafeString(digest);
         } catch (UnsupportedEncodingException e) {
             logger.debug(e.getMessage(),e);
         } catch (NoSuchAlgorithmException e) {
-        	logger.debug(e.getMessage(),e);
+            logger.debug(e.getMessage(),e);
         }
-        return false;
+        return null;
     }
 
     @Override
