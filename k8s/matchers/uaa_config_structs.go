@@ -65,7 +65,7 @@ type Smtp struct {
 	Port         string `yaml:"port"`
 	Starttls     string `yaml:"starttls"`
 	FromAddress  string `yaml:"from_address"`
-        Sslprotocols string `yaml:"sslprotocols"`
+	Sslprotocols string `yaml:"sslprotocols"`
 }
 
 type OauthClient struct {
