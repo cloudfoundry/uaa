@@ -452,7 +452,6 @@
             <props>
                 <prop key="mail.smtp.auth">${smtp.auth:false}</prop>
                 <prop key="mail.smtp.starttls.enable">${smtp.starttls:false}</prop>
-                <prop key="mail.smtp.ssl.protocols">${smtp.protocols:TLSv1.2 TLSv1.4}</prop>
             </props>
         </property>
     </bean>
