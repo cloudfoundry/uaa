@@ -23,6 +23,7 @@ smtp:
   port: #@ data.values.smtp.port
   starttls: #@ data.values.smtp.starttls
   from_address: #@ data.values.smtp.from_address
+  sslprotocols: #@ data.values.smtp.sslprotocols
 
 oauth:
   client:

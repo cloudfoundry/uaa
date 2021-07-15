@@ -61,10 +61,11 @@ type Database struct {
 }
 
 type Smtp struct {
-	Host        string `yaml:"host"`
-	Port        string `yaml:"port"`
-	Starttls    string `yaml:"starttls"`
-	FromAddress string `yaml:"from_address"`
+	Host         string `yaml:"host"`
+	Port         string `yaml:"port"`
+	Starttls     string `yaml:"starttls"`
+	FromAddress  string `yaml:"from_address"`
+	Sslprotocols string `yaml:"sslprotocols"`
 }
 
 type OauthClient struct {
