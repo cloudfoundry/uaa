@@ -425,6 +425,7 @@ class LoginInfoEndpointTests {
         when(idpConfig.getAuthUrl()).thenReturn(new URL("https://example.com/oauth/authorize"));
         when(idpConfig.getResponseType()).thenReturn("code");
         when(idpConfig.getRelyingPartyId()).thenReturn("clientid");
+        when(idpConfig.getRelyingPartySecret()).thenReturn("clientSecret");
         when(idpConfig.getUserPropagationParameter()).thenReturn("username");
         when(idp.getConfig()).thenReturn(idpConfig);
         when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(Collections.singletonList(idp));
@@ -904,6 +905,7 @@ class LoginInfoEndpointTests {
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
+        definition.setRelyingPartySecret("client-secret");
 
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
@@ -1054,6 +1056,7 @@ class LoginInfoEndpointTests {
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
         when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
+        when(mockOidcConfig.getRelyingPartySecret()).thenReturn("client-secret");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockOidcConfig.getEmailDomain()).thenReturn(singletonList("example.com"));
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
@@ -1856,6 +1859,7 @@ class LoginInfoEndpointTests {
         oidcIdentityProvider.setType(OriginKeys.OIDC10);
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("https://" + originKey + ".com"));
+        definition.setRelyingPartySecret("client-secret");
         oidcIdentityProvider.setConfig(definition);
 
         return oidcIdentityProvider;
@@ -1879,6 +1883,7 @@ class LoginInfoEndpointTests {
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
         when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
+        when(mockOidcConfig.getRelyingPartySecret()).thenReturn("client-secret");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
@@ -1893,6 +1898,7 @@ class LoginInfoEndpointTests {
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
         when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
+        when(mockOidcConfig.getRelyingPartySecret()).thenReturn("client-secret");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);

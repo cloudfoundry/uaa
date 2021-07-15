@@ -136,7 +136,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
-    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").required().type(STRING).description("The client secret of the relying party at the external OAuth provider");
+    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").optional().type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set, the external OAuth client is treated as public client, then the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636).");
 
     private static InMemoryLdapServer ldapContainer;
 
