@@ -640,11 +640,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         HttpHeaders headers = new HttpHeaders();
 
+        // no client-secret, switch to PKCE and treat client as public, same logic is implemented in spring security
+        // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
         if (config.getRelyingPartySecret() == null) {
-            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
-            var codeVerifier = (String) SessionUtils
-                .getStateParam(attr.getRequest().getSession(false), SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin()));
-            body.add("code_verifier", codeVerifier);
+            // if session is expired or other issues in retrieven code_verifier, then flow fails with 401, which is expected
+            body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
         } else {
             if (config.isClientAuthInBody()) {
                 body.add("client_secret", config.getRelyingPartySecret());
@@ -677,6 +677,16 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 );
         logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
         return responseEntity.getBody().get(getTokenFieldName(config));
+    }
+
+    private String getSessionValue(String value) {
+        try {
+            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            return (String) SessionUtils.getStateParam(attr.getRequest().getSession(false), value);
+        } catch (Exception e) {
+            logger.warn("Exception", e);
+            return (String)"";
+        }
     }
 
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
