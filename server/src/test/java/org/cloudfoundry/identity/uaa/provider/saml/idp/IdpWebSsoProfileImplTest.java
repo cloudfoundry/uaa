@@ -228,6 +228,33 @@ public class IdpWebSsoProfileImplTest {
         assertAttributeDoesNotExist(attributes, "cell_phone");
     }
 
+    @Test
+    public void testCustomUserAttributes() throws Exception {
+        LinkedHashMap<String, Object> customAttributes = new LinkedHashMap<>();
+        customAttributes.put("accountNumbers", Arrays.asList("123","456"));
+        customAttributes.put("appUserName", "jbourne");
+        user.setCustomAttributes(customAttributes);
+
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
+        SAMLMessageContext context = samlTestUtils.mockSamlMessageContext(
+                samlTestUtils.mockAuthnRequest(NameIDType.UNSPECIFIED));
+        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
+        options.setAssertionsSigned(false);
+        profile.buildResponse(authentication, context, options);
+        Response response = (Response) context.getOutboundSAMLMessage();
+        Assertion assertion = response.getAssertions().get(0);
+
+        profile.buildAttributeStatement(assertion, authentication, samlServiceProvider.getEntityId());
+
+        List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
+
+        String[] accountNumbers =
+                ((List<String>) user.getCustomAttributes().get("accountNumbers")).toArray(new String[0]);
+        assertAttributeValue(attributes, "accountNumbers",accountNumbers);
+        assertAttributeValue(attributes, "appUserName","jbourne");
+    }
+
     private void verifyAssertionAttributes(String authenticationId, Assertion assertion) {
         List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
         assertAttributeValue(attributes, "email", "marissa@testing.org");

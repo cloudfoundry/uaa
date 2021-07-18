@@ -24,10 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
     @Override
@@ -105,6 +102,8 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     if(jp.getValueAsString() != null) {
                         user.setPreviousLogonTime(jp.getValueAsLong());
                     }
+                } else if ("customAttributes".equalsIgnoreCase(fieldName)) {
+                    user.setCustomAttributes(jp.readValueAs(LinkedHashMap.class));
                 } else {
                     throw new UnrecognizedPropertyException("unrecognized field", jp.getCurrentLocation(),
                                     ScimUser.class, fieldName, Collections.emptySet());

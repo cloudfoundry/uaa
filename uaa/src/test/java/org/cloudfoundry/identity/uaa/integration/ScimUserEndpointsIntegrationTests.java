@@ -31,7 +31,10 @@ import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
+
+import javax.ws.rs.core.Link;
 
 import java.util.*;
 
@@ -97,11 +100,17 @@ public class ScimUserEndpointsIntegrationTests {
     }
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email) {
+        return createUser(username, firstName, lastName, email, null);
+    }
+
+    private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName, String email,
+            LinkedHashMap<String, Object> customAttributes) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setPassword("password");
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
+        user.setCustomAttributes(customAttributes);
 
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }
@@ -133,6 +142,44 @@ public class ScimUserEndpointsIntegrationTests {
 
         assertEquals(joe1.getId(), joe2.getId());
         assertTrue(joe2.isVerified());
+    }
+
+    @Test
+    public void createUserWithCustomAttributeSucceeds() {
+
+        LinkedHashMap<String, Object> customAttributes = new LinkedHashMap<>();
+        customAttributes.put("accountNumber", "12345");
+        ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", customAttributes);
+        ScimUser joe1 = response.getBody();
+        assertEquals(JOE, joe1.getUserName());
+        assertEquals(customAttributes, joe1.getCustomAttributes());
+
+        // Check we can GET the user
+        ScimUser joe2 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
+
+        assertEquals(joe1.getId(), joe2.getId());
+        assertTrue(joe2.isVerified());
+    }
+
+    @Test
+    public void updateUserWithCustomAttributeSucceeds() {
+
+        LinkedHashMap<String, Object> customAttributes = new LinkedHashMap<>();
+        customAttributes.put("accountNumber", "12345");
+        ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", customAttributes);
+        ScimUser joe1 = response.getBody();
+
+        joe1.getCustomAttributes().remove("accountNumber");
+        joe1.getCustomAttributes().put("appUserName", Collections.singletonList("joe"));
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", "\"" + joe1.getVersion() + "\"");
+        response = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}", HttpMethod.PUT,
+                new HttpEntity<ScimUser>(joe1, headers), ScimUser.class, joe1.getId());
+        ScimUser respJoe = response.getBody();
+
+        assertEquals(Collections.singletonList("joe"), respJoe.getCustomAttributes().get("appUserName"));
+        assertNull(respJoe.getCustomAttributes().get("accountNumber"));
     }
 
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"

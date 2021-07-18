@@ -61,6 +61,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.websso.WebSSOProfileImpl;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -71,7 +72,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
-
 
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
 
@@ -336,8 +336,23 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
 
         Map<String, Object> attributeMappings = config.getAttributeMappings();
 
+        ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
+
+        if (user.getCustomAttributes() != null) {
+            for (Map.Entry<String, Object> entry : user.getCustomAttributes().entrySet()) {
+                String attributeName = entry.getKey();
+                Object attributeValue = entry.getValue();
+                if (attributeValue instanceof String) {
+                    addStringAttribute(attributeName, (String) attributeValue, attributeStatement);
+                } else if (attributeValue instanceof List) {
+                    addListAttribute(attributeName, (List<String>) attributeValue, attributeStatement);
+                } else {
+                    log.warn("Custom attribute {} with type {} is not supported, skipping", attributeName,
+                            attributeValue.getClass());
+                }
+            }
+        }
         if (attributeMappings.size() > 0) {
-            ScimUser user = scimUserProvisioning.retrieve(principal.getId(), IdentityZoneHolder.get().getId());
 
             String givenName = user.getGivenName();
             if (StringUtils.hasText(givenName) && attributeMappings.containsKey("given_name")) {
@@ -365,6 +380,24 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         }
 
         assertion.getAttributeStatements().add(attributeStatement);
+    }
+
+    private void addListAttribute(String attributeName, List<String> attributeValue,
+            AttributeStatement attributeStatement) {
+        if (!CollectionUtils.isEmpty(attributeValue)) {
+            Attribute customAttribute = buildStringAttribute(attributeName,
+                    attributeValue);
+            attributeStatement.getAttributes().add(customAttribute);
+        }
+    }
+
+    private void addStringAttribute(String attributeName, String attributeValue,
+            AttributeStatement attributeStatement) {
+        if (StringUtils.hasText(attributeValue)) {
+            Attribute customAttribute = buildStringAttribute(attributeName,
+                    Collections.singletonList(attributeValue));
+            attributeStatement.getAttributes().add(customAttribute);
+        }
     }
 
     public Attribute buildStringAttribute(String name, List<String> values) {

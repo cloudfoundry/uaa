@@ -15,13 +15,19 @@ package org.cloudfoundry.identity.uaa.scim;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
+import java.io.IOException;
 import java.util.*;
 
 import static java.util.Optional.ofNullable;
@@ -39,6 +45,7 @@ import static org.springframework.util.StringUtils.hasText;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
 public class ScimUser extends ScimCore<ScimUser> {
+    private static final Logger logger = LoggerFactory.getLogger(ScimUser.class);
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -349,6 +356,18 @@ public class ScimUser extends ScimCore<ScimUser> {
     private Long previousLogonTime = null;
 
     private Long lastLogonTime = null;
+
+    private LinkedHashMap<String, Object> customAttributes = null;
+
+    @JsonSerialize(using = JsonCustomAttributeSerializer.class)
+    public LinkedHashMap<String, Object> getCustomAttributes() {
+        return customAttributes;
+    }
+
+    public void setCustomAttributes(
+            LinkedHashMap<String, Object> customAttributes) {
+        this.customAttributes = customAttributes;
+    }
 
     @JsonProperty
     private String password;
@@ -830,4 +849,23 @@ public class ScimUser extends ScimCore<ScimUser> {
         }
     }
 
+    public static class JsonCustomAttributeSerializer extends JsonSerializer<LinkedHashMap<String, Object>> {
+        @Override
+        public void serialize(LinkedHashMap<String, Object> map, JsonGenerator gen,
+                SerializerProvider serializers) throws IOException {
+            gen.writeStartObject();
+            for (String e : map.keySet()) {
+                Object valueAsObject = map.get(e);
+                if (valueAsObject instanceof String) {
+                   gen.writeStringField(e, (String) valueAsObject);
+                } else if (valueAsObject instanceof List) {
+                    gen.writeObjectField(e, valueAsObject);
+                } else {
+                    logger.warn("Custom attribute {} with type {} is not supported, skipping", e,
+                            valueAsObject.getClass().getName());
+                }
+            }
+            gen.writeEndObject();
+        }
+    }
 }
