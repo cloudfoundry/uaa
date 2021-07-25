@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import lombok.SneakyThrows;
 import org.apache.commons.lang.ArrayUtils;
-import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,10 +11,12 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.AbstractMap.SimpleEntry;
@@ -57,7 +58,13 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             }
             Predicate<String> matcher;
             if (isWildcard(normalizedClientRedirect)) {
-                matcher = req -> clientRedirectUri.isSafeRedirect(req) && clientRedirectUri.match(req);
+                matcher = req -> {
+                    try {
+                        return clientRedirectUri.isSafeRedirect(req) && clientRedirectUri.match(new URI(req));
+                    } catch (URISyntaxException e) {
+                        return false;
+                    }
+                };
             } else {
                 matcher = req -> super.redirectMatches(req, normalizedClientRedirect);
             }
@@ -155,7 +162,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
 
     private static String normalizeWildcardUri(String uriClient) {
         boolean hasWildcarPort = uriClient.contains(":*");
-        String uri = hasWildcarPort ? uriClient.replace(":*", StringUtils.EMPTY) : uriClient;
+        String uri = hasWildcarPort ? uriClient.replace(":*", "") : uriClient;
         UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri);
         UriComponents nonNormalizedUri = uriComponentsBuilder.build();
 
@@ -261,7 +268,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         boolean isSafeRedirect(String requestedRedirect) {
             // We iterate backwards through the hosts to make sure the TLD and domain match
             String[] configuredRedirectHost = splitAndReverseHost(getHost());
-            String[] requestedRedirectHost = splitAndReverseHost((Optional.ofNullable(requestedRedirect.getHost()).orElse("")));
+            String[] requestedRedirectHost = splitAndReverseHost((Optional.ofNullable(requestedRedirect).orElse("")));
 
             if (requestedRedirectHost.length < configuredRedirectHost.length) {
                 return false;
@@ -284,7 +291,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
                  if(requestedRedirect.getPort() > 0) {
                      return matcher.match(redirectUri, requestedRedirect.toString().replace(String.valueOf(requestedRedirect.getPort()), WILDCARD_PORT));
                  } else {
-                     return matcher.match(redirectUri.replace(WILDCARD_PORT_PATTERN, StringUtils.EMPTY), requestedRedirect.toString());
+                     return matcher.match(redirectUri.replace(WILDCARD_PORT_PATTERN, ""), requestedRedirect.toString());
                  }
             }
             return matcher.match(redirectUri, requestedRedirect.toString());
