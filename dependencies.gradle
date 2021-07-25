@@ -114,3 +114,9 @@ libraries.velocity = "org.apache.velocity:velocity-engine-core:2.2"
 libraries.zxing = "com.google.zxing:javase:3.4.0"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt"
 
+// gradle plugins
+libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
+libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.7.1"
+libraries.prodepsGradlePlugin = "io.spring.gradle:propdeps-plugin:0.0.10.RELEASE"
+libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
+libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"

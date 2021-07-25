@@ -83,7 +83,6 @@ dependencies {
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
-
     testImplementation(libraries.springTest)
 
     testImplementation(libraries.junit)
