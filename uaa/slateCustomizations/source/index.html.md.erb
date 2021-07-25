@@ -315,8 +315,8 @@ In addition the requesting client must either allow the IDP in `allowedproviders
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
 
 This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
-The endpoint of the bearer assertion is `/oauth/token` so the Recipient attribute in
-the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token.
+The endpoint of the bearer assertion is `/oauth/token/alias/<endityid>` so the Recipient attribute in
+the bearer assertion must point to the corresponding URI, e.g. http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login.
 
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/curl-request.md') %>
 <%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/http-request.md') %>
@@ -460,7 +460,7 @@ _Request Header_
 
 ### List all tokens for a user
 
-The `/oauth/token/list/user/{userId}` will return all the tokens that match the user_id in the path parameter.
+The `/oauth/token/list/user/{userId}` will return all the metadata for tokens that match the user_id in the path parameter.
 This token requires the `tokens.list` scope.
 
 
@@ -501,31 +501,13 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/listTokens_client/response-fields.md') %>
 
-# Check Token
-
-<%= render('CheckTokenEndpointDocs/checkToken/curl-request.md') %>
-<%= render('CheckTokenEndpointDocs/checkToken/http-request.md') %>
-<%= render('CheckTokenEndpointDocs/checkToken/http-response.md') %>
-
-_Request Headers_
-
-<%= render('CheckTokenEndpointDocs/checkToken/request-headers.md') %>
-
-_Request Parameters_
-
-<%= render('CheckTokenEndpointDocs/checkToken/request-parameters.md') %>
-
-_Response Fields_
-
-<%= render('CheckTokenEndpointDocs/checkToken/response-fields.md') %>
-
 # Introspect Token
 
-<aside class="success">
-  Added in UAA 4.9.0
+<aside class="notice">
+  New in UAA 74.2.0: `/introspect` will now accept a client_credentials access_token with `uaa.resource` scope
 </aside>
 
-Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) Complaint. Active flag is responsible for showing the validity of the token and not the HTTP status code.
+Introspect token endpoint is [RFC-7662](https://tools.ietf.org/html/rfc7662) compliant. Active flag is responsible for showing the validity of the token and not the HTTP status code.
 Status code will be 200 OK for both valid and invalid tokens.
 
 <%= render('IntrospectTokenEndpointDocs/introspectToken/curl-request.md') %>
@@ -544,6 +526,27 @@ _Response Fields_
 
 <%= render('IntrospectTokenEndpointDocs/introspectToken/response-fields.md') %>
 
+# Check Token
+
+<aside class="warning">
+  The `/check_token` endpoint is deprecated since version 74.2.0 and will be removed in a future release.  Please use `/introspect` instead.
+</aside>
+
+<%= render('CheckTokenEndpointDocs/checkToken/curl-request.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/http-request.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/http-response.md') %>
+
+_Request Headers_
+
+<%= render('CheckTokenEndpointDocs/checkToken/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('CheckTokenEndpointDocs/checkToken/request-parameters.md') %>
+
+_Response Fields_
+
+<%= render('CheckTokenEndpointDocs/checkToken/response-fields.md') %>
 
 # Token Key(s)
 
@@ -551,7 +554,7 @@ _Response Fields_
 
 An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see [RFC 7517](https://tools.ietf.org/html/rfc7517). In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
-JWT signing keys are specified via the identity zone configuration (see [/identity-zones](#identity-zones)). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the `activeKeyId` to use it to sign all new tokens. [/check_token](#check-token) will continue to verify tokens signed with the previous signing key for as long as it is present in the `keys` of the identity zone's token policy. Remove it to invalidate all those tokens.
+JWT signing keys are specified via the identity zone configuration (see [/identity-zones](#identity-zones)). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the `activeKeyId` to use it to sign all new tokens. [/introspect](#introspect) will continue to verify tokens signed with the previous signing key for as long as it is present in the `keys` of the identity zone's token policy. Remove it to invalidate all those tokens.
 
 ### Asymmetric
 

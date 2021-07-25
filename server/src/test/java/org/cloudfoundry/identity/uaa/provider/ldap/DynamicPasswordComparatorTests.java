@@ -42,7 +42,7 @@ public class DynamicPasswordComparatorTests  {
     }
 
     @Test
-    public void testComparePasswords() throws Exception {
+    public void testComparePasswords() {
         byte[] test = getBytes("test");
         for (String s : passwords) {
             try {
@@ -55,20 +55,20 @@ public class DynamicPasswordComparatorTests  {
     }
 
     @Test
-    public void testEncodePassword() throws Exception {
+    public void testEncodePassword() {
         try {
             comparator.encode("test");
             fail("Method and test not implemented yet.");
-        } catch (UnsupportedOperationException x) {
+        } catch (UnsupportedOperationException ignored) {
         }
     }
 
     @Test
-    public void testIsPasswordValid() throws Exception {
+    public void testIsPasswordValid() {
         try {
             comparator.matches("test","test");
             fail("Method and test not implemented yet.");
-        } catch (UnsupportedOperationException x) {
+        } catch (UnsupportedOperationException ignored) {
         }
 
     }

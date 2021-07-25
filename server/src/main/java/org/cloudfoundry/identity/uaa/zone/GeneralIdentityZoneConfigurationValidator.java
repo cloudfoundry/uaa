@@ -1,28 +1,21 @@
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
 import java.util.Map;
 
-
+@Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
-    private MfaConfigValidator mfaConfigValidator;
+    private final MfaConfigValidator mfaConfigValidator;
+
+    public GeneralIdentityZoneConfigurationValidator(final MfaConfigValidator mfaConfigValidator) {
+        this.mfaConfigValidator = mfaConfigValidator;
+    }
 
     @Override
     public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
@@ -31,9 +24,9 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             String currentKeyId = null;
             try {
                 SamlConfig samlConfig;
-                if ((samlConfig = config.getSamlConfig()) != null && samlConfig.getKeys().size()>0) {
+                if ((samlConfig = config.getSamlConfig()) != null && samlConfig.getKeys().size() > 0) {
                     String activeKeyId = samlConfig.getActiveKeyId();
-                    if ( (activeKeyId == null || samlConfig.getKeys().get(activeKeyId) == null)) {
+                    if ((activeKeyId == null || samlConfig.getKeys().get(activeKeyId) == null)) {
 
                         throw new InvalidIdentityZoneConfigurationException(String.format("Invalid SAML active key ID: '%s'. Couldn't find any matching keys.", activeKeyId));
                     }
@@ -75,15 +68,15 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             }
         }
 
-        if(config.getBranding() != null && config.getBranding().getConsent() != null) {
+        if (config.getBranding() != null && config.getBranding().getConsent() != null) {
             ConsentValidator.validate(config.getBranding().getConsent());
         }
 
-        if(config.getBranding() != null && config.getBranding().getBanner() != null) {
-           BannerValidator.validate(config.getBranding().getBanner());
+        if (config.getBranding() != null && config.getBranding().getBanner() != null) {
+            BannerValidator.validate(config.getBranding().getBanner());
         }
 
-        if(config.getMfaConfig() != null) {
+        if (config.getMfaConfig() != null) {
             mfaConfigValidator.validate(config.getMfaConfig(), zone.getId());
         }
 
@@ -92,14 +85,9 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
 
     private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {
         if ((samlSpCert == null && samlSpKey == null && samlSpkeyPassphrase == null) ||
-            (samlSpCert != null && samlSpKey != null && samlSpkeyPassphrase != null)) {
+                (samlSpCert != null && samlSpKey != null && samlSpkeyPassphrase != null)) {
             return;
         }
         throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be udpated with partial Saml CertKey config.", null);
-    }
-
-    public GeneralIdentityZoneConfigurationValidator setMfaConfigValidator(MfaConfigValidator mfaConfigValidator) {
-        this.mfaConfigValidator = mfaConfigValidator;
-        return this;
     }
 }

@@ -13,10 +13,11 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthAuthenticationManager;
-import org.cloudfoundry.identity.uaa.provider.oauth.XOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.springframework.security.authentication.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -64,7 +65,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final SAMLProcessingFilter samlAuthenticationFilter;
 
-    private final XOAuthAuthenticationManager xoAuthAuthenticationManager;
+    private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
 
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
@@ -76,12 +77,12 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
                                                                 SAMLProcessingFilter samlAuthenticationFilter,
-                                                                XOAuthAuthenticationManager xoAuthAuthenticationManager) {
+                                                                ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
         super();
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
         this.samlAuthenticationFilter = samlAuthenticationFilter;
-        this.xoAuthAuthenticationManager = xoAuthAuthenticationManager;
+        this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
     }
 
     /**
@@ -167,12 +168,12 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     protected void onSuccessfulAuthentication(HttpServletRequest request,
                                               HttpServletResponse response,
-                                              Authentication authResult) throws IOException {
+                                              Authentication authResult) {
     }
 
     protected void onUnsuccessfulAuthentication(HttpServletRequest request,
                                                 HttpServletResponse response,
-                                                AuthenticationException failed) throws IOException {
+                                                AuthenticationException failed) {
         SecurityContextHolder.clearContext();
     }
 
@@ -203,7 +204,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
             if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication) {
                 UaaAuthentication uaaAuthentication = (UaaAuthentication) authResult;
-                if (uaaAuthentication.isRequiresPasswordChange()) {
+                if (SessionUtils.isPasswordChangeRequired(request.getSession())) {
                     throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
                 }
             }
@@ -222,11 +223,11 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
             logger.debug(GRANT_TYPE_JWT_BEARER +" found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");
-            if (assertion != null && xoAuthAuthenticationManager != null) {
+            if (assertion != null && externalOAuthAuthenticationManager != null) {
                 logger.debug("Attempting OIDC JWT authentication for token endpoint.");
-                XOAuthCodeToken token = new XOAuthCodeToken(null, null, null, assertion, null, null);
+                ExternalOAuthCodeToken token = new ExternalOAuthCodeToken(null, null, null, assertion, null, null);
                 token.setRequestContextPath(getContextPath(request));
-                authResult = xoAuthAuthenticationManager.authenticate(token);
+                authResult = externalOAuthAuthenticationManager.authenticate(token);
             } else {
                 logger.debug("No assertion or authentication manager, not attempting JWT bearer authentication for token endpoint.");
                 throw new InsufficientAuthenticationException("Assertion is missing");
@@ -240,7 +241,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
     }
 
     @Override

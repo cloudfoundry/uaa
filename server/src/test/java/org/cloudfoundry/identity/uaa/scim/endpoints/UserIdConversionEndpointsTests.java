@@ -18,11 +18,14 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 import java.util.Collection;
@@ -30,6 +33,7 @@ import java.util.Collections;
 
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -59,9 +63,7 @@ public class UserIdConversionEndpointsTests {
     @Before
     public void init() {
         mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
-        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor);
-        endpoints.setScimUserEndpoints(scimUserEndpoints);
-        endpoints.setEnabled(true);
+        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints, true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn(authorities);
         when(mockSecurityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
         when(provisioning.retrieveActive(anyString())).thenReturn(Collections.singletonList(MultitenancyFixture.identityProvider("test-origin", "uaa")));
@@ -70,6 +72,13 @@ public class UserIdConversionEndpointsTests {
     @Test
     public void testHappyDay() {
         endpoints.findUsers("userName eq \"marissa\"", "ascending", 0, 100, false);
+    }
+
+    @Test
+    public void testSanitizeExceptionInFilter() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(is("Invalid filter '&lt;svg onload=alert(document.domain)&gt;'"));
+        endpoints.findUsers("<svg onload=alert(document.domain)>", "ascending", 0, 100, false);
     }
 
     @Test
@@ -153,16 +162,16 @@ public class UserIdConversionEndpointsTests {
 
     @Test
     public void testDisabled() {
-        endpoints.setEnabled(false);
-        expected.expect(ScimException.class);
-        expected.expectMessage(containsString("Illegal operation."));
-        endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);
+        endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints, false);
+        ResponseEntity<Object> response = endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);
+        Assert.assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        Assert.assertEquals("Illegal Operation: Endpoint not enabled.", response.getBody());
     }
 
     @Test
-    public void noActiveIdps_ReturnsEmptyResources() throws Exception {
+    public void noActiveIdps_ReturnsEmptyResources() {
         when(provisioning.retrieveActive(anyString())).thenReturn(Collections.emptyList());
-        SearchResults<?> searchResults = endpoints.findUsers("username eq \"foo\"", "ascending", 0, 100, false);
+        SearchResults<?> searchResults = (SearchResults<?>) endpoints.findUsers("username eq \"foo\"", "ascending", 0, 100, false).getBody();
         assertTrue(searchResults.getResources().isEmpty());
     }
 }

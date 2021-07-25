@@ -65,7 +65,7 @@ public enum AuditEventType {
 
     private final int code;
 
-    private AuditEventType(int code) {
+    AuditEventType(int code) {
         this.code = code;
     }
 

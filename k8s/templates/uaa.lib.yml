@@ -1,0 +1,36 @@
+#@ load("@ytt:data", "data")
+#@ load("@ytt:assert", "assert")
+
+#@ def config():
+---
+issuer:
+  uri: #@ data.values.issuer.uri
+
+#! The secret that an external login server will use to authenticate to the uaa using the id `login`
+LOGIN_SECRET: loginsecret
+
+database:
+  maxactive: 100
+  maxidle: 10
+  minidle: 0
+  removeabandoned: false
+  logabandoned: true
+  abandonedtimeout: 300
+  url: #@ data.values.database.url or assert.fail("database.url is required")
+
+smtp:
+  host: #@ data.values.smtp.host
+  port: #@ data.values.smtp.port
+  starttls: #@ data.values.smtp.starttls
+  from_address: #@ data.values.smtp.from_address
+  sslprotocols: #@ data.values.smtp.sslprotocols
+
+oauth:
+  client:
+    override: true
+  clients:
+    admin:
+      authorized-grant-types: client_credentials
+      authorities: "clients.read,clients.write,clients.secret,uaa.admin,scim.read,scim.write,password.write"
+
+#@ end

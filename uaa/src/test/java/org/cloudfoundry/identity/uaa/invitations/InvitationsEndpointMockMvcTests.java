@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,6 +38,8 @@ import java.util.Map;
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.EMAIL;
+import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
@@ -376,10 +378,10 @@ class InvitationsEndpointMockMvcTests {
 
         assertEquals("email.invalid", response.getFailedInvites().get(0).getErrorCode());
         assertEquals("email.invalid", response.getFailedInvites().get(1).getErrorCode());
-        assertEquals("email.invalid", response.getFailedInvites().get(2).getErrorCode());
+        assertEquals("provider.non-existent", response.getFailedInvites().get(2).getErrorCode());
         assertEquals(invalidEmail1 + " is invalid email.", response.getFailedInvites().get(0).getErrorMessage());
         assertEquals(invalidEmail2 + " is invalid email.", response.getFailedInvites().get(1).getErrorMessage());
-        assertEquals(invalidEmail3 + " is invalid email.", response.getFailedInvites().get(2).getErrorMessage());
+        assertEquals("No authentication provider found.", response.getFailedInvites().get(2).getErrorMessage());
     }
 
     @Test
@@ -474,8 +476,8 @@ class InvitationsEndpointMockMvcTests {
             Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
             });
             assertThat(data, is(not(nullValue())));
-            assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
-            assertThat(data.get(InvitationConstants.EMAIL), is(emails[i]));
+            assertThat(data.get(USER_ID), is(notNullValue()));
+            assertThat(data.get(EMAIL), is(emails[i]));
             assertThat(data.get(ORIGIN), is(OriginKeys.UAA));
             assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
             assertThat(data.get(REDIRECT_URI), is(redirectUrl));

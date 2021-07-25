@@ -140,11 +140,11 @@ public abstract class TokenValidation {
     }
 
     protected TokenValidation checkExpiry(Instant asOf) {
-        if (!claims.containsKey(EXP)) {
+        if (!claims.containsKey(EXPIRY_IN_SECONDS)) {
             throw new InvalidTokenException("Token does not bear an EXP claim.", null);
         }
 
-        Object expClaim = claims.get(EXP);
+        Object expClaim = claims.get(EXPIRY_IN_SECONDS);
         long expiry;
         try {
             expiry = (int) expClaim;
@@ -187,8 +187,6 @@ public abstract class TokenValidation {
                 Assert.notNull(user, "[Assertion failed] - this argument is required; it must not be null");
             } catch (UsernameNotFoundException ex) {
                 throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
-            } catch (InvalidTokenException ex) {
-                throw ex;
             }
 
             if (user == null) {
@@ -306,8 +304,6 @@ public abstract class TokenValidation {
             checkRequestedScopesAreGranted(clientScopes);
         } catch (NoSuchClientException ex) {
             throw new InvalidTokenException("The token refers to a non-existent client: " + clientId, ex);
-        } catch (InvalidTokenException ex) {
-            throw ex;
         }
 
         return this;
@@ -384,7 +380,7 @@ public abstract class TokenValidation {
                 RevocableToken revocableToken = null;
                 try {
                     revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
-                } catch (EmptyResultDataAccessException ex) {
+                } catch (EmptyResultDataAccessException ignored) {
                 }
 
                 if (revocableToken == null) {

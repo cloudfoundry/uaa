@@ -1,0 +1,69 @@
+version: 2
+updates:
+- package-ecosystem: npm
+  directory: "/uaa"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gomod
+  directory: "/k8s"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gradle
+  directory: "/statsd"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gradle
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: org.apache.directory.api:api-ldap-model
+    versions:
+    - ">= 2.a"
+    - "< 3"
+  - dependency-name: org.flywaydb:flyway-core
+    versions:
+    - ">= 6.a"
+    - "< 7"
+  - dependency-name: org.passay:passay
+    versions:
+    - "> 1.2.0"
+    - "< 2"
+- package-ecosystem: gradle
+  directory: "/model"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gradle
+  directory: "/metrics-data"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gradle
+  directory: "/samples/api"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gradle
+  directory: "/server"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: gradle
+  directory: "/samples/app"
+  schedule:
+    interval: daily
+    time: "11:00"
+  open-pull-requests-limit: 10

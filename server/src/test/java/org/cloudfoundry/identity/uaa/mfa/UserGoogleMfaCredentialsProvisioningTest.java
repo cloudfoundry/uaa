@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.mfa;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +15,6 @@ import java.util.Arrays;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(PollutionPreventionExtension.class)

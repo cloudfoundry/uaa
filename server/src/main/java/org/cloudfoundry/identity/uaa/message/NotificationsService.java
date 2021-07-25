@@ -52,7 +52,7 @@ public class NotificationsService implements MessageService {
             registerNotifications();
         }
 
-        Map<String, String> request = new HashMap<>();;
+        Map<String, String> request = new HashMap<>();
         String kindId = (String) notifications.get(messageType).get("id");
         request.put("kind_id", kindId);
         request.put("to", email);

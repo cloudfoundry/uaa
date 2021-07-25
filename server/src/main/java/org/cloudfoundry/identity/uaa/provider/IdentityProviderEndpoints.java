@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -86,12 +87,12 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     public IdentityProviderEndpoints(
-            IdentityProviderProvisioning identityProviderProvisioning,
-            ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-            ScimGroupProvisioning scimGroupProvisioning,
-            SamlIdentityProviderConfigurator samlConfigurator,
-            IdentityProviderConfigValidator configValidator,
-            IdentityZoneManager identityZoneManager) {
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
+            final @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
+            final @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
+            final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator,
+            final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
+            final IdentityZoneManager identityZoneManager) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
@@ -126,18 +127,19 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (Exception x) {
-            logger.debug("Unable to create IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"]", x);
+            logger.error("Unable to create IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"]", x);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
     @Transactional
-    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, identityZoneManager.getCurrentIdentityZoneId());
         if (publisher!=null && existing!=null) {
             existing.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication(), identityZoneManager.getCurrentIdentityZoneId()));
+            redactSensitiveData(existing);
             return new ResponseEntity<>(existing, OK);
         } else {
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
@@ -177,7 +179,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<IdentityProviderStatus> updateIdentityProviderStatus(@PathVariable String id, @RequestBody IdentityProviderStatus body) {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-        if(body.getRequirePasswordChange() == null || body.getRequirePasswordChange() != true) {
+        if(body.getRequirePasswordChange() == null || !body.getRequirePasswordChange()) {
             logger.debug("Invalid payload. The property requirePasswordChangeRequired needs to be set");
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
@@ -198,7 +200,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     @RequestMapping(method = GET)
     public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(value = "active_only", required = false) String activeOnly, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
-        Boolean retrieveActiveOnly = Boolean.valueOf(activeOnly);
+        boolean retrieveActiveOnly = Boolean.parseBoolean(activeOnly);
         List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
         for(IdentityProvider idp : identityProviderList) {
             idp.setSerializeConfigRaw(rawConfig);
@@ -239,7 +241,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             status = BAD_REQUEST;
             exception = getExceptionString(x);
         } catch (Exception x) {
-            logger.debug("Identity provider validation failed.", x);
+            logger.error("Identity provider validation failed.", x);
             status = INTERNAL_SERVER_ERROR;
             exception = "check server logs";
         }finally {
@@ -311,14 +313,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
                     if (definition.getRelyingPartySecret() == null) {
                         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
                         if (existing!=null &&
                             existing.getConfig()!=null &&
-                            existing.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-                            AbstractXOAuthIdentityProviderDefinition existingDefinition = (AbstractXOAuthIdentityProviderDefinition)existing.getConfig();
+                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                            AbstractExternalOAuthIdentityProviderDefinition existingDefinition = (AbstractExternalOAuthIdentityProviderDefinition)existing.getConfig();
                             definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                         }
                     }
@@ -346,9 +348,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
                     logger.debug("Removing relying secret from OAuth/OIDC provider id:"+provider.getId());
-                    AbstractXOAuthIdentityProviderDefinition definition = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
                     definition.setRelyingPartySecret(null);
                 }
                 break;

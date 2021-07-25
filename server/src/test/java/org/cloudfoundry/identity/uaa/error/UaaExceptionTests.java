@@ -13,7 +13,7 @@ import static org.junit.Assert.assertTrue;
 public class UaaExceptionTests {
 
     @Test
-    public void testGetErrorCode() throws Exception {
+    public void testGetErrorCode() {
         UaaException x = new UaaException("msg", new Exception());
         assertEquals("unknown_error", x.getErrorCode());
         x = new UaaException("msg");
@@ -25,7 +25,7 @@ public class UaaExceptionTests {
     }
 
     @Test
-    public void testGetHttpStatus() throws Exception {
+    public void testGetHttpStatus() {
         UaaException x = new UaaException("msg", new Exception());
         assertEquals(400, x.getHttpStatus());
         x = new UaaException("msg");
@@ -39,13 +39,13 @@ public class UaaExceptionTests {
     }
 
     @Test
-    public void testAddAdditionalInformation() throws Exception {
+    public void testAddAdditionalInformation() {
 
     }
 
 
     @Test
-    public void testValueOf() throws Exception {
+    public void testValueOf() {
         Map<String, String> params = new HashMap<>();
         params.put("error", "error");
         params.put("error_description", "error_description");
@@ -79,7 +79,7 @@ public class UaaExceptionTests {
     }
 
     @Test
-    public void testToString() throws Exception {
+    public void testToString() {
         UaaException x = new UaaException("test");
         assertNotNull(x.toString());
     }

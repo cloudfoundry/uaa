@@ -42,7 +42,7 @@ public class ClientDetailsModification extends BaseClientDetails {
 
     @JsonGetter("action")
     private String getActionForSerialization() {
-        if(action == NONE) return null;
+        if(action.equals(NONE)) return null;
         return getAction();
     }
 

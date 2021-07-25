@@ -1,0 +1,76 @@
+#@data/values
+---
+#! UAA Deployment Values
+version: ""
+image: ""
+namespace: default
+labels:
+  instance: standalone
+  partOf: uaa
+  managedBy: kubectl
+
+resources:
+  uaa:
+    requests:
+      memory: 512Mi
+      cpu: 50m
+    limits:
+      memory: 2000Mi
+      cpu: 500m
+  statsd_exporter:
+    requests:
+      memory: 10Mi
+      cpu: 10m
+    limits:
+      memory: 100Mi
+      cpu: 100m
+
+issuer:
+  uri: http://localhost:8080/uaa
+
+tomcat:
+  accessLoggingEnabled: "y"
+
+#! Statsd Deployment Values
+images:
+  statsd_exporter: cloudfoundry/statsd_exporter:v0.15.0@sha256:10a64dc4ad0a3e3fe88372f0481dea5c02595c38d168617836a99a649d3ac407
+
+
+#! UAA Application Values
+database:
+  scheme: ~
+  username: ~
+  password: ~
+  url: ~
+
+jwt:
+  policy:
+    activeKeyId: ~
+    keys: {}
+
+login:
+  saml:
+    activeKeyId: ~
+    keys: {}
+
+encryption:
+  active_key_label: ~
+  encryption_keys: []
+
+smtp:
+  host: ~
+  port: 25
+  user: ~
+  password: ~
+  starttls: ~
+  from_address: ~
+  sslprotocols: ~
+
+admin:
+  client_secret: ~
+
+#! ca_certs should be an array of PEM-encoded certs
+#! These will be added to the UAA's truststore
+ca_certs: []
+
+automountServiceAccountToken: false

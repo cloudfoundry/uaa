@@ -1,64 +1,76 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-public class HealthzEndpointTests {
+class HealthzEndpointTests {
 
-    private static final int SLEEP_UPON_SHUTDOWN = 150;
+    private static final long SLEEP_UPON_SHUTDOWN = 150;
 
-    private HealthzEndpoint endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN);
-    private MockHttpServletResponse response = new MockHttpServletResponse();
+    private HealthzEndpoint endpoint;
+    private MockHttpServletResponse response;
+    private Thread shutdownHook;
+
+    @BeforeEach
+    void setUp() {
+        Runtime mockRuntime = mock(Runtime.class);
+        endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime);
+        response = new MockHttpServletResponse();
+
+        ArgumentCaptor<Thread> threadArgumentCaptor = ArgumentCaptor.forClass(Thread.class);
+        verify(mockRuntime).addShutdownHook(threadArgumentCaptor.capture());
+        shutdownHook = threadArgumentCaptor.getValue();
+    }
 
     @Test
-    public void testGetHealthz() throws Exception {
+    void getHealthz() {
         assertEquals("ok\n", endpoint.getHealthz(response));
     }
 
     @Test
-    public void shutdown_sends_stopping() throws Exception {
+    void shutdownSendsStopping() throws InterruptedException {
         long now = System.currentTimeMillis();
-        assertEquals("ok\n", endpoint.getHealthz(response));
-        runShutdownHook();
+        shutdownHook.start();
+        shutdownHook.join();
         assertEquals("stopping\n", endpoint.getHealthz(response));
         assertEquals(503, response.getStatus());
         long after = System.currentTimeMillis();
-        assertThat(after, Matchers.greaterThanOrEqualTo(now+SLEEP_UPON_SHUTDOWN));
+        assertThat(after, greaterThanOrEqualTo(now + SLEEP_UPON_SHUTDOWN));
     }
 
-    @Test
-    public void shutdown_without_sleep() throws Exception {
-        long now = System.currentTimeMillis();
-        endpoint = new HealthzEndpoint(-1);
-        runShutdownHook();
-        assertEquals("stopping\n", endpoint.getHealthz(response));
-        assertEquals(503, response.getStatus());
-        long after = System.currentTimeMillis();
-        assertThat(after, Matchers.lessThanOrEqualTo(now+SLEEP_UPON_SHUTDOWN));
-    }
+    @Nested
+    class WithoutSleeping {
+        @BeforeEach
+        void setUp() {
+            Runtime mockRuntime = mock(Runtime.class);
+            endpoint = new HealthzEndpoint(-1, mockRuntime);
+            response = new MockHttpServletResponse();
 
-    protected void runShutdownHook() {
-        Object t = ReflectionTestUtils.getField(endpoint, "shutdownhook");
-        ReflectionTestUtils.invokeMethod(t, "run");
-        ReflectionTestUtils.invokeMethod(t, "join");
-    }
+            ArgumentCaptor<Thread> threadArgumentCaptor = ArgumentCaptor.forClass(Thread.class);
+            verify(mockRuntime).addShutdownHook(threadArgumentCaptor.capture());
+            shutdownHook = threadArgumentCaptor.getValue();
+        }
 
+        @Test
+        void shutdownWithoutSleep() throws InterruptedException {
+            long now = System.currentTimeMillis();
+            shutdownHook.start();
+            shutdownHook.join();
+            assertEquals("stopping\n", endpoint.getHealthz(response));
+            assertEquals(503, response.getStatus());
+            long after = System.currentTimeMillis();
+            assertThat(after, lessThanOrEqualTo(now + SLEEP_UPON_SHUTDOWN));
+        }
+    }
 }

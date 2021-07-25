@@ -36,27 +36,27 @@ public class YamlMapFactoryBeanTests {
     private YamlMapFactoryBean factory = new YamlMapFactoryBean();
 
     @Test
-    public void testSetIgnoreResourceNotFound() throws Exception {
+    public void testSetIgnoreResourceNotFound() {
         factory.setResolutionMethod(YamlMapFactoryBean.ResolutionMethod.OVERRIDE_AND_IGNORE);
         factory.setResources(new FileSystemResource[] { new FileSystemResource("non-exsitent-file.yml") });
         assertEquals(0, factory.getObject().size());
     }
 
     @Test(expected = IllegalStateException.class)
-    public void testSetBarfOnResourceNotFound() throws Exception {
+    public void testSetBarfOnResourceNotFound() {
         factory.setResources(new FileSystemResource[] { new FileSystemResource("non-exsitent-file.yml") });
         assertEquals(0, factory.getObject().size());
     }
 
     @Test
-    public void testGetObject() throws Exception {
+    public void testGetObject() {
         factory.setResources(new ByteArrayResource[] { new ByteArrayResource("foo: bar".getBytes()) });
         assertEquals(1, factory.getObject().size());
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testOverrideAndremoveDefaults() throws Exception {
+    public void testOverrideAndremoveDefaults() {
         factory.setResources(new ByteArrayResource[] { new ByteArrayResource("foo:\n  bar: spam".getBytes()),
                         new ByteArrayResource("foo:\n  spam: bar".getBytes()) });
         assertEquals(1, factory.getObject().size());
@@ -64,7 +64,7 @@ public class YamlMapFactoryBeanTests {
     }
 
     @Test
-    public void testFirstFound() throws Exception {
+    public void testFirstFound() {
         factory.setResolutionMethod(ResolutionMethod.FIRST_FOUND);
         factory.setResources(new Resource[] { new AbstractResource() {
             @Override

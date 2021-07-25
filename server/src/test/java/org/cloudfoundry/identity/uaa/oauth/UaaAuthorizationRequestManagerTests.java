@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -29,14 +29,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.junit.Assert.assertEquals;
@@ -100,28 +93,28 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testClientIDPAuthorizationInUAAzoneListSucceeds() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random"));
         factory.checkClientIdpAuthorization(client, user);
     }
 
     @Test
     void testClientIDPAuthorizationInUAAzoneListFails() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
         assertThrows(UnauthorizedClientException.class, () -> factory.checkClientIdpAuthorization(client, user));
     }
 
     @Test
     void testClientIDPAuthorizationInUAAzoneNullProvider() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(null);
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
         assertThrows(UnauthorizedClientException.class, () -> factory.checkClientIdpAuthorization(client, user));
     }
 
     @Test
     void testClientIDPAuthorizationInUAAzoneEmptyResultSetException() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("random2"));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
         assertThrows(UnauthorizedClientException.class, () -> factory.checkClientIdpAuthorization(client, user));
     }
 
@@ -132,7 +125,7 @@ class UaaAuthorizationRequestManagerTests {
         parameters.put("scope", "aud1.test aud2.test");
         parameters.put("client_id", client.getClientId());
         parameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
-        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("aud1.test"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("aud1.test"));
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
         assertEquals(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"), new TreeSet<>(request.getScope()));
@@ -148,7 +141,7 @@ class UaaAuthorizationRequestManagerTests {
         parameters.put("client_id", recipient.getClientId());
         parameters.put("expires_in", "44000");
         parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
-        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
         when(clientDetailsService.loadClientByClientId(recipient.getClientId(), "uaa")).thenReturn(recipient);
         ReflectionTestUtils.setField(factory, "uaaUserDatabase", null);
@@ -189,7 +182,7 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testOpenidScopeIncludeIsAResourceId() {
         parameters.put("scope", "openid foo.bar");
-        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Arrays.asList("openid"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("openid"));
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
         assertEquals(StringUtils.commaDelimitedListToSet("openid,foo.bar"), new TreeSet<String>(request.getScope()));
@@ -241,11 +234,10 @@ class UaaAuthorizationRequestManagerTests {
 
     @Test
     void testWildcardIntersect1() {
-        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer"));
-        Set<String> requested = client;
+        Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
-        Set<String> result = factory.intersectScopes(requested, client, user);
+        Set<String> result = factory.intersectScopes(client, client, user);
         assertEquals(2, result.size());
         assertTrue(result.contains("space.1.developer"));
         assertTrue(result.contains("space.2.developer"));
@@ -253,8 +245,8 @@ class UaaAuthorizationRequestManagerTests {
 
     @Test
     void testWildcardIntersect2() {
-        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer"));
-        Set<String> requested = new HashSet<>(Arrays.asList("space.1.developer"));
+        Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
+        Set<String> requested = new HashSet<>(Collections.singletonList("space.1.developer"));
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
@@ -264,8 +256,8 @@ class UaaAuthorizationRequestManagerTests {
 
     @Test
     void testWildcardIntersect3() {
-        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer"));
-        Set<String> requested = new HashSet<>(Arrays.asList("space.*.admin"));
+        Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
+        Set<String> requested = new HashSet<>(Collections.singletonList("space.*.admin"));
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
@@ -275,7 +267,7 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testWildcardIntersect4() {
         Set<String> client = new HashSet<>(Arrays.asList("space.*.developer","space.*.admin"));
-        Set<String> requested = new HashSet<>(Arrays.asList("space.*.admin"));
+        Set<String> requested = new HashSet<>(Collections.singletonList("space.*.admin"));
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
@@ -286,10 +278,9 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testWildcardIntersect5() {
         Set<String> client = new HashSet<>(Arrays.asList("space.*.developer","space.*.admin", "space.3.operator"));
-        Set<String> requested = client;
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
-        Set<String> result = factory.intersectScopes(requested, client, user);
+        Set<String> result = factory.intersectScopes(client, client, user);
         assertEquals(4, result.size());
         assertTrue(result.contains("space.1.admin"));
         assertTrue(result.contains("space.3.operator"));
@@ -299,8 +290,8 @@ class UaaAuthorizationRequestManagerTests {
 
     @Test
     void testWildcardIntersect6() {
-        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer,space.*.admin"));
-        Set<String> requested = new HashSet<>(Arrays.asList("space.*.admin"));
+        Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer,space.*.admin"));
+        Set<String> requested = new HashSet<>(Collections.singletonList("space.*.admin"));
         Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);

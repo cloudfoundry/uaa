@@ -34,19 +34,13 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 /**
  * @author Luke Taylor
@@ -58,7 +52,7 @@ public class RemoteAuthenticationEndpointTests {
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Test
-    public void remoteAuthenticationSucceedsWithCorrectCredentials() throws Exception {
+    public void remoteAuthenticationSucceedsWithCorrectCredentials() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), testAccounts.getPassword(), null);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -82,11 +76,11 @@ public class RemoteAuthenticationEndpointTests {
     }
 
     @Test
-    public void remoteAuthenticationFailsWithIncorrectCredentials() throws Exception {
+    public void remoteAuthenticationFailsWithIncorrectCredentials() {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(testAccounts.getUserName(), "wrong", null);
-        assertFalse(HttpStatus.OK == response.getStatusCode());
-        assertFalse(testAccounts.getUserName().equals(response.getBody().get("username")));
+        assertNotSame(HttpStatus.OK, response.getStatusCode());
+        assertNotEquals(testAccounts.getUserName(), response.getBody().get("username"));
     }
 
     @Test
@@ -101,7 +95,7 @@ public class RemoteAuthenticationEndpointTests {
         }
     }
 
-    public void validateOrigin(String username, String password, String origin, Map<String,Object> info) throws Exception {
+    public void validateOrigin(String username, String password, String origin, Map<String,Object> info) {
         ResponseEntity<Map> authResp = authenticate(username,password, info);
         assertEquals(HttpStatus.OK, authResp.getStatusCode());
 
@@ -177,7 +171,7 @@ public class RemoteAuthenticationEndpointTests {
             headers.add("Authorization", "Bearer " + getLoginReadBearerToken());
         }
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<String, Object>();
         parameters.set("username", username);
@@ -188,8 +182,7 @@ public class RemoteAuthenticationEndpointTests {
             parameters.setAll(additionalParams);
         }
 
-        ResponseEntity<Map> result = restTemplate.exchange(serverRunning.getUrl("/authenticate"),
+        return restTemplate.exchange(serverRunning.getUrl("/authenticate"),
                         HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
-        return result;
     }
 }

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.clients.AdminClientCreator;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
@@ -45,7 +45,6 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
   private MultitenantJdbcClientDetailsService clients;
   private String adminClientTokenWithClientsWrite;
   private String adminUserToken;
-  private UaaTestAccounts testAccounts;
   private static final String RESOURCE_OWNER_GUID = "The user guid of the resource owner who created this client";
   private static final String CLIENT_ID_DESC = "Client identifier, unique within identity zone";
   private static final String CLIENT_NAME_DESC = "Human readable display name for the client";
@@ -62,7 +61,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
 
   @BeforeEach
   void setUp() throws Exception {
-    testAccounts = UaaTestAccounts.standard(null);
+    UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
     clients = webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class);
     adminClientTokenWithClientsWrite = testClient.getClientCredentialsOAuthAccessToken(
       testAccounts.getAdminClientId(),

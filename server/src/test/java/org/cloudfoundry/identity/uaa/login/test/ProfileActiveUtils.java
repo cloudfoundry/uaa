@@ -18,6 +18,7 @@ import org.springframework.test.annotation.ProfileValueUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -57,9 +58,7 @@ public class ProfileActiveUtils {
                 blacklist.add(unlessProfileActive.value());
             }
             if (unlessProfileActive.values() != null) {
-                for (String s : unlessProfileActive.values()) {
-                    blacklist.add(s);
-                }
+                blacklist.addAll(Arrays.asList(unlessProfileActive.values()));
             }
         }
         return blacklist;

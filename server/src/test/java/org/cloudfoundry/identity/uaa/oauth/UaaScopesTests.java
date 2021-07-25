@@ -30,13 +30,13 @@ public class UaaScopesTests {
     private UaaScopes uaaScopes = new UaaScopes();
 
     @Test
-    public void testGetUaaScopes() throws Exception {
+    public void testGetUaaScopes() {
         assertEquals(31, uaaScopes.getUaaScopes().size());
         assertEquals(31, uaaScopes.getUaaAuthorities().size());
     }
 
     @Test
-    public void testGetUaaAuthorities() throws Exception {
+    public void testGetUaaAuthorities() {
         List<GrantedAuthority> authorities = uaaScopes.getUaaAuthorities();
         List<GrantedAuthority> expected = getGrantedAuthorities();
         assertEquals(expected, authorities);
@@ -51,7 +51,7 @@ public class UaaScopesTests {
     }
 
     @Test
-    public void testIsWildcardScope() throws Exception {
+    public void testIsWildcardScope() {
         for (String s : uaaScopes.getUaaScopes()) {
             if (s.contains("*")) {
                 assertTrue(uaaScopes.isWildcardScope(s));
@@ -64,7 +64,7 @@ public class UaaScopesTests {
     }
 
     @Test
-    public void testIsUaaScope() throws Exception {
+    public void testIsUaaScope() {
         for (String scope : uaaScopes.getUaaScopes()) {
             assertTrue(uaaScopes.isUaaScope(scope));
         }

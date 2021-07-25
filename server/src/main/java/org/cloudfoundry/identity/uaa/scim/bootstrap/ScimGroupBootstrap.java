@@ -168,7 +168,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             String groupName = fields[0];
             groups.putIfAbsent(groupName, null);
 
-            boolean groupAdmin = (3 <= fields.length && "write".equalsIgnoreCase(fields[2])) ? true : false;
+            boolean groupAdmin = 3 <= fields.length && "write".equalsIgnoreCase(fields[2]);
             if (groupAdmin) {
                 groupAdmins.put(groupName, users);
             } else {
@@ -180,7 +180,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         List<ScimGroup> groupInfos = groups.keySet().stream().filter(n -> StringUtils.hasText(n)).map(n -> getOrCreateGroup(n)).collect(Collectors.toList());
         for (int i = 0; i < groupInfos.size(); i++) {
             ScimGroup g = groupInfos.get(i);

@@ -1,34 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-    Cloud Foundry
-    Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
-
-    This product is licensed to you under the Apache License, Version 2.0 (the "License").
-    You may not use this product except in compliance with the License.
-
-    This product includes a number of subcomponents with
-    separate copyright notices and license terms. Your use of these
-    subcomponents is subject to the terms and conditions of the
-    subcomponent's license, as noted in the LICENSE file.
-
--->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:aop="http://www.springframework.org/schema/aop"
-    xmlns:util="http://www.springframework.org/schema/util"
-    xsi:schemaLocation="http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
-        http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2.xsd
-        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
-        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd
+        http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2.xsd
+        http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
     <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
                     <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="emails\.value" value="email" />
-                        <entry key="groups\.display" value="authorities" />
-                        <entry key="phoneNumbers\.value" value="phoneNumber" />
+                        <entry key="emails\.value" value="email"/>
+                        <entry key="groups\.display" value="authorities"/>
+                        <entry key="phoneNumbers\.value" value="phoneNumber"/>
                     </map>
                 </constructor-arg>
             </bean>
@@ -37,20 +25,22 @@
     </bean>
 
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
-        <constructor-arg ref="jdbcTemplate" />
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-        <property name="queryConverter" ref="scimUserQueryConverter" />
-        <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
-        <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}" />
+        <constructor-arg ref="jdbcTemplate"/>
+        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory"/>
+        <property name="queryConverter" ref="scimUserQueryConverter"/>
+        <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}"/>
+        <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}"/>
         <property name="timeService" ref="timeService"/>
         <constructor-arg name="passwordEncoder" ref="nonCachingPasswordEncoder"/>
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
-        <constructor-arg name="maxLength"  value="${password.policy.global.maxLength:255}"/>
-        <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.global.requireUpperCaseCharacter:0}"/>
-        <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg name="maxLength" value="${password.policy.global.maxLength:255}"/>
+        <constructor-arg name="requireUpperCaseCharacter"
+                         value="${password.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg name="requireLowerCaseCharacter"
+                         value="${password.policy.global.requireLowerCaseCharacter:0}"/>
         <constructor-arg name="requireDigit" value="${password.policy.global.requireDigit:0}"/>
         <constructor-arg name="requireSpecialCharacter" value="${password.policy.global.requireSpecialCharacter:0}"/>
         <constructor-arg name="expirePasswordInMonths" value="${password.policy.global.expirePasswordInMonths:0}"/>
@@ -59,24 +49,29 @@
     <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
         <constructor-arg name="maxLength" value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
-        <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
-        <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
-        <constructor-arg name="requireDigit" value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
-        <constructor-arg name="requireSpecialCharacter" value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg name="expirePasswordInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
+        <constructor-arg name="requireUpperCaseCharacter"
+                         value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg name="requireLowerCaseCharacter"
+                         value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg name="requireDigit"
+                         value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
+        <constructor-arg name="requireSpecialCharacter"
+                         value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg name="expirePasswordInMonths"
+                         value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
     </bean>
 
     <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher">
-        <constructor-arg ref="scimUserProvisioning" />
+        <constructor-arg ref="scimUserProvisioning"/>
     </bean>
 
     <aop:config proxy-target-class="true">
         <aop:aspect ref="passwordEventPublisher">
             <aop:after-returning method="passwordChange"
-                                 pointcut="execution(* *..ScimUserProvisioning+.changePassword(String, ..)) and args(userId,..) and bean(scimUserProvisioning)" />
+                                 pointcut="execution(* *..ScimUserProvisioning+.changePassword(String, ..)) and args(userId,..) and bean(scimUserProvisioning)"/>
             <aop:after-throwing method="passwordFailure"
                                 pointcut="execution(* *..PasswordChangeEndpoint+.changePassword(String, ..)) and args(userId,..) and bean(passwordChangeEndpoint)"
-                                throwing="e" />
+                                throwing="e"/>
         </aop:aspect>
     </aop:config>
 
@@ -85,128 +80,113 @@
     <aop:config proxy-target-class="true">
         <aop:aspect ref="scimEventPublisher">
             <aop:after-returning method="userCreated"
-                                 pointcut="execution(* *..ScimUserProvisioning+.createUser(..)) and bean(scimUserProvisioning)" returning="user" />
+                                 pointcut="execution(* *..ScimUserProvisioning+.createUser(..)) and bean(scimUserProvisioning)"
+                                 returning="user"/>
             <aop:after-returning method="userModified"
-                                 pointcut="execution(* *..ScimUserProvisioning+.update(..)) and bean(scimUserProvisioning)" returning="user" />
+                                 pointcut="execution(* *..ScimUserProvisioning+.update(..)) and bean(scimUserProvisioning)"
+                                 returning="user"/>
             <aop:after-returning method="userVerified"
-                                 pointcut="execution(* *..ScimUserProvisioning+.verifyUser(..)) and bean(scimUserProvisioning)" returning="user" />
+                                 pointcut="execution(* *..ScimUserProvisioning+.verifyUser(..)) and bean(scimUserProvisioning)"
+                                 returning="user"/>
             <aop:after-returning method="userDeleted"
-                                 pointcut="execution(* *..ScimUserEndpoints+.deleteUser(..)) and bean(scimUserEndpoints)" returning="user" />
+                                 pointcut="execution(* *..ScimUserEndpoints+.deleteUser(..)) and bean(scimUserEndpoints)"
+                                 returning="user"/>
             <aop:after-returning method="groupCreated"
-                                 pointcut="execution(* *..ScimGroupEndpoints+.createGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+                                 pointcut="execution(* *..ScimGroupEndpoints+.createGroup(..)) and bean(scimGroupEndpoints)"
+                                 returning="group"/>
             <aop:after-returning method="groupModified"
-                                 pointcut="execution(* *..ScimGroupEndpoints+.updateGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+                                 pointcut="execution(* *..ScimGroupEndpoints+.updateGroup(..)) and bean(scimGroupEndpoints)"
+                                 returning="group"/>
             <aop:after-returning method="groupDeleted"
-                                 pointcut="execution(* *..ScimGroupEndpoints+.deleteGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
+                                 pointcut="execution(* *..ScimGroupEndpoints+.deleteGroup(..)) and bean(scimGroupEndpoints)"
+                                 returning="group"/>
             <aop:after-returning method="groupCreated"
-                                 pointcut="execution(* *..ScimGroupEndpoints+.addZoneManagers(..)) and bean(scimGroupEndpoints)" returning="group" />
+                                 pointcut="execution(* *..ScimGroupEndpoints+.addZoneManagers(..)) and bean(scimGroupEndpoints)"
+                                 returning="group"/>
             <aop:after-returning method="groupModified"
-                                 pointcut="execution(* *..ScimGroupEndpoints+.deleteZoneAdmin(..)) and bean(scimGroupEndpoints)" returning="group" />
+                                 pointcut="execution(* *..ScimGroupEndpoints+.deleteZoneAdmin(..)) and bean(scimGroupEndpoints)"
+                                 returning="group"/>
         </aop:aspect>
     </aop:config>
 
     <bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
-        <property name="jdbcScimGroupExternalMembershipManager" ref="externalGroupMembershipManager" />
-        <property name="jdbcScimGroupMembershipManager" ref="groupMembershipManager" />
+        <property name="jdbcScimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
+        <property name="jdbcScimGroupMembershipManager" ref="groupMembershipManager"/>
     </bean>
 
     <bean id="groupMembershipManager"
           class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager">
-        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+        <property name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
     </bean>
 
-    <bean id="externalGroupMembershipManager" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
-        <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
+    <bean id="externalGroupMembershipManager"
+          class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager">
+        <property name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
     </bean>
 
     <util:map id="exceptionToStatusMap" key-type="java.lang.Class" value-type="org.springframework.http.HttpStatus">
-        <entry key="org.springframework.dao.DataIntegrityViolationException" value="BAD_REQUEST" />
-        <entry key="org.springframework.http.converter.HttpMessageConversionException" value="BAD_REQUEST" />
-        <entry key="org.springframework.web.HttpMediaTypeException" value="BAD_REQUEST" />
-        <entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST" />
-        <entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST" />
-        <entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException" value="BAD_REQUEST" />
-        <entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException" value="BAD_REQUEST" />
-        <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException" value="NOT_FOUND" />
-        <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException" value="CONFLICT" />
-        <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException" value="CONFLICT" />
-        <entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST" />
+        <entry key="org.springframework.dao.DataIntegrityViolationException" value="BAD_REQUEST"/>
+        <entry key="org.springframework.http.converter.HttpMessageConversionException" value="BAD_REQUEST"/>
+        <entry key="org.springframework.web.HttpMediaTypeException" value="BAD_REQUEST"/>
+        <entry key="java.lang.IllegalArgumentException" value="BAD_REQUEST"/>
+        <entry key="java.lang.UnsupportedOperationException" value="BAD_REQUEST"/>
+        <entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException" value="BAD_REQUEST"/>
+        <entry key="org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException" value="BAD_REQUEST"/>
+        <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException" value="NOT_FOUND"/>
+        <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException" value="CONFLICT"/>
+        <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException" value="CONFLICT"/>
+        <entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
     </util:map>
 
-    <bean id="scimUserEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints">
-        <property name="isSelfCheck" ref="self" />
-        <property name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-        <property name="scimUserResourceMonitor" ref="scimUserProvisioning"/>
-        <property name="scimGroupMembershipManager" ref="groupMembershipManager" />
-        <property name="approvalStore" ref="approvalStore" />
-        <property name="statuses" ref="exceptionToStatusMap" />
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-        </property>
-        <property name="passwordValidator" ref="uaaPasswordValidator"/>
-        <property name="codeStore" ref="codeStore"/>
-        <property name="mfaCredentialsProvisioning" ref="jdbcUserGoogleMfaCredentialsProvisioning" />
-        <property name="userMaxCount" value="${userMaxCount:500}" />
-    </bean>
-
-    <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-        <constructor-arg name="membershipManager" ref="groupMembershipManager" />
-        <property name="statuses" ref="exceptionToStatusMap" />
-        <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-        </property>
-        <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
-        <property name="groupMaxCount" value="${groupMaxCount:500}" />
-    </bean>
-
-    <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
-          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/Groups/zones" access="#oauth2.hasScopeInAuthZone('scim.zones')" />
-        <intercept-url pattern="/Groups/zones/**" access="#oauth2.hasScopeInAuthZone('scim.zones')" />
-        <intercept-url pattern="/Groups/External" access="#oauth2.hasScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
-        <intercept-url pattern="/Groups/External" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/Groups/External/**" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
-        <intercept-url pattern="/Groups/**" access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
-        <intercept-url pattern="/Groups" access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
+    <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/Groups/zones" access="#oauth2.hasScopeInAuthZone('scim.zones')"/>
+        <intercept-url pattern="/Groups/zones/**" access="#oauth2.hasScopeInAuthZone('scim.zones')"/>
+        <intercept-url pattern="/Groups/External"
+                       access="#oauth2.hasScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/Groups/External"
+                       access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/Groups/External/**"
+                       access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/Groups/**"
+                       access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/Groups/**"
+                       access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PUT"/>
+        <intercept-url pattern="/Groups/**"
+                       access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/Groups/**"
+                       access="#oauth2.hasScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/Groups/**"
+                       access="#oauth2.hasAnyScope('scim.write', 'groups.update') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PATCH"/>
+        <intercept-url pattern="/Groups"
+                       access="#oauth2.hasScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
         <intercept-url pattern="/**" access="denyAll"/>
         <!--<intercept-url pattern="/**" access="ROLE_NONEXISTENT" />-->
-        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
-        <expression-handler ref="oauthWebExpressionHandler" />
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
     </http>
 
-    <bean id="userIdsEnabled" class="java.lang.Boolean">
-        <constructor-arg value="${scim.userids_enabled:false}" />
-    </bean>
-
-    <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints">
-        <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
-        <property name="scimUserEndpoints" ref="scimUserEndpoints" />
-        <property name="enabled" ref="userIdsEnabled" />
-    </bean>
-
-    <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.account.PasswordChangeEndpoint">
-        <constructor-arg>
-            <list>
-                <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
-                <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
-            </list>
-        </constructor-arg>
-    </bean>
-
-    <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-        entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"  use-expressions="false"
-        xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY,scope=password.write" />
-        <custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    <http name="scimUserPassword" pattern="/User*/*/password" create-session="stateless"
+          authentication-manager-ref="emptyAuthenticationManager"
+          entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY,scope=password.write"/>
+        <custom-filter ref="passwordResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
@@ -214,69 +194,91 @@
         <constructor-arg name="tokenProvisioning" ref="revocableTokenProvisioning"/>
     </bean>
 
-    <http  name="scimUsers" pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-        entry-point-ref="oauthAuthenticationEntryPoint"
-        xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/Users/*/verify-link" access="#oauth2.hasAnyScope('scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
-        <intercept-url pattern="/Users/*/verify" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
-        <intercept-url pattern="/Users/*/status" access="#oauth2.hasAnyScope('scim.write','uaa.account_status.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
-        <intercept-url pattern="/Users/*/mfa" access="#oauth2.hasAnyScope('uaa.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="GET" /> <!-- add self logic -->
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))" method="PUT" /> <!-- add self logic -->
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))" method="PATCH" />
-        <intercept-url pattern="/Users" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
-        <intercept-url pattern="/**" access="denyAll" />
-        <expression-handler ref="oauthWebExpressionHandler" />
-        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    <http name="scimUsers" pattern="/Users/**" create-session="stateless"
+          authentication-manager-ref="emptyAuthenticationManager"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+        <intercept-url pattern="/Users/*/verify-link"
+                       access="#oauth2.hasAnyScope('scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/Users/*/verify"
+                       access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/Users/*/status"
+                       access="#oauth2.hasAnyScope('scim.write','uaa.account_status.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PATCH"/>
+        <intercept-url pattern="/Users/*/mfa"
+                       access="#oauth2.hasAnyScope('uaa.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/Users/**"
+                       access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)"
+                       method="GET"/> <!-- add self logic -->
+        <intercept-url pattern="/Users/*"
+                       access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="DELETE"/>
+        <intercept-url pattern="/Users/*"
+                       access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))"
+                       method="PUT"/> <!-- add self logic -->
+        <intercept-url pattern="/Users/*"
+                       access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or (@self.isUserSelf(request,1))"
+                       method="PATCH"/>
+        <intercept-url pattern="/Users"
+                       access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/**" access="denyAll"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
-    <http  name="scimUserIds" pattern="/ids/Users*" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
-        entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager" use-expressions="false"
-        xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="scope=scim.userids" />
-        <custom-filter ref="idsResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
-        <access-denied-handler ref="oauthAccessDeniedHandler" />
+    <http name="scimUserIds" pattern="/ids/Users*" create-session="stateless"
+          authentication-manager-ref="emptyAuthenticationManager"
+          entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="scope=scim.userids"/>
+        <custom-filter ref="idsResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <csrf disabled="true"/>
     </http>
 
     <oauth:resource-server id="passwordResourceAuthenticationFilter" token-services-ref="tokenServices"
-        resource-id="password" entry-point-ref="oauthAuthenticationEntryPoint" />
+                           resource-id="password" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <oauth:resource-server id="scimResourceAuthenticationFilter" token-services-ref="tokenServices"
-        resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint" />
+                           resource-id="scim" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <oauth:resource-server id="resourceAgnosticAuthenticationFilter" token-services-ref="tokenServices"
-                           entry-point-ref="oauthAuthenticationEntryPoint" />
+                           entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <oauth:resource-server id="idsResourceAuthenticationFilter" token-services-ref="tokenServices"
-        entry-point-ref="oauthAuthenticationEntryPoint" />
+                           entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <bean id="users" class="org.springframework.beans.factory.config.ListFactoryBean">
         <property name="sourceList"
-            value="#{(@config['scim']==null or @config['scim']['users']==null)?@defaultUsers:@config['scim']['users']}" />
+                  value="#{(@config['scim']==null or @config['scim']['users']==null)?@defaultUsers:@config['scim']['users']}"/>
     </bean>
 
     <bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap">
-        <constructor-arg ref="users" /> <!--Conversion happens with org.cloudfoundry.identity.uaa.user.UaaUserEditor -->
+        <constructor-arg ref="users"/> <!--Conversion happens with org.cloudfoundry.identity.uaa.user.UaaUserEditor -->
     </bean>
 
     <bean id="scimGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap">
-        <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-        <constructor-arg name="membershipManager" ref="groupMembershipManager" />
-        <property name="groups" ref="groups" />
-        <property name="groupMembers" ref="members" />
-        <property name="defaultUserGroups" ref="defaultUserAuthorities" />
+        <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning"/>
+        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+        <constructor-arg name="membershipManager" ref="groupMembershipManager"/>
+        <property name="groups" ref="groups"/>
+        <property name="groupMembers" ref="members"/>
+        <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
         <property name="nonDefaultUserGroups" ref="nonDefaultUserGroups"/>
     </bean>
 
-    <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
-        <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager" />
-        <property name="externalGroupMaps" ref="externalGroups" />
+    <bean id="scimExternalGroupBootstrap"
+          class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
+        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+        <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager"/>
+        <property name="externalGroupMaps" ref="externalGroups"/>
         <property name="addNonExistingGroups" value="true"/>
     </bean>
 
@@ -297,25 +299,31 @@
         <value>zones.write</value>
     </util:set>
 
-    <bean id="scimGroupsTypeResolvingFactory" class="org.cloudfoundry.identity.uaa.impl.config.ScimGroupsTypeResolvingFactoryBean">
-        <constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null) ? '' : @config['scim']['groups']}" />
+    <bean id="scimGroupsTypeResolvingFactory"
+          class="org.cloudfoundry.identity.uaa.impl.config.ScimGroupsTypeResolvingFactoryBean">
+        <constructor-arg
+                value="#{(@config['scim']==null or @config['scim']['groups']==null) ? '' : @config['scim']['groups']}"/>
     </bean>
 
-    <bean id="groups" class="java.util.HashMap" factory-bean="scimGroupsTypeResolvingFactory" factory-method="getGroups" />
+    <bean id="groups" class="java.util.HashMap" factory-bean="scimGroupsTypeResolvingFactory"
+          factory-method="getGroups"/>
 
     <bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
         <property name="sourceList"
-            value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}" />
+                  value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}"/>
     </bean>
 
-    <bean id="scimExternalGroupsTypeResolvingFactory" class="org.cloudfoundry.identity.uaa.impl.config.ScimExternalGroupsTypeResolvingFactoryBean">
-        <constructor-arg value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@defaultExternalMembers:@config['scim']['external_groups']}" />
+    <bean id="scimExternalGroupsTypeResolvingFactory"
+          class="org.cloudfoundry.identity.uaa.impl.config.ScimExternalGroupsTypeResolvingFactoryBean">
+        <constructor-arg
+                value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@defaultExternalMembers:@config['scim']['external_groups']}"/>
     </bean>
 
-    <bean id="externalGroups" class="java.util.HashMap" factory-bean="scimExternalGroupsTypeResolvingFactory" factory-method="getExternalGroups" />
+    <bean id="externalGroups" class="java.util.HashMap" factory-bean="scimExternalGroupsTypeResolvingFactory"
+          factory-method="getExternalGroups"/>
 
-    <util:list id="defaultUsers" />
-    <util:list id="defaultMembers" />
+    <util:list id="defaultUsers"/>
+    <util:list id="defaultMembers"/>
     <util:list id="defaultExternalMembers">
         <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
     </util:list>
@@ -324,6 +332,7 @@
         <util:list id="defaultUsers">
             <value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
             <value>testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read</value>
+            <value>admin|admin|admin|||foo.bar,uaa.admin|uaa</value>
         </util:list>
         <util:list id="defaultMembers">
             <value>acme|acme.dev,acme.qa</value>
@@ -354,7 +363,7 @@
             <value>organizations.acme</value>
         </util:set>
         <bean id="userIdsEnabled" class="java.lang.Boolean">
-            <constructor-arg value="${scim.userids_enabled:true}" />
+            <constructor-arg value="${scim.userids_enabled:true}"/>
         </bean>
     </beans>
 </beans>

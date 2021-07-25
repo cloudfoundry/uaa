@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -7,9 +8,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.util.Arrays;
+import java.util.Collections;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -37,8 +37,6 @@ class InvitationsEndpointDocs extends EndpointDocs {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String domain;
     private String clientId;
-    private String clientSecret;
-    private String authorities;
     private String token;
 
     @BeforeEach
@@ -46,9 +44,10 @@ class InvitationsEndpointDocs extends EndpointDocs {
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         domain = generator.generate().toLowerCase() + ".com";
         clientId = generator.generate().toLowerCase();
-        clientSecret = generator.generate().toLowerCase();
-        authorities = "scim.read,scim.invite";
-        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, null, Arrays.asList("scim.invite"), Arrays.asList(new String[]{"client_credentials"}), authorities);
+        String clientSecret = generator.generate().toLowerCase();
+        String authorities = "scim.read,scim.invite";
+        MockMvcUtils.createClient(mockMvc, adminToken, clientId, clientSecret, null,
+                Collections.singletonList("scim.invite"), Collections.singletonList("client_credentials"), authorities);
         token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, "scim.invite", null, true);
     }
 

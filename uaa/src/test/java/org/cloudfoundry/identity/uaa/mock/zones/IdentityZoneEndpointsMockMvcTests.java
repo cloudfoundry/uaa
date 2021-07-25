@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -46,7 +47,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
@@ -368,10 +368,9 @@ class IdentityZoneEndpointsMockMvcTests {
         String id = generator.generate();
         createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
         List<String> groups = webApplicationContext.getBean(JdbcScimGroupProvisioning.class)
-                .retrieveAll(id).stream().map(g -> g.getDisplayName()).collect(Collectors.toList());
+                .retrieveAll(id).stream().map(ScimGroup::getDisplayName).collect(Collectors.toList());
 
         ZoneManagementScopes.getSystemScopes()
-                .stream()
                 .forEach(
                         scope ->
                                 assertTrue("Scope:" + scope + " should have been bootstrapped into the new zone", groups.contains(scope))
@@ -900,7 +899,7 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityProvider idp2 = idpp.retrieveByOrigin(UAA, IdentityZone.getUaaZoneId());
         assertNotEquals(idp1, idp2);
 
-        IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) webApplicationContext.getBean("identityZoneProvisioning");
+        IdentityZoneProvisioning identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
 
         assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(createdZone.getConfig()));
@@ -1670,7 +1669,7 @@ class IdentityZoneEndpointsMockMvcTests {
         try {
             externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId());
             fail("no external groups should be found");
-        } catch (ScimResourceNotFoundException e) {
+        } catch (ScimResourceNotFoundException ignored) {
         }
 
         assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class), is(0));

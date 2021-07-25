@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import org.cloudfoundry.identity.uaa.mfa.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Date;
 
@@ -73,7 +73,7 @@ public class MfaProviderTest {
 
         MfaProvider<GoogleMfaProviderConfig> provider = JsonUtils.readValue(json, MfaProvider.class);
 
-        assertEquals(null, provider.getType());
+        assertNull(provider.getType());
         assertEquals("UAA Provider", provider.getName());
         assertNull(provider.getConfig());
     }

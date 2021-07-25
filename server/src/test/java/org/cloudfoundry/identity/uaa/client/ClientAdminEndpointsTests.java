@@ -10,10 +10,14 @@ import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +38,15 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
@@ -44,10 +56,23 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyBoolean;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.withSettings;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class ClientAdminEndpointsTests {
@@ -62,14 +87,13 @@ class ClientAdminEndpointsTests {
 
     private BaseClientDetails[] details = new BaseClientDetails[inputs.length];
 
-
     private QueryableResourceManager<ClientDetails> clientDetailsService = null;
 
     private SecurityContextAccessor mockSecurityContextAccessor;
 
     private MultitenantClientServices clientRegistrationService = null;
 
-    private AuthenticationManager authenticationManager = null;
+    private AuthenticationManager mockAuthenticationManager = null;
 
     private ClientAdminEndpointsValidator clientDetailsValidator = null;
 
@@ -91,16 +115,14 @@ class ClientAdminEndpointsTests {
     }
 
     @BeforeEach
-    void setUp() throws Exception {
+    void setUp() {
         testZone.setId("testzone");
         mockSecurityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
-        endpoints = spy(new ClientAdminEndpoints(mockSecurityContextAccessor));
 
         clientDetailsService = Mockito.mock(NoOpClientDetailsResourceManager.class);
         when(clientDetailsService.create(any(ClientDetails.class), anyString())).thenCallRealMethod();
-        ResourceMonitor clientDetailsResourceMonitor = mock(ResourceMonitor.class);
         clientRegistrationService = Mockito.mock(MultitenantClientServices.class, withSettings().extraInterfaces(SystemDeletable.class));
-        authenticationManager = Mockito.mock(AuthenticationManager.class);
+        mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
         ApprovalStore approvalStore = mock(ApprovalStore.class);
         clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
@@ -110,25 +132,15 @@ class ClientAdminEndpointsTests {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IdentityZoneHolder.set(testZone);
 
-        endpoints.setClientMaxCount(5);
-        endpoints.setClientDetailsService(clientDetailsService);
-        endpoints.setClientRegistrationService(clientRegistrationService);
-        endpoints.setAuthenticationManager(authenticationManager);
-        endpoints.setApprovalStore(approvalStore);
-        endpoints.setClientDetailsValidator(clientDetailsValidator);
-        endpoints.setRestrictedScopesValidator(new RestrictUaaScopesClientValidator(new UaaScopes()));
-        endpoints.setClientDetailsResourceMonitor(clientDetailsResourceMonitor);
-
-        Map<String, String> attributeNameMap = new HashMap<>();
-        attributeNameMap.put("client_id", "clientId");
-        attributeNameMap.put("resource_ids", "resourceIds");
-        attributeNameMap.put("authorized_grant_types", "authorizedGrantTypes");
-        attributeNameMap.put("redirect_uri", "registeredRedirectUri");
-        attributeNameMap.put("access_token_validity", "accessTokenValiditySeconds");
-        attributeNameMap.put("refresh_token_validity", "refreshTokenValiditySeconds");
-        attributeNameMap.put("autoapprove", "autoApproveScopes");
-        attributeNameMap.put("additionalinformation", "additionalInformation");
-        endpoints.setAttributeNameMapper(new SimpleAttributeNameMapper(attributeNameMap));
+        endpoints = spy(new ClientAdminEndpoints(
+                mockSecurityContextAccessor,
+                clientDetailsValidator,
+                mockAuthenticationManager,
+                mock(ResourceMonitor.class),
+                approvalStore,
+                clientRegistrationService,
+                clientDetailsService,
+                5));
 
         input = new BaseClientDetails();
         input.setClientId("foo");
@@ -145,7 +157,7 @@ class ClientAdminEndpointsTests {
             inputs[i].setAccessTokenValiditySeconds(300);
         }
 
-        detail = new BaseClientDetails(input);
+        detail = new UaaClientDetails(input);
         detail.setResourceIds(Collections.singletonList("none"));
         // refresh token is added automatically by endpoint validation
         detail.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, "refresh_token"));
@@ -176,7 +188,6 @@ class ClientAdminEndpointsTests {
                     }
                 }
         );
-        endpoints.afterPropertiesSet();
     }
 
     @AfterEach
@@ -188,23 +199,10 @@ class ClientAdminEndpointsTests {
     void testValidateClientsTransferAutoApproveScopeSet() {
         List<String> scopes = Arrays.asList("scope1", "scope2");
         input.setAutoApproveScopes(new HashSet<>(scopes));
-        ClientDetails test = endpoints.getClientDetailsValidator().validate(input, Mode.CREATE);
+        ClientDetails test = clientDetailsValidator.validate(input, Mode.CREATE);
         for (String scope : scopes) {
             assertTrue("Client should have " + scope + " autoapprove.", test.isAutoApprove(scope));
         }
-    }
-
-    @Test
-    void testAccessors() {
-        ApprovalStore as = mock(ApprovalStore.class);
-        endpoints.setApprovalStore(as);
-        assertSame(as, endpoints.getApprovalStore());
-    }
-
-    @Test
-    void testNoApprovalStore() {
-        endpoints.setApprovalStore(null);
-        assertThrows(UnsupportedOperationException.class, () -> endpoints.deleteApprovals("someclient"));
     }
 
     @Test
@@ -217,7 +215,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetails() throws Exception {
+    void testCreateClientDetails() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
@@ -274,7 +272,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetails_With_Secret_Satisfying_Complex_Policy() throws Exception {
+    void testCreateClientDetails_With_Secret_Satisfying_Complex_Policy() {
         testZone.getConfig().setClientSecretPolicy(new ClientSecretPolicy(6, 255, 1, 1, 1, 1, 6));
         IdentityZoneHolder.set(testZone);
         String complexPolicySatisfyingSecret = "Secret1@";
@@ -288,10 +286,8 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void test_Get_Restricted_Scopes_List() throws Exception {
+    void test_Get_Restricted_Scopes_List() {
         assertEquals(new UaaScopes().getUaaScopes(), endpoints.getRestrictedClientScopes());
-        endpoints.setRestrictedScopesValidator(null);
-        assertNull(endpoints.getRestrictedClientScopes());
     }
 
     @Test
@@ -369,7 +365,7 @@ class ClientAdminEndpointsTests {
 
 
     @Test
-    void testMultipleCreateClientDetails() throws Exception {
+    void testMultipleCreateClientDetails() {
         ClientDetails[] results = endpoints.createClientDetailsTx(inputs);
         assertEquals("We should have created " + inputs.length + " clients.", inputs.length, results.length);
         for (int i = 0; i < inputs.length; i++) {
@@ -405,7 +401,7 @@ class ClientAdminEndpointsTests {
 
 
     @Test
-    void testCreateClientDetailsWithClientCredentials() throws Exception {
+    void testCreateClientDetailsWithClientCredentials() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         input.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
@@ -415,7 +411,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetailsWithJwtBearer() throws Exception {
+    void testCreateClientDetailsWithJwtBearer() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -430,7 +426,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientDetailsWithAdditionalInformation() throws Exception {
+    void testCreateClientDetailsWithAdditionalInformation() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
         detail.setAdditionalInformation(input.getAdditionalInformation());
@@ -440,7 +436,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testResourceServerCreation() throws Exception {
+    void testResourceServerCreation() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(detail);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -518,7 +514,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testGetClientDetails() throws Exception {
+    void testGetClientDetails() {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(input);
         input.setScope(Collections.singletonList(input.getClientId() + ".read"));
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
@@ -574,7 +570,7 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
 
-        BaseClientDetails updated = new BaseClientDetails(detail);
+        BaseClientDetails updated = new UaaClientDetails(detail);
         input = new BaseClientDetails();
         input.setClientId("foo");
         input.setScope(Collections.singletonList("foo.write"));
@@ -590,7 +586,7 @@ class ClientAdminEndpointsTests {
     void testChangeSecret() {
         Authentication auth = mock(Authentication.class);
         when(auth.isAuthenticated()).thenReturn(true);
-        when(authenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
+        when(mockAuthenticationManager.authenticate(any(Authentication.class))).thenReturn(auth);
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
@@ -666,20 +662,6 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testChangeSecretDeniedForUser() {
-
-        when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
-
-        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
-        when(mockSecurityContextAccessor.isClient()).thenReturn(false);
-
-        SecretChangeRequest change = new SecretChangeRequest();
-        change.setOldSecret(detail.getClientSecret());
-        change.setSecret("newpassword");
-        assertThrowsWithMessageThat(InvalidClientDetailsException.class, () -> endpoints.changeSecret(detail.getClientId(), change), is("Only a client can change client secret"));
-    }
-
-    @Test
     void testChangeSecretDeniedForNonAdmin() {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
@@ -715,7 +697,7 @@ class ClientAdminEndpointsTests {
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
 
-        when(authenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
+        when(mockAuthenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
 
 
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
@@ -790,7 +772,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testValidScopeIsNotRestrictedByCaller() throws Exception {
+    void testValidScopeIsNotRestrictedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
@@ -801,7 +783,8 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testClientEndpointCannotBeConfiguredWithAnInvalidMaxCount() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class, () -> endpoints.setClientMaxCount(0),
+        assertThrowsWithMessageThat(IllegalArgumentException.class,
+                () -> new ClientAdminEndpoints(null, null, null, null, null, null, null, 0),
                 is("Invalid \"clientMaxCount\" value (got 0). Should be positive number.")
         );
     }
@@ -817,7 +800,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testAuthorityAllowedByCaller() throws Exception {
+    void testAuthorityAllowedByCaller() {
         BaseClientDetails caller = new BaseClientDetails("caller", null, "uaa.none", "client_credentials,implicit",
                 "uaa.none");
         when(clientDetailsService.retrieve("caller", IdentityZoneHolder.get().getId())).thenReturn(caller);
@@ -916,7 +899,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientWithAutoapproveScopesList() throws Exception {
+    void testCreateClientWithAutoapproveScopesList() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -943,7 +926,7 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
-    void testCreateClientWithAutoapproveScopesTrue() throws Exception {
+    void testCreateClientWithAutoapproveScopesTrue() {
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);

@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionServiceException;

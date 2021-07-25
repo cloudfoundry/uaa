@@ -71,7 +71,7 @@ public class JwtTokenGranterTests {
     private Map<String, String> requestParameters;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         tokenServices = mock(AuthorizationServerTokenServices.class);
         clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
@@ -109,20 +109,20 @@ public class JwtTokenGranterTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void non_authentication_validates_correctly() throws Exception {
+    public void non_authentication_validates_correctly() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
         granter.validateRequest(tokenRequest);
     }
 
     @Test
-    public void client_authentication_only() throws Exception {
+    public void client_authentication_only() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -130,7 +130,7 @@ public class JwtTokenGranterTests {
     }
 
     @Test
-    public void missing_token_request() throws Exception {
+    public void missing_token_request() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("Missing token request object");
@@ -138,7 +138,7 @@ public class JwtTokenGranterTests {
     }
 
     @Test
-    public void missing_request_parameters() throws Exception {
+    public void missing_request_parameters() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("Missing token request object");
@@ -147,7 +147,7 @@ public class JwtTokenGranterTests {
     }
 
     @Test
-    public void missing_grant_type() throws Exception {
+    public void missing_grant_type() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("Missing grant type");
@@ -157,7 +157,7 @@ public class JwtTokenGranterTests {
     }
 
     @Test
-    public void invalid_grant_type() throws Exception {
+    public void invalid_grant_type() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("Invalid grant type");
@@ -167,7 +167,7 @@ public class JwtTokenGranterTests {
     }
 
     @Test
-    public void get_oauth2_authentication_validates_request() throws Exception {
+    public void get_oauth2_authentication_validates_request() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
         granter.getOAuth2Authentication(client, tokenRequest);
@@ -175,7 +175,7 @@ public class JwtTokenGranterTests {
     }
 
     @Test
-    public void get_oauth2_authentication() throws Exception {
+    public void get_oauth2_authentication() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         OAuth2Request request = mock(OAuth2Request.class);
         when(requestFactory.createOAuth2Request(same(client), same(tokenRequest))).thenReturn(request);

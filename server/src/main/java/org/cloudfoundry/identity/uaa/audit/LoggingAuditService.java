@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -13,6 +14,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Audit service implementation which just outputs the relevant information
  * through the logger.
+ *
+ * Keep this as a top-level bean to ensure it is exposed as a @ManagedResource
  *
  * @author Luke Taylor
  * @author Dave Syer
@@ -22,6 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
     objectName="cloudfoundry.identity:name=UaaAudit",
     description = "UAA Audit Metrics"
 )
+@Component("loggingAuditService")
 public class LoggingAuditService implements UaaAuditService {
 
     private Logger logger = LoggerFactory.getLogger("UAA.Audit");

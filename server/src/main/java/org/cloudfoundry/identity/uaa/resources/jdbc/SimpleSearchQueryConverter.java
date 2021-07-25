@@ -4,10 +4,10 @@ import com.unboundid.scim.sdk.AttributePath;
 import com.unboundid.scim.sdk.InvalidResourceException;
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -16,7 +16,11 @@ import org.springframework.util.StringUtils;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import static com.unboundid.scim.sdk.SCIMException.createException;
 import static java.util.Arrays.asList;
@@ -28,66 +32,70 @@ import static org.springframework.util.StringUtils.hasText;
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     //LOWER
-    private static final List<String> VALID_ATTRIBUTE_NAMES = Collections.unmodifiableList(
-            asList(
-                    "id",
-                    "created",
-                    "lastmodified",
-                    "version",
-                    "username",
-                    "password",
-                    "email",
-                    "givenname",
-                    "familyname",
-                    "name.familyname",
-                    "name.givenname",
-                    "active",
-                    "phonenumber",
-                    "verified",
-                    "origin",
-                    "identity_zone_id",
-                    "passwd_lastmodified",
-                    "passwd_change_required",
-                    "last_logon_success_time",
-                    "previous_logon_success_time",
-                    "displayname",
-                    "scope",
-                    "group_id",
-                    "member_id",
-                    "member_type",
-                    "description",
-                    "client_id",
-                    "authorized_grant_types",
-                    "web_server_redirect_uri",
-                    "redirect_uri",
-                    "access_token_validity",
-                    "refresh_token_validity",
-                    "autoapprove",
-                    "show_on_home_page",
-                    "created_by",
-                    "required_user_groups",
-                    "user_id",
-                    "meta.lastmodified",
-                    "meta.created",
-                    "meta.location",
-                    "meta.resourcetype",
-                    "meta.version",
-                    "emails.value",
-                    "groups.display",
-                    "phonenumbers.value",
-                    "gm.external_group",
-                    "gm.origin",
-                    "g.displayname",
-                    "g.id"
-            )
-    );
+    private static final List<String> VALID_ATTRIBUTE_NAMES = List.of(
+            "id",
+            "created",
+            "lastmodified",
+            "version",
+            "username",
+            "password",
+            "email",
+            "givenname",
+            "familyname",
+            "name.familyname",
+            "name.givenname",
+            "active",
+            "phonenumber",
+            "verified",
+            "origin",
+            "identity_zone_id",
+            "passwd_lastmodified",
+            "passwd_change_required",
+            "last_logon_success_time",
+            "previous_logon_success_time",
+            "displayname",
+            "scope",
+            "group_id",
+            "member_id",
+            "member_type",
+            "description",
+            "client_id",
+            "authorized_grant_types",
+            "web_server_redirect_uri",
+            "redirect_uri",
+            "access_token_validity",
+            "refresh_token_validity",
+            "autoapprove",
+            "show_on_home_page",
+            "created_by",
+            "required_user_groups",
+            "user_id",
+            "meta.lastmodified",
+            "meta.created",
+            "meta.location",
+            "meta.resourcetype",
+            "meta.version",
+            "emails.value",
+            "groups.display",
+            "phonenumbers.value",
+            "gm.external_group",
+            "gm.origin",
+            "g.displayname",
+            "g.id",
+            "external_id");
 
     private static Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
     private boolean dbCaseInsensitive = false;
+    private RandomValueStringGenerator randomStringGenerator;
 
     public SimpleSearchQueryConverter() {
+        randomStringGenerator = new RandomValueStringGenerator();
+    }
+
+    public SimpleSearchQueryConverter(RandomValueStringGenerator randomStringGenerator) {
+        this.randomStringGenerator = randomStringGenerator;
     }
 
     private boolean isDbCaseInsensitive() {
@@ -114,8 +122,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     private String generateParameterPrefix(String filter) {
         while (true) {
-            String s = new RandomValueStringGenerator().generate().toLowerCase();
-            if (!filter.contains(s)) {
+            String s = randomStringGenerator.generate().toLowerCase();
+            if (!filter.contains(s) && !s.contains("-")) {
                 return "__" + s + "_";
             }
         }

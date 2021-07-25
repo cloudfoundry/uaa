@@ -24,7 +24,6 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import javax.validation.constraints.NotNull;
@@ -77,7 +76,7 @@ public class ScimUserBootstrap implements
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         List<UaaUser> users = new LinkedList<>(ofNullable(this.users).orElse(emptyList()));
         List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
         users.removeIf(u -> deleteMe.contains(u.getUsername()));
@@ -219,7 +218,7 @@ public class ScimUserBootstrap implements
             if (!OriginKeys.UAA.equals(origin)) {
                 Set<ScimGroup> groupsWithMember = membershipManager.getGroupsWithExternalMember(exEvent.getUser().getId(), origin, IdentityZoneHolder.get().getId());
                 Map<String, ScimGroup> groupsMap = groupsWithMember.stream().collect(Collectors.toMap(ScimGroup::getDisplayName, Function.identity()));
-                Collection<? extends GrantedAuthority> externalAuthorities = exEvent.getExternalAuthorities();
+                Collection<? extends GrantedAuthority> externalAuthorities = new LinkedHashSet<>(exEvent.getExternalAuthorities());
                 for (GrantedAuthority authority : externalAuthorities) {
                     if (groupsMap.containsKey(authority.getAuthority())) {
                         groupsMap.remove(authority.getAuthority());

@@ -1,110 +1,113 @@
-description = 'CloudFoundry Identity Server JAR'
+apply plugin: 'java'
+
+description = "CloudFoundry Identity Server JAR"
 
 dependencies {
+    implementation(project(":cloudfoundry-identity-metrics-data"))
+    implementation(project(":cloudfoundry-identity-model"))
 
-    compile project(':cloudfoundry-identity-model')
+    implementation(libraries.tomcatJdbc)
+    provided(libraries.tomcatEmbed)
+    implementation(libraries.javaxMail)
 
-    compile libraries.tomcatJdbc
-    provided libraries.tomcatEmbed
-    compile group: 'javax.mail', name: 'mail', version: '1.4.7'
+    implementation(libraries.jacksonDatabind)
+    implementation(libraries.jsonPath)
+    implementation(libraries.zxing)
+    implementation(libraries.springBeans)
+    implementation(libraries.springContext)
+    implementation(libraries.springContextSupport)
+    implementation(libraries.springTx)
+    implementation(libraries.springJdbc)
+    implementation(libraries.springWeb)
+    implementation(libraries.springSecurityCore)
+    implementation(libraries.springSecurityJwt)
+    implementation(libraries.springSecurityWeb)
+    implementation(libraries.springSecuritySaml) {
+        exclude(module: "bcprov-ext-jdk15on")
+    }
+    implementation(libraries.springSessionJdbc)
 
-    compile libraries.commonsLogging
-    compile libraries.jsonPath
-    compile libraries.zxing
-    compile libraries.springBeans
-    compile libraries.springContext
-    compile libraries.springContextSupport
-    compile libraries.springTx
-    compile libraries.springJdbc
-    compile libraries.springWeb
-    compile libraries.springSecurityCore
-    compile libraries.springSecurityJwt
-    compile libraries.apacheHttpClient
-    compile libraries.springSecurityWeb
-    compile libraries.springSecuritySaml
-
-    compile(libraries.springSecurityOauth) {
-        exclude(module: 'commons-codec')
-        exclude(module: 'jackson-mapper-asl')
-        exclude(module: 'spring-security-web')
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
     }
 
-    compile libraries.bouncyCastleProv
-    compile libraries.bouncyCastlePkix
+    implementation(libraries.bouncyCastleProv)
+    implementation(libraries.bouncyCastlePkix)
 
-    compile group: 'com.google.guava', name: 'guava', version: '24.1.1-jre'
+    implementation(libraries.guava)
 
-    compile libraries.aspectJRt
-    compile libraries.aspectJWeaver
+    implementation(libraries.aspectJRt)
+    implementation(libraries.aspectJWeaver)
 
-    compile libraries.thymeleafSpring5
-    compile libraries.thymeleafDialect
-    compile libraries.thymeleafExtrasSpringSecurity5
-    compile group: 'org.codehaus.groovy', name: 'groovy', version: '2.5.2'
+    implementation(libraries.thymeleafSpring5)
+    implementation(libraries.thymeleafDialect)
+    implementation(libraries.thymeleafExtrasSpringSecurity5)
 
-    compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: '1.8.18') {
-        exclude(module: 'servlet-api')
-        exclude(module: 'commons-logging')
-        exclude(module: 'httpclient')
-        exclude(module: 'wink-client-apache-httpclient')
+    implementation(libraries.unboundIdScimSdk) {
+        exclude(module: "servlet-api")
+        exclude(module: "commons-logging")
+        exclude(module: "httpclient")
+        exclude(module: "wink-client-apache-httpclient")
     }
 
-    compile group: 'org.hibernate', name: 'hibernate-validator', version: "6.0.17.Final"
-    compile libraries.flywayCore
-    compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: '2.2.0'
-    compile group: 'org.hsqldb', name: 'hsqldb', version: "2.5.0"
+    implementation(libraries.hibernateValidator)
+    implementation(libraries.flywayCore)
+    implementation(libraries.mariaJdbcDriver)
+    implementation(libraries.hsqldb)
 
-    compile group: 'org.yaml', name: 'snakeyaml', version: '1.18'
+    implementation(libraries.snakeyaml)
 
-    compile libraries.springSecurityLdap
-    compile libraries.springLdapCore
-    compile libraries.springLdapCoreTiger
-    compile(libraries.apacheLdapApi) {
-        exclude(module: 'slf4j-api')
+    implementation(libraries.springSecurityLdap)
+    implementation(libraries.springLdapCore)
+    implementation(libraries.springLdapCoreTiger)
+    implementation(libraries.apacheLdapApi) {
+        exclude(module: "slf4j-api")
     }
 
-    compile group: 'org.passay', name: 'passay', version: '1.2.0'
+    implementation(libraries.passay)
+    implementation(libraries.beanutils)
+    implementation(libraries.velocity)
 
-    compile group: 'com.warrenstrange', name: 'googleauth', version: '1.1.2'
+    implementation(libraries.googleAuth)
 
-    compile libraries.slf4jImpl
-    compile libraries.log4jCore
+    implementation(libraries.slf4jImpl)
+    implementation(libraries.log4jCore)
 
-    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    implementation(libraries.javaxXmlBindApi)
+    implementation(libraries.javaxXmlBindCore)
+    implementation(libraries.javaxXmlBindImpl)
 
-    compile group: 'org.apache.santuario', name: 'xmlsec', version: '2.1.2'
+    implementation(libraries.nimbusJwt)
 
-    compileOnly libraries.lombok
-    annotationProcessor libraries.lombok
+    testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
-    testCompile project(':cloudfoundry-identity-model').sourceSets.test.output
 
-    testCompile libraries.springTest
+    testImplementation(libraries.springTest)
 
-    testCompile(libraries.junit) {
-        exclude(module: 'hamcrest-core')
-    }
-    testCompile(libraries.mockito) {
-        exclude(module: 'hamcrest-core')
-    }
+    testImplementation(libraries.junit)
+    testImplementation(libraries.mockito)
 
-    testCompile libraries.postgresql
+    testImplementation(libraries.mockitoJunit5)
 
-    testCompile libraries.powermockJunit4
-    testCompile libraries.powermockMockito
+    testImplementation(libraries.postgresql)
 
-    testCompile libraries.tomcatElApi
-    testCompile libraries.tomcatJasperEl
-    testCompile libraries.tomcatJdbc
+    testImplementation(libraries.tomcatElApi)
+    testImplementation(libraries.tomcatJasperEl)
+    testImplementation(libraries.tomcatJdbc)
 
-    testCompile libraries.jsonPathAssert
-
-    testCompileOnly libraries.lombok
-    testAnnotationProcessor libraries.lombok
+    testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.guavaTestLib)
 }
 
 configurations.all {
-    exclude group: 'org.beanshell', module: 'bsh-core'
+    exclude(group: "org.beanshell", module: "bsh-core")
+    exclude(group: "org.apache-extras.beanshell", module: "bsh")
+}
+
+jar {
+    exclude("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
 }
 
 processResources {
@@ -115,4 +118,14 @@ processResources {
 
 integrationTest {}.onlyIf { //disable since we don't have any
     false
+}
+
+task tomcatListenerJar(type: Jar) {
+    archiveBaseName = "tomcat-listener"
+    from(sourceSets.main.output)
+    include("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
+}
+
+artifacts {
+    archives(tomcatListenerJar)
 }

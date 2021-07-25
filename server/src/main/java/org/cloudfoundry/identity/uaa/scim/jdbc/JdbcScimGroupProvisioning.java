@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -20,7 +19,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.util.Assert;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -64,7 +62,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     );
 
     private static final String GET_GROUP_BY_NAME_SQL = String.format(
-            "select %s from %s where displayName=? and identity_zone_id=?",
+            "select %s from %s where LOWER(displayName)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)",
             GROUP_FIELDS,
             GROUP_TABLE
     );

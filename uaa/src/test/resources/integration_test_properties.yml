@@ -1,7 +1,5 @@
-userMaxCount: 5
-groupMaxCount: 5
-clientMaxCount: 5
-
+servlet:
+  session-store: database
 
 encryption:
   active_key_label: CHANGE-THIS-KEY
@@ -9,103 +7,15 @@ encryption:
   - label: CHANGE-THIS-KEY
     passphrase: CHANGEME
 
+issuer:
+  uri: http://localhost:8080/uaa
+
+#The secret that an external login server will use to authenticate to the uaa using the id `login`
 LOGIN_SECRET: loginsecret
 
 jwt:
   token:
     signing-key: tokenKey
-
-uaa:
-  # The hostname of the UAA that this login server will connect to
-  url: http://localhost:8080/uaa
-  token:
-    url: http://localhost:8080/uaa/oauth/token
-  approvals:
-    url: http://localhost:8080/uaa/approvals
-  login:
-    url: http://localhost:8080/uaa/authenticate
-  limitedFunctionality:
-    enabled: false
-    whitelist:
-      endpoints:
-      - /oauth/authorize/**
-      - /oauth/token/**
-      - /check_token/**
-      - /login/**
-      - /login.do
-      - /logout/**
-      - /logout.do
-      - /saml/**
-      - /autologin/**
-      - /authenticate/**
-      - /idp_discovery/**
-      methods:
-      - GET
-      - HEAD
-      - OPTIONS
-
-database:
-  abandonedtimeout: 45
-  caseinsensitive: true
-  evictionintervalms: 30000
-  logabandoned: false
-  maxactive: 50
-  maxidle: 5
-  minidle: 3
-  removeabandoned: true
-  driverClassName: org.hsqldb.jdbcDriver
-  url: jdbc:hsqldb:mem:uaadb
-  username: sa
-  password: ''
-
-scim:
-  groups:
-    zones.read: Read identity zones
-    zones.write: Create and update identity zones
-    idps.read: Retrieve identity providers
-    idps.write: Create and update identity providers
-    clients.admin: Create, modify and delete OAuth clients
-    clients.write: Create and modify OAuth clients
-    clients.read: Read information about OAuth clients
-    clients.secret: Change the password of an OAuth client
-    scim.write: Create, modify and delete SCIM entities, i.e. users and groups
-    scim.read: Read all SCIM entities, i.e. users and groups
-    scim.create: Create users
-    scim.userids: Read user IDs and retrieve users by ID
-    scim.zones: Control a user's ability to manage a zone
-    scim.invite: Send invitations to users
-    password.write: Change your password
-    oauth.approval: Manage approved scopes
-    oauth.login: Authenticate users outside of the UAA
-    openid: Access profile information, i.e. email, first and last name, and phone number
-    groups.update: Update group information and memberships
-    uaa.user: Act as a user in the UAA
-    uaa.resource: Serve resources protected by the UAA
-    uaa.admin: Act as an administrator throughout the UAA
-    uaa.none: Forbid acting as a user
-    uaa.offline_token: Allow offline access
-
-oauth:
-  user:
-    authorities:
-    - openid
-    - scim.me
-    - cloud_controller.read
-    - cloud_controller.write
-    - cloud_controller_service_permissions.read
-    - password.write
-    - scim.userids
-    - uaa.user
-    - approvals.me
-    - oauth.approvals
-    - profile
-    - roles
-    - user_attributes
-    - uaa.offline_token
-
-issuer:
-  uri: http://localhost:8080/uaa
-
 
 login:
   serviceProviderKey: |
@@ -172,6 +82,19 @@ login:
   authorize:
     url: http://localhost:8080/uaa/oauth/authorize
 
+database:
+  abandonedtimeout: 45
+  caseinsensitive: true
+  evictionintervalms: 30000
+  logabandoned: false
+  maxactive: 50
+  maxidle: 5
+  minidle: 3
+  removeabandoned: true
+  driverClassName: org.hsqldb.jdbcDriver
+  url: jdbc:hsqldb:mem:uaadb
+  username: sa
+  password: ''
 
 ldap:
   profile:
@@ -182,3 +105,81 @@ ldap:
     password: 'password'
     searchBase: 'dc=test,dc=com'
     searchFilter: 'cn={0}'
+
+scim:
+  groups:
+    zones.read: Read identity zones
+    zones.write: Create and update identity zones
+    idps.read: Retrieve identity providers
+    idps.write: Create and update identity providers
+    clients.admin: Create, modify and delete OAuth clients
+    clients.write: Create and modify OAuth clients
+    clients.read: Read information about OAuth clients
+    clients.secret: Change the password of an OAuth client
+    scim.write: Create, modify and delete SCIM entities, i.e. users and groups
+    scim.read: Read all SCIM entities, i.e. users and groups
+    scim.create: Create users
+    scim.userids: Read user IDs and retrieve users by ID
+    scim.zones: Control a user's ability to manage a zone
+    scim.invite: Send invitations to users
+    password.write: Change your password
+    oauth.approval: Manage approved scopes
+    oauth.login: Authenticate users outside of the UAA
+    openid: Access profile information, i.e. email, first and last name, and phone number
+    groups.update: Update group information and memberships
+    uaa.user: Act as a user in the UAA
+    uaa.resource: Serve resources protected by the UAA
+    uaa.admin: Act as an administrator throughout the UAA
+    uaa.none: Forbid acting as a user
+    uaa.offline_token: Allow offline access
+
+oauth:
+  user:
+    authorities:
+      - openid
+      - scim.me
+      - cloud_controller.read
+      - cloud_controller.write
+      - cloud_controller_service_permissions.read
+      - password.write
+      - scim.userids
+      - uaa.user
+      - approvals.me
+      - oauth.approvals
+      - profile
+      - roles
+      - user_attributes
+      - uaa.offline_token
+
+uaa:
+  # The hostname of the UAA that this login server will connect to
+  url: http://localhost:8080/uaa
+  token:
+    url: http://localhost:8080/uaa/oauth/token
+  approvals:
+    url: http://localhost:8080/uaa/approvals
+  login:
+    url: http://localhost:8080/uaa/authenticate
+  limitedFunctionality:
+    enabled: false
+    whitelist:
+      endpoints:
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token/**
+        - /login/**
+        - /login.do
+        - /logout/**
+        - /logout.do
+        - /saml/**
+        - /autologin/**
+        - /authenticate/**
+        - /idp_discovery/**
+      methods:
+        - GET
+        - HEAD
+        - OPTIONS
+
+userMaxCount: 5
+groupMaxCount: 5
+clientMaxCount: 5

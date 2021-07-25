@@ -61,9 +61,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 )
         );
 
-    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
+    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Collections.singletonList(
+            "password"));
 
-    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Arrays.asList("uaa.none"));
+    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Collections.singletonList(
+            "uaa.none"));
 
     private ClientSecretValidator clientSecretValidator;
 
@@ -85,7 +87,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
+    public void afterPropertiesSet() {
         Assert.state(clientDetailsService != null, "A ClientDetailsService must be provided");
     }
 
@@ -99,7 +101,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) throws InvalidClientDetailsException {
 
-        BaseClientDetails client = new BaseClientDetails(prototype);
+        BaseClientDetails client = new UaaClientDetails(prototype);
         if (prototype instanceof BaseClientDetails) {
             Set<String> scopes = ((BaseClientDetails)prototype).getAutoApproveScopes();
             if (scopes!=null) {

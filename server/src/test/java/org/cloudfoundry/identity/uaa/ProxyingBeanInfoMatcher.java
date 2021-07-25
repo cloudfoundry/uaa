@@ -68,9 +68,7 @@ public class ProxyingBeanInfoMatcher<S>
 
     @Override
     public void describeTo(Description description) {
-        propertyMatchers.entrySet().forEach(entry -> {
-            description.appendText("\n").appendText(entry.getKey()).appendText(": ").appendDescriptionOf(entry.getValue());
-        });
+        propertyMatchers.forEach((key, value) -> description.appendText("\n").appendText(key).appendText(": ").appendDescriptionOf(value));
     }
 
     private String getPropertyName(String methodName) {

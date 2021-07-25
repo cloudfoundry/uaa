@@ -44,7 +44,7 @@ class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
     @AfterEach
     void tearDownLimitedModeLoginMockMvcTests(
             @Autowired WebApplicationContext webApplicationContext
-    ) throws Exception {
+    ) {
         MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, originalLimitedModeStatusFile);
     }
 

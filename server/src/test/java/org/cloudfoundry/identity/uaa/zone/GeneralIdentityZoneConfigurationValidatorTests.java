@@ -34,8 +34,8 @@ import static org.mockito.Mockito.mock;
 @RunWith(Parameterized.class)
 public class GeneralIdentityZoneConfigurationValidatorTests {
 
-
     private IdentityZoneConfiguration zoneConfiguration;
+    private MfaConfigValidator mockMfaConfigValidator;
 
     @Parameterized.Parameters
     public static Object[][] parameters() {
@@ -196,7 +196,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
 
     @BeforeClass
-    public static void addBCProvider() throws Exception {
+    public static void addBCProvider() {
         try {
             Security.addProvider(new BouncyCastleProvider());
         } catch (SecurityException e) {
@@ -210,7 +210,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     IdentityZone zone;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         IdentityZoneHolder.clear();
         samlConfig = new SamlConfig();
         samlConfig.setPrivateKey(legacyKey);
@@ -218,8 +218,8 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         samlConfig.setPrivateKeyPassword(legacyPassphrase);
         samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
         samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
-        validator = new GeneralIdentityZoneConfigurationValidator();
-        validator.setMfaConfigValidator(mock(MfaConfigValidator.class));
+        mockMfaConfigValidator = mock(MfaConfigValidator.class);
+        validator = new GeneralIdentityZoneConfigurationValidator(mockMfaConfigValidator);
         zoneConfiguration = new IdentityZoneConfiguration();
         BrandingInformation brandingInformation = new BrandingInformation();
         zoneConfiguration.setBranding(brandingInformation);
@@ -231,7 +231,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         IdentityZoneHolder.clear();
     }
 
@@ -311,9 +311,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
     @Test
     public void mfa_validation_exception_gets_thrown_back() throws Exception{
-        MfaConfigValidator mfaConfigValidator = mock(MfaConfigValidator.class);
-        validator.setMfaConfigValidator(mfaConfigValidator);
-        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mfaConfigValidator).validate(any(), any());
+        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mockMfaConfigValidator).validate(any(), any());
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid MFA Config");

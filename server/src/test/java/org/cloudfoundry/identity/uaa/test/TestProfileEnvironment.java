@@ -59,7 +59,7 @@ public class TestProfileEnvironment {
         }
 
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
-        factory.setResources(resources.toArray(new Resource[resources.size()]));
+        factory.setResources(resources.toArray(new Resource[0]));
         factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
         Map<String, Object> properties = factory.getObject();
 

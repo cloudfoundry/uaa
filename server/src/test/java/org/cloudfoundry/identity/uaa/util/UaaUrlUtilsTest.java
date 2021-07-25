@@ -1,12 +1,14 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -84,6 +86,19 @@ class UaaUrlUtilsTest {
             "org.cloudfoundry.identity://mobile-windows-app.com/view",
             "org+cloudfoundry+identity://mobile-ios-app.com/view",
             "org-cl0udfoundry-identity://mobile-android-app.com/view"
+    );
+
+    private List<String> validSubdomains = Arrays.asList(
+            "test1",
+            "test-test2",
+            "t"
+    );
+
+    private List<String> invalidSubdomains = Arrays.asList(
+            "",
+            "-t",
+            "t-",
+            "test_test2"
     );
 
     @BeforeEach
@@ -324,6 +339,66 @@ class UaaUrlUtilsTest {
         assertThat(matchingRedirectUri5, equalTo(fallback));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "http://example.com/*, http://example.com/?param=value",
+            "http://example.com/*, http://example.com/page#1",
+            "http://example.com/**/mypage*, http://example.com/a/b/mypage?a=b",
+            "http://abc?.example.com, http://abcd.example.com",
+            "http://www.*.example.com, http://www.tv.example.com",
+            "a/**, a/b/c",
+            "a/b/*, a/b/c",
+            "ab?/*, abc/def",
+            "/abc/*, /abc/ab",
+            "http://foo.bar.com:8080, http://foo.bar.com:8080",
+            "http://foo.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
+            "http://*.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
+            "http://*.bar.com*, http://foo.bar.com:80",
+            "https://*.bar.com*, https://foo.bar.com:443"
+    })
+    void findMatchingRedirectUri_urlParametersShouldResolveInIncomingUrl(
+            String allowedRedirectUrl,
+            String incomingRedirectUrl) {
+        final String fallbackRedirectUrl = "http://fallback.to/this";
+        Set<String> allowedRedirectUrlGlobPatterns = Collections.singleton(allowedRedirectUrl);
+
+        assertEquals(incomingRedirectUrl, UaaUrlUtils.findMatchingRedirectUri(
+                allowedRedirectUrlGlobPatterns,
+                incomingRedirectUrl,
+                fallbackRedirectUrl
+        ));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "http://*.example.com, http://attacker.com?.example.com",
+            "http://*.example.com, http://attacker.com\\.example.com",
+            "http://*.example.com, http://attacker.com/.example.com",
+            "http://*.example.com, http://attacker.com#.example.com",
+            "http://example.com, http://tv.example.com",
+            "http://www.*.example.com, http://www.attacker.com?.example.com",
+            "a/**/c, a/b/c/d",
+            "a/b/*, a/b/c/d",
+            "ab?/*, abcd/ef",
+            "a/*, ",
+            "/abc/*, a/abc/ab",
+            "http://*.bar.com:8080, http://attacker.com?.bar.com:8080",
+            "http://*.bar.com:8080/**, http://attacker.com#foo.bar.com:8080/app/foo",
+            "https://*.bar.com:8080/**, https://attacker.com#foo.bar.com:8443/app/foo"
+    })
+    void findMatchingRedirectUri_badRedirectUrlShouldResolveInFallbackUrl(
+            String allowedRedirectUrl,
+            String incomingMaliciousRedirectUrl) {
+        final String fallbackRedirectUrl = "http://fallback.to/this";
+        Set<String> allowedRedirectUrlGlobPatterns = Collections.singleton(allowedRedirectUrl);
+
+        assertEquals(fallbackRedirectUrl, UaaUrlUtils.findMatchingRedirectUri(
+                allowedRedirectUrlGlobPatterns,
+                incomingMaliciousRedirectUrl,
+                fallbackRedirectUrl
+        ));
+    }
+
     @Test
     void addQueryParameter() {
         String url = "http://sub.domain.com";
@@ -440,6 +515,16 @@ class UaaUrlUtilsTest {
         assertThat(UaaUrlUtils.getSubdomain("a"), is("a."));
         assertThat(UaaUrlUtils.getSubdomain("    z     "), is("z."));
         assertThat(UaaUrlUtils.getSubdomain("a.b.c.d.e"), is("a.b.c.d.e."));
+    }
+
+    @Test
+    void validateValidSubdomains() {
+         validSubdomains.forEach(testString -> assertTrue(UaaUrlUtils.isValidSubdomain(testString)));
+    }
+
+    @Test
+    void validateInvalidSubdomains() {
+        invalidSubdomains.forEach(testString -> assertFalse(UaaUrlUtils.isValidSubdomain(testString)));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {

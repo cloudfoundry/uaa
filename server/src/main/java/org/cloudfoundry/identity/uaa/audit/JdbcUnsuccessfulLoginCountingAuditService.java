@@ -1,22 +1,12 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.MfaAuthenticationFailure;
@@ -27,27 +17,24 @@ import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticat
  * to answer queries about consecutive
  * failed logins.
  */
+@Component("jdbcAuditService")
 public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService {
 
-    private int saveDataPeriodMillis = 24 * 3600 * 1000; // 24hr
-    private long timeBetweenDeleteMillis = 1000*30;
+    private final TimeService timeService;
 
-    private AtomicLong lastDelete = new AtomicLong(0);
-    private TimeService timeService = new TimeServiceImpl();
+    private final Duration saveDataPeriod;
+    private final Duration timeBetweenDelete;
 
-    public JdbcUnsuccessfulLoginCountingAuditService(JdbcTemplate template) {
+    private AtomicLong lastDelete;
+
+    public JdbcUnsuccessfulLoginCountingAuditService(
+            final JdbcTemplate template,
+            final TimeService timeService) {
         super(template);
-    }
-
-    /**
-     * @param saveDataPeriodMillis the period in milliseconds to set
-     */
-    public void setSaveDataPeriodMillis(int saveDataPeriodMillis) {
-        this.saveDataPeriodMillis = saveDataPeriodMillis;
-    }
-
-    public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+        this.lastDelete = new AtomicLong(0);
+        this.saveDataPeriod = Duration.ofDays(1L);
+        this.timeBetweenDelete = Duration.ofSeconds(30L);
     }
 
     @Override
@@ -79,14 +66,13 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
         getJdbcTemplate().update("delete from sec_audit where principal_id=? and identity_zone_id=? and event_type=?", auditEvent.getPrincipalId(), zoneId, eventType.getCode());
     }
 
-
     protected void periodicDelete() {
         long now = timeService.getCurrentTimeMillis();
         long lastCheck = lastDelete.get();
-        if (now - lastCheck > timeBetweenDeleteMillis && lastDelete.compareAndSet(lastCheck, now)) {
+        if (now - lastCheck > timeBetweenDelete.toMillis() && lastDelete.compareAndSet(lastCheck, now)) {
             getJdbcTemplate().update("delete from sec_audit where created < ?",
-                                     new Timestamp(System.currentTimeMillis()
-                                                       - saveDataPeriodMillis));
+                    new Timestamp(System.currentTimeMillis()
+                            - saveDataPeriod.toMillis()));
         }
     }
 

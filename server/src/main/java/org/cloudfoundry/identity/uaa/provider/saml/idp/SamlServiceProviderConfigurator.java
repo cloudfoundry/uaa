@@ -30,7 +30,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 
-import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Collections;
@@ -112,7 +111,7 @@ public class SamlServiceProviderConfigurator {
           null != spSsoDescriptor.getNameIDFormats() &&
           !spSsoDescriptor.getNameIDFormats().isEmpty()) {
             // The SP explicitly states the NameID formats it supports, we should check that we support at least one.
-            if (!spSsoDescriptor.getNameIDFormats().stream().anyMatch(
+            if (spSsoDescriptor.getNameIDFormats().stream().noneMatch(
               format -> this.supportedNameIDs.contains(format.getFormat()))) {
                 throw new MetadataProviderException(
                   "UAA does not support any of the NameIDFormats specified in the metadata for entity: "
@@ -166,8 +165,6 @@ public class SamlServiceProviderConfigurator {
             metadata = fixedHttpMetaDataProvider.fetchMetadata(def.getMetaDataLocation(), def.isSkipSslValidation());
         } catch (RestClientException e) {
             throw new MetadataProviderException("Unavailable Metadata Provider", e);
-        } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
         }
         def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
         return configureXMLMetadata(provider);

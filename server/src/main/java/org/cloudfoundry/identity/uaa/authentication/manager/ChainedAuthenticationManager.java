@@ -46,15 +46,15 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        if (authentication == null) {
-            return authentication;
+        if (!(authentication instanceof Authentication)) {
+            return null;
         }
         UsernamePasswordAuthenticationToken output = null;
         if (authentication instanceof UsernamePasswordAuthenticationToken) {
             output = (UsernamePasswordAuthenticationToken) authentication;
         } else {
             output = new UsernamePasswordAuthenticationToken(authentication.getPrincipal(),
-                                                             authentication.getCredentials(),
+                                                             (authentication.getCredentials() != null ? authentication.getCredentials().toString() : null),
                                                              authentication.getAuthorities());
             output.setDetails(authentication.getDetails());
         }

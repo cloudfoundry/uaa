@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -26,14 +27,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -85,12 +82,12 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         userDetails = mock(UserDetails.class);
         mockUserDetails(userDetails);
         mockUaaWithUser();
         userAttributes = new LinkedMultiValueMap<>();
-        userAttributes.put("1", Arrays.asList("1"));
+        userAttributes.put("1", Collections.singletonList("1"));
         userAttributes.put("2", Arrays.asList("2", "3"));
         externalGroups = Arrays.asList("role1", "role2", "role3");
     }
@@ -131,7 +128,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateNullPrincipal() throws Exception {
+    public void testAuthenticateNullPrincipal() {
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(null);
         Authentication result = manager.authenticate(auth);
@@ -139,7 +136,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateUnknownPrincipal() throws Exception {
+    public void testAuthenticateUnknownPrincipal() {
         Authentication auth = mock(Authentication.class);
         when(auth.getPrincipal()).thenReturn(userName);
         Authentication result = manager.authenticate(auth);
@@ -147,7 +144,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateUsernamePasswordToken() throws Exception {
+    public void testAuthenticateUsernamePasswordToken() {
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userName,password);
         Authentication result = manager.authenticate(auth);
         assertNotNull(result);
@@ -159,7 +156,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateUserDetailsPrincipal() throws Exception {
+    public void testAuthenticateUserDetailsPrincipal() {
         Authentication result = manager.authenticate(inputAuth);
         assertNotNull(result);
         assertEquals(UaaAuthentication.class, result.getClass());
@@ -170,7 +167,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateWithAuthDetails() throws Exception {
+    public void testAuthenticateWithAuthDetails() {
         UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
         when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
         when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
@@ -187,7 +184,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testNoUsernameOnlyEmail() throws Exception {
+    public void testNoUsernameOnlyEmail() {
         String email = "joe@test.org";
 
         userDetails = mock(UserDetails.class, withSettings().extraInterfaces(Mailable.class));
@@ -216,7 +213,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testNoUsernameNoEmail() throws Exception {
+    public void testNoUsernameNoEmail() {
         UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
         when(uaaAuthenticationDetails.getOrigin()).thenReturn(origin);
         when(uaaAuthenticationDetails.getClientId()).thenReturn(null);
@@ -228,7 +225,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAmpersandInName() throws Exception {
+    public void testAmpersandInName() {
         String name = "filip@hanik";
         when(userDetails.getUsername()).thenReturn(name);
         when(user.getUsername()).thenReturn(name);
@@ -246,7 +243,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAmpersandInEndOfName() throws Exception {
+    public void testAmpersandInEndOfName() {
         String name = "filip@hanik@";
         String actual = name.replaceAll("@","") +  "@user.from."+origin+".cf";
         when(userDetails.getUsername()).thenReturn(name);
@@ -273,13 +270,13 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testAuthenticateUserInsertFails() throws Exception {
+    public void testAuthenticateUserInsertFails() {
         when(uaaUserDatabase.retrieveUserByName(anyString(),anyString())).thenThrow(new UsernameNotFoundException(""));
         manager.authenticate(inputAuth);
     }
 
     @Test
-    public void testAuthenticateLdapUserDetailsPrincipal() throws Exception {
+    public void testAuthenticateLdapUserDetailsPrincipal() {
         String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
         String origin = LDAP;
         LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
@@ -303,7 +300,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testShadowUserCreationDisabled() throws Exception {
+    public void testShadowUserCreationDisabled() {
         String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
         String origin = LDAP;
         LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
@@ -332,7 +329,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateCreateUserWithLdapUserDetailsPrincipal() throws Exception {
+    public void testAuthenticateCreateUserWithLdapUserDetailsPrincipal() {
         String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
         String origin = LDAP;
         String email = "joe@test.org";
@@ -352,6 +349,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         manager.setOrigin(origin);
         when(user.getEmail()).thenReturn(email);
         when(user.getOrigin()).thenReturn(origin);
+        when(user.getExternalId()).thenReturn(dn);
         when(uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin)))
             .thenReturn(null)
             .thenReturn(user);
@@ -374,7 +372,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateCreateUserWithUserDetailsPrincipal() throws Exception {
+    public void testAuthenticateCreateUserWithUserDetailsPrincipal() {
         String origin = LDAP;
 
         manager = new LdapLoginAuthenticationManager(null);
@@ -405,7 +403,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateInvitedUserWithoutAcceptance() throws Exception {
+    public void testAuthenticateInvitedUserWithoutAcceptance() {
         String username = "guyWhoDoesNotAcceptInvites";
         String origin = LDAP;
         String email = "guy@ldap.org";
@@ -422,7 +420,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
         // Invited users are created with their email as their username.
         UaaUser invitedUser = addUserToDb(email, userId, origin, email);
-        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
+        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString(), anyString(), anyBoolean())).thenReturn(invitedUser);
         UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
         when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 
@@ -504,7 +502,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateUserExists() throws Exception {
+    public void testAuthenticateUserExists() {
         Authentication result = manager.authenticate(inputAuth);
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher,times(1)).publishEvent(userArgumentCaptor.capture());
@@ -515,7 +513,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
-    public void testAuthenticateUserDoesNotExists() throws Exception {
+    public void testAuthenticateUserDoesNotExists() {
         String origin = "external";
         manager.setOrigin(origin);
 

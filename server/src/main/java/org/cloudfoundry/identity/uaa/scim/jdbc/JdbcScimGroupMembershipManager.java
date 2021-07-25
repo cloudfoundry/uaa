@@ -10,13 +10,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.dao.DuplicateKeyException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.SingleColumnRowMapper;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -47,6 +45,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private static final String GET_MEMBER_SQL = String.format("select %s from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
+    private static final String GET_MEMBER_COUNT_SQL = String.format("select count(*) from %s where member_id=? and group_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
+
     private static final String DELETE_MEMBER_WITH_ORIGIN_SQL = String.format("delete from %s where member_id=? and origin = ? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
     private static final String DELETE_MEMBER_SQL = String.format("delete from %s where member_id=? and group_id = ? and identity_zone_id=?", MEMBERSHIP_TABLE);
@@ -64,6 +64,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     private static final String GET_GROUPS_BY_EXTERNAL_MEMBER_SQL = String.format("select g.id, g.displayName, g.description, g.created, g.lastModified, g.version, g.identity_zone_id" +
                     " from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
             MEMBERSHIP_TABLE, GROUP_TABLE);
+
+    @Value("${database.maxParameters:-1}")
+    private int maxSqlParameters;
 
     private final JdbcTemplate jdbcTemplate;
     private final ScimUserProvisioning userProvisioning;
@@ -83,6 +86,14 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         this.zoneProvisioning = zoneProvisioning;
         rowMapper = new ScimGroupMemberRowMapper();
         defaultGroupCache = new TimeBasedExpiringValueMap<>(timeService);
+    }
+
+    public int getMaxSqlParameters() {
+        return maxSqlParameters;
+    }
+
+    public void setMaxSqlParameters(int maxSqlParameters) {
+        this.maxSqlParameters = maxSqlParameters;
     }
 
     public void setScimGroupProvisioning(final ScimGroupProvisioning groupProvisioning) {
@@ -133,21 +144,20 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         // first validate the supplied groupId, memberId
         validateRequest(groupId, member, zoneId);
         final String type = (member.getType() == null ? ScimGroupMember.Type.USER : member.getType()).toString();
-        try {
-            logger.debug("Associating group:" + groupId + " with member:" + member);
-            jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
-                ps.setString(1, groupId);
-                ps.setString(2, member.getMemberId());
-                ps.setString(3, type);
-                ps.setNull(4, Types.VARCHAR);
-                ps.setTimestamp(5, new Timestamp(new Date().getTime()));
-                ps.setString(6, member.getOrigin());
-                ps.setString(7, zoneId);
-            });
-        } catch (DuplicateKeyException e) {
+        if (exists(groupId, member.getMemberId(), zoneId)) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
         }
-        return getMemberById(groupId, member.getMemberId(), zoneId);
+        logger.debug("Associating group:" + groupId + " with member:" + member);
+        jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
+            ps.setString(1, groupId);
+            ps.setString(2, member.getMemberId());
+            ps.setString(3, type);
+            ps.setNull(4, Types.VARCHAR);
+            ps.setTimestamp(5, new Timestamp(new Date().getTime()));
+            ps.setString(6, member.getOrigin());
+            ps.setString(7, zoneId);
+        });
+        return getMemberById(groupId, member, ScimGroupMember.Type.valueOf(type));
     }
 
     @Override
@@ -195,13 +205,18 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (!IdentityZoneHolder.get().getId().equals(zoneId)) {
             return;
         }
-        List<ScimGroup> groups;
+        List<ScimGroup> groups = new ArrayList<>();
+        List<String> memberList = new ArrayList<>(memberId);
         try {
-            StringBuilder builder = new StringBuilder(DYNAMIC_GET_GROUPS_BY_MEMBER_SQL_BASE);
-            builder.append(memberId.stream().map(s -> "?").collect(Collectors.joining(", ")));
-            builder.append(");");
-            Object[] parameterList = ArrayUtils.addAll(new Object[]{zoneId},memberId.toArray());
-            groups = jdbcTemplate.query(builder.toString(), new ScimGroupRowMapper(), parameterList);
+        	while (!memberList.isEmpty()) {
+        	    int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
+                StringBuilder builder = new StringBuilder(DYNAMIC_GET_GROUPS_BY_MEMBER_SQL_BASE);
+                builder.append(memberList.subList(0, size).stream().map(s -> "?").collect(Collectors.joining(", ")));
+                builder.append(");");
+                Object[] parameterList = ArrayUtils.addAll(new Object[] { zoneId }, memberList.subList(0, size).toArray());
+                groups.addAll(jdbcTemplate.query(builder.toString(), new ScimGroupRowMapper(), parameterList));
+                memberList = memberList.subList(size, memberList.size());
+            }
         } catch (EmptyResultDataAccessException ex) {
             groups = Collections.EMPTY_LIST;
         }
@@ -246,6 +261,17 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         } catch (EmptyResultDataAccessException e) {
             throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
         }
+    }
+
+    private ScimGroupMember getMemberById(String groupId, ScimGroupMember member, ScimGroupMember.Type type) {
+        ScimGroupMember sgm = new ScimGroupMember(member.getMemberId(), type);
+        sgm.setOrigin(member.getOrigin());
+        return sgm;
+    }
+
+    private boolean exists(String groupId, String memberId, String zoneId) {
+        Integer idResults = jdbcTemplate.queryForObject(GET_MEMBER_COUNT_SQL, Integer.class, memberId, groupId, zoneId);
+        return idResults != null && idResults == 1;
     }
 
     @Override

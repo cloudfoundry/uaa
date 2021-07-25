@@ -49,7 +49,7 @@ public class AppsIntegrationTests {
      * tests a happy-day flow of the native application profile.
      */
     @Test
-    public void testHappyDay() throws Exception {
+    public void testHappyDay() {
 
         RestOperations restTemplate = serverRunning.createRestTemplate();
         ResponseEntity<String> response = restTemplate.getForEntity(serverRunning.getUrl("/api/apps"), String.class);

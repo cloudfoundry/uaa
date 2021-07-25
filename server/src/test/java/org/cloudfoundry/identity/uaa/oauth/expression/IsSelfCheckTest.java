@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
@@ -31,7 +32,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
@@ -134,7 +134,7 @@ public class IsSelfCheckTest {
     }
 
     @Test
-    public void testSelfUserToken() throws Exception {
+    public void testSelfUserToken() {
         SecurityContextHolder.getContext().setAuthentication(oAuth2AuthenticationWithUser);
         request.setPathInfo("/oauth/token/revoke/user/" + id);
         assertTrue(bean.isUserTokenRevocationForSelf(request, 4));
@@ -149,7 +149,7 @@ public class IsSelfCheckTest {
 
 
     @Test
-    public void testSelfClientToken() throws Exception {
+    public void testSelfClientToken() {
         SecurityContextHolder.getContext().setAuthentication(oAuth2AuthenticationWithUser);
         request.setPathInfo("/oauth/token/revoke/client/" + clientId);
         assertTrue(bean.isClientTokenRevocationForSelf(request, 4));

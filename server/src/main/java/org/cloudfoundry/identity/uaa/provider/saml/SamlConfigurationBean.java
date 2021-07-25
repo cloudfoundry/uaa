@@ -28,7 +28,7 @@ public class SamlConfigurationBean implements InitializingBean {
   }
 
   @Override
-  public void afterPropertiesSet() throws Exception {
+  public void afterPropertiesSet() {
     BasicSecurityConfiguration config = (BasicSecurityConfiguration) Configuration.getGlobalSecurityConfiguration();
     switch (signatureAlgorithm) {
       case SHA1:

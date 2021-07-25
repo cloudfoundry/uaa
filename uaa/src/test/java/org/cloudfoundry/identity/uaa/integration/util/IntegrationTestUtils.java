@@ -16,7 +16,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -63,6 +63,7 @@ import org.springframework.web.client.RestTemplate;
 import java.io.File;
 import java.io.IOException;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -86,6 +87,9 @@ import static org.springframework.util.StringUtils.hasText;
 public class IntegrationTestUtils {
 
     public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
+    public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR =
+        "//h2[contains(text(), 'Enter your username and password')]";
+
 
     public static final String EXAMPLE_DOT_COM_SAML_IDP_METADATA = "<?xml version=\"1.0\"?>\n" +
             "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://example.com/saml2/idp/metadata.php\" ID=\"_7a1d882b1a0cb702f97968d831d70eecce036d6d0c249ae65cca0e91f5656d58\"><ds:Signature>\n" +
@@ -891,7 +895,7 @@ public class IntegrationTestUtils {
     }
 
     public static void createOidcIdentityProvider(String name, String originKey, String baseUrl) throws Exception {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName(name);
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
@@ -915,7 +919,7 @@ public class IntegrationTestUtils {
         return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
     }
 
-    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) throws Exception {
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning, String zoneId) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -947,7 +951,7 @@ public class IntegrationTestUtils {
     }
 
     public static void updateIdentityProvider(
-            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) throws Exception {
+            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -1065,7 +1069,7 @@ public class IntegrationTestUtils {
                                        String password,
                                        String scopes) {
         RestTemplate template = new RestTemplate();
-        template.getMessageConverters().add(0, new StringHttpMessageConverter(java.nio.charset.Charset.forName("UTF-8")));
+        template.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -1117,7 +1121,7 @@ public class IntegrationTestUtils {
                                                   String clientId,
                                                   String clientSecret,
                                                   String username,
-                                                  String password) throws Exception {
+                                                  String password) {
 
         return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, username, password)
                 .get("access_token");
@@ -1155,6 +1159,134 @@ public class IntegrationTestUtils {
             headers.add("Cookie", cookie.getName() + "=" + cookie.getValue());
         }
         return headers;
+    } 	
+  
+    public static String getAuthorizationResponse(ServerRunning serverRunning,
+			  String clientId,
+			  String username,
+			  String password,
+			  String redirectUri,
+			  String codeChallenge,
+			  String codeChallengeMethod) throws Exception {
+    	BasicCookieStore cookies = new BasicCookieStore();
+    	String mystateid = "mystateid";
+    	ServerRunning.UriBuilder builder = serverRunning.buildUri("/oauth/authorize")
+    			.queryParam("response_type", "code")
+    			.queryParam("state", mystateid)
+    			.queryParam("client_id", clientId);
+    	if (hasText(redirectUri)) {
+    		builder = builder.queryParam("redirect_uri", redirectUri);
+    	}
+    	if (hasText(codeChallenge)) {
+    		builder = builder.queryParam("code_challenge", codeChallenge);
+    	}
+    	if (hasText(codeChallengeMethod)) {
+    		builder = builder.queryParam("code_challenge_method", codeChallengeMethod);
+    	}
+    	URI uri = builder.build();
+    	ResponseEntity<Void> result =
+    			serverRunning.createRestTemplate().exchange(
+    					uri.toString(),
+    					HttpMethod.GET,
+    					new HttpEntity<>(null, getHeaders(cookies)),
+    					Void.class
+    					);
+    	assertEquals(HttpStatus.FOUND, result.getStatusCode());
+    	String location = result.getHeaders().getLocation().toString();
+    	if (result.getHeaders().containsKey("Set-Cookie")) {
+    		for (String header : result.getHeaders().get("Set-Cookie")) {
+    			int nameLength = header.indexOf('=');
+    			cookies.addCookie(new BasicClientCookie(header.substring(0, nameLength), header.substring(nameLength + 1)));
+    		}
+    	}
+    	ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
+    	if (response.getHeaders().containsKey("Set-Cookie")) {
+    		for (String cookie : response.getHeaders().get("Set-Cookie")) {
+    			int nameLength = cookie.indexOf('=');
+    			cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
+    		}
+    	}
+    	MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+    	assertTrue(response.getBody().contains("/login.do"));
+    	assertTrue(response.getBody().contains("username"));
+    	assertTrue(response.getBody().contains("password"));
+    	String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
+    	formData.add("username", username);
+    	formData.add("password", password);
+    	formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+    	// Should be redirected to the original URL, but now authenticated
+    	result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
+    	assertEquals(HttpStatus.FOUND, result.getStatusCode());
+    	cookies.clear();
+    	if (result.getHeaders().containsKey("Set-Cookie")) {
+    		for (String cookie : result.getHeaders().get("Set-Cookie")) {
+    			int nameLength = cookie.indexOf('=');
+    			cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
+    		}
+    	}
+    	response = serverRunning.createRestTemplate().exchange(
+    			result.getHeaders().getLocation().toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
+    			String.class);
+    	if (response.getHeaders().containsKey("Set-Cookie")) {
+    		for (String cookie : response.getHeaders().get("Set-Cookie")) {
+    			int nameLength = cookie.indexOf('=');
+    			cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
+    		}
+    	}
+    	if (response.getStatusCode() == HttpStatus.OK) {
+    		// The grant access page should be returned
+    		assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
+    		formData.clear();
+    		formData.add(USER_OAUTH_APPROVAL, "true");
+    		formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
+    		result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
+    		assertEquals(HttpStatus.FOUND, result.getStatusCode());
+    		location = result.getHeaders().getLocation().toString();
+    	} else if(response.getStatusCode() == HttpStatus.BAD_REQUEST){
+    		return response.getBody();
+    	} else {
+    		// Token cached so no need for second approval
+    		assertEquals(HttpStatus.FOUND, response.getStatusCode());
+    		location = response.getHeaders().getLocation().toString();
+    	}
+    	return location;
+    }
+    
+    public static ResponseEntity<Map> getTokens(ServerRunning serverRunning,
+            									UaaTestAccounts testAccounts,
+            									String clientId,
+            									String clientSecret,
+            									String redirectUri,
+            									String codeVerifier,
+            									String authorizationCode) throws Exception {
+    	MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+    	formData.clear();
+    	formData.add("client_id", clientId);
+    	formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
+    	formData.add("code", authorizationCode);
+    	if (hasText(redirectUri)) {
+    		formData.add("redirect_uri", redirectUri);
+    	}
+    	if (hasText(codeVerifier)) {
+    		formData.add("code_verifier", codeVerifier);
+    	}
+    	HttpHeaders tokenHeaders = new HttpHeaders();
+    	tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+    	return serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+	}
+
+    public static void callCheckToken(ServerRunning serverRunning,
+    		UaaTestAccounts testAccounts,
+    		String accessToken,
+    		String clientId,
+    		String clientSecret) {
+    	MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        formData.add("token", accessToken);
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertNotNull(tokenResponse.getBody().get("iss"));
     }
 
     public static Map<String, String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,

@@ -28,10 +28,12 @@ import org.thymeleaf.extras.springsecurity5.dialect.SpringSecurityDialect;
 import org.thymeleaf.spring5.SpringTemplateEngine;
 import org.thymeleaf.spring5.templateresolver.SpringResourceTemplateResolver;
 import org.thymeleaf.spring5.view.ThymeleafViewResolver;
+import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ITemplateResolver;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -94,7 +96,7 @@ public class ThymeleafConfig  {
 
         MappingJackson2JsonView jackson2JsonView = new MappingJackson2JsonView();
         jackson2JsonView.setExtractValueFromSingleKeyModel(true);
-        resolver.setDefaultViews(Arrays.asList(jackson2JsonView));
+        resolver.setDefaultViews(Collections.singletonList(jackson2JsonView));
 
         resolver.setContentNegotiationManager(contentNegotiationManager);
         return resolver;
@@ -103,7 +105,7 @@ public class ThymeleafConfig  {
     private SpringResourceTemplateResolver baseHtmlTemplateResolver(ApplicationContext context) {
         SpringResourceTemplateResolver templateResolver = new SpringResourceTemplateResolver();
         templateResolver.setSuffix(".html");
-        templateResolver.setTemplateMode("HTML5");
+        templateResolver.setTemplateMode(TemplateMode.HTML);
         templateResolver.setApplicationContext(context);
         return templateResolver;
     }

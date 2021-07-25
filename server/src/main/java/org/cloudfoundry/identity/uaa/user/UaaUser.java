@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 
@@ -10,6 +9,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -209,7 +209,7 @@ public class UaaUser {
     }
 
     public List<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return Optional.ofNullable(authorities).orElseThrow();
     }
 
     public UaaUser id(String id) {
@@ -228,8 +228,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
-        return user;
+        return new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     @Override
@@ -359,6 +358,7 @@ public class UaaUser {
                                     String givenName,
                                     String familyName,
                                     String phoneNumber,
+                                    String externalId,
                                     boolean verified) {
         return new UaaUser(new UaaUserPrototype()
                 .withEmail(email)

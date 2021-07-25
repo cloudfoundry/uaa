@@ -16,7 +16,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -137,7 +136,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 }
             } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = UAA;
-            } else if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = OAUTH20;
             } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = OIDC10;
@@ -288,7 +287,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public static class IdentityProviderSerializer extends JsonSerializer<IdentityProvider> {
         @Override
-        public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
+        public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
             gen.writeStartObject();
             gen.writeStringField(FIELD_TYPE, value.getType());
 
@@ -319,7 +318,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
     public static class IdentityProviderDeserializer extends JsonDeserializer<IdentityProvider> {
         @Override
-        public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
+        public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) {
             IdentityProvider result = new IdentityProvider();
             //determine the type of IdentityProvider
             JsonNode node = JsonUtils.readTree(jp);
@@ -341,7 +340,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
                     case OAUTH20:
-                        definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
+                        definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
                         break;
                     case OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);

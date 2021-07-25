@@ -18,25 +18,17 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OIDCIdentityProviderDefinition extends AbstractXOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
+public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
 implements Cloneable {
-    private URL userInfoUrl;
     private URL discoveryUrl;
     private boolean passwordGrantEnabled = false;
+    private boolean setForwardHeader = false;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
-
-    public URL getUserInfoUrl() {
-        return userInfoUrl;
-    }
-
-    public OIDCIdentityProviderDefinition setUserInfoUrl(URL userInfoUrl) {
-        this.userInfoUrl = userInfoUrl;
-        return this;
-    }
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -52,6 +44,14 @@ implements Cloneable {
 
     public void setPasswordGrantEnabled(boolean passwordGrantEnabled) {
         this.passwordGrantEnabled = passwordGrantEnabled;
+    }
+
+    public boolean isSetForwardHeader() {
+        return setForwardHeader;
+    }
+
+    public void setSetForwardHeader(boolean setForwardHeader) {
+        this.setForwardHeader = setForwardHeader;
     }
 
     public List<Prompt> getPrompts() {
@@ -75,18 +75,18 @@ implements Cloneable {
 
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
-        if (userInfoUrl != null ? !userInfoUrl.equals(that.userInfoUrl) : that.userInfoUrl != null) return false;
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
-        return discoveryUrl != null ? discoveryUrl.equals(that.discoveryUrl) : that.discoveryUrl == null;
+        if (this.setForwardHeader != that.setForwardHeader) return false;
+        return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
 
     @Override
     public int hashCode() {
         int result = super.hashCode();
-        result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
+        result = 31 * result + (setForwardHeader ? 1 : 0);
         return result;
     }
 }

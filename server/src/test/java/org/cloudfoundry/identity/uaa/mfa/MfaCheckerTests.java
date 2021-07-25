@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import com.google.common.collect.Lists;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MfaConfig;
@@ -12,7 +13,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Arrays;
 import java.util.stream.Stream;
@@ -21,7 +21,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class MfaCheckerTests {
@@ -46,7 +45,7 @@ class MfaCheckerTests {
     static class BooleanArgumentsProvider implements ArgumentsProvider {
 
         @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(true),
                     Arguments.of(false)

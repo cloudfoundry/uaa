@@ -24,13 +24,11 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
 
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -89,17 +87,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     public boolean refreshApproval(final Approval approval, final String zoneId) {
         logger.debug(String.format("refreshing approval: [%s]", approval));
-        int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
-                ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
-                ps.setString(3, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
-                ps.setString(4, approval.getUserId());
-                ps.setString(5, approval.getClientId());
-                ps.setString(6, approval.getScope());
-                ps.setString(7, zoneId);
-            }
+        int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, ps -> {
+            ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
+            ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
+            ps.setString(3, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
+            ps.setString(4, approval.getUserId());
+            ps.setString(5, approval.getClientId());
+            ps.setString(6, approval.getScope());
+            ps.setString(7, zoneId);
         });
         if (refreshed != 1) {
             throw new DataIntegrityViolationException("Attempt to refresh non-existent authorization");
@@ -114,17 +109,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             refreshApproval(approval, zoneId); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the
             // approval. add it.
-            int count = jdbcTemplate.update(ADD_AUTHZ_SQL, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, approval.getUserId());
-                    ps.setString(2, approval.getClientId());
-                    ps.setString(3, approval.getScope());
-                    ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
-                    ps.setString(5, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
-                    ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
-                    ps.setString(7, zoneId);
-                }
+            int count = jdbcTemplate.update(ADD_AUTHZ_SQL, ps -> {
+                ps.setString(1, approval.getUserId());
+                ps.setString(2, approval.getClientId());
+                ps.setString(3, approval.getScope());
+                ps.setTimestamp(4, new Timestamp(approval.getExpiresAt().getTime()));
+                ps.setString(5, (approval.getStatus() == null ? APPROVED : approval.getStatus()).toString());
+                ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
+                ps.setString(7, zoneId);
             });
             if (count == 0) throw new EmptyResultDataAccessException("Approval add failed", 1);
         }
@@ -137,15 +129,12 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public boolean revokeApproval(Approval approval, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE user_id = ? AND client_id = ? AND scope = ? AND identity_zone_id = ?";
-        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setString(pos++, approval.getUserId());
-                ps.setString(pos++, approval.getClientId());
-                ps.setString(pos++, approval.getScope());
-                ps.setString(pos++, zoneId);
-            }
+        int count = jdbcTemplate.update(sql, ps -> {
+            int pos = 1;
+            ps.setString(pos++, approval.getUserId());
+            ps.setString(pos++, approval.getClientId());
+            ps.setString(pos++, approval.getScope());
+            ps.setString(pos++, zoneId);
         });
         return count > 0;
     }
@@ -154,13 +143,10 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public boolean revokeApprovalsForUser(String userId, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE user_id = ? AND identity_zone_id = ?";
-        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setString(pos++, userId);
-                ps.setString(pos++, zoneId);
-            }
+        int count = jdbcTemplate.update(sql, ps -> {
+            int pos = 1;
+            ps.setString(pos++, userId);
+            ps.setString(pos++, zoneId);
         });
         return count > 0;
     }
@@ -169,13 +155,10 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public boolean revokeApprovalsForClient(String clientId, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE client_id = ? AND identity_zone_id = ?";
-        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setString(pos++, clientId);
-                ps.setString(pos++, zoneId);
-            }
+        int count = jdbcTemplate.update(sql, ps -> {
+            int pos = 1;
+            ps.setString(pos++, clientId);
+            ps.setString(pos++, zoneId);
         });
         return count > 0;
     }
@@ -184,14 +167,11 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public boolean revokeApprovalsForClientAndUser(String clientId, String userId, final String zoneId) {
         String sql = handleRevocationsAsExpiry ? EXPIRE_AUTHZ_SQL : DELETE_AUTHZ_SQL;
         sql += " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
-        int count = jdbcTemplate.update(sql, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setString(pos++, userId);
-                ps.setString(pos++, clientId);
-                ps.setString(pos++, zoneId);
-            }
+        int count = jdbcTemplate.update(sql, ps -> {
+            int pos = 1;
+            ps.setString(pos++, userId);
+            ps.setString(pos++, clientId);
+            ps.setString(pos++, zoneId);
         });
         return count > 0;
     }
@@ -216,14 +196,11 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
             sql,
-            new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
+                ps -> {
                     int pos = 1;
                     ps.setString(pos++, userId);
                     ps.setString(pos++, zoneId);
-                }
-            },
+                },
             rowMapper
         );
     }
@@ -233,14 +210,11 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         String sql = GET_AUTHZ_SQL + " WHERE client_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
             sql,
-            new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
+                ps -> {
                     int pos = 1;
                     ps.setString(pos++, clientId);
                     ps.setString(pos++, zoneId);
-                }
-            },
+                },
             rowMapper
         );
     }
@@ -250,15 +224,12 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
             sql,
-            new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
+                ps -> {
                     int pos = 1;
                     ps.setString(pos++, userId);
                     ps.setString(pos++, clientId);
                     ps.setString(pos++, zoneId);
-                }
-            },
+                },
             rowMapper
         );
     }
@@ -318,14 +289,13 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             String status = rs.getString(5);
             Date lastUpdatedAt = rs.getTimestamp(6);
 
-            Approval approval = new Approval()
+            return new Approval()
                 .setUserId(userId)
                 .setClientId(clientId)
                 .setScope(scope)
                 .setExpiresAt(expiresAt)
                 .setStatus(ApprovalStatus.valueOf(status))
                 .setLastUpdatedAt(lastUpdatedAt);
-            return approval;
         }
     }
 }

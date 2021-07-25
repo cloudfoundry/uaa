@@ -72,7 +72,7 @@ public class ChangePasswordIT {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         int randomInt = new SecureRandom().nextInt();
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
@@ -87,7 +87,7 @@ public class ChangePasswordIT {
     }
 
     @Test
-    public void testChangePassword() throws Exception {
+    public void testChangePassword() {
         webDriver.get(baseUrl + "/change_password");
         signIn(userEmail, PASSWORD);
 

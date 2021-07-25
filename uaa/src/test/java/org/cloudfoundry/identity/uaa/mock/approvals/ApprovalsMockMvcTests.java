@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -53,14 +54,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
 
-    private String scopes = "test.scope1,test.scope2,test.scope3";
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private ScimUser user1;
     private ClientDetails client1;
 
     @BeforeEach
     public void createData() {
-        user1 = syncGroups(setUpUser(generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaaZoneId()));
+        String scopes = "test.scope1,test.scope2,test.scope3";
+        user1 = syncGroups(setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, generator.generate(), scopes, OriginKeys.UAA, IdentityZone.getUaaZoneId()));
         client1 = setUpClients(generator.generate(), null, scopes, GRANT_TYPE_AUTHORIZATION_CODE, false);
     }
 
@@ -109,8 +110,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(status().isOk()); //200 means the approvals page
 
 
-        assertNotNull(session.getAttribute("authorizationRequest"));
-        assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
+        assertNotNull(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST));
+        assertNotNull(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST));
 
         //no token
         mockMvc.perform(
@@ -131,8 +132,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         )
             .andExpect(status().is4xxClientError());
 
-        assertNotNull(session.getAttribute("authorizationRequest"));
-        assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
+        assertNotNull(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST));
+        assertNotNull(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST));
 
         //valid token
         mockMvc.perform(
@@ -146,8 +147,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(status().isFound())
             .andExpect(redirectedUrlPattern("**/*code=*"));
 
-        assertNull(session.getAttribute("authorizationRequest"));
-        assertNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
+        assertNull(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST));
+        assertNull(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST));
 
         mockMvc.perform(
             get("/oauth/authorize")
@@ -172,8 +173,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
             .andExpect(status().isOk()); //200 means the approvals page
 
 
-        assertNotNull(session.getAttribute("authorizationRequest"));
-        assertNotNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
+        assertNotNull(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST));
+        assertNotNull(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST));
 
         mockMvc.perform(
             post("/oauth/authorize")
@@ -187,8 +188,8 @@ public class ApprovalsMockMvcTests extends AbstractTokenMockMvcTests {
         .andExpect(status().is3xxRedirection())
         .andExpect(redirectedUrlPattern("http://test.example.org/redirect?error=invalid_scope&error_description=The%20requested%20scopes%20are%20invalid.%20Please%20use%20valid%20scope%20names%20in%20the%20request*"));
 
-        assertNull(session.getAttribute("authorizationRequest"));
-        assertNull(session.getAttribute("org.springframework.security.oauth2.provider.endpoint.AuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST"));
+        assertNull(session.getAttribute(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST));
+        assertNull(session.getAttribute(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST));
     }
 
     @Test

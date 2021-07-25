@@ -22,12 +22,25 @@ import java.security.Security;
 import java.util.Collections;
 import java.util.List;
 
-import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.*;
+import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.cert1Plain;
+import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.cert2Plain;
+import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.samlKey1;
+import static org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGeneratorTests.samlKey2;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasProperty;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.opensaml.common.xml.SAMLConstants.*;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_ARTIFACT_BINDING_URI;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_POST_BINDING_URI;
+import static org.opensaml.common.xml.SAMLConstants.SAML2_REDIRECT_BINDING_URI;
 import static org.springframework.security.saml.SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR;
 
 class ZoneAwareIdpMetadataGeneratorTest {

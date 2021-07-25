@@ -1,48 +1,42 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.Timestamp;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PrincipalAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
-import static org.junit.Assert.assertEquals;
-public class JdbcAuditServiceTests extends JdbcTestBase {
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+@WithDatabaseContext
+class JdbcAuditServiceTests {
 
     private JdbcAuditService auditService;
 
     private String authDetails;
 
-    @Before
-    public void createService() throws Exception {
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void createService() {
         auditService = new JdbcAuditService(jdbcTemplate);
         jdbcTemplate.execute("DELETE FROM sec_audit WHERE principal_id='1' or principal_id='clientA' or principal_id='clientB'");
         authDetails = "1.1.1.1";
     }
 
     @Test
-    public void userAuthenticationFailureAuditSucceeds() throws Exception {
+    void userAuthenticationFailureAuditSucceeds() throws Exception {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         Thread.sleep(100);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
-        List<AuditEvent> events = auditService.find("1", 0, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("1", 0, IdentityZone.getUaaZoneId());
         assertEquals(2, events.size());
         assertEquals("1", events.get(0).getPrincipalId());
         assertEquals("joe", events.get(0).getData());
@@ -51,9 +45,9 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
     }
 
     @Test
-    public void principalAuthenticationFailureAuditSucceeds() {
+    void principalAuthenticationFailureAuditSucceeds() {
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
-        List<AuditEvent> events = auditService.find("clientA", 0, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("clientA", 0, IdentityZone.getUaaZoneId());
         assertEquals(1, events.size());
         assertEquals("clientA", events.get(0).getPrincipalId());
         assertEquals("1.1.1.1", events.get(0).getOrigin());
@@ -61,7 +55,7 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
     }
 
     @Test
-    public void findMethodOnlyReturnsEventsWithinRequestedPeriod() throws Exception {
+    void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         // Set the created column to one hour past
@@ -69,7 +63,7 @@ public class JdbcAuditServiceTests extends JdbcTestBase {
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientB"), getAuditEvent(PrincipalAuthenticationFailure, "clientB").getIdentityZoneId());
         // Find events within last 2 mins
-        List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZoneHolder.get().getId());
+        List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId());
         assertEquals(1, events.size());
     }
 

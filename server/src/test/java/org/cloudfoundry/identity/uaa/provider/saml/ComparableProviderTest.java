@@ -12,7 +12,6 @@ package org.cloudfoundry.identity.uaa.provider.saml; /**************************
  *******************************************************************************/
 
 import org.junit.Test;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.XMLObject;
 
 import static org.junit.Assert.*;
@@ -34,12 +33,12 @@ public class ComparableProviderTest {
         }
 
         @Override
-        public XMLObject doGetMetadata() throws MetadataProviderException {
+        public XMLObject doGetMetadata() {
             return null;
         }
 
         @Override
-        public byte[] fetchMetadata() throws MetadataProviderException {
+        public byte[] fetchMetadata() {
             return new byte[0];
         }
 
@@ -53,7 +52,7 @@ public class ComparableProviderTest {
             return this;
         }
 
-    };
+    }
 
     @Test
     public void testCompareTo(){

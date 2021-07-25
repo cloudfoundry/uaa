@@ -48,16 +48,16 @@ public class IdentityZoneModifiedEventTest {
     }
 
     @Test
-    public void identityZoneCreated() throws Exception {
-        evaluteZoneAuditData(IdentityZoneModifiedEvent.identityZoneCreated(zone));
+    public void identityZoneCreated() {
+        evaluateZoneAuditData(IdentityZoneModifiedEvent.identityZoneCreated(zone));
     }
 
     @Test
-    public void identityZoneModified() throws Exception {
-        evaluteZoneAuditData(IdentityZoneModifiedEvent.identityZoneModified(zone));
+    public void identityZoneModified() {
+        evaluateZoneAuditData(IdentityZoneModifiedEvent.identityZoneModified(zone));
     }
 
-    public void evaluteZoneAuditData(IdentityZoneModifiedEvent event) {
+    public void evaluateZoneAuditData(IdentityZoneModifiedEvent event) {
         String s = event.getAuditEvent().getData();
         assertEquals(String.format(IdentityZoneModifiedEvent.dataFormat,
                                    zone.getId(),

@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -102,11 +102,9 @@ class TokenKeyEndpointTests {
     void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() {
         configureKeysForDefaultZone(Collections.singletonMap("anotherKeyId", "someKey"));
 
-        assertThrows(AccessDeniedException.class, () -> {
-            tokenKeyEndpoint.getKey(
-                    new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"))
-            );
-        });
+        assertThrows(AccessDeniedException.class, () -> tokenKeyEndpoint.getKey(
+                new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"))
+        ));
     }
 
     @Test
@@ -168,7 +166,7 @@ class TokenKeyEndpointTests {
         List<String> keyIds = keys.stream().map(VerificationKeyResponse::getId).collect(Collectors.toList());
         assertThat(keyIds, containsInAnyOrder("RsaKey1", "RsaKey2", "RsaKey3"));
 
-        HashMap<String, VerificationKeyResponse> keysMap = keys.stream().collect(new MapCollector<>(k -> k.getId(), k -> k));
+        HashMap<String, VerificationKeyResponse> keysMap = keys.stream().collect(new MapCollector<>(VerificationKeyResponse::getId, k -> k));
         VerificationKeyResponse key1Response = keysMap.get("RsaKey1");
         VerificationKeyResponse key2Response = keysMap.get("RsaKey2");
         VerificationKeyResponse key3Response = keysMap.get("RsaKey3");

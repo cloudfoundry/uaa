@@ -10,12 +10,12 @@ import org.junit.Test;
 public class ApprovalModifiedEventTest {
 
     @Test(expected = IllegalArgumentException.class)
-    public void testRaisesWithBadSource() throws Exception {
+    public void testRaisesWithBadSource() {
         new ApprovalModifiedEvent(new Object(), new MockAuthentication());
     }
 
     @Test
-    public void testAuditEvent() throws Exception {
+    public void testAuditEvent() {
         Approval approval = new Approval()
             .setUserId("mruser")
             .setClientId("app")

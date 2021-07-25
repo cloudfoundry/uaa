@@ -1,18 +1,21 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import java.util.Arrays;
 import org.apache.commons.io.FileUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.mockito.stubbing.Answer;
+import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
@@ -25,24 +28,32 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Enumeration;
 
+import static org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer.YML_ENV_VAR_NAME;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.description;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(SpringProfileCleanupExtension.class)
@@ -52,55 +63,43 @@ class YamlServletProfileInitializerTest {
     private YamlServletProfileInitializer initializer;
     private ConfigurableWebApplicationContext context;
     private StandardServletEnvironment environment;
-    private ServletConfig servletConfig;
     private ServletContext servletContext;
-    private String originalApplicationConfigUrl;
-    private String originalApplicationConfigFile;
-    private static final String APPLICATION_CONFIG_URL = "APPLICATION_CONFIG_URL";
-    private static final String APPLICATION_CONFIG_FILE = "APPLICATION_CONFIG_FILE";
+
+    private static final String NEW_LINE = System.getProperty("line.separator");
+    private Path tempDirectory;
+    private RandomValueStringGenerator randomValueStringGenerator;
 
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
         initializer = new YamlServletProfileInitializer();
         context = mock(ConfigurableWebApplicationContext.class);
         environment = new StandardServletEnvironment();
-        servletConfig = mock(ServletConfig.class);
         servletContext = mock(ServletContext.class);
 
-        when(servletConfig.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
         when(servletContext.getInitParameterNames()).thenReturn(new EmptyEnumerationOfString());
 
-        when(context.getServletConfig()).thenReturn(servletConfig);
         when(context.getServletContext()).thenReturn(servletContext);
         when(context.getEnvironment()).thenReturn(environment);
         Mockito.doAnswer((Answer<Void>) invocation -> {
             System.err.println(invocation.getArguments()[0]);
             return null;
-        }).when(servletContext).log(ArgumentMatchers.anyString());
+        }).when(servletContext).log(anyString());
         when(servletContext.getContextPath()).thenReturn("/context");
-
-        originalApplicationConfigUrl = System.getProperty(APPLICATION_CONFIG_URL);
-        originalApplicationConfigFile = System.getProperty(APPLICATION_CONFIG_FILE);
+        tempDirectory = Files.createTempDirectory("secrets-dir");
+        tempDirectory.toFile().deleteOnExit();
+        System.setProperty("SECRETS_DIR", tempDirectory.toString());
+        randomValueStringGenerator = new RandomValueStringGenerator(10);
     }
 
     @AfterEach
     void cleanup() {
-        if (originalApplicationConfigUrl == null) {
-            System.clearProperty(APPLICATION_CONFIG_URL);
-        } else {
-            System.setProperty(APPLICATION_CONFIG_URL, originalApplicationConfigUrl);
-        }
-
-        if (originalApplicationConfigFile == null) {
-            System.clearProperty(APPLICATION_CONFIG_FILE);
-        } else {
-            System.setProperty(APPLICATION_CONFIG_FILE, originalApplicationConfigFile);
-        }
+        System.clearProperty("CLOUDFOUNDRY_CONFIG_PATH");
+        System.clearProperty("SECRETS_DIR");
     }
 
     @Test
     void loadDefaultResource() {
-        when(context.getResource(ArgumentMatchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
+        when(context.getResource(contains("${CLOUDFOUNDRY_CONFIG_PATH}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -111,7 +110,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadSessionEventPublisher() {
-        when(context.getResource(ArgumentMatchers.contains("${APPLICATION_CONFIG_URL}"))).thenReturn(
+        when(context.getResource(contains("${CLOUDFOUNDRY_CONFIG_PATH}"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -125,35 +124,35 @@ class YamlServletProfileInitializerTest {
     void activeProfiles() {
         System.setProperty("spring.profiles.active", "foo");
 
-        when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
         initializer.initialize(context);
 
-        assertEquals("bar", environment.getActiveProfiles()[0]);
+        assertActiveProfilesAre(environment, "bar");
     }
 
     @Test
     void activeProfilesFromYaml() {
-        when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("spring_profiles: bar".getBytes()));
 
         initializer.initialize(context);
 
-        assertEquals("bar", environment.getActiveProfiles()[0]);
+        assertActiveProfilesAre(environment, "bar");
     }
 
     @Test
     void log4jConfigurationFromYaml() {
-        when(context.getResource(ArgumentMatchers.anyString())).thenReturn(
+        when(context.getResource(anyString())).thenReturn(
                 new ByteArrayResource("logging:\n  config: bar".getBytes()));
         initializer.initialize(context);
     }
 
     @Test
     void loadServletConfiguredFilename() {
-        when(servletConfig.getInitParameter(APPLICATION_CONFIG_FILE)).thenReturn("/config/path/foo.yml");
-        when(context.getResource(ArgumentMatchers.eq("file:/config/path/foo.yml"))).thenReturn(
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "/config/path");
+        when(context.getResource(eq("file:/config/path/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -164,8 +163,8 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadServletConfiguredResource() {
-        when(servletConfig.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
-        when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "anywhere");
+        when(context.getResource(eq("file:anywhere/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-config".getBytes()));
 
         initializer.initialize(context);
@@ -176,8 +175,8 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadContextConfiguredResource() {
-        when(servletContext.getInitParameter("environmentConfigLocations")).thenReturn("foo.yml");
-        when(context.getResource(ArgumentMatchers.eq("foo.yml"))).thenReturn(
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo/bar");
+        when(context.getResource(eq("file:foo/bar/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz-from-context".getBytes()));
 
         initializer.initialize(context);
@@ -188,9 +187,9 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResource() {
-        System.setProperty(APPLICATION_CONFIG_URL, "file:foo/uaa.yml");
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
 
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
+        when(context.getResource(eq("file:foo/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -201,9 +200,9 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loadReplacedResourceFromFileLocation() {
-        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "bar");
 
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
+        when(context.getResource(eq("file:bar/uaa.yml"))).thenReturn(
                 new ByteArrayResource("foo: bar\nspam:\n  foo: baz".getBytes()));
 
         initializer.initialize(context);
@@ -214,8 +213,8 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void loggingConfigVariableWorks() {
-        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml"))).thenReturn(
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
+        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
                 new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
         initializer.initialize(context);
         assertEquals("/some/path", environment.getProperty("logging.config"));
@@ -224,23 +223,53 @@ class YamlServletProfileInitializerTest {
     }
 
     @Test
-    void readingYamlFromEnvironment_WithNullVariableName() {
-        readingYamlFromEnvironment(null);
+    void loadsPropertiesFrom_CLOUDFOUNDRY_CONFIG_PATH() {
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "somewhere");
+        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala".getBytes()));
+        initializer.initialize(context);
+        assertEquals("marissa", environment.getProperty("smtp.user"));
+        assertEquals("koala", environment.getProperty("smtp.password"));
     }
 
     @Test
-    void readingYamlFromEnvironment_WithNonNullVariableName() {
-        readingYamlFromEnvironment("Renaming environment variable");
+    void filesListedLaterOverrideDuplicatedConfiguration() {
+        System.setProperty("UAA_CONFIG_PATH", "somewhere");
+        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala".getBytes()));
+
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "elsewhere");
+        when(context.getResource(eq("file:elsewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: donkey\n  password: kong".getBytes()));
+        initializer.initialize(context);
+
+        assertEquals("donkey", environment.getProperty("smtp.user"));
+        assertEquals("kong", environment.getProperty("smtp.password"));
     }
 
-    private void readingYamlFromEnvironment(String variableName) {
-        if (hasText(variableName)) {
-            initializer.setYamlEnvironmentVariableName(variableName);
-        }
+    @Test
+    void filesDeepMergeYmlProperties() {
+        System.setProperty("UAA_CONFIG_PATH", "somewhere");
+        when(context.getResource(eq("file:somewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  user: marissa\n  password: koala\n  host:\n    foo: bar".getBytes()));
+
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "elsewhere");
+        when(context.getResource(eq("file:elsewhere/uaa.yml"))).thenReturn(
+                new ByteArrayResource("smtp:\n  host:\n    baz: foobar".getBytes()));
+        initializer.initialize(context);
+
+        assertEquals("marissa", environment.getProperty("smtp.user"));
+        assertEquals("koala", environment.getProperty("smtp.password"));
+        assertEquals("bar", environment.getProperty("smtp.host.foo"));
+        assertEquals("foobar", environment.getProperty("smtp.host.baz"));
+    }
+
+    @Test
+    void readingYamlFromEnvironment() {
         SystemEnvironmentAccessor env = new SystemEnvironmentAccessor() {
             @Override
             public String getEnvironmentVariable(String name) {
-                return name.equals(initializer.getYamlEnvironmentVariableName()) ?
+                return name.equals(YML_ENV_VAR_NAME) ?
                         "uaa.url: http://uaa.test.url/\n" +
                                 "login.url: http://login.test.url/\n" +
                                 "smtp:\n" +
@@ -257,43 +286,56 @@ class YamlServletProfileInitializerTest {
         assertEquals("http://login.test.url/", environment.getProperty("login.url"));
     }
 
-    @Test
-    void ignoreDashDTomcatLoggingConfigVariable() {
-        final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
-        System.setProperty(APPLICATION_CONFIG_FILE, "foo/uaa.yml");
-        ArgumentCaptor<String> servletLogCaptor = ArgumentCaptor.forClass(String.class);
-        when(context.getResource(ArgumentMatchers.eq("file:foo/uaa.yml")))
-                .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
-        environment.getPropertySources().addFirst(new PropertySource<Object>(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME) {
-            @Override
-            public boolean containsProperty(String name) {
-                if ("LOGGING_CONFIG".equals(name)) {
-                    return true;
-                } else {
-                    return super.containsProperty(name);
-                }
-            }
+    @Nested
+    class WithFakeStdOut {
 
-            @Override
-            public Object getProperty(String name) {
-                if ("LOGGING_CONFIG".equals(name)) {
-                    return tomcatLogConfig;
-                } else {
-                    return System.getenv(name);
-                }
+        private PrintStream originalOut;
+        private PrintStream mockPrintStream;
 
-            }
-        });
-        initializer.initialize(context);
-        assertEquals("-Djava.util.logging.config=/some/path/logging.properties", environment.getProperty("logging.config"));
-        Mockito.verify(servletContext, atLeastOnce()).log(servletLogCaptor.capture());
-        boolean logEntryFound = false;
-        for (String s : servletLogCaptor.getAllValues()) {
-            if (s.startsWith("Ignoring Log Config Location") && s.contains("Tomcat startup script environment variable")) {
-                logEntryFound = true;
-            }
+        @BeforeEach
+        void setUp() {
+            originalOut = System.out;
+            mockPrintStream = mock(PrintStream.class);
+            System.setOut(mockPrintStream);
         }
-        assertTrue("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found.", logEntryFound);
+
+        @AfterEach
+        void tearDown() {
+            System.setOut(originalOut);
+        }
+
+        @Test
+        void ignoreDashDTomcatLoggingConfigVariable() {
+            final String tomcatLogConfig = "-Djava.util.logging.config=/some/path/logging.properties";
+            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "foo");
+            when(context.getResource(eq("file:foo/uaa.yml")))
+                    .thenReturn(new ByteArrayResource(("logging:\n  config: " + tomcatLogConfig).getBytes()));
+            environment.getPropertySources().addFirst(new PropertySource<Object>(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME) {
+                @Override
+                public boolean containsProperty(String name) {
+                    if ("LOGGING_CONFIG".equals(name)) {
+                        return true;
+                    } else {
+                        return super.containsProperty(name);
+                    }
+                }
+
+                @Override
+                public Object getProperty(String name) {
+                    if ("LOGGING_CONFIG".equals(name)) {
+                        return tomcatLogConfig;
+                    } else {
+                        return System.getenv(name);
+                    }
+
+                }
+            });
+            initializer.initialize(context);
+            assertEquals("-Djava.util.logging.config=/some/path/logging.properties", environment.getProperty("logging.config"));
+
+            verify(mockPrintStream, description("Expected to find a log entry indicating that the LOGGING_CONFIG variable was found."))
+                    .println("Ignoring Log Config Location: -Djava.util.logging.config=/some/path/logging.properties. Location is suspect to be a Tomcat startup script environment variable");
+        }
     }
 
     private static class EmptyEnumerationOfString implements Enumeration<String> {
@@ -340,22 +382,22 @@ class YamlServletProfileInitializerTest {
         @Test
         void ifNoProfilesAreSetUseHsqldb() {
             System.clearProperty("spring.profiles.active");
-            initializer.applySpringProfiles(environment, context);
-            assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
+            initializer.applySpringProfiles(environment);
+            assertActiveProfilesAre(environment, "hsqldb");
         }
 
         @Test
         void ifProfilesAreSetUseThem() {
             System.setProperty("spring.profiles.active", "hsqldb,default");
-            initializer.applySpringProfiles(environment, context);
-            assertArrayEquals(new String[]{"hsqldb", "default"}, environment.getActiveProfiles());
+            initializer.applySpringProfiles(environment);
+            assertActiveProfilesAre(environment, "hsqldb", "default");
         }
 
         @Test
         void defaultProfileUnset() {
             System.setProperty("spring.profiles.active", "hsqldb");
-            initializer.applySpringProfiles(environment, context);
-            assertArrayEquals(new String[]{"hsqldb"}, environment.getActiveProfiles());
+            initializer.applySpringProfiles(environment);
+            assertActiveProfilesAre(environment, "hsqldb");
             assertArrayEquals(new String[0], environment.getDefaultProfiles());
         }
 
@@ -363,20 +405,9 @@ class YamlServletProfileInitializerTest {
         void yamlConfiguredProfilesAreUsed() {
             System.setProperty("spring.profiles.active", "hsqldb,default");
             environment.setProperty("spring_profiles", "mysql,default");
-            initializer.applySpringProfiles(environment, context);
-            assertArrayEquals(new String[]{"mysql", "default"}, environment.getActiveProfiles());
+            initializer.applySpringProfiles(environment);
+            assertActiveProfilesAre(environment, "mysql", "default");
         }
-    }
-
-    @Test
-    void appliesDefaultClassPathLogProperties() throws Exception {
-        initializer.initialize(context);
-
-        LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
-
-        URI expectedUrl = ResourceUtils.toURI(ResourceUtils.getURL("classpath:log4j2.properties"));
-
-        assertThat(loggerContext.getConfigLocation(), is(expectedUrl));
     }
 
     @Test
@@ -386,8 +417,8 @@ class YamlServletProfileInitializerTest {
 
         FileUtils.copyFile(validLog4j2PropertyFile, tempFile);
 
-        System.setProperty(APPLICATION_CONFIG_FILE, "anything");
-        when(context.getResource("file:anything"))
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "anything");
+        when(context.getResource("file:anything/uaa.yml"))
                 .thenReturn(new ByteArrayResource(("logging:\n  config: " + tempFile.getAbsolutePath()).getBytes()));
 
         initializer.initialize(context);
@@ -400,4 +431,90 @@ class YamlServletProfileInitializerTest {
 
         tempFile.delete();
     }
+
+    @ExtendWith(PollutionPreventionExtension.class)
+    @ExtendWith(SpringProfileCleanupExtension.class)
+    @Nested
+    class WithArbitrarySecretYamlFiles {
+
+        @Test
+        void loadsConfigurationFromFilesInThe_SECRETS_DIR_Variable() {
+            String fileName = createRandomSecretsFile();
+
+            ByteArrayResource byteArrayResource = new ByteArrayResource(("hocus:" + NEW_LINE +
+                    "  pocus: focus" + NEW_LINE +
+                    "  foo: bar").getBytes());
+
+            when(context.getResource(String.format("file:%s", fileName)))
+                    .thenReturn(byteArrayResource);
+
+            initializer.initialize(context);
+            assertEquals("focus", environment.getProperty("hocus.pocus"));
+            assertEquals("bar", environment.getProperty("hocus.foo"));
+        }
+
+        @Test
+        void mergesAndOverridesUaaYml() {
+            ByteArrayResource uaa_yml = new ByteArrayResource(("database:" + NEW_LINE +
+                    "  username: default-username" + NEW_LINE +
+                    "  password: default-password" + NEW_LINE +
+                    "  url: jdbc://hostname").getBytes());
+
+            System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
+            when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
+                    .thenReturn(uaa_yml);
+
+            ByteArrayResource database_credentials_yml = new ByteArrayResource(("database:" + NEW_LINE +
+                    "  username: donkey" + NEW_LINE +
+                    "  password: kong").getBytes());
+
+            String fileName = createSecretsFile("database_credentials.yml");
+
+            when(context.getResource(String.format("file:%s", fileName)))
+                    .thenReturn(database_credentials_yml);
+
+            initializer.initialize(context);
+            assertEquals("donkey", environment.getProperty("database.username"));
+            assertEquals("kong", environment.getProperty("database.password"));
+            assertEquals("jdbc://hostname", environment.getProperty("database.url"));
+        }
+
+        @Test
+        void requiresYmlExtension() {
+            String validFileName = createRandomSecretsFile();
+            String inValidFileName = createSecretsFile("doesNotEndInYml");
+
+            when(context.getResource("file:" + validFileName)).thenReturn(new ByteArrayResource(("isValid: true").getBytes()));
+            when(context.getResource("file:" + inValidFileName)).thenReturn(new ByteArrayResource(("isNotValid: true").getBytes()));
+
+            initializer.initialize(context);
+            assertEquals("true", environment.getProperty("isValid"));
+            assertNull(environment.getProperty("isNotValid"));
+        }
+    }
+
+    private String createRandomSecretsFile() {
+        return createSecretsFile("fileName-" + randomValueStringGenerator.generate() + ".yml");
+    }
+
+    private String createSecretsFile(String fileName) {
+        File newFile = new File(tempDirectory.toAbsolutePath().toString(), fileName);
+        try {
+            newFile.createNewFile();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+        newFile.deleteOnExit();
+        return newFile.getAbsolutePath();
+    }
+
+    private static void assertActiveProfilesAre(
+        final AbstractEnvironment environment,
+        final String... profiles
+    ) {
+        assertThat(Arrays.asList(environment.getActiveProfiles()),
+            containsInAnyOrder(profiles));
+    }
+
 }

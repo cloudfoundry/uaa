@@ -9,12 +9,14 @@ import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
@@ -33,18 +35,17 @@ public class PasswordChangeEndpoint {
     private final HttpMessageConverter<?>[] messageConverters;
     private final SecurityContextAccessor securityContextAccessor;
 
-    /**
-     * @param messageConverters Used to convert from and to HTTP requests and responses.
-     */
     public PasswordChangeEndpoint(final IdentityZoneManager identityZoneManager,
                                   final PasswordValidator passwordValidator,
                                   final ScimUserProvisioning scimUserProvisioning,
-                                  final HttpMessageConverter<?>[] messageConverters,
                                   final SecurityContextAccessor securityContextAccessor) {
         this.identityZoneManager = identityZoneManager;
         this.passwordValidator = passwordValidator;
         this.scimUserProvisioning = scimUserProvisioning;
-        this.messageConverters = messageConverters;
+        this.messageConverters = new HttpMessageConverter<?>[]{
+                new ExceptionReportHttpMessageConverter(),
+                new MappingJackson2HttpMessageConverter()
+        };
         this.securityContextAccessor = securityContextAccessor;
     }
 

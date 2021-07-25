@@ -8,7 +8,7 @@ buildscript {
   }
 
   dependencies {
-    classpath group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '3.4.1.201406201815-r'
+    classpath(libraries.eclipseJgit)
   }
 }
 
@@ -40,11 +40,11 @@ task gitInfo {
 }
 
 task buildInfo {
-  dependsOn mainOutputResourcesDir
+  dependsOn(mainOutputResourcesDir)
 
   def props = new Properties()
   props.setProperty("build.version", version)
   props.store(new FileOutputStream("${sourceSets.main.resources.srcDirs.find()}/build.properties"), "DO NOT EDIT. This is generated file.")
 }
 
-processResources.dependsOn gitInfo, buildInfo
+processResources.dependsOn(gitInfo, buildInfo)

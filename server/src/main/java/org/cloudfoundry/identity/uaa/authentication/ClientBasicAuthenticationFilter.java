@@ -20,7 +20,9 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 
@@ -37,6 +39,7 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
     private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
     private AuthenticationEntryPoint authenticationEntryPoint;
     private AuthenticationManager authenticationManager;
+    private boolean enableUriEncodingCompatibilityMode;
 
     /**
      * Creates an instance which will authenticate against the supplied
@@ -48,12 +51,14 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
      * Typically an instance of {@link BasicAuthenticationEntryPoint}.
      */
     public ClientBasicAuthenticationFilter(AuthenticationManager authenticationManager,
-                                     AuthenticationEntryPoint authenticationEntryPoint) {
+                                           AuthenticationEntryPoint authenticationEntryPoint,
+                                           boolean enableUriEncodingCompatibilityMode) {
         Assert.notNull(authenticationManager, "authenticationManager cannot be null");
         Assert.notNull(authenticationEntryPoint,
                 "authenticationEntryPoint cannot be null");
         this.authenticationManager = authenticationManager;
         this.authenticationEntryPoint = authenticationEntryPoint;
+        this.enableUriEncodingCompatibilityMode = enableUriEncodingCompatibilityMode;
     }
 
     public void setAuthenticationDetailsSource(
@@ -85,9 +90,27 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
         try {
             String[] tokens = extractAndDecodeHeader(header, request);
             assert tokens.length == 2;
-            String clientId = URLDecoder.decode(tokens[0], getCredentialsCharset(request));
-            String clientSecret = URLDecoder.decode(tokens[1], getCredentialsCharset(request));
 
+            String clientId;
+            String clientSecret;
+            String headerEncodedCreds = request.getHeader("X-CF-ENCODED-CREDENTIALS");
+            if (headerEncodedCreds == null) {
+                headerEncodedCreds = "false";
+            }
+
+            if (enableUriEncodingCompatibilityMode && !headerEncodedCreds.toLowerCase().equals("true")) {
+                clientId = tokens[0];
+                clientSecret = tokens[1];
+            } else {
+                try {
+                    clientId = URLDecoder.decode(tokens[0], getCredentialsCharset(request));
+                    clientSecret = URLDecoder.decode(tokens[1], getCredentialsCharset(request));
+                } catch (UnsupportedEncodingException | IllegalArgumentException e) {
+                    throw new BadCredentialsException("Failed to URL Decode credentials");
+                }
+            }
+
+            request.setAttribute("clientId", clientId);
             if (debug) {
                 this.logger
                         .debug("Basic Authentication Authorization header found for user '"
@@ -128,7 +151,7 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
     private String[] extractAndDecodeHeader(String header, HttpServletRequest request)
             throws IOException {
 
-        byte[] base64Token = header.substring(6).getBytes("UTF-8");
+        byte[] base64Token = header.substring(6).getBytes(StandardCharsets.UTF_8);
         byte[] decoded;
         try {
             decoded = Base64.getDecoder().decode(base64Token);

@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
@@ -18,7 +19,9 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +46,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -115,6 +119,7 @@ class JdbcScimGroupMembershipManagerTests {
         String m2 = namePrefix + "m2";
         String m3 = namePrefix + "m3";
         String m4 = namePrefix + "m4";
+        String m5 = namePrefix + "m5";
         addGroup(g1, "test1", identityZoneId, jdbcTemplate);
         addGroup(g2, "test2", identityZoneId, jdbcTemplate);
         addGroup(g3, "test3", identityZoneId, jdbcTemplate);
@@ -122,6 +127,7 @@ class JdbcScimGroupMembershipManagerTests {
         addUser(m2, "test", identityZoneId, jdbcTemplate);
         addUser(m3, "test", identityZoneId, jdbcTemplate);
         addUser(m4, "test", identityZoneId, jdbcTemplate);
+        addUser(m5, "test", identityZoneId, jdbcTemplate);
         mapExternalGroup(g1, g1 + "-external", UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
         mapExternalGroup(g2, g2 + "-external", LOGIN_SERVER, jdbcTemplate, IdentityZoneHolder.get().getId());
         mapExternalGroup(g3, g3 + "-external", UAA, jdbcTemplate, IdentityZoneHolder.get().getId());
@@ -584,6 +590,53 @@ class JdbcScimGroupMembershipManagerTests {
         List<String> groupIds = groups.stream().map(ScimGroup::getId).collect(Collectors.toList());
         assertThat(groupIds, hasItem("g1"));
         assertThat(groupIds, hasItem("g2"));
+    }
+
+    @Test
+    public void canAddMultipleMembers() {
+        jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
+        try {
+            jdbcScimGroupMembershipManager.addMember("g1", new ScimGroupMember("m1", ScimGroupMember.Type.USER), uaaIdentityZone.getId());
+            Assertions.fail();
+        } catch (MemberAlreadyExistsException e) {
+            assertNotNull(e);
+        }
+    }
+
+    @Test
+    void testGroupsWithMemberAndMaxSqlParameter() {
+        int oldValue = jdbcScimGroupMembershipManager.getMaxSqlParameters();
+        for (int l: List.of(-1, 10)) {
+            jdbcScimGroupMembershipManager.setMaxSqlParameters(l);
+
+            for (int i = 0; i < 5; i++) {
+                addGroup("testGroup" + l + i, "testGroupName" + l + i, uaaIdentityZone.getId(), jdbcTemplate);
+                addMember("testGroup" + l + i, "m5", "USER", UAA, jdbcTemplate, uaaIdentityZone.getId());
+            }
+            validateM5(5, jdbcScimGroupMembershipManager.getGroupsWithMember("m5", true, uaaIdentityZone.getId()), l);
+
+            for (int i = 5; i < 10; i++) {
+                addGroup("testGroup" + l + i, "testGroupName" + l + i, uaaIdentityZone.getId(), jdbcTemplate);
+                addMember("testGroup" + l + i, "m5", "USER", UAA, jdbcTemplate, uaaIdentityZone.getId());
+            }
+            validateM5(10, jdbcScimGroupMembershipManager.getGroupsWithMember("m5", true, uaaIdentityZone.getId()), l);
+
+            for (int i = 10; i < 15; i++) {
+                addGroup("testGroup" + l + i, "testGroupName" + l + i, uaaIdentityZone.getId(), jdbcTemplate);
+                addMember("testGroup" + l + i, "m5", "USER", UAA, jdbcTemplate, uaaIdentityZone.getId());
+            }
+            validateM5(15, jdbcScimGroupMembershipManager.getGroupsWithMember("m5", true, uaaIdentityZone.getId()), l);
+        }
+
+        jdbcScimGroupMembershipManager.setMaxSqlParameters(oldValue);
+    }
+
+    private void validateM5(int i, Set<ScimGroup> m5, int prefix) {
+        int count = 0;
+        for (ScimGroup g: m5) {
+            if (g.getId().startsWith("testGroup" + prefix)) count++;
+        }
+        Assert.assertEquals(i, count);
     }
 
     private static void mapExternalGroup(

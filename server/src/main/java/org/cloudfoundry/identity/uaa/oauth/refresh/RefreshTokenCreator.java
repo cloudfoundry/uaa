@@ -80,10 +80,10 @@ public class RefreshTokenCreator {
             claims.put(JTI, tokenId);
             claims.put(SUB, user.getId());
             claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-            claims.put(EXP, expirationDate.getTime() / 1000);
+            claims.put(EXPIRY_IN_SECONDS, expirationDate.getTime() / 1000);
             claims.put(CID, tokenRequestData.clientId);
             claims.put(CLIENT_ID, tokenRequestData.clientId);
-            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint());
+            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
             claims.put(ZONE_ID, IdentityZoneHolder.get().getId());
             claims.put(AUD, tokenRequestData.resourceIds);
             claims.put(GRANTED_SCOPES, tokenRequestData.scopes);

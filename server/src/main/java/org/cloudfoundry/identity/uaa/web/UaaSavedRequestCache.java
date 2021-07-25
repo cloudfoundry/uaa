@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.web;
 
 
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -44,7 +45,6 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
-import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.util.StringUtils.hasText;
@@ -80,8 +80,8 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
     }
 
     public void saveClientRedirect(HttpServletRequest request, String redirectUrl) {
-        HttpSession session = request.getSession(true);
-        session.setAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE, new ClientRedirectSavedRequest(request, redirectUrl));
+        SessionUtils.setSavedRequestSession(request.getSession(true),
+                new ClientRedirectSavedRequest(request, redirectUrl));
     }
 
     protected boolean shouldSaveFormRedirectParameter(HttpServletRequest request) {
@@ -108,11 +108,11 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
 
     protected static SavedRequest getSavedRequest(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        return session==null ? null : (SavedRequest)session.getAttribute(SAVED_REQUEST_SESSION_ATTRIBUTE);
+        return session == null ? null : SessionUtils.getSavedRequestSession(session);
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
 
     }
 

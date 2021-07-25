@@ -15,5 +15,6 @@
   "claims_supported": null,
   "claims_parameter_supported": false,
   "service_documentation": null,
-  "ui_locales_supported": null
+  "ui_locales_supported": null,
+  "code_challenge_methods_supported": null
 }

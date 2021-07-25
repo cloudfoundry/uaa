@@ -25,7 +25,7 @@ import static org.junit.Assert.assertNotNull;
 public class KeyWithCertTest {
 
     @BeforeClass
-    public static void addProvider() throws Exception {
+    public static void addProvider() {
         Security.addProvider(new BouncyCastleProvider());
     }
 

@@ -52,7 +52,7 @@ public class TokenValidationService {
                 buildAccessTokenValidator(token, keyInfoService) : buildRefreshTokenValidator(token, keyInfoService);
         tokenValidation
                 .checkRevocableTokenStore(revocableTokenProvisioning)
-                .checkIssuer(tokenEndpointBuilder.getTokenEndpoint());
+                .checkIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
 
         ClientDetails client = tokenValidation.getClientDetails(multitenantClientServices);
         UaaUser user = tokenValidation.getUserDetails(userDatabase);

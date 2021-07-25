@@ -41,7 +41,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -340,7 +339,6 @@ class JdbcScimGroupProvisioningTests {
         dao.onApplicationEvent(event);
         List<String> groups = dao.retrieveAll(id).stream().map(ScimGroup::getDisplayName).collect(Collectors.toList());
         ZoneManagementScopes.getSystemScopes()
-                .stream()
                 .forEach(scope ->
                         assertTrue(groups.contains(scope), "Scope:" + scope + " should have been bootstrapped into the new zone")
                 );
@@ -391,9 +389,7 @@ class JdbcScimGroupProvisioningTests {
     void sqlInjectionAttackInSortByFieldFails() {
         final String invalidSortBy = "id; select * from oauth_client_details order by id";
         assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> {
-                    dao.query("id pr", invalidSortBy, true, zoneId);
-                },
+                () -> dao.query("id pr", invalidSortBy, true, zoneId),
                 is("Invalid sort field: " + invalidSortBy)
         );
     }

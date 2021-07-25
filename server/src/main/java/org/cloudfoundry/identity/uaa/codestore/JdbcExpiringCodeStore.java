@@ -97,8 +97,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             try {
                 int update = jdbcTemplate.update(insert, code, expiresAt.getTime(), data, intent, zoneId);
                 if (update == 1) {
-                    ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
-                    return expiringCode;
+                    return new ExpiringCode(code, expiresAt, data, intent);
                 } else {
                     logger.warn("Unable to store expiring code:" + code);
                 }

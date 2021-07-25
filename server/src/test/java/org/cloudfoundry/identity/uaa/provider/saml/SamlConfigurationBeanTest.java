@@ -35,7 +35,7 @@ public class SamlConfigurationBeanTest {
     }
 
     @Test
-    public void testSHA1SignatureAlgorithm() throws Exception {
+    public void testSHA1SignatureAlgorithm() {
         SamlConfigurationBean samlConfigurationBean = new SamlConfigurationBean();
         samlConfigurationBean.setSignatureAlgorithm(SamlConfigurationBean.SignatureAlgorithm.SHA1);
         samlConfigurationBean.afterPropertiesSet();
@@ -46,7 +46,7 @@ public class SamlConfigurationBeanTest {
     }
 
     @Test
-    public void testSHA256SignatureAlgorithm() throws Exception {
+    public void testSHA256SignatureAlgorithm() {
         SamlConfigurationBean samlConfigurationBean = new SamlConfigurationBean();
         samlConfigurationBean.setSignatureAlgorithm(SamlConfigurationBean.SignatureAlgorithm.SHA256);
         samlConfigurationBean.afterPropertiesSet();
@@ -57,7 +57,7 @@ public class SamlConfigurationBeanTest {
     }
 
     @Test
-    public void testSHA512SignatureAlgorithm() throws Exception {
+    public void testSHA512SignatureAlgorithm() {
         SamlConfigurationBean samlConfigurationBean = new SamlConfigurationBean();
         samlConfigurationBean.setSignatureAlgorithm(SamlConfigurationBean.SignatureAlgorithm.SHA512);
         samlConfigurationBean.afterPropertiesSet();

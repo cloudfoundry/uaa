@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Server port='-1'>
+    <Service name='Catalina'>
+        <Connector port='8080' bindOnInit='true' connectionTimeout='20000' maxHttpHeaderSize='14336'/>
+
+        <Engine defaultHost='localhost' name='Catalina'>
+            <Valve className='org.apache.catalina.valves.RemoteIpValve' protocolHeader='x-forwarded-proto'/>
+            <Valve className='org.cloudfoundry.tomcat.logging.access.CloudFoundryAccessLoggingValve'
+                   pattern='[ACCESS] %h %l %u %t &quot;%m %U %H&quot; %s %{Content-Length}i %b &quot;X-Vcap-Request-Id: %{X-Vcap-Request-Id}i&quot; %I'
+                   enabled='${access.logging.enabled}'/>
+            <Host name='localhost'
+                  failCtxIfServletStartFails='true'>
+                <Listener className='org.cloudfoundry.tomcat.lifecycle.ApplicationStartupFailureDetectingLifecycleListener'/>
+                <Valve className='org.apache.catalina.valves.ErrorReportValve' showReport='false' showServerInfo='false'/>
+            </Host>
+        </Engine>
+    </Service>
+
+</Server>

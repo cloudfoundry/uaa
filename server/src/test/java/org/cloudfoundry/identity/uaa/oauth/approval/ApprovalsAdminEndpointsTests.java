@@ -29,21 +29,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -86,18 +78,18 @@ class ApprovalsAdminEndpointsTests {
         when(mockSecurityContextAccessor.getUserId()).thenReturn(marissa.getId());
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
 
-        endpoints = new ApprovalsAdminEndpoints(mockSecurityContextAccessor);
-        endpoints.setApprovalStore(dao);
-        endpoints.setUaaUserDatabase(userDao);
-
         MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
                 "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Collections.singletonList("true"));
         clientDetailsService.addClientDetails(details);
-        endpoints.setClientDetailsService(clientDetailsService);
-    }
 
+        endpoints = new ApprovalsAdminEndpoints(
+                mockSecurityContextAccessor,
+                dao,
+                userDao,
+                clientDetailsService);
+    }
 
     private void addApproval(String userName, String scope, int expiresIn, ApprovalStatus status) {
         dao.addApproval(new Approval()

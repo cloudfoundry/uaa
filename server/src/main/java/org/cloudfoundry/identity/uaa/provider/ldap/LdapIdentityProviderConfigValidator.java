@@ -18,9 +18,11 @@ package org.cloudfoundry.identity.uaa.provider.ldap;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.springframework.stereotype.Component;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 
+@Component
 public class LdapIdentityProviderConfigValidator extends BaseIdentityProviderValidator {
 
     @Override

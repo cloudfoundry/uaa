@@ -33,6 +33,7 @@ class OpenIdConnectEndpointDocs extends EndpointDocs {
                 fieldWithPath("claims_supported").description("JSON array containing a list of the Claim Names of the Claims that the OpenID Provider MAY be able to supply values for."),
                 fieldWithPath("claims_parameter_supported").description("Boolean value specifying whether the OP supports use of the claims parameter."),
                 fieldWithPath("service_documentation").description("URL of a page containing human-readable information that developers might want or need to know when using the OpenID Provider."),
+                fieldWithPath("code_challenge_methods_supported").description("<small><mark>UAA 75.5.0</mark></small>JSON array containing a list of [PKCE](https://tools.ietf.org/html/rfc7636) code challenge methods supported by this authorization endpoint."),
                 fieldWithPath("ui_locales_supported").description("Languages and scripts supported for the user interface.")
         );
 

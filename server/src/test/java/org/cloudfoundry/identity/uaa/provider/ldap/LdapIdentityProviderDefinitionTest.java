@@ -25,11 +25,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
@@ -50,7 +47,7 @@ public class LdapIdentityProviderDefinitionTest {
     private LdapIdentityProviderDefinition ldapIdentityProviderDefinition;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
 
     }
 
@@ -88,7 +85,7 @@ public class LdapIdentityProviderDefinitionTest {
             String tlsConfiguration = "other string";
             ldapIdentityProviderDefinition.setTlsConfiguration(tlsConfiguration);
             fail(tlsConfiguration + " is not a valid TLS configuration option.");
-        } catch (IllegalArgumentException x) {}
+        } catch (IllegalArgumentException ignored) {}
     }
 
     @Test
@@ -118,7 +115,7 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
-    public void testSearchAndBindConfiguration() throws Exception {
+    public void testSearchAndBindConfiguration() {
         ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
             "ldap://localhost:389/",
             "cn=admin,ou=Users,dc=test,dc=com",
@@ -197,10 +194,10 @@ public class LdapIdentityProviderDefinitionTest {
         assertNotEquals(deserialized, deserialized2);
     }
 
-    public Map<String,Object> getLdapConfig(String config) throws UnsupportedEncodingException {
+    public Map<String,Object> getLdapConfig(String config) {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
-        factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes("UTF-8"))});
+        factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes(StandardCharsets.UTF_8))});
         Map<String, Object> map = (Map<String, Object>) factory.getObject().get(LDAP);
         Map<String, Object> result = new HashMap<>();
         result.put(LDAP, map);
@@ -427,7 +424,7 @@ public class LdapIdentityProviderDefinitionTest {
     @Test
     public void testSetEmailDomain() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
-        def.setEmailDomain(Arrays.asList("test.com"));
+        def.setEmailDomain(Collections.singletonList("test.com"));
         assertEquals("test.com", def.getEmailDomain().get(0));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertEquals("test.com", def.getEmailDomain().get(0));
@@ -439,9 +436,9 @@ public class LdapIdentityProviderDefinitionTest {
         List<String> externalGroupsWhitelist = new ArrayList<>();
         externalGroupsWhitelist.add("value");
         def.setExternalGroupsWhitelist(externalGroupsWhitelist);
-        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
+        assertEquals(Collections.singletonList("value"), def.getExternalGroupsWhitelist());
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
+        assertEquals(Collections.singletonList("value"), def.getExternalGroupsWhitelist());
     }
 
     @Test

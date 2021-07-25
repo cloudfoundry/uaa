@@ -17,10 +17,7 @@ package org.cloudfoundry.identity.uaa.impl.config;
 import org.apache.commons.collections.ListUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class ScimExternalGroupsTypeResolvingFactoryBean {
 
@@ -43,7 +40,7 @@ public class ScimExternalGroupsTypeResolvingFactoryBean {
                 String[] externalGroups = externalGroupsSpaceDelimited.trim().split("\\s+");
                 Map<String, List> externalToInternalMap = new HashMap<>();
                 for (String externalGroup : externalGroups) {
-                    externalToInternalMap.put(externalGroup, Arrays.asList(internalGroup));
+                    externalToInternalMap.put(externalGroup, Collections.singletonList(internalGroup));
                 }
 
                 Map<String, List> existingOriginMap = resolvedMap.putIfAbsent(origin, externalToInternalMap);

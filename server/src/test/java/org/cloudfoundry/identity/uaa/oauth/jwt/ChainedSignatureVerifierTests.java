@@ -29,11 +29,7 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static java.util.Collections.singletonMap;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
@@ -93,13 +89,13 @@ public class ChainedSignatureVerifierTests {
 
     @Test
     public void test_single_key_valid() {
-        verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey)));
+        verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Collections.singletonList(validKey)));
         signedValidContent.verifySignature(verifier);
     }
 
     @Test(expected = InvalidSignatureException.class)
     public void test_single_key_invalid() {
-        verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(invalidKey)));
+        verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Collections.singletonList(invalidKey)));
         signedValidContent.verifySignature(verifier);
     }
 

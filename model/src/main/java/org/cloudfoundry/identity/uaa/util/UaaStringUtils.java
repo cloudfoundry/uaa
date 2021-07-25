@@ -19,7 +19,7 @@ import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -90,8 +90,7 @@ public class UaaStringUtils {
      * @return new properties with no plaintext passwords and secrets
      */
     public static Map<String, ?> hidePasswords(Map<String, ?> map) {
-        Map<String, Object> result = new LinkedHashMap<String, Object>();
-        result.putAll(map);
+        Map<String, Object> result = new LinkedHashMap<>(map);
         for (String key : map.keySet()) {
             Object value = map.get(key);
             if (value instanceof String) {
@@ -225,7 +224,7 @@ public class UaaStringUtils {
         try {
             URL uri = new URL(arg);
             return uri.getHost();
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException ignored) {
         }
         return arg;
     }
@@ -276,7 +275,7 @@ public class UaaStringUtils {
         if (s==null) {
             return null;
         } else {
-            return new String(s.getBytes(Charset.forName(ISO_8859_1)), Charset.forName(UTF_8));
+            return new String(s.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
         }
     }
 

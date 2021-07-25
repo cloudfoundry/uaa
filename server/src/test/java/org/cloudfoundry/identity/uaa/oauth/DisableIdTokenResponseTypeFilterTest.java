@@ -54,13 +54,13 @@ public class DisableIdTokenResponseTypeFilterTest {
     }
 
     @Test
-    public void testIsIdTokenDisabled() throws Exception {
+    public void testIsIdTokenDisabled() {
         assertFalse(filter.isIdTokenDisabled());
         assertTrue(disabledFilter.isIdTokenDisabled());
     }
 
     @Test
-    public void testApplyPath() throws Exception {
+    public void testApplyPath() {
         shouldApplyPath("/oauth/token", false);
         shouldApplyPath("/someotherpath/uaa/oauth/authorize", true);
         shouldApplyPath("/uaa/oauth/authorize", true);

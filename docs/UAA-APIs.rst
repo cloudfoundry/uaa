@@ -665,7 +665,7 @@ Notes:
 * Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/rfc6749#section-5.2>`_ and this addition::
 
             HTTP/1.1 400 Bad Request
-            Content-Type: application/json;charset=UTF-8
+            Content-Type: application/json
             Cache-Control: no-store
             Pragma: no-cache
 
@@ -1353,7 +1353,7 @@ Fields            *Available Fields* ::
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
                     providerDescription      String                  Optional Human readable name/description of this provider
 
-                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition
+                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.ExternalOAuthIdentityProviderDefinition
                     ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
                     alias                    String                  Required Must match ``originKey`` in the provider definition
                     authUrl                  URL                     Required Must be a valid URL that returns the authorization code.
@@ -1932,7 +1932,7 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "status":"ok",
@@ -1982,7 +1982,7 @@ Reset Password Flow:
 * Response::
 
         HTTP/1.1 201 Created
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "code":"1yw7VS",
@@ -2025,7 +2025,7 @@ Reset Password Flow:
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "username": "example",
@@ -2075,7 +2075,7 @@ Change Email Flow:
 * Response::
 
         HTTP/1.1 201 Created
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         6FfI4o       // verification code
 
@@ -2112,7 +2112,7 @@ Change Email Flow:
 * Response::
 
         HTTP/1.1 200 OK
-        Content-Type: application/json;charset=UTF-8
+        Content-Type: application/json
 
         {
             "username": "example",
@@ -2313,25 +2313,6 @@ Wildcard searches such as ``sw`` or ``co`` are not allowed. This endpoint requir
     }
 
 
-Query the strength of a password: ``POST /password/score``
-----------------------------------------------------------
-
-ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
-
-* Request: ``POST /password/score``
-
-    POST /password/score HTTP/1.1
-    Host: uaa.example.com
-    Content-Type: application/x-www-form-encoded
-
-    password=password1&userData=jane,janesdogsname,janescity
-
-* Response
-    HTTP/1.1 200 OK
-    Content-Type: application/json
-    X-Cf-Warnings: Endpoint+deprecated
-
-    {"score": 0, "requiredScore": 0}
 
 
 Inviting Users
@@ -2904,7 +2885,7 @@ Get the Token Signing Key: ``GET /token_key``
 An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
-JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/check_token`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
+JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/introspect`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
 
 JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token. In the case that this is not the primary key, use ``GET /token_keys`` to retrieve all currently valid keys, and select the key that matches the token's ``kid``.
 

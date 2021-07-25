@@ -25,7 +25,7 @@ import javax.mail.Session;
 import javax.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -130,7 +130,7 @@ public class FakeJavaMailSender implements JavaMailSender {
         }
 
         public String getContentString() throws MessagingException, IOException {
-            return StreamUtils.copyToString(mimeMessage.getDataHandler().getInputStream(), Charset.forName("UTF-8"));
+            return StreamUtils.copyToString(mimeMessage.getDataHandler().getInputStream(), StandardCharsets.UTF_8);
         }
 
         public MimeMessage getMessage() {
@@ -144,9 +144,7 @@ public class FakeJavaMailSender implements JavaMailSender {
                 sb.append("From=").append(Arrays.toString(getFrom().toArray()));
                 sb.append("; To=").append(Arrays.toString(getRecipients(Message.RecipientType.TO).toArray()));
                 sb.append("; Content=").append(getContentString());
-            }catch (MessagingException x) {
-                sb.append("Message=").append(mimeMessage);
-            }catch (IOException x) {
+            }catch (MessagingException | IOException x) {
                 sb.append("Message=").append(mimeMessage);
             }
             sb.append('}');

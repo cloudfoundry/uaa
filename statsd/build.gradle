@@ -1,45 +1,27 @@
-apply plugin: 'java'
-apply plugin: 'war'
+apply(plugin: "java")
+apply(plugin: "war")
+apply(plugin: "org.springframework.boot")
 
 war {
-    baseName = 'cloudfoundry-identity-statsd'
+    archiveBaseName = "cloudfoundry-identity-statsd"
 }
 
 repositories {
     mavenCentral()
 }
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
-
-configurations.all {
-    exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
-}
-
 dependencies {
-    compile project(':cloudfoundry-identity-metrics-data')
-    compile libraries.springBootStarter
-    compile libraries.springBootStarterWeb
-    compile libraries.springBootStarterLog4j2
-    compile group: 'com.timgroup', name: 'java-statsd-client', version: '3.0.1'
-    compile libraries.apacheHttpClient
-    providedCompile libraries.tomcatEmbed
-    providedRuntime libraries.springBootStarterTomcat
-    testCompile libraries.mockito
-    testCompile libraries.springBootStarterTest
-
-    compile 'com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.9'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.9.9.1'
+    implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.springBootStarterWeb)
+    providedCompile(libraries.tomcatEmbed)
+    providedRuntime(libraries.springBootStarterTomcat)
 }
 
 test {
-    exclude 'org/cloudfoundry/identity/statsd/integration/*.class'
-    exclude '**/*IT.class'
+    exclude("org/cloudfoundry/identity/statsd/integration/*.class")
+    exclude("**/*IT.class")
 }
 
-integrationTest {
-    filter {
-        includeTestsMatching "org.cloudfoundry.identity.statsd.integration.*"
-        includeTestsMatching "*IT"
-    }
+integrationTest {}.onlyIf { //disable since we don't have any
+    false
 }

@@ -13,7 +13,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.security.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -47,9 +47,6 @@ import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
@@ -189,7 +186,11 @@ class EmailAccountCreationServiceTests {
     void beginActivationWithExistingUser() {
         setUpForSuccess(null);
         user.setVerified(true);
-        when(mockScimUserProvisioning.query(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(user));
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
 
         assertThrows(UaaException.class,
@@ -202,7 +203,11 @@ class EmailAccountCreationServiceTests {
         user.setId("existing-user-id");
         user.setVerified(false);
         when(mockScimUserProvisioning.createUser(any(ScimUser.class), anyString(), eq(currentIdentityZoneId))).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
-        when(mockScimUserProvisioning.query(anyString(), eq(currentIdentityZoneId))).thenReturn(Collections.singletonList(user));
+        when(mockScimUserProvisioning.retrieveByUsernameAndOriginAndZone(
+                eq("user@example.com"),
+                eq(OriginKeys.UAA),
+                eq(currentIdentityZoneId))
+        ).thenReturn(Collections.singletonList(user));
         when(mockCodeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()), anyString())).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();

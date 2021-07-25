@@ -26,11 +26,10 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -365,12 +364,12 @@ public class CorsFilterTests {
         CorsFilter corsFilter = new CorsFilter();
 
         // We need to set the default value that Spring would otherwise set.
-        List<String> allowedUris = new ArrayList<>(Arrays.asList(".*"));
+        List<String> allowedUris = new ArrayList<>(Collections.singletonList(".*"));
         corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
         corsFilter.getDefaultConfiguration().setAllowedUris(allowedUris);
 
         // We need to set the default value that Spring would otherwise set.
-        List<String> allowedOrigins = new ArrayList<>(Arrays.asList(".*"));
+        List<String> allowedOrigins = new ArrayList<>(Collections.singletonList(".*"));
         corsFilter.getDefaultConfiguration().setAllowedOrigins(allowedOrigins);
 
         corsFilter.initialize();
@@ -422,7 +421,7 @@ public class CorsFilterTests {
         List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout.do$"));
         corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
 
-        List<String> allowedOrigins = new ArrayList<>(Arrays.asList("example.com("));
+        List<String> allowedOrigins = new ArrayList<>(Collections.singletonList("example.com("));
         corsFilter.getXhrConfiguration().setAllowedOrigins(allowedOrigins);
 
         corsFilter.initialize();
@@ -439,7 +438,7 @@ public class CorsFilterTests {
         corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
         corsFilter.getDefaultConfiguration().setAllowedUris(allowedUris);
 
-        List<String> allowedOrigins = new ArrayList<String>(Arrays.asList("example.com$"));
+        List<String> allowedOrigins = new ArrayList<String>(Collections.singletonList("example.com$"));
         corsFilter.getXhrConfiguration().setAllowedOrigins(allowedOrigins);
         corsFilter.getDefaultConfiguration().setAllowedOrigins(allowedOrigins);
 
@@ -465,16 +464,9 @@ public class CorsFilterTests {
     }
 
     private static FilterChain newMockFilterChain() {
-        FilterChain filterChain = new FilterChain() {
-
-            @Override
-            public void doFilter(final ServletRequest request, final ServletResponse response)
-                    throws IOException,
-                    ServletException {
-                // Do nothing.
-            }
+        return (request, response) -> {
+            // Do nothing.
         };
-        return filterChain;
     }
 
 }

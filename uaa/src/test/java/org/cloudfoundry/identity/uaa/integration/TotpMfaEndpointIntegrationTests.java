@@ -3,8 +3,8 @@ package org.cloudfoundry.identity.uaa.integration;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -44,7 +45,6 @@ import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -182,12 +182,12 @@ public class TotpMfaEndpointIntegrationTests {
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
-            public boolean hasError(ClientHttpResponse response) throws IOException {
+            public boolean hasError(ClientHttpResponse response) {
                 return false;
             }
 
             @Override
-            public void handleError(ClientHttpResponse response) throws IOException {
+            public void handleError(ClientHttpResponse response) {
             }
         });
         return client;
@@ -235,7 +235,7 @@ public class TotpMfaEndpointIntegrationTests {
     }
 
     @Test
-    public void checkAccessForTotpPage() throws Exception {
+    public void checkAccessForTotpPage() {
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(zoneUrl + "/login/mfa/register");
@@ -284,8 +284,8 @@ public class TotpMfaEndpointIntegrationTests {
 
     private void verifyCodeOnRegistration(String key, String expectedUrlPath) {
         GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        Integer verificationCode = authenticator.getTotpPassword(key);
-        webDriver.findElement(By.name("code")).sendKeys(verificationCode.toString());
+        int verificationCode = authenticator.getTotpPassword(key);
+        webDriver.findElement(By.name("code")).sendKeys(Integer.toString(verificationCode));
         webDriver.findElement(By.cssSelector("form button")).click();
 
         assertEquals(zoneUrl + expectedUrlPath, webDriver.getCurrentUrl());
@@ -363,7 +363,7 @@ public class TotpMfaEndpointIntegrationTests {
         String[] qparams = qrCodeText(imageSrc).split("\\?")[1].split("&");
         for(String param : qparams) {
             if(param.contains("issuer=")) {
-                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, "UTF-8"));
+                assertEquals("issuer=" + mfaProvider.getConfig().getIssuer(), URLDecoder.decode(param, StandardCharsets.UTF_8));
                 break;
             }
         }

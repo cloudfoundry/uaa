@@ -101,7 +101,8 @@ class ClientAdminBootstrapTests {
                 true,
                 clients,
                 Collections.singleton(autoApproveId),
-                Collections.emptySet());
+                Collections.emptySet(),
+                null);
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -119,11 +120,12 @@ class ClientAdminBootstrapTests {
                     true,
                     null,
                     Collections.emptySet(),
-                    Collections.emptySet());
+                    Collections.emptySet(),
+                    null);
         }
 
         @Test
-        void doesNotAddClients() throws Exception {
+        void doesNotAddClients() {
             reset(multitenantJdbcClientDetailsService);
 
             clientAdminBootstrap.afterPropertiesSet();
@@ -154,12 +156,13 @@ class ClientAdminBootstrapTests {
                     true,
                     clients,
                     Collections.singleton(clientIdToDelete),
-                    Collections.singleton(clientIdToDelete));
+                    Collections.singleton(clientIdToDelete),
+                    null);
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
         @Test
-        void clientSlatedForDeletionDoesNotGetInserted() throws Exception {
+        void clientSlatedForDeletionDoesNotGetInserted() {
             clientAdminBootstrap.afterPropertiesSet();
 
             verify(multitenantJdbcClientDetailsService, never()).addClientDetails(any(), anyString());
@@ -244,7 +247,7 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
-    void clientMetadata_getsBootstrapped() throws Exception {
+    void clientMetadata_getsBootstrapped() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -310,12 +313,13 @@ class ClientAdminBootstrapTests {
                     true,
                     clients,
                     Collections.singleton(autoApproveId),
-                    Collections.emptySet());
+                    Collections.emptySet(),
+                    null);
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
         @Test
-        void simpleAddClientWithAutoApprove() throws Exception {
+        void simpleAddClientWithAutoApprove() {
             Map<String, Object> map = createClientMap(autoApproveId);
             BaseClientDetails output = new BaseClientDetails(autoApproveId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
             output.setClientSecret("bar");
@@ -333,7 +337,7 @@ class ClientAdminBootstrapTests {
         }
 
         @Test
-        void overrideClient() throws Exception {
+        void overrideClient() {
             String clientId = randomValueStringGenerator.generate();
             BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
@@ -368,12 +372,13 @@ class ClientAdminBootstrapTests {
                         false,
                         clients,
                         Collections.singleton(autoApproveId),
-                        Collections.emptySet()
+                        Collections.emptySet(),
+                        null
                 );
             }
 
             @Test
-            void overrideClient_usingDefaultOverride() throws Exception {
+            void overrideClient_usingDefaultOverride() {
                 String clientId = randomValueStringGenerator.generate();
                 BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
                 foo.setClientSecret("secret");
@@ -395,7 +400,7 @@ class ClientAdminBootstrapTests {
         }
 
         @Test
-        void overrideClientWithEmptySecret() throws Exception {
+        void overrideClientWithEmptySecret() {
             String clientId = randomValueStringGenerator.generate();
             BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
@@ -420,7 +425,7 @@ class ClientAdminBootstrapTests {
         }
 
         @Test
-        void overrideClientByDefault() throws Exception {
+        void overrideClientByDefault() {
             String clientId = randomValueStringGenerator.generate();
             BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
@@ -446,7 +451,7 @@ class ClientAdminBootstrapTests {
 
         @Test
         @SuppressWarnings("unchecked")
-        void overrideClientWithYaml() throws Exception {
+        void overrideClientWithYaml() {
             @SuppressWarnings("rawtypes")
             Map fooBeforeClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: somevalue\n"
                     + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
@@ -526,7 +531,7 @@ class ClientAdminBootstrapTests {
             final Map<String, Object> map,
             final ClientAdminBootstrap clientAdminBootstrap,
             final MultitenantJdbcClientDetailsService clientRegistrationService,
-            final Map<String, Map<String, Object>> clients) throws Exception {
+            final Map<String, Map<String, Object>> clients) {
         clients.put((String) map.get("id"), map);
         clientAdminBootstrap.afterPropertiesSet();
 

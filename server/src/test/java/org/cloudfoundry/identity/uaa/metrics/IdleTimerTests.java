@@ -36,7 +36,7 @@ public class IdleTimerTests {
     public static final int THREAD_COUNT = 10;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() {
         timer = new IdleTimer();
     }
 
@@ -49,7 +49,7 @@ public class IdleTimerTests {
     }
 
     @Test
-    public void illegal_end_request() throws Exception {
+    public void illegal_end_request() {
         exception.expect(IllegalStateException.class);
         exception.expectMessage("Illegal end request invocation, no request in flight");
         timer.endRequest();

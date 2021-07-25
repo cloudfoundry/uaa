@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -25,6 +26,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -44,7 +46,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -93,7 +94,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     public UaaAuthorizationRequestManager(final MultitenantClientServices clientDetailsService,
                                           final SecurityContextAccessor securityContextAccessor,
                                           final UaaUserDatabase userDatabase,
-                                          final IdentityProviderProvisioning providerProvisioning) {
+                                          final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning) {
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
         this.uaaUserDatabase = userDatabase;
@@ -271,21 +272,10 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         Set<String> result = new HashSet<>(userScopes);
 
         Set<Pattern> clientWildcards = constructWildcards(clientScopes);
-        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
-            String scope = iter.next();
-            if (!matches(clientWildcards, scope)) {
-                iter.remove();
-            }
-        }
+        result.removeIf(scope1 -> !matches(clientWildcards, scope1));
 
         Set<Pattern> requestedWildcards = constructWildcards(requestedScopes);
-        // Weed out disallowed requestedScopes:
-        for (Iterator<String> iter = result.iterator(); iter.hasNext();) {
-            String scope = iter.next();
-            if (!matches(requestedWildcards, scope)) {
-                iter.remove();
-            }
-        }
+        result.removeIf(scope -> !matches(requestedWildcards, scope));
 
         return result;
     }
@@ -348,9 +338,8 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         }
         Set<String> scopes = extractScopes(requestParameters, targetClient);
         Set<String> resourceIds = getResourceIds(targetClient, scopes);
-        TokenRequest tokenRequest = new UaaTokenRequest(unmodifiableMap(requestParameters), authenticatedClient.getClientId(), scopes, grantType, resourceIds);
 
-        return tokenRequest;
+        return new UaaTokenRequest(unmodifiableMap(requestParameters), authenticatedClient.getClientId(), scopes, grantType, resourceIds);
     }
 
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {

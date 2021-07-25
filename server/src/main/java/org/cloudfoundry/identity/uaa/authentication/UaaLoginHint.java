@@ -4,9 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 
-public class UaaLoginHint {
+public class UaaLoginHint implements Serializable {
+    private static final long serialVersionUID = 4021539346161285037L;
     private String origin;
     private static ObjectMapper mapper = new ObjectMapper();
 
@@ -15,7 +18,7 @@ public class UaaLoginHint {
             return null;
         }
         try {
-            loginHint = URLDecoder.decode(loginHint, "UTF-8");
+            loginHint = URLDecoder.decode(loginHint, StandardCharsets.UTF_8);
             return mapper.readValue(loginHint, UaaLoginHint.class);
         } catch (IOException e) {
             return null;

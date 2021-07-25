@@ -49,7 +49,7 @@ public class KeystoneAuthenticationManagerTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         input = new UsernamePasswordAuthenticationToken(username,password);
         setUpRestAuthenticationManager();
     }
@@ -90,12 +90,12 @@ public class KeystoneAuthenticationManagerTest {
     }
 
     @Test
-    public void testV3Authentication() throws Exception {
+    public void testV3Authentication() {
         restAuthenticationManager.authenticate(input);
     }
 
     @Test(expected = UnsupportedOperationException.class)
-    public void testUnknownVersion() throws Exception {
+    public void testUnknownVersion() {
         Assume.assumeTrue(restAuthenticationManager instanceof KeystoneAuthenticationManager);
         remoteUrl = "http://this.is.not.used/v4";
         setUpRestAuthenticationManager();
@@ -103,19 +103,19 @@ public class KeystoneAuthenticationManagerTest {
     }
 
     @Test(expected = BadCredentialsException.class)
-    public void testUnauthorized() throws Exception {
+    public void testUnauthorized() {
         setUpRestAuthenticationManager(HttpStatus.UNAUTHORIZED);
         restAuthenticationManager.authenticate(input);
     }
 
     @Test(expected = RuntimeException.class)
-    public void test500Error() throws Exception {
+    public void test500Error() {
         setUpRestAuthenticationManager(HttpStatus.INTERNAL_SERVER_ERROR);
         restAuthenticationManager.authenticate(input);
     }
 
     @Test(expected = RuntimeException.class)
-    public void testUnknownError() throws Exception {
+    public void testUnknownError() {
         setUpRestAuthenticationManager(HttpStatus.BAD_GATEWAY);
         restAuthenticationManager.authenticate(input);
     }

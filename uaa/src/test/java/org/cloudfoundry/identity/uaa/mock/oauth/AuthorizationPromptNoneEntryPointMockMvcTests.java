@@ -12,10 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Collections;
@@ -44,17 +43,12 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
 
     @Autowired
     private WebApplicationContext webApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
-    private TestClient testClient;
 
     @BeforeEach
     void setup() throws Exception {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-
-        testClient = new TestClient(mockMvc);
+        TestClient testClient = new TestClient(mockMvc);
 
         BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         client.setAutoApproveScopes(Collections.singletonList("openid"));
@@ -117,14 +111,14 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     }
 
     @Test
-    void testSilentAuthentication_includesSessionState() throws Exception {
+    void testSilentAuthentication_includesSessionState(
+            @Autowired OpenIdSessionStateCalculator openIdSessionStateCalculator
+    ) throws Exception {
         UaaAuthorizationEndpoint uaaAuthorizationEndpoint = (UaaAuthorizationEndpoint) webApplicationContext.getBean("uaaAuthorizationEndpoint");
-        OpenIdSessionStateCalculator backupCalculator = uaaAuthorizationEndpoint.getOpenIdSessionStateCalculator();
         try {
-            OpenIdSessionStateCalculator calculator = mock(OpenIdSessionStateCalculator.class);
-
-            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(calculator);
-            when(calculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionhash.saltvalue");
+            OpenIdSessionStateCalculator mockOpenIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
+            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", mockOpenIdSessionStateCalculator);
+            when(mockOpenIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionhash.saltvalue");
             String currentUserId = MockMvcUtils.getUserByUsername(mockMvc, "marissa", adminToken).getId();
 
             //we need to know session id when we are calculating session_state
@@ -144,7 +138,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
 
             String redirectUrl = result.getResponse().getRedirectedUrl();
             assertThat(redirectUrl, containsString("session_state=sessionhash.saltvalue"));
-            verify(calculator).calculate(currentUserId, "ant", "http://example.com");
+            verify(mockOpenIdSessionStateCalculator).calculate(currentUserId, "ant", "http://example.com");
 
             // uaa-singular relies on the Current-User cookie. Because of GDPR, the Current-User cookie was
             // changed to expire after a relatively short time. We have to renew that cookie during each
@@ -152,19 +146,20 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
             // tab relying on uaa-singular aggressively polls /oauth/authorize?prompt=none
             assertThat(result.getResponse().getCookie("Current-User").getValue(), Matchers.containsString(currentUserId));
         } finally {
-            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(backupCalculator);
+            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", openIdSessionStateCalculator);
         }
     }
 
     @Test
-    void testSilentAuthentication_RuntimeException_displaysErrorFragment() throws Exception {
+    void testSilentAuthentication_RuntimeException_displaysErrorFragment(
+            @Autowired OpenIdSessionStateCalculator openIdSessionStateCalculator
+    ) throws Exception {
         UaaAuthorizationEndpoint uaaAuthorizationEndpoint = (UaaAuthorizationEndpoint) webApplicationContext.getBean("uaaAuthorizationEndpoint");
-        OpenIdSessionStateCalculator backupCalculator = uaaAuthorizationEndpoint.getOpenIdSessionStateCalculator();
         try {
-            OpenIdSessionStateCalculator openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
-            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
+            OpenIdSessionStateCalculator mockOpenIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
+            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", mockOpenIdSessionStateCalculator);
 
-            when(openIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenThrow(RuntimeException.class);
+            when(mockOpenIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenThrow(RuntimeException.class);
 
             MockHttpSession session = new MockHttpSession();
             login(session);
@@ -176,7 +171,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("http://example.com/with/path.html#error=internal_server_error"));
         } finally {
-            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(backupCalculator);
+            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", openIdSessionStateCalculator);
         }
     }
 

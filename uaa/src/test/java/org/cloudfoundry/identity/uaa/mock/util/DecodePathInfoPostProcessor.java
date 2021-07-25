@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
 import javax.servlet.http.HttpServletRequest;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -4,69 +4,94 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 buildscript {
-    apply from: 'dependencies.gradle'
+    apply(from: "dependencies.gradle")
+
     repositories {
         mavenCentral()
         jcenter()
         maven {
-            url 'https://repo.spring.io/plugins-release'
-        }
-        maven {
-            url 'https://plugins.gradle.org/m2/'
+            url("https://repo.spring.io/plugins-release")
         }
     }
 
     dependencies {
-        classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.6'
-        classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
-        classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
-        classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
-        classpath group: 'com.moowork.gradle', name: 'gradle-node-plugin', version: '1.1.0'
+        classpath(libraries.cargoGradlePlugin)
+        classpath(libraries.prodepsGradlePlugin)
+        classpath(libraries.asciidoctorGradlePlugin)
+        classpath(libraries.springDependencyMangementGradlePlugin)
+        classpath(libraries.springBootGradlePlugin)
     }
 }
 
-apply from: 'dependencies.gradle'
-apply plugin: 'com.bmuschko.cargo'
+apply(from: "dependencies.gradle")
+
+def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
+
+apply(plugin: "com.bmuschko.cargo")
 
 allprojects {
-    apply plugin: 'propdeps'
-    apply plugin: 'propdeps-maven'
-    apply plugin: 'propdeps-idea'
+    apply(plugin: "propdeps")
+    apply(plugin: "propdeps-maven")
+    apply(plugin: "io.spring.dependency-management")
+
+    dependencyManagement {
+        imports {
+            mavenBom(libraries.springBom)
+            mavenBom(libraries.springBootBom)
+        }
+    }
+
     configurations.provided.transitive = false
 
     repositories {
         mavenCentral()
         maven {
-            url 'https://build.shibboleth.net/nexus/content/repositories/releases/'
+            url("https://build.shibboleth.net/nexus/content/repositories/releases/")
         }
-        maven { url 'https://repository.mulesoft.org/releases/' }
+        maven { url("https://repository.mulesoft.org/releases/") }
     }
 }
 
 subprojects {
-    apply plugin: 'java'
+    apply(plugin: "java")
 
-    dependencies {
-        testCompile(libraries.springTest)
-        testCompile group: "org.hamcrest", name: "hamcrest-all", version: '1.3'
-        testCompile(libraries.junit5JupiterApi)
-        testCompile(libraries.junit5JupiterParams)
-        testRuntime(libraries.junit5JupiterEngine)
-        testRuntime(libraries.junitVintageEngine)
+    configurations.all {
+        exclude(group: "org.hamcrest", module: "hamcrest-all")
+        exclude(group: "org.hamcrest", module: "hamcrest-core")
+        exclude(group: "org.hamcrest", module: "hamcrest-library")
+        exclude(group: "org.springframework.boot", module: "spring-boot-starter-logging")
+        exclude(group: "org.apache.directory.server", module: "apacheds-core")
+        exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
+        exclude(group: "org.skyscreamer", module: "jsonassert")
+        exclude(group: "com.vaadin.external.google", module: "android-json")
     }
 
-    [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    dependencies {
+        testImplementation(libraries.springBootStarterTest)
+        testImplementation(libraries.hamcrest)
+        testImplementation(libraries.junit5JupiterApi)
+        testImplementation(libraries.junit5JupiterParams)
+        testRuntimeOnly(libraries.junit5JupiterEngine)
+        testRuntimeOnly(libraries.junitVintageEngine)
+        testImplementation(libraries.unboundIdLdapSdk)
+
+        compileOnly("org.projectlombok:lombok")
+        annotationProcessor("org.projectlombok:lombok")
+    }
+
+    [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
+
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
+
     test {
         maxParallelForks = 6
-
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         testLogging {
-            events 'skipped', 'failed', 'passed'
-            exceptionFormat 'full'
+            events("skipped", "failed", "passed")
+            exceptionFormat("full")
 
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
@@ -75,25 +100,20 @@ subprojects {
 
     task integrationTest(type: Test) {
         dependsOn rootProject.cargoStartLocal
-
         useJUnitPlatform()
 
         testLogging {
-            events 'skipped', 'failed', 'passed'
-            exceptionFormat 'full'
+            events("skipped", "failed", "passed")
+            exceptionFormat("full")
 
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
         }
     }
 
-    task packageSources(type: Jar) {
-        classifier = 'sources'
-        from sourceSets.main.allSource
-    }
+    task generateDocs() {}
 
-    task generateDocs() {
-    }
+    task allDeps(type: DependencyReportTask) {}
 
     task writeNewPom() {
         doLast {
@@ -101,9 +121,9 @@ subprojects {
                 project {
                     licenses {
                         license {
-                            name 'The Apache Software License, Version 2.0'
-                            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                            distribution 'repo'
+                            name("The Apache Software License, Version 2.0")
+                            url("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                            distribution("repo")
                         }
                     }
                 }
@@ -111,65 +131,81 @@ subprojects {
         }
     }
 
-    artifacts {
-        archives packageSources
-    }
-
     repositories {
-        maven { url 'https://jitpack.io' }
-        maven { url "https://repo.spring.io/release" }
-        maven { url "https://repo.maven.apache.org/maven2" }
+        mavenCentral()
+        maven {
+            url("https://jitpack.io")
+        }
+        maven {
+            url("https://repo.spring.io/release")
+        }
+        maven {
+            url("https://repo.maven.apache.org/maven2")
+        }
     }
-
 }
 
 cargo {
-    containerId = 'tomcat9x'
-    port = 8080
+    containerId = "tomcat9x"
+    port = applicationPort
 
-    deployable {
-        file = file('statsd/build/libs/cloudfoundry-identity-statsd-' + version + '.war')
-        context = 'statsd'
+    if (JavaVersion.current() < JavaVersion.VERSION_11) {
+        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_11 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
     }
 
     deployable {
-        file = file('samples/api/build/libs/cloudfoundry-identity-api-' + version + '.war')
-        context = 'api'
+        file = file("samples/api/build/libs/cloudfoundry-identity-api-" + version + ".war")
+        context = "api"
     }
 
     deployable {
-        file = file('samples/app/build/libs/cloudfoundry-identity-app-' + version + '.war')
-        context = 'app'
+        file = file("samples/app/build/libs/cloudfoundry-identity-app-" + version + ".war")
+        context = "app"
     }
 
     deployable {
-        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-        context = 'uaa'
+        file = file("uaa/build/libs/cloudfoundry-identity-uaa-" + version + ".war")
+        context = "uaa"
     }
 
     local {
-        startStopTimeout = 540000
-        List activeProfiles = System.getProperty('spring.profiles.active', '').split(',')
-        if (activeProfiles.contains('debug')) {
-            jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005 -DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
-        } else {
-            jvmArgs = "-DLOGIN_CONFIG_URL=file://" + new File(".").absolutePath + "/uaa/src/main/resources/required_configuration.yml"
+        configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
+        startStopTimeout = Integer.parseInt(System.getProperty("startStopTimeout", "540000"))
+        rmiPort = applicationPort + 10
+
+        jvmArgs = ""
+        jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
+        jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
+        jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
+        if (System.getProperty("spring.profiles.active", "").split(',').contains("debug")) {
+            jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
-        outputFile = file('uaa/build/reports/tests/uaa-server.log')
+        else if (Boolean.valueOf(System.getProperty("xdebug"))) {
+            jvmArgs = String.format("%s -Xdebug " +
+                    "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 " +
+                    "-Xnoagent -Djava.compiler=NONE", jvmArgs)
+        }
+
+        outputFile = file("uaa/build/reports/tests/uaa-server.log")
         configFile {
-            files = files('scripts/cargo/tomcat-conf/context.xml')
-            toDir = 'conf'
+            files = files("scripts/cargo/tomcat-conf/context.xml")
+            toDir = "conf"
         }
 
         systemProperties {
-            property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
-            property 'metrics.perRequestMetrics', System.getProperty('metrics.perRequestMetrics', 'true')
-            property 'smtp.host', 'localhost'
-            property 'smtp.port', 2525
+            property("SECRETS_DIR", System.getProperty("SECRETS_DIR", file("scripts/cargo").getAbsolutePath()))
+            property("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+            property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
+            property("smtp.host", "localhost")
+            property("smtp.port", 2525)
+        }
+
+        containerProperties {
+            property('cargo.tomcat.ajp.port', applicationPort + 20)
         }
 
         installer {
-            installUrl = 'https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
+            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + versions.tomcatCargoVersion + "/tomcat-" + versions.tomcatCargoVersion + ".tar.gz"
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }
@@ -178,8 +214,8 @@ cargo {
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
-        it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
-        it.systemProperty 'testId', System.getProperty('testId', '')
+        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+        it.systemProperty("testId", System.getProperty("testId", ""))
     }
 }
 
@@ -187,46 +223,33 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 task run(dependsOn: cargoRunLocal)
 
 task manifests(dependsOn: assemble, type: Copy) {
-    from('uaa/src/test/resources/sample-manifests') {
-        include '**/*.yml'
+    from("uaa/src/test/resources/sample-manifests") {
+        include("**/*.yml")
         filter(ReplaceTokens,
                 tokens: [
                         version  : version,
-                        app      : System.getProperty('app', 'myuaa'),
-                        appdomain: System.getProperty('app-domain', 'bosh-lite.com'),
+                        app      : System.getProperty("app", "myuaa"),
+                        appdomain: System.getProperty("app-domain", "bosh-lite.com"),
                 ]
         )
     }
-    into 'build/sample-manifests'
+    into("build/sample-manifests")
 }
 
 task cleanCargoConfDir {
-    delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
+    delete(file(System.getProperty("java.io.tmpdir") + "/cargo/uaa-${applicationPort}"))
     try {
-        Files.createDirectory(Paths.get(System.getProperty('java.io.tmpdir') + '/cargo'))
-    } catch (all) {
-    }
+        Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
+    } catch (ignored) {}
 }
 
-task integrationTest(dependsOn: subprojects.integrationTest) {
+task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
     finalizedBy cargoStopLocal
 }
 
-task encrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Encryptor'
-    args = System.getProperty("encryptArgs", null) == null ? [] : System.getProperty("encryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
-task decrypt(type: JavaExec) {
-    main = 'org.cloudfoundry.identity.uaa.Decryptor'
-    args = System.getProperty("decryptArgs", null) == null ? [] : System.getProperty("decryptArgs").split(",").toList()
-    classpath = files(subprojects.find { it.name.contains('server') }.sourceSets.test.runtimeClasspath)
-}
-
 // task dependencies
-assemble.dependsOn subprojects.assemble
-test.dependsOn subprojects.test
-test.mustRunAfter integrationTest
-cargoStartLocal.dependsOn assemble
-cargoRunLocal.dependsOn cleanCargoConfDir, assemble
+assemble.dependsOn(subprojects.assemble)
+test.dependsOn(subprojects.test)
+test.mustRunAfter(integrationTest)
+cargoStartLocal.dependsOn(assemble)
+cargoRunLocal.dependsOn(cleanCargoConfDir, assemble)

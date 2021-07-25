@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -91,9 +92,9 @@ public class ImplicitGrantIT {
     }
 
     @Test
-    public void testDefaultScopes() throws Exception {
+    public void testDefaultScopes() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");
@@ -135,10 +136,10 @@ public class ImplicitGrantIT {
         Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        Assert.assertThat((String) claims.get("jti"), is(params.getFirst("jti")));
-        Assert.assertThat((String) claims.get("client_id"), is("cf"));
-        Assert.assertThat((String) claims.get("cid"), is("cf"));
-        Assert.assertThat((String) claims.get("user_name"), is(testAccounts.getUserName()));
+        Assert.assertThat(claims.get("jti"), is(params.getFirst("jti")));
+        Assert.assertThat(claims.get("client_id"), is("cf"));
+        Assert.assertThat(claims.get("cid"), is("cf"));
+        Assert.assertThat(claims.get("user_name"), is(testAccounts.getUserName()));
 
         Assert.assertThat(((List<String>) claims.get("scope")), containsInAnyOrder(scopes));
 
@@ -147,9 +148,9 @@ public class ImplicitGrantIT {
     }
 
     @Test
-    public void testInvalidScopes() throws Exception {
+    public void testInvalidScopes() {
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("client_id", "cf");

@@ -606,6 +606,45 @@ class LegacyRedirectResolverTest {
             String clientRedirectUri = "http://{foo:.*}.domain.com/";
             assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
         }
+
+        @Test
+        void matchesPortWithWildcardPort() {
+            final String clientRedirectUri = "https://example.com:*/";
+            assertTrue(resolver.redirectMatches("https://example.com:65000/", clientRedirectUri));
+        }
+
+        @Test
+        void matchesPortWithWildcardPortAndPath() {
+            final String clientRedirectUri = "https://example.com:*/**";
+            assertTrue(resolver.redirectMatches("https://example.com:65000/path/subpath", clientRedirectUri));
+        }
+
+        @Test
+        void matchesEmptyPortWithWildcardPort() {
+            final String clientRedirectUri = "https://example.com:*/";
+            assertTrue(resolver.redirectMatches("https://example.com:80/", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("https://example.com/", clientRedirectUri));
+        }
+
+        @Test
+        void matchesEmptyPortWithWildcardPortAndPath() {
+            final String clientRedirectUri = "https://example.com:*/**";
+            assertTrue(resolver.redirectMatches("https://example.com:80/path1/path2/path3", clientRedirectUri));
+            assertFalse(resolver.redirectMatches("https://example.com/path1/path2/path3", clientRedirectUri));
+        }
+
+        @Test
+        public void testIllegalUnderscoreDomain() {
+            final String clientRedirectUri = "http*://*.example.com/**";
+            assertFalse(resolver.redirectMatches("https://invalid_redirect.example.com/login/callback", clientRedirectUri));
+        }
+
+        @Test
+        public void testLegalDomain() {
+            final String clientRedirectUri = "http*://*.example.com/**";
+            assertTrue(resolver.redirectMatches("https://valid-redirect.example.com/login/callback", clientRedirectUri));
+        }
+
     }
 
     @Nested

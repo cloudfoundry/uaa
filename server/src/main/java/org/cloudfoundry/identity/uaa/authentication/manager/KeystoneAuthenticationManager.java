@@ -21,7 +21,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 public class KeystoneAuthenticationManager extends RestAuthenticationManager {
@@ -33,7 +33,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     protected HttpHeaders getHeaders() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         return headers;
     }
 
@@ -62,7 +62,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     }
 
 
-    public static interface KeystoneAuthenticationRequest {
+    public interface KeystoneAuthenticationRequest {
     }
 
     public static class KeystoneV2AuthenticationRequest implements KeystoneAuthenticationRequest{

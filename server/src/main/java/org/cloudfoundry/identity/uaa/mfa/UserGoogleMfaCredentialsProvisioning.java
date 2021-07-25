@@ -54,11 +54,10 @@ public class UserGoogleMfaCredentialsProvisioning implements ICredentialReposito
 
     public UserGoogleMfaCredentials createUserCredentials(String userId) {
         GoogleAuthenticatorKey credentials = authenticator.createCredentials(userId);
-        UserGoogleMfaCredentials creds = new UserGoogleMfaCredentials(userId,
+        return new UserGoogleMfaCredentials(userId,
                                                                       credentials.getKey(),
                                                                       credentials.getVerificationCode(),
                                                                       credentials.getScratchCodes());
-        return creds;
     }
 
     public boolean isValidCode(UserGoogleMfaCredentials credentials, Integer code) {

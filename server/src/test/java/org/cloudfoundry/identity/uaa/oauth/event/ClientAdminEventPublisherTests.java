@@ -19,7 +19,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 
-import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.*;
 
 class ClientAdminEventPublisherTests {

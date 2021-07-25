@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 public class CookieBasedCsrfTokenRepositoryTests {
 
     @Test
-    public void testGetHeader_and_Parameter_Name() throws Exception {
+    public void testGetHeader_and_Parameter_Name() {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         assertEquals(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, repo.getParameterName());
         repo.setParameterName("testcookie");
@@ -63,7 +63,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
 
 
     @Test
-    public void testSave_and_Load_Token() throws Exception {
+    public void testSave_and_Load_Token() {
         for (String contextPath : Arrays.asList("", "/uaa")) {
             String expectedCookiePath = contextPath + "/";
             CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
@@ -78,7 +78,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
             Cookie cookie = response.getCookie(token.getParameterName());
             assertNotNull(cookie);
             assertEquals(token.getToken(), cookie.getValue());
-            assertEquals(true, cookie.isHttpOnly());
+            assertTrue(cookie.isHttpOnly());
             assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
             assertNotNull(cookie.getPath());
             assertEquals(expectedCookiePath, cookie.getPath());
@@ -105,23 +105,23 @@ public class CookieBasedCsrfTokenRepositoryTests {
     }
 
     @Test
-    public void csrfCookie_alwaysHttpOnly() throws Exception {
+    public void csrfCookie_alwaysHttpOnly() {
         Cookie cookie = getCookie(false);
         assertTrue(cookie.isHttpOnly());
         assertFalse(cookie.getSecure());
     }
 
     @Test
-    public void csrfCookie_SecureIfHttpsRequired() throws Exception {
+    public void csrfCookie_SecureIfHttpsRequired() {
         Cookie cookie = getCookie(true);
         assertTrue(cookie.getSecure());
     }
 
     @Test
-    public void csrfCookie_SecureIfRequestIsOverHttps() throws Exception {
+    public void csrfCookie_SecureIfRequestIsOverHttps() {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol("https");
+        request.setScheme("https");
         MockHttpServletResponse response = new MockHttpServletResponse();
         CsrfToken token = repo.generateToken(request);
         repo.saveToken(token, request, response);

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -24,7 +25,6 @@ import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.request.RequestDocumentation;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Collections;
@@ -33,6 +33,7 @@ import java.util.Date;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -101,7 +102,6 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String userLastLogonTimeDescription = "The unix epoch timestamp in milliseconds of when the user last authenticated. This field will be omitted from the response if the user has never authenticated.";
     private final String userPreviousLogonTimeDescription = "The unix epoch timestamp in milliseconds of 2nd to last successful user authentication. This field will only be included in the response once the user has authenticated two or more times.";
 
-    private final String scimWriteOrUaaAdminRequired = "Access token with `scim.write` or `uaa.admin` required";
     private final String requiredUserUpdateScopes = "Access token with `scim.write`, `uaa.admin`, or `openid` required. The `openid` scope only allows the user to update their **own** first and last name, when `origin` is `uaa`.";
 
     private FieldDescriptor[] searchResponseFields = {
@@ -295,8 +295,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
 
     private ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
             searchUsersParameters,
-            new ParameterDescriptor[]{parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING))}
-    );
+            parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING)));
 
     private FieldDescriptor[] searchWithAttributesResponseFields = {
             fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
@@ -476,7 +475,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessRequest(prettyPrint()),
@@ -508,7 +508,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().json(jsonStatus))
+                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
                                 preprocessRequest(prettyPrint()),
@@ -627,7 +628,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 preprocessResponse(prettyPrint()),
                                 pathParameters(parameterWithName("userId").description(userIdDescription)),
                                 requestHeaders(
-                                        headerWithName("Authorization").description(scimWriteOrUaaAdminRequired),
+                                        headerWithName("Authorization").description("Access token with `scim.write` or `uaa.admin` required"),
                                         headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
