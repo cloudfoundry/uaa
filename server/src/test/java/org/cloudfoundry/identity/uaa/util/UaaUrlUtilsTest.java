@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -525,6 +526,47 @@ class UaaUrlUtilsTest {
     @Test
     void validateInvalidSubdomains() {
         invalidSubdomains.forEach(testString -> assertFalse(UaaUrlUtils.isValidSubdomain(testString)));
+    }
+
+    @ParameterizedTest(name = "\"{0}\" should be normalized to \"/test1\"")
+    @ValueSource(strings = {
+            "/test1/.",
+            "/test1/%2e",
+            "/test1/%2E",
+            "/test1/%252e",
+            "/test1/%252E",
+            "/test2/../test1",
+            "/test2/%2e./test1",
+            "/test2/%2E./test1",
+            "/test2/%252e./test1",
+            "/test2/%2525252E./test1",
+            "/test2/%2525252e./test1",
+            "/test2/%2525252E./test1",
+            "/test2/%2525252e.%2ftest1",
+            "/test2/%2525252e.%2Ftest1",
+            "/test2/%2525252e.%2f%2e%2ftest1",
+            "/test2/%2525252e.%2F%252e%2ftest1",
+    })
+    void validateUriPathDecoding(String uriPath) {
+        assertEquals("https://example.com/test1", UaaUrlUtils.normalizeUri("https://example.com" + uriPath));
+    }
+
+    @Test
+    void validateUriPathDecodingDoesNotAffectQueryParams() {
+        final String uriWithEncodedQueryParams = "https://example.com/test1?q1=%2e&q2=%2e%2e";
+        assertEquals(uriWithEncodedQueryParams, UaaUrlUtils.normalizeUri(uriWithEncodedQueryParams));
+    }
+
+    @Test
+    void validateUriPathDecodingDoesNotAffectFragments() {
+        final String uriWithEncodedQueryParams = "https://example.com/test1#%2e%2e";
+        assertEquals(uriWithEncodedQueryParams, UaaUrlUtils.normalizeUri(uriWithEncodedQueryParams));
+    }
+
+    @Test
+    void validateUriPathDecodingLimit() {
+        // URI path encoded more than MAX_URI_DECODES times
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.normalizeUri("https://example.com/test1/%25252525252e"));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {

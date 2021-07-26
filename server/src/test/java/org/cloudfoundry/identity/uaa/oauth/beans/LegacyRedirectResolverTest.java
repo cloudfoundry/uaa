@@ -14,8 +14,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -25,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Stream;
 
 import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -692,62 +690,6 @@ class LegacyRedirectResolverTest {
         }
     }
 
-    private static Stream<Arguments> doubleDotTraversalArguments() {
-        Iterable<String> requestedSuffix = Arrays.asList(
-                "/../bar",
-                "/%2e./bar",        //%2e is . url encoded
-                "/%252e./bar",      //%25 is % url encoded
-                "/%2525252e./bar",  //path may be url decoded multiple times when passing through web servers, proxies and browser
-                "/%25252525252525252525252e./bar"
-        );
-        return generateDotTraversalArguments(requestedSuffix);
-    }
-
-    private static Stream<Arguments> singleDotTraversalArguments() {
-        Iterable<String> requestedSuffix = Arrays.asList(
-                "/./bar",
-                "/%2e/bar",
-                "/%252e/bar",
-                "/%2525252e/bar"
-        );
-        return generateDotTraversalArguments(requestedSuffix);
-    }
-
-    private static Stream<Arguments> generateDotTraversalArguments(Iterable<String> requestedSuffix) {
-        //registered redirect uri that contains a wildcard (*) is matched using an Ant path matcher
-        //registered redirect uri that lacks a wildcard is matched using a different path matcher
-        //hence both cases must be verified for ability to withstand integrity check bypass
-        Iterable<String> registeredSuffix = Arrays.asList(
-                "",
-                "/**"
-        );
-        Stream.Builder<Arguments> builder = Stream.builder();
-        requestedSuffix.forEach(
-                req -> registeredSuffix.forEach(reg -> builder.accept(Arguments.of(req, reg)))
-        );
-        return builder.build();
-    }
-
-    @Nested
-    @DisplayName("integrity check bypass")
-    class IntegrityCheckBypass {
-
-        private static final String REGISTERED_REDIRECT_URI = "http://example.com/foo";
-
-        @ParameterizedTest(name = "{index} " + REGISTERED_REDIRECT_URI + "{0} shoud not match " + REGISTERED_REDIRECT_URI + "{1}")
-        @MethodSource("org.cloudfoundry.identity.uaa.oauth.beans.LegacyRedirectResolverTest#doubleDotTraversalArguments")
-        void doubleDotTraversal(String requestedSuffix, String registeredSuffix) {
-            assertFalse(resolver.redirectMatches(REGISTERED_REDIRECT_URI + requestedSuffix, REGISTERED_REDIRECT_URI + registeredSuffix));
-        }
-
-        @ParameterizedTest(name = "{index} " + REGISTERED_REDIRECT_URI + "{0} shoud match " + REGISTERED_REDIRECT_URI + "{1}")
-        @MethodSource("org.cloudfoundry.identity.uaa.oauth.beans.LegacyRedirectResolverTest#singleDotTraversalArguments")
-        void singleDotTraversal(String requestedSuffix, String registeredSuffix) {
-            assertTrue(resolver.redirectMatches(REGISTERED_REDIRECT_URI + requestedSuffix, REGISTERED_REDIRECT_URI + registeredSuffix));
-        }
-
-    }
-
     @Nested
     class ResolveRedirect {
         private ClientDetails mockClientDetails;
@@ -781,6 +723,38 @@ class LegacyRedirectResolverTest {
 
         private void mockRegisteredRedirectUri(String allowedRedirectUri) {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton(allowedRedirectUri));
+        }
+    }
+
+    @Nested
+    class PathTraversalBypass {
+
+        private static final String BASE_URI = "http://example.com/foo";
+
+        @ParameterizedTest(name = "\"" + BASE_URI + "{0}\" should match both \"" + BASE_URI + "\" and \"" + BASE_URI + "/**\"")
+        @ValueSource(strings = {
+                "/./bar",
+                "/%2e/bar",         // %2e is . url encoded
+                "/%252e/bar",       // %25 is % url encoded
+                "/%2525252e/bar",   // path may be url decoded multiple times when passing through web servers, proxies and browser
+        })
+        void singleDotTraversal(String requestedSuffix) {
+            assertTrue(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI));
+            assertTrue(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**"));
+        }
+
+        @ParameterizedTest(name = "\"" + BASE_URI + "{0}\" should not match \"" + BASE_URI + "\" or \"" + BASE_URI + "/**\"")
+        @ValueSource(strings = {
+                "/../bar",
+                "/%2e./bar",        // %2e is . url encoded
+                "/%252e./bar",      // %25 is % url encoded
+                "/%2525252e./bar",  // path may be url decoded multiple times when passing through web servers, proxies and browser
+                "/%25252525252525252525252e/bar",
+                "/%25252525252525252525252e./bar",
+        })
+        void doubleDotTraversal(String requestedSuffix) {
+            assertFalse(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI));
+            assertFalse(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**"));
         }
     }
 }
