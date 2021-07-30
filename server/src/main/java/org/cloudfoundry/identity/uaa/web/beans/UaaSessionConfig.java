@@ -32,7 +32,8 @@ public class UaaSessionConfig {
             final @Value("${servlet.session-cookie.max-age:-1}") int cookieMaxAge
     ) {
         DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
-        cookieSerializer.setSameSite(null);
+        cookieSerializer.setSameSite("None");
+        cookieSerializer.setUseSecureCookie(true);
         cookieSerializer.setCookieMaxAge(cookieMaxAge);
         cookieSerializer.setCookieName("JSESSIONID");
 
