@@ -1615,7 +1615,41 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
         IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
 
-        MultitenantClientServices clientDetailsService = mockClientService();
+        String oidcOrigin1 = "my-OIDC-idp1";
+        String oidcOrigin2 = "my-OIDC-idp2"; //Test also non-default idp
+
+        List<List<String>> idpCollections = Arrays.asList(
+                Arrays.asList(OriginKeys.UAA,OriginKeys.LDAP,oidcOrigin1,oidcOrigin2),
+                Arrays.asList(OriginKeys.UAA,                oidcOrigin1,oidcOrigin2),
+                Arrays.asList(               OriginKeys.LDAP,oidcOrigin1,oidcOrigin2),
+                Arrays.asList(OriginKeys.UAA,OriginKeys.LDAP,oidcOrigin1),
+                Arrays.asList(OriginKeys.UAA,OriginKeys.LDAP,            oidcOrigin2),
+                Arrays.asList(                               oidcOrigin1,oidcOrigin2),
+                Arrays.asList(                               oidcOrigin1),
+                Arrays.asList(                                           oidcOrigin2));
+
+        for (List<String> idpCollection : idpCollections) {
+            MultitenantClientServices clientDetailsService = mockClientService(idpCollection);
+            LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+
+            String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+            assertEquals("idp_discovery/origin", redirect);
+            verify(mockIdentityProviderProvisioning, times(0)).retrieveAll(eq(true), anyString());
+            verify(mockSamlIdentityProviderConfigurator, times(0)).getIdentityProviderDefinitions(any(), any());
+        }
+    }
+
+    @Test
+    void accountChooserOnlyReturnsOriginChooser_whenUsingNoAllowedProviders() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+
+        mockOidcProvider(mockIdentityProviderProvisioning);
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("my-OIDC-idp1");
+        IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(false);
+        IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
+
+        MultitenantClientServices clientDetailsService = mockClientService(null);
 
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
 
@@ -1863,10 +1897,16 @@ class LoginInfoEndpointTests {
 
     private static MultitenantClientServices mockClientService() {
         List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP, OriginKeys.UAA);
+        return mockClientService(allowedProviders);
+    }
+
+    private static MultitenantClientServices mockClientService(List<String> allowedProviders) {
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();
         clientDetails.setClientId("client-id");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        if (allowedProviders != null) {
+            clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        }
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
         return clientDetailsService;
