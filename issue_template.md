@@ -26,7 +26,7 @@ If possible, provide a recipe for reproducing the error. Exact `curl` or `uaac` 
 
 ### What did you expect to see? What goal are you trying to achieve with the UAA?
 
-  
+ 
 ### What did you see instead?
 
 Please include UAA logs if available.
