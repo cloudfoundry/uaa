@@ -32,6 +32,7 @@ GEM
     hashie (3.6.0)
     i18n (0.7.0)
     kramdown (2.3.1)
+      rexml
     libv8 (3.16.14.19)
     listen (3.0.8)
       rb-fsevent (~> 0.9, >= 0.9.4)
@@ -99,6 +100,7 @@ GEM
       ffi (>= 0.5.0)
     redcarpet (3.5.1)
     ref (2.0.0)
+    rexml (3.2.5)
     rouge (2.0.7)
     sass (3.4.23)
     servolux (0.12.0)
