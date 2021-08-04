@@ -1113,7 +1113,7 @@
     <dependency>
       <groupId>com.unboundid.product.scim</groupId>
       <artifactId>scim-sdk</artifactId>
-      <version>1.8.24</version>
+      <version>1.8.25</version>
       <scope>compile</scope>
       <exclusions>
         <exclusion>
