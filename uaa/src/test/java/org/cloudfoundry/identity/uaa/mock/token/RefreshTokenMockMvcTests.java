@@ -48,7 +48,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static junit.framework.TestCase.assertNull;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
@@ -422,13 +422,13 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
         CompositeToken compositeToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class);
         String refreshTokenJwt = compositeToken.getRefreshToken().getValue();
-        assertThat(getClaims(refreshTokenJwt).get(EXP), equalTo(getClaims(refreshToken).get(EXP)));
+        assertThat(getClaims(refreshTokenJwt).get(EXPIRY_IN_SECONDS), equalTo(getClaims(refreshToken).get(EXPIRY_IN_SECONDS)));
 
         CompositeToken newTokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone), "jwt");
         String newRefreshToken = newTokenResponse.getRefreshToken().getValue();
 
-        assertThat(getClaims(newRefreshToken).get(EXP), not(nullValue()));
-        assertThat(getClaims(newRefreshToken).get(EXP), not(equalTo(getClaims(refreshToken).get(EXP))));
+        assertThat(getClaims(newRefreshToken).get(EXPIRY_IN_SECONDS), not(nullValue()));
+        assertThat(getClaims(newRefreshToken).get(EXPIRY_IN_SECONDS), not(equalTo(getClaims(refreshToken).get(EXPIRY_IN_SECONDS))));
     }
 
     @Test

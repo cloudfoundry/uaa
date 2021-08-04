@@ -28,6 +28,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private URL tokenUrl;
     private URL tokenKeyUrl;
     private String tokenKey;
+    private URL userInfoUrl;
     private String linkText;
     private boolean showLinkText = true;
     private boolean clientAuthInBody = false;
@@ -72,6 +73,15 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
 
     public T setTokenKey(String tokenKey) {
         this.tokenKey = tokenKey;
+        return (T) this;
+    }
+
+    public URL getUserInfoUrl() {
+        return userInfoUrl;
+    }
+
+    public T setUserInfoUrl(URL userInfoUrl) {
+        this.userInfoUrl = userInfoUrl;
         return (T) this;
     }
 
@@ -187,6 +197,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(tokenUrl, that.tokenUrl)) return false;
         if (!Objects.equals(tokenKeyUrl, that.tokenKeyUrl)) return false;
         if (!Objects.equals(tokenKey, that.tokenKey)) return false;
+        if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
         if (!Objects.equals(linkText, that.linkText)) return false;
         if (!Objects.equals(relyingPartyId, that.relyingPartyId))
             return false;
@@ -206,6 +217,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (tokenUrl != null ? tokenUrl.hashCode() : 0);
         result = 31 * result + (tokenKeyUrl != null ? tokenKeyUrl.hashCode() : 0);
         result = 31 * result + (tokenKey != null ? tokenKey.hashCode() : 0);
+        result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
         result = 31 * result + (linkText != null ? linkText.hashCode() : 0);
         result = 31 * result + (showLinkText ? 1 : 0);
         result = 31 * result + (skipSslValidation ? 1 : 0);

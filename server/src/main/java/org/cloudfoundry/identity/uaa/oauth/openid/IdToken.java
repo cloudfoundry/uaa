@@ -17,7 +17,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL_VERIFIED;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
@@ -137,7 +137,7 @@ public class IdToken {
         return clientId;
     }
 
-    @JsonProperty(EXP)
+    @JsonProperty(EXPIRY_IN_SECONDS)
     public Long getExpInSeconds() {
         return exp.getTime() / 1000;
     }

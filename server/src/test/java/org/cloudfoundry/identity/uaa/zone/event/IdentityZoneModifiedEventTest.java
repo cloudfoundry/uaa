@@ -49,15 +49,15 @@ public class IdentityZoneModifiedEventTest {
 
     @Test
     public void identityZoneCreated() {
-        evaluteZoneAuditData(IdentityZoneModifiedEvent.identityZoneCreated(zone));
+        evaluateZoneAuditData(IdentityZoneModifiedEvent.identityZoneCreated(zone));
     }
 
     @Test
     public void identityZoneModified() {
-        evaluteZoneAuditData(IdentityZoneModifiedEvent.identityZoneModified(zone));
+        evaluateZoneAuditData(IdentityZoneModifiedEvent.identityZoneModified(zone));
     }
 
-    public void evaluteZoneAuditData(IdentityZoneModifiedEvent event) {
+    public void evaluateZoneAuditData(IdentityZoneModifiedEvent event) {
         String s = event.getAuditEvent().getData();
         assertEquals(String.format(IdentityZoneModifiedEvent.dataFormat,
                                    zone.getId(),

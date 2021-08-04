@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pui-account-discovery-main">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/pui-account-discovery-main}">
 <div layout:fragment="page-content">
   <h4 class="txt-c pbxxl ptxl" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
     Choose an account

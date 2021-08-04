@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pui-account-discovery-main">
+<div layout:fragment="page-content">
+    <h4 class="txt-c pbxxl ptxl">
+        Choose your identity provider
+    </h4>
+    <div class="form-group">
+        <form action="/origin-chooser" th:action="@{/origin-chooser}" method="post" role="form">
+            <input th:name="login_hint"
+                   th:type="hidden"
+                   class="form-control" style="margin-top:20px"/>
+            <input type="submit" th:if="${defaultIdpName}" value="Sign in with default identity provider" class="btn btn-highlight btn-block btn-lg" style="margin-top:20px"/>
+        </form>
+        <hr th:if="${defaultIdpName}" class="divider-alternate-1"/>
+        <form action="/origin-chooser" th:action="@{/origin-chooser}" method="post" role="form">
+            <input th:name="login_hint"
+                   th:type="text"
+                   class="form-control" placeholder="Enter the origin key of your identity provider" style="margin-top:20px"/>
+            <input type="submit" value="Sign in with alternative identity provider" class="btn btn-highlight btn-block btn-lg" style="margin-top:20px"/>
+        </form>
+    </div>
+    <th:block th:if="${linkCreateAccountShow}">
+        <hr class="divider-alternate-1"/>
+        <div class="addl-actions txt-c mtl">
+            <div class="action">
+                <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}">Create account</a>
+            </div>
+        </div>
+    </th:block>
+</div>
+</html>

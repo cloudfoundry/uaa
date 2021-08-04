@@ -29,7 +29,7 @@ public class ClaimConstants {
     public static final String EMAIL = "email";
     public static final String EMAIL_VERIFIED = "email_verified";
     public static final String CLIENT_ID = "client_id";
-    public static final String EXP = "exp";
+    public static final String EXPIRY_IN_SECONDS = "exp";
     public static final String AUTHORITIES = "authorities";
     public static final String SCOPE = "scope";
     public static final String GRANTED_SCOPES = "granted_scopes";

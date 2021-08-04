@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -53,7 +53,7 @@ public class UserInfoEndpoint implements InitializingBean {
     }
 
     protected UserInfoResponse getResponse(UaaPrincipal principal, boolean addCustomAttributes, boolean addRoles) {
-        UaaUser user = userDatabase.retrieveUserById(principal.getId());
+        UaaUserPrototype user = userDatabase.retrieveUserPrototypeById(principal.getId());
         UserInfoResponse response = new UserInfoResponse();
         response.setUserId(user.getId());
         response.setUserName(user.getUsername());

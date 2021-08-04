@@ -15,10 +15,13 @@
 
 package org.cloudfoundry.identity.uaa.mock.token;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -42,10 +45,12 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.junit.Assert.assertEquals;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -82,6 +87,85 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.access_token").isNotEmpty());
+    }
+
+    @Test
+    void non_default_zone_jwt_grant_user_update() throws Exception {
+        BaseClientDetails targetZoneClient = new BaseClientDetails(generator.generate(), "", "openid", "password", null);
+        targetZoneClient.setClientSecret(SECRET);
+        String subdomain = generator.generate().toLowerCase();
+        IdentityZone targetZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+                mockMvc,
+                webApplicationContext,
+                targetZoneClient,
+                false, IdentityZoneHolder.getCurrentZoneId()).getIdentityZone();
+        ScimUser targetZoneUser = createUser(targetZone);
+
+        String originZoneOriginKey = createProvider(targetZone, getTokenVerificationKey(originZone.getIdentityZone()));
+
+        //Check for internal User
+        String targetZoneIdToken = getUaaIdToken(targetZone, targetZoneClient, targetZoneUser);
+        String accessTokenForTargetZoneUser = performJWTBearerGrantForJWT(targetZone, targetZoneIdToken);
+
+        //Verify JWT Bearer did not change values of internal User
+        ScimUser targetUserAfterGrant = getScimUser(targetZoneUser.getUserName(), OriginKeys.UAA, targetZone.getId());
+        assertEquals(targetZoneUser.getUserName(), targetUserAfterGrant.getUserName());
+        assertEquals(targetZoneUser.getExternalId(), targetUserAfterGrant.getExternalId());
+
+        //Check for user of registered IdP
+        String originZoneIdToken = getUaaIdToken(originZone.getIdentityZone(), originClient, originUser);
+        String accessTokenForOriginZoneUser = performJWTBearerGrantForJWT(targetZone, originZoneIdToken);
+        Map<String, Object> originUserClaims = JwtTokenUtils.getClaimsForToken(accessTokenForOriginZoneUser);
+
+        //Verify values for new shadow user set
+        ScimUser shadowUser = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        assertEquals(shadowUser.getUserName(), originUserClaims.get("user_name"));
+        assertEquals(shadowUser.getExternalId(), originUser.getId());
+
+        //JWT Bearer with token from target Zone and external User
+        performJWTBearerGrantForJWT(targetZone, accessTokenForOriginZoneUser);
+
+        //Verify username and External ID not changed after this internal grant
+        ScimUser shadowUserAfterExchange = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        assertEquals(shadowUser.getUserName(), shadowUserAfterExchange.getUserName());
+        assertEquals(shadowUser.getExternalId(), shadowUserAfterExchange.getExternalId());
+    }
+
+    @Test
+    void non_default_zone_jwt_grant_user_update_same_zone_with_registration() throws Exception {
+        BaseClientDetails targetZoneClient = new BaseClientDetails(generator.generate(), "", "openid", "password",
+                null);
+        targetZoneClient.setClientSecret(SECRET);
+        String subdomain = generator.generate().toLowerCase();
+        IdentityZone targetZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+                mockMvc,
+                webApplicationContext,
+                targetZoneClient,
+                false, IdentityZoneHolder.getCurrentZoneId()).getIdentityZone();
+        ScimUser targetZoneUser = createUser(targetZone);
+
+        String originZoneOriginKey = createOIDCProvider(targetZone,
+                getTokenVerificationKey(targetZone),
+                "http://" + targetZone.getSubdomain() + ".localhost:8080/uaa/oauth/token",
+                targetZoneClient.getClientId()).getOriginKey();
+
+        String targetZoneIdToken = getUaaIdToken(targetZone, targetZoneClient, targetZoneUser);
+        String accessTokenForTargetZoneUser = performJWTBearerGrantForJWT(targetZone, targetZoneIdToken);
+
+        Map<String, Object> targetUserClaims = JwtTokenUtils.getClaimsForToken(accessTokenForTargetZoneUser);
+
+        //Verify shadow user of same-zone Idp created
+        ScimUser originShadowUser = getScimUser(targetZoneUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        assertEquals(originShadowUser.getUserName(), targetUserClaims.get("user_name"));
+        assertEquals(originShadowUser.getExternalId(), targetZoneUser.getId());
+
+        //JWT Bearer with token from target Zone and shadow user of registered IdP (with same issuer)
+        performJWTBearerGrantForJWT(targetZone, accessTokenForTargetZoneUser);
+
+        //Verify username and External ID changed after this internal grant (as they are updated values of registered issuer)
+        ScimUser originShadowUserAfterExchange = getScimUser(targetZoneUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        assertEquals(originShadowUserAfterExchange.getUserName(), targetUserClaims.get("user_name"));
+        assertEquals(originShadowUserAfterExchange.getExternalId(), targetUserClaims.get("sub"));
     }
 
     @Test
@@ -164,11 +248,39 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             .andDo(print());
     }
 
-    void createProvider(IdentityZone theZone, String verificationKey) throws Exception {
-        createOIDCProvider(theZone,
+    private String performJWTBearerGrantForJWT(IdentityZone theZone, String assertion) throws Exception {
+        ClientDetails client = createJwtBearerClient(theZone);
+
+        MockHttpServletRequestBuilder jwtBearerGrant = post("/oauth/token")
+                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param("client_id", client.getClientId())
+                .param("client_secret", client.getClientSecret())
+                .param(GRANT_TYPE, GRANT_TYPE_JWT_BEARER)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
+                .param("response_type", "token id_token")
+                .param("scope", "openid")
+                .param("assertion", assertion);
+        if (hasText(theZone.getSubdomain())) {
+            jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain()+".localhost");
+        }
+        String tokenResponse = mockMvc.perform(jwtBearerGrant)
+                .andDo(print())
+                .andExpect(jsonPath("$.access_token").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        Map<String, Object> tokenMap = JsonUtils.readValue(tokenResponse, Map.class);
+        String accessToken = (String) tokenMap.get("access_token");
+        return accessToken;
+    }
+
+    String createProvider(IdentityZone theZone, String verificationKey) throws Exception {
+        IdentityProvider idp = createOIDCProvider(theZone,
                 verificationKey,
                 "http://" + originZone.getIdentityZone().getSubdomain() + ".localhost:8080/uaa/oauth/token",
                 originClient.getClientId());
+        return idp.getOriginKey();
     }
 
     String getUaaIdToken(IdentityZone zone, ClientDetails client, ScimUser user) throws Exception {
@@ -205,6 +317,14 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         } finally {
             IdentityZoneHolder.clear();
         }
+    }
+
+    private ScimUser getScimUser(String username, String origin, String zoneId) {
+        ScimUserProvisioning scimUserProvisioning = webApplicationContext.getBean(ScimUserProvisioning.class);
+
+        List<ScimUser> scimUsers = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(username, origin, zoneId);
+        assertEquals(1, scimUsers.size());
+        return scimUsers.get(0);
     }
 
     ClientDetails createJwtBearerClient(IdentityZone zone) {

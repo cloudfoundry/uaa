@@ -68,5 +68,9 @@
   "service_documentation": "http://docs.cloudfoundry.org/api/uaa/",
   "ui_locales_supported": [
     "en-US"
+  ],
+  "code_challenge_methods_supported": [
+    "S256",
+    "plain"
   ]
 }
