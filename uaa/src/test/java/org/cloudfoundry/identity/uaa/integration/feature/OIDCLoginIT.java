@@ -376,7 +376,9 @@ public class OIDCLoginIT {
         webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl + "/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider"));
+        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl + "/oauth_error"));
+        // no error as parameter sent
+        Assert.assertThat(webDriver.getCurrentUrl(), not(containsString("?error=")));
 
         List<String> cookies = IntegrationTestUtils.getAccountChooserCookies(zoneUrl, webDriver);
         assertThat(cookies, not(Matchers.hasItem(startsWith("Saved-Account-"))));
