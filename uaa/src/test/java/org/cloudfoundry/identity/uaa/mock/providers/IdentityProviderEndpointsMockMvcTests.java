@@ -18,14 +18,18 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
@@ -50,6 +54,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -213,6 +218,111 @@ class IdentityProviderEndpointsMockMvcTests {
                 delete("/identity-providers/invalid-id")
                         .header("Authorization", "Bearer" + accessToken)
         ).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void test_delete_response_not_containing_relying_party_secret() throws Exception {
+        BaseClientDetails client = getBaseClientDetails();
+        ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write", IdentityZone.getUaaZoneId());
+        String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
+
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+        definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
+        definition.setSkipSslValidation(true);
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setUserPropagationParameter("username");
+        definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
+        List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
+                new Prompt("password", "password", "Password"),
+                new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
+        definition.setPrompts(prompts);
+
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaaZoneId());
+        newIdp.setConfig(definition);
+
+        IdentityProvider createdIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
+        MockHttpServletRequestBuilder requestBuilder = delete("/identity-providers/" + createdIdp.getId())
+                .header("Authorization", "Bearer" + accessToken)
+                .contentType(APPLICATION_JSON);
+
+        MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
+        IdentityProvider returnedIdentityProvider = JsonUtils.readValue(
+                result.getResponse().getContentAsString(), IdentityProvider.class);
+        assertNull(((AbstractExternalOAuthIdentityProviderDefinition)returnedIdentityProvider.getConfig())
+                .getRelyingPartySecret());
+    }
+
+    @Test
+    void test_delete_response_not_containing_bind_password() throws Exception {
+        BaseClientDetails client = getBaseClientDetails();
+        MockMvcUtils.IdentityZoneCreationResult zone =
+                MockMvcUtils.createOtherIdentityZoneAndReturnResult(
+                        "my-sub-domain", mockMvc, webApplicationContext,
+                        client, IdentityZoneHolder.getCurrentZoneId());
+
+        IdentityProvider newIdp = MultitenancyFixture.identityProvider(
+                OriginKeys.LDAP, "");
+        newIdp.setType(LDAP);
+        LdapIdentityProviderDefinition providerDefinition =
+                new LdapIdentityProviderDefinition();
+        providerDefinition.setLdapProfileFile("ldap/ldap-search-and-compare.xml");
+        providerDefinition.setLdapGroupFile("ldap/ldap-groups-as-scopes.xml");
+        providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
+        providerDefinition.setBindPassword("adminsecret");
+        providerDefinition.setUserSearchBase("dc=test,dc=com");
+        providerDefinition.setUserSearchFilter("cn={0}");
+        providerDefinition.setPasswordAttributeName("userPassword");
+        providerDefinition.setLocalPasswordCompare(true);
+        providerDefinition.setPasswordEncoder(DynamicPasswordComparator.class.getName());
+        providerDefinition.setGroupSearchBase("ou=scopes,dc=test,dc=com");
+        providerDefinition.setGroupSearchFilter("member={0}");
+        providerDefinition.setAutoAddGroups(true);
+        providerDefinition.setGroupSearchSubTree(true);
+        providerDefinition.setMaxGroupSearchDepth(3);
+        providerDefinition.setGroupRoleAttribute("description");
+
+        try (InMemoryLdapServer ldapServer =
+                     InMemoryLdapServer.startLdap(33389)) {
+            providerDefinition.setBaseUrl(ldapServer.getLdapBaseUrl());
+            newIdp.setConfig(providerDefinition);
+
+            // Create an ldap identity provider
+            MockHttpServletRequestBuilder createRequestBuilder = post(
+                    "/identity-providers")
+                    .param("rawConfig", "true")
+                    .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER,
+                            zone.getIdentityZone().getSubdomain())
+                    .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(newIdp));
+            MvcResult createResult = mockMvc.perform(createRequestBuilder)
+                    .andExpect(status().isCreated()).andReturn();
+            IdentityProvider createdIdp = JsonUtils.readValue(
+                    createResult.getResponse().getContentAsString(),
+                    IdentityProvider.class);
+
+            // Delete the ldap identity provider and verify that the response
+            // does not contain bindPassword
+            MockHttpServletRequestBuilder requestBuilder = delete(
+                    "/identity-providers/" + createdIdp.getId())
+                    .param("rawConfig", "false")
+                    .header(IdentityZoneSwitchingFilter.HEADER,
+                            zone.getIdentityZone().getId())
+                    .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER,
+                            zone.getIdentityZone().getSubdomain())
+                    .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+                    .contentType(APPLICATION_JSON);
+            MvcResult deleteResult = mockMvc.perform(requestBuilder).andExpect(
+                    status().isOk()).andReturn();
+            IdentityProvider returnedIdentityProvider = JsonUtils.readValue(
+                    deleteResult.getResponse().getContentAsString(),
+                    IdentityProvider.class);
+            assertNull(((LdapIdentityProviderDefinition)returnedIdentityProvider.
+                    getConfig()).getBindPassword());
+        }
     }
 
     @Test

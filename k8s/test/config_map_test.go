@@ -130,6 +130,7 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 					"smtp.port":         "smtp port",
 					"smtp.starttls":     "smtp starttls",
 					"smtp.from_address": "smtp from_address",
+					"smtp.sslprotocols": "smtp sslprotocols",
 					"issuer.uri":        "http://some.example.com/with/path",
 				})
 
@@ -145,10 +146,11 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 									"Url":      Equal("any other database connection string"),
 								}),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
-									"Host":        Equal("smtp host"),
-									"Port":        Equal("smtp port"),
-									"Starttls":    Equal("smtp starttls"),
-									"FromAddress": Equal("smtp from_address"),
+									"Host":         Equal("smtp host"),
+									"Port":         Equal("smtp port"),
+									"Starttls":     Equal("smtp starttls"),
+									"Sslprotocols": Equal("smtp sslprotocols"),
+									"FromAddress":  Equal("smtp from_address"),
 								}),
 							})
 						}),

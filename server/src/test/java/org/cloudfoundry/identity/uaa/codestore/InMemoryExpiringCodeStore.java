@@ -45,6 +45,21 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
+    public ExpiringCode peekCode(String code, String zoneId) {
+        if (code == null) {
+            throw new NullPointerException();
+        }
+
+        ExpiringCode expiringCode = store.get(code + zoneId);
+
+        if (expiringCode == null || isExpired(expiringCode)) {
+            expiringCode = null;
+        }
+
+        return expiringCode;
+    }
+
+    @Override
     public ExpiringCode retrieveCode(String code, String zoneId) {
         if (code == null) {
             throw new NullPointerException();

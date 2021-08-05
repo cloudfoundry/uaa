@@ -142,7 +142,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
     }
 
     @Test
-    void testNonUAAZoneUaaActiveUaaAuthenticationSucccess() {
+    void testNonUAAZoneUaaActiveUaaAuthenticationSuccess() {
         IdentityZoneHolder.set(ZONE);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, ZONE.getId())).thenReturn(uaaActive);
         when(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, ZONE.getId())).thenReturn(ldapActive);

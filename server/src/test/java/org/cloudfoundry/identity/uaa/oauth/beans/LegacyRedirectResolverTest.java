@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -721,6 +723,38 @@ class LegacyRedirectResolverTest {
 
         private void mockRegisteredRedirectUri(String allowedRedirectUri) {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(Collections.singleton(allowedRedirectUri));
+        }
+    }
+
+    @Nested
+    class PathTraversalBypass {
+
+        private static final String BASE_URI = "http://example.com/foo";
+
+        @ParameterizedTest(name = "\"" + BASE_URI + "{0}\" should match both \"" + BASE_URI + "\" and \"" + BASE_URI + "/**\"")
+        @ValueSource(strings = {
+                "/./bar",
+                "/%2e/bar",         // %2e is . url encoded
+                "/%252e/bar",       // %25 is % url encoded
+                "/%2525252e/bar",   // path may be url decoded multiple times when passing through web servers, proxies and browser
+        })
+        void singleDotTraversal(String requestedSuffix) {
+            assertTrue(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI));
+            assertTrue(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**"));
+        }
+
+        @ParameterizedTest(name = "\"" + BASE_URI + "{0}\" should not match \"" + BASE_URI + "\" or \"" + BASE_URI + "/**\"")
+        @ValueSource(strings = {
+                "/../bar",
+                "/%2e./bar",        // %2e is . url encoded
+                "/%252e./bar",      // %25 is % url encoded
+                "/%2525252e./bar",  // path may be url decoded multiple times when passing through web servers, proxies and browser
+                "/%25252525252525252525252e/bar",
+                "/%25252525252525252525252e./bar",
+        })
+        void doubleDotTraversal(String requestedSuffix) {
+            assertFalse(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI));
+            assertFalse(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**"));
         }
     }
 }
