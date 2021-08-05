@@ -21,6 +21,14 @@ buildscript {
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
     }
+
+    allprojects {
+        configurations.all {
+            resolutionStrategy {
+                force 'org.apache.commons:commons-collections4:4.3'
+            }
+        }
+    }
 }
 
 apply(from: "dependencies.gradle")
