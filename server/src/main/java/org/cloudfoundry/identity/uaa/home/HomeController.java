@@ -119,11 +119,12 @@ public class HomeController {
 
     @RequestMapping("/oauth_error")
     public String error_oauth(Model model, HttpServletRequest request) {
-        String exception = (String) request.getSession().getAttribute("oauth_error");
+        String OAUTH_ERROR = "oauth_error";
+        String exception = (String) request.getSession().getAttribute(OAUTH_ERROR);
 
-        if (exception != null) {
-            model.addAttribute("oauth_error", exception);
-            request.getSession().removeAttribute("oauth_error");
+        if (hasText(exception)) {
+            model.addAttribute(OAUTH_ERROR, exception);
+            request.getSession().removeAttribute(OAUTH_ERROR);
         }
         return "external_auth_error";
     }
