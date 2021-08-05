@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
@@ -85,6 +86,7 @@ class ExternalOAuthProviderConfiguratorTests {
             def.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_keys"));
             def.setScopes(Arrays.asList("openid", "password.write"));
             def.setRelyingPartyId("clientId");
+            def.setRelyingPartySecret("clientSecret");
         }
         oidc.setResponseType("id_token code");
         oauth.setResponseType("code");
@@ -233,6 +235,30 @@ class ExternalOAuthProviderConfiguratorTests {
         Map<String, String> queryParams =
                 UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
         assertThat(queryParams, not(hasKey("nonce")));
+    }
+
+    @Test
+    void getIdpAuthenticationUrl_includesPkceOnPublicOIDC() {
+        oidc.setRelyingPartySecret(null); // public client means no secret
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
+        String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
+
+        Map<String, String> queryParams =
+            UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, hasKey("code_challenge"));
+        assertThat(queryParams, hasKey("code_challenge_method"));
+    }
+
+    @Test
+    void getIdpAuthenticationUrl_includesPkceOnPublicOAuth() {
+        oauth.setRelyingPartySecret(null); // public client means no secret
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
+        String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
+
+        Map<String, String> queryParams =
+            UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, hasKey("code_challenge"));
+        assertThat(queryParams, hasKey("code_challenge_method"));
     }
 
     @Test

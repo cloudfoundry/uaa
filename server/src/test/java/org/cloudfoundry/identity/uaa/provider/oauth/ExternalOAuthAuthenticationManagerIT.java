@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
@@ -604,6 +605,27 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+
+        mockUaaServer.verify();
+    }
+
+    @Test
+    void pkceClientAuthInBody_is_used() {
+        config.setClientAuthInBody(true);
+        mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
+            .andExpect(request -> assertThat("Check Auth header not present", request.getHeaders().get("Authorization"), nullValue()))
+            .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
+            .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = getProvider();
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        config.setRelyingPartySecret(null);
+        RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
+        attributes.setAttribute(SessionUtils.codeVerifierParameterAttributeKeyForIdp("uaa"), "code_verifier", RequestAttributes.SCOPE_SESSION);
+        RequestContextHolder.setRequestAttributes(attributes);
+
+        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        assertNotNull(idToken);
 
         mockUaaServer.verify();
     }
