@@ -214,7 +214,7 @@ subprojects {
 def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({
     it.name == 'jacocoagent.jar'
 }).asPath
-def jacocoLocation = System.getProperty('java.io.tmpdir') + "jacocoagent.jar"
+def jacocoLocation = System.getProperty('java.io.tmpdir') + "/jacocoagent.jar"
 
 def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
 
