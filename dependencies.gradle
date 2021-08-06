@@ -111,7 +111,7 @@ libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc"
 libraries.unboundIdLdapSdk = "com.unboundid:unboundid-ldapsdk"
 libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.25"
 libraries.velocity = "org.apache.velocity:velocity-engine-core:2.2"
-libraries.zxing = "com.google.zxing:javase:3.4.0"
+libraries.zxing = "com.google.zxing:javase:3.4.1"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt"
 
 // gradle plugins
