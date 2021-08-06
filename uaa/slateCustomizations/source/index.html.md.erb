@@ -794,6 +794,10 @@ _Error Codes_
 
 ## Updating an Identity Zone
 
+<aside class="notice">
+  You cannot update the `uaa` zone with the rest call here. The `uaa` zone needs to be updated via configuration yaml and rolling deployment.
+</aside>
+
 <%= render('IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md') %>
 <%= render('IdentityZoneEndpointDocs/updateIdentityZone/http-request.md') %>
 <%= render('IdentityZoneEndpointDocs/updateIdentityZone/http-response.md') %>
