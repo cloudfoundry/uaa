@@ -72,8 +72,6 @@ public class LoginPagePerformanceMockMvcTest {
         this.mockMvc = mockMvc;
         SecurityContextHolder.clearContext();
 
-        originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
-        MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, null);
         assertFalse(limitedModeUaaFilter.isEnabled());
     }
 
@@ -90,7 +88,6 @@ public class LoginPagePerformanceMockMvcTest {
         identityZoneConfigurationBootstrap.afterPropertiesSet();
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
-        MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, originalLimitedModeStatusFile);
     }
 
     @Test
