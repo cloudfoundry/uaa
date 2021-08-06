@@ -26,6 +26,7 @@ buildscript {
         configurations.all {
             resolutionStrategy {
                 force 'org.apache.commons:commons-collections4:4.3'
+                force 'xerces:xercesImpl:2.12.1'
             }
         }
     }
