@@ -75,6 +75,7 @@ import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
@@ -151,7 +152,8 @@ public class DeprecatedUaaTokenServicesTests {
           true);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertThat(rt.getAllValues().size(), equalTo(2));
         assertNotNull(rt.getAllValues().get(0));
@@ -176,7 +178,8 @@ public class DeprecatedUaaTokenServicesTests {
           true);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -194,7 +197,8 @@ public class DeprecatedUaaTokenServicesTests {
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
         verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
-        verify(tokenProvisioning, times(2)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         RevocableToken refreshToken = rt.getAllValues().get(1);
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, refreshToken.getResponseType());
     }
@@ -221,7 +225,7 @@ public class DeprecatedUaaTokenServicesTests {
         String userId = "userid";
         claims.put(ClaimConstants.USER_ID, userId);
         claims.put(ClaimConstants.CID, TokenTestSupport.CLIENT_ID);
-        claims.put(ClaimConstants.EXP, 1);
+        claims.put(ClaimConstants.EXPIRY_IN_SECONDS, 1);
         claims.put(ClaimConstants.GRANTED_SCOPES, Lists.newArrayList("read", "write", "openid"));
         claims.put(ClaimConstants.GRANT_TYPE, "password");
         claims.put(ClaimConstants.AUD, Lists.newArrayList(TokenTestSupport.CLIENT_ID));
@@ -235,9 +239,12 @@ public class DeprecatedUaaTokenServicesTests {
         when(jwt.getEncoded()).thenReturn("encoded");
 
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser(new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com"));
+        UaaUserPrototype uaaUserPrototype = new UaaUserPrototype().withId(userId).withUsername("marissa").withEmail("marissa@example.com");
+        UaaUser user = new UaaUser(uaaUserPrototype);
         when(userDatabase.retrieveUserById(userId))
           .thenReturn(user);
+        when(userDatabase.retrieveUserPrototypeById(userId))
+          .thenReturn(uaaUserPrototype);
 
         ArgumentCaptor<UserAuthenticationData> userAuthenticationDataArgumentCaptor =
           ArgumentCaptor.forClass(UserAuthenticationData.class);
@@ -275,7 +282,7 @@ public class DeprecatedUaaTokenServicesTests {
         String refreshToken = getOAuth2AccessToken().getRefreshToken().getValue();
         uaaTokenServices.refreshAccessToken(refreshToken, getRefreshTokenRequest());
 
-        verify(idTokenCreator).create(eq(clientDetails), eq(user), userAuthenticationDataArgumentCaptor.capture());
+        verify(idTokenCreator).create(eq(clientDetails), any(), userAuthenticationDataArgumentCaptor.capture());
         UserAuthenticationData userData = userAuthenticationDataArgumentCaptor.getValue();
         Set<String> expectedRoles = Sets.newHashSet("custom_role");
         assertEquals(expectedRoles, userData.roles);
@@ -312,7 +319,7 @@ public class DeprecatedUaaTokenServicesTests {
           false);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
-        verify(tokenProvisioning, times(1)).create(rt.capture(), anyString());
+        verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
         assertNotNull(rt.getAllValues());
         assertEquals(1, rt.getAllValues().size());
         assertEquals(RevocableToken.TokenType.REFRESH_TOKEN, rt.getAllValues().get(0).getResponseType());
@@ -2103,7 +2110,7 @@ public class DeprecatedUaaTokenServicesTests {
           username(is(nullValue())),
           cid(is(CLIENT_ID)),
           scope(is(tokenSupport.clientScopes)),
-          audience(is(tokenSupport.resourceIds)),
+          audience(containsInAnyOrder(tokenSupport.resourceIds.toArray(new String[]{}))),
           jwtId(not(isEmptyString())),
           issuedAt(is(greaterThan(0))),
           expiry(is(greaterThan(0)))));
@@ -2114,7 +2121,7 @@ public class DeprecatedUaaTokenServicesTests {
         assertThat(accessToken, allOf(username(is(tokenSupport.username)),
           clientId(is(clientId)),
           subject(is(tokenSupport.userId)),
-          audience(is(tokenSupport.resourceIds)),
+          audience(containsInAnyOrder(tokenSupport.resourceIds.toArray(new String[]{}))),
           origin(is(OriginKeys.UAA)),
           revocationSignature(is(not(nullValue()))),
           cid(is(clientId)),
@@ -2132,7 +2139,7 @@ public class DeprecatedUaaTokenServicesTests {
           OAuth2RefreshTokenMatchers.username(is(tokenSupport.username)),
           OAuth2RefreshTokenMatchers.clientId(is(CLIENT_ID)),
           OAuth2RefreshTokenMatchers.subject(is(not(nullValue()))),
-          OAuth2RefreshTokenMatchers.audience(is(tokenSupport.resourceIds)),
+          OAuth2RefreshTokenMatchers.audience(containsInAnyOrder(tokenSupport.resourceIds.toArray(new String[]{}))),
           OAuth2RefreshTokenMatchers.origin(is(OriginKeys.UAA)),
           OAuth2RefreshTokenMatchers.revocationSignature(is(not(nullValue()))),
           OAuth2RefreshTokenMatchers.jwtId(not(isEmptyString())),

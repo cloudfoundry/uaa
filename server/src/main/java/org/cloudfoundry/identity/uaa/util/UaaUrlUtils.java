@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -12,11 +14,14 @@ import org.springframework.web.util.UriUtils;
 import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
@@ -25,11 +30,14 @@ import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public abstract class UaaUrlUtils {
-
    /** Pattern that matches valid subdomains.
     *  According to https://tools.ietf.org/html/rfc3986#section-3.2.2
     */
     private static final Pattern VALID_SUBDOMAIN_PATTERN = Pattern.compile("([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
+    private static final Logger s_logger = LoggerFactory.getLogger(
+            UaaUrlUtils.class);
+
+    private static final int MAX_URI_DECODES = 5;
 
     public static String getUaaUrl(String path, IdentityZone currentIdentityZone) {
         return getUaaUrl(path, false, currentIdentityZone);
@@ -98,11 +106,56 @@ public abstract class UaaUrlUtils {
 
         for (String pattern : ofNullable(redirectUris).orElse(emptyList())) {
             if (matcher.match(pattern, requestedRedirectUri)) {
-                return requestedRedirectUri;
+                if ( (!pattern.contains("*") && !pattern.contains("?")) || matchHost(pattern, requestedRedirectUri, matcher)) {
+                    return requestedRedirectUri;
+                }
+                else {
+                    s_logger.warn(
+                            "The URI pattern matched but the hostname pattern did not. Denying the requested redirect URI: whitelisted-pattern='{}' requested-redirect-uri='{}'",
+                            pattern, requestedRedirectUri);
+                }
             }
         }
 
         return ofNullable(fallbackRedirectUri).orElse(requestedRedirectUri);
+    }
+
+    /**
+     * Retrieve hostname parts from <code>uriPattern</code> and
+     * <code>requestedUri</code>, then do Ant path match of the hostname parts.
+     */
+    static boolean matchHost(String uriPattern, String requestedUri, AntPathMatcher matcher) {
+        requestedUri = requestedUri.replace('\\', '/');
+        String hostnameFromRequestedUri;
+        try {
+            hostnameFromRequestedUri = new URI(requestedUri).getHost();
+        }
+        catch (URISyntaxException ex) {
+            return false;
+        }
+        if (hostnameFromRequestedUri == null) {
+            // No URI scheme, likely relative URI, so just return true
+            return true;
+        }
+
+        StringTokenizer st = new StringTokenizer(uriPattern, "/");
+        String hostnameFromPattern = null;
+        while (st.hasMoreTokens()) {
+            String currentToken = st.nextToken();
+            if (currentToken.endsWith(":")) {
+                continue;
+            }
+            hostnameFromPattern = currentToken;
+            break;
+        }
+        if (hostnameFromPattern == null) return false;
+
+        int colonLocation = hostnameFromPattern.indexOf(':');
+        if (colonLocation > 0) {
+            hostnameFromPattern = hostnameFromPattern.substring(0, colonLocation);
+        }
+
+        return matcher.match(hostnameFromPattern, hostnameFromRequestedUri);
     }
 
     public static String getHostForURI(String uri) {
@@ -230,10 +283,30 @@ public abstract class UaaUrlUtils {
         try {
             uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
             uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
+            uriComponentsBuilder.replacePath(decodeUriPath(nonNormalizedUri.getPath()));
         } catch (NullPointerException e) {
             throw new IllegalArgumentException("URI host and scheme must not be null");
         }
 
         return uriComponentsBuilder.build().toString();
+    }
+
+    private static String decodeUriPath(final String path) {
+        if (path == null) {
+            return null;
+        }
+
+        String normalizedPath = path;
+        for (int i = 0; i <= MAX_URI_DECODES; ++i) {
+            // This loop can run up to (MAX_URI_DECODES + 1) times.
+            // The extra iteration is used to check that the URI remains unchanged after decoding.
+            String normalizedPathPrev = normalizedPath;
+            normalizedPath = StringUtils.uriDecode(normalizedPath, StandardCharsets.UTF_8);
+            if (normalizedPath.equals(normalizedPathPrev)) {
+                return StringUtils.cleanPath(normalizedPath);
+            }
+        }
+
+        throw new IllegalArgumentException("Aborted url decoding for repeatedly encoded path");
     }
 }

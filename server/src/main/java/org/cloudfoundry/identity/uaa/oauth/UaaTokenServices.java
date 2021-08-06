@@ -27,13 +27,16 @@ import org.cloudfoundry.identity.uaa.oauth.openid.UserAuthenticationData;
 import org.cloudfoundry.identity.uaa.oauth.refresh.CompositeExpiringOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -102,7 +105,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
@@ -142,7 +145,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             CLIENT_ID, CID, AZP, REVOCABLE,
             GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
-            EXP, ISS, ZONE_ID, AUD
+            EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
     );
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
     private UaaUserDatabase userDatabase;
@@ -229,20 +232,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, Object> refreshTokenClaims = tokenValidation.getClaims();
 
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
-
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
-        String userId = (String) refreshTokenClaims.get(USER_ID);
-        String refreshTokenId = (String) refreshTokenClaims.get(JTI);
-        Integer refreshTokenExpirySeconds = (Integer) refreshTokenClaims.get(EXP);
-        String clientId = (String) refreshTokenClaims.get(CID);
-        Boolean revocableClaim = (Boolean) refreshTokenClaims.get(REVOCABLE);
-        String refreshGrantType = refreshTokenClaims.get(GRANT_TYPE).toString();
-        String nonce = (String) refreshTokenClaims.get(NONCE);
-        String revocableHashSignature = (String) refreshTokenClaims.get(REVOCATION_SIGNATURE);
-        Map<String, String> additionalAuthorizationInfo = (Map<String, String>) refreshTokenClaims.get(ADDITIONAL_AZ_ATTR);
-        Set<String> audience = new HashSet<>((ArrayList<String>) refreshTokenClaims.get(AUD));
-        Integer authTime = (Integer) refreshTokenClaims.get(AUTH_TIME);
+        Claims claims;
+        try {
+            String s = JsonUtils.writeValueAsString(refreshTokenClaims);
+            claims = JsonUtils.readValue(s, Claims.class);
+        } catch (JsonUtils.JsonUtilException e) {
+            logger.error("Cannot read token claims", e);
+            throw new InvalidTokenException("Cannot read token claims", e);
+        }
+        String userId = claims.getUserId();
+        String refreshTokenId = claims.getJti();
+        Long refreshTokenExpirySeconds = claims.getExp();
+        String clientId = claims.getCid();
+        Boolean revocableClaim = claims.isRevocable();
+        String refreshGrantType = claims.getGrantType();
+        String nonce = claims.getNonce();
+        String revocableHashSignature = claims.getRevSig();
+        Map<String, String> additionalAuthorizationInfo = claims.getAzAttr();
+        Set<String> audience = Set.copyOf(claims.getAud());
+        Long authTime = claims.getAuthTime();
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
@@ -257,7 +267,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
-        UaaUser user = userDatabase.retrieveUserById(userId);
+        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(userId));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
@@ -522,7 +532,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-        claims.put(EXP, token.getExpiration().getTime() / 1000);
+        claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / 1000);
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
             claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
@@ -692,11 +702,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(token.getValue());
-            try {
-                tokenProvisioning.create(revocableAccessToken, IdentityZoneHolder.get().getId());
-            } catch (DuplicateKeyException updateInstead) {
-                tokenProvisioning.update(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
-            }
+            tokenProvisioning.upsert(tokenId, revocableAccessToken, IdentityZoneHolder.get().getId());
         }
 
         boolean isRefreshTokenOpaque = isOpaque || OPAQUE.getStringValue().equals(getActiveTokenPolicy().getRefreshTokenFormat());
@@ -714,14 +720,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(refreshToken.getValue());
-            try {
-                if(refreshTokenUnique) {
-                    tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
-                }
-                tokenProvisioning.create(revocableRefreshToken, IdentityZoneHolder.get().getId());
-            } catch (DuplicateKeyException ignore) {
-                //no need to store refresh tokens again
+            if(refreshTokenUnique) {
+                tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
             }
+            tokenProvisioning.createIfNotExists(revocableRefreshToken, IdentityZoneHolder.get().getId());
         }
 
         CompositeToken result = new CompositeToken(isOpaque ? tokenId : token.getValue());
@@ -779,7 +781,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken = tokenValidation.getJwt().getEncoded();
 
         // Check token expiry
-        Long expiration = Long.valueOf(claims.get(EXP).toString());
+        Long expiration = Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString());
         if (new Date(expiration * 1000L).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000L));
         }
@@ -815,7 +817,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Authentication userAuthentication = null;
         // Is this a user token - minimum info is user_id
         if (claims.containsKey(USER_ID)) {
-            UaaUser user = userDatabase.retrieveUserById((String)claims.get(USER_ID));
+            UaaUserPrototype user = userDatabase.retrieveUserPrototypeById((String)claims.get(USER_ID));
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
         } else {
@@ -852,7 +854,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Expiry is verified by check_token
         CompositeToken token = new CompositeToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-        token.setExpiration(new Date(Long.valueOf(claims.get(EXP).toString()) * 1000L));
+        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * 1000L));
 
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);

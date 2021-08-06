@@ -81,6 +81,7 @@ dependencies {
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.javaxXmlBindCore)
     implementation(libraries.javaxXmlBindImpl)
+    implementation(libraries.nimbusJwt)
 
     implementation(libraries.predixAudit) {
         exclude(module: 'httpclient')
@@ -107,6 +108,7 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.guavaTestLib)
 }
 
 configurations.all {

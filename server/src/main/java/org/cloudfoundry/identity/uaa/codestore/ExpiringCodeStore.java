@@ -32,6 +32,19 @@ public interface ExpiringCodeStore {
     ExpiringCode generateCode(String data, Timestamp expiresAt, String intent, String zoneId);
 
     /**
+     * Retrieve a code BUT DO NOT DELETE IT.
+     *
+     * WARNING - if you intend to expire the code as soon as you read it,
+     * use {@link #retrieveCode(String, String)} instead.
+     *
+     * @param code the one-time code to look for
+     * @param zoneId
+     * @return code or null if the code is not found
+     * @throws java.lang.NullPointerException if the code is null
+     */
+    ExpiringCode peekCode(String code, String zoneId);
+
+    /**
      * Retrieve a code and delete it if it exists.
      *
      * @param code the one-time code to look for

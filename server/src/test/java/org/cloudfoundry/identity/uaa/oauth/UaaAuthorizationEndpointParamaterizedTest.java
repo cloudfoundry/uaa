@@ -84,6 +84,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
                 calculator,
                 null,
                 clientDetailsService,
+                null,
                 null);
 
         request = new MockHttpServletRequest("GET", "/oauth/authorize");

@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.testing.FakeTicker;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
@@ -8,7 +9,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
-import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
@@ -36,6 +37,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
@@ -80,6 +82,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -205,7 +208,7 @@ class ExternalOAuthAuthenticationManagerIT {
         publisher = mock(ApplicationEventPublisher.class);
         tokenEndpointBuilder = mock(TokenEndpointBuilder.class);
         when(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get())).thenReturn(UAA_ISSUER_URL);
-        urlContentCache = spy(new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10));
+        urlContentCache = spy(new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, new FakeTicker()));
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
                 urlContentCache,
                 trustingRestTemplate,
@@ -283,10 +286,13 @@ class ExternalOAuthAuthenticationManagerIT {
     void get_response_type_for_oauth2() {
         RawExternalOAuthIdentityProviderDefinition signed = new RawExternalOAuthIdentityProviderDefinition();
         signed.setResponseType("signed_request");
+        RawExternalOAuthIdentityProviderDefinition code = new RawExternalOAuthIdentityProviderDefinition();
         RawExternalOAuthIdentityProviderDefinition token = new RawExternalOAuthIdentityProviderDefinition();
+        token.setResponseType("token");
         OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
 
         assertEquals("signed_request", externalOAuthAuthenticationManager.getResponseType(signed));
+        assertEquals("code", externalOAuthAuthenticationManager.getResponseType(code));
         assertEquals("token", externalOAuthAuthenticationManager.getResponseType(token));
         assertEquals("id_token", externalOAuthAuthenticationManager.getResponseType(oidcIdentityProviderDefinition));
     }
@@ -442,7 +448,9 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(new ArrayList<>());
 
         String username = RandomStringUtils.random(50);
-        claims.put("sub", username);
+        String userid = UUID.randomUUID().toString();
+        claims.put("sub", userid);
+        claims.put("user_name", username);
         claims.put("iss", "http://localhost/oauth/token");
         claims.put("origin", UAA_ORIGIN);
 
@@ -485,7 +493,9 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveAll(eq(true), anyString())).thenReturn(Collections.singletonList(idpProvider));
 
         String username = RandomStringUtils.random(50);
-        claims.put("sub", username);
+        String userid = UUID.randomUUID().toString();
+        claims.put("sub", userid);
+        claims.put("user_name", username);
         claims.put("iss", UAA_ISSUER_URL);
         claims.put("origin", idpProvider.getOriginKey());
 
@@ -595,6 +605,27 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+
+        mockUaaServer.verify();
+    }
+
+    @Test
+    void pkceClientAuthInBody_is_used() {
+        config.setClientAuthInBody(true);
+        mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
+            .andExpect(request -> assertThat("Check Auth header not present", request.getHeaders().get("Authorization"), nullValue()))
+            .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
+            .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = getProvider();
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        config.setRelyingPartySecret(null);
+        RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
+        attributes.setAttribute(SessionUtils.codeVerifierParameterAttributeKeyForIdp("uaa"), "code_verifier", RequestAttributes.SCOPE_SESSION);
+        RequestContextHolder.setRequestAttributes(attributes);
+
+        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        assertNotNull(idToken);
 
         mockUaaServer.verify();
     }

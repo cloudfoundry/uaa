@@ -18,6 +18,7 @@ import java.security.Principal;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 
 /**
  * The principal object which should end up as the representation of an
@@ -45,6 +46,16 @@ public class UaaPrincipal implements Principal, Serializable {
         );
     }
 
+    public UaaPrincipal(UaaUserPrototype userPrototype) {
+        this(
+            userPrototype.getId(),
+            userPrototype.getUsername(),
+            userPrototype.getEmail(),
+            userPrototype.getOrigin(),
+            userPrototype.getExternalId(),
+            userPrototype.getZoneId()
+        );
+    }
     @JsonCreator
     public UaaPrincipal(
         @JsonProperty("id") String id,

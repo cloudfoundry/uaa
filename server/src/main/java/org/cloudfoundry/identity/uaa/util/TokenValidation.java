@@ -140,11 +140,11 @@ public abstract class TokenValidation {
     }
 
     protected TokenValidation checkExpiry(Instant asOf) {
-        if (!claims.containsKey(EXP)) {
+        if (!claims.containsKey(EXPIRY_IN_SECONDS)) {
             throw new InvalidTokenException("Token does not bear an EXP claim.", null);
         }
 
-        Object expClaim = claims.get(EXP);
+        Object expClaim = claims.get(EXPIRY_IN_SECONDS);
         long expiry;
         try {
             expiry = (int) expClaim;

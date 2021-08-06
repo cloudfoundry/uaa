@@ -207,7 +207,7 @@ public class InvitationsServiceMockMvcTests {
     }
 
     @Test
-    void acceptInvitationForUaaUserShouldExpireInvitelink() throws Exception {
+    void acceptInvitationForUaaUserShouldNotExpireInvitelink() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
         assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
@@ -218,9 +218,10 @@ public class InvitationsServiceMockMvcTests {
                 .accept(MediaType.TEXT_HTML);
         mockMvc.perform(get)
                 .andExpect(status().isOk());
-
         mockMvc.perform(get)
-                .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isOk());
+        mockMvc.perform(get)
+                .andExpect(status().isOk());
     }
 
     @Test

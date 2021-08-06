@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import com.google.common.testing.FakeTicker;
+import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -113,7 +114,7 @@ public class ExternalOAuthAuthenticationManagerTest {
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
-            new ExpiringUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10),
+            new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, new FakeTicker()),
             new RestTemplate(),
             new RestTemplate()
         );
@@ -177,7 +178,7 @@ public class ExternalOAuthAuthenticationManagerTest {
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
                 entry(AUD, "uaa-relying-party"),
-                entry(EXP, ((int) (System.currentTimeMillis()/1000L)) + 60),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
                 entry(SUB, "abc-def-asdf")
         );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
@@ -200,7 +201,7 @@ public class ExternalOAuthAuthenticationManagerTest {
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
                 entry(AUD, "uaa-relying-party"),
-                entry(EXP, ((int) (System.currentTimeMillis()/1000L)) + 60),
+                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
                 entry(SUB, "abc-def-asdf")
         );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));

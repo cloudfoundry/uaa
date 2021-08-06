@@ -112,6 +112,25 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
+    public ExpiringCode peekCode(String code, String zoneId) {
+        cleanExpiredEntries();
+
+        if (code == null) {
+            throw new NullPointerException();
+        }
+
+        try {
+            ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code, zoneId);
+            if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
+                expiringCode = null;
+            }
+            return expiringCode;
+        } catch (EmptyResultDataAccessException x) {
+            return null;
+        }
+    }
+
+    @Override
     public ExpiringCode retrieveCode(String code, String zoneId) {
         cleanExpiredEntries();
 
