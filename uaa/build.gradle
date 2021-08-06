@@ -38,8 +38,7 @@ dependencies {
     runtimeOnly(libraries.postgresql)
 
     implementation(libraries.javaxXmlBindApi)
-    implementation(libraries.javaxXmlBindCore)
-    implementation(libraries.javaxXmlBindImpl)
+    implementation(libraries.glassfishJaxb)
 
     providedCompile(libraries.tomcatEmbed)
 
