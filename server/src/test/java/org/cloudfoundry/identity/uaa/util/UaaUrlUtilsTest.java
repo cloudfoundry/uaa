@@ -355,7 +355,9 @@ class UaaUrlUtilsTest {
             "http://foo.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
             "http://*.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
             "http://*.bar.com*, http://foo.bar.com:80",
-            "https://*.bar.com*, https://foo.bar.com:443"
+            "https://*.bar.com*, https://foo.bar.com:443",
+            "myapp://callback, myapp://callback",
+            "myapp://callback*, myapp://callback#token=xyz123"
     })
     void findMatchingRedirectUri_urlParametersShouldResolveInIncomingUrl(
             String allowedRedirectUrl,
@@ -385,7 +387,9 @@ class UaaUrlUtilsTest {
             "/abc/*, a/abc/ab",
             "http://*.bar.com:8080, http://attacker.com?.bar.com:8080",
             "http://*.bar.com:8080/**, http://attacker.com#foo.bar.com:8080/app/foo",
-            "https://*.bar.com:8080/**, https://attacker.com#foo.bar.com:8443/app/foo"
+            "https://*.bar.com:8080/**, https://attacker.com#foo.bar.com:8443/app/foo",
+            "myapp://callback, myapp://badcallback",
+            "myapp://callback*, myapp://badcallback#token=123xyz",
     })
     void findMatchingRedirectUri_badRedirectUrlShouldResolveInFallbackUrl(
             String allowedRedirectUrl,
