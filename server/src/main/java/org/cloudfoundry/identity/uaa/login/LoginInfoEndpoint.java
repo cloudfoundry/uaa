@@ -396,7 +396,8 @@ public class LoginInfoEndpoint {
                 excludedPrompts, returnLoginPrompts);
 
         if (principal == null) {
-            return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed, accountChooserNeeded ,accountChooserEnabled);
+            return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed,
+                    accountChooserNeeded, accountChooserEnabled, !allIdentityProviders.isEmpty());
         }
         return "home";
     }
@@ -407,7 +408,8 @@ public class LoginInfoEndpoint {
             boolean discoveryEnabled,
             boolean discoveryPerformed,
             boolean accountChooserNeeded,
-            boolean accountChooserEnabled
+            boolean accountChooserEnabled,
+            boolean identityProvidersAvailable
     ) {
         String formRedirectUri = request.getParameter(UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER);
         if (hasText(formRedirectUri)) {
@@ -417,7 +419,7 @@ public class LoginInfoEndpoint {
             return "idp_discovery/account_chooser";
         }
         if (discoveryEnabled) {
-            if (!discoveryPerformed) {
+            if (!discoveryPerformed && identityProvidersAvailable) {
                 return "idp_discovery/email";
             }
             return goToPasswordPage(request.getParameter("email"), model);
