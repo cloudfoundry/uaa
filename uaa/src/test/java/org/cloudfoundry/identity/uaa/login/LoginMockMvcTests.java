@@ -1721,8 +1721,10 @@ public class LoginMockMvcTests {
                 .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
-                .andExpect(xpath("//input[@name='username']").exists())
-                .andExpect(xpath("//input[@name='password']").exists()).andReturn();
+                .andExpect(view().name("idp_discovery/email"))
+                .andExpect(content().string(containsString("Please enter your username or email address")))
+                .andExpect(xpath("//input[@name='email']").exists())
+                .andExpect(xpath("//input[@name='commit']/@value").string("Next"));
         IdentityZoneHolder.clear();
     }
 
