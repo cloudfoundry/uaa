@@ -8,6 +8,8 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.db.DatabaseVendorProvider;
+import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -36,6 +38,7 @@ import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DEN
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -66,8 +69,11 @@ class ApprovalsAdminEndpointsTests {
         IdentityZone mockIdentityZone = mock(IdentityZone.class);
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
         when(mockIdentityZone.getConfig()).thenReturn(IdentityZone.getUaa().getConfig());
+        DatabaseVendorProvider databaseVendorProvider = mock(DatabaseVendorProvider.class);
+        when(databaseVendorProvider.getDatabaseVendor(any())).thenReturn(Vendor.unknown);
 
-        UaaUserDatabase userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager);
+        UaaUserDatabase userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager,
+                databaseVendorProvider);
 
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);
