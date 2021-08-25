@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * See https://tools.ietf.org/html/rfc7517
@@ -36,6 +37,11 @@ public class JsonWebKeyDeserializer extends JsonDeserializer<JsonWebKey> {
         if(Arrays.stream(JsonWebKey.KeyType.values()).noneMatch(knownKeyType -> knownKeyType.name().equals(kty))) {
             return null;
         }
-        return new JsonWebKey(JsonUtils.getNodeAsMap(node));
+
+        Map<String, Object> objectMap = JsonUtils.getNodeAsMap(node);
+        if (objectMap == null) {
+            return null;
+        }
+        return new JsonWebKey(objectMap);
     }
 }
