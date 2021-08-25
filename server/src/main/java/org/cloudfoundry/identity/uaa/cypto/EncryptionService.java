@@ -61,8 +61,14 @@ public class EncryptionService {
             byte[] mySalt = new byte[PBKDF2_SALT_SIZE_BYTES];
 
             ByteArrayInputStream fileInputStream = new ByteArrayInputStream(encrypt);
-            fileInputStream.read(myNonce);
-            fileInputStream.read(mySalt);
+            int count = fileInputStream.read(myNonce);
+            if (count != GCM_IV_NONCE_SIZE_BYTES) {
+                throw new IllegalArgumentException();
+            }
+            count = fileInputStream.read(mySalt);
+            if (count != PBKDF2_SALT_SIZE_BYTES) {
+                throw new IllegalArgumentException();
+            }
 
             SecretKey key = new SecretKeySpec(generateKey(mySalt), CIPHER);
 
