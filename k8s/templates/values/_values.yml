@@ -63,6 +63,7 @@ smtp:
   user: ~
   password: ~
   starttls: ~
+  starttls_required: ~
   from_address: ~
   sslprotocols: ~
 
