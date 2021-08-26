@@ -94,6 +94,12 @@ class JdbcIdentityZoneProvisioningTests {
     }
 
     @Test
+    void test_bad_subdomain() {
+        assertThrows(EmptyResultDataAccessException.class,
+                () -> jdbcIdentityZoneProvisioning.retrieveBySubdomain("<script>alert('1ee7 h@x0r')</script>"));
+    }
+
+    @Test
     void testUpdateIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
@@ -274,6 +280,17 @@ class JdbcIdentityZoneProvisioningTests {
             fail("Able to retrieve inactive zone.");
         } catch (ZoneDoesNotExistsException e) {
             assertThat(e.getMessage(), containsString(createdIdZone.getId()));
+        }
+    }
+
+    @Test
+    void testGetBadIdentityZoneFails() {
+        String badZoneId = "<script>alert('1ee7 h@x0r')</script>";
+        try {
+            jdbcIdentityZoneProvisioning.retrieve(badZoneId);
+            fail("Able to retrieve inactive zone.");
+        } catch (ZoneDoesNotExistsException e) {
+            assertThat(e.getMessage(), containsString(badZoneId));
         }
     }
 

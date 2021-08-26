@@ -89,6 +89,19 @@ class ClientBasicAuthenticationFilterTests {
 
             verify(mockEntryPoint).commence(any(), any(), any(AuthenticationException.class));
         }
+
+        @Test
+        void extractAndDecodeHeaderWithBadAuthorizationHeader()  throws IOException, ServletException{
+            String badAuthorizationHeader = "<script>alert('1ee7 h@x0r')</script>";
+            MockFilterChain chain = mock(MockFilterChain.class);
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            request.addHeader("Authorization", "Basic " + badAuthorizationHeader);
+
+            filter.doFilter(request, response, chain);
+
+            verify(mockEntryPoint).commence(any(), any(), any(AuthenticationException.class));
+        }
     }
 
     @Nested
@@ -132,6 +145,19 @@ class ClientBasicAuthenticationFilterTests {
             token.setDetails(uaaAuthenticationDetailsSource.buildDetails(request));
             verify(clientAuthenticationManager).authenticate(token);
             assertEquals(clientId, request.getAttribute("clientId"));
+        }
+
+        @Test
+        void extractAndDecodeHeaderWithBadAuthorizationHeader()  throws IOException, ServletException{
+            String badAuthorizationHeader = "<script>alert('1ee7 h@x0r')</script>";
+            MockFilterChain chain = mock(MockFilterChain.class);
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            request.addHeader("Authorization", "Basic " + badAuthorizationHeader);
+
+            filter.doFilter(request, response, chain);
+
+            verify(mockEntryPoint).commence(any(), any(), any(AuthenticationException.class));
         }
     }
 
