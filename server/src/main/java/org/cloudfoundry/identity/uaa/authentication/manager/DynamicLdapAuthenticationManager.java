@@ -114,7 +114,7 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
         throw new ProviderNotFoundException("LDAP provider not configured");
     }
 
-    public void destroy() {
+    public synchronized void destroy() {
         ClassPathXmlApplicationContext applicationContext = context;
         if (applicationContext != null) {
             context = null;
