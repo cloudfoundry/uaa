@@ -292,6 +292,9 @@ public class InvitationsController {
 
     private String processErrorReload(String code, Model model, String email, HttpServletResponse response, String errorCode, String error) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
+        if (expiringCode == null) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired","invitations/accept_invite");
+        }
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
         });
         try {
