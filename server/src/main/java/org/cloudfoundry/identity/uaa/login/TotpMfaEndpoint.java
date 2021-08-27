@@ -179,18 +179,19 @@ public class TotpMfaEndpoint implements ApplicationEventPublisherAware {
 
     private UaaPrincipal getSessionAuthPrincipal() throws UaaPrincipalIsNotInSession {
         UaaAuthentication uaaAuth = getUaaAuthentication();
-        if (uaaAuth != null) {
-            UaaPrincipal principal = uaaAuth.getPrincipal();
-            if (principal != null) {
-                return principal;
-            }
+        UaaPrincipal principal = uaaAuth.getPrincipal();
+        if (principal != null) {
+            return principal;
         }
         throw new UaaPrincipalIsNotInSession();
     }
 
-    private UaaAuthentication getUaaAuthentication() {
+    private UaaAuthentication getUaaAuthentication() throws UaaPrincipalIsNotInSession {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        return a instanceof UaaAuthentication ? (UaaAuthentication) a : null;
+        if (a instanceof UaaAuthentication) {
+            return (UaaAuthentication) a;
+        }
+        throw new UaaPrincipalIsNotInSession();
     }
 
     private MfaProvider getMfaProvider() {
