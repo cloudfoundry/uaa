@@ -527,6 +527,12 @@ class LegacyRedirectResolverTest {
         }
 
         @Test
+        void matchesSchemeCustom() {
+            assertTrue(resolver.redirectMatches("myapp://callback", "myapp://callback"));
+            assertTrue(resolver.redirectMatches("myapp://callback#token=xyz123", "myapp://callback*"));
+        }
+
+        @Test
         void matchesPathContainingAntPathMatcher() {
             String clientRedirectUri = "http*://subdomain.domain.com/path1/path2**";
 
