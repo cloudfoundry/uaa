@@ -59,7 +59,9 @@ dependencies {
     testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.junit)
     testImplementation(libraries.selenium)
-    testImplementation(libraries.dumbster)
+    testImplementation(libraries.dumbster) {
+        exclude(module: "mail")
+    }
     testImplementation(libraries.zxing)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)
