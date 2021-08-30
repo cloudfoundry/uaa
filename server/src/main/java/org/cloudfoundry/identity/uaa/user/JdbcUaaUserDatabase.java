@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.cloudfoundry.identity.uaa.db.DatabaseVendorProvider;
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -46,7 +46,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
-    private final DatabaseVendorProvider databaseVendorProvider;
+    private final DatabaseUrlModifier databaseUrlModifier;
 
     @Value("${database.maxParameters:-1}")
     private int maxSqlParameters;
@@ -64,12 +64,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             final TimeService timeService,
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
             final IdentityZoneManager identityZoneManager,
-            final DatabaseVendorProvider databaseVendorProvider) {
+            final DatabaseUrlModifier databaseUrlModifier) {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
-        this.databaseVendorProvider = databaseVendorProvider;
+        this.databaseUrlModifier = databaseUrlModifier;
     }
 
     public int getMaxSqlParameters() {
@@ -262,7 +262,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
 
         private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) {
-            Vendor dbVendor = databaseVendorProvider.getDatabaseVendor(jdbcTemplate);
+            Vendor dbVendor = databaseUrlModifier.getDatabaseType();
             if (Vendor.postgresql.equals(dbVendor)) {
                 return executeAuthoritiesQueryPostgresql(memberList);
             } else if (Vendor.hsqldb.equals(dbVendor)) {

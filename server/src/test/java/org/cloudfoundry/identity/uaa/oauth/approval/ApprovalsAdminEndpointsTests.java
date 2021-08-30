@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.db.DatabaseVendorProvider;
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -69,11 +69,11 @@ class ApprovalsAdminEndpointsTests {
         IdentityZone mockIdentityZone = mock(IdentityZone.class);
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
         when(mockIdentityZone.getConfig()).thenReturn(IdentityZone.getUaa().getConfig());
-        DatabaseVendorProvider databaseVendorProvider = mock(DatabaseVendorProvider.class);
-        when(databaseVendorProvider.getDatabaseVendor(any())).thenReturn(Vendor.unknown);
+        DatabaseUrlModifier databaseUrlModifier = mock(DatabaseUrlModifier.class);
+        when(databaseUrlModifier.getDatabaseType()).thenReturn(Vendor.unknown);
 
         UaaUserDatabase userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager,
-                databaseVendorProvider);
+                databaseUrlModifier);
 
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);

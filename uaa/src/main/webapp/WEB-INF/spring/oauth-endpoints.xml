@@ -642,8 +642,6 @@
 
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase"/>
 
-    <bean id="databaseVendorProvider" class="org.cloudfoundry.identity.uaa.db.DatabaseVendorProvider" />
-
     <bean id="userLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
                   value="${authentication.policy.lockoutAfterFailures:#{defaultUserLockoutPolicy.getLockoutAfterFailures()}}"/>

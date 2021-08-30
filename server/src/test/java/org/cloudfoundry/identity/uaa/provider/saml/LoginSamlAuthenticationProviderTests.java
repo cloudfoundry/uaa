@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.db.DatabaseVendorProvider;
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -201,10 +201,10 @@ class LoginSamlAuthenticationProviderTests {
         when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
 
         TimeService timeService = mock(TimeService.class);
-        DatabaseVendorProvider databaseVendorProvider = mock(DatabaseVendorProvider.class);
-        when(databaseVendorProvider.getDatabaseVendor(any())).thenReturn(Vendor.unknown);
+        DatabaseUrlModifier databaseUrlModifier = mock(DatabaseUrlModifier.class);
+        when(databaseUrlModifier.getDatabaseType()).thenReturn(Vendor.unknown);
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, false, identityZoneManager,
-                databaseVendorProvider);
+                databaseUrlModifier);
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
 
