@@ -234,6 +234,25 @@ public class CorsFilterTests {
     }
 
     @Test
+    public void testPreFlightWithMaliciousAccessControlRequestHeaders() throws ServletException, IOException {
+        CorsFilter corsFilter = createConfiguredCorsFilter();
+        corsFilter.getDefaultConfiguration().setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
+
+        MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
+        request.addHeader("Access-Control-Request-Headers", "<script>alert('1ee7 h@x0r')</script>");
+        request.addHeader("Access-Control-Request-Method", "GET");
+        request.addHeader("Origin", "example.com");
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        FilterChain filterChain = newMockFilterChain();
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
     public void testPreFlightExpectXhrCorsResponse() throws ServletException, IOException {
         CorsFilter corsFilter = createConfiguredCorsFilter();
         corsFilter.getXhrConfiguration().setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
