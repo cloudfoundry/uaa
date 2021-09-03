@@ -4,6 +4,9 @@ dependencies {
 
     compile(project(":cloudfoundry-identity-metrics-data"))
 
+    compile(libraries.jacksonDatabind)
+    compile(libraries.jacksonAnnotations)
+
     compile(libraries.javaxValidationApi)
 
     compile(libraries.commonsIo)
