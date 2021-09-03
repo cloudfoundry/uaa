@@ -8,7 +8,7 @@ buildscript {
   }
 
   dependencies {
-    classpath libraries.eclipseJgit
+    classpath(libraries.eclipseJgit)
   }
 }
 
@@ -17,7 +17,7 @@ task mainOutputResourcesDir {
 }
 
 task gitInfo {
-  dependsOn mainOutputResourcesDir
+  dependsOn(mainOutputResourcesDir)
 
   def props = new Properties()
   try {
@@ -40,7 +40,7 @@ task gitInfo {
 }
 
 task buildInfo {
-  dependsOn mainOutputResourcesDir
+  dependsOn(mainOutputResourcesDir)
 
   def props = new Properties()
   props.setProperty("build.version", version)

@@ -2,29 +2,29 @@ description = "CloudFoundry Identity Model JAR"
 
 dependencies {
 
-    compile project(":cloudfoundry-identity-metrics-data")
+    compile(project(":cloudfoundry-identity-metrics-data"))
 
-    compile libraries.javaxValidationApi
+    compile(libraries.javaxValidationApi)
 
-    compile libraries.commonsIo
+    compile(libraries.commonsIo)
 
-    compile libraries.springWeb
-    compile libraries.springWebMvc
-    compile libraries.springSecurityConfig
+    compile(libraries.springWeb)
+    compile(libraries.springWebMvc)
+    compile(libraries.springSecurityConfig)
 
     compile(libraries.springSecurityOauth) {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
 
-    compile libraries.slf4jApi
+    compile(libraries.slf4jApi)
 
     testCompile(libraries.junit)
 
-    testCompile libraries.jsonAssert
+    testCompile(libraries.jsonAssert)
 }
 
-apply from: file("build_properties.gradle")
+apply(from: file("build_properties.gradle"))
 
 processResources {
     //maven replaces project.artifactId in the log4j.properties file

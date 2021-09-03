@@ -1,5 +1,5 @@
-apply plugin: "war"
-apply plugin: "eclipse-wtp"
+apply(plugin: "war")
+apply(plugin: "eclipse-wtp")
 eclipse {
     wtp {
         component {
@@ -13,14 +13,14 @@ dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
-    compile identityServer
+    compile(identityServer)
 
-    providedCompile libraries.tomcatEmbed
-    runtime libraries.javaxServlet
+    providedCompile(libraries.tomcatEmbed)
+    runtime(libraries.javaxServlet)
     runtime(libraries.springSecurityConfig) {
         exclude(module: "spring-aop")
     }
 
-    testCompile identityServer.configurations.testCompile.dependencies
-    testCompile identityServer.sourceSets.test.output
+    testCompile(identityServer.configurations.testCompile.dependencies)
+    testCompile(identityServer.sourceSets.test.output)
 }

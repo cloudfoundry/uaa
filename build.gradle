@@ -4,7 +4,7 @@ import java.nio.file.Files
 import java.nio.file.Paths
 
 buildscript {
-    apply from: "dependencies.gradle"
+    apply(from: "dependencies.gradle")
 
     repositories {
         mavenCentral()
@@ -15,28 +15,28 @@ buildscript {
     }
 
     dependencies {
-        classpath libraries.gradleCargoPlugin
-        classpath libraries.prodepsPlugin
-        classpath libraries.asciidoctorGradlePlugin
-        classpath libraries.springDependencyMgmtPlugin
-        classpath libraries.springBootGradlePlugin
+        classpath(libraries.gradleCargoPlugin)
+        classpath(libraries.prodepsPlugin)
+        classpath(libraries.asciidoctorGradlePlugin)
+        classpath(libraries.springDependencyMgmtPlugin)
+        classpath(libraries.springBootGradlePlugin)
     }
 }
 
-apply from: "dependencies.gradle"
-apply plugin: "com.bmuschko.cargo"
+apply(from: "dependencies.gradle")
+apply(plugin: "com.bmuschko.cargo")
 
 allprojects {
 
-    apply plugin: "propdeps"
-    apply plugin: "propdeps-maven"
-    apply plugin: "propdeps-idea"
-    apply plugin: "io.spring.dependency-management"
+    apply(plugin: "propdeps")
+    apply(plugin: "propdeps-maven")
+    apply(plugin: "propdeps-idea")
+    apply(plugin: "io.spring.dependency-management")
 
     dependencyManagement {
         imports {
-            mavenBom libraries.springBom
-            mavenBom libraries.springBootBom
+            mavenBom(libraries.springBom)
+            mavenBom(libraries.springBootBom)
         }
     }
 
@@ -45,35 +45,35 @@ allprojects {
     repositories {
         mavenCentral()
         maven {
-            url "https://build.shibboleth.net/nexus/content/repositories/releases/"
+            url("https://build.shibboleth.net/nexus/content/repositories/releases/")
         }
-        maven { url "https://repository.mulesoft.org/releases/" }
+        maven { url("https://repository.mulesoft.org/releases/") }
     }
 }
 
 subprojects {
-    apply plugin: "java"
+    apply(plugin: "java")
 
     configurations.all {
-        exclude group: "org.hamcrest", module: "hamcrest-all"
-        exclude group: "org.hamcrest", module: "hamcrest-core"
-        exclude group: "org.hamcrest", module: "hamcrest-library"
-        exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
-        exclude group: "org.apache.directory.server", module: "apacheds-core"
-        exclude group: "org.apache.directory.server", module: "apacheds-protocol-ldap"
+        exclude(group: "org.hamcrest", module: "hamcrest-all")
+        exclude(group: "org.hamcrest", module: "hamcrest-core")
+        exclude(group: "org.hamcrest", module: "hamcrest-library")
+        exclude(group: "org.springframework.boot", module: "spring-boot-starter-logging")
+        exclude(group: "org.apache.directory.server", module: "apacheds-core")
+        exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
     }
 
     dependencies {
         testCompile(libraries.springBootStarterTest)
-        testCompile libraries.hamcrest
+        testCompile(libraries.hamcrest)
         testCompile(libraries.junit5JupiterApi)
         testCompile(libraries.junit5JupiterParams)
         testRuntime(libraries.junit5JupiterEngine)
         testRuntime(libraries.junitVintageEngine)
-        testCompile libraries.unboundIdLdapSdk
+        testCompile(libraries.unboundIdLdapSdk)
 
-        compileOnly "org.projectlombok:lombok"
-        annotationProcessor "org.projectlombok:lombok"
+        compileOnly("org.projectlombok:lombok")
+        annotationProcessor("org.projectlombok:lombok")
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
@@ -88,8 +88,8 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         testLogging {
-            events "skipped", "failed", "passed"
-            exceptionFormat "full"
+            events("skipped", "failed", "passed")
+            exceptionFormat("full")
 
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
@@ -97,13 +97,13 @@ subprojects {
     }
 
     task integrationTest(type: Test) {
-        dependsOn rootProject.cargoStartLocal
+        dependsOn(rootProject.cargoStartLocal)
 
         useJUnitPlatform()
 
         testLogging {
-            events "skipped", "failed", "passed"
-            exceptionFormat "full"
+            events("skipped", "failed", "passed")
+            exceptionFormat("full")
 
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
@@ -119,9 +119,9 @@ subprojects {
                 project {
                     licenses {
                         license {
-                            name "The Apache Software License, Version 2.0"
-                            url "http://www.apache.org/licenses/LICENSE-2.0.txt"
-                            distribution "repo"
+                            name("The Apache Software License, Version 2.0")
+                            url("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                            distribution("repo")
                         }
                     }
                 }
@@ -132,13 +132,13 @@ subprojects {
     repositories {
         mavenCentral()
         maven {
-            url "https://jitpack.io"
+            url("https://jitpack.io")
         }
         maven {
-            url "https://repo.spring.io/release"
+            url("https://repo.spring.io/release")
         }
         maven {
-            url "https://repo.maven.apache.org/maven2"
+            url("https://repo.maven.apache.org/maven2")
         }
     }
 
@@ -192,10 +192,10 @@ cargo {
         }
 
         systemProperties {
-            property "spring.profiles.active", System.getProperty("spring.profiles.active", "default")
-            property "metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true")
-            property "smtp.host", "localhost"
-            property "smtp.port", 2525
+            property("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+            property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
+            property("smtp.host", "localhost")
+            property("smtp.port", 2525)
         }
 
         installer {
@@ -208,8 +208,8 @@ cargo {
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
-        it.systemProperty "spring.profiles.active", System.getProperty("spring.profiles.active", "default")
-        it.systemProperty "testId", System.getProperty("testId", "")
+        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+        it.systemProperty("testId", System.getProperty("testId", ""))
     }
 }
 
@@ -218,7 +218,7 @@ task run(dependsOn: cargoRunLocal)
 
 task manifests(dependsOn: assemble, type: Copy) {
     from("uaa/src/test/resources/sample-manifests") {
-        include "**/*.yml"
+        include("**/*.yml")
         filter(ReplaceTokens,
                 tokens: [
                         version  : version,
@@ -227,7 +227,7 @@ task manifests(dependsOn: assemble, type: Copy) {
                 ]
         )
     }
-    into "build/sample-manifests"
+    into("build/sample-manifests")
 }
 
 task cleanCargoConfDir {
@@ -239,13 +239,13 @@ task cleanCargoConfDir {
 }
 
 task integrationTest(dependsOn: subprojects.integrationTest) {
-    finalizedBy cargoStopLocal
+    finalizedBy(cargoStopLocal)
 }
 
 
 // task dependencies
-assemble.dependsOn subprojects.assemble
-test.dependsOn subprojects.test
-test.mustRunAfter integrationTest
-cargoStartLocal.dependsOn assemble
-cargoRunLocal.dependsOn cleanCargoConfDir, assemble
+assemble.dependsOn(subprojects.assemble)
+test.dependsOn(subprojects.test)
+test.mustRunAfter(integrationTest)
+cargoStartLocal.dependsOn(assemble)
+cargoRunLocal.dependsOn(cleanCargoConfDir, assemble)

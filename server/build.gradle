@@ -2,25 +2,25 @@ description = "CloudFoundry Identity Server JAR"
 
 dependencies {
 
-    compile project(":cloudfoundry-identity-model")
+    compile(project(":cloudfoundry-identity-model"))
 
-    compile libraries.tomcatJdbc
-    provided libraries.tomcatEmbed
-    compile libraries.javaxMail
+    compile(libraries.tomcatJdbc)
+    provided(libraries.tomcatEmbed)
+    compile(libraries.javaxMail)
 
-    compile libraries.jsonPath
-    compile libraries.zxing
-    compile libraries.springBeans
-    compile libraries.springContext
-    compile libraries.springContextSupport
-    compile libraries.springTx
-    compile libraries.springJdbc
-    compile libraries.springWeb
-    compile libraries.springSecurityCore
-    compile libraries.springSecurityJwt
-    compile libraries.springSecurityWeb
-    compile libraries.springSecuritySaml
-    compile libraries.springSessionJdbc
+    compile(libraries.jsonPath)
+    compile(libraries.zxing)
+    compile(libraries.springBeans)
+    compile(libraries.springContext)
+    compile(libraries.springContextSupport)
+    compile(libraries.springTx)
+    compile(libraries.springJdbc)
+    compile(libraries.springWeb)
+    compile(libraries.springSecurityCore)
+    compile(libraries.springSecurityJwt)
+    compile(libraries.springSecurityWeb)
+    compile(libraries.springSecuritySaml)
+    compile(libraries.springSessionJdbc)
 
     compile(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
@@ -28,17 +28,17 @@ dependencies {
         exclude(module: "spring-security-web")
     }
 
-    compile libraries.bouncyCastleProv
-    compile libraries.bouncyCastlePkix
+    compile(libraries.bouncyCastleProv)
+    compile(libraries.bouncyCastlePkix)
 
-    compile libraries.guava
+    compile(libraries.guava)
 
-    compile libraries.aspectJRt
-    compile libraries.aspectJWeaver
+    compile(libraries.aspectJRt)
+    compile(libraries.aspectJWeaver)
 
-    compile libraries.thymeleafSpring5
-    compile libraries.thymeleafDialect
-    compile libraries.thymeleafExtrasSpringSecurity5
+    compile(libraries.thymeleafSpring5)
+    compile(libraries.thymeleafDialect)
+    compile(libraries.thymeleafExtrasSpringSecurity5)
 
     compile(libraries.unboundIdScimSdk) {
         exclude(module: "servlet-api")
@@ -47,55 +47,55 @@ dependencies {
         exclude(module: "wink-client-apache-httpclient")
     }
 
-    compile libraries.hibernateValidator
-    compile libraries.flywayCore
-    compile libraries.mariaJdbcDriver
-    compile libraries.hsqldb
+    compile(libraries.hibernateValidator)
+    compile(libraries.flywayCore)
+    compile(libraries.mariaJdbcDriver)
+    compile(libraries.hsqldb)
 
-    compile libraries.snakeyaml
+    compile(libraries.snakeyaml)
 
-    compile libraries.springSecurityLdap
-    compile libraries.springLdapCore
-    compile libraries.springLdapCoreTiger
+    compile(libraries.springSecurityLdap)
+    compile(libraries.springLdapCore)
+    compile(libraries.springLdapCoreTiger)
     compile(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
     }
 
-    compile libraries.passay
+    compile(libraries.passay)
 
-    compile libraries.googleAuth
+    compile(libraries.googleAuth)
 
-    compile libraries.slf4jImpl
-    compile libraries.log4jCore
+    compile(libraries.slf4jImpl)
+    compile(libraries.log4jCore)
 
-    implementation libraries.javaxXmlBindApi
-    implementation libraries.javaxXmlBindCore
-    implementation libraries.javaxXmlBindImpl
+    implementation(libraries.javaxXmlBindApi)
+    implementation(libraries.javaxXmlBindCore)
+    implementation(libraries.javaxXmlBindImpl)
 
-    testCompile project(":cloudfoundry-identity-model").sourceSets.test.output
+    testCompile(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
-    testCompile libraries.springTest
+    testCompile(libraries.springTest)
 
     testCompile(libraries.junit)
     testCompile(libraries.mockito)
 
-    testCompile libraries.mockitoJunit5
+    testCompile(libraries.mockitoJunit5)
 
-    testCompile libraries.postgresql
+    testCompile(libraries.postgresql)
 
-    testCompile libraries.tomcatElApi
-    testCompile libraries.tomcatJasperEl
-    testCompile libraries.tomcatJdbc
+    testCompile(libraries.tomcatElApi)
+    testCompile(libraries.tomcatJasperEl)
+    testCompile(libraries.tomcatJdbc)
 
-    testCompile libraries.jsonPathAssert
+    testCompile(libraries.jsonPathAssert)
 }
 
 configurations.all {
-    exclude group: "org.beanshell", module: "bsh-core"
+    exclude(group: "org.beanshell", module: "bsh-core")
 }
 
 jar {
-    exclude "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+    exclude("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
 }
 
 processResources {
@@ -111,9 +111,9 @@ integrationTest {}.onlyIf { //disable since we don't have any
 task tomcatListenerJar(type: Jar) {
     archiveBaseName = "tomcat-listener"
     from(sourceSets.main.output)
-    include "org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*"
+    include("org/cloudfoundry/identity/uaa/web/tomcat/UaaStartupFailureListener.*")
 }
 
 artifacts {
-    archives tomcatListenerJar
+    archives(tomcatListenerJar)
 }
