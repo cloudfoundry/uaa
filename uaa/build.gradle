@@ -34,6 +34,11 @@ dependencies {
     }
     compile(libraries.springBootStarter)
     compile(libraries.springBootStarterWeb)
+    implementation(libraries.springSecurityOauth) {
+        exclude(module: "commons-codec")
+        exclude(module: "jackson-mapper-asl")
+        exclude(module: "spring-security-web")
+    }
     runtime(libraries.springSecurityConfig)
     runtime(libraries.springRetry)
     runtime(libraries.aspectJWeaver)
