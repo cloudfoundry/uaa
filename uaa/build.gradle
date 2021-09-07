@@ -50,24 +50,24 @@ dependencies {
 
     providedCompile(libraries.tomcatEmbed)
 
-    testCompile(identityServer.configurations.testCompile.dependencies)
-    testCompile(identityServer.sourceSets.test.output)
+    testImplementation(identityServer.configurations.testCompile.dependencies)
+    testImplementation(identityServer.sourceSets.test.output)
 
-    testCompile(libraries.apacheDsProtocolLdap) {
+    testImplementation(libraries.apacheDsProtocolLdap) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
-    testCompile(libraries.junit)
-    testCompile(libraries.selenium)
-    testCompile(libraries.dumbster)
-    testCompile(libraries.zxing)
-    testCompile(libraries.jsonAssert)
-    testCompile(libraries.springTest)
-    testCompile(libraries.springSecurityTest)
-    testCompile(libraries.mockito)
-    testCompile(libraries.tomcatJdbc)
-    testCompile(libraries.springRestdocs)
+    testImplementation(libraries.junit)
+    testImplementation(libraries.selenium)
+    testImplementation(libraries.dumbster)
+    testImplementation(libraries.zxing)
+    testImplementation(libraries.jsonAssert)
+    testImplementation(libraries.springTest)
+    testImplementation(libraries.springSecurityTest)
+    testImplementation(libraries.mockito)
+    testImplementation(libraries.tomcatJdbc)
+    testImplementation(libraries.springRestdocs)
 }
 
 ext {

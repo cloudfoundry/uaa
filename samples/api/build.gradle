@@ -27,8 +27,8 @@ dependencies {
     }
     implementation(libraries.springSecurityConfig)
 
-    testCompile(identityServer.configurations.testCompile.dependencies)
-    testCompile(identityServer.sourceSets.test.output)
+    testImplementation(identityServer.configurations.testCompile.dependencies)
+    testImplementation(identityServer.sourceSets.test.output)
 }
 
 test {

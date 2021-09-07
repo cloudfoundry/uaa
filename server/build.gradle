@@ -73,22 +73,22 @@ dependencies {
     implementation(libraries.javaxXmlBindCore)
     implementation(libraries.javaxXmlBindImpl)
 
-    testCompile(project(":cloudfoundry-identity-model").sourceSets.test.output)
+    testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
-    testCompile(libraries.springTest)
+    testImplementation(libraries.springTest)
 
-    testCompile(libraries.junit)
-    testCompile(libraries.mockito)
+    testImplementation(libraries.junit)
+    testImplementation(libraries.mockito)
 
-    testCompile(libraries.mockitoJunit5)
+    testImplementation(libraries.mockitoJunit5)
 
-    testCompile(libraries.postgresql)
+    testImplementation(libraries.postgresql)
 
-    testCompile(libraries.tomcatElApi)
-    testCompile(libraries.tomcatJasperEl)
-    testCompile(libraries.tomcatJdbc)
+    testImplementation(libraries.tomcatElApi)
+    testImplementation(libraries.tomcatJasperEl)
+    testImplementation(libraries.tomcatJdbc)
 
-    testCompile(libraries.jsonPathAssert)
+    testImplementation(libraries.jsonPathAssert)
 }
 
 configurations.all {

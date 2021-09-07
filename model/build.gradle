@@ -22,9 +22,9 @@ dependencies {
 
     implementation(libraries.slf4jApi)
 
-    testCompile(libraries.junit)
+    testImplementation(libraries.junit)
 
-    testCompile(libraries.jsonAssert)
+    testImplementation(libraries.jsonAssert)
 }
 
 apply(from: file("build_properties.gradle"))

@@ -19,8 +19,8 @@ dependencies {
     implementation(libraries.statsdClient)
     providedCompile(libraries.tomcatEmbed)
     providedRuntime(libraries.springBootStarterTomcat)
-    testCompile(libraries.mockito)
-    testCompile(libraries.springBootStarterTest)
+    testImplementation(libraries.mockito)
+    testImplementation(libraries.springBootStarterTest)
 
     implementation(libraries.jacksonDataformatYaml)
     implementation(libraries.jacksonDatabind)

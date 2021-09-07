@@ -64,13 +64,13 @@ subprojects {
     }
 
     dependencies {
-        testCompile(libraries.springBootStarterTest)
-        testCompile(libraries.hamcrest)
-        testCompile(libraries.junit5JupiterApi)
-        testCompile(libraries.junit5JupiterParams)
+        testImplementation(libraries.springBootStarterTest)
+        testImplementation(libraries.hamcrest)
+        testImplementation(libraries.junit5JupiterApi)
+        testImplementation(libraries.junit5JupiterParams)
         testRuntime(libraries.junit5JupiterEngine)
         testRuntime(libraries.junitVintageEngine)
-        testCompile(libraries.unboundIdLdapSdk)
+        testImplementation(libraries.unboundIdLdapSdk)
 
         compileOnly("org.projectlombok:lombok")
         annotationProcessor("org.projectlombok:lombok")
