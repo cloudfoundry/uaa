@@ -39,10 +39,10 @@ dependencies {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
-    runtime(libraries.springSecurityConfig)
-    runtime(libraries.springRetry)
-    runtime(libraries.aspectJWeaver)
-    runtime(libraries.postgresql)
+    runtimeOnly(libraries.springSecurityConfig)
+    runtimeOnly(libraries.springRetry)
+    runtimeOnly(libraries.aspectJWeaver)
+    runtimeOnly(libraries.postgresql)
 
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.javaxXmlBindCore)
