@@ -12,18 +12,18 @@ repositories {
 
 
 dependencies {
-    compile(project(":cloudfoundry-identity-metrics-data"))
-    compile(libraries.springBootStarter)
-    compile(libraries.springBootStarterWeb)
-    compile(libraries.springBootStarterLog4j2)
-    compile(libraries.statsdClient)
+    implementation(project(":cloudfoundry-identity-metrics-data"))
+    implementation(libraries.springBootStarter)
+    implementation(libraries.springBootStarterWeb)
+    implementation(libraries.springBootStarterLog4j2)
+    implementation(libraries.statsdClient)
     providedCompile(libraries.tomcatEmbed)
     providedRuntime(libraries.springBootStarterTomcat)
     testCompile(libraries.mockito)
     testCompile(libraries.springBootStarterTest)
 
-    compile(libraries.jacksonDataformatYaml)
-    compile(libraries.jacksonDatabind)
+    implementation(libraries.jacksonDataformatYaml)
+    implementation(libraries.jacksonDatabind)
 }
 
 test {

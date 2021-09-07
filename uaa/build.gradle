@@ -29,11 +29,11 @@ repositories {
 
 description = "UAA"
 dependencies {
-    compile(project(":cloudfoundry-identity-server")) {
+    implementation(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
-    compile(libraries.springBootStarter)
-    compile(libraries.springBootStarterWeb)
+    implementation(libraries.springBootStarter)
+    implementation(libraries.springBootStarterWeb)
     implementation(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
