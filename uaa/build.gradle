@@ -24,7 +24,7 @@ eclipse {
 }
 
 repositories {
-    maven { url "https://repo.spring.io/libs-milestone" }
+    maven { url("https://repo.spring.io/libs-milestone") }
 }
 
 description = "UAA"
@@ -50,24 +50,46 @@ dependencies {
 
     providedCompile(libraries.tomcatEmbed)
 
-    testImplementation(identityServer.configurations.testCompile.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
 
+    testImplementation(project(":cloudfoundry-identity-model"))
+    testImplementation(project(":cloudfoundry-identity-metrics-data"))
     testImplementation(libraries.apacheDsProtocolLdap) {
         exclude(module: "bcprov-jdk15")
         exclude(module: "slf4j-api")
         exclude(module: "slf4j-log4j12")
     }
+    testImplementation(libraries.apacheLdapApi) {
+        exclude(module: "slf4j-api")
+    }
+    testImplementation(libraries.flywayCore)
+    testImplementation(libraries.googleAuth)
+    testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.junit)
     testImplementation(libraries.selenium)
     testImplementation(libraries.dumbster)
     testImplementation(libraries.zxing)
     testImplementation(libraries.jsonAssert)
+    testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.unboundIdScimSdk) {
+        exclude(module: "servlet-api")
+        exclude(module: "commons-logging")
+        exclude(module: "httpclient")
+        exclude(module: "wink-client-apache-httpclient")
+    }
+    testImplementation(libraries.springBootStarterLog4j2)
+    testImplementation(libraries.springContextSupport)
+    testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
+    testImplementation(libraries.springSecurityJwt)
+    testImplementation(libraries.springSecurityLdap)
+    testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
+    testImplementation(libraries.javaxMail)
+    testImplementation(libraries.snakeyaml)
 }
 
 ext {
@@ -82,10 +104,10 @@ test {
 }
 
 task populateVersionfile {
-    def versionfile = new File("$projectDir/slateCustomizations/source/versionfile")
-    versionfile.createNewFile()
-    assert versionfile.exists()
-    versionfile.text = version.toString().substring(0, version.toString().lastIndexOf(".")) + ".0"
+    def versionFile = new File("$projectDir/slateCustomizations/source/versionfile")
+    versionFile.createNewFile()
+    assert versionFile.exists()
+    versionFile.text = version.toString().substring(0, version.toString().lastIndexOf(".")) + ".0"
 }
 task customizeSlate(type: Copy) {
     dependsOn populateVersionfile
@@ -110,13 +132,13 @@ task(deleteDefaultContent, type: Delete) {
     delete("build/slate/source/index.html.md")
 }
 
-
 task(slate, type: Exec) {
     dependsOn("customizeSlate", "deleteDefaultContent", "bundleInstall", "docsTestRestDocs")
     workingDir(file("build/slate"))
     executable("bundle")
     args("exec", "middleman", "build", "--verbose", "--build-dir=../docs/version/" + version.toString().substring(0, version.toString().lastIndexOf(".")) + ".0")
 }
+
 generateDocs {
     dependsOn(slate)
 }
