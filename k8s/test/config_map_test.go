@@ -44,10 +44,11 @@ var _ = Describe("Uaa ConfigMap", func() {
 									"Url":      Equal("any database url"),
 								}),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
-									"Host":        BeEmpty(),
-									"Port":        Equal("25"),
-									"Starttls":    BeEmpty(),
-									"FromAddress": BeEmpty(),
+									"Host":             BeEmpty(),
+									"Port":             Equal("25"),
+									"Starttls":         BeEmpty(),
+									"Starttlsrequired": BeEmpty(),
+									"FromAddress":      BeEmpty(),
 								}),
 								"Oauth": MatchFields(0, Fields{
 									"Client": MatchFields(0, Fields{
@@ -124,14 +125,15 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 		Context("with overridden values", func() {
 			It("produces yaml", func() {
 				ctx := NewRenderingContext(templates...).WithData(map[string]string{
-					"database.scheme":   "postgres",
-					"database.url":      "any other database connection string",
-					"smtp.host":         "smtp host",
-					"smtp.port":         "smtp port",
-					"smtp.starttls":     "smtp starttls",
-					"smtp.from_address": "smtp from_address",
-					"smtp.sslprotocols": "smtp sslprotocols",
-					"issuer.uri":        "http://some.example.com/with/path",
+					"database.scheme":        "postgres",
+					"database.url":           "any other database connection string",
+					"smtp.host":              "smtp host",
+					"smtp.port":              "smtp port",
+					"smtp.starttls":          "smtp starttls",
+					"smtp.starttls_required": "smtp starttls_required",
+					"smtp.from_address":      "smtp from_address",
+					"smtp.sslprotocols":      "smtp sslprotocols",
+					"issuer.uri":             "http://some.example.com/with/path",
 				})
 
 				Expect(ctx).To(
@@ -146,11 +148,12 @@ logger.cfIdentity.appenderRef.uaaDefaultAppender.ref = UaaDefaultAppender`
 									"Url":      Equal("any other database connection string"),
 								}),
 								"Smtp": MatchFields(IgnoreExtras, Fields{
-									"Host":         Equal("smtp host"),
-									"Port":         Equal("smtp port"),
-									"Starttls":     Equal("smtp starttls"),
-									"Sslprotocols": Equal("smtp sslprotocols"),
-									"FromAddress":  Equal("smtp from_address"),
+									"Host":             Equal("smtp host"),
+									"Port":             Equal("smtp port"),
+									"Starttls":         Equal("smtp starttls"),
+									"Starttlsrequired": Equal("smtp starttls_required"),
+									"Sslprotocols":     Equal("smtp sslprotocols"),
+									"FromAddress":      Equal("smtp from_address"),
 								}),
 							})
 						}),

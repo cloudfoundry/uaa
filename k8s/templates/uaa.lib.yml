@@ -22,6 +22,7 @@ smtp:
   host: #@ data.values.smtp.host
   port: #@ data.values.smtp.port
   starttls: #@ data.values.smtp.starttls
+  starttls_required: #@ data.values.smtp.starttls_required
   from_address: #@ data.values.smtp.from_address
   sslprotocols: #@ data.values.smtp.sslprotocols
 
