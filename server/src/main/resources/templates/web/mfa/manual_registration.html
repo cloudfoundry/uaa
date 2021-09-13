@@ -22,18 +22,18 @@
     <div class="panel-body">
        <h1 class="mbxl">Manual Setup Instructions</h1>
        <ol style="padding-left:1em;">
-           <li>Install Google Authenticator on your mobile device from the <a href="https://itunes.apple.com/us/app/google-authenticator/id388497605">App Store on your iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2">Google Play on your Android. </a></li>
-           <li>Open Google Authenticator on your mobile device.</li>
+           <li>Install Okta Verify on your mobile device from the <a href="https://apps.apple.com/us/app/okta-verify/id490179405">App Store on your iPhone</a> or <a href="https://play.google.com/store/apps/details?id=com.okta.android.auth">Google Play on your Android.</a></li>
+           <li>Open Okta Verify on your mobile device.</li>
            <li>Tap the "+" button.</li>
-           <li>Tap "Manual Entry".</li>
-           <li>Enter the following in the 'Account' field:
+           <li>Tap "Other" account type.</li>
+           <li>Tap "Enter Key Manually".</li>
+           <li>Enter the following in the 'Account name' field:
                <p id="account" th:text="${issuer} + ':' + ${username}" class="type-brand-6"></p>
            </li>
            <li>Enter the following in the 'Key' field:
                <p id="key" th:text="${mfa_secret}" class="type-brand-6"></p>
            </li>
-           <li>Check that 'Time based' is selected.</li>
-           <li>Tap the 'Done' button on your phone.</li>
+           <li>Tap the 'Add Account' button on your phone.</li>
        </ol>
         <div class="center-block">
            <a href="/login/mfa/register" th:href="@{/login/mfa/register}">
