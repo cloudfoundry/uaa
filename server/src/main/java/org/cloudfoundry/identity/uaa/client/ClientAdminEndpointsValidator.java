@@ -75,6 +75,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
+    private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
+
     public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
     }
@@ -111,8 +113,13 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         client.setAdditionalInformation(prototype.getAdditionalInformation());
         String clientId = client.getClientId();
-        if (create && reservedClientIds.contains(clientId)) {
-            throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
+        if (create) {
+            if (reservedClientIds.contains(clientId)) {
+                throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
+            }
+            if (invalidClientIdsCharacters.stream().filter(c -> clientId.indexOf(c) > -1).findAny().isPresent()) {
+                throw new InvalidClientDetailsException("Not allowed characters: " + clientId + " must not contain any of " + invalidClientIdsCharacters);
+            }
         }
 
         validateClientRedirectUri(client);
