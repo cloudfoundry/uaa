@@ -136,6 +136,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+        if (existing == null) {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+
         body.setId(id);
         body.setIdentityZoneId(zoneId);
         patchSensitiveData(id, body);
@@ -163,6 +167,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<IdentityProviderStatus> updateIdentityProviderStatus(@PathVariable String id, @RequestBody IdentityProviderStatus body) {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+        if (existing == null) {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+
         if(body.getRequirePasswordChange() == null || !body.getRequirePasswordChange()) {
             logger.debug("Invalid payload. The property requirePasswordChangeRequired needs to be set");
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
@@ -196,6 +204,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @RequestMapping(value = "{id}", method = GET)
     public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieve(id, identityZoneManager.getCurrentIdentityZoneId());
+        if (identityProvider == null) {
+            throw new EmptyResultDataAccessException(1);
+        }
+
         identityProvider.setSerializeConfigRaw(rawConfig);
         redactSensitiveData(identityProvider);
         return new ResponseEntity<>(identityProvider, OK);

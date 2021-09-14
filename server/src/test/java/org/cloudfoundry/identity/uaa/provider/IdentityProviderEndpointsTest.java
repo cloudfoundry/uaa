@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -163,6 +165,13 @@ class IdentityProviderEndpointsTest {
         assertTrue(ldap.getBody().getConfig() instanceof LdapIdentityProviderDefinition);
         assertNull(((LdapIdentityProviderDefinition) ldap.getBody().getConfig()).getBindPassword());
         return ldap.getBody();
+    }
+
+    @Test
+    void testRetrieveMissingIdentityProviderThrowsException() {
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(null);
+        Assertions.assertThrows(EmptyResultDataAccessException.class,
+                () -> identityProviderEndpoints.retrieveIdentityProvider("123", true));
     }
 
     @Test
@@ -325,6 +334,14 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
+    void testUpdateMissingIdentityProvider() throws Exception {
+        IdentityProvider<LdapIdentityProviderDefinition> provider = retrieve_ldap_provider_by_id("id");
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(null);
+        ResponseEntity<IdentityProvider> responseEntity = identityProviderEndpoints.updateIdentityProvider("123", provider, true);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
+    }
+
+    @Test
     void create_ldap_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider<LdapIdentityProviderDefinition> ldapDefinition = getLdapDefinition();
@@ -358,8 +375,17 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testPatchIdentityProviderStatusInvalidPayload() {
+    void testPatchIdentityProviderStatusInvalidIdentityProviderStatusPayload() {
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(getExternalOAuthProvider());
+        ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
+    }
+
+    @Test
+    void testPatchIdentityProviderStatusMissingIdentityProvider() {
+        IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
+        when(mockIdentityProviderProvisioning.retrieve(anyString(), anyString())).thenReturn(null);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }

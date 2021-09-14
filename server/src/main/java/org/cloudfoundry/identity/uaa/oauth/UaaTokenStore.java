@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -177,6 +178,10 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     protected OAuth2Authentication deserializeOauth2Authentication(byte[] data) {
         Map<String,Object> map = JsonUtils.readValue(data, new TypeReference<Map<String,Object>>() {});
+        if (map == null) {
+            throw new InvalidGrantException("Failure in retrieving authentication code for authorization");
+        }
+
         Authentication userAuthentication = null;
         if (map.get(USER_AUTHENTICATION_UAA_AUTHENTICATION) != null) {
             userAuthentication = JsonUtils.readValue((String)map.get(USER_AUTHENTICATION_UAA_AUTHENTICATION), UaaAuthentication.class);

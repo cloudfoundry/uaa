@@ -213,10 +213,10 @@ public class NonSnarlIdpMetadataManager extends IdpMetadataManager implements Ex
     protected String getHostedSpName(ExtendedMetadataDelegate provider) throws MetadataProviderException {
         String key = getSpName(provider);
         ExtendedMetadata extendedMetadata = getExtendedMetadata(key, provider);
-        if (extendedMetadata.isLocal()) {
+        if (extendedMetadata != null && extendedMetadata.isLocal()) {
             return key;
         } else {
-            return null;
+            throw new MetadataProviderException("Extended metadata not found for provider [" + key + "]");
         }
     }
 

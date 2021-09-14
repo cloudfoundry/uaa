@@ -336,6 +336,12 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         }
 
         HttpHost httpHost = URIUtils.extractHost(URI.create(resolvedRedirect));
+        if (httpHost == null) {
+            logger.debug("[prompt=none] Host extraction from " + resolvedRedirect + " failed");
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
+            return;
+        }
+
         String sessionState = openIdSessionStateCalculator.calculate("", clientId, httpHost.toURI());
         boolean implicit = stream(responseTypes).noneMatch("code"::equalsIgnoreCase);
         String redirectLocation;

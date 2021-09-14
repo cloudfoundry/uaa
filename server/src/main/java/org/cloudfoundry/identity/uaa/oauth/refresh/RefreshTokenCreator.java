@@ -78,7 +78,6 @@ public class RefreshTokenCreator {
             Map<String, Object> claims = new LinkedHashMap<>();
 
             claims.put(JTI, tokenId);
-            claims.put(SUB, user.getId());
             claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
             claims.put(EXPIRY_IN_SECONDS, expirationDate.getTime() / 1000);
             claims.put(CID, tokenRequestData.clientId);
@@ -112,6 +111,7 @@ public class RefreshTokenCreator {
                 claims.put(USER_NAME, user.getUsername());
                 claims.put(ORIGIN, user.getOrigin());
                 claims.put(USER_ID, user.getId());
+                claims.put(SUB, user.getId());
             }
 
             if (tokenRequestData.revocable) {

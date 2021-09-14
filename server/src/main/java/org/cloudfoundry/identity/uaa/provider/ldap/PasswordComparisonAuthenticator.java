@@ -95,17 +95,17 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
 
     }
 
-    public DirContextOperations localCompareAuthenticate(DirContextOperations user, String password) {
+    public void localCompareAuthenticate(DirContextOperations user, String password) {
         boolean match = false;
         try {
             Attributes attributes = user.getAttributes();
             Attribute attr = attributes.get(getPasswordAttributeName());
-            if (attr.size()==0) {
+            if (attr == null || attr.size() == 0) {
                 throw new AuthenticationCredentialsNotFoundException("Missing "+getPasswordAttributeName()+" attribute.");
             }
-            for (int i = 0; (attr != null) && (!match) && (i < attr.size()); i++) {
+            for (int i = 0; (!match) && (i < attr.size()); i++) {
                 Object valObject = attr.get(i);
-                if (valObject != null && valObject instanceof byte[]) {
+                if (valObject instanceof byte[]) {
                     if (passwordEncoder instanceof DynamicPasswordComparator) {
                         byte[] received = password.getBytes();
                         byte[] stored = (byte[]) valObject;
@@ -122,7 +122,6 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
         }
         if (!match)
             throw new BadCredentialsException("Bad credentials");
-        return user;
     }
 
     public DirContextOperations searchAuthenticate(DirContextOperations user, byte[] passwordBytes,

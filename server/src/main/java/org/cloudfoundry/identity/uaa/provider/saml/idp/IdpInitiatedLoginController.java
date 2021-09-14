@@ -119,6 +119,10 @@ public class IdpInitiatedLoginController {
 
     public String getAssertionConsumerURL(String sp) throws MetadataProviderException {
         EntityDescriptor entityDescriptor = metadataManager.getEntityDescriptor(sp);
+        if (entityDescriptor == null) {
+            throw new MetadataProviderException("Entity descriptor not found in metadata for service provider [" + sp + "]");
+        }
+
         SPSSODescriptor spssoDescriptor = entityDescriptor.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
         List<AssertionConsumerService> assertionConsumerServices = spssoDescriptor.getAssertionConsumerServices();
         Optional<AssertionConsumerService> defaultService = assertionConsumerServices.stream().filter(IndexedEndpoint::isDefault).findFirst();
