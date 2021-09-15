@@ -19,7 +19,7 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
     private final IdentityProviderConfigValidator externalOAuthIdentityProviderConfigValidator;
     private final IdentityProviderConfigValidator uaaIdentityProviderConfigValidator;
     private final IdentityProviderConfigValidator ldapIdentityProviderConfigValidator;
-    private Set<String> reservedOriginKeys = Set.of(UAA, LDAP);
+    private final Set<String> reservedOriginKeys = Set.of(UAA, LDAP);
 
     public IdentityProviderConfigValidationDelegator(
             final ExternalOAuthIdentityProviderConfigValidator externalOAuthIdentityProviderConfigValidator,
