@@ -104,7 +104,7 @@ class IdentityProviderConfigValidationDelegatorTest {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
                 () -> identityProviderConfigValidationDelegator.validate(identityProvider),
-                org.hamcrest.Matchers.is("Origin ldap not allowed for type " + type)
+                org.hamcrest.Matchers.is("Origin \"ldap\" not allowed for type \"" + type + "\"")
         );
     }
 
@@ -121,7 +121,7 @@ class IdentityProviderConfigValidationDelegatorTest {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
                 () -> identityProviderConfigValidationDelegator.validate(identityProvider),
-                org.hamcrest.Matchers.is("Origin uaa not allowed for type " + type)
+                org.hamcrest.Matchers.is("Origin \"uaa\" not allowed for type \"" + type + "\"")
         );
     }
 }

@@ -34,7 +34,7 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
     private void checkReservedOriginKeys(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
         if(provider.getOriginKey() != null && reservedOriginKeys.contains(provider.getOriginKey())) {
             throw new IllegalArgumentException(
-                    "Origin " + provider.getOriginKey() + " not allowed for type " + provider.getType());
+                    "Origin \"" + provider.getOriginKey() + "\" not allowed for type \"" + provider.getType() + "\"");
         }
     }
 
