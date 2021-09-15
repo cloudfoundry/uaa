@@ -17,7 +17,7 @@ versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.1.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.springVersion = "5.3.9"
-versions.tomcatCargoVersion = "9.0.52"
+versions.tomcatCargoVersion = "9.0.53"
 versions.guavaVersion = "30.1.1-jre"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
