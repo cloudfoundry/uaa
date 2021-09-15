@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.provider.oauth.ExernalOAuthLogoutHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -40,6 +41,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     private MockHttpServletResponse response = new MockHttpServletResponse();
     private BaseClientDetails client = new BaseClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
     private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
+    private ExernalOAuthLogoutHandler oAuthLogoutHandler = mock(ExernalOAuthLogoutHandler.class);
     private ZoneAwareWhitelistLogoutHandler handler;
     IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
     IdentityZoneConfiguration original;
@@ -53,7 +55,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
             .setDisableRedirectParameter(true)
             .setRedirectParameterName("redirect");
         when(clientDetailsService.loadClientByClientId(CLIENT_ID, "uaa")).thenReturn(client);
-        handler = new ZoneAwareWhitelistLogoutHandler(clientDetailsService);
+        handler = new ZoneAwareWhitelistLogoutHandler(clientDetailsService, oAuthLogoutHandler);
         IdentityZoneHolder.get().setConfig(configuration);
     }
 

@@ -332,8 +332,15 @@
         <constructor-arg name="redirectNotLoggedIn" value="/login?error=invalid_login_request"/>
     </bean>
 
+    <bean id="externalOAuthLogoutHandler"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExernalOAuthLogoutHandler">
+        <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+    </bean>
+
     <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">
         <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="externalOAuthLogoutHandler"/>
     </bean>
 
     <!--<mvc:resources location="/" mapping="/**" />-->

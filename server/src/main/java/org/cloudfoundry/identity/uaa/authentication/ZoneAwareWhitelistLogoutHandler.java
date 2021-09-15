@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 
+import org.cloudfoundry.identity.uaa.provider.oauth.ExernalOAuthLogoutHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -29,14 +30,20 @@ import java.io.IOException;
 public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
     private final MultitenantClientServices clientDetailsService;
+    private final ExernalOAuthLogoutHandler exernalOAuthLogoutHandler;
 
-    public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService) {
+    public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService, ExernalOAuthLogoutHandler exernalOAuthLogoutHandler) {
         this.clientDetailsService = clientDetailsService;
+        this.exernalOAuthLogoutHandler = exernalOAuthLogoutHandler;
     }
 
     @Override
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        getZoneHandler().onLogoutSuccess(request, response, authentication);
+        if (exernalOAuthLogoutHandler.isExternalOAuthentication(authentication)) {
+            exernalOAuthLogoutHandler.onLogoutSuccess(request, response, authentication);
+        } else {
+            getZoneHandler().onLogoutSuccess(request, response, authentication);
+        }
     }
 
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
