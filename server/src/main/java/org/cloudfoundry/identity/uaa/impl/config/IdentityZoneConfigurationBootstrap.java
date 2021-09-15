@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.Collection;
 import java.util.LinkedList;
@@ -69,6 +70,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
 
+    @Value("#{'${login.mfa.identityProviders:uaa,ldap}'.split(',')}")
+    private List<String> mfaDefaultIdps;
+
     public void setValidator(IdentityZoneValidator validator) {
         this.validator = validator;
     }
@@ -92,6 +96,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setAccountChooserEnabled(accountChooserEnabled);
         definition.getMfaConfig().setEnabled(mfaEnabled);
         definition.getMfaConfig().setProviderName(mfaProviderName);
+        definition.getMfaConfig().setIdentityProviders(mfaDefaultIdps);
         definition.setDefaultIdentityProvider(defaultIdentityProvider);
 
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
