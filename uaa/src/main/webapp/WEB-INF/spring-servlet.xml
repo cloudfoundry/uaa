@@ -178,7 +178,7 @@
     <bean id="sessionFixationProtectionStrategy"
           class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy"/>
 
-    <bean id="logFilter" class="org.cloudfoundry.identity.uaa.web.UaaLogFilter">
+    <bean id="logFilter" class="com.ge.predix.log.filter.LogFilter">
         <constructor-arg>
             <set value-type="java.lang.String">
                 <value>${METER_BASE_DOMAIN:localhost}</value>
