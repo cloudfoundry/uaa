@@ -115,7 +115,7 @@ class AuthenticationSuccessListenerTests {
                 OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
-        verifyZeroInteractions(mockApplicationEventPublisher);
+        verifyNoInteractions(mockApplicationEventPublisher);
     }
 
     @Test

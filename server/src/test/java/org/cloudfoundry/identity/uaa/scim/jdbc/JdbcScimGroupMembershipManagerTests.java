@@ -58,7 +58,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @WithDatabaseContext
 class JdbcScimGroupMembershipManagerTests {
@@ -153,7 +153,7 @@ class JdbcScimGroupMembershipManagerTests {
         defaultGroups.forEach(g -> verify(spy, times(1)).createAndIgnoreDuplicate(eq(g), eq(otherIdentityZone.getId())));
         reset(spy);
         defaultGroups.forEach(g -> jdbcScimGroupMembershipManager.createOrGetGroup(g, otherIdentityZone.getId()));
-        verifyZeroInteractions(spy);
+        verifyNoInteractions(spy);
     }
 
     @Test

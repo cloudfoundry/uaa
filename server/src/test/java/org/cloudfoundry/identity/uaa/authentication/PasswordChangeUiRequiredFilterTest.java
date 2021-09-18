@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -82,8 +82,8 @@ class PasswordChangeUiRequiredFilterTest {
         mockHttpServletRequest.setPathInfo("/login/mfa/register");
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
-        verifyZeroInteractions(mockHttpServletResponse);
-        verifyZeroInteractions(mockRequestCache);
+        verifyNoInteractions(mockHttpServletResponse);
+        verifyNoInteractions(mockRequestCache);
     }
 
     @Test

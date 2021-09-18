@@ -49,12 +49,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
@@ -126,8 +121,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
-        verifyZeroInteractions(samlAuthFilter);
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(samlAuthFilter);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
     }
 
 
@@ -138,8 +133,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(samlAuthFilter, times(1)).attemptAuthentication(same(request), same(response));
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(passwordAuthManager);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
     }
 
     @Test
@@ -147,9 +142,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(passwordAuthManager);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
         ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());
@@ -167,8 +162,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         ArgumentCaptor<ExternalOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(passwordAuthManager);
+        verifyNoMoreInteractions(externalOAuthAuthenticationManager);
         assertEquals(idToken, authenticateData.getValue().getIdToken());
         assertNull(authenticateData.getValue().getOrigin());
     }
@@ -178,9 +173,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
+        verifyNoInteractions(passwordAuthManager);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
         ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());
