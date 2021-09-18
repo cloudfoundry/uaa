@@ -419,6 +419,16 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
+    void testCreateClientDetailsWithInvalidClientId() {
+        input.setClientId("foo/bar");
+        assertThrows(InvalidClientDetailsException.class,
+            () -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+        input.setClientId("foo\\bar");
+        assertThrows(InvalidClientDetailsException.class,
+            () -> endpoints.createClientDetails(createClientDetailsCreation(input)));
+    }
+
+    @Test
     void testCreateMultipleClientDetailsWithReservedId() {
         inputs[inputs.length - 1].setClientId("uaa");
         assertThrows(InvalidClientDetailsException.class, () -> endpoints.createClientDetailsTx(inputs));
