@@ -27,11 +27,15 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 
@@ -145,4 +149,27 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
         assertEquals("http://www.testing.com", handler.determineTargetUrl(request, response));
     }
 
+    @Test
+    public void test_external_client_redirect() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
+        configuration.getLinks().getLogout().setDisableRedirectParameter(false);
+        when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
+        when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null)).thenReturn("/login");
+        request.setParameter("redirect", "http://testing.com");
+        request.setParameter(CLIENT_ID, CLIENT_ID);
+        assertEquals("/login", handler.determineTargetUrl(request, response));
+    }
+
+    @Test
+    public void test_exteral_logout() throws ServletException, IOException {
+        when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
+        handler.onLogoutSuccess(request, response, null);
+        verify(oAuthLogoutHandler, times(1)).onLogoutSuccess(request, response, null);
+    }
+
+    @Test
+    public void test_logout() throws ServletException, IOException {
+        handler.onLogoutSuccess(request, response, null);
+        verify(oAuthLogoutHandler, times(0)).onLogoutSuccess(request, response, null);
+    }
 }

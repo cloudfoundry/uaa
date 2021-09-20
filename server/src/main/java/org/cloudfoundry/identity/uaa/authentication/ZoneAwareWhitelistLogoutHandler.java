@@ -36,11 +36,7 @@ public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
     public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService, ExernalOAuthLogoutHandler exernalOAuthLogoutHandler) {
         this.clientDetailsService = clientDetailsService;
-        if (exernalOAuthLogoutHandler != null) {
-            this.exernalOAuthLogoutHandler = exernalOAuthLogoutHandler;
-        } else {
-            this.exernalOAuthLogoutHandler = null;
-        }
+        this.exernalOAuthLogoutHandler = exernalOAuthLogoutHandler;
     }
 
     @Override
