@@ -33,6 +33,7 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     this.oidcMetadataFetcher = oidcMetadataFetcher;
   }
 
+
   @Override
   protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
     AbstractExternalOAuthIdentityProviderDefinition oauthConfig = getOAuthProviderForAuthentication(authentication);
@@ -44,6 +45,10 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
       return defaultUrl;
     }
 
+    return constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig);
+  }
+
+  public String constructOAuthProviderLogoutUrl(HttpServletRequest request, String logoutUrl, AbstractExternalOAuthIdentityProviderDefinition oauthConfig) {
     StringBuffer oauthLogoutUriBuilder = request.getRequestURL();
     if (StringUtils.hasText(request.getQueryString())) {
       oauthLogoutUriBuilder.append("?");
@@ -58,16 +63,7 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     return sb.toString();
   }
 
-  public boolean isExternalOAuthentication(Authentication authentication) {
-    if (authentication != null && authentication.getPrincipal() instanceof UaaPrincipal) {
-      UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-      String origin = principal.getOrigin();
-      return !defaultOrigin.contains(origin);
-    }
-    return false;
-  }
-
-  private String getLogoutUrl(AbstractExternalOAuthIdentityProviderDefinition oAuthIdentityProviderDefinition) {
+  public String getLogoutUrl(AbstractExternalOAuthIdentityProviderDefinition oAuthIdentityProviderDefinition) {
     if (oAuthIdentityProviderDefinition != null && oAuthIdentityProviderDefinition.getLogoutUrl() != null) {
       return oAuthIdentityProviderDefinition.getLogoutUrl().toString();
     } else {
@@ -84,8 +80,8 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     return null;
   }
 
-  private AbstractExternalOAuthIdentityProviderDefinition getOAuthProviderForAuthentication(Authentication authentication) {
-    if (isExternalOAuthentication(authentication)) {
+  public AbstractExternalOAuthIdentityProviderDefinition getOAuthProviderForAuthentication(Authentication authentication) {
+    if (isExternalAuthentication(authentication)) {
       UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
       String origin = principal.getOrigin();
       if (!defaultOrigin.contains(origin)) {
@@ -97,6 +93,15 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
       }
     }
     return null;
+  }
+
+  private boolean isExternalAuthentication(Authentication authentication) {
+    if (authentication != null && authentication.getPrincipal() instanceof UaaPrincipal) {
+      UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+      String origin = principal.getOrigin();
+      return !defaultOrigin.contains(origin);
+    }
+    return false;
   }
 
   private String getZoneDefaultUrl() {
