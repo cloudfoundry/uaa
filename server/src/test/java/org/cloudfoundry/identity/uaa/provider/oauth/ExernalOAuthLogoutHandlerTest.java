@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.doThrow;
@@ -62,6 +63,7 @@ class ExernalOAuthLogoutHandlerTest {
     identityProvider.setConfig(oAuthIdentityProviderDefinition);
     when(providerProvisioning.retrieveByOrigin("test", "uaa")).thenReturn(identityProvider);
     when(uaaAuthentication.getPrincipal()).thenReturn(uaaPrincipal);
+    when(uaaAuthentication.getAuthenticationMethods()).thenReturn(Set.of("ext", "oauth"));
     when(uaaPrincipal.getOrigin()).thenReturn("test");
     when(uaaPrincipal.getZoneId()).thenReturn("uaa");
     oAuthLogoutHandler = new ExernalOAuthLogoutHandler(providerProvisioning, oidcMetadataFetcher);

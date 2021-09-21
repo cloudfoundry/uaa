@@ -314,6 +314,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 .collect(Collectors.toSet())
             );
         }
+        if (authentication.getAuthenticationMethods()==null) {
+            authentication.setAuthenticationMethods(new HashSet<>());
+        }
+        authentication.getAuthenticationMethods().add("oauth");
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
