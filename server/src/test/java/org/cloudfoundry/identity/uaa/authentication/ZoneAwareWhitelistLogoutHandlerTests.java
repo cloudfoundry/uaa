@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.provider.oauth.ExernalOAuthLogoutHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -26,11 +27,15 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 
@@ -40,6 +45,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     private MockHttpServletResponse response = new MockHttpServletResponse();
     private BaseClientDetails client = new BaseClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
     private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
+    private ExernalOAuthLogoutHandler oAuthLogoutHandler = mock(ExernalOAuthLogoutHandler.class);
     private ZoneAwareWhitelistLogoutHandler handler;
     IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
     IdentityZoneConfiguration original;
@@ -53,7 +59,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
             .setDisableRedirectParameter(true)
             .setRedirectParameterName("redirect");
         when(clientDetailsService.loadClientByClientId(CLIENT_ID, "uaa")).thenReturn(client);
-        handler = new ZoneAwareWhitelistLogoutHandler(clientDetailsService);
+        handler = new ZoneAwareWhitelistLogoutHandler(clientDetailsService, oAuthLogoutHandler);
         IdentityZoneHolder.get().setConfig(configuration);
     }
 
@@ -143,4 +149,27 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
         assertEquals("http://www.testing.com", handler.determineTargetUrl(request, response));
     }
 
+    @Test
+    public void test_external_client_redirect() {
+        configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
+        configuration.getLinks().getLogout().setDisableRedirectParameter(false);
+        when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
+        when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null)).thenReturn("/login");
+        request.setParameter("redirect", "http://testing.com");
+        request.setParameter(CLIENT_ID, CLIENT_ID);
+        assertEquals("/login", handler.determineTargetUrl(request, response));
+    }
+
+    @Test
+    public void test_exteral_logout() throws ServletException, IOException {
+        when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
+        handler.onLogoutSuccess(request, response, null);
+        verify(oAuthLogoutHandler, times(1)).onLogoutSuccess(request, response, null);
+    }
+
+    @Test
+    public void test_logout() throws ServletException, IOException {
+        handler.onLogoutSuccess(request, response, null);
+        verify(oAuthLogoutHandler, times(0)).onLogoutSuccess(request, response, null);
+    }
 }
