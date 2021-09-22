@@ -22,6 +22,7 @@ class OpenIdConnectEndpointDocs extends EndpointDocs {
                 fieldWithPath("token_endpoint").description("URL of token endpoint."),
                 fieldWithPath("userinfo_endpoint").description("URL of the OP's UserInfo Endpoint."),
                 fieldWithPath("jwks_uri").description("URL of the OP's JSON Web Key Set document."),
+                fieldWithPath("end_session_endpoint").description("URL of the logout endpoint."),
                 fieldWithPath("scopes_supported").description("JSON array containing a list of the OAuth 2.0 scope values that this server supports."),
                 fieldWithPath("subject_types_supported").description("JSON array containing a list of the Subject Identifier types that this OP supports."),
                 fieldWithPath("token_endpoint_auth_methods_supported").description("JSON array containing a list of Client Authentication methods supported by this Token Endpoint."),
