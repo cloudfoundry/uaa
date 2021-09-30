@@ -3,7 +3,6 @@ def buildGeArtServer = Artifactory.server('build.ge')
 
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
 def NODE = nodeDetails("uaa-upgrade")
-def APP_VERSION = 'UNKNOWN'
 
 pipeline {
     agent none
@@ -393,26 +392,27 @@ pipeline {
                     checkout scm
                 }
                 dir('build') {
-                        unstash 'uaa-war'
+                    unstash 'uaa-war'
                 }
-                dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
-                }
+
                 script {
-                    APP_VERSION = sh (returnStdout: true, script: '''
-                        grep 'version' uaa/gradle.properties | sed 's/version=//'
-                        ''').trim()
-                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
-
-
+                    def util = load('uaa/JenkinsfileCommon.groovy')
+                    ARTIFACTORY_PATH = util.getArtifactoryPath()
+                    WAR_FILE_NAME = util.getWarFileName()
+                    sh """
+                        ls -l "build/${WAR_FILE_NAME}" || \
+                        (echo "build/${WAR_FILE_NAME} not found!" && ls -l build && exit 1)
+                    """
                     def uploadSpec = """{
                        "files": [
                            {
-                               "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                               "target": "MAAXA/builds/uaa/${APP_VERSION}/"
+                               "pattern": "build/${WAR_FILE_NAME}",
+                               "target": "${ARTIFACTORY_PATH}/"
                            }
                        ]
                     }"""
+
+                    echo "Uploading ${WAR_FILE_NAME} to ${ARTIFACTORY_PATH}/"
                     def buildInfo = buildGeArtServer.upload(uploadSpec)
                     buildGeArtServer.publishBuildInfo(buildInfo)
                 }

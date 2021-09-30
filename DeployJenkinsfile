@@ -38,22 +38,27 @@ pipeline {
                     checkout scm
                 }
                 script {
-                    APP_VERSION = sh (returnStdout: true, script: '''
-                        grep 'version' uaa/gradle.properties | sed 's/version=//'
-                        ''').trim()
-                    echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
+                    def util = load('uaa/JenkinsfileCommon.groovy')
+                    ARTIFACTORY_PATH = util.getArtifactoryPath()
+                    WAR_FILE_NAME = util.getWarFileName()
                     def downloadSpec = """{
                         "files": [
                             {
                                 "target": "deploy-workspace/",
                                 "flat": "true",
-                                "pattern": "MAAXA/builds/uaa/${APP_VERSION}/*.war"
+                                "pattern": "${ARTIFACTORY_PATH}/*.war"
                             }
                         ]
                     }"""
-                    sh 'pwd && ls -ltr'
+
+                    echo "Downloading ${WAR_FILE_NAME} from ${ARTIFACTORY_PATH}"
                     buildGeArtServer.download(downloadSpec)
-                    sh "ls -ltr deploy-workspace/"
+                    // NOTE: ci-deploy.sh depends on deploy-workspace/${WAR_FILE_NAME} location and file name format
+                    // So make sure it is what got downloaded.
+                    sh """
+                        ls -l "deploy-workspace/${WAR_FILE_NAME}" || \
+                          (echo "${WAR_FILE_NAME} not found!" && ls -l deploy-workspace && exit 1)
+                       """
                 }
 
                 dir('deploy-workspace') {
@@ -133,7 +138,8 @@ pipeline {
                 }
 
                 script {
-                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory" 
+                    APP_VERSION = util.getAppVersion()
+                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
                     def uploadSpec = """{
                         "files": [
                             {
