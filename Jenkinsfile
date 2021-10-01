@@ -20,6 +20,8 @@ pipeline {
         booleanParam(name: 'INTEGRATION_TESTS', defaultValue: true, description: 'Run Integration tests')
         booleanParam(name: 'DEGRADED_TESTS', defaultValue: true, description: 'Run degraded mode tests')
         booleanParam(name: 'PUSH_TO_BUILD_GE', defaultValue: false, description: 'Publish to build artifactory')
+        string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
+                        description: 'uaa-cf-release repo branch to use for testing/deployment')
     }
     stages {
         stage('Build and run Tests') {
@@ -35,7 +37,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -78,7 +82,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -137,7 +143,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -201,7 +209,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -280,7 +290,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm

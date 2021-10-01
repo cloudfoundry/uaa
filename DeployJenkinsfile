@@ -18,6 +18,8 @@ pipeline {
         choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-integration\nvpc\neu-central\ngovw\nperf-cf3', description: 'This specifies which point of presence to deploy to')
         booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
         booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
+        string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
+                description: 'uaa-cf-release repo branch to use for testing/deployment')
     }
     stages{
         stage('Deploy') {
@@ -66,7 +68,9 @@ pipeline {
                 }
 
                 dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                        branch: params.UAA_CI_CONFIG_BRANCH
                 }
                 sh '''#!/bin/bash -ex
 
