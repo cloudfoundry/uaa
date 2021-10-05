@@ -142,6 +142,7 @@ pipeline {
                 }
 
                 script {
+                    def util = load('uaa/JenkinsfileCommon.groovy')
                     APP_VERSION = util.getAppVersion()
                     echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
                     def uploadSpec = """{
