@@ -141,6 +141,10 @@ pipeline {
                     unstash 'uaa-war'
                 }
 
+                dir('uaa') {
+                    checkout scm
+                }
+
                 script {
                     def util = load('uaa/JenkinsfileCommon.groovy')
                     APP_VERSION = util.getAppVersion()
