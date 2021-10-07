@@ -32,7 +32,6 @@ dependencies {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
-    implementation("org.glassfish:jakarta.el:3.0.4")
     runtimeOnly(libraries.springSecurityConfig)
     runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
