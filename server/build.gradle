@@ -25,6 +25,7 @@ dependencies {
     implementation(libraries.springSecuritySaml) {
         exclude(module: "bcprov-ext-jdk15on")
     }
+    implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
     implementation(libraries.springSecurityOauth) {
