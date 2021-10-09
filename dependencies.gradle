@@ -111,6 +111,7 @@ libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.26"
 libraries.velocity = "org.apache.velocity:velocity-engine-core:2.3"
 libraries.zxing = "com.google.zxing:javase:3.4.1"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt"
+libraries.xmlSecurity = "org.apache.santuario:xmlsec:2.2.3"
 
 // gradle plugins
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
