@@ -19,7 +19,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class CommonLoginPolicyTest {
@@ -48,9 +48,9 @@ public class CommonLoginPolicyTest {
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
         assertTrue(result.isAllowed());
         assertEquals(0, result.getFailureCount());
-        verifyZeroInteractions(lockoutPolicyRetriever);
-        verifyZeroInteractions(timeService);
-        verifyZeroInteractions(auditService);
+        verifyNoInteractions(lockoutPolicyRetriever);
+        verifyNoInteractions(timeService);
+        verifyNoInteractions(auditService);
     }
 
     @Test
