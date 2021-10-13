@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,7 @@ class ExernalOAuthLogoutHandlerTest {
   private OidcMetadataFetcher oidcMetadataFetcher = mock(OidcMetadataFetcher.class);
   private UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
   private UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
+  private IdentityZoneManager identityZoneManager = mock(IdentityZoneManager.class);
 
   private ExernalOAuthLogoutHandler oAuthLogoutHandler = mock(ExernalOAuthLogoutHandler.class);
   IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
@@ -46,11 +48,13 @@ class ExernalOAuthLogoutHandlerTest {
 
   @BeforeEach
   public void setUp() throws MalformedURLException {
+    IdentityZone uaaZone = IdentityZone.getUaa();
     original = IdentityZone.getUaa().getConfig();
     configuration.getLinks().getLogout()
         .setRedirectUrl("/login")
         .setDisableRedirectParameter(true)
         .setRedirectParameterName("redirect");
+    uaaZone.setConfig(configuration);
     identityProvider = new IdentityProvider();
     identityProvider.setType(OriginKeys.OIDC10);
     identityProvider.setOriginKey("test");
@@ -66,7 +70,8 @@ class ExernalOAuthLogoutHandlerTest {
     when(uaaAuthentication.getAuthenticationMethods()).thenReturn(Set.of("ext", "oauth"));
     when(uaaPrincipal.getOrigin()).thenReturn("test");
     when(uaaPrincipal.getZoneId()).thenReturn("uaa");
-    oAuthLogoutHandler = new ExernalOAuthLogoutHandler(providerProvisioning, oidcMetadataFetcher);
+    when(identityZoneManager.getCurrentIdentityZone()).thenReturn(uaaZone);
+    oAuthLogoutHandler = new ExernalOAuthLogoutHandler(providerProvisioning, oidcMetadataFetcher, identityZoneManager);
     IdentityZoneHolder.get().setConfig(configuration);
     SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
   }
