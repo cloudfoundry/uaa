@@ -22,16 +22,16 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
+public class ExternalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ExernalOAuthLogoutHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthLogoutHandler.class);
 
   private final IdentityProviderProvisioning providerProvisioning;
   private final OidcMetadataFetcher oidcMetadataFetcher;
   private final IdentityZoneManager identityZoneManager;
   private final Set<String> defaultOrigin = Set.of(OriginKeys.UAA, OriginKeys.LDAP);
 
-  public ExernalOAuthLogoutHandler(final IdentityProviderProvisioning providerProvisioning, final OidcMetadataFetcher oidcMetadataFetcher,
+  public ExternalOAuthLogoutHandler(final IdentityProviderProvisioning providerProvisioning, final OidcMetadataFetcher oidcMetadataFetcher,
       IdentityZoneManager identityZoneManager) {
     this.providerProvisioning = providerProvisioning;
     this.oidcMetadataFetcher = oidcMetadataFetcher;

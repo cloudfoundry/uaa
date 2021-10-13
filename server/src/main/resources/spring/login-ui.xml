@@ -337,7 +337,7 @@
     </bean>
 
     <bean id="externalOAuthLogoutHandler"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.ExernalOAuthLogoutHandler">
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler">
         <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
     </bean>

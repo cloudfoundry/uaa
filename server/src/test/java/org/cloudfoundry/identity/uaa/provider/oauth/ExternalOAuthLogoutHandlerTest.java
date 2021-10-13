@@ -28,7 +28,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class ExernalOAuthLogoutHandlerTest {
+class ExternalOAuthLogoutHandlerTest {
 
   private MockHttpServletRequest request = new MockHttpServletRequest();
   private MockHttpServletResponse response = new MockHttpServletResponse();
@@ -40,7 +40,7 @@ class ExernalOAuthLogoutHandlerTest {
   private UaaPrincipal uaaPrincipal = mock(UaaPrincipal.class);
   private IdentityZoneManager identityZoneManager = mock(IdentityZoneManager.class);
 
-  private ExernalOAuthLogoutHandler oAuthLogoutHandler = mock(ExernalOAuthLogoutHandler.class);
+  private ExternalOAuthLogoutHandler oAuthLogoutHandler = mock(ExternalOAuthLogoutHandler.class);
   IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
   IdentityZoneConfiguration original;
   private final String uaa_endsession_url = "http://localhost:8080/uaa/logout.do";
@@ -71,7 +71,7 @@ class ExernalOAuthLogoutHandlerTest {
     when(uaaPrincipal.getOrigin()).thenReturn("test");
     when(uaaPrincipal.getZoneId()).thenReturn("uaa");
     when(identityZoneManager.getCurrentIdentityZone()).thenReturn(uaaZone);
-    oAuthLogoutHandler = new ExernalOAuthLogoutHandler(providerProvisioning, oidcMetadataFetcher, identityZoneManager);
+    oAuthLogoutHandler = new ExternalOAuthLogoutHandler(providerProvisioning, oidcMetadataFetcher, identityZoneManager);
     IdentityZoneHolder.get().setConfig(configuration);
     SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
   }

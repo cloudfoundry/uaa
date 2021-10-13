@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.oauth.ExernalOAuthLogoutHandler;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -33,37 +33,37 @@ import java.io.IOException;
 public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
     private final MultitenantClientServices clientDetailsService;
-    private final ExernalOAuthLogoutHandler exernalOAuthLogoutHandler;
+    private final ExternalOAuthLogoutHandler externalOAuthLogoutHandler;
     private final KeyInfoService keyInfoService;
 
-    public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService, ExernalOAuthLogoutHandler exernalOAuthLogoutHandler,
+    public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService, ExternalOAuthLogoutHandler externalOAuthLogoutHandler,
         KeyInfoService keyInfoService) {
         this.clientDetailsService = clientDetailsService;
-        this.exernalOAuthLogoutHandler = exernalOAuthLogoutHandler;
+        this.externalOAuthLogoutHandler = externalOAuthLogoutHandler;
         this.keyInfoService = keyInfoService;
     }
 
     @Override
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        AbstractExternalOAuthIdentityProviderDefinition oauthConfig = exernalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
-        String logoutUrl = exernalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
+        AbstractExternalOAuthIdentityProviderDefinition oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
+        String logoutUrl = externalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
 
         if (logoutUrl == null) {
             getZoneHandler().onLogoutSuccess(request, response, authentication);
         } else {
-            exernalOAuthLogoutHandler.onLogoutSuccess(request, response, authentication);
+            externalOAuthLogoutHandler.onLogoutSuccess(request, response, authentication);
         }
     }
 
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        AbstractExternalOAuthIdentityProviderDefinition oauthConfig = exernalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
-        String logoutUrl = exernalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
+        AbstractExternalOAuthIdentityProviderDefinition oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
+        String logoutUrl = externalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
 
         if (logoutUrl == null) {
             return getZoneHandler().determineTargetUrl(request, response);
         } else {
-            return exernalOAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig);
+            return externalOAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig);
         }
     }
 
