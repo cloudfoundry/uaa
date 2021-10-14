@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.mockito.Mockito.verify;
@@ -88,5 +89,39 @@ class IdentityProviderConfigValidationDelegatorTest {
         verifyNoInteractions(mockUaaIdentityProviderConfigValidator);
         verifyNoInteractions(mockLdapIdentityProviderConfigValidator);
         verify(mockExternalOAuthIdentityProviderConfigValidator).validate(identityProvider);
+    }
+
+    @ParameterizedTest(name = "invalid provider with type {0} and origin ldap")
+    @ValueSource(strings = {
+            OAUTH20,
+            OIDC10,
+            SAML
+    })
+    void external_validator_with_reserved_type_ldap(final String type) {
+        identityProvider.setType(type);
+        identityProvider.setOriginKey(LDAP);
+
+        assertThrowsWithMessageThat(
+                IllegalArgumentException.class,
+                () -> identityProviderConfigValidationDelegator.validate(identityProvider),
+                org.hamcrest.Matchers.is("Origin \"ldap\" not allowed for type \"" + type + "\"")
+        );
+    }
+
+    @ParameterizedTest(name = "invalid provider with type {0} and origin uaa")
+    @ValueSource(strings = {
+            OAUTH20,
+            OIDC10,
+            SAML
+    })
+    void external_validator_with_reserved_type_uaa(final String type) {
+        identityProvider.setType(type);
+        identityProvider.setOriginKey(UAA);
+
+        assertThrowsWithMessageThat(
+                IllegalArgumentException.class,
+                () -> identityProviderConfigValidationDelegator.validate(identityProvider),
+                org.hamcrest.Matchers.is("Origin \"uaa\" not allowed for type \"" + type + "\"")
+        );
     }
 }

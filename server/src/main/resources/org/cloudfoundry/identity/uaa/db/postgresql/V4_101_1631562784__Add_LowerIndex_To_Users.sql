@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX concurrently IF NOT EXISTS users_unique_key_lower ON users (LOWER(origin),LOWER(username),LOWER(identity_zone_id));

@@ -16,21 +16,30 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
+import static org.springframework.util.StringUtils.hasLength;
 
 public abstract class UaaUrlUtils {
-   /** Pattern that matches valid subdomains.
+    private UaaUrlUtils() {}
+
+    /** Pattern that matches valid subdomains.
     *  According to https://tools.ietf.org/html/rfc3986#section-3.2.2
     */
     private static final Pattern VALID_SUBDOMAIN_PATTERN = Pattern.compile("([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
     private static final Logger s_logger = LoggerFactory.getLogger(
             UaaUrlUtils.class);
+
+    private static final int MAX_URI_DECODES = 5;
 
     public static String getUaaUrl(String path, IdentityZone currentIdentityZone) {
         return getUaaUrl(path, false, currentIdentityZone);
@@ -51,11 +60,10 @@ public abstract class UaaUrlUtils {
         UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         if (zoneSwitchPossible) {
             String host = builder.build().getHost();
-            if (host != null && !currentIdentityZone.isUaa()) {
-                if (!host.startsWith(currentIdentityZone.getSubdomain() + ".")) {
-                    host = currentIdentityZone.getSubdomain() + "." + host;
-                    builder.host(host);
-                }
+            if (host != null && !currentIdentityZone.isUaa() &&
+                    !host.startsWith(currentIdentityZone.getSubdomain() + ".")) {
+                host = currentIdentityZone.getSubdomain() + "." + host;
+                builder.host(host);
             }
         }
         return builder;
@@ -64,7 +72,7 @@ public abstract class UaaUrlUtils {
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
             "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
                     "(.*:.*@)?" +                    //username/password in URL
-                    "(([a-zA-Z0-9\\-\\*\\_]+\\.)*" + //subdomains
+                    "(([a-zA-Z0-9\\-\\*\\_]+\\.){0,255}" + //subdomains (RFC1035) limited, regex backtracking disabled
                     "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
                     "[a-zA-Z0-9\\-]+" +              //tld
                     "(:[0-9]+)?(/.*|$)"              //port and path
@@ -185,7 +193,7 @@ public abstract class UaaUrlUtils {
     }
 
     public static boolean isUrl(String url) {
-        if (isEmpty(url)) {
+        if (!hasLength(url)) {
             return false;
         }
         try {
@@ -276,10 +284,30 @@ public abstract class UaaUrlUtils {
         try {
             uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
             uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
+            uriComponentsBuilder.replacePath(decodeUriPath(nonNormalizedUri.getPath()));
         } catch (NullPointerException e) {
             throw new IllegalArgumentException("URI host and scheme must not be null");
         }
 
         return uriComponentsBuilder.build().toString();
+    }
+
+    private static String decodeUriPath(final String path) {
+        if (path == null) {
+            return null;
+        }
+
+        String normalizedPath = path;
+        for (int i = 0; i <= MAX_URI_DECODES; ++i) {
+            // This loop can run up to (MAX_URI_DECODES + 1) times.
+            // The extra iteration is used to check that the URI remains unchanged after decoding.
+            String normalizedPathPrev = normalizedPath;
+            normalizedPath = StringUtils.uriDecode(normalizedPath, StandardCharsets.UTF_8);
+            if (normalizedPath.equals(normalizedPathPrev)) {
+                return StringUtils.cleanPath(normalizedPath);
+            }
+        }
+
+        throw new IllegalArgumentException("Aborted url decoding for repeatedly encoded path");
     }
 }

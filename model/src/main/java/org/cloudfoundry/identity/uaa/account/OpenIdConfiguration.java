@@ -29,6 +29,9 @@ public class OpenIdConfiguration {
     @JsonProperty("jwks_uri")
     private String jwksUri;
 
+    @JsonProperty("end_session_endpoint")
+    private String logoutEndpoint;
+
     @JsonProperty("scopes_supported")
     private String[] scopes = new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"};
 
@@ -69,5 +72,6 @@ public class OpenIdConfiguration {
         this.tokenUrl = contextPath + "/oauth/token";
         this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
+        this.logoutEndpoint = contextPath + "/logout.do";
     }
 }

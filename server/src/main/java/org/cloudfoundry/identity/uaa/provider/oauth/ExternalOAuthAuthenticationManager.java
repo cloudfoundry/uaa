@@ -64,7 +64,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.servlet.support.RequestContextUtils;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -314,6 +314,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 .collect(Collectors.toSet())
             );
         }
+        if (authentication.getAuthenticationMethods()==null) {
+            authentication.setAuthenticationMethods(new HashSet<>());
+        }
+        authentication.getAuthenticationMethods().add("oauth");
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
@@ -640,11 +644,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         HttpHeaders headers = new HttpHeaders();
 
-        if(config.isClientAuthInBody()) {
-            body.add("client_secret", config.getRelyingPartySecret());
+        // no client-secret, switch to PKCE and treat client as public, same logic is implemented in spring security
+        // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
+        if (config.getRelyingPartySecret() == null) {
+            // if session is expired or other issues in retrieven code_verifier, then flow fails with 401, which is expected
+            body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
         } else {
-            String clientAuthHeader = getClientAuthHeader(config);
-            headers.add("Authorization", clientAuthHeader);
+            if (config.isClientAuthInBody()) {
+                body.add("client_secret", config.getRelyingPartySecret());
+            } else {
+                String clientAuthHeader = getClientAuthHeader(config);
+                headers.add("Authorization", clientAuthHeader);
+            }
         }
         headers.add("Accept", "application/json");
 
@@ -670,6 +681,16 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 );
         logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
         return responseEntity.getBody().get(getTokenFieldName(config));
+    }
+
+    private String getSessionValue(String value) {
+        try {
+            ServletRequestAttributes attr = (ServletRequestAttributes) RequestContextHolder.currentRequestAttributes();
+            return (String) SessionUtils.getStateParam(attr.getRequest().getSession(false), value);
+        } catch (Exception e) {
+            logger.warn("Exception", e);
+            return (String)"";
+        }
     }
 
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
