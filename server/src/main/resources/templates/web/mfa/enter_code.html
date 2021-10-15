@@ -25,10 +25,10 @@
 </div>
 <div class="island" layout:fragment="page-content">
     <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mbxl mfa-header"></h2>
-    <h1 class="plxl">Enter your Google Authentication Code</h1>
+    <h1 class="plxl">Enter your Authentication Code</h1>
     <div class="panel-body plxl">
         <p class="mtxl">
-            Enter the 6-digit code displayed in Google Authenticator app:
+            Enter the 6-digit code displayed in the Okta Verify app:
         </p>
         <form th:action="@{/login/mfa/verify.do}" method="post" novalidate="novalidate">
             <div class="page">
