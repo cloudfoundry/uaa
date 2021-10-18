@@ -64,7 +64,11 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
 
     @Override
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
-        String targetUrl = super.determineTargetUrl(request, response);
+        String targetUrl = request.getParameter("post_logout_redirect_uri");
+
+        if (targetUrl == null) {
+            targetUrl = super.determineTargetUrl(request, response);
+        }
 
         if(isInternalRedirect(targetUrl, request)) {
             return targetUrl;

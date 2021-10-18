@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -152,6 +153,22 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
+    public void createClientWithSecondarySecret() {
+        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders headers = getAuthenticatedHeaders(token);
+        var client = new ClientDetailsCreation();
+        client.setClientId(new RandomValueStringGenerator().generate());
+        client.setClientSecret("primarySecret");
+        client.setSecondaryClientSecret("secondarySecret");
+        client.setAuthorizedGrantTypes(List.of("client_credentials"));
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate()
+                .exchange(serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                        new HttpEntity<>(client, headers), Void.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+    }
+
+    @Test
     public void testCreateClients() throws Exception {
         doCreateClients();
     }
@@ -261,6 +278,24 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
             serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
             new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertEquals("invalid_client", result.getBody().getErrorCode());
+    }
+
+    @Test
+    public void createClientWithTooLongSecondarySecretIsRejected() throws Exception {
+        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders headers = getAuthenticatedHeaders(token);
+        var client = new ClientDetailsCreation();
+        client.setClientId(new RandomValueStringGenerator().generate());
+        client.setClientSecret("primarySecret");
+        client.setSecondaryClientSecret(SECRET_TOO_LONG);
+        client.setAuthorizedGrantTypes(List.of("client_credentials"));
+
+        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(client, headers), UaaException.class);
+
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
         assertEquals("invalid_client", result.getBody().getErrorCode());
     }

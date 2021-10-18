@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
@@ -196,7 +197,18 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) {
+    @Transactional
+    public ClientDetails createClientDetails(@RequestBody ClientDetailsCreation client) {
+        final var createdClientDetails = createClientDetailsInternal(client);
+        if (client.getSecondaryClientSecret() != null) {
+            clientDetailsValidator.getClientSecretValidator().validate(client.getSecondaryClientSecret());
+            clientRegistrationService.addClientSecret(createdClientDetails.getClientId(),
+                    client.getSecondaryClientSecret(), IdentityZoneHolder.get().getId());
+        }
+        return createdClientDetails;
+    }
+
+    private ClientDetails createClientDetailsInternal(BaseClientDetails client) {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
 
         return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
@@ -215,7 +227,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) {
         restrictedScopesValidator.validate(client, Mode.CREATE);
-        return createClientDetails(client);
+        return createClientDetailsInternal(client);
     }
 
     @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.POST)

@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
+import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -44,6 +46,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
+    private final DatabaseUrlModifier databaseUrlModifier;
 
     @Value("${database.maxParameters:-1}")
     private int maxSqlParameters;
@@ -60,11 +63,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             final JdbcTemplate jdbcTemplate,
             final TimeService timeService,
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
-            final IdentityZoneManager identityZoneManager) {
+            final IdentityZoneManager identityZoneManager,
+            final DatabaseUrlModifier databaseUrlModifier) {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
+        this.databaseUrlModifier = databaseUrlModifier;
     }
 
     public int getMaxSqlParameters() {
@@ -220,14 +225,14 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
     }
 
-     private final class UaaUserRowMapper implements RowMapper<UaaUser> {
-            @Override
-            public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
-                UaaUserPrototype prototype = getUaaUserPrototype(rs);
-                List<GrantedAuthority> authorities =
-                    AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(prototype.getId()));
-                return new UaaUser(prototype.withAuthorities(authorities));
-            }
+    private final class UaaUserRowMapper implements RowMapper<UaaUser> {
+        @Override
+        public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
+            UaaUserPrototype prototype = getUaaUserPrototype(rs);
+            List<GrantedAuthority> authorities =
+                AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(prototype.getId()));
+            return new UaaUser(prototype.withAuthorities(authorities));
+        }
 
         private String getAuthorities(final String userId) {
             Set<String> authorities = new HashSet<>();
@@ -237,13 +242,40 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
 
         protected void getAuthorities(Set<String> authorities, final List<String> memberIdList) {
-            List<Map<String, Object>> results = new LinkedList<>();
-            if (memberIdList.size() == 0) {
+            List<Map<String, Object>> results;
+            if (memberIdList.isEmpty()) {
                 return;
             }
             List<String> memberList = new ArrayList<>(memberIdList);
+            results = executeAuthoritiesQuery(memberList);
+
+            List<String> newMemberIdList = new ArrayList<>();
+            for (Map<String, Object> resultItem : results) {
+                String displayName = (String) resultItem.get("displayName");
+                String groupId = (String) resultItem.get("id");
+                if (!authorities.contains(displayName)) {
+                    authorities.add(displayName);
+                    newMemberIdList.add(groupId);
+                }
+            }
+            getAuthorities(authorities, newMemberIdList);
+        }
+
+        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) {
+            Vendor dbVendor = databaseUrlModifier.getDatabaseType();
+            if (Vendor.postgresql.equals(dbVendor)) {
+                return executeAuthoritiesQueryPostgresql(memberList);
+            } else if (Vendor.hsqldb.equals(dbVendor)) {
+                return executeAuthoritiesQueryHSQL(memberList);
+            } else {
+                return executeAuthoritiesQueryDefault(memberList);
+            }
+        }
+
+        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) {
+            List<Map<String,Object>> results = new ArrayList<>();
             while (!memberList.isEmpty()) {
-                StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
+                StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
                 int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
                 for (int i = 0; i < size - 1; i++) {
                     dynamicAuthoritiesQuery.append("?,");
@@ -253,20 +285,23 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 Object[] parameterList = ArrayUtils.addAll(new Object[] { identityZoneManager.getCurrentIdentityZoneId() }, memberList.subList(0, size).toArray());
 
                 results.addAll(jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList));
-
                 memberList = memberList.subList(size, memberList.size());
             }
-            List<String> newMemberIdList = new ArrayList<>();
+            return results;
+        }
 
-            for (Map<String, Object> record : results) {
-                String displayName = (String) record.get("displayName");
-                String groupId = (String) record.get("id");
-                if (!authorities.contains(displayName)) {
-                    authorities.add(displayName);
-                    newMemberIdList.add(groupId);
-                }
-            }
-            getAuthorities(authorities, newMemberIdList);
+        private List<Map<String, Object>> executeAuthoritiesQueryPostgresql(List<String> memberList) {
+            String arrayAuthoritiesQuery = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id = ANY(?)";
+            Object[] parameterList = new Object[] { identityZoneManager.getCurrentIdentityZoneId() , memberList.toArray(new String[0])};
+            return jdbcTemplate.queryForList(arrayAuthoritiesQuery, parameterList);
+        }
+
+        private List<Map<String, Object>> executeAuthoritiesQueryHSQL(List<String> memberList) {
+            String arrayAuthoritiesQuery = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id IN (UNNEST(?))";
+            Object[] parameterList = new Object[] { identityZoneManager.getCurrentIdentityZoneId() , memberList.toArray(new String[0])};
+            return jdbcTemplate.queryForList(arrayAuthoritiesQuery, parameterList);
         }
     }
+
+
 }

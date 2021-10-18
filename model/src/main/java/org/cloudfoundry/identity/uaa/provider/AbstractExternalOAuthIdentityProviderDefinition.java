@@ -29,6 +29,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private URL tokenKeyUrl;
     private String tokenKey;
     private URL userInfoUrl;
+    private URL logoutUrl;
     private String linkText;
     private boolean showLinkText = true;
     private boolean clientAuthInBody = false;
@@ -82,6 +83,15 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
 
     public T setUserInfoUrl(URL userInfoUrl) {
         this.userInfoUrl = userInfoUrl;
+        return (T) this;
+    }
+
+    public URL getLogoutUrl() {
+        return logoutUrl;
+    }
+
+    public T setLogoutUrl(URL logoutUrl) {
+        this.logoutUrl = logoutUrl;
         return (T) this;
     }
 
