@@ -198,6 +198,7 @@ cargo {
             property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
             property("smtp.host", "localhost")
             property("smtp.port", 2525)
+            property("java.security.egd", "file:/dev/./urandom")
         }
 
         containerProperties {
