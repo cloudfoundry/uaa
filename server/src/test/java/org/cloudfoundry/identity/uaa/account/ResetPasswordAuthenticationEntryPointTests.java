@@ -56,9 +56,9 @@ class ResetPasswordAuthenticationEntryPointTests {
         requestDispatcher = mock(RequestDispatcher.class);
 
         email = "test@test.org";
-        String code = "12345";
-        String password = "mypassword";
-        String passwordConfirmation = "mypassword";
+        var code = "12345";
+        var password = "mypassword";
+        var passwordConfirmation = "mypassword";
         messageCode = "form_error";
 
         when(request.getParameter("email")).thenReturn(email);

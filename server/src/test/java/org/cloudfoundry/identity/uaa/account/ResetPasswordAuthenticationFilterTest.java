@@ -75,11 +75,11 @@ class ResetPasswordAuthenticationFilterTest {
 
     @BeforeEach
     void setup() {
-        InMemoryExpiringCodeStore codeStore = new InMemoryExpiringCodeStore(new TimeServiceImpl());
-        String code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10 * 60 * 1000), "", IdentityZoneHolder.get().getId()).getCode();
+        var codeStore = new InMemoryExpiringCodeStore(new TimeServiceImpl());
+        var code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10 * 60 * 1000), "", IdentityZoneHolder.get().getId()).getCode();
 
         password = "test";
-        String passwordConfirmation = "test";
+        var passwordConfirmation = "test";
         email = "test@test.org";
 
         request = new MockHttpServletRequest("POST", "/reset_password.do");
