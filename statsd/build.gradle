@@ -19,6 +19,7 @@ dependencies {
     implementation(libraries.statsdClient)
     providedCompile(libraries.tomcatEmbed)
     providedRuntime(libraries.springBootStarterTomcat)
+    testImplementation(libraries.junit)
     testImplementation(libraries.mockito)
     testImplementation(libraries.springBootStarterTest)
 
