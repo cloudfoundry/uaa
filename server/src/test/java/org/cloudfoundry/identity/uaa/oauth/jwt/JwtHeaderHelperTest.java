@@ -81,14 +81,17 @@ class JwtHeaderHelperTest {
             assertThat(header.parameters.cty, is(validCty));
         }
 
-        @Tag("https://tools.ietf.org/html/rfc7519#section-5.3")
+        @Tag("https://tools.ietf.org/html/rfc7515#section-4")
         @Test
-        void shouldNotAllowAnyReplicatedHeaders(@RandomValue String randomVal) {
+        void shouldIgnoreAnyNonUnderstoodHeaders(@RandomValue String randomVal) {
             objectNode.put(randomVal, randomVal);
+            JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
-            Assertions.assertThrows(Exception.class, () ->
-                    JwtHeaderHelper.create(asBase64(objectNode.toString()))
-            );
+            assertThat(header.parameters.typ, is("JWT"));
+            assertThat(header.parameters.kid, is("key-id"));
+            assertThat(header.parameters.alg, is("key-alg"));
+            assertThat(header.parameters.enc, is("key-encoding"));
+            assertThat(header.parameters.iv, is("key-init-vector"));
         }
 
         @Tag("https://tools.ietf.org/html/rfc7516#section-4.1.2")
