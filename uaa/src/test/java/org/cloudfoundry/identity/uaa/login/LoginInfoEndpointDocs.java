@@ -14,7 +14,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.crypto.codec.Base64;
+import java.util.Base64;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -181,7 +181,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
         request.setPassword("koala");
         String body = mockMvc.perform(
                 post("/autologin")
-                        .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
+                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("admin:adminsecret".getBytes())))
                         .contentType(APPLICATION_JSON)
                         .accept(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))

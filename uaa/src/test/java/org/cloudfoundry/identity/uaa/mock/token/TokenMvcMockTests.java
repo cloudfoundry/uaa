@@ -43,7 +43,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.codec.Base64;
+import java.util.Base64;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -2657,7 +2657,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, userId, userScopes, OriginKeys.LOGIN_SERVER, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
-        String basicAuthForLoginClient = new String(Base64.encode(String.format("%s:%s", "login", "loginsecret").getBytes()));
+        String basicAuthForLoginClient = new String(Base64.getEncoder().encode(String.format("%s:%s", "login", "loginsecret").getBytes()));
 
         //the login server is matched by providing
         //1. Bearer token (will be authenticated for oauth.login scope)
@@ -3035,7 +3035,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userId = "testuser" + generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,uaa.user";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        String basicAuthForOauthClient = new String(Base64.encode(String.format("%s:%s", oauthClientId, SECRET).getBytes()));
+        String basicAuthForOauthClient = new String(Base64.getEncoder().encode(String.format("%s:%s", oauthClientId, SECRET).getBytes()));
 
         //success - regular password grant but client is authenticated using POST parameters
         mockMvc.perform(post("/oauth/token")
@@ -3167,7 +3167,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         clientDetailsService.addClientSecret(clientId, "newSecret", IdentityZoneHolder.get().getId());
         mockMvc.perform(post("/check_token")
-                .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
                 .param("token", access_token))
                 .andDo(print())
                 .andExpect(status().isOk());
@@ -3197,7 +3197,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             assertNotNull(access_token);
 
             mockMvc.perform(post("/check_token")
-                    .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+                    .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
                     .param("token", access_token))
                     .andExpect(status().isOk());
         }
@@ -3227,7 +3227,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         MockHttpServletResponse response = mockMvc.perform(post("/check_token")
-                .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
                 .param("token", access_token))
                 .andExpect(status().isBadRequest())
                 .andReturn().getResponse();
@@ -3262,7 +3262,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         clientDetailsService.deleteClientSecret(clientId, IdentityZoneHolder.get().getId());
 
         mockMvc.perform(post("/check_token")
-                .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
                 .param("token", access_token))
                 .andExpect(status().isOk());
     }
@@ -3277,7 +3277,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         String body = mockMvc.perform(post("/oauth/token")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
-                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":newSecret").getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode((clientId + ":newSecret").getBytes())))
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("client_secret", SECRET))
@@ -3290,7 +3290,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(access_token);
 
         mockMvc.perform(post("/check_token")
-                .header("Authorization", "Basic " + new String(Base64.encode("app:appclientsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("app:appclientsecret".getBytes())))
                 .param("token", access_token))
                 .andExpect(status().isOk());
     }

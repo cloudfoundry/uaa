@@ -185,7 +185,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         UriComponents location = UriComponentsBuilder.fromUri(URI.create(authCodeResponse.getHeader("Location"))).build();
         String code = location.getQueryParams().getFirst("code");
 
-        String clientAuthBase64 = new String(org.springframework.security.crypto.codec.Base64.encode(("login:loginsecret".getBytes())));
+        String clientAuthBase64 = new String(java.util.Base64.getEncoder().encode(("login:loginsecret".getBytes())));
         Snippet headerFields = requestHeaders(CLIENT_BASIC_AUTH_HEADER);
 
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
@@ -269,7 +269,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 opaqueFormatParameter
         );
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
+        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64.getEncoder().encoded client details in the format: `Basic client_id:client_secret`"));
 
         Snippet responseFields = responseFields(
                 accessTokenFieldDescriptor,
@@ -510,7 +510,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 opaqueFormatParameter
         );
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
+        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64.getEncoder().encoded client details in the format: `Basic client_id:client_secret`"));
 
         Snippet responseFields = responseFields(
                 accessTokenFieldDescriptor,
@@ -575,7 +575,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 jtiFieldDescriptor
         );
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
+        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64.getEncoder().encoded client details in the format: `Basic client_id:client_secret`"));
         mockMvc.perform(postForToken)
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, requestHeaders, responseFields))
                 .andExpect(status().isOk());

@@ -23,7 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.crypto.codec.Base64;
+import java.util.Base64;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.io.File;
@@ -70,7 +70,7 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
             post("/check_token")
                 .param("token", token)
                 .header(AUTHORIZATION,
-                        "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
+                        "Basic " + new String(Base64.getEncoder().encode((client.getClientId() + ":" + SECRET).getBytes())))
         )
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))

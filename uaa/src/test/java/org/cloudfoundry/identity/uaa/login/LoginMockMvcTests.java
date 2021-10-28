@@ -38,7 +38,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.crypto.codec.Base64;
+import java.util.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
@@ -2187,7 +2187,7 @@ public class LoginMockMvcTests {
         request.setUsername("marissa");
         request.setPassword("koala");
         mockMvc.perform(post("/autologin")
-                .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -2210,7 +2210,7 @@ public class LoginMockMvcTests {
         request.setUsername("marissa");
         request.setPassword("koala");
         mockMvc.perform(post("/autologin")
-                .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
+                .header("Authorization", "Basic " + new String(Base64.getEncoder().encode("admin:adminsecret".getBytes())))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());
