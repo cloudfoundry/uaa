@@ -9,8 +9,10 @@ import org.slf4j.Logger;
 
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PasswordChangeFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
