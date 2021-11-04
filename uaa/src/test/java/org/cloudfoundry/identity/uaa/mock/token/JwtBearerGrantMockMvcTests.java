@@ -46,6 +46,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -81,7 +82,8 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         perform_grant_in_zone(defaultZone,
                 getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.access_token").isNotEmpty());
+            .andExpect(jsonPath("$.access_token").isNotEmpty())
+            .andExpect(jsonPath("$.refresh_token").isNotEmpty());
     }
 
     @Test
@@ -95,7 +97,8 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         createProvider(zone, getTokenVerificationKey(originZone.getIdentityZone()));
         perform_grant_in_zone(zone, getUaaIdToken(originZone.getIdentityZone(), originClient, originUser))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.access_token").isNotEmpty());
+            .andExpect(jsonPath("$.access_token").isNotEmpty())
+            .andExpect(jsonPath("$.refresh_token").isNotEmpty());
     }
 
     @Test
@@ -109,7 +112,8 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
         perform_grant_in_zone(defaultZone, getUaaIdToken(defaultZone, defaultZoneClient, defaultZoneUser))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.access_token").isNotEmpty());
+                .andExpect(jsonPath("$.access_token").isNotEmpty())
+                .andExpect(jsonPath("$.refresh_token").isNotEmpty());
     }
 
     @Test
@@ -212,7 +216,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
             generator.generate().toLowerCase(),
             "",
             "openid",
-            GRANT_TYPE_JWT_BEARER,
+            GRANT_TYPE_JWT_BEARER + "," + GRANT_TYPE_REFRESH_TOKEN,
             null
         );
         details.setClientSecret(SECRET);
