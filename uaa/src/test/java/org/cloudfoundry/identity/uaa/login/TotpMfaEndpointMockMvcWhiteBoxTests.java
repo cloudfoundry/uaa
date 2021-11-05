@@ -238,19 +238,6 @@ class TotpMfaEndpointMockMvcWhiteBoxTests {
         assertThat(eventCaptor.getAllValues().get(13), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
 
-    @Test
-    void testQRDoesNotChangeDuringOneSession() throws Exception {
-        redirectToMFARegistration(mockMvc, mockHttpSession, scimUser, password);
-        assertFalse(userGoogleMfaCredentialsProvisioning.activeUserCredentialExists(scimUser.getId(), mfaProvider.getId()));
-
-        MvcResult res = performGetMfaRegister(mockMvc, mockHttpSession).andExpect(view().name("mfa/qr_code")).andReturn();
-        String qrUrl = (String) res.getModelAndView().getModel().get("qrurl");
-
-        performGetMfaRegister(mockMvc, mockHttpSession)
-                .andExpect(view().name("mfa/qr_code"))
-                .andExpect(model().attribute("qrurl", qrUrl));
-    }
-
     private static ScimUser createUser(ScimUserProvisioning scimUserProvisioning, String password) {
         ScimUser user = new ScimUser(null, new RandomValueStringGenerator(5).generate(), "first", "last");
 
