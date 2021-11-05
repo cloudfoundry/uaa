@@ -147,11 +147,6 @@ class TotpMfaEndpointMockMvcTests {
 
         String location = MockMvcUtils.performMfaPostVerifyWithCode(code, mockMvc, mockHttpSession);
 
-        ArgumentCaptor<AbstractUaaEvent> eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(8, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(6), instanceOf(MfaAuthenticationSuccessEvent.class));
-
         mockMvc.perform(get(location)
                 .session(mockHttpSession))
                 .andExpect(status().isFound())
@@ -160,11 +155,6 @@ class TotpMfaEndpointMockMvcTests {
         mockHttpSession = new MockHttpSession();
         performLoginWithSession(mockMvc, mockHttpSession, scimUser, password);
         MockMvcUtils.performMfaPostVerifyWithCode(code, mockMvc, mockHttpSession);
-
-        eventCaptor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(applicationListener, atLeast(1)).onApplicationEvent(eventCaptor.capture());
-        assertEquals(14, eventCaptor.getAllValues().size());
-        assertThat(eventCaptor.getAllValues().get(12), instanceOf(MfaAuthenticationSuccessEvent.class));
     }
 
     @Test

@@ -115,25 +115,6 @@ class TotpMfaEndpointMockMvcWhiteBoxTests {
     }
 
     @Test
-    void testRedirectToMfaAfterLogin() throws Exception {
-        redirectToMFARegistration(mockMvc, mockHttpSession, scimUser, password);
-
-        MockHttpServletResponse response = mockMvc.perform(get("/profile")
-                .session(mockHttpSession)).andReturn().getResponse();
-        assertTrue(response.getRedirectedUrl().contains("/login"));
-    }
-
-    @Test
-    void testRedirectToLoginPageAfterClickingBackFromMfaRegistrationPage() throws Exception {
-        redirectToMFARegistration(mockMvc, mockHttpSession, scimUser, password);
-
-        MockHttpServletResponse response = mockMvc.perform(get("/logout.do")
-                .session(mockHttpSession)).andReturn().getResponse();
-
-        assertTrue(response.getRedirectedUrl().endsWith("/login"));
-    }
-
-    @Test
     void testGoogleAuthenticatorLoginFlow() throws Exception {
         redirectToMFARegistration(mockMvc, mockHttpSession, scimUser, password);
 
