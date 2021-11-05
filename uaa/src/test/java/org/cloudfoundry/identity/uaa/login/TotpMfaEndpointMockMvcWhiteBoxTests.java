@@ -51,7 +51,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DefaultTestContext
-class TotpMfaEndpointMockMvcTests {
+class TotpMfaEndpointMockMvcWhiteBoxTests {
 
     private String adminToken;
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
