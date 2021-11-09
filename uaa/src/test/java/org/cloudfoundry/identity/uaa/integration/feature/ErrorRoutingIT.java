@@ -9,6 +9,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class ErrorRoutingIT {
@@ -29,5 +33,14 @@ public class ErrorRoutingIT {
 
         Assert.assertTrue("Check if on the error page", webDriver.findElement(By.tagName("h2")).getText().contains("Uh oh."));
         Assert.assertTrue("Check if on the error page", webDriver.findElement(By.tagName("h2")).getText().contains("Something went amiss."));
+    }
+
+    @Test
+    public void testStatusCodeToErrorPage() throws IOException {
+        HttpURLConnection cn = (HttpURLConnection)new URL(baseUrl + "/error").openConnection();
+        cn.setRequestMethod("GET");
+        // connection initiate
+        cn.connect();
+        Assert.assertEquals("Check status code is 200", cn.getResponseCode(), 200);
     }
 }
