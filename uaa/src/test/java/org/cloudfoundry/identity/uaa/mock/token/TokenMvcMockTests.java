@@ -187,7 +187,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .accept(APPLICATION_JSON)
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andExpect(status().isNotAcceptable())
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"))
+                .andExpect(header().string(CONTENT_TYPE, containsString("application/json")))
                 .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
                 .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
@@ -2518,7 +2518,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_scope"))
                 .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1")))
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+                .andExpect(header().string(CONTENT_TYPE, containsString("application/json")));
     }
 
     @Test
@@ -4247,7 +4247,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .contentType(APPLICATION_FORM_URLENCODED))
                 .andDo(print())
                 .andExpect(status)
-                .andExpect(header().string(CONTENT_TYPE, "application/json;charset=UTF-8"));
+                .andExpect(header().string(CONTENT_TYPE, containsString("application/json")));
     }
 
     private void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) {
