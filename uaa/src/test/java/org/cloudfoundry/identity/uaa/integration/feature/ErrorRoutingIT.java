@@ -37,10 +37,18 @@ public class ErrorRoutingIT {
 
     @Test
     public void testStatusCodeToErrorPage() throws IOException {
-        HttpURLConnection cn = (HttpURLConnection)new URL(baseUrl + "/error").openConnection();
+        CallErrorPageAndCheckHttpStatusCode("/error", 200);
+        CallErrorPageAndCheckHttpStatusCode("/error404", 200);
+        CallErrorPageAndCheckHttpStatusCode("/error500", 200);
+        CallErrorPageAndCheckHttpStatusCode("/errorAny", 200);
+
+    }
+
+    private void CallErrorPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {
+        HttpURLConnection cn = (HttpURLConnection)new URL(baseUrl + errorPath).openConnection();
         cn.setRequestMethod("GET");
         // connection initiate
         cn.connect();
-        Assert.assertEquals("Check status code is 200", cn.getResponseCode(), 200);
+        Assert.assertEquals("Check status code from " + errorPath + " is " + codeExpected, cn.getResponseCode(), codeExpected);
     }
 }
