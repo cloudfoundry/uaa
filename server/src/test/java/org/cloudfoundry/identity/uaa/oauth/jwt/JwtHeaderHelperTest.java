@@ -79,7 +79,7 @@ class JwtHeaderHelperTest {
 
         @Tag("https://tools.ietf.org/html/rfc7515#section-4")
         @Test
-        void shouldAllowAndIgnoreAnyReplicatedHeaders(@RandomValue String randomVal) {
+        void shouldIgnoreAnyNonUnderstoodHeaders(@RandomValue String randomVal) {
             objectNode.put(randomVal, randomVal);
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
             validateJwtHeaders(header);
