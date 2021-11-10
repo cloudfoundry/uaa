@@ -61,7 +61,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value("true"))
                 .andExpect(jsonPath("$.client_id").value(CLIENT_ID))
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8));
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE));
     }
 
     @Test
@@ -75,7 +75,7 @@ class IntrospectEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active").value("false"))
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8));
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON_VALUE));
     }
 
     @Test
