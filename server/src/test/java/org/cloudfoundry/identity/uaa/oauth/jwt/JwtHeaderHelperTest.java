@@ -39,11 +39,7 @@ class JwtHeaderHelperTest {
         void shouldDeserializeWithValidHeaders() {
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
-            assertThat(header.parameters.typ, is("JWT"));
-            assertThat(header.parameters.kid, is("key-id"));
-            assertThat(header.parameters.alg, is("key-alg"));
-            assertThat(header.parameters.enc, is("key-encoding"));
-            assertThat(header.parameters.iv, is("key-init-vector"));
+            validateJwtHeaders(header);
         }
 
         @Test
@@ -86,12 +82,7 @@ class JwtHeaderHelperTest {
         void shouldIgnoreAnyNonUnderstoodHeaders(@RandomValue String randomVal) {
             objectNode.put(randomVal, randomVal);
             JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
-
-            assertThat(header.parameters.typ, is("JWT"));
-            assertThat(header.parameters.kid, is("key-id"));
-            assertThat(header.parameters.alg, is("key-alg"));
-            assertThat(header.parameters.enc, is("key-encoding"));
-            assertThat(header.parameters.iv, is("key-init-vector"));
+            validateJwtHeaders(header);
         }
 
         @Tag("https://tools.ietf.org/html/rfc7516#section-4.1.2")
@@ -179,6 +170,13 @@ class JwtHeaderHelperTest {
         }
     }
 
+    private void validateJwtHeaders(JwtHeader header) {
+        assertThat(header.parameters.typ, is("JWT"));
+        assertThat(header.parameters.kid, is("key-id"));
+        assertThat(header.parameters.alg, is("key-alg"));
+        assertThat(header.parameters.enc, is("key-encoding"));
+        assertThat(header.parameters.iv, is("key-init-vector"));
+    }
 
     private String asBase64(String jwt) {
         return new String(Base64.encode(jwt.getBytes()));
