@@ -35,7 +35,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.web.util.HtmlUtils;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -132,7 +131,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE))
             .andExpect(status().isNotAcceptable())
-            .andExpect(header().string(CONTENT_TYPE, containsString("application/json")))
+            .andExpect(header().string(CONTENT_TYPE, stringApplicationJsonOrApplicationJsonUtf8()))
             .andExpect(jsonPath("$.error").value("query_string_not_allowed"))
             .andExpect(jsonPath("$.error_description").value("Parameters must be passed in the body of the request"));
     }
@@ -156,7 +155,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE)
                 .param("token", token))
             .andExpect(matcher)
-            .andExpect(header().string(CONTENT_TYPE, containsString("application/json")));
+            .andExpect(header().string(CONTENT_TYPE, stringApplicationJsonOrApplicationJsonUtf8()));
     }
 
     ResultActions get_check_token(ResultMatcher matcher) throws Exception {
@@ -166,6 +165,6 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
                 .header(ACCEPT, APPLICATION_JSON_VALUE)
                 .header(CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE))
             .andExpect(matcher)
-            .andExpect(header().string(CONTENT_TYPE, containsString("application/json")));
+            .andExpect(header().string(CONTENT_TYPE, stringApplicationJsonOrApplicationJsonUtf8()));
     }
 }

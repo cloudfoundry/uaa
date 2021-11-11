@@ -21,14 +21,18 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.*;
+import org.hamcrest.Matcher;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -37,7 +41,9 @@ import java.util.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.Matchers.either;
+import static org.hamcrest.Matchers.equalTo;
+import static org.springframework.http.MediaType.*;
 import static org.springframework.util.StringUtils.hasText;
 
 @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
@@ -158,8 +164,8 @@ public abstract class AbstractTokenMockMvcTests {
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
         ScimUser scimUser = jdbcScimUserProvisioning.retrieve(user.getId(), IdentityZone.getUaaZoneId());
-        assertNull(scimUser.getLastLogonTime());
-        assertNull(scimUser.getPreviousLogonTime());
+        Assertions.assertNull(scimUser.getLastLogonTime());
+        Assertions.assertNull(scimUser.getPreviousLogonTime());
         return username;
     }
 
@@ -302,6 +308,24 @@ public abstract class AbstractTokenMockMvcTests {
 
         user.setGroups(groups);
         return user;
+    }
+
+    protected Matcher<String> stringApplicationJsonOrApplicationJsonUtf8() {
+        return either(equalTo(MediaType.APPLICATION_JSON_VALUE))
+                .or(equalTo(APPLICATION_JSON_UTF8_VALUE));
+    }
+
+    protected ResultMatcher contentTypeApplicationJsonOrApplicationJsonUtf8() {
+        return result -> {
+            String actual = result.getResponse().getContentType();
+            Assertions.assertNotNull(actual, "Content type not set");
+            MediaType actualType = MediaType.parseMediaType(actual);
+            Assertions.assertTrue(APPLICATION_JSON.equals(actualType) ||
+                    APPLICATION_JSON_UTF8.equals(actualType),
+                    "Content type is " + APPLICATION_JSON + " or " +
+                            APPLICATION_JSON_UTF8 + ": actualTYpe=" +
+                            actualType);
+        };
     }
 
     private static void addMember(
