@@ -92,6 +92,8 @@ dependencies {
         exclude(group: 'ch.qos.logback')
     }
 
+    runtimeOnly(libraries.splunkObservability)
+
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
     testImplementation(libraries.springTest)

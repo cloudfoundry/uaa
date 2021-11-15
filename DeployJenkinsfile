@@ -11,12 +11,15 @@ pipeline {
     }
     options {
         skipDefaultCheckout()
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+        buildDiscarder(logRotator(artifactNumToKeepStr: '15', numToKeepStr: '15', artifactDaysToKeepStr: '90',
+                daysToKeepStr: '90'))
     }
     parameters  {
         choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-integration\nvpc\neu-central\ngovw\nperf-cf3', description: 'This specifies which point of presence to deploy to')
         booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
         booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
+        string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
+                description: 'uaa-cf-release repo branch to use for testing/deployment')
     }
     stages{
         stage('Deploy') {
@@ -30,28 +33,34 @@ pipeline {
             environment {
                 CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
                 ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                SPLUNK_OTEL_ACCESS_TOKEN = credentials("SPLUNK_OTEL_ACCESS_TOKEN")
             }
             steps {
                 dir('uaa') {
                     checkout scm
                 }
                 script {
-                    APP_VERSION = sh (returnStdout: true, script: '''
-                        grep 'version' uaa/gradle.properties | sed 's/version=//'
-                        ''').trim()
-                    echo "Downloading UAA  ${APP_VERSION} Artifact Artifactory"
+                    def util = load('uaa/JenkinsfileCommon.groovy')
+                    ARTIFACTORY_PATH = util.getArtifactoryPath()
+                    WAR_FILE_NAME = util.getWarFileName()
                     def downloadSpec = """{
                         "files": [
                             {
                                 "target": "deploy-workspace/",
                                 "flat": "true",
-                                "pattern": "MAAXA/builds/uaa/${APP_VERSION}/*.war"
+                                "pattern": "${ARTIFACTORY_PATH}/*.war"
                             }
                         ]
                     }"""
-                    sh 'pwd && ls -ltr'
+
+                    echo "Downloading ${WAR_FILE_NAME} from ${ARTIFACTORY_PATH}"
                     buildGeArtServer.download(downloadSpec)
-                    sh "ls -ltr deploy-workspace/"
+                    // NOTE: ci-deploy.sh depends on deploy-workspace/${WAR_FILE_NAME} location and file name format
+                    // So make sure it is what got downloaded.
+                    sh """
+                        ls -l "deploy-workspace/${WAR_FILE_NAME}" || \
+                          (echo "${WAR_FILE_NAME} not found!" && ls -l deploy-workspace && exit 1)
+                       """
                 }
 
                 dir('deploy-workspace') {
@@ -59,7 +68,9 @@ pipeline {
                 }
 
                 dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                        branch: params.UAA_CI_CONFIG_BRANCH
                 }
                 sh '''#!/bin/bash -ex
 
@@ -130,8 +141,14 @@ pipeline {
                     unstash 'uaa-war'
                 }
 
+                dir('uaa') {
+                    checkout scm
+                }
+
                 script {
-                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory" 
+                    def util = load('uaa/JenkinsfileCommon.groovy')
+                    APP_VERSION = util.getAppVersion()
+                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
                     def uploadSpec = """{
                         "files": [
                             {

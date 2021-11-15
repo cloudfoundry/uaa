@@ -122,6 +122,8 @@ libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:2.0.0"
 libraries.nurego = "com.nurego:nurego-java:2.1"
 libraries.predixAudit = "com.ge.predix.audit:audit-sdk:0.0.6"
 libraries.springLogFilter = "com.ge.predix:spring-log-filter:3.0.0"
+libraries.splunkObservability = "com.splunk:splunk-otel-javaagent:1.4.0"
+
 
 // gradle plugins
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"

@@ -3,7 +3,6 @@ def buildGeArtServer = Artifactory.server('build.ge')
 
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
 def NODE = nodeDetails("uaa-upgrade")
-def APP_VERSION = 'UNKNOWN'
 
 pipeline {
     agent none
@@ -12,7 +11,8 @@ pipeline {
     }
     options {
         skipDefaultCheckout()
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+        buildDiscarder(logRotator(artifactNumToKeepStr: '15', numToKeepStr: '15', artifactDaysToKeepStr: '90',
+                daysToKeepStr: '90'))
     }
     parameters {
         booleanParam(name: 'UNIT_TESTS', defaultValue: true, description: 'Run Unit tests')
@@ -20,6 +20,8 @@ pipeline {
         booleanParam(name: 'INTEGRATION_TESTS', defaultValue: true, description: 'Run Integration tests')
         booleanParam(name: 'DEGRADED_TESTS', defaultValue: true, description: 'Run degraded mode tests')
         booleanParam(name: 'PUSH_TO_BUILD_GE', defaultValue: false, description: 'Publish to build artifactory')
+        string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
+                        description: 'uaa-cf-release repo branch to use for testing/deployment')
     }
     stages {
         stage('Build and run Tests') {
@@ -35,7 +37,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -78,7 +82,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -137,7 +143,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -201,7 +209,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -268,6 +278,7 @@ pipeline {
                     environment {
                         CF_CREDENTIALS = credentials("CF_CREDENTIALS_CF3_RELEASE_CANDIDATE")
                         ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_CF3_INTEGRATION")
+                        SPLUNK_OTEL_ACCESS_TOKEN = credentials("SPLUNK_OTEL_ACCESS_TOKEN")
                     }
                     agent {
                         docker {
@@ -279,7 +290,9 @@ pipeline {
                     steps {
                         echo env.BRANCH_NAME
                         dir('uaa-cf-release') {
-                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
                         }
                         dir('uaa') {
                             checkout scm
@@ -391,26 +404,27 @@ pipeline {
                     checkout scm
                 }
                 dir('build') {
-                        unstash 'uaa-war'
+                    unstash 'uaa-war'
                 }
-                dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false, url: 'https://github.build.ge.com/predix/uaa-cf-release.git', branch: 'master'
-                }
+
                 script {
-                    APP_VERSION = sh (returnStdout: true, script: '''
-                        grep 'version' uaa/gradle.properties | sed 's/version=//'
-                        ''').trim()
-                    echo "Uploading UAA ${APP_VERSION} build to Artifactory"
-
-
+                    def util = load('uaa/JenkinsfileCommon.groovy')
+                    ARTIFACTORY_PATH = util.getArtifactoryPath()
+                    WAR_FILE_NAME = util.getWarFileName()
+                    sh """
+                        ls -l "build/${WAR_FILE_NAME}" || \
+                        (echo "build/${WAR_FILE_NAME} not found!" && ls -l build && exit 1)
+                    """
                     def uploadSpec = """{
                        "files": [
                            {
-                               "pattern": "build/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                               "target": "MAAXA/builds/uaa/${APP_VERSION}/"
+                               "pattern": "build/${WAR_FILE_NAME}",
+                               "target": "${ARTIFACTORY_PATH}/"
                            }
                        ]
                     }"""
+
+                    echo "Uploading ${WAR_FILE_NAME} to ${ARTIFACTORY_PATH}/"
                     def buildInfo = buildGeArtServer.upload(uploadSpec)
                     buildGeArtServer.publishBuildInfo(buildInfo)
                 }
