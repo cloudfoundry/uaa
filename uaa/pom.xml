@@ -173,7 +173,17 @@
           <artifactId>apacheds-protocol-ldap</artifactId>
           <groupId>org.apache.directory.server</groupId>
         </exclusion>
+        <exclusion>
+          <groupId>org.glassfish</groupId>
+          <artifactId>jakarta.el</artifactId>
+        </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish</groupId>
+      <artifactId>jakarta.el</artifactId>
+      <scope>compile</scope>
+      <version>3.0.4</version>
     </dependency>
     <dependency>
       <groupId>javax.xml.bind</groupId>

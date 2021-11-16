@@ -27,7 +27,9 @@ dependencies {
 
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(libraries.springBootStarter)
-    implementation(libraries.springBootStarterWeb)
+    implementation(libraries.springBootStarterWeb){
+        exclude(group: "org.glassfish", module: "jakarta.el")
+    }
     implementation(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
@@ -41,6 +43,7 @@ dependencies {
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.javaxXmlBindCore)
     implementation(libraries.javaxXmlBindImpl)
+    implementation(libraries.jakartaEl)
 
     providedCompile(libraries.tomcatEmbed)
 

@@ -12,9 +12,14 @@ repositories {
 
 dependencies {
     implementation(project(":cloudfoundry-identity-statsd-lib"))
-    implementation(libraries.springBootStarterWeb)
+    implementation(libraries.springBootStarterWeb){
+        exclude(group: "org.glassfish", module: "jakarta.el")
+    }
     providedCompile(libraries.tomcatEmbed)
-    providedRuntime(libraries.springBootStarterTomcat)
+    providedRuntime(libraries.springBootStarterTomcat){
+        exclude(group: "org.glassfish", module: "jakarta.el")
+    }
+    implementation(libraries.jakartaEl)
 }
 
 test {
