@@ -11,6 +11,7 @@ import org.springframework.web.util.HtmlUtils;
 
 import java.util.Objects;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.contentTypeApplicationJsonOrApplicationJsonUtf8;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.springframework.http.HttpHeaders.ACCEPT;

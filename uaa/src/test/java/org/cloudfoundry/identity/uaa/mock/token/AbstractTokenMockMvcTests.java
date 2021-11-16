@@ -310,24 +310,6 @@ public abstract class AbstractTokenMockMvcTests {
         return user;
     }
 
-    protected Matcher<String> stringApplicationJsonOrApplicationJsonUtf8() {
-        return either(equalTo(MediaType.APPLICATION_JSON_VALUE))
-                .or(equalTo(APPLICATION_JSON_UTF8_VALUE));
-    }
-
-    protected ResultMatcher contentTypeApplicationJsonOrApplicationJsonUtf8() {
-        return result -> {
-            String actual = result.getResponse().getContentType();
-            Assertions.assertNotNull(actual, "Content type not set");
-            MediaType actualType = MediaType.parseMediaType(actual);
-            Assertions.assertTrue(APPLICATION_JSON.equals(actualType) ||
-                    APPLICATION_JSON_UTF8.equals(actualType),
-                    "Content type is " + APPLICATION_JSON + " or " +
-                            APPLICATION_JSON_UTF8 + ": actualTYpe=" +
-                            actualType);
-        };
-    }
-
     private static void addMember(
             final JdbcScimGroupMembershipManager groupMembershipManager,
             final ScimUser user,

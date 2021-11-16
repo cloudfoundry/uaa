@@ -52,6 +52,7 @@ import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.Assert;
+import org.junit.jupiter.api.Assertions;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -106,11 +107,10 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.SAVED_REQUEST_SESSION_ATTRIBUTE;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.springframework.http.HttpHeaders.HOST;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -321,6 +321,24 @@ public final class MockMvcUtils {
         SearchResults<ScimUser> results = JsonUtils.readValue(userResult.getResponse().getContentAsString(),
             new TypeReference<SearchResults<ScimUser>>(){});
         return results.getResources().get(0);
+    }
+
+    public static org.hamcrest.Matcher<String> stringApplicationJsonOrApplicationJsonUtf8() {
+        return either(equalTo(MediaType.APPLICATION_JSON_VALUE))
+                .or(equalTo(APPLICATION_JSON_UTF8_VALUE));
+    }
+
+    public static ResultMatcher contentTypeApplicationJsonOrApplicationJsonUtf8() {
+        return result -> {
+            String actual = result.getResponse().getContentType();
+            Assertions.assertNotNull(actual, "Content type not set");
+            MediaType actualType = MediaType.parseMediaType(actual);
+            Assertions.assertTrue(APPLICATION_JSON.equals(actualType) ||
+                    APPLICATION_JSON_UTF8.equals(actualType),
+                    "Content type is " + APPLICATION_JSON + " or " +
+                            APPLICATION_JSON_UTF8 + ": actualTYpe=" +
+                            actualType);
+        };
     }
 
     public static class MockSavedRequest extends DefaultSavedRequest {
