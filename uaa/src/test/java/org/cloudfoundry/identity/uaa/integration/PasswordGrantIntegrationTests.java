@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.integration;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -27,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 public class PasswordGrantIntegrationTests {
@@ -49,7 +51,7 @@ public class PasswordGrantIntegrationTests {
         BaseClientDetails client = addUserGroupsRequiredClient();
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), client.getClientId(), "secret", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
-        assertEquals("application/json;charset=UTF-8", responseEntity.getHeaders().get("Content-Type").get(0));
+        assertThat(responseEntity.getHeaders().get("Content-Type").get(0), MockMvcUtils.stringApplicationJsonOrApplicationJsonUtf8());
         Map<String, Object> errors = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
         assertEquals(HtmlUtils.htmlEscape("User does not meet the client's required group criteria.", "ISO-8859-1"), errors.get("error_description"));
         assertEquals("invalid_scope", errors.get("error"));
