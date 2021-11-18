@@ -21,6 +21,7 @@ versions.springVersion = "5.3.9"
 versions.xmlBind = "2.3.0.1"
 versions.tomcatCargoVersion = "9.0.50"
 versions.guavaVersion = "30.1.1-jre"
+versions.jakartaElVersion = "3.0.4"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.3"
@@ -116,6 +117,7 @@ libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.24"
 libraries.velocity = "org.apache.velocity:velocity-engine-core:2.2"
 libraries.zxing = "com.google.zxing:javase:3.4.0"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt"
+libraries.jakartaEl = "org.glassfish:jakarta.el:${versions.jakartaElVersion}"
 
 // Predix dependencies
 libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:2.0.0"

@@ -7,7 +7,9 @@ repositories {
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(libraries.springBootStarter)
-    implementation(libraries.springBootStarterWeb)
+    implementation(libraries.springBootStarterWeb){
+        exclude(group: "org.glassfish", module: "jakarta.el")
+    }
     implementation(libraries.springBootStarterLog4j2)
     implementation(libraries.statsdClient)
     testImplementation(libraries.junit)
@@ -16,6 +18,7 @@ dependencies {
 
     implementation(libraries.jacksonDataformatYaml)
     implementation(libraries.jacksonDatabind)
+    implementation(libraries.jakartaEl)
 }
 
 test {
