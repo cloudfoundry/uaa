@@ -302,6 +302,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @EnableWebMvc
+    @Import(ThymeleafConfig.class)
     static class ContextConfiguration extends WebMvcConfigurerAdapter {
 
         @Override

@@ -52,6 +52,10 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
+@ContextConfiguration(classes = {
+        ThymeleafAdditional.class,
+        ThymeleafConfig.class
+})
 class EmailAccountCreationServiceTests {
 
     private EmailAccountCreationService emailAccountCreationService;
