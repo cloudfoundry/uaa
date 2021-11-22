@@ -217,7 +217,6 @@ class AccountsControllerTest {
     }
 
     @EnableWebMvc
-    @Import(ThymeleafConfig.class)
     static class ContextConfiguration implements WebMvcConfigurer {
 
         @Override

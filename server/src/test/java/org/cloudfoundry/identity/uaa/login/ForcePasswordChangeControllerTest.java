@@ -24,7 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
-@ContextConfiguration(classes = {ThymeleafAdditional.class, ThymeleafConfig.class})
 class ForcePasswordChangeControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
