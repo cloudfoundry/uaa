@@ -12,6 +12,8 @@ processResources {
 
 apply(plugin: "org.springframework.boot")
 bootWar { enabled = false }
+jar { enabled = false }
+war { archiveClassifier = '' }
 war { enabled = true }
 
 
