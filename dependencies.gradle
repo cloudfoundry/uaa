@@ -10,7 +10,6 @@ ext["commons-codec.version"] = "1.13"
 ext["hibernate-validator.version"] = "6.0.19.Final"
 ext["flyway.version"] = "5.2.4"
 
-
 def versions = [:]
 
 // Versions shared between multiple dependencies
@@ -18,7 +17,7 @@ versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
 versions.bouncyCastleVersion = "1.68"
 versions.hamcrestVersion = "2.2"
-versions.springBootVersion = "2.3.+"
+versions.springBootVersion = "2.4.13"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.3.6.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
@@ -27,6 +26,7 @@ versions.tomcatVersion = "${tomcatVersion}"
 versions.xmlBind = "2.3.0"
 versions.statsdClientVersion = "3.1.0"
 versions.junitVersion = "4.13"
+versions.thymeleafDialectVersion = "2.4.1"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
@@ -107,7 +107,7 @@ libraries.springTx = "org.springframework:spring-tx"
 libraries.springWeb = "org.springframework:spring-web"
 libraries.springWebMvc = "org.springframework:spring-webmvc"
 libraries.statsdClient = "com.timgroup:java-statsd-client:${versions.statsdClientVersion}"
-libraries.thymeleafDialect = "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect"
+libraries.thymeleafDialect = "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect:${versions.thymeleafDialectVersion}"
 libraries.thymeleafExtrasSpringSecurity5 = "org.thymeleaf.extras:thymeleaf-extras-springsecurity5"
 libraries.thymeleafSpring5 = "org.thymeleaf:thymeleaf-spring5"
 libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatVersion}"
