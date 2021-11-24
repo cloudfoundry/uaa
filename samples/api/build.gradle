@@ -29,6 +29,7 @@ dependencies {
 
     testImplementation(identityServer.configurations.testCompile.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
+    testImplementation(libraries.junit)
 }
 
 test {
