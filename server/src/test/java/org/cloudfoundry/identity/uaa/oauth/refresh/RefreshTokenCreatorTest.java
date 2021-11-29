@@ -21,14 +21,14 @@ import org.springframework.security.oauth2.common.exceptions.InsufficientScopeEx
 import java.util.*;
 
 import static com.jayway.jsonassert.impl.matcher.IsMapContainingKey.hasKey;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AMR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -154,24 +154,5 @@ public class RefreshTokenCreatorTest {
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
         assertThat(refreshToken, is(nullValue()));
-    }
-
-    @Test
-    public void isRefreshTokenSupported() {
-        Set<String> scope = Set.of("openid");
-        assertTrue(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_AUTHORIZATION_CODE, scope));
-        assertTrue(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_PASSWORD, scope));
-        assertTrue(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_USER_TOKEN, scope));
-        assertTrue(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_REFRESH_TOKEN, scope));
-        assertTrue(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_SAML2_BEARER, scope));
-        assertTrue(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_JWT_BEARER, scope));
-        assertFalse(refreshTokenCreator.isRefreshTokenSupported(
-                GRANT_TYPE_CLIENT_CREDENTIALS, scope));
     }
 }
