@@ -32,6 +32,9 @@ dependencies {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
+    implementation(libraries.thymeLeaf) {
+        exclude(module: "ognl")
+    }
     runtimeOnly(libraries.springSecurityConfig)
     runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
