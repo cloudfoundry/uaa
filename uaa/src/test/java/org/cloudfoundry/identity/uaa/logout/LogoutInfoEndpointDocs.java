@@ -22,8 +22,10 @@ class LogoutInfoEndpointDocs extends EndpointDocs {
     void logout() throws Exception {
         Snippet requestParameters = requestParameters(
                 parameterWithName("redirect").optional("Identity Zone redirect uri").type(STRING).description("On a successful logout redirect the user to here, provided the URL is whitelisted"),
-                parameterWithName("client_id").optional(null).type(STRING).description("On a successful logout the client's redirect_uri configuration is used as the redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead.")
-        );
+                parameterWithName("client_id").optional(null).type(STRING).description("On a successful logout the client's redirect_uri configuration is used as the redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead."),
+                parameterWithName("post_logout_redirect_uri").optional("Same as redirect uri, supports OIDC logout").type(STRING).description("Support the parameter for OIDC applications based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html)."),
+                parameterWithName("id_token_hint").optional("Support for OIDC logout").type(STRING).description("ID token from OIDC authentication. Used to identify the oauth client redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead.redirect uri whitelist.")
+            );
 
         Snippet responseHeaders = responseHeaders(HeaderDocumentation.headerWithName("Location").description("Redirect URI"));
 
@@ -31,6 +33,8 @@ class LogoutInfoEndpointDocs extends EndpointDocs {
                 get("/logout.do")
                         .param("redirect", "http://redirect.localhost")
                         .param("client_id", "some_client_that_contains_redirect_uri_matching_request_param")
+                        .param("post_logout_redirect_uri", "http://redirect.localhost")
+                        .param("id_token_hint", "eyJhbGciOiJIUzI1NiIsImprdSI6Imh0dHBzOi8vbG9jYWxob3N0OjgwODAvdWFhL3Rva2VuX2tleXMiLCJraWQiOiJsZWdhY3ktdG9rZW4ta2V5IiwidHlwIjoiSldUIn0.eyJzdWIiOiJhMGZlMGQ4OS1lZTJjLTRkMjEtYjFjMS0yNTQ2MzZjNzAxMTUiLCJhdWQiOlsic29tZV9jbGllbnRfdGhhdF9jb250YWluc19yZWRpcmVjdF91cmlfbWF0Y2hpbmdfcmVxdWVzdF9wYXJhbSJdLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiYXpwIjoic29tZV9jbGllbnRfdGhhdF9jb250YWluc19yZWRpcmVjdF91cmlfbWF0Y2hpbmdfcmVxdWVzdF9wYXJhbSJ9.2yS83OUWQ7yWVvGRQieOKuvGtW6Pn8aJX9tRzd0lSpk")
         ).andDo(
                 document("{ClassName}/{methodName}",
                         preprocessResponse(prettyPrint()),
