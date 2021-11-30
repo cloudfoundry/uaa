@@ -35,6 +35,9 @@ dependencies {
     implementation(libraries.thymeLeaf) {
         exclude(module: "ognl")
     }
+    implementation(libraries.thymeleafSpring5) {
+        exclude(module: "ognl")
+    }
     runtimeOnly(libraries.springSecurityConfig)
     runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
