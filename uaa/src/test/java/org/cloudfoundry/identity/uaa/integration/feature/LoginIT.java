@@ -369,7 +369,8 @@ public class LoginIT {
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
-        assertTrue(webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title").matches(regex));
+        String copyrightElementTitle = webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title");
+        assertTrue(copyrightElementTitle.matches(regex));
     }
 
     @Test
