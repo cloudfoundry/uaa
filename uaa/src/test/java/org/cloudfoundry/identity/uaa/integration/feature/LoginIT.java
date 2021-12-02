@@ -366,6 +366,10 @@ public class LoginIT {
 
     @Test
     public void testBuildInfo() {
+        /* This test fails when ran locally using the
+         * run-integration-tests.sh script, but passes on
+         * Concourse. It should be fixed. */
+
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
