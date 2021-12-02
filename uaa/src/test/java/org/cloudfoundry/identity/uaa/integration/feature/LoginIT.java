@@ -373,7 +373,12 @@ public class LoginIT {
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
-        String copyrightElementTitle = webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title");
+
+        String copyrightElementTitle =
+            webDriver.findElement(
+                By.cssSelector(".footer .copyright")
+            ).getAttribute("title");
+
         assertTrue(
             String.format("This string does not match the regexp: \"%s\"", copyrightElementTitle),
             copyrightElementTitle.matches(regex)
