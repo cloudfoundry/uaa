@@ -85,6 +85,12 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     }
 
     @Test
+    public void logout_url_in_body() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertEquals("http://logout.url", providerDefinition.getLogoutUrl().toString());
+    }
+
+    @Test
     public void external_group_mapping_in_body() {
         Map<String, Object> externalGroupMapping = map(
             entry(GROUP_ATTRIBUTE_NAME, "roles")
