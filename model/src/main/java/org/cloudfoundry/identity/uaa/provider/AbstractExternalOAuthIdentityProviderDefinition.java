@@ -208,6 +208,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(tokenKeyUrl, that.tokenKeyUrl)) return false;
         if (!Objects.equals(tokenKey, that.tokenKey)) return false;
         if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
+        if (!Objects.equals(logoutUrl, that.logoutUrl)) return false;
         if (!Objects.equals(linkText, that.linkText)) return false;
         if (!Objects.equals(relyingPartyId, that.relyingPartyId))
             return false;
@@ -228,6 +229,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (tokenKeyUrl != null ? tokenKeyUrl.hashCode() : 0);
         result = 31 * result + (tokenKey != null ? tokenKey.hashCode() : 0);
         result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
+        result = 31 * result + (logoutUrl != null ? logoutUrl.hashCode() : 0);
         result = 31 * result + (linkText != null ? linkText.hashCode() : 0);
         result = 31 * result + (showLinkText ? 1 : 0);
         result = 31 * result + (skipSslValidation ? 1 : 0);
