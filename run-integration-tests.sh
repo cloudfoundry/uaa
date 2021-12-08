@@ -36,6 +36,6 @@ docker pull ${DOCKER_IMAGE}
 docker run --privileged --tty --interactive --shm-size=1G \
   --volume "${UAA_DIR}":"${CONTAINER_UAA_DIR}" \
   --volume "${CONTAINER_GRADLE_LOCK_DIR}" \
-  --env DB=${DB} \
+  --env DB="${DB}" \
   "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}",default "${CONTAINER_UAA_DIR}"
+  "${CONTAINER_UAA_DIR}/scripts/integration-tests.sh" "${PROFILE_NAME},default" "${CONTAINER_UAA_DIR}"
