@@ -5,14 +5,15 @@ DB="${1:-}"
 
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_UAA_DIR='/root/uaa'
-CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}/.gradle/"
 
 if [[ -f .git  ]]; then
    VOLUME_TO_ATTACH=$(cd "${UAA_DIR}/../.." && pwd)
    CONTAINER_SCRIPT_DIR="${CONTAINER_UAA_DIR}/src/uaa/scripts"
+   CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}/src/uaa/.gradle/"
 else
    VOLUME_TO_ATTACH="${UAA_DIR}"
    CONTAINER_SCRIPT_DIR="${CONTAINER_UAA_DIR}/scripts"
+   CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}/.gradle/"
 fi
 
 case "${DB}" in
