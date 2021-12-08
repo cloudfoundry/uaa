@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -xeu
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 CONTAINER_UAA_DIR='/root/uaa'
 CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}.gradle/"
@@ -36,7 +36,7 @@ fi
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
 docker run --privileged -t -i --shm-size=1G \
-  -v "${SCRIPT_DIR}":"${CONTAINER_UAA_DIR}" \
+  -v "${UAA_DIR}":"${CONTAINER_UAA_DIR}" \
   -v "${CONTAINER_GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
   "${DOCKER_IMAGE}" \
