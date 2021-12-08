@@ -1,32 +1,30 @@
 #!/bin/bash
 
 set -xeu -o pipefail
-UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+DB="${1:-}"
 
+UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_UAA_DIR='/root/uaa'
 CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}.gradle/"
 
-case "$1" in
+case "${DB}" in
     hsqldb)
         DB_IMAGE_NAME=postgresql # we don't have a container image for hsqldb, and can use any image
-        DB=hsqldb
-        PROFILE_NAME=hsqldb
+        PROFILE_NAME="$DB"
         ;;
 
     percona)
-        DB_IMAGE_NAME=percona
-        DB=percona
+        DB_IMAGE_NAME="$DB"
         PROFILE_NAME=mysql
         ;;
 
     postgresql|mysql)
-        DB_IMAGE_NAME=$1
-        DB=$1
-        PROFILE_NAME=$1
+        DB_IMAGE_NAME="$DB"
+        PROFILE_NAME="$DB"
         ;;
 
     *)
-        echo $"ERROR: $1 is not a known database type. Supported types are: hsqldb, percona, postgresql, mysql"
+        echo "ERROR: '$DB' is not a known database type. Supported types are: hsqldb, percona, postgresql, mysql"
         exit 1
 esac
 
