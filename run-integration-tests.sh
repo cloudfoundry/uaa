@@ -4,7 +4,7 @@ set -xeu
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 CONTAINER_SCRIPT_DIR='/root/uaa'
-CONTAINER_GRADLE_LOCK_DIR='/root/uaa/.gradle/'
+CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_SCRIPT_DIR}.gradle/"
 
 case "$1" in
     hsqldb)
