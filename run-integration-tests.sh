@@ -5,7 +5,7 @@ DB="${1:-}"
 
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_UAA_DIR='/root/uaa'
-CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}.gradle/"
+CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}/.gradle/"
 
 case "${DB}" in
     hsqldb)
@@ -32,7 +32,7 @@ if [[ -z "${DOCKER_IMAGE+x}" ]]; then
     DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
 fi
 echo "Using docker image: ${DOCKER_IMAGE}"
-docker pull ${DOCKER_IMAGE}
+docker pull "${DOCKER_IMAGE}"
 docker run --privileged --tty --interactive --shm-size=1G \
   --volume "${UAA_DIR}":"${CONTAINER_UAA_DIR}" \
   --volume "${CONTAINER_GRADLE_LOCK_DIR}" \
