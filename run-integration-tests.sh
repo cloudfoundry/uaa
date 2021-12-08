@@ -35,9 +35,9 @@ if [[ -z "${DOCKER_IMAGE+x}" ]]; then
 fi
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
-docker run --privileged -t -i --shm-size=1G \
-  -v "${UAA_DIR}":"${CONTAINER_UAA_DIR}" \
-  -v "${CONTAINER_GRADLE_LOCK_DIR}" \
+docker run --privileged --tty --interactive --shm-size=1G \
+  --volume "${UAA_DIR}":"${CONTAINER_UAA_DIR}" \
+  --volume "${CONTAINER_GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
   "${DOCKER_IMAGE}" \
   /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}",default "${CONTAINER_UAA_DIR}"
