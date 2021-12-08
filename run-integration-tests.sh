@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -xeu
+set -xeu -o pipefail
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 CONTAINER_UAA_DIR='/root/uaa'
