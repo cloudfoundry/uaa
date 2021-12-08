@@ -4,7 +4,7 @@ set -xeu
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 CONTAINER_SCRIPT_DIR='/root/uaa'
-GRADLE_LOCK_DIR='/root/uaa/.gradle/'
+CONTAINER_GRADLE_LOCK_DIR='/root/uaa/.gradle/'
 
 case "$1" in
     hsqldb)
@@ -37,7 +37,7 @@ echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
 docker run --privileged -t -i --shm-size=1G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
-  -v "${GRADLE_LOCK_DIR}" \
+  -v "${CONTAINER_GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
   "${DOCKER_IMAGE}" \
   /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
