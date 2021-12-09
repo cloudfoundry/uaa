@@ -1,7 +1,7 @@
 #!/bin/bash
 
 set -xeu -o pipefail
-DB="${1:-}"
+DB="${1:-hsqldb}"
 
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_MOUNT_POINT='/root/uaa'
