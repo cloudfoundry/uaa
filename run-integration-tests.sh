@@ -6,7 +6,12 @@ DB="${1:-}"
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_MOUNT_POINT='/root/uaa'
 
-if [[ -f .git  ]]; then
+function UAA_DIR_is_a_git_submodule {
+    [[ -f .git ]]
+    return "$?"
+}
+
+if UAA_DIR_is_a_git_submodule; then
    VOLUME_TO_ATTACH=$(cd "${UAA_DIR}/../.." && pwd)
    CONTAINER_SCRIPT_DIR="${CONTAINER_MOUNT_POINT}/src/uaa/scripts"
    CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_MOUNT_POINT}/src/uaa/.gradle/"
