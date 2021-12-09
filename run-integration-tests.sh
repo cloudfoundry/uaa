@@ -4,16 +4,16 @@ set -xeu -o pipefail
 DB="${1:-}"
 
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-CONTAINER_UAA_DIR='/root/uaa'
+CONTAINER_MOUNT_POINT='/root/uaa'
 
 if [[ -f .git  ]]; then
    VOLUME_TO_ATTACH=$(cd "${UAA_DIR}/../.." && pwd)
-   CONTAINER_SCRIPT_DIR="${CONTAINER_UAA_DIR}/src/uaa/scripts"
-   CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}/src/uaa/.gradle/"
+   CONTAINER_SCRIPT_DIR="${CONTAINER_MOUNT_POINT}/src/uaa/scripts"
+   CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_MOUNT_POINT}/src/uaa/.gradle/"
 else
    VOLUME_TO_ATTACH="${UAA_DIR}"
-   CONTAINER_SCRIPT_DIR="${CONTAINER_UAA_DIR}/scripts"
-   CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_UAA_DIR}/.gradle/"
+   CONTAINER_SCRIPT_DIR="${CONTAINER_MOUNT_POINT}/scripts"
+   CONTAINER_GRADLE_LOCK_DIR="${CONTAINER_MOUNT_POINT}/.gradle/"
 fi
 
 case "${DB}" in
@@ -43,8 +43,8 @@ fi
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull "${DOCKER_IMAGE}"
 docker run --privileged --tty --interactive --shm-size=1G \
-  --volume "${VOLUME_TO_ATTACH}:${CONTAINER_UAA_DIR}" \
+  --volume "${VOLUME_TO_ATTACH}:${CONTAINER_MOUNT_POINT}" \
   --volume "${CONTAINER_GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
   "${DOCKER_IMAGE}" \
-  "${CONTAINER_SCRIPT_DIR}/integration-tests.sh" "${PROFILE_NAME},default" "${CONTAINER_UAA_DIR}"
+  "${CONTAINER_SCRIPT_DIR}/integration-tests.sh" "${PROFILE_NAME},default" "${CONTAINER_MOUNT_POINT}"
