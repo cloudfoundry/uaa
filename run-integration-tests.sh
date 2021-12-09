@@ -6,6 +6,11 @@ DB="${1:-}"
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_MOUNT_POINT='/root/uaa'
 
+if [[ $(basename "${UAA_DIR}") != 'lts-uaa' ]]; then
+    echo 'The script must be at the root of the lts-uaa repo' >&2
+    exit 1
+fi
+
 function UAA_DIR_is_a_git_submodule {
     [[ -f .git ]]
     return "$?"
