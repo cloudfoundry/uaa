@@ -59,4 +59,4 @@ docker run --privileged --tty --interactive --shm-size=1G \
   --volume "${CONTAINER_GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
   "${DOCKER_IMAGE}" \
-  "${CONTAINER_SCRIPT_DIR}/integration-tests.sh" "${PROFILE_NAME},default" "${CONTAINER_MOUNT_POINT}"
+  "${CONTAINER_SCRIPT_DIR}/integration-tests.sh" "${PROFILE_NAME},default"
