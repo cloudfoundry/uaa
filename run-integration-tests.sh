@@ -6,7 +6,9 @@ DB="${1:-}"
 UAA_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_MOUNT_POINT='/root/uaa'
 
-if [[ $(basename "${UAA_DIR}") != 'lts-uaa' ]]; then
+UAA_DIR_BASENAME="$(basename "${UAA_DIR}")"
+if [[ ("${UAA_DIR_BASENAME}" != 'lts-uaa') && ("${UAA_DIR_BASENAME}" != 'uaa') ]];
+then
     echo 'The script must be at the root of the lts-uaa repo' >&2
     exit 1
 fi
