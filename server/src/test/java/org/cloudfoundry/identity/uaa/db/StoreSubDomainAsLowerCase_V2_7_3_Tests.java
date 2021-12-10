@@ -19,13 +19,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.flywaydb.core.api.migration.Context;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
@@ -34,24 +32,18 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.*;
 
-public class V2_7_3__StoreSubDomainAsLowerCase_Tests extends JdbcTestBase {
+public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
 
     private IdentityZoneProvisioning provisioning;
-    private V2_7_3__StoreSubDomainAsLowerCase migration;
+    private StoreSubDomainAsLowerCase_V2_7_3 migration;
     private RandomValueStringGenerator generator;
-    private Context context;
 
     @Before
-    public void setUpDuplicateZones() throws SQLException {
+    public void setUpDuplicateZones() {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        migration = new V2_7_3__StoreSubDomainAsLowerCase();
+        migration = new StoreSubDomainAsLowerCase_V2_7_3();
         generator = new RandomValueStringGenerator(6);
-
-        context = mock(Context.class);
-        when(context.getConnection()).thenReturn(
-                jdbcTemplate.getDataSource().getConnection());
     }
 
     @Test
@@ -71,7 +63,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase_Tests extends JdbcTestBase {
             assertEquals(subdomain, jdbcTemplate.queryForObject("SELECT subdomain FROM identity_zone where id = ?", String.class, subdomain));
         }
 
-        migration.migrate(context);
+        migration.migrate(jdbcTemplate);
         for (String subdomain : subdomains) {
             for (IdentityZone zone :
                     Arrays.asList(
@@ -113,7 +105,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase_Tests extends JdbcTestBase {
         IdentityZone mixedcase = provisioning.retrieveBySubdomain("Domain1");
         assertEquals(lowercase.getId(), mixedcase.getId());
 
-        migration.migrate(context);
+        migration.migrate(jdbcTemplate);
 
         for (IdentityZone zone : provisioning.retrieveAll()) {
             //ensure we converted to lower case

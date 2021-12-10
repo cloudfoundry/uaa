@@ -8,7 +8,7 @@ ext["jackson.version"] = "2.10.3" //Can be removed when we bump to spring boot 2
 ext["mariadb.version"] = "2.2.4" // if bumped, remove TLS protocol defaulting from lts-uaa-release
 ext["commons-codec.version"] = "1.13"
 ext["hibernate-validator.version"] = "6.0.19.Final"
-ext["flyway.version"] = "7.15.0"
+ext["flyway.version"] = "5.2.4"
 ext["thymeleaf.version"] = "3.0.11.RELEASE" //https://nvd.nist.gov/vuln/detail/CVE-2021-43466 in thymeleaf 3.0.12
 
 def versions = [:]
