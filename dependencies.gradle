@@ -6,11 +6,12 @@ ext {
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.3.0"
 ext["flyway.version"] = "5.2.4"
+ext['log4j2.version'] = '2.15.0' // this pinning can be removed when we bump to a spring boot version that has 2.15.0+ (due to CVE https://github.com/advisories/GHSA-jfh8-c2jp-5v3q in log4j < 2.15.0)
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.69"
+versions.bouncyCastleVersion = "1.70"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.6.1"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
@@ -19,7 +20,7 @@ versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.springVersion = "5.3.13"
 versions.tomcatCargoVersion = "9.0.55"
 versions.guavaVersion = "31.0.1-jre"
-versions.thymeleafVersion = "3.0.13.RELEASE"
+versions.thymeleafVersion = "3.0.14.RELEASE"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.4"

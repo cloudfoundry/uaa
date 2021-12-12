@@ -24,6 +24,7 @@ import java.util.HashMap;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class OauthIdentityProviderDefinitionFactoryBeanTest {
 
@@ -42,6 +43,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("tokenKey", "key");
         idpDefinitionMap.put("tokenUrl", "http://token.url");
         idpDefinitionMap.put("tokenKeyUrl", "http://token-key.url");
+        idpDefinitionMap.put("logoutUrl", "http://logout.url");
         idpDefinitionMap.put("clientAuthInBody", false);
     }
 
@@ -78,4 +80,9 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         assertFalse(providerDefinition.isStoreCustomAttributes());
     }
 
+    @Test
+    public void logout_url_in_body() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertEquals("http://logout.url", providerDefinition.getLogoutUrl().toString());
+    }
 }
