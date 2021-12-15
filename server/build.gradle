@@ -74,6 +74,7 @@ dependencies {
     implementation(libraries.springLdapCoreTiger)
     implementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
+        exclude(module: "mina-core")
     }
 
     implementation(libraries.passay)
