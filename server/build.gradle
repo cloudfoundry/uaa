@@ -91,6 +91,7 @@ dependencies {
     implementation(libraries.glassfishJaxb)
 
     implementation(libraries.nimbusJwt)
+    implementation(libraries.orgJson)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
@@ -109,7 +110,6 @@ dependencies {
 
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
-    testImplementation(libraries.orgJson)
 }
 
 configurations.all {
