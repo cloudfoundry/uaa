@@ -109,6 +109,7 @@ dependencies {
 
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
+    testImplementation(libraries.orgJson)
 }
 
 configurations.all {
