@@ -6,7 +6,7 @@ ext {
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.3.0"
 ext["flyway.version"] = "5.2.4"
-ext['log4j2.version'] = "2.15.0"
+ext['log4j2.version'] = "2.17.0"
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
@@ -124,7 +124,7 @@ libraries.jakartaEl = "org.glassfish:jakarta.el:${versions.jakartaElVersion}"
 libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:2.0.0"
 libraries.nurego = "com.nurego:nurego-java:2.1"
 libraries.predixAudit = "com.ge.predix.audit:audit-sdk:0.0.6"
-libraries.springLogFilter = "com.ge.predix:spring-log-filter:3.0.1"
+libraries.springLogFilter = "com.ge.predix:spring-log-filter:3.0.3"
 libraries.splunkObservability = "com.splunk:splunk-otel-javaagent:1.4.0"
 
 
