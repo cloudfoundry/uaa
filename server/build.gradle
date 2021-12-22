@@ -60,6 +60,7 @@ dependencies {
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
+        exclude(module: "json")
     }
 
     implementation(libraries.hibernateValidator)
