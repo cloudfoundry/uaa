@@ -60,6 +60,7 @@ dependencies {
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
+        exclude(module: "json")
     }
 
     implementation(libraries.hibernateValidator)
@@ -90,6 +91,7 @@ dependencies {
     implementation(libraries.glassfishJaxb)
 
     implementation(libraries.nimbusJwt)
+    implementation(libraries.orgJson)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
