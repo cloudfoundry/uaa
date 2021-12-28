@@ -160,7 +160,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
 
         // Test that Spring's default converter can create an auth from the response.
         Authentication auth = (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
@@ -236,7 +236,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @Test
@@ -259,7 +259,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @Test
@@ -283,7 +283,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @Test
@@ -307,7 +307,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @Test
@@ -332,7 +332,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @Test
@@ -436,7 +436,7 @@ public class IntrospectEndpointIntegrationTests {
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @Test
@@ -457,7 +457,7 @@ public class IntrospectEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> map = introspectResponse.getBody();
         assertNull(map.get("az_attr"));
-        assertEquals(true, Boolean.getBoolean(map.get("active")));
+        assertEquals(true, map.get("active"));
     }
 
     @SuppressWarnings("unchecked")
