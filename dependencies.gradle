@@ -6,7 +6,7 @@ ext {
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.3.0"
 ext["flyway.version"] = "5.2.4"
-ext['log4j2.version'] = '2.17.0' // this pinning can be removed when we bump to a spring boot version that has 2.17.0+ (due to CVE CVE-2021-45105 in log4j < 2.16.0)
+ext['log4j2.version'] = '2.17.1' // this pinning can be removed when we bump to a spring boot version that has 2.17.1+ (due to CVE-2021-44832 in log4j < 2.17.0)
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
