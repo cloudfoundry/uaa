@@ -116,7 +116,7 @@ public abstract class UaaUrlUtils {
             URI uri = new URI(requestedUri);
             if (null == uri.getHost()) {
                 // If no host and no scheme, then likely relative URI, so just return true
-                // If no host but has scheme, then reject
+                // If no host but has scheme, then reject (e.g. http://AAA@@attacker.com?.example.com)
                 return null == uri.getScheme();
             }
             hostnameFromRequestedUri = uri.getHost();
