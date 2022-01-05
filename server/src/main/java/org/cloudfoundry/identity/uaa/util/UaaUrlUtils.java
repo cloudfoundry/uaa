@@ -129,14 +129,16 @@ public abstract class UaaUrlUtils {
         requestedUri = requestedUri.replace('\\', '/');
         String hostnameFromRequestedUri;
         try {
-            hostnameFromRequestedUri = new URI(requestedUri).getHost();
+            URI uri = new URI(requestedUri);
+            if (null == uri.getHost()) {
+                // If no host and no scheme, then likely relative URI, so just return true
+                // If no host but has scheme, then reject
+                return null == uri.getScheme();
+            }
+            hostnameFromRequestedUri = uri.getHost();
         }
         catch (URISyntaxException ex) {
             return false;
-        }
-        if (hostnameFromRequestedUri == null) {
-            // No URI scheme, likely relative URI, so just return true
-            return true;
         }
 
         StringTokenizer st = new StringTokenizer(uriPattern, "/");
