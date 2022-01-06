@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -22,6 +23,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -44,7 +46,7 @@ class JdbcUaaUserDatabaseTests {
     private static final String addUserSql = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, origin, identity_zone_id, created, lastmodified, passwd_lastmodified, passwd_change_required) values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
     private static final String addSaltSql = "update users set salt=? where id=?";
 
-    private static final String ADD_GROUP_SQL = "insert into groups (id, displayName, identity_zone_id) values (?,?,?)";
+    private String addGroupSql;
     private static final String ADD_MEMBER_SQL = "insert into group_membership (group_id, member_id, member_type, authorities) values (?,?,?,?)";
     private TimeService timeService;
     private IdentityZoneManager mockIdentityZoneManager;
@@ -57,7 +59,7 @@ class JdbcUaaUserDatabaseTests {
     private Environment environment;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws SQLException {
         defaultAuthorities = UserConfig.DEFAULT_ZONE_GROUPS
                 .stream()
                 .map(SimpleGrantedAuthority::new)
@@ -83,6 +85,9 @@ class JdbcUaaUserDatabaseTests {
         addUser(JOE_ID, "Joe", "joespassword", true, jdbcTemplate, "zone-the-first");
         addUser(MABEL_ID, "mabel", "mabelspassword", false, jdbcTemplate, "zone-the-first");
         addUser(ALICE_ID, "alice", "alicespassword", false, jdbcTemplate, "zone-the-second");
+
+        addGroupSql = "insert into " + DbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
+                " (id, displayName, identity_zone_id) values (?,?,?)";
     }
 
     private static void setUpIdentityZone(IdentityZoneManager mockIdentityZoneManager) {
@@ -273,8 +278,8 @@ class JdbcUaaUserDatabaseTests {
         String directId = new RandomValueStringGenerator().generate();
         String indirectId = new RandomValueStringGenerator().generate();
 
-        jdbcTemplate.update(ADD_GROUP_SQL, directId, "direct", "zone-the-first");
-        jdbcTemplate.update(ADD_GROUP_SQL, indirectId, "indirect", "zone-the-first");
+        jdbcTemplate.update(addGroupSql, directId, "direct", "zone-the-first");
+        jdbcTemplate.update(addGroupSql, indirectId, "indirect", "zone-the-first");
         jdbcTemplate.update(ADD_MEMBER_SQL, indirectId, directId, "GROUP", "MEMBER");
         jdbcTemplate.update(ADD_MEMBER_SQL, directId, joe.getId(), "USER", "MEMBER");
 
@@ -383,12 +388,12 @@ class JdbcUaaUserDatabaseTests {
                 requiresPasswordChange);
     }
 
-    private static void addAuthority(
+    private void addAuthority(
             final String authority,
             final JdbcTemplate jdbcTemplate,
             final String zoneId) {
         final String id = new RandomValueStringGenerator().generate();
-        jdbcTemplate.update(ADD_GROUP_SQL, id, authority, zoneId);
+        jdbcTemplate.update(addGroupSql, id, authority, zoneId);
         jdbcTemplate.update(ADD_MEMBER_SQL, id, JdbcUaaUserDatabaseTests.JOE_ID, "USER", "MEMBER");
     }
 

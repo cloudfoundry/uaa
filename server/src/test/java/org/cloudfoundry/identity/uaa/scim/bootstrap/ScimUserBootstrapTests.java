@@ -40,6 +40,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -85,7 +86,7 @@ class ScimUserBootstrapTests {
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void init() {
+    void init() throws SQLException {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
         jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder));
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
@@ -99,13 +100,13 @@ class ScimUserBootstrapTests {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
     @AfterEach
-    void tearDown(@Autowired ApplicationContext applicationContext) {
+    void tearDown(@Autowired ApplicationContext applicationContext) throws SQLException {
         TestUtils.restoreToDefaults(applicationContext);
     }
 

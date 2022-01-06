@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +44,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     private ScimExternalGroupBootstrap bootstrap;
 
     @Before
-    public void initScimExternalGroupBootstrapTests() {
+    public void initScimExternalGroupBootstrapTests() throws SQLException {
         IdentityZone zone = new IdentityZone();
         zone.setId(RandomStringUtils.randomAlphabetic(10));
         IdentityZoneHolder.set(zone);
@@ -61,7 +62,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void canAddExternalGroups() throws Exception {
+    public void canAddExternalGroups() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
@@ -80,7 +81,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatDoNotExist() throws Exception {
+    public void cannotAddExternalGroupsThatDoNotExist() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
@@ -99,7 +100,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatMapToNull() throws Exception {
+    public void cannotAddExternalGroupsThatMapToNull() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         Map<String, List> externalGroupMap = new HashMap<>();
         externalGroupMap.put("cn=Engineering Department,ou=groups,dc=example,dc=com", null);
@@ -111,7 +112,7 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddOriginMapToNull() throws Exception {
+    public void cannotAddOriginMapToNull() {
         Map<String, Map<String, List>> originMap = new HashMap<>();
         originMap.put(OriginKeys.LDAP, null);
         bootstrap.setExternalGroupMaps(originMap);

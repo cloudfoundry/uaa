@@ -88,6 +88,7 @@ import org.springframework.web.context.request.ServletWebRequest;
 
 import javax.servlet.ServletContext;
 import javax.xml.namespace.QName;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -164,7 +165,7 @@ class LoginSamlAuthenticationProviderTests {
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void configureProvider() throws SAMLException, SecurityException, DecryptionException, ValidationException {
+    void configureProvider() throws SAMLException, SecurityException, DecryptionException, ValidationException, SQLException {
         identityZoneManager = new IdentityZoneManagerImpl();
         RequestContextHolder.resetRequestAttributes();
         MockHttpServletRequest request = new MockHttpServletRequest(mock(ServletContext.class));
@@ -225,7 +226,7 @@ class LoginSamlAuthenticationProviderTests {
     }
 
     @AfterEach
-    void tearDown(@Autowired ApplicationContext applicationContext) {
+    void tearDown(@Autowired ApplicationContext applicationContext) throws SQLException {
         TestUtils.restoreToDefaults(applicationContext);
         RequestContextHolder.resetRequestAttributes();
     }

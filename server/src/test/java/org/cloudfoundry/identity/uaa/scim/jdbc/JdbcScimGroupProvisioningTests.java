@@ -26,6 +26,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.security.SecureRandom;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +72,7 @@ class JdbcScimGroupProvisioningTests {
     private String group3Description;
 
     @BeforeEach
-    void initJdbcScimGroupProvisioningTests() {
+    void initJdbcScimGroupProvisioningTests() throws SQLException {
         generator = new RandomValueStringGenerator();
         SecureRandom random = new SecureRandom();
         random.setSeed(System.nanoTime());
@@ -465,7 +466,7 @@ class JdbcScimGroupProvisioningTests {
 
     private ScimGroup addGroup(String id, String name, String zoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        jdbcTemplate.update(JdbcScimGroupProvisioning.ADD_GROUP_SQL,
+        jdbcTemplate.update(dao.addGroupSql,
                 id,
                 name,
                 name + "-description",

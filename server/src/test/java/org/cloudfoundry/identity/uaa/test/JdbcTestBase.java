@@ -14,6 +14,8 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.sql.DataSource;
 
+import java.sql.SQLException;
+
 import static java.util.Collections.emptyList;
 
 /**
@@ -62,7 +64,7 @@ public class JdbcTestBase extends TestClassNullifier {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws SQLException {
         TestUtils.restoreToDefaults(webApplicationContext);
 
         ((org.apache.tomcat.jdbc.pool.DataSource) dataSource).close(true);

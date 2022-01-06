@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.util.DbUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -175,19 +176,22 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return new UaaUser(prototype.withAuthorities(authorities));
         }
 
-        private String getAuthorities(final String userId) {
+        private String getAuthorities(final String userId) throws SQLException {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Collections.singletonList(userId));
             authorities.addAll(identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().getDefaultGroups());
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
-        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList) {
+        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList)
+                throws SQLException {
             List<Map<String, Object>> results;
             if (memberIdList.size() == 0) {
                 return;
             }
-            StringBuffer dynamicAuthoritiesQuery = new StringBuffer("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
+            StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
+                    .append(DbUtils.getQuotedIdentifier("groups", jdbcTemplate))
+                    .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
             for (int i = 0; i < memberIdList.size() - 1; i++) {
                 dynamicAuthoritiesQuery.append("?,");
             }

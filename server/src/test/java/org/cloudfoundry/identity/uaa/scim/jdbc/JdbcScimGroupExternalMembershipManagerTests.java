@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -42,14 +44,14 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
     private JdbcScimGroupExternalMembershipManager edao;
 
-    private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
+    private static final String addGroupSqlFormat = "insert into %s (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
     private String origin = OriginKeys.LDAP;
 
     private IdentityZone otherZone;
 
     @Before
-    public void initJdbcScimGroupExternalMembershipManagerTests() {
+    public void initJdbcScimGroupExternalMembershipManagerTests() throws SQLException {
 
         String zoneId = new RandomValueStringGenerator().generate();
         otherZone = MultitenancyFixture.identityZone(zoneId,zoneId);
@@ -83,9 +85,10 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
         validateCount(0);
     }
 
-    private void addGroup(String id, String name) {
+    private void addGroup(String id, String name) throws SQLException {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name, IdentityZoneHolder.get().getId()));
+        String quotedGroupsIdentifier = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        jdbcTemplate.execute(String.format(addGroupSqlFormat, quotedGroupsIdentifier, id, name, IdentityZoneHolder.get().getId()));
     }
 
     private void validateCount(int expected) {

@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
+import org.cloudfoundry.identity.uaa.util.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -18,6 +19,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -38,18 +40,19 @@ public class TestUtils {
         return identityZone;
     }
 
-    public static void restoreToDefaults(ApplicationContext applicationContext) {
+    public static void restoreToDefaults(ApplicationContext applicationContext) throws SQLException {
         cleanAndSeedDb(applicationContext);
         resetIdentityZoneHolder(applicationContext);
         SecurityContextHolder.clearContext();
     }
 
-    public static void cleanAndSeedDb(JdbcTemplate jdbcTemplate) {
+    public static void cleanAndSeedDb(JdbcTemplate jdbcTemplate) throws SQLException {
         jdbcTemplate.update("DELETE FROM authz_approvals");
         jdbcTemplate.update("DELETE FROM expiring_code_store");
         jdbcTemplate.update("DELETE FROM external_group_mapping");
         jdbcTemplate.update("DELETE FROM group_membership");
-        jdbcTemplate.update("DELETE FROM groups");
+        jdbcTemplate.update("DELETE FROM " +
+                DbUtils.getQuotedIdentifier("groups", jdbcTemplate));
         jdbcTemplate.update("DELETE FROM identity_provider");
         jdbcTemplate.update("DELETE FROM identity_zone");
         jdbcTemplate.update("DELETE FROM oauth_client_details");
@@ -64,7 +67,7 @@ public class TestUtils {
         seedUaaZoneSimilarToHowTheRealFlywayMigrationDoesIt(jdbcTemplate);
     }
 
-    private static void cleanAndSeedDb(ApplicationContext applicationContext) {
+    private static void cleanAndSeedDb(ApplicationContext applicationContext) throws SQLException {
         if (applicationContext == null) {
             return;
         }

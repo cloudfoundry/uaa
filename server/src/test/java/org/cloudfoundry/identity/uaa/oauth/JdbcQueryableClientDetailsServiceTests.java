@@ -18,6 +18,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.sql.SQLException;
+
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.core.Is.is;
@@ -54,7 +56,7 @@ class JdbcQueryableClientDetailsServiceTests {
     }
 
     @AfterEach
-    void tearDown(@Autowired ApplicationContext applicationContext) {
+    void tearDown(@Autowired ApplicationContext applicationContext) throws SQLException {
         TestUtils.restoreToDefaults(applicationContext);
     }
 
