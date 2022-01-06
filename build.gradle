@@ -100,6 +100,13 @@ subprojects {
                 reject '3.0.12.RELEASE'
             }
         }
+        implementation('net.minidev:json-smart') {
+            because 'Security vulnerability'
+            version {
+                require '2.4.7'
+                reject '2.3.1'
+            }
+        }
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
