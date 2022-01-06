@@ -10,6 +10,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+import java.sql.SQLException;
+
 import static java.lang.System.getProperties;
 import static org.junit.Assume.assumeTrue;
 
@@ -42,7 +44,7 @@ public abstract class DbMigrationIntegrationTestParent {
     }
 
     @After
-    public void cleanup() {
+    public void cleanup() throws SQLException {
         if (dbNeedsResetting) { // cleanup() is always called, even when setup()'s assumeTrue() fails
             // Avoid test pollution by putting the db back into a default state that other tests assume
             flyway.clean();

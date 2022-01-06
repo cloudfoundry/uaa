@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
+import org.cloudfoundry.identity.uaa.util.DbUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -241,11 +242,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
-        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList) {
+        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList)
+                throws SQLException {
             List<Map<String, Object>> results;
             if (memberIdList.isEmpty()) {
                 return;
             }
+
             List<String> memberList = new ArrayList<>(memberIdList);
             results = executeAuthoritiesQuery(memberList);
 

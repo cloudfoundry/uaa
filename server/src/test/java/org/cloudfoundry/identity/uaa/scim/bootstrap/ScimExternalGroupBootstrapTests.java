@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,7 +37,7 @@ class ScimExternalGroupBootstrapTests {
     void setUp(
             @Autowired JdbcTemplate jdbcTemplate,
             @Autowired LimitSqlAdapter limitSqlAdapter
-    ) {
+    ) throws SQLException {
         IdentityZone zone = new IdentityZone();
         zone.setId(RandomStringUtils.randomAlphabetic(10));
         IdentityZoneHolder.set(zone);
