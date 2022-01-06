@@ -86,6 +86,20 @@ subprojects {
 
         compileOnly("org.projectlombok:lombok")
         annotationProcessor("org.projectlombok:lombok")
+        implementation('org.thymeleaf:thymeleaf') {
+            because 'Security vulnerability'
+            version {
+                require '3.0.14.RELEASE'
+                reject '3.0.12.RELEASE'
+            }
+        }
+        implementation('org.thymeleaf:thymeleaf-spring5') {
+            because 'Security vulnerability'
+            version {
+                require '3.0.14.RELEASE'
+                reject '3.0.12.RELEASE'
+            }
+        }
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
