@@ -19,10 +19,20 @@ case "$1" in
         PROFILE_NAME=mysql
         ;;
 
-    postgresql|mysql)
+    postgresql)
         DB_IMAGE_NAME=$1
         DB=$1
         PROFILE_NAME=$1
+        ;;
+
+    mysql|mysql-8)
+        DB_IMAGE_NAME=mysql-8
+        PROFILE_NAME=mysql
+        ;;
+
+    mysql-5)
+        DB_IMAGE_NAME=mysql
+        PROFILE_NAME=mysql
         ;;
 
     *)
