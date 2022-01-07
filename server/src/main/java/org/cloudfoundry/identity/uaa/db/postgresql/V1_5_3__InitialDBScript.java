@@ -16,7 +16,6 @@ import java.sql.Connection;
 
 import org.cloudfoundry.identity.uaa.db.DataSourceAccessor;
 import org.cloudfoundry.identity.uaa.db.InitialPreDatabaseVersioningSchemaCreator;
-import org.flywaydb.core.api.migration.Context;
 
 public class V1_5_3__InitialDBScript extends InitialPreDatabaseVersioningSchemaCreator {
     public V1_5_3__InitialDBScript() {
@@ -24,7 +23,7 @@ public class V1_5_3__InitialDBScript extends InitialPreDatabaseVersioningSchemaC
     }
 
     @Override
-    public void migrate(Context context) throws Exception {
+    public void migrate(Connection connection) throws Exception {
         Connection con = DataSourceAccessor.getDataSource().getConnection();
         try {
             super.migrate(con);
@@ -32,4 +31,6 @@ public class V1_5_3__InitialDBScript extends InitialPreDatabaseVersioningSchemaC
             try { con.close(); } catch (Exception ignore) {}
         }
     }
+    
+    
 }
