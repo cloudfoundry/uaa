@@ -12,6 +12,8 @@ import java.sql.SQLException;
 
 public abstract class DbUtils {
     private static final Logger s_logger = LoggerFactory.getLogger(DbUtils.class);
+    private static final char BACKTICK = '`';
+    private static final char DOUBLE_QUOTE = '"';
 
     public static String getQuotedIdentifier(String identifier, JdbcTemplate jdbcTemplate)
             throws SQLException {
@@ -36,8 +38,23 @@ public abstract class DbUtils {
             return identifier;
         }
         else {
-            final String identifierQuoteString = metaData.getIdentifierQuoteString();
-            return identifierQuoteString + identifier + identifierQuoteString;
+            char quoteChar = getIdentifierQuoteChar(metaData);
+            return String.format("%c%s%c", quoteChar, identifier, quoteChar);
+        }
+    }
+
+    private static char getIdentifierQuoteChar(DatabaseMetaData metaData) throws SQLException {
+        final String identifierQuoteString = metaData.getIdentifierQuoteString();
+        if (identifierQuoteString == null || identifierQuoteString.length() != 1) {
+            throw new RuntimeException("Unexpected database identifier quote string: '" + identifierQuoteString + "'");
+        }
+        char quoteChar = identifierQuoteString.charAt(0);
+
+        // Whitelist the allowable strings to protect against SQL injection
+        if (quoteChar == BACKTICK || quoteChar == DOUBLE_QUOTE) {
+            return quoteChar;
+        } else {
+            throw new RuntimeException("Unexpected database identifier quote character: '" + quoteChar + "'");
         }
     }
 
