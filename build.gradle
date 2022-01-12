@@ -8,7 +8,7 @@ buildscript {
 
     repositories {
         mavenCentral()
-        jcenter()
+        gradlePluginPortal()
         maven {
             url "https://repo.spring.io/plugins-release"
         }
@@ -16,7 +16,6 @@ buildscript {
 
     dependencies {
         classpath(libraries.gradleCargoPlugin)
-        classpath(libraries.prodepsPlugin)
         classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMgmtPlugin)
         classpath(libraries.springBootGradlePlugin)
@@ -25,12 +24,10 @@ buildscript {
 
 apply(from: "dependencies.gradle")
 apply(plugin: "com.bmuschko.cargo")
+apply(plugin: "war")
 
 allprojects {
 
-    apply(plugin: "propdeps")
-    apply(plugin: "propdeps-maven")
-    apply(plugin: "propdeps-idea")
     apply(plugin: "io.spring.dependency-management")
 
     dependencyManagement {
@@ -39,8 +36,6 @@ allprojects {
             mavenBom(libraries.springBootBom)
         }
     }
-
-    configurations.provided.transitive = false
 
     repositories {
         mavenCentral()
