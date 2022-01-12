@@ -120,6 +120,6 @@ libraries.orgJson = "org.json:json:20211205"
 // gradle plugins
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
 libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.8.0"
-libraries.prodepsGradlePlugin = "io.spring.gradle:propdeps-plugin:0.0.10.RELEASE"
+libraries.prodepsGradlePlugin = "gradle.plugin.cn.bestwu.gradle:propdeps-plugin:0.0.10"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"

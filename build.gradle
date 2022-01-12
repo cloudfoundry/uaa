@@ -8,9 +8,8 @@ buildscript {
 
     repositories {
         mavenCentral()
-        jcenter()
         maven {
-            url("https://repo.spring.io/plugins-release")
+            url("https://plugins.gradle.org/m2/")
         }
     }
 
@@ -30,8 +29,8 @@ def applicationPort = project.hasProperty('port') ? project.getProperty('port').
 apply(plugin: "com.bmuschko.cargo")
 
 allprojects {
-    apply(plugin: "propdeps")
-    apply(plugin: "propdeps-maven")
+    apply(plugin: "cn.bestwu.propdeps")
+    apply(plugin: "cn.bestwu.propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
 
     dependencyManagement {
