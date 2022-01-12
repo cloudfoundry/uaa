@@ -30,6 +30,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -40,10 +42,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.springframework.util.StringUtils.collectionToCommaDelimitedString;
+import static org.springframework.util.StringUtils.collectionToDelimitedString;
 import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 
 /**
@@ -200,7 +204,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                 collectionToString(clientDetails.getResourceIds()),
                 collectionToString(clientDetails.getScope()),
                 collectionToString(clientDetails.getAuthorizedGrantTypes()),
-                collectionToString(clientDetails.getRegisteredRedirectUri()),
+                urlCollectionToString(clientDetails.getRegisteredRedirectUri()),
                 collectionToString(clientDetails.getAuthorities()),
                 clientDetails.getAccessTokenValiditySeconds(),
                 clientDetails.getRefreshTokenValiditySeconds(),
@@ -221,6 +225,18 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         }
     }
 
+    private String urlCollectionToString(Set<String> collection) {
+        if (collection == null || collection.isEmpty()) {
+            return null;
+        } else {
+            if (collection.stream().anyMatch(x -> x.contains(","))) {
+                return collectionToDelimitedString(
+                    collection.stream().map(URLEncoder::encode).collect(Collectors.toSet()), ",");
+            } else {
+                return collectionToCommaDelimitedString(collection);
+            }
+        }
+    }
     private String getAutoApproveScopes(ClientDetails clientDetails) {
         if (clientDetails.isAutoApprove("true")) {
             return "true"; // all scopes autoapproved
@@ -289,9 +305,17 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                     rs.getString(3),
                     rs.getString(4),
                     rs.getString(5),
-                    rs.getString(7),
-                    rs.getString(6)
+                    rs.getString(7)
             );
+            String webRedirectUrls = rs.getString(6);
+            if (webRedirectUrls!= null) {
+                if (webRedirectUrls.contains(URLEncoder.encode(","))) {
+                    details.setRegisteredRedirectUri(
+                        commaDelimitedListToSet(webRedirectUrls).stream().map(URLDecoder::decode).collect(Collectors.toSet()));
+                } else {
+                    details.setRegisteredRedirectUri(commaDelimitedListToSet(webRedirectUrls));
+                }
+            }
             details.setClientSecret(rs.getString(2));
             if (rs.getObject(8) != null) {
                 details.setAccessTokenValiditySeconds(rs.getInt(8));

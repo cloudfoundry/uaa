@@ -37,6 +37,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
@@ -413,22 +414,22 @@ class MultitenantJdbcClientDetailsServiceTests {
         assertEquals("mySecret", clientDetails.getClientSecret());
         assertTrue(clientDetails.isScoped());
         assertEquals(2, clientDetails.getResourceIds().size());
-        Iterator<String> resourceIds = clientDetails.getResourceIds()
+        Iterator<String> resourceIds = clientDetails.getResourceIds().stream().sorted()
                 .iterator();
         assertEquals("myResource1", resourceIds.next());
         assertEquals("myResource2", resourceIds.next());
         assertEquals(2, clientDetails.getScope().size());
-        Iterator<String> scope = clientDetails.getScope().iterator();
+        Iterator<String> scope = clientDetails.getScope().stream().sorted().iterator();
         assertEquals("myScope1", scope.next());
         assertEquals("myScope2", scope.next());
         assertEquals(2, clientDetails.getAuthorizedGrantTypes().size());
-        Iterator<String> grantTypes = clientDetails.getAuthorizedGrantTypes()
+        Iterator<String> grantTypes = clientDetails.getAuthorizedGrantTypes().stream().sorted()
                 .iterator();
         assertEquals("myAuthorizedGrantType1", grantTypes.next());
         assertEquals("myAuthorizedGrantType2", grantTypes.next());
         assertEquals(2, clientDetails.getRegisteredRedirectUri().size());
         Iterator<String> redirectUris = clientDetails
-                .getRegisteredRedirectUri().iterator();
+                .getRegisteredRedirectUri().stream().sorted().iterator();
         assertEquals("myRedirectUri1", redirectUris.next());
         assertEquals("myRedirectUri2", redirectUris.next());
         assertEquals(2, clientDetails.getAuthorities().size());
@@ -704,6 +705,25 @@ class MultitenantJdbcClientDetailsServiceTests {
         service.addClientDetails(clientDetails);
 
         assertNull(service.getCreatedByForClientAndZone(client2, currentZoneId));
+    }
+
+    @Test
+    void updateClientRedirectURIWithComma() {
+
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("newClientIdWithWithCommaRedirects");
+
+        service.addClientDetails(clientDetails);
+
+        String[] redirectURI = { "http://localhost:8080/test,path", "http://localhost:9090/foo}bar" };
+        clientDetails.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectURI)));
+
+        service.updateClientDetails(clientDetails);
+
+        ClientDetails updatedDetails = service.loadClientByClientId("newClientIdWithWithCommaRedirects");
+        assertEquals("newClientIdWithWithCommaRedirects", updatedDetails.getClientId());
+        assertTrue(Arrays.asList(redirectURI).containsAll(updatedDetails.getRegisteredRedirectUri()),
+            "Expected " + Set.of(redirectURI) + " but was: " + updatedDetails.getRegisteredRedirectUri().toString());
     }
 
     private static void validateRequiredGroups(String clientId, JdbcTemplate jdbcTemplate, String... expectedGroups) {
