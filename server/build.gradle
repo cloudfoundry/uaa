@@ -60,6 +60,7 @@ dependencies {
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
+        exclude(module: "json")
     }
 
     implementation(libraries.hibernateValidator)
@@ -74,6 +75,7 @@ dependencies {
     implementation(libraries.springLdapCoreTiger)
     implementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
+        exclude(module: "mina-core")
     }
 
     implementation(libraries.passay)
@@ -89,6 +91,7 @@ dependencies {
     implementation(libraries.glassfishJaxb)
 
     implementation(libraries.nimbusJwt)
+    implementation(libraries.orgJson)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
