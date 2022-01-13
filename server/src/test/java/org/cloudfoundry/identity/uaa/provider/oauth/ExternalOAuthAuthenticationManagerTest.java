@@ -4,9 +4,11 @@ import com.google.common.testing.FakeTicker;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -16,20 +18,30 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.ALG;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -93,6 +105,9 @@ public class ExternalOAuthAuthenticationManagerTest {
     private OIDCIdentityProviderDefinition oidcConfig;
     private String uaaIssuerBaseUrl;
     private TokenEndpointBuilder tokenEndpointBuilder;
+    private IdentityProvider provider;
+    private IdentityProviderProvisioning identityProviderProvisioning;
+    private JdbcScimGroupExternalMembershipManager externalMembershipManager;
 
     @Before
     public void setup() throws Exception {
@@ -102,13 +117,18 @@ public class ExternalOAuthAuthenticationManagerTest {
         identityZone.setId(zoneId);
         IdentityZoneHolder.set(identityZone);
 
-        IdentityProviderProvisioning identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
-        IdentityProvider provider = new IdentityProvider();
+        identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
+        externalMembershipManager = mock(JdbcScimGroupExternalMembershipManager.class);
+        provider = new IdentityProvider();
         oidcConfig = new OIDCIdentityProviderDefinition();
         String oidcIssuerUrl = "http://issuer.com";
         oidcConfig.setIssuer(oidcIssuerUrl);
         oidcConfig.setTokenKey(oidcProviderTokenSigningKey);
         oidcConfig.setRelyingPartyId("uaa-relying-party");
+        Map<String, Object> externalGroupMapping = map(
+            entry(GROUP_ATTRIBUTE_NAME, "roles")
+        );
+        oidcConfig.setAttributeMappings(externalGroupMapping);
         provider.setConfig(oidcConfig);
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
@@ -119,6 +139,7 @@ public class ExternalOAuthAuthenticationManagerTest {
             new RestTemplate()
         );
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
+        authManager.setExternalMembershipManager(externalMembershipManager);
     }
 
     @After
@@ -210,5 +231,69 @@ public class ExternalOAuthAuthenticationManagerTest {
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getExternalAuthenticationDetails(oidcAuthentication);
         // no exception expected
+    }
+
+    @Test
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() {
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        Map<String, Object> header = map(
+            entry(ALG, "HS256"),
+            entry(KID, "uaa-key")
+        );
+        Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
+        List<String> roles = Arrays.asList("manager.us", "manager.eu");
+        Map<String, Object> claims = map(
+            entry(EMAIL, "someuser@google.com"),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(ROLES, roles),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+        // When
+        oidcConfig.setGroupMappingMode(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED);
+        provider.setConfig(oidcConfig);
+        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
+        assertNotNull(authenticationData);
+        assertEquals(0, authenticationData.getAuthorities().size());
+        // no exception expected
+    }
+
+    @Test
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid() {
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        Map<String, Object> header = map(
+            entry(ALG, "HS256"),
+            entry(KID, "uaa-key")
+        );
+        Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
+        Set<String> roles = new HashSet<>(Arrays.asList("manager.us", "manager.eu"));
+        Map<String, Object> claims = map(
+            entry(EMAIL, "someuser@google.com"),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(ROLES, roles),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+        // When
+        oidcConfig.setGroupMappingMode(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES);
+        provider.setConfig(oidcConfig);
+        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
+        assertNotNull(authenticationData);
+        assertEquals(2, authenticationData.getAuthorities().size());
+        Set<String> authicatedAuthorities = AuthorityUtils.authorityListToSet(authenticationData.getAuthorities());
+        assertThat(roles.toArray(), arrayContainingInAnyOrder(authicatedAuthorities.toArray()));
+        // no exception expected, but same array content in authority list
     }
 }
