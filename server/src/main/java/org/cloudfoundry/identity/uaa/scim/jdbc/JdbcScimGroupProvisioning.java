@@ -73,7 +73,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
         this.jdbcTemplate = jdbcTemplate;
 
-        final String quotedGroupsTableName = DbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
+        final String quotedGroupsTableName = DbUtils.getInstance().getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
         updateGroupSql = String.format(
                 "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?",
                 quotedGroupsTableName

@@ -90,7 +90,7 @@ class JdbcScimGroupExternalMembershipManagerTests {
             final String name,
             final String zoneId) throws SQLException {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        String quotedGroupsIdentifier = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        String quotedGroupsIdentifier = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
         jdbcTemplate.execute(String.format(addGroupSqlFormat, quotedGroupsIdentifier, id, name, zoneId));
     }
 

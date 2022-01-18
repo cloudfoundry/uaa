@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.hsqldb.persist.HsqlDatabaseProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,37 +8,56 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.JdbcUtils;
 import org.springframework.jdbc.support.MetaDataAccessException;
 
+import javax.sql.DataSource;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
-public abstract class DbUtils {
+public class DbUtils {
     private static final Logger s_logger = LoggerFactory.getLogger(DbUtils.class);
+    private static final DbUtils instance = new DbUtils();
     private static final char BACKTICK = '`';
     private static final char DOUBLE_QUOTE = '"';
+    private static final char MYSQL_IDENTIFIER_QUOTE = BACKTICK;
+    private static final char POSTGRES_IDENTIFIER_QUOTE = DOUBLE_QUOTE;
 
-    public static String getQuotedIdentifier(String identifier, JdbcTemplate jdbcTemplate)
+    private final MetaDataExtractor metaDataExtractor;
+
+    interface MetaDataExtractor {
+        DatabaseMetaData extractDatabaseMetaData(DataSource dataSource)
+                throws MetaDataAccessException;
+    }
+
+    private DbUtils() {
+        this.metaDataExtractor = dataSource -> JdbcUtils.extractDatabaseMetaData(dataSource, x -> x);
+    }
+
+    @VisibleForTesting
+    DbUtils(MetaDataExtractor metaDataExtractor) {
+        this.metaDataExtractor = metaDataExtractor;
+    }
+
+    public static DbUtils getInstance() {
+        return instance;
+    }
+
+    public String getQuotedIdentifier(String identifier, JdbcTemplate jdbcTemplate)
             throws SQLException {
+
         DatabaseMetaData metaData;
         try {
-            metaData = JdbcUtils.extractDatabaseMetaData(
-                    jdbcTemplate.getDataSource(), dbmd -> dbmd);
-        }
-        catch (MetaDataAccessException ex) {
-            if (s_logger.isWarnEnabled()) {
-                s_logger.warn("Failed to extract DatabaseMetaData, returning the original identifier - "
-                        + identifier, ex);
-            }
-            // Of course, this will be wrong for mysql8, causing errors when the
-            // identifier is used in SQL statements later
-            return identifier;
+            metaData = metaDataExtractor.extractDatabaseMetaData(
+                    jdbcTemplate.getDataSource()
+            );
+        } catch (MetaDataAccessException ex) {
+            s_logger.error("Failed to extract DatabaseMetaData, aborting");
+            throw new RuntimeException("Failed to extract DatabaseMetaData", ex);
         }
 
         if (HsqlDatabaseProperties.PRODUCT_NAME.equals(metaData.getDatabaseProductName())) {
             // HSQL's databasemetadata's getIdentifierQuoteString returns double quotes, which is incorrect
             // So we override with the value that actually works with HSQL db
             return identifier;
-        }
-        else {
+        } else {
             char quoteChar = getIdentifierQuoteChar(metaData);
             return String.format("%c%s%c", quoteChar, identifier, quoteChar);
         }
@@ -51,7 +71,7 @@ public abstract class DbUtils {
         char quoteChar = identifierQuoteString.charAt(0);
 
         // Whitelist the allowable strings to protect against SQL injection
-        if (quoteChar == BACKTICK || quoteChar == DOUBLE_QUOTE) {
+        if (quoteChar == MYSQL_IDENTIFIER_QUOTE || quoteChar == POSTGRES_IDENTIFIER_QUOTE) {
             return quoteChar;
         } else {
             throw new RuntimeException("Unexpected database identifier quote character: '" + quoteChar + "'");
