@@ -52,7 +52,7 @@ public class TestUtils {
         jdbcTemplate.update("DELETE FROM external_group_mapping");
         jdbcTemplate.update("DELETE FROM group_membership");
         jdbcTemplate.update("DELETE FROM " +
-                DbUtils.getQuotedIdentifier("groups", jdbcTemplate));
+                DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate));
         jdbcTemplate.update("DELETE FROM identity_provider");
         jdbcTemplate.update("DELETE FROM identity_zone");
         jdbcTemplate.update("DELETE FROM oauth_client_details");

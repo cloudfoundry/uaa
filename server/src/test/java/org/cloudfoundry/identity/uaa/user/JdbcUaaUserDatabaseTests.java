@@ -86,7 +86,7 @@ class JdbcUaaUserDatabaseTests {
         addUser(MABEL_ID, "mabel", "mabelspassword", false, jdbcTemplate, "zone-the-first");
         addUser(ALICE_ID, "alice", "alicespassword", false, jdbcTemplate, "zone-the-second");
 
-        addGroupSql = "insert into " + DbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
+        addGroupSql = "insert into " + DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate) +
                 " (id, displayName, identity_zone_id) values (?,?,?)";
     }
 

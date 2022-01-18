@@ -72,7 +72,7 @@ public class JdbcScimGroupExternalMembershipManager
         this.rowMapper = new ScimGroupExternalMemberRowMapper();
 
         joinGroupTable = String.format("%s g, %s gm",
-                DbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate), EXTERNAL_GROUP_MAPPING_TABLE);
+                DbUtils.getInstance().getQuotedIdentifier(GROUP_TABLE, jdbcTemplate), EXTERNAL_GROUP_MAPPING_TABLE);
         getGroupsWithExternalGroupMappingsSql = String.format("select %s from %s where gm.identity_zone_id = ? and g.id=? and %s and lower(external_group) like lower(?)",
                 JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
                 joinGroupTable,

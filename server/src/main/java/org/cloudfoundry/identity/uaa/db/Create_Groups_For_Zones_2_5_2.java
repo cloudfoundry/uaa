@@ -39,7 +39,7 @@ public class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
     public void migrate(Context context) throws SQLException {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
                 context.getConnection(), true));
-        String quotedGroupsIdentifier = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        String quotedGroupsIdentifier = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
 
         //duplicate all existing groups across zones
         List<String> zones = jdbcTemplate.queryForList("SELECT id FROM identity_zone WHERE id <> 'uaa'", String.class);

@@ -190,7 +190,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 return;
             }
             StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
-                    .append(DbUtils.getQuotedIdentifier("groups", jdbcTemplate))
+                    .append(DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate))
                     .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
             for (int i = 0; i < memberIdList.size() - 1; i++) {
                 dynamicAuthoritiesQuery.append("?,");

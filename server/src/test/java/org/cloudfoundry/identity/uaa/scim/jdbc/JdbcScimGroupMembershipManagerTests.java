@@ -131,7 +131,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @AfterEach
     void tearDown() throws SQLException {
-        jdbcTemplate.execute("delete from " + DbUtils.getQuotedIdentifier("groups", jdbcTemplate));
+        jdbcTemplate.execute("delete from " + DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate));
         jdbcTemplate.execute("delete from users");
         jdbcTemplate.execute("delete from external_group_mapping");
         jdbcTemplate.execute("delete from group_membership");
@@ -306,7 +306,7 @@ class JdbcScimGroupMembershipManagerTests {
         addGroup(zoneAdminId, "zones." + otherIdentityZone.getId() + ".admin", uaaIdentityZone.getId(), jdbcTemplate);
         addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA, jdbcTemplate, uaaIdentityZone.getId());
 
-        String groups = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
         addMembers(jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
                 groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class), is(4));
@@ -335,7 +335,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @Test
     void providerDeleted() throws SQLException {
-        String groups = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
         mapExternalGroup("g1", "some-external-group", LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
@@ -360,7 +360,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @Test
     void cannotDeleteUaaZone() throws SQLException {
-        String groups = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{uaaIdentityZone.getId()}, Integer.class), is(4));
@@ -374,7 +374,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @Test
     void cannotDeleteUaaProvider() throws SQLException {
-        String groups = DbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
@@ -640,7 +640,7 @@ class JdbcScimGroupMembershipManagerTests {
             final JdbcTemplate jdbcTemplate) throws SQLException{
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(ADD_GROUP_SQL_FORMAT,
-                DbUtils.getQuotedIdentifier("groups", jdbcTemplate), id, name, zoneId));
+                DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate), id, name, zoneId));
     }
 
     private static void addUser(
@@ -665,7 +665,7 @@ class JdbcScimGroupMembershipManagerTests {
             final JdbcTemplate jdbcTemplate,
             final String zoneId) throws SQLException {
         int existingMemberCount = jdbcTemplate.queryForObject("select count(*) from " +
-                DbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
+                DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate) +
                 " g, group_membership gm where g.identity_zone_id=? and gm.group_id=g.id",
                 new Object[]{zoneId}, Integer.class);
         assertEquals(expected, existingMemberCount, msg);
