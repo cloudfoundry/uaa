@@ -1,45 +1,61 @@
+/*
+ * *****************************************************************************
+ *      Cloud Foundry
+ *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *      You may not use this product except in compliance with the License.
+ *
+ *      This product includes a number of subcomponents with
+ *      separate copyright notices and license terms. Your use of these
+ *      subcomponents is subject to the terms and conditions of the
+ *      subcomponent's license, as noted in the LICENSE file.
+ * *****************************************************************************
+ */
+
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.flywaydb.core.api.migration.Context;
+import org.junit.Before;
+import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.*;
 
-@WithDatabaseContext
-class StoreSubDomainAsLowerCase_V2_7_3_Tests {
+public class V2_7_3__StoreSubDomainAsLowerCase_Tests extends JdbcTestBase {
 
     private IdentityZoneProvisioning provisioning;
-    private StoreSubDomainAsLowerCase_V2_7_3 migration;
+    private V2_7_3__StoreSubDomainAsLowerCase migration;
     private RandomValueStringGenerator generator;
+    private Context context;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
-
-    @BeforeEach
-    void setUpDuplicateZones() {
+    @Before
+    public void setUpDuplicateZones() throws SQLException {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        migration = new StoreSubDomainAsLowerCase_V2_7_3();
+        migration = new V2_7_3__StoreSubDomainAsLowerCase();
         generator = new RandomValueStringGenerator(6);
+
+        context = mock(Context.class);
+        when(context.getConnection()).thenReturn(
+                jdbcTemplate.getDataSource().getConnection());
     }
 
     @Test
-    void ensureThatSubdomainsGetLowerCased() {
+    public void ensure_that_subdomains_get_lower_cased() throws Exception {
         List<String> subdomains = Arrays.asList(
                 "Zone1" + generator.generate(),
                 "Zone2" + generator.generate(),
@@ -55,7 +71,7 @@ class StoreSubDomainAsLowerCase_V2_7_3_Tests {
             assertEquals(subdomain, jdbcTemplate.queryForObject("SELECT subdomain FROM identity_zone where id = ?", String.class, subdomain));
         }
 
-        migration.migrate(jdbcTemplate);
+        migration.migrate(context);
         for (String subdomain : subdomains) {
             for (IdentityZone zone :
                     Arrays.asList(
@@ -72,8 +88,8 @@ class StoreSubDomainAsLowerCase_V2_7_3_Tests {
     }
 
     @Test
-    void duplicateSubdomains() {
-        checkDbIsCaseSensitive(jdbcTemplate, generator);
+    public void test_duplicate_subdomains() throws Exception {
+        check_db_is_case_sensitive();
         List<String> ids = Arrays.asList(
                 "id1" + generator.generate().toLowerCase(),
                 "id2" + generator.generate().toLowerCase(),
@@ -91,13 +107,13 @@ class StoreSubDomainAsLowerCase_V2_7_3_Tests {
         for (int i = 0; i < ids.size(); i++) {
             IdentityZone zone = MultitenancyFixture.identityZone(ids.get(i), subdomains.get(i));
             zone.setSubdomain(subdomains.get(i)); //mixed case
-            createIdentityZoneThroughSQL(zone, jdbcTemplate);
+            createIdentityZoneThroughSQL(zone);
         }
         IdentityZone lowercase = provisioning.retrieveBySubdomain("domain1");
         IdentityZone mixedcase = provisioning.retrieveBySubdomain("Domain1");
         assertEquals(lowercase.getId(), mixedcase.getId());
 
-        migration.migrate(jdbcTemplate);
+        migration.migrate(context);
 
         for (IdentityZone zone : provisioning.retrieveAll()) {
             //ensure we converted to lower case
@@ -105,9 +121,8 @@ class StoreSubDomainAsLowerCase_V2_7_3_Tests {
         }
     }
 
-    private static void checkDbIsCaseSensitive(
-            final JdbcTemplate jdbcTemplate,
-            final RandomValueStringGenerator generator) {
+
+    public void check_db_is_case_sensitive() {
         String usubdomain = "TEST_UPPER_" + generator.generate();
         String lsubdomain = usubdomain.toLowerCase();
 
@@ -116,16 +131,14 @@ class StoreSubDomainAsLowerCase_V2_7_3_Tests {
             try {
                 IdentityZone identityZone = MultitenancyFixture.identityZone(subdomain + generator.generate(), subdomain);
                 identityZone.setSubdomain(subdomain);
-                createIdentityZoneThroughSQL(identityZone, jdbcTemplate);
+                createIdentityZoneThroughSQL(identityZone);
             } catch (DuplicateKeyException x) {
-                assumeTrue(false, "DB is not case sensitive. No need for this test");
+                assumeTrue("DB is not case sensitive. No need for this test", false);
             }
         }
     }
 
-    private static void createIdentityZoneThroughSQL(
-            final IdentityZone identityZone,
-            final JdbcTemplate jdbcTemplate) {
+    protected void createIdentityZoneThroughSQL(IdentityZone identityZone) {
         String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
         String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
