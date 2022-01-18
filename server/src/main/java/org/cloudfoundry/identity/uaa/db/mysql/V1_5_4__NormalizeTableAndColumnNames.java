@@ -12,19 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db.mysql;
 
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
 import java.util.List;
 
+import static org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3.*;
 
 /**
  * Created by fhanik on 3/5/14.
  */
-public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5_3 implements SpringJdbcMigration {
+public class V1_5_4__NormalizeTableAndColumnNames extends BaseJavaMigration {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -43,11 +45,13 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     "ORDER BY line";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
+    public void migrate(Context context) {
         logger.info("[V1_5_4] Running SQL: " + colQuery);
-        List<DatabaseInformation1_5_3.ColumnInfo> columns = jdbcTemplate.query(colQuery,
-                        new DatabaseInformation1_5_3.ColumnMapper());
-        for (DatabaseInformation1_5_3.ColumnInfo column : columns) {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
+                context.getConnection(), true));
+        List<ColumnInfo> columns = jdbcTemplate.query(colQuery,
+                        new ColumnMapper());
+        for (ColumnInfo column : columns) {
             if (processColumn(column)) {
                 String sql = column.sql.replaceAll("2001-01-01 .*", "'2001-01-01 01:01:01.000001'");
                 logger.info("Renaming column: [" + sql + "]");
