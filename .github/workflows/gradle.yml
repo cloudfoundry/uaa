@@ -21,4 +21,4 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Build and Test with Gradle
-      run:  ./run-unit-tests.sh
+      run:  ./run-unit-tests.sh hsqldb
