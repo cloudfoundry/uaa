@@ -95,7 +95,7 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            failOnPassedAfterRetry = true
+            failOnPassedAfterRetry = false
             maxFailures = 5
             maxRetries = 2
         }
