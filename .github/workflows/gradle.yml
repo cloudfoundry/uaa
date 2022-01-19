@@ -14,7 +14,7 @@ on:
     branches: [ develop ]
 
 jobs:
-  build:
+  uaa_standalone_test:
 
     runs-on: ubuntu-latest
 
@@ -26,4 +26,4 @@ jobs:
         java-version: '11'
         distribution: 'temurin'
     - name: Build and Test with Gradle
-      run: ./gradlew test
+      run:  ./scripts/unit-tests.sh hsqldb,default
