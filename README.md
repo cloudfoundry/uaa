@@ -113,7 +113,7 @@ requesting system information:
 For complex requests it is more convenient to interact with UAA using 
 `uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
 
-## Integration tests
+## Running tests
 
 You can run the integration tests with docker
 
@@ -121,15 +121,22 @@ You can run the integration tests with docker
   
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
-### Using Gradle to test with postgresql or mysql
-
-The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
 To run the unit tests with docker:
 
     $ run-unit-tests.sh <dbtype>
-    
-### Building war file
+
+### Running specific unit tests
+
+The default uaa unit tests (`./gradlew test`) use hsqldb. 
+
+To run a specific test class, you can specify the module and the test class. In this example, it's running only the 
+JdbcScimGroupMembershipManagerTests tests in the cloudfoundry-identity-server module:
+
+    $ ./gradlew :cloudfoundry-identity-server:test \
+    --tests "org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManagerTests"
+
+## Building war file
 
     $ ./gradlew :clean :assemble -Pversion=${UAA_VERSION}
 
