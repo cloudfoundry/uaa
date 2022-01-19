@@ -16,8 +16,9 @@ on:
 jobs:
   uaa_standalone_test:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     steps:
+    - uses: actions/checkout@v1
     - name: Build and Test with Gradle
       run:  ./scripts/unit-tests.sh hsqldb,default
