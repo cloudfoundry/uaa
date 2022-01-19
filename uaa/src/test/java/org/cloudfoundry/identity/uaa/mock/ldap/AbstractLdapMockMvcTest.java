@@ -34,11 +34,11 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationListener;
@@ -159,34 +159,36 @@ public abstract class AbstractLdapMockMvcTest {
         String userId = new RandomValueStringGenerator().generate().toLowerCase();
         zone = MockMvcUtils.createZoneForInvites(getMockMvc(), getWebApplicationContext(), userId, REDIRECT_URI, IdentityZoneHolder.getCurrentZoneId());
 
-        LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
-        definition.setLdapProfileFile("ldap/" + ldapProfile);
-        definition.setLdapGroupFile("ldap/" + ldapGroup);
-        definition.setMaxGroupSearchDepth(10);
-        definition.setBaseUrl(getLdapOrLdapSBaseUrl());
-        definition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
-        definition.setBindPassword("adminsecret");
-        definition.setSkipSSLVerification(false);
-        definition.setTlsConfiguration(tlsConfig);
-        definition.setMailAttributeName("mail");
-        definition.setReferral("ignore");
+        try {
+            LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
+            definition.setLdapProfileFile("ldap/" + ldapProfile);
+            definition.setLdapGroupFile("ldap/" + ldapGroup);
+            definition.setMaxGroupSearchDepth(10);
+            definition.setBaseUrl(getLdapOrLdapSBaseUrl());
+            definition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
+            definition.setBindPassword("adminsecret");
+            definition.setSkipSSLVerification(false);
+            definition.setTlsConfiguration(tlsConfig);
+            definition.setMailAttributeName("mail");
+            definition.setReferral("ignore");
 
-        provider = MockMvcUtils.createIdentityProvider(getMockMvc(),
-                zone.getZone(),
-                LDAP,
-                definition);
+            provider = MockMvcUtils.createIdentityProvider(getMockMvc(), zone.getZone(), LDAP, definition);
 
-        host = zone.getZone().getIdentityZone().getSubdomain() + ".localhost";
-        IdentityZoneHolder.clear();
+            host = zone.getZone().getIdentityZone().getSubdomain() + ".localhost";
+            IdentityZoneHolder.clear();
 
-        listener = (ApplicationListener<AbstractUaaEvent>) mock(ApplicationListener.class);
-        configurableApplicationContext.addApplicationListener(listener);
+            listener = (ApplicationListener<AbstractUaaEvent>) mock(ApplicationListener.class);
+            configurableApplicationContext.addApplicationListener(listener);
 
-        ensureLdapServerIsRunning();
+            ensureLdapServerIsRunning();
 
-        testLogger = new InterceptingLogger();
-        originalAuditServiceLogger = loggingAuditService.getLogger();
-        loggingAuditService.setLogger(testLogger);
+            testLogger = new InterceptingLogger();
+            originalAuditServiceLogger = loggingAuditService.getLogger();
+            loggingAuditService.setLogger(testLogger);
+        } catch (Exception e) {
+            Assumptions.assumeTrue(e == null,
+                () -> "Aborting: could not setup because of exception: " + e.getMessage());
+        }
     }
 
     @AfterEach

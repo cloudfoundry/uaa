@@ -262,7 +262,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 }
 
                 for (String uri : uris) {
-                    if (!UaaUrlUtils.isValidRegisteredRedirectUrl(uri)) {
+                    if (!UaaUrlUtils.isValidRegisteredRedirectUrl(uri) || uri.contains(",")) {
                         throw new InvalidClientDetailsException(
                             String.format("One of the redirect_uri is invalid: %s", uri));
                     }

@@ -212,6 +212,16 @@ public class ClientAdminEndpointsValidatorTests {
         validator.validateClientRedirectUri(client);
     }
 
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testAnotherOptionOneInvalidURL() {
+        Set<String> urls = new HashSet<>();
+        urls.add("http://valid.com");
+        urls.add("http://invalid.com/with/path,subpath");
+        client.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
+        client.setRegisteredRedirectUri(urls);
+        validator.validateClientRedirectUri(client);
+    }
+
     @Test
     public void testValidateValidURLs() {
         Set<String> urls = new HashSet<>();
