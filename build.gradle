@@ -96,8 +96,8 @@ subprojects {
 
         retry {
             failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "true"));
-            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "5"))
-            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "2"))
+            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
+            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
         }
 
         testLogging {
