@@ -160,7 +160,8 @@ public class ClientAdminEndpointsValidatorTests {
         client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority("uaa.resource")));
         client.setRegisteredRedirectUri(Collections.singleton("http://anything.com"));
         validator.validate(client, true, true);
-        client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(caller.getClientId() + ".some.other.authority")));
+        client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority("uaa.resource")));
+        client.setClientSecret(null);
 
         try {
             validator.validate(client, true, true);
