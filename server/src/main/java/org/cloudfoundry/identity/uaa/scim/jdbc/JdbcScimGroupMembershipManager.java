@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.*;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeBasedExpiringValueMap;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -68,7 +68,8 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
             final JdbcTemplate jdbcTemplate,
             final TimeService timeService,
             final ScimUserProvisioning userProvisioning,
-            final IdentityZoneProvisioning zoneProvisioning) throws SQLException {
+            final IdentityZoneProvisioning zoneProvisioning,
+            final DbUtils dbUtils) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.userProvisioning = userProvisioning;
         this.zoneProvisioning = zoneProvisioning;
@@ -78,13 +79,13 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
                 "select %s from %s g, %s gm where gm.group_id = g.id and gm.identity_zone_id = " +
                         "g.identity_zone_id and gm.identity_zone_id = ? and gm.member_id in (",
                 "g." + JdbcScimGroupProvisioning.GROUP_FIELDS.replace(",", ",g."),
-                DbUtils.getInstance().getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate),
+                dbUtils.getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate),
                 MEMBERSHIP_TABLE
         );
         getGroupsByExternalMemberSql = String.format("select g.id, g.displayName, g.description, g.created, g.lastModified, g.version, g.identity_zone_id" +
                         " from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
                 MEMBERSHIP_TABLE,
-                DbUtils.getInstance().getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate));
+                dbUtils.getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate));
     }
 
     public void setScimGroupProvisioning(final ScimGroupProvisioning groupProvisioning) {

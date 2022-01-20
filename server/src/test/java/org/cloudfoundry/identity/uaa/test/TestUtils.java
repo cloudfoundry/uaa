@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -52,7 +52,7 @@ public class TestUtils {
         jdbcTemplate.update("DELETE FROM external_group_mapping");
         jdbcTemplate.update("DELETE FROM group_membership");
         jdbcTemplate.update("DELETE FROM " +
-                DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate));
+                new DbUtils().getQuotedIdentifier("groups", jdbcTemplate));
         jdbcTemplate.update("DELETE FROM identity_provider");
         jdbcTemplate.update("DELETE FROM identity_zone");
         jdbcTemplate.update("DELETE FROM oauth_client_details");

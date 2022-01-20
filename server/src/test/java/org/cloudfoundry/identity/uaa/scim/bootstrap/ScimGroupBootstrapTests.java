@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -61,9 +62,10 @@ class ScimGroupBootstrapTests {
     void initScimGroupBootstrapTests() throws SQLException {
         JdbcTemplate template = jdbcTemplate;
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
+        DbUtils dbUtils = new DbUtils();
+        gDB = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
         uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder);
-        mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null);
+        mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null, dbUtils);
         mDB.setScimGroupProvisioning(gDB);
 
         uDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());

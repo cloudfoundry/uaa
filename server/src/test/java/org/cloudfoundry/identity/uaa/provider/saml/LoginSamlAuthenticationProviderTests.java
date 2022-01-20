@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
@@ -172,8 +173,10 @@ class LoginSamlAuthenticationProviderTests {
         MockHttpServletResponse response = new MockHttpServletResponse();
         ServletWebRequest servletWebRequest = new ServletWebRequest(request, response);
         RequestContextHolder.setRequestAttributes(servletWebRequest);
+        DbUtils dbUtils = new DbUtils();
 
-        ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
+        ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(
+                jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), dbUtils);
         identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         groupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZone().getId()), identityZoneManager.getCurrentIdentityZone().getId());
         providerDefinition = new SamlIdentityProviderDefinition();
@@ -185,11 +188,12 @@ class LoginSamlAuthenticationProviderTests {
         uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null, UAA_SAML_ADMIN, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());
         ScimGroup uaaSamlTest = groupProvisioning.create(new ScimGroup(null, UAA_SAML_TEST, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());
 
-        JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), userProvisioning, null);
+        JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(
+                jdbcTemplate, new TimeServiceImpl(), userProvisioning, null, dbUtils);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning, membershipManager, Collections.emptyList(), false, Collections.emptyList());
 
-        externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         externalManager.setScimGroupProvisioning(groupProvisioning);
         externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML, identityZoneManager.getCurrentIdentityZone().getId());
         externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML, identityZoneManager.getCurrentIdentityZone().getId());
@@ -201,7 +205,7 @@ class LoginSamlAuthenticationProviderTests {
         when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
 
         TimeService timeService = mock(TimeService.class);
-        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, false, identityZoneManager);
+        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, false, identityZoneManager, new DbUtils());
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
 

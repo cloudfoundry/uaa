@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -51,6 +51,7 @@ class JdbcUaaUserDatabaseTests {
     private TimeService timeService;
     private IdentityZoneManager mockIdentityZoneManager;
     private Set<SimpleGrantedAuthority> defaultAuthorities;
+    private DbUtils dbUtils;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -70,11 +71,12 @@ class JdbcUaaUserDatabaseTests {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         setUpIdentityZone(mockIdentityZoneManager);
 
+        dbUtils = new DbUtils();
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(
                 jdbcTemplate,
                 timeService,
                 false,
-                mockIdentityZoneManager);
+                mockIdentityZoneManager, dbUtils);
 
         // TODO: Don't need these checks
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", JOE_ID);
@@ -86,7 +88,7 @@ class JdbcUaaUserDatabaseTests {
         addUser(MABEL_ID, "mabel", "mabelspassword", false, jdbcTemplate, "zone-the-first");
         addUser(ALICE_ID, "alice", "alicespassword", false, jdbcTemplate, "zone-the-second");
 
-        addGroupSql = "insert into " + DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate) +
+        addGroupSql = "insert into " + dbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
                 " (id, displayName, identity_zone_id) values (?,?,?)";
     }
 
@@ -180,7 +182,7 @@ class JdbcUaaUserDatabaseTests {
     @Test
     void is_the_right_query_used() {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager, dbUtils);
 
         String username = new RandomValueStringGenerator().generate() + "@test.org";
 
@@ -189,7 +191,7 @@ class JdbcUaaUserDatabaseTests {
         jdbcUaaUserDatabase.retrieveUserByEmail(username, OriginKeys.UAA);
         verify(mockJdbcTemplate).query(eq(DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
 
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager, dbUtils);
 
         jdbcUaaUserDatabase.retrieveUserByName(username, OriginKeys.UAA);
         verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
@@ -202,7 +204,8 @@ class JdbcUaaUserDatabaseTests {
     void getValidUserCaseInsensitive() {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
-                jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, caseInsensitive, mockIdentityZoneManager);
+                jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate,
+                        timeService, caseInsensitive, mockIdentityZoneManager, dbUtils);
                 UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("JOE", OriginKeys.UAA);
                 validateJoe(joe);
                 joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
@@ -257,7 +260,7 @@ class JdbcUaaUserDatabaseTests {
         addAuthority("additional", jdbcTemplate, "zone-the-first");
         addAuthority("anotherOne", jdbcTemplate, "zone-the-first");
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, false, mockIdentityZoneManager);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, false, mockIdentityZoneManager, dbUtils);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         verify(spiedJdbcTemplate, times(2)).queryForList(anyString(), ArgumentMatchers.<String>any());
         assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),

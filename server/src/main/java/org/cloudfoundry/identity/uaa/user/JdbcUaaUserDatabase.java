@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -44,6 +44,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
+    private final DbUtils dbUtils;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
@@ -56,11 +57,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             final JdbcTemplate jdbcTemplate,
             final TimeService timeService,
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
-            final IdentityZoneManager identityZoneManager) {
+            final IdentityZoneManager identityZoneManager,
+            final DbUtils dbUtils) {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
+        this.dbUtils = dbUtils;
     }
 
     @Override
@@ -190,7 +193,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 return;
             }
             StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
-                    .append(DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate))
+                    .append(dbUtils.getQuotedIdentifier("groups", jdbcTemplate))
                     .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
             for (int i = 0; i < memberIdList.size() - 1; i++) {
                 dynamicAuthoritiesQuery.append("?,");

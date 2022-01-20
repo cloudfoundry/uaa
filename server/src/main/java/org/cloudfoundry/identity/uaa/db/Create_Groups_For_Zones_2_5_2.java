@@ -15,7 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import org.cloudfoundry.identity.uaa.util.DbUtils;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
@@ -31,15 +30,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
+public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
 
     private static Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
+
+    protected abstract String getIdentifierQuoteChar();
 
     @Override
     public void migrate(Context context) throws SQLException {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
                 context.getConnection(), true));
-        String quotedGroupsIdentifier = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
+        String quotedGroupsIdentifier = getIdentifierQuoteChar() + "groups" + getIdentifierQuoteChar();
 
         //duplicate all existing groups across zones
         List<String> zones = jdbcTemplate.queryForList("SELECT id FROM identity_zone WHERE id <> 'uaa'", String.class);
