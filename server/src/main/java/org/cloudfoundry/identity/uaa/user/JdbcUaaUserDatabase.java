@@ -48,6 +48,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
+    private String quotedGroupsIdentifier;
 
     RowMapper<UaaUser> getMapper() {
         return mapper;
@@ -58,12 +59,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             final TimeService timeService,
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
             final IdentityZoneManager identityZoneManager,
-            final DbUtils dbUtils) {
+            final DbUtils dbUtils) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
         this.dbUtils = dbUtils;
+        this.quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
     }
 
     @Override
@@ -193,7 +195,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 return;
             }
             StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
-                    .append(dbUtils.getQuotedIdentifier("groups", jdbcTemplate))
+                    .append(quotedGroupsIdentifier)
                     .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
             for (int i = 0; i < memberIdList.size() - 1; i++) {
                 dynamicAuthoritiesQuery.append("?,");

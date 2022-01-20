@@ -75,17 +75,18 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         this.zoneProvisioning = zoneProvisioning;
         rowMapper = new ScimGroupMemberRowMapper();
         defaultGroupCache = new TimeBasedExpiringValueMap<>(timeService);
+        final String quotedGroupsIdentifier = dbUtils.getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate);
         dynamicGetGroupsByMemberSqlBase = String.format(
                 "select %s from %s g, %s gm where gm.group_id = g.id and gm.identity_zone_id = " +
                         "g.identity_zone_id and gm.identity_zone_id = ? and gm.member_id in (",
                 "g." + JdbcScimGroupProvisioning.GROUP_FIELDS.replace(",", ",g."),
-                dbUtils.getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate),
+                quotedGroupsIdentifier,
                 MEMBERSHIP_TABLE
         );
         getGroupsByExternalMemberSql = String.format("select g.id, g.displayName, g.description, g.created, g.lastModified, g.version, g.identity_zone_id" +
                         " from %s m, %s g where m.group_id = g.id and g.identity_zone_id = ? and m.member_id = ? and m.origin = ?",
                 MEMBERSHIP_TABLE,
-                dbUtils.getQuotedIdentifier(JdbcScimGroupProvisioning.GROUP_TABLE, this.jdbcTemplate));
+                quotedGroupsIdentifier);
     }
 
     public void setScimGroupProvisioning(final ScimGroupProvisioning groupProvisioning) {
