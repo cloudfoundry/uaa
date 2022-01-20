@@ -5,7 +5,7 @@ ext {
 
 
 ext["jackson.version"] = "2.10.3" //Can be removed when we bump to spring boot 2.2.0
-ext["mariadb.version"] = "2.7.4" // if bumped, remove TLS protocol defaulting from lts-uaa-release
+ext["mariadb.version"] = "2.7.4"
 ext["commons-codec.version"] = "1.13"
 ext["hibernate-validator.version"] = "6.0.19.Final"
 ext["flyway.version"] = "7.15.0"
