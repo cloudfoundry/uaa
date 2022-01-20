@@ -54,10 +54,10 @@ public class DbUtils {
         }
     }
 
-    public String getQuotedIdentifier(String identifier, JdbcTemplate jdbcTemplate)
+    public synchronized String getQuotedIdentifier(String identifier, JdbcTemplate jdbcTemplate)
             throws SQLException {
 
-        if (cachedQuoteCharacter.isPresent()) {
+      if (cachedQuoteCharacter.isPresent()) {
             switch (cachedQuoteCharacter.get()) {
                 case DOUBLE_QUOTE:
                     return String.format("%c%s%c", DOUBLE_QUOTE, identifier, DOUBLE_QUOTE);

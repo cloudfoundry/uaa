@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
-import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.hsqldb.persist.HsqlDatabaseProperties;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -13,7 +12,6 @@ import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -30,7 +28,7 @@ class DbUtilsTest {
     private final JdbcTemplate jdbcTemplate = mock(JdbcTemplate.class);
 
     @BeforeEach
-    void setup() throws MetaDataAccessException, SQLException {
+    void setup() throws MetaDataAccessException {
         when(metaDataExtractor.extractDatabaseMetaData(any())).thenReturn(databaseMetaData);
     }
 
@@ -58,7 +56,7 @@ class DbUtilsTest {
     @DisplayName("Tests for databases other than HSQLDB")
     class nonHsqldbTests {
         @BeforeEach
-        void setup() throws MetaDataAccessException, SQLException {
+        void setup() throws SQLException {
             when(databaseMetaData.getDatabaseProductName())
                     .thenReturn("Anything but" + HsqlDatabaseProperties.PRODUCT_NAME);
         }
@@ -97,18 +95,16 @@ class DbUtilsTest {
         void rejectsInvalidQuoteStrings(String quoteString) throws SQLException {
             when(databaseMetaData.getIdentifierQuoteString()).thenReturn(quoteString);
 
-            Assertions.assertThrows(Throwable.class, () -> {
-                dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
-            });
+            Assertions.assertThrows(Throwable.class,
+                    () -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate));
         }
 
         @Test
         void abortsWhenCannotGetMetaData() throws MetaDataAccessException {
             when(metaDataExtractor.extractDatabaseMetaData(any())).thenThrow(MetaDataAccessException.class);
 
-            Assertions.assertThrows(RuntimeException.class, () -> {
-                dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
-            });
+            Assertions.assertThrows(RuntimeException.class,
+                    () -> dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate));
         }
     }
 }
