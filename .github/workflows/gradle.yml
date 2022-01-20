@@ -17,4 +17,4 @@ jobs:
           distribution: 'liberica'
           java-version: '11'
           cache: 'gradle'
-      - run: ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb --no-daemon test
+      - run: ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test

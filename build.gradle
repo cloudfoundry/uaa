@@ -10,6 +10,9 @@ buildscript {
         mavenCentral()
         jcenter()
         maven {
+            url("https://plugins.gradle.org/m2/")
+        }
+        maven {
             url("https://repo.spring.io/plugins-release")
         }
     }
@@ -20,6 +23,7 @@ buildscript {
         classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
+        classpath(libraries.testRetryPlugin)
     }
 }
 
@@ -33,6 +37,7 @@ allprojects {
     apply(plugin: "propdeps")
     apply(plugin: "propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
+    apply(plugin: "org.gradle.test-retry")
 
     dependencyManagement {
         imports {
@@ -88,6 +93,12 @@ subprojects {
         maxParallelForks = 6
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
+
+        retry {
+            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "true"));
+            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "5"))
+            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "2"))
+        }
 
         testLogging {
             events("skipped", "failed", "passed")
