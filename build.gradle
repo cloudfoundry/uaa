@@ -10,9 +10,7 @@ buildscript {
         mavenCentral()
         jcenter()
         maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-        maven {
+            url("https://plugins.gradle.org/m2/")
             url("https://repo.spring.io/plugins-release")
         }
     }
@@ -95,9 +93,9 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            failOnPassedAfterRetry = false
-            maxFailures = 5
-            maxRetries = 2
+            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "true"));
+            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "5"))
+            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "2"))
         }
 
         testLogging {
