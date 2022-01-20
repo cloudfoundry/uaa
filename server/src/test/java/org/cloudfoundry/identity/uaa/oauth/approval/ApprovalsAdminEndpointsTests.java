@@ -32,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
@@ -59,7 +60,7 @@ class ApprovalsAdminEndpointsTests {
     PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void initApprovalsAdminEndpointsTests() {
+    void initApprovalsAdminEndpointsTests() throws SQLException {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String id = UUID.randomUUID().toString();
         String userId = testAccounts.addUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());

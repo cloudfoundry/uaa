@@ -191,7 +191,7 @@ class JdbcUaaUserDatabaseTests {
     }
 
     @Test
-    void is_the_right_query_used() {
+    void is_the_right_query_used() throws SQLException {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager,
                 databaseUrlModifier, dbUtils);
@@ -214,7 +214,7 @@ class JdbcUaaUserDatabaseTests {
 
     @Test
     // TODO: this should be parameterized
-    void getValidUserCaseInsensitive() {
+    void getValidUserCaseInsensitive() throws SQLException {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
                 jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, caseInsensitive, mockIdentityZoneManager,
@@ -269,7 +269,7 @@ class JdbcUaaUserDatabaseTests {
     }
 
     @Test
-    void getUserWithMultipleExtraAuthorities() {
+    void getUserWithMultipleExtraAuthorities() throws SQLException {
         addAuthority("additional", jdbcTemplate, "zone-the-first", JOE_ID);
         addAuthority("anotherOne", jdbcTemplate, "zone-the-first", JOE_ID);
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);

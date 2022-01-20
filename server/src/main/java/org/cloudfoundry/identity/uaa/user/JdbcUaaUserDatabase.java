@@ -56,6 +56,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UaaUserPrototype> minimalMapper = new UaaUserPrototypeRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
+    private String quotedGroupsIdentifier;
 
     RowMapper<UaaUser> getMapper() {
         return mapper;
@@ -67,13 +68,14 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
             final IdentityZoneManager identityZoneManager,
             final DatabaseUrlModifier databaseUrlModifier,
-            final DbUtils dbUtils) {
+            final DbUtils dbUtils) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
         this.databaseUrlModifier = databaseUrlModifier;
         this.dbUtils = dbUtils;
+        this.quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
     }
 
     public int getMaxSqlParameters() {
@@ -282,7 +284,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             List<Map<String,Object>> results = new ArrayList<>();
             while (!memberList.isEmpty()) {
                 StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
-                        .append(dbUtils.getQuotedIdentifier("groups", jdbcTemplate))
+                        .append(quotedGroupsIdentifier)
                         .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
                 int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
                 for (int i = 0; i < size - 1; i++) {
