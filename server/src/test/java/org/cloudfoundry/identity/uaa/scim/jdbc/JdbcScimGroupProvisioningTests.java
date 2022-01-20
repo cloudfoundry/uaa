@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -87,15 +88,20 @@ class JdbcScimGroupProvisioningTests {
 
         validateGroupCountInZone(0, zoneId);
 
-        dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter)));
+        DbUtils dbUtils = new DbUtils();
+        dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate,
+                new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
+                dbUtils));
 
         users = mock(ScimUserProvisioning.class);
 
-        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), users, null);
+        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate,
+                new TimeServiceImpl(), users, null, dbUtils);
         memberships.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupMembershipManager(memberships);
 
-        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager =
+                new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
 

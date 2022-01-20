@@ -15,7 +15,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -70,6 +70,8 @@ class JdbcScimGroupMembershipManagerTests {
 
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
+    private DbUtils dbUtils;
+
     private static final String ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities ,identity_zone_id) values ('%s','%s','%s','%s','%s','%s','%s','%s','%s')";
     private static final String ADD_GROUP_SQL_FORMAT = "insert into %s (id, displayName, identity_zone_id) values ('%s','%s','%s')";
     private static final String ADD_MEMBER_SQL_FORMAT = "insert into group_membership (group_id, member_id, member_type, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s')";
@@ -95,11 +97,14 @@ class JdbcScimGroupMembershipManagerTests {
         otherIdentityZone = MultitenancyFixture.identityZone("otherIdentityZone-" + generator.generate(), "otherIdentityZone-" + generator.generate());
         uaaIdentityZone = IdentityZone.getUaa();
 
+        dbUtils = new DbUtils();
+
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder);
-        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
+        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
 
-        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null);
+        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
+                jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
@@ -110,7 +115,7 @@ class JdbcScimGroupMembershipManagerTests {
         validateCount(0, jdbcTemplate, IdentityZoneHolder.get().getId());
     }
 
-    private static void addUsersAndGroups(
+    private void addUsersAndGroups(
             final JdbcTemplate jdbcTemplate,
             final String identityZoneId,
             final String namePrefix) throws SQLException {
@@ -137,7 +142,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @AfterEach
     void tearDown() throws SQLException {
-        jdbcTemplate.execute("delete from " + DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate));
+        jdbcTemplate.execute("delete from " + dbUtils.getQuotedIdentifier("groups", jdbcTemplate));
         jdbcTemplate.execute("delete from users");
         jdbcTemplate.execute("delete from external_group_mapping");
         jdbcTemplate.execute("delete from group_membership");
@@ -312,7 +317,7 @@ class JdbcScimGroupMembershipManagerTests {
         addGroup(zoneAdminId, "zones." + otherIdentityZone.getId() + ".admin", uaaIdentityZone.getId(), jdbcTemplate);
         addMember(zoneAdminId, "m1", "USER", OriginKeys.UAA, jdbcTemplate, uaaIdentityZone.getId());
 
-        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
         addMembers(jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
                 groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class), is(4));
@@ -341,7 +346,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @Test
     void providerDeleted() throws SQLException {
-        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
         mapExternalGroup("g1", "some-external-group", LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
@@ -366,7 +371,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @Test
     void cannotDeleteUaaZone() throws SQLException {
-        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", new Object[]{uaaIdentityZone.getId()}, Integer.class), is(4));
@@ -380,7 +385,7 @@ class JdbcScimGroupMembershipManagerTests {
 
     @Test
     void cannotDeleteUaaProvider() throws SQLException {
-        String groups = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
+        String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
@@ -686,14 +691,14 @@ class JdbcScimGroupMembershipManagerTests {
         jdbcTemplate.execute(String.format(ADD_MEMBER_SQL_FORMAT, gId_withZone, mId_WithZone, mType, origin, zoneId));
     }
 
-    private static void addGroup(
+    private void addGroup(
             final String id,
             final String name,
             final String zoneId,
             final JdbcTemplate jdbcTemplate) throws SQLException{
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(ADD_GROUP_SQL_FORMAT,
-                DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate), id, name, zoneId));
+                dbUtils.getQuotedIdentifier("groups", jdbcTemplate), id, name, zoneId));
     }
 
     private static void addUser(
@@ -705,20 +710,20 @@ class JdbcScimGroupMembershipManagerTests {
         jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, id, password, id, id, id, id, "", zoneId));
     }
 
-    private static void validateCount(
+    private void validateCount(
             final int expected,
             final JdbcTemplate jdbcTemplate,
             final String zoneId) throws SQLException {
         validateCount(expected, "No message given.", jdbcTemplate, zoneId);
     }
 
-    private static void validateCount(
+    private void validateCount(
             final int expected,
             final String msg,
             final JdbcTemplate jdbcTemplate,
             final String zoneId) throws SQLException {
         int existingMemberCount = jdbcTemplate.queryForObject("select count(*) from " +
-                DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate) +
+                dbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
                 " g, group_membership gm where g.identity_zone_id=? and gm.group_id=g.id",
                 new Object[]{zoneId}, Integer.class);
         assertEquals(expected, existingMemberCount, msg);

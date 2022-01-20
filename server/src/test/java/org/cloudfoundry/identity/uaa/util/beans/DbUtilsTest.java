@@ -1,5 +1,6 @@
-package org.cloudfoundry.identity.uaa.util;
+package org.cloudfoundry.identity.uaa.util.beans;
 
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.hsqldb.persist.HsqlDatabaseProperties;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -34,21 +35,23 @@ class DbUtilsTest {
     }
 
     @Test
-    void getInstanceGetsSingleton() {
-        DbUtils instance1 = DbUtils.getInstance();
-        DbUtils instance2 = DbUtils.getInstance();
-
-        assertNotNull(instance1);
-        assertEquals(instance1, instance2);
-    }
-
-    @Test
     void canQuoteHsqldbIdentifiers() throws SQLException {
         when(databaseMetaData.getDatabaseProductName()).thenReturn(HsqlDatabaseProperties.PRODUCT_NAME);
 
         String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
 
         assertEquals(IDENTIFIER_NAME, quotedIdentifier);
+    }
+
+    @Test
+    void canCacheForHsqldb() throws SQLException {
+        when(databaseMetaData.getDatabaseProductName())
+                .thenReturn(HsqlDatabaseProperties.PRODUCT_NAME, "SHOULD NOT SEE THIS");
+        dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
+
+        String subsequentQuotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
+
+        assertEquals(IDENTIFIER_NAME, subsequentQuotedIdentifier);
     }
 
     @Nested
@@ -76,6 +79,16 @@ class DbUtilsTest {
             String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
 
             assertEquals(DOUBLE_QUOTE + IDENTIFIER_NAME + DOUBLE_QUOTE, quotedIdentifier);
+        }
+
+        @Test
+        void canCache() throws SQLException {
+            when(databaseMetaData.getIdentifierQuoteString()).thenReturn(BACKTICK, DOUBLE_QUOTE);
+            dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
+
+            String subsequentQuotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
+
+            assertEquals(BACKTICK + IDENTIFIER_NAME + BACKTICK, subsequentQuotedIdentifier);
         }
 
         @ParameterizedTest

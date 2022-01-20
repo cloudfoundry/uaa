@@ -11,7 +11,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.slf4j.Logger;
@@ -68,12 +68,13 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     public JdbcScimGroupProvisioning(
             final JdbcTemplate jdbcTemplate,
-            final JdbcPagingListFactory pagingListFactory) throws SQLException {
+            final JdbcPagingListFactory pagingListFactory,
+            final DbUtils dbUtils) throws SQLException {
         super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
         this.jdbcTemplate = jdbcTemplate;
 
-        final String quotedGroupsTableName = DbUtils.getInstance().getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
+        final String quotedGroupsTableName = dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
         updateGroupSql = String.format(
                 "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?",
                 quotedGroupsTableName

@@ -5,7 +5,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -55,6 +55,7 @@ class JdbcUaaUserDatabaseTests {
     private TimeService timeService;
     private IdentityZoneManager mockIdentityZoneManager;
     private Set<SimpleGrantedAuthority> defaultAuthorities;
+    private DbUtils dbUtils;
     private DatabaseUrlModifier databaseUrlModifier;
 
     @Autowired
@@ -77,6 +78,7 @@ class JdbcUaaUserDatabaseTests {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         setUpIdentityZone(mockIdentityZoneManager);
 
+        dbUtils = new DbUtils();
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(
                 jdbcTemplate,
                 timeService,
@@ -96,7 +98,7 @@ class JdbcUaaUserDatabaseTests {
         addUser(ALICE_ID, "alice", "alicespassword", false, jdbcTemplate, "zone-the-second");
         addUser(BOB_ID, "bob", "bobspassword", false, jdbcTemplate, "zone-the-bob");
 
-        addGroupSql = "insert into " + DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate) +
+        addGroupSql = "insert into " + dbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
                 " (id, displayName, identity_zone_id) values (?,?,?)";
     }
 
@@ -192,6 +194,7 @@ class JdbcUaaUserDatabaseTests {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager,
                 databaseUrlModifier);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager, dbUtils);
 
         String username = new RandomValueStringGenerator().generate() + "@test.org";
 
@@ -202,6 +205,7 @@ class JdbcUaaUserDatabaseTests {
 
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager,
                 databaseUrlModifier);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager, dbUtils);
 
         jdbcUaaUserDatabase.retrieveUserByName(username, OriginKeys.UAA);
         verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));

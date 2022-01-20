@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.user;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -47,6 +47,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
+    private final DbUtils dbUtils;
     private final DatabaseUrlModifier databaseUrlModifier;
 
     @Value("${database.maxParameters:-1}")
@@ -65,11 +66,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             final TimeService timeService,
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
             final IdentityZoneManager identityZoneManager,
-            final DatabaseUrlModifier databaseUrlModifier) {
+            final DatabaseUrlModifier databaseUrlModifier,
+            final DbUtils dbUtils) {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
+        this.dbUtils = dbUtils;
         this.databaseUrlModifier = databaseUrlModifier;
     }
 

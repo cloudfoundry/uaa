@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -60,8 +61,9 @@ class LdapGroupMappingAuthorizationManagerTests {
     ) {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        DbUtils dbUtils = new DbUtils();
+        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
 

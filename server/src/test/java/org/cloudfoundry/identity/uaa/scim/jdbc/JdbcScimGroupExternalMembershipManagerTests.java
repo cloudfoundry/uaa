@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -42,6 +42,8 @@ class JdbcScimGroupExternalMembershipManagerTests {
 
     private IdentityZone otherZone;
 
+    private DbUtils dbUtils;
+
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
@@ -61,19 +63,22 @@ class JdbcScimGroupExternalMembershipManagerTests {
         otherZone = new JdbcIdentityZoneProvisioning(jdbcTemplate).create(otherZone);
 
         JdbcTemplate template = new JdbcTemplate(dataSource);
+        dbUtils = new DbUtils();
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
+        gdao = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
 
-        JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), null, null);
+        JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
+                jdbcTemplate, new TimeServiceImpl(), null, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(gdao);
         gdao.setJdbcScimGroupMembershipManager(jdbcScimGroupMembershipManager);
 
-        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager =
+                new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(gdao);
         gdao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
 
-        edao = new JdbcScimGroupExternalMembershipManager(template);
+        edao = new JdbcScimGroupExternalMembershipManager(template, dbUtils);
         edao.setScimGroupProvisioning(gdao);
 
         for (String zoneId : Arrays.asList(IdentityZone.getUaaZoneId(), otherZone.getId())) {
@@ -90,7 +95,7 @@ class JdbcScimGroupExternalMembershipManagerTests {
             final String name,
             final String zoneId) throws SQLException {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        String quotedGroupsIdentifier = DbUtils.getInstance().getQuotedIdentifier("groups", jdbcTemplate);
+        String quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
         jdbcTemplate.execute(String.format(addGroupSqlFormat, quotedGroupsIdentifier, id, name, zoneId));
     }
 

@@ -7,7 +7,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.util.DbUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -66,13 +66,13 @@ public class JdbcScimGroupExternalMembershipManager
 
     private ScimGroupProvisioning scimGroupProvisioning;
 
-    public JdbcScimGroupExternalMembershipManager(final JdbcTemplate jdbcTemplate) throws SQLException {
+    public JdbcScimGroupExternalMembershipManager(final JdbcTemplate jdbcTemplate, DbUtils dbUtils) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
 
         this.rowMapper = new ScimGroupExternalMemberRowMapper();
 
         joinGroupTable = String.format("%s g, %s gm",
-                DbUtils.getInstance().getQuotedIdentifier(GROUP_TABLE, jdbcTemplate), EXTERNAL_GROUP_MAPPING_TABLE);
+                dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate), EXTERNAL_GROUP_MAPPING_TABLE);
         getGroupsWithExternalGroupMappingsSql = String.format("select %s from %s where gm.identity_zone_id = ? and g.id=? and %s and lower(external_group) like lower(?)",
                 JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
                 joinGroupTable,
