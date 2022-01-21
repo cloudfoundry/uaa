@@ -44,7 +44,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
-    private final DbUtils dbUtils;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
@@ -64,7 +63,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
-        this.dbUtils = dbUtils;
         this.quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
     }
 
