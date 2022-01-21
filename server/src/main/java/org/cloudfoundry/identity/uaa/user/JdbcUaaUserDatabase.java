@@ -48,7 +48,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
     private final DatabaseUrlModifier databaseUrlModifier;
-    private final DbUtils dbUtils;
 
     @Value("${database.maxParameters:-1}")
     private int maxSqlParameters;
@@ -74,7 +73,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
         this.databaseUrlModifier = databaseUrlModifier;
-        this.dbUtils = dbUtils;
         this.quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
     }
 
