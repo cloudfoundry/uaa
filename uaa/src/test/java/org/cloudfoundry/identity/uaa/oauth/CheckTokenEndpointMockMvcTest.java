@@ -29,7 +29,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.web.util.HtmlUtils;
 
 import java.util.Map;
 
@@ -86,7 +85,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void check_token_get() throws Exception {
         check_token(get("/check_token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'GET' not supported", "ISO-8859-1")));
+            .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
 
     }
 
@@ -94,7 +93,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void check_token_put() throws Exception {
         check_token(put("/check_token"), status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'PUT' not supported", "ISO-8859-1")));
+            .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
 
     }
 
@@ -113,7 +112,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void check_token_delete() throws Exception {
         check_token(MockMvcRequestBuilders.delete("/check_token"),status().isMethodNotAllowed())
             .andExpect(jsonPath("$.error").value("method_not_allowed"))
-            .andExpect(jsonPath("$.error_description").value(HtmlUtils.htmlEscape("Request method 'DELETE' not supported", "ISO-8859-1")));
+            .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
     }
 
     @Test
