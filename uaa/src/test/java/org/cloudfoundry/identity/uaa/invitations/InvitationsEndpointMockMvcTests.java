@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.zone.*;
@@ -23,7 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
@@ -64,7 +64,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class InvitationsEndpointMockMvcTests {
 
     private String scimInviteToken;
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
     private String clientId;
     private String clientSecret;
     private ClientDetails clientDetails;
@@ -88,7 +88,7 @@ class InvitationsEndpointMockMvcTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin uaa.admin", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
@@ -489,7 +489,7 @@ class InvitationsEndpointMockMvcTests {
             MockMvc mockMvc,
             String clientId,
             String clientSecret,
-            RandomValueStringGenerator generator,
+            AlphanumericRandomValueStringGenerator generator,
             String domain,
             IdentityZone zone,
             String adminClientId,

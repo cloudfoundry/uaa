@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
+import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
@@ -109,7 +110,7 @@ class ScimUserEndpointsMockMvcTests {
     private String scimReadWriteToken;
     private String scimCreateToken;
     private String uaaAdminToken;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private ClientDetails clientDetails;
     private ScimUserProvisioning usersRepository;
     private JdbcIdentityProviderProvisioning identityProviderProvisioning;

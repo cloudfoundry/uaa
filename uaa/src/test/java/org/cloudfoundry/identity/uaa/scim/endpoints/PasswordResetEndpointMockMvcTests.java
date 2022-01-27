@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -46,7 +46,7 @@ class PasswordResetEndpointMockMvcTests {
     private String loginToken;
     private ScimUser scimUser;
     private String adminToken;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
 
     @Autowired
     private TestClient testClient;
@@ -62,7 +62,7 @@ class PasswordResetEndpointMockMvcTests {
     void setUp() throws Exception {
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
-        scimUser = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        scimUser = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         scimUser.setPrimaryEmail(scimUser.getUserName());
         scimUser.setPassword("secr3T");
         scimUser = MockMvcUtils.createUser(mockMvc, adminToken, scimUser);
@@ -70,7 +70,7 @@ class PasswordResetEndpointMockMvcTests {
 
     @AfterEach
     void resetGenerator() {
-        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new AlphanumericRandomValueStringGenerator(24));
     }
 
     @Test
@@ -196,7 +196,7 @@ class PasswordResetEndpointMockMvcTests {
 
     @Test
     void changePasswordWithInvalidPasswordReturnsErrorJson() throws Exception {
-        String toolongpassword = new RandomValueStringGenerator(260).generate();
+        String toolongpassword = new AlphanumericRandomValueStringGenerator(260).generate();
         String code = getExpiringCode(mockMvc, null, null, loginToken, scimUser);
         mockMvc.perform(post("/password_change")
             .header("Authorization", "Bearer " + loginToken)
@@ -261,7 +261,7 @@ class PasswordResetEndpointMockMvcTests {
         MockMvcUtils.createClient(this.mockMvc, adminToken, zonifiedAdminClientId , zonifiedAdminClientSecret, Collections.singleton("oauth"), Collections.singletonList(zoneAdminScope), Arrays.asList("client_credentials", "password"), "uaa.none");
         String zoneAdminAccessToken = testClient.getUserOAuthAccessToken(zonifiedAdminClientId, zonifiedAdminClientSecret, scimUser.getUserName(), "secr3T", zoneAdminScope);
 
-        ScimUser userInZone = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        ScimUser userInZone = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         userInZone.setPrimaryEmail(userInZone.getUserName());
         userInZone.setPassword("secr3T");
         userInZone = MockMvcUtils.createUserInZone(mockMvc, adminToken, userInZone, "",identityZone.getId());

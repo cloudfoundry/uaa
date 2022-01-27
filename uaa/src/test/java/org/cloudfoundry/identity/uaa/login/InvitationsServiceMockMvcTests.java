@@ -320,10 +320,10 @@ public class InvitationsServiceMockMvcTests {
         ZoneScimInviteData zone = createZoneForInvites(mockMvc, webApplicationContext, clientId);
         LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes("", "", "", "", "", "", "", "", "", false, false, false, 1, true);
 
-        String domain = generator.generate().toLowerCase() + ".com";
+        String domain ="myserver1.com";
         definition.setEmailDomain(Collections.singletonList(domain));
         IdentityProvider provider = createIdentityProvider(mockMvc, zone.getZone(), OriginKeys.LDAP, definition);
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
+        String email = "myemail1@" + domain;
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
         String code = extractInvitationCode(inviteLink.toString());
 
@@ -345,15 +345,15 @@ public class InvitationsServiceMockMvcTests {
     @Test
     void inviteSamlUserWillRedirectUponAccept() throws Exception {
         ZoneScimInviteData zone = createZoneForInvites(mockMvc, webApplicationContext, clientId);
-        String entityID = generator.generate();
-        String originKey = "invite1-" + generator.generate().toLowerCase();
-        String domain = generator.generate().toLowerCase() + ".com";
+        String entityID = "myentityid2";
+        String originKey = "invite1-myoriginkey2";
+        String domain = "myserver2.com";
         SamlIdentityProviderDefinition definition = getSamlIdentityProviderDefinition(zone.getZone(), entityID);
         definition.setEmailDomain(Collections.singletonList(domain));
         definition.setIdpEntityAlias(originKey);
         IdentityProvider provider = createIdentityProvider(mockMvc, zone.getZone(), originKey, definition);
 
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
+        String email = "myemail2@" + domain;
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
         String code = extractInvitationCode(inviteLink.toString());
 

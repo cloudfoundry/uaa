@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -73,7 +74,6 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
@@ -260,7 +260,7 @@ public final class MockMvcUtils {
     public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) {
         String zoneId = zone.getId();
         MfaProvider provider = new MfaProvider();
-        provider.setName(new RandomValueStringGenerator(5).generate().toLowerCase());
+        provider.setName(new AlphanumericRandomValueStringGenerator(5).generate().toLowerCase());
         provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         provider.setIdentityZoneId(zoneId);
         provider.setConfig(new GoogleMfaProviderConfig());
@@ -545,7 +545,7 @@ public final class MockMvcUtils {
     }
 
     public static ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String userId, String redirectUri, String zoneId) throws Exception {
-        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
         String superAdmin = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null, zoneId);
 
@@ -565,7 +565,7 @@ public final class MockMvcUtils {
         );
 
 
-        String username = new RandomValueStringGenerator().generate().toLowerCase() + "@example.com";
+        String username = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@example.com";
         ScimUser user = new ScimUser(userId, username, "given-name", "family-name");
         user.setPrimaryEmail(username);
         user.setPassword("password");
@@ -596,7 +596,7 @@ public final class MockMvcUtils {
     }
 
     public static IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
-        final String zoneId = new RandomValueStringGenerator(12).generate().toLowerCase();
+        final String zoneId = new AlphanumericRandomValueStringGenerator(12).generate().toLowerCase();
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
 
         MvcResult result = mockMvc.perform(post("/identity-zones")
@@ -1080,7 +1080,7 @@ public final class MockMvcUtils {
 
     public static String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId, String scope) throws Exception {
         ScimUser user = new ScimUser();
-        user.setUserName(new RandomValueStringGenerator().generate());
+        user.setUserName(new AlphanumericRandomValueStringGenerator().generate());
         user.setPrimaryEmail(user.getUserName() + "@test.org");
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(mockMvc, adminToken, user);
@@ -1188,7 +1188,7 @@ public final class MockMvcUtils {
           new MockSecurityContext(auth)
         );
 
-        String state = new RandomValueStringGenerator().generate();
+        String state = new AlphanumericRandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
           .header("Authorization", basicDigestHeaderValue)
           .header("Accept", MediaType.APPLICATION_JSON_VALUE)
@@ -1233,7 +1233,7 @@ public final class MockMvcUtils {
           zone == null ? null : zone.getSubdomain()
         );
         // create a user (with the required permissions) to perform the actual /invite_users action
-        String username = new RandomValueStringGenerator().generate().toLowerCase() + "@example.com";
+        String username = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@example.com";
         ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
         user.setPrimaryEmail(username);
         user.setPassword("password");
@@ -1429,7 +1429,7 @@ public final class MockMvcUtils {
         }
     }
 
-    public static class PredictableGenerator extends RandomValueStringGenerator {
+    public static class PredictableGenerator extends AlphanumericRandomValueStringGenerator {
         public AtomicInteger counter = new AtomicInteger(1);
 
         @Override
@@ -1441,7 +1441,7 @@ public final class MockMvcUtils {
 
     public static MfaProvider<GoogleMfaProviderConfig> constructGoogleMfaProvider() {
         MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
-        res.setName(new RandomValueStringGenerator(5).generate());
+        res.setName(new AlphanumericRandomValueStringGenerator(5).generate());
         res.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         res.setConfig(constructGoogleProviderConfiguration());
         return res;

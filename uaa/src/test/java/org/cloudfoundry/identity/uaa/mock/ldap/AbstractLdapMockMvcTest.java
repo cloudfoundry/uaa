@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -826,7 +827,7 @@ public abstract class AbstractLdapMockMvcTest {
         String zoneId = zone.getZone().getIdentityZone().getId();
         // create mfa provider
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider();
-        mfaProvider.setName(new RandomValueStringGenerator(5).generate());
+        mfaProvider.setName(new AlphanumericRandomValueStringGenerator(5).generate());
         mfaProvider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
         mfaProvider.setIdentityZoneId(zone.getZone().getIdentityZone().getId());
         mfaProvider.setConfig((GoogleMfaProviderConfig) new GoogleMfaProviderConfig().setIssuer("issuer"));

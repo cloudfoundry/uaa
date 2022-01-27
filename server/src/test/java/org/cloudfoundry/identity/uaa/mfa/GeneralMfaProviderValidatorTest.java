@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
+import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import static org.junit.Assert.assertEquals;
 
@@ -61,7 +61,7 @@ public class GeneralMfaProviderValidatorTest {
         expectedException.expect(InvalidMfaProviderException.class);
         expectedException.expectMessage("Provider name cannot be longer than 256 characters");
         MfaProvider provider = createValidGoogleMfaProvider()
-                .setName(new RandomValueStringGenerator(257).generate());
+                .setName(new AlphanumericRandomValueStringGenerator(257).generate());
         validator.validate(provider);
     }
     @Test
@@ -121,7 +121,7 @@ public class GeneralMfaProviderValidatorTest {
 
     private MfaProvider createValidGoogleMfaProvider() {
         MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
-        res.setName(new RandomValueStringGenerator(5).generate())
+        res.setName(new AlphanumericRandomValueStringGenerator(5).generate())
                 .setConfig(createValidGoogleMfaConfig())
                 .setIdentityZoneId(IdentityZone.getUaaZoneId())
                 .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
