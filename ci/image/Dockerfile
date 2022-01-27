@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM artifactory.guidewire.com/hub-docker-remote/ubuntu:18.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl jq git lsb-release unzip vim sudo \
