@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.test;
+package org.cloudfoundry.identity.uaa.util;
 
 public class AlphanumericRandomValueStringGenerator
         extends org.springframework.security.oauth2.common.util.RandomValueStringGenerator {

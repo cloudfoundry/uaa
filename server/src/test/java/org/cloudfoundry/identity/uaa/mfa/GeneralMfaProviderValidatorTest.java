@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import org.cloudfoundry.identity.uaa.mfa.exception.InvalidMfaProviderException;
-import org.cloudfoundry.identity.uaa.test.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Rule;

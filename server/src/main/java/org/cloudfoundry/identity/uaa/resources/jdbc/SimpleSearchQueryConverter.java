@@ -6,6 +6,7 @@ import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -90,11 +91,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private RandomValueStringGenerator randomStringGenerator;
 
     public SimpleSearchQueryConverter() {
-        randomStringGenerator = new RandomValueStringGenerator();
-    }
-
-    public SimpleSearchQueryConverter(RandomValueStringGenerator randomStringGenerator) {
-        this.randomStringGenerator = randomStringGenerator;
+        randomStringGenerator = new AlphanumericRandomValueStringGenerator();
     }
 
     private boolean isDbCaseInsensitive() {
@@ -122,7 +119,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private String generateParameterPrefix(String filter) {
         while (true) {
             String s = randomStringGenerator.generate().toLowerCase();
-            if (!filter.contains(s) && !s.contains("-")) {
+            if (!filter.contains(s)) {
                 return "__" + s + "_";
             }
         }
