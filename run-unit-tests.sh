@@ -35,9 +35,6 @@ if [[ -z "${DOCKER_IMAGE+x}" ]]; then
 fi
 
 docker run \
-  --privileged \
-  --tty \
-  --interactive \
   --shm-size=1G \
   --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   --volume "${GRADLE_LOCK_DIR}" \
