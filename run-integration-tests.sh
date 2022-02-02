@@ -36,6 +36,7 @@ fi
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
 docker run --shm-size=1G \
+  --memory=6G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   -v "${GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
