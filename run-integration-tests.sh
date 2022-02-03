@@ -31,7 +31,7 @@ case "$1" in
 esac
 
 if [[ -z "${DOCKER_IMAGE+x}" ]]; then
-    DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
+    DOCKER_IMAGE="artifactory.guidewire.com/hub-docker-remote/cfidentity/uaa-${DB_IMAGE_NAME}"
 fi
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
