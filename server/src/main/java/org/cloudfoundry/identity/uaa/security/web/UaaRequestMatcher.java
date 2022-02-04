@@ -104,7 +104,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
             return false;
         }
 
-        if (method != null && !method.toString().equals(request.getMethod().toUpperCase())) {
+        if (method != null && !method.matches(request.getMethod().toUpperCase())) {
             return false;
         }
 
