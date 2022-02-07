@@ -369,8 +369,9 @@ public class LoginIT {
     public void testBuildInfo() {
         webDriver.get(baseUrl + "/login");
 
-        String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
-        assertTrue(webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title").matches(regex));
+        String regex = "Version: \\S+, Commit: \\w, Timestamp: .+, UAA: " + baseUrl;
+        var value = webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title");
+        assertTrue(value, value.matches(regex));
     }
 
     @Test

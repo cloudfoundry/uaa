@@ -31,11 +31,12 @@ case "$1" in
 esac
 
 if [[ -z "${DOCKER_IMAGE+x}" ]]; then
-    DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
+    DOCKER_IMAGE="artifactory.guidewire.com/hub-docker-remote/cfidentity/uaa-${DB_IMAGE_NAME}"
 fi
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
-docker run --privileged -t -i --shm-size=1G \
+docker run --shm-size=4G \
+  --memory=6G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   -v "${GRADLE_LOCK_DIR}" \
   --env DB=${DB} \
