@@ -257,6 +257,8 @@
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
+        <custom-filter ref="passwordChangeUiRequiredFilter" after="BASIC_AUTH_FILTER"/>
+        <custom-filter ref="mfaUiRequiredFilter" after="FORM_LOGIN_FILTER"/>
         <custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
         <csrf disabled="true"/>
     </http>
