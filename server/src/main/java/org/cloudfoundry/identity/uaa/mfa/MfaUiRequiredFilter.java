@@ -78,7 +78,9 @@ public class MfaUiRequiredFilter extends GenericFilterBean {
                 break;
             case MFA_REQUIRED:
                 logger.debug("Request requires MFA, redirecting to MFA flow for " + getAuthenticationLogInfo());
-                cache.saveRequest(request, response);
+                if (cache.getRequest(request, response) == null) {
+                    cache.saveRequest(request, response);
+                }
                 sendRedirect(redirect, request, response);
                 break;
             case MFA_COMPLETED:
