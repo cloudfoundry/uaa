@@ -18,6 +18,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,15 +36,18 @@ import java.util.regex.Pattern;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.*;
 import static org.springframework.http.HttpStatus.OK;
 
-public class CorsFilterTests {
+public class CorsFilterDefaultZoneTests {
     private List<String> logEvents = new ArrayList<>();
     private AbstractAppender appender;
+    IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
 
     @BeforeEach
-    void addLoggerAppender() {
+    void setUp() {
         appender = new AbstractAppender("", null, null) {
             @Override
             public void append(LogEvent event) {
@@ -54,6 +58,8 @@ public class CorsFilterTests {
 
         LoggerContext context = (LoggerContext) LogManager.getContext(false);
         context.getRootLogger().addAppender(appender);
+
+        when(mockIdentityZoneManager.isCurrentZoneUaa()).thenReturn(true);
     }
 
     @AfterEach
@@ -64,37 +70,37 @@ public class CorsFilterTests {
 
     @Test
     public void test_XHR_Default_Allowed_Methods() {
-        CorsFilter filter = new CorsFilter();
+        CorsFilter filter = new CorsFilter(mockIdentityZoneManager);
         assertThat(filter.getXhrConfiguration().getAllowedMethods(), containsInAnyOrder("GET", "OPTIONS"));
     }
 
     @Test
     public void test_NonXHR_Default_Allowed_Methods() {
-        CorsFilter filter = new CorsFilter();
+        CorsFilter filter = new CorsFilter(mockIdentityZoneManager);
         assertThat(filter.getDefaultConfiguration().getAllowedMethods(), containsInAnyOrder("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
     }
 
     @Test
     public void test_XHR_Default_Allowed_Headers() {
-        CorsFilter filter = new CorsFilter();
+        CorsFilter filter = new CorsFilter(mockIdentityZoneManager);
         assertThat(filter.getXhrConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION, CorsFilter.X_REQUESTED_WITH));
     }
 
     @Test
     public void test_NonXHR_Default_Allowed_Headers() {
-        CorsFilter filter = new CorsFilter();
+        CorsFilter filter = new CorsFilter(mockIdentityZoneManager);
         assertThat(filter.getDefaultConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION));
     }
 
     @Test
     public void test_XHR_Default_Allowed_Credentials() {
-        CorsFilter filter = new CorsFilter();
+        CorsFilter filter = new CorsFilter(mockIdentityZoneManager);
         assertTrue(filter.getXhrConfiguration().isAllowedCredentials());
     }
 
     @Test
     public void test_NonXHR_Default_Allowed_Credentials() {
-        CorsFilter filter = new CorsFilter();
+        CorsFilter filter = new CorsFilter(mockIdentityZoneManager);
         assertFalse(filter.getDefaultConfiguration().isAllowedCredentials());
     }
 
@@ -374,7 +380,7 @@ public class CorsFilterTests {
     @Test
     public void doInitializeWithNoPropertiesSet() throws ServletException, IOException {
 
-        CorsFilter corsFilter = new CorsFilter();
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager);
 
         // We need to set the default value that Spring would otherwise set.
         List<String> allowedUris = new ArrayList<>(Collections.singletonList(".*"));
@@ -412,7 +418,7 @@ public class CorsFilterTests {
     @Test
     public void doInitializeWithInvalidUriRegex() {
 
-        CorsFilter corsFilter = new CorsFilter();
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager);
 
         List<String> allowedUris =
                 new ArrayList<String>(Arrays.asList(new String[] { "^/uaa/userinfo(", "^/uaa/logout.do$" }));
@@ -429,7 +435,7 @@ public class CorsFilterTests {
     @Test
     public void doInitializeWithInvalidOriginRegex() {
 
-        CorsFilter corsFilter = new CorsFilter();
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager);
 
         List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout.do$"));
         corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
@@ -444,8 +450,8 @@ public class CorsFilterTests {
         );
     }
 
-    private static CorsFilter createConfiguredCorsFilter() {
-        CorsFilter corsFilter = new CorsFilter();
+    private CorsFilter createConfiguredCorsFilter() {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager);
 
         List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout\\.do$" ));
         corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
@@ -462,10 +468,10 @@ public class CorsFilterTests {
         return corsFilter;
     }
 
-    private static void assertStandardCorsPreFlightResponse(final MockHttpServletResponse response, String allowedMethods, String... allowedHeaders) {
+    private void assertStandardCorsPreFlightResponse(final MockHttpServletResponse response, String allowedMethods, String... allowedHeaders) {
         assertEquals("*", response.getHeaderValue("Access-Control-Allow-Origin"));
         assertEquals(allowedMethods, response.getHeaderValue("Access-Control-Allow-Methods"));
-        assertThat(new CorsFilter().splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder(allowedHeaders));
+        assertThat(new CorsFilter(mockIdentityZoneManager).splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder(allowedHeaders));
         assertEquals("1728000", response.getHeaderValue("Access-Control-Max-Age"));
     }
 
