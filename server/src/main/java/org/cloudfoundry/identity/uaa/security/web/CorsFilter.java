@@ -14,8 +14,6 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
-import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
@@ -86,10 +84,9 @@ public class CorsFilter extends OncePerRequestFilter {
 
     private CorsConfiguration xhrConfiguration = new CorsConfiguration();
     private CorsConfiguration defaultConfiguration = new CorsConfiguration();
-    private final IdentityZoneManager identityZoneManager;
 
-    public CorsFilter(final IdentityZoneManager identityZoneManager) {
-        //configure defaults for XHR vs non-XHR requests for default zone
+    public CorsFilter() {
+        //configure defaults for XHR vs non-XHR requests
         xhrConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString()));
         defaultConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString(), POST.toString(), PUT.toString(), DELETE.toString(), PATCH.toString()));
 
@@ -98,20 +95,37 @@ public class CorsFilter extends OncePerRequestFilter {
 
         xhrConfiguration.setAllowedCredentials(true);
         defaultConfiguration.setAllowedCredentials(false);
-
-        this.identityZoneManager = identityZoneManager;
     }
 
     @PostConstruct
     public void initialize() {
-        // initialize the configs for default zone
         for (CorsConfiguration configuration : Arrays.asList(xhrConfiguration, defaultConfiguration)) {
+            String type = (configuration == xhrConfiguration ? "xhr" : "default");
             configuration.getAllowedUriPatterns().clear();
             configuration.getAllowedOriginPatterns().clear();
-            compileAllowedOriginsAndUris(configuration,
-                    configuration == xhrConfiguration ? "xhr" : "default");
+            if (configuration.getAllowedUris() != null) {
+                for (String allowedUri : configuration.getAllowedUris()) {
+                    try {
+                        configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
+                        logger.debug(String.format("URI '%s' is allowed for a %s CORS requests.", allowedUri, type));
+                    } catch (PatternSyntaxException patternSyntaxException) {
+                        logger.error("Invalid regular expression pattern in cors."+type+".allowed.uris: " + allowedUri, patternSyntaxException);
+                    }
+                }
+            }
+            if (configuration.getAllowedOrigins() != null) {
+                for (String allowedOrigin : configuration.getAllowedOrigins()) {
+                    try {
+                        configuration.getAllowedOriginPatterns().add(Pattern.compile(allowedOrigin));
+                        logger.debug(String.format("Origin '%s' is allowed for a %s CORS requests.", allowedOrigin, type));
+                    } catch (PatternSyntaxException patternSyntaxException) {
+                        logger.error("Invalid regular expression pattern in cors."+type+".allowed.origins: " + allowedOrigin, patternSyntaxException);
+                    }
+                }
+            }
         }
     }
+
 
     @Override
     protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
@@ -128,9 +142,9 @@ public class CorsFilter extends OncePerRequestFilter {
             logger.debug("CORS Processing request: "+getRequestInfo(request));
         }
         if (isXhrRequest(request)) {
-            handleRequest(request, response, filterChain, resolveXhrCorsConfiguration());
+            handleRequest(request, response, filterChain, getXhrConfiguration());
         } else {
-            handleRequest(request, response, filterChain, resolveDefaultCorsConfiguration());
+            handleRequest(request, response, filterChain, getDefaultConfiguration());
         }
         if (logger.isDebugEnabled()) {
             logger.debug("CORS processing completed for: "+getRequestInfo(request)+" Status:"+response.getStatus());
@@ -325,64 +339,6 @@ public class CorsFilter extends OncePerRequestFilter {
         logger.debug(String.format("The '%s' origin is not allowed to make CORS requests.",origin));
         return false;
     }
-
-    private CorsConfiguration resolveXhrCorsConfiguration() {
-        if (!identityZoneManager.isCurrentZoneUaa()) {
-            // get the cors policy's xhrConfiguration section from the non-default zone
-            CorsPolicy zoneCorsPolicy = identityZoneManager.getCurrentIdentityZone().getConfig().getCorsPolicy();
-            if (zoneCorsPolicy != null) {
-                CorsConfiguration zoneXhrCorsConfiguration = zoneCorsPolicy.getXhrConfiguration();
-                if (zoneXhrCorsConfiguration != null) {
-                    compileAllowedOriginsAndUris(zoneXhrCorsConfiguration, "xhr");
-                    return zoneXhrCorsConfiguration;
-                }
-            }
-        }
-
-        // return the default zone's cors policy's xhrConfiguration
-        return getXhrConfiguration();
-    }
-
-    private CorsConfiguration resolveDefaultCorsConfiguration() {
-        if (!identityZoneManager.isCurrentZoneUaa()) {
-            // get the cors policy's defaultConfiguration section from the non-default zone
-            CorsPolicy zoneCorsPolicy = identityZoneManager.getCurrentIdentityZone().getConfig().getCorsPolicy();
-            if (zoneCorsPolicy != null) {
-                CorsConfiguration zoneDefaultCorsConfiguration = zoneCorsPolicy.getDefaultConfiguration();
-                if (zoneDefaultCorsConfiguration != null) {
-                    compileAllowedOriginsAndUris(zoneDefaultCorsConfiguration, "default");
-                    return zoneDefaultCorsConfiguration;
-                }
-            }
-        }
-
-        // return the default zone's cors policy's defaultConfiguration
-        return getDefaultConfiguration();
-    }
-
-    private void compileAllowedOriginsAndUris(CorsConfiguration configuration, String type) {
-        if (configuration.getAllowedUris() != null) {
-            for (String allowedUri : configuration.getAllowedUris()) {
-                try {
-                    configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
-                    logger.debug(String.format("URI '%s' is allowed for a %s CORS requests.", allowedUri, type));
-                } catch (PatternSyntaxException patternSyntaxException) {
-                    logger.error("Invalid regular expression pattern in cors."+type+".allowed.uris: " + allowedUri, patternSyntaxException);
-                }
-            }
-        }
-        if (configuration.getAllowedOrigins() != null) {
-            for (String allowedOrigin : configuration.getAllowedOrigins()) {
-                try {
-                    configuration.getAllowedOriginPatterns().add(Pattern.compile(allowedOrigin));
-                    logger.debug(String.format("Origin '%s' is allowed for a %s CORS requests.", allowedOrigin, type));
-                } catch (PatternSyntaxException patternSyntaxException) {
-                    logger.error("Invalid regular expression pattern in cors."+type+".allowed.origins: " + allowedOrigin, patternSyntaxException);
-                }
-            }
-        }
-    }
-
     //----------------REQUEST INFO ----------------------------------------------//
     public String getRequestInfo(HttpServletRequest request) {
         return String.format("URI: %s; Scheme: %s; Host: %s; Port: %s; Origin: %s; Method: %s",
