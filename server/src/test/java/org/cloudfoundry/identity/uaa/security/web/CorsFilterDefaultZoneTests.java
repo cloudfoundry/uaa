@@ -39,6 +39,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.*;
+import static org.springframework.http.HttpStatus.OK;
 
 public class CorsFilterDefaultZoneTests {
     private List<String> logEvents = new ArrayList<>();
@@ -116,6 +117,7 @@ public class CorsFilterDefaultZoneTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
+        assertEquals(OK.value(), response.getStatus());
         assertEquals("*", response.getHeaderValue("Access-Control-Allow-Origin"));
     }
 
@@ -134,6 +136,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Invalid origin", response.getErrorMessage());
     }
 
     @Test
@@ -184,6 +187,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Illegal origin", response.getErrorMessage());
     }
 
     @Test
@@ -201,6 +205,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Illegal request URI", response.getErrorMessage());
     }
 
     @Test
@@ -218,6 +223,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(405, response.getStatus());
+        assertEquals("Illegal method.", response.getErrorMessage());
     }
 
     @Test
@@ -273,6 +279,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Illegal origin", response.getErrorMessage());
     }
 
     @Test
@@ -289,6 +296,8 @@ public class CorsFilterDefaultZoneTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
+        assertEquals(400, response.getStatus());
+        assertEquals("Access-Control-Request-Method header is missing", response.getErrorMessage());
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
     }
 
@@ -308,6 +317,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(405, response.getStatus());
+        assertEquals("Illegal method requested", response.getErrorMessage());
     }
 
     @Test
@@ -326,6 +336,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Illegal header requested", response.getErrorMessage());
     }
 
     @Test
@@ -344,6 +355,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Illegal request URI", response.getErrorMessage());
     }
 
     @Test
@@ -362,6 +374,7 @@ public class CorsFilterDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(403, response.getStatus());
+        assertEquals("Illegal origin", response.getErrorMessage());
     }
 
     @Test
