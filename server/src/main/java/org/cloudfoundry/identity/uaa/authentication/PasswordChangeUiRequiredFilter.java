@@ -51,7 +51,9 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
             }
         } else if (needsPasswordReset(request) && !matchPath.matches(request)) {
             logger.debug("Password change is required for user.");
-            cache.saveRequest(request, response);
+            if (cache.getRequest(request, response) == null) {
+                cache.saveRequest(request, response);
+            }
             sendRedirect(MATCH_PATH, request, response);
         } else if (matchPath.matches(request) && isAuthenticated() && !needsPasswordReset(request)) {
             sendRedirect("/", request, response);
