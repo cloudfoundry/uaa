@@ -32,11 +32,11 @@ function bootDB {
     launchDB="(MYSQL_DATABASE=uaa MYSQL_ROOT_HOST=127.0.0.1 MYSQL_ROOT_PASSWORD='changeme' bash /entrypoint.sh mysqld &> ${bootLogLocation}) &"
     # MYSQL_DATABASE=uaa MYSQL_ROOT_HOST=127.0.0.1 MYSQL_ROOT_PASSWORD='changeme' bash /entrypoint.sh mysqld
     testConnection="echo '\s;' | mysql -uroot -pchangeme &>/dev/null"
-    initDB="mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250;';"
+    initDB="mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250; ALTER DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';"
 
     function createDB() {
         DATABASE_NAME="uaa_${1}"
-        mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME}";
+        mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci";
     }
 
   elif [[ "${db}" = "percona" ]]; then
@@ -48,12 +48,12 @@ function bootDB {
          mysql -e 'FLUSH PRIVILEGES ;';
          mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250;';
          mysql -uroot -pchangeme -e 'drop database if exists uaa;';
-         mysql -uroot -pchangeme -e 'CREATE DATABASE uaa;';
+         mysql -uroot -pchangeme -e 'CREATE DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';
          mysql -uroot -pchangeme -e \"SET PASSWORD FOR 'root'@'localhost' = 'changeme';\";
     "
     function createDB() {
         DATABASE_NAME="uaa_${1}"
-        mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME}";
+        mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci";
     }
 
   else
