@@ -10,6 +10,7 @@ pipeline {
         COMPLIANCEENABLED = true
     }
     options {
+        timestamps()
         skipDefaultCheckout()
         buildDiscarder(logRotator(artifactNumToKeepStr: '15', numToKeepStr: '15', artifactDaysToKeepStr: '90',
                 daysToKeepStr: '90'))
