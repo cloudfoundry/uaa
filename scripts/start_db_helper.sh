@@ -27,16 +27,16 @@ function bootDB {
     }
 
 
-  elif [[ "${db}" = "mysql" ]]  || [[ "${db}" = "mysql-5.6" ]]; then
+  elif [[ "${db}" = "mysql" ]]  || [[ "${db}" = "mysql-5" ]]; then
     bootLogLocation="/var/log/mysql-boot.log"
     launchDB="(MYSQL_DATABASE=uaa MYSQL_ROOT_HOST=127.0.0.1 MYSQL_ROOT_PASSWORD='changeme' bash /entrypoint.sh mysqld &> ${bootLogLocation}) &"
     # MYSQL_DATABASE=uaa MYSQL_ROOT_HOST=127.0.0.1 MYSQL_ROOT_PASSWORD='changeme' bash /entrypoint.sh mysqld
     testConnection="echo '\s;' | mysql -uroot -pchangeme &>/dev/null"
-    initDB="mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250; ALTER DATABASE uaa DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;';"
+    initDB="mysql -uroot -pchangeme -e 'SET GLOBAL max_connections = 250; ALTER DATABASE uaa DEFAULT CHARACTER SET utf8mb4;';"
 
     function createDB() {
         DATABASE_NAME="uaa_${1}"
-        mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci";
+        mysql -uroot -pchangeme -e "CREATE DATABASE ${DATABASE_NAME} DEFAULT CHARACTER SET utf8mb4";
     }
 
   elif [[ "${db}" = "percona" ]]; then
