@@ -12,8 +12,7 @@ pipeline {
     options {
         timestamps()
         skipDefaultCheckout()
-        buildDiscarder(logRotator(artifactNumToKeepStr: '15', numToKeepStr: '15', artifactDaysToKeepStr: '90',
-                daysToKeepStr: '90'))
+        buildDiscarder(logRotator(artifactNumToKeepStr: '30', numToKeepStr: '30'))
     }
     parameters {
         booleanParam(name: 'UNIT_TESTS', defaultValue: true, description: 'Run Unit tests')

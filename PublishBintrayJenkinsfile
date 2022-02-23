@@ -12,6 +12,7 @@ pipeline {
     options {
         timestamps()
         skipDefaultCheckout()
+        buildDiscarder(logRotator(artifactNumToKeepStr: '30', numToKeepStr: '30'))
     }
 
     environment {

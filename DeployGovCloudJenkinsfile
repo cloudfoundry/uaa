@@ -9,8 +9,7 @@ pipeline {
     options {
         timestamps()
         skipDefaultCheckout()
-        buildDiscarder(logRotator(artifactNumToKeepStr: '15', numToKeepStr: '15', artifactDaysToKeepStr: '90',
-                daysToKeepStr: '90'))
+        buildDiscarder(logRotator(artifactNumToKeepStr: '30', numToKeepStr: '30'))
     }
     parameters  {
         choice(name: 'DEPLOYMENT_TYPE', choices:'govw', description: 'This specifies which point of presence to deploy to')

@@ -19,7 +19,7 @@ pipeline {
     options {
         timestamps()
         skipDefaultCheckout()
-        buildDiscarder(logRotator(artifactDaysToKeepStr: '1', artifactNumToKeepStr: '1', daysToKeepStr: '5', numToKeepStr: '10'))
+        buildDiscarder(logRotator(artifactNumToKeepStr: '30', numToKeepStr: '30'))
     }
     stages {
         stage('Cleanup Docker Containers') {
