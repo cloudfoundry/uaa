@@ -62,6 +62,8 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -490,6 +492,8 @@ public class LoginIT {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         config.setAccountChooserEnabled(true);
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(
+                List.of(GET.toString(), POST.toString()));
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, testzone3, testzone3, config);
         String res = baseUrl.replace("localhost", testzone3 +".localhost");
         webDriver.get(res + "/logout.do");
