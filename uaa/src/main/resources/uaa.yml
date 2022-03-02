@@ -272,6 +272,7 @@ oauth:
 #        - PUT
 #        - POST
 #        - DELETE
+#  enforceSystemZonePolicyInAllZones: false
 
 # Deprecated: More to follow
 # customize static asset source, provides control over visual branding

@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -87,8 +88,17 @@ public class CorsFilter extends OncePerRequestFilter {
     private CorsConfiguration xhrConfiguration = new CorsConfiguration();
     private CorsConfiguration defaultConfiguration = new CorsConfiguration();
     private final IdentityZoneManager identityZoneManager;
+    private final boolean enforceSystemZoneSettings;
 
-    public CorsFilter(final IdentityZoneManager identityZoneManager) {
+    public CorsFilter(final IdentityZoneManager identityZoneManager,
+                      @Value("${cors.enforceSystemZonePolicyInAllZones:false}") final boolean enforceSystemZoneSettings) {
+        if (logger.isInfoEnabled()) {
+            logger.info("`cors.enforceSystemZonePolicyInAllZones` is set to `" +
+                    enforceSystemZoneSettings +
+                    "`. Per-zone CORS policy settings are to be "
+                    + (enforceSystemZoneSettings? "ignored." : "honored."));
+        }
+
         //configure defaults for XHR vs non-XHR requests for default zone
         xhrConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString()));
         defaultConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString(), POST.toString(), PUT.toString(), DELETE.toString(), PATCH.toString()));
@@ -100,6 +110,7 @@ public class CorsFilter extends OncePerRequestFilter {
         defaultConfiguration.setAllowedCredentials(false);
 
         this.identityZoneManager = identityZoneManager;
+        this.enforceSystemZoneSettings = enforceSystemZoneSettings;
     }
 
     @PostConstruct
@@ -327,7 +338,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     private CorsConfiguration resolveXhrCorsConfiguration() {
-        if (!identityZoneManager.isCurrentZoneUaa()) {
+        if (!enforceSystemZoneSettings && !identityZoneManager.isCurrentZoneUaa()) {
             // get the cors policy's xhrConfiguration section from the non-default zone
             CorsPolicy zoneCorsPolicy = identityZoneManager.getCurrentIdentityZone().getConfig().getCorsPolicy();
             if (zoneCorsPolicy != null) {
@@ -344,7 +355,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     private CorsConfiguration resolveDefaultCorsConfiguration() {
-        if (!identityZoneManager.isCurrentZoneUaa()) {
+        if (!enforceSystemZoneSettings && !identityZoneManager.isCurrentZoneUaa()) {
             // get the cors policy's defaultConfiguration section from the non-default zone
             CorsPolicy zoneCorsPolicy = identityZoneManager.getCurrentIdentityZone().getConfig().getCorsPolicy();
             if (zoneCorsPolicy != null) {
