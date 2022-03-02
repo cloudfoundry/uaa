@@ -37,7 +37,7 @@ public class CorsFilterNonDefaultZoneTests {
         when(mockIdentityZoneManager.isCurrentZoneUaa()).thenReturn(false);
         identityZone = new IdentityZone();
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(identityZone);
-        corsFilter = new CorsFilter(mockIdentityZoneManager);
+        corsFilter = new CorsFilter(mockIdentityZoneManager, false);
 
         filterChain = newMockFilterChain();
 
@@ -333,7 +333,8 @@ public class CorsFilterNonDefaultZoneTests {
 
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
         assertEquals("GET, POST, PUT, DELETE", response.getHeaderValue("Access-Control-Allow-Methods"));
-        MatcherAssert.assertThat(new CorsFilter(mockIdentityZoneManager).splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder("Authorization"));
+        MatcherAssert.assertThat(new CorsFilter(mockIdentityZoneManager, false).
+                splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder("Authorization"));
         assertEquals("187000", response.getHeaderValue("Access-Control-Max-Age"));
     }
 
@@ -410,6 +411,42 @@ public class CorsFilterNonDefaultZoneTests {
 
         assertEquals(403, response.getStatus());
         assertEquals("Illegal origin", response.getErrorMessage());
+    }
+
+    @Test
+    void testRequestWithAllowedOriginPatternsEnforcingSystemZonePolicy() throws ServletException, IOException {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, true);
+        corsFilter.setCorsXhrAllowedOrigins(List.of("example.com"));
+        corsFilter.initialize();
+
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedOriginPatterns()
+                .add(Pattern.compile("bunnyoutlet-shop.com$"));
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "bunnyoutlet-shop.com");
+        request.addHeader("X-Requested-With", "XMLHttpRequest");
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertEquals(FORBIDDEN.value(), response.getStatus());
+        assertEquals("Illegal origin", response.getErrorMessage());
+    }
+
+    @Test
+    void testDefaultCorsPreFlightRequestMethodNotAllowedEnforcingSystemZonePolicy() throws ServletException, IOException {
+        CorsFilter corsFilter = new CorsFilter(mockIdentityZoneManager, true);
+        corsFilter.setCorsAllowedMethods(List.of(GET.toString(), PUT.toString(), DELETE.toString()));
+        corsFilter.initialize();
+
+        List<String> allowedMethods = List.of(GET.toString());
+        identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedMethods(allowedMethods);
+
+        MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
+        request.addHeader("Access-Control-Request-Headers", "Authorization");
+        request.addHeader("Access-Control-Request-Method", "PUT");
+        request.addHeader("Origin", "example.com");
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertEquals(OK.value(), response.getStatus());
     }
 
     private void setupBaselineCorsPolicyXhrConfiguration() {
