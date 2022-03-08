@@ -102,7 +102,7 @@ public class LoginIT {
     }
 
     @Test
-    public void check_JSESSIONID_defaults() {
+    public void check_JSESSIONID_and_Current_User_Cookies_defaults() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         List<String> cookies;
@@ -141,6 +141,9 @@ public class LoginIT {
                 assertTrue(cookie.contains("HttpOnly"));
                 assertTrue(cookie.contains("SameSite=None"));
                 assertTrue(cookie.contains("Secure"));
+            }
+            if (cookie.contains("Current-User")) {
+                assertTrue(cookie.contains("SameSite=Strict"));
             }
         }
         assertTrue("Did not find JSESSIONID", jsessionIdValidated);

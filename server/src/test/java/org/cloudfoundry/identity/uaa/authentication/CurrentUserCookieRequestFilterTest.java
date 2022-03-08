@@ -57,6 +57,18 @@ public class CurrentUserCookieRequestFilterTest {
     }
 
     @Test
+    public void whenUserIsAuthenticated_addsCurrentUserCookieWithStrictSameSiteAttribute() throws ServletException, IOException, CurrentUserCookieFactory.CurrentUserCookieEncodingException {
+        UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        when(currentUserCookieFactory.getCookie(any(UaaPrincipal.class))).thenReturn(new Cookie("Current-User", "current-user-cookie-value"));
+
+        filter.doFilterInternal(req, res, filterChain);
+
+        assertEquals("Current-User=current-user-cookie-value; SameSite=Strict", res.getHeader("Set-Cookie"));
+        verify(filterChain).doFilter(req, res);
+    }
+
+    @Test
     public void whenUserIsNotAuthenticated_clearsCurrentUserCookie() throws IOException, ServletException {
         when(currentUserCookieFactory.getNullCookie()).thenReturn(new Cookie("Current-User", null));
 
