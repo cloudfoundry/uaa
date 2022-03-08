@@ -274,6 +274,9 @@ oauth:
 #        - DELETE
 #  enforceSystemZonePolicyInAllZones: false
 
+# When true, various UAA cookies will have the `Secure` attribute (set to true only if you are using https)
+#require_https: true
+
 # Deprecated: More to follow
 # customize static asset source, provides control over visual branding
 # (defaults to /resources/oss)
