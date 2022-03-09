@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
-
 import org.junit.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -24,15 +23,13 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.csrf.CsrfToken;
 
-import java.util.Arrays;
 import javax.servlet.http.Cookie;
+import java.util.Arrays;
 
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.*;
 
 public class CookieBasedCsrfTokenRepositoryTests {
 
@@ -60,8 +57,6 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertEquals("token-id", token.getToken());
     }
 
-
-
     @Test
     public void testSave_and_Load_Token() {
         for (String contextPath : Arrays.asList("", "/uaa")) {
@@ -79,6 +74,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
             assertNotNull(cookie);
             assertEquals(token.getToken(), cookie.getValue());
             assertTrue(cookie.isHttpOnly());
+            assertThat(response.getHeader("Set-Cookie"), containsString("SameSite=Lax"));
             assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
             assertNotNull(cookie.getPath());
             assertEquals(expectedCookiePath, cookie.getPath());
