@@ -121,11 +121,11 @@ public class CookieBasedCsrfTokenRepositoryTests {
 
     private Cookie getCookie(boolean isSecure, String protocol) {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        repo.setSecure(isSecure);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme(protocol);
-        request.setSecure(isSecure);
-        MockHttpServletResponse response = new MockHttpServletResponse();
         CsrfToken token = repo.generateToken(null);
+        MockHttpServletResponse response = new MockHttpServletResponse();
         repo.saveToken(token, request, response);
 
         return response.getCookie(token.getParameterName());
