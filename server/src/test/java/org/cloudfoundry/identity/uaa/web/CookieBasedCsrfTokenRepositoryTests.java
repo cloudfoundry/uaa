@@ -59,9 +59,9 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertEquals("token-id", token.getToken());
     }
 
-    @Test
-    public void testSave_and_Load_Token() {
-        for (String contextPath : Arrays.asList("", "/uaa")) {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/uaa"})
+    public void testSave_and_Load_Token(String contextPath) {
             String expectedCookiePath = contextPath + "/";
             CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
             MockHttpServletRequest request = new MockHttpServletRequest();
@@ -87,7 +87,6 @@ public class CookieBasedCsrfTokenRepositoryTests {
             assertEquals(token.getToken(), saved.getToken());
             assertEquals(token.getHeaderName(), saved.getHeaderName());
             assertEquals(token.getParameterName(), saved.getParameterName());
-        }
     }
 
     @Test
