@@ -31,6 +31,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -41,7 +42,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
     @Test
     public void testGetHeader_and_Parameter_Name() {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-        assertEquals(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, repo.getParameterName());
+        assertEquals(DEFAULT_CSRF_COOKIE_NAME, repo.getParameterName());
         repo.setParameterName("testcookie");
         assertEquals("testcookie", repo.getParameterName());
 
@@ -96,7 +97,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
     public void testLoad_Token_During_Get() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod(HttpMethod.GET.name());
-        request.setCookies(new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "should-be-removed"));
+        request.setCookies(new Cookie(DEFAULT_CSRF_COOKIE_NAME, "should-be-removed"));
 
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
 
@@ -130,7 +131,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertTrue(cookie.getSecure());
     }
 
-    private HttpServletResponse saveTokenAndReturnResponse(boolean isSecure, String protocol) {
+    private MockHttpServletResponse saveTokenAndReturnResponse(boolean isSecure, String protocol) {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         repo.setSecure(isSecure);
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -142,14 +143,6 @@ public class CookieBasedCsrfTokenRepositoryTests {
     }
 
     private Cookie saveTokenAndReturnCookie(boolean isSecure, String protocol) {
-        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-        repo.setSecure(isSecure);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setScheme(protocol);
-        CsrfToken token = repo.generateToken(null);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        repo.saveToken(token, request, response);
-
-        return response.getCookie(token.getParameterName());
+        return saveTokenAndReturnResponse(isSecure, protocol).getCookie("X-Uaa-Csrf");
     }
 }
