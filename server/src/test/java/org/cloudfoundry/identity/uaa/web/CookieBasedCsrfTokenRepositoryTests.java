@@ -115,12 +115,6 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertEquals(secure, cookie.getSecure());
     }
 
-    @Test
-    public void csrfCookie_SecureIfHttpsRequired() {
-        Cookie cookie = getCookie(true);
-        assertTrue(cookie.getSecure());
-    }
-
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     public void csrfCookie_SecureIfRequestIsOverHttps(boolean secure) {
@@ -135,18 +129,6 @@ public class CookieBasedCsrfTokenRepositoryTests {
         request.setProtocol(protocol);
         CsrfToken token = repo.generateToken(null);
         MockHttpServletResponse response = new MockHttpServletResponse();
-        repo.saveToken(token, request, response);
-
-        return response.getCookie(token.getParameterName());
-    }
-
-    private Cookie getCookie(boolean isSecure) {
-        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-        repo.setSecure(isSecure);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol("http");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        CsrfToken token = repo.generateToken(request);
         repo.saveToken(token, request, response);
 
         return response.getCookie(token.getParameterName());
