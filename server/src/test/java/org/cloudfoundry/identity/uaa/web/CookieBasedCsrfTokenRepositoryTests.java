@@ -103,26 +103,26 @@ public class CookieBasedCsrfTokenRepositoryTests {
     }
 
     @Test
-    public void csrfCookie_alwaysHttpOnly() {
-        Cookie cookie = getCookie(false, "http");
+    public void saveToken_alwaysHttpOnly() {
+        Cookie cookie = saveTokenAndReturnCookie(false, "http");
         assertTrue(cookie.isHttpOnly());
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void csrfCookie_usesSecureAttributeForNonTls(boolean secure) {
-        Cookie cookie = getCookie(secure, "http");
+    public void saveToken_usesSecureAttributeForNonTls(boolean secure) {
+        Cookie cookie = saveTokenAndReturnCookie(secure, "http");
         assertEquals(secure, cookie.getSecure());
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void csrfCookie_SecureIfRequestIsOverHttps(boolean secure) {
-        Cookie cookie = getCookie(secure, "https");
+    public void saveToken_SecureIfRequestIsOverHttps(boolean secure) {
+        Cookie cookie = saveTokenAndReturnCookie(secure, "https");
         assertTrue(cookie.getSecure());
     }
 
-    private Cookie getCookie(boolean isSecure, String protocol) {
+    private Cookie saveTokenAndReturnCookie(boolean isSecure, String protocol) {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         repo.setSecure(isSecure);
         MockHttpServletRequest request = new MockHttpServletRequest();
