@@ -15,13 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import org.apache.tomcat.util.http.Rfc6265CookieProcessor;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.junit.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseCookie;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -29,7 +27,6 @@ import org.springframework.security.web.csrf.CsrfToken;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.nullValue;
@@ -127,6 +124,18 @@ public class CookieBasedCsrfTokenRepositoryTests {
     public void saveToken_SecureIfRequestIsOverHttps(boolean secure) {
         Cookie cookie = saveTokenAndReturnCookie(secure, "https");
         assertTrue(cookie.getSecure());
+    }
+
+    @Test
+    public void saveToken_MakeAnExpiredTokenInResponse_whenNoTokenInRequest() {
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        repo.saveToken(null, request, response);
+
+        Cookie cookie = response.getCookie("X-Uaa-Csrf");
+        assertEquals(0, cookie.getMaxAge());
+        assertFalse(cookie.getValue().isEmpty());
     }
 
     private MockHttpServletResponse saveTokenAndReturnResponse(boolean isSecure, String protocol) {
