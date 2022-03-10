@@ -106,6 +106,11 @@ public class CookieBasedCsrfTokenRepositoryTests {
     public void csrfCookie_alwaysHttpOnly() {
         Cookie cookie = getCookie(false);
         assertTrue(cookie.isHttpOnly());
+    }
+
+    @Test
+    public void csrfCookie_usesSecureAttributeForNonTls() {
+        Cookie cookie = getCookie(false);
         assertFalse(cookie.getSecure());
     }
 
