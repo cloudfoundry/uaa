@@ -115,14 +115,20 @@ public class CookieBasedCsrfTokenRepositoryTests {
 
     @Test
     public void csrfCookie_SecureIfRequestIsOverHttps() {
+        Cookie cookie = getCookie(false, "https");
+        assertTrue(cookie.getSecure());
+    }
+
+    private Cookie getCookie(boolean isSecure, String protocol) {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol("https");
+        request.setProtocol(protocol);
+        request.setSecure(isSecure);
         MockHttpServletResponse response = new MockHttpServletResponse();
-        CsrfToken token = repo.generateToken(request);
+        CsrfToken token = repo.generateToken(null);
         repo.saveToken(token, request, response);
-        Cookie cookie = response.getCookie(token.getParameterName());
-        assertTrue(cookie.getSecure());
+
+        return response.getCookie(token.getParameterName());
     }
 
     private Cookie getCookie(boolean isSecure) {
