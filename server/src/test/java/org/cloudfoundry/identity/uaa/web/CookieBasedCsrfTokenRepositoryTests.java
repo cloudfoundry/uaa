@@ -62,31 +62,31 @@ public class CookieBasedCsrfTokenRepositoryTests {
     @ParameterizedTest
     @ValueSource(strings = {"", "/uaa"})
     public void testSave_and_Load_Token(String contextPath) {
-            String expectedCookiePath = contextPath + "/";
-            CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-            MockHttpServletRequest request = new MockHttpServletRequest();
-            MockHttpServletResponse response = new MockHttpServletResponse();
-            request.setPathInfo("/login/somepath");
-            request.setContextPath(contextPath);
-            CsrfToken token = repo.generateToken(request);
-            assertTrue("The token is at least 22 characters long.", token.getToken().length() >= 22);
-            repo.saveToken(token, request, response);
+        String expectedCookiePath = contextPath + "/";
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setPathInfo("/login/somepath");
+        request.setContextPath(contextPath);
+        CsrfToken token = repo.generateToken(request);
+        assertTrue("The token is at least 22 characters long.", token.getToken().length() >= 22);
+        repo.saveToken(token, request, response);
 
-            Cookie cookie = response.getCookie(token.getParameterName());
-            assertNotNull(cookie);
-            assertEquals(token.getToken(), cookie.getValue());
-            assertTrue(cookie.isHttpOnly());
-            assertThat(response.getHeader("Set-Cookie"), containsString("SameSite=Lax"));
-            assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
-            assertNotNull(cookie.getPath());
-            assertEquals(expectedCookiePath, cookie.getPath());
+        Cookie cookie = response.getCookie(token.getParameterName());
+        assertNotNull(cookie);
+        assertEquals(token.getToken(), cookie.getValue());
+        assertTrue(cookie.isHttpOnly());
+        assertThat(response.getHeader("Set-Cookie"), containsString("SameSite=Lax"));
+        assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
+        assertNotNull(cookie.getPath());
+        assertEquals(expectedCookiePath, cookie.getPath());
 
-            request.setCookies(cookie);
+        request.setCookies(cookie);
 
-            CsrfToken saved = repo.loadToken(request);
-            assertEquals(token.getToken(), saved.getToken());
-            assertEquals(token.getHeaderName(), saved.getHeaderName());
-            assertEquals(token.getParameterName(), saved.getParameterName());
+        CsrfToken saved = repo.loadToken(request);
+        assertEquals(token.getToken(), saved.getToken());
+        assertEquals(token.getHeaderName(), saved.getHeaderName());
+        assertEquals(token.getParameterName(), saved.getParameterName());
     }
 
     @Test
