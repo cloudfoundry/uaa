@@ -17,6 +17,8 @@ package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.junit.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -113,9 +115,10 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertTrue(cookie.getSecure());
     }
 
-    @Test
-    public void csrfCookie_SecureIfRequestIsOverHttps() {
-        Cookie cookie = getCookie(false, "https");
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    public void csrfCookie_SecureIfRequestIsOverHttps(boolean secure) {
+        Cookie cookie = getCookie(secure, "https");
         assertTrue(cookie.getSecure());
     }
 
