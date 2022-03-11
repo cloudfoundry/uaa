@@ -10,46 +10,46 @@ updates:
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/statsd"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/model"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/metrics-data"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/samples/api"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/server"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
 - package-ecosystem: gradle
   directory: "/samples/app"
   schedule:
     interval: daily
     time: "11:00"
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 100
