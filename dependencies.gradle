@@ -27,7 +27,7 @@ versions.springVersion = "5.3.16"
 versions.tomcatVersion = tomcatVersion
 versions.xmlBind = "2.3.0"
 versions.statsdClientVersion = "3.1.0" // statsd is not included in spring-boot 2.2 and later, so we need to specify the dependency explicitly
-versions.junitVersion = "4.13" // Needed to support junit 4 with spring-boot 2.4
+versions.junitVersion = "4.13.2" // Needed to support junit 4 with spring-boot 2.4
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
