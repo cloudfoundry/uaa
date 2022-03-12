@@ -83,7 +83,6 @@ task copyContainerFiles(type: Copy) {
     from 'uaa/src/main/resources/uaa-docker.yml'
   } else {
     from 'uaa/build/libs'
-    from 'uaa/build/resources/main/tomcat-server.xml'
     from 'uaa/build/resources/main/uaa-docker.yml'
   }
   into build_context

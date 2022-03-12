@@ -9,6 +9,8 @@ pipeline {
         docker {
             image 'registry.gear.ge.com/dig-predix-security-services/uaa-ci-testing:latest'
             label 'dind'
+            // Mount gradle home directory from host to cache downloaded dependencies
+            // Mount docker socket from host to use for creating UAA container
             args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
         }
     }

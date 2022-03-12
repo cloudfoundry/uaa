@@ -1,6 +1,6 @@
-# Configuration in this file ixs overridden by an external file
+# Configuration in this file is overridden by an external file
 # if any of these exist:
-# [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
+# [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
@@ -27,22 +27,6 @@
 #database.url: jdbc:postgresql:uaa
 #database.username: root
 #database.password: changeme
-
-#MS SQL Server Install https://docs.microsoft.com/en-us/sql/linux/sql-server-linux-setup-ubuntu
-#sqlserver commands are (first command is to allow contained user authentication for a DB
-#sp_configure 'contained database authentication', 1
-#go
-#RECONFIGURE
-#go
-#CREATE DATABASE uaa CONTAINMENT = PARTIAL;
-#go
-#USE uaa;
-#go
-#CREATE USER root WITH PASSWORD = 'changemeCHANGEME1234!';
-#go
-#EXEC sp_addrolemember N'db_owner', N'root';
-#go
-
 
 #postgresql commands that were run were
 #create database uaa;
@@ -148,7 +132,6 @@
 #    requireDigit: 0
 #    requireSpecialCharacter: 0
 #    expirePasswordInMonths: 0
-
 scim:
   groups:
     zones.read: Read identity zones
@@ -179,20 +162,20 @@ scim:
 oauth:
   user:
     authorities:
-    - openid
-    - scim.me
-    - cloud_controller.read
-    - cloud_controller.write
-    - cloud_controller_service_permissions.read
-    - password.write
-    - scim.userids
-    - uaa.user
-    - approvals.me
-    - oauth.approvals
-    - profile
-    - roles
-    - user_attributes
-    - uaa.offline_token
+      - openid
+      - scim.me
+      - cloud_controller.read
+      - cloud_controller.write
+      - cloud_controller_service_permissions.read
+      - password.write
+      - scim.userids
+      - uaa.user
+      - approvals.me
+      - oauth.approvals
+      - profile
+      - roles
+      - user_attributes
+      - uaa.offline_token
 #  client:
 #    secret:
 #      policy:
@@ -205,8 +188,8 @@ oauth:
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.
-#jwt:
-#  token:
+jwt:
+  token:
 #    verification-key: |
 #      -----BEGIN PUBLIC KEY-----
 #      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO
@@ -217,32 +200,10 @@ oauth:
 #      jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI
 #      JwIDAQAB
 #      -----END PUBLIC KEY-----
-#    signing-key: |
+    signing-key: FAKE_KEY
 #      -----BEGIN RSA PRIVATE KEY-----
 #      MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV
-#      lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT
-#      JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy
-#      VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc
-#      usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W
-#      SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op
-#      zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY
-#      pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw
-#      UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa
-#      Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO
-#      BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2
-#      RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK
-#      /sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z
-#      cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j
-#      UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA
-#      jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/
-#      +YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr
-#      RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4
-#      PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna
-#      cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I
-#      aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4
-#      DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq
-#      b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv
-#      QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI
+#      ...
 #      fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD
 #      -----END RSA PRIVATE KEY-----
 #    claims:
@@ -258,29 +219,7 @@ oauth:
 #          signingKey: |
 #            -----BEGIN RSA PRIVATE KEY-----
 #            MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV
-#            lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT
-#            JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy
-#            VZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDOkqwIn7Glry9n9Suxygbf8g5AzpWc
-#            usZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPojfj9Cw2QICsc5+Pwf21fP+hzf+1W
-#            SRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nIJwIDAQABAoIBAHPV9rSfzllq16op
-#            zoNetIJBC5aCcU4vJQBbA2wBrgMKUyXFpdSheQphgY7GP/BJTYtifRiS9RzsHAYY
-#            pAlTQEQ9Q4RekZAdd5r6rlsFrUzL7Xj/CVjNfQyHPhPocNqwrkxp4KrO5eL06qcw
-#            UzT7UtnoiCdSLI7IL0hIgJZP8J1uPNdXH+kkDEHE9xzU1q0vsi8nBLlim+ioYfEa
-#            Q/Q/ovMNviLKVs+ZUz+wayglDbCzsevuU+dh3Gmfc98DJw6n6iClpd4fDPqvhxUO
-#            BDeQT1mFeHxexDse/kH9nygxT6E4wlU1sw0TQANcT6sHReyHT1TlwnWlCQzoR3l2
-#            RmkzUsECgYEA8W/VIkfyYdUd5ri+yJ3iLdYF2tDvkiuzVmJeA5AK2KO1fNc7cSPK
-#            /sShHruc0WWZKWiR8Tp3d1XwA2rHMFHwC78RsTds+NpROs3Ya5sWd5mvmpEBbL+z
-#            cl3AU9NLHVvsZjogmgI9HIMTTl4ld7GDsFMt0qlCDztqG6W/iguQCx8CgYEA3x/j
-#            UkP45/PaFWd5c1DkWvmfmi9UxrIM7KeyBtDExGIkffwBMWFMCWm9DODw14bpnqAA
-#            jH5AhQCzVYaXIdp12b+1+eOOckYHwzjWOFpJ3nLgNK3wi067jVp0N0UfgV5nfYw/
-#            +YoHfYRCGsM91fowh7wLcyPPwmSAbQAKwbOZKfkCgYEAnccDdZ+m2iA3pitdIiVr
-#            RaDzuoeHx/IfBHjMD2/2ZpS1aZwOEGXfppZA5KCeXokSimj31rjqkWXrr4/8E6u4
-#            PzTiDvm1kPq60r7qi4eSKx6YD15rm/G7ByYVJbKTB+CmoDekToDgBt3xo+kKeyna
-#            cUQqUdyieunM8bxja4ca3ukCgYAfrDAhomJ30qa3eRvFYcs4msysH2HiXq30/g0I
-#            aKQ12FSjyZ0FvHEFuQvMAzZM8erByKarStSvzJyoXFWhyZgHE+6qDUJQOF6ruKq4
-#            DyEDQb1P3Q0TSVbYRunOWrKRM6xvJvSB4LUVfSvBDsv9TumKqwfZDVFVn9yXHHVq
-#            b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv
-#            QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI
+#            ...
 #            fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD
 #            -----END RSA PRIVATE KEY-----
 #      # Sets the default validity for all zones
@@ -306,8 +245,8 @@ oauth:
 #        - ^localhost$
 #        - ^.*\.localhost$
 #      uris:
-#        - ^/userinfo$
-#        - ^/logout\.do$
+#        - ^/uaa/userinfo$
+#        - ^/uaa/logout\.do$
 #      methods:
 #        - GET
 #        - OPTIONS
@@ -322,8 +261,8 @@ oauth:
 #        - ^localhost$
 #        - ^.*\.localhost$
 #      uris:
-#        - ^/userinfo$
-#        - ^/logout\.do$
+#        - ^/uaa/userinfo$
+#        - ^/uaa/logout\.do$
 #      methods:
 #        - GET
 #        - PUT
@@ -358,90 +297,115 @@ links:
 #      whitelist:
 #        - https://url1.domain1.com/logout-success
 #        - https://url2.domain2.com/logout-success
-
+issuer:
+  uri: http://localhost:8080
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)
   selfServiceLinksEnabled: true
   #base URL that the login server can be reached at
-  #  oauth:
-  #    providers:
-  #      my-oauth-provider:
-  #        type: oauth2.0
-  #        authUrl: http://my-auth.com
-  #        tokenUrl: http://my-token.com
-  #        tokenKey: my-token-key
-  #        tokenKeyUrl:
-  #        issuer: token issuer (iss)
-  #        scopes:
-  #          - openid
-  #          - scope.example
-  #        linkText: My Oauth Provider
-  #        showLinkText: true
-  #        addShadowUserOnLogin: false
-  #        relyingPartyId: uaa
-  #        relyingPartySecret: secret
-  #        attributeMappings:
-  #          given_name: firstName
-  #          family_name: lastname
-  #          user_name: username
-  #          external_groups:
-  #            - scopes_example_group
-  #            - roles_example_group
+#  oauth:
+#    providers:
+#      my-oauth-provider:
+#        type: oauth2.0
+#        authUrl: http://my-auth.com
+#        tokenUrl: http://my-token.com
+#        tokenKey: my-token-key
+#        tokenKeyUrl:
+#        issuer: token issuer (iss)
+#        scopes:
+#          - openid
+#          - scope.example
+#        linkText: My Oauth Provider
+#        showLinkText: true
+#        addShadowUserOnLogin: false
+#        relyingPartyId: uaa
+#        relyingPartySecret: secret
+#        attributeMappings:
+#          given_name: firstName
+#          family_name: lastname
+#          user_name: username
+#          external_groups:
+#            - scopes_example_group
+#            - roles_example_group
+#      my-oidc-provider:
+#        type: oidc1.0
+#        discoveryUrl: http://my-auth.com
+#        tokenKey: my-token-key
+#        issuer: token issuer (iss)
+#        scopes:
+#          - openid
+#          - scope.example
+#        linkText: My OIDC Provider
+#        showLinkText: true
+#        relyingPartyId: identity
+#        relyingPartySecret: identitysecret
+#        passwordGrantEnabled: true
+#        prompts:
+#          - name: username
+#            type: text
+#            text: MyEmail
+#          - name: password
+#            type: password
+#            text: MyPassword
+#          - name: passcode
+#            type: password
+#            text: MyTemporary Authentication Code (Get on at /passcode)
   url: http://localhost:8080
-  #  idpDiscoveryEnabled: true
-  #  accountChooserEnabled: true
+#  defaultIdentityProvider: uaa
+#  idpDiscoveryEnabled: true
+#  accountChooserEnabled: true
 
-  #  mfa:
-  #    enabled: true
-  #    providerName: customProviderName
-  #    providers:
-  #      customProviderName:
-  #        type: google-authenticator
-  #        config:
-  #          issuer: "custom issuer"
-  #          providerDescription: "Default authenticator for uaa zone"
+#  mfa:
+#    enabled: true
+#    providerName: customProviderName
+#    providers:
+#      customProviderName:
+#        type: google-authenticator
+#        config:
+#          issuer: "custom issuer"
+#          providerDescription: "Default authenticator for uaa zone"
 
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP
   # See README.md for details on how to create this.
-  #  serviceProviderKey: |
-  #    -----BEGIN RSA PRIVATE KEY-----
-  #    MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5
-  #    L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA
-  #    fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB
-  #    AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges
-  #    7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu
-  #    lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp
-  #    ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX
-  #    kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL
-  #    gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK
-  #    vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe
-  #    A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS
-  #    N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
-  #    qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
-  #    -----END RSA PRIVATE KEY-----
-  #  serviceProviderKeyPassword: password
-  #  serviceProviderCertificate: |
-  #    -----BEGIN CERTIFICATE-----
-  #    MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
-  #    MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO
-  #    MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h
-  #    cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx
-  #    CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM
-  #    BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb
-  #    BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN
-  #    ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W
-  #    qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw
-  #    znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha
-  #    MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc
-  #    gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD
-  #    VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD
-  #    VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh
-  #    QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ
-  #    0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC
-  #    KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
-  #    RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
-  #    -----END CERTIFICATE-----
+  serviceProviderKey: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5
+    L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA
+    fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB
+    AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges
+    7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu
+    lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp
+    ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX
+    kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL
+    gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK
+    vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe
+    A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS
+    N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
+    qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
+    -----END RSA PRIVATE KEY-----
+  serviceProviderKeyPassword: password
+  serviceProviderCertificate: |
+    -----BEGIN CERTIFICATE-----
+    MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
+    MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO
+    MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h
+    cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx
+    CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM
+    BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb
+    BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN
+    ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W
+    qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw
+    znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha
+    MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc
+    gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD
+    VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD
+    VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh
+    QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ
+    0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC
+    KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
+    RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
+    -----END CERTIFICATE-----
 
   # SAML - The entity base url is the location of this application
   # (The host and port of the application that will accept assertions)
@@ -468,96 +432,96 @@ login:
       connectionManagerTimeout: 10000
       # URL metadata fetch - read timeout
       soTimeout: 10000
-  #BEGIN SAML PROVIDERS
-  #    providers:
-  #      okta-signed-or-encrypted:
-  #        idpMetadata: |
-  #          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k36wkjw6EAEJVZXFFDAU"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
-  #          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
-  #          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
-  #          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
-  #          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
-  #          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
-  #          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
-  #          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
-  #          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
-  #          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
-  #          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
-  #          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_cfsamltemplate1_1/k36wkjw6EAEJVZXFFDAU/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_cfsamltemplate1_1/k36wkjw6EAEJVZXFFDAU/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
-  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
-  #        assertionConsumerIndex: 0
-  #        metadataTrustCheck: true
-  #        showSamlLoginLink: true
-  #        linkText: 'Okta Preview Signed'
-  #      okta-local:
-  #        idpMetadata: https://pivotal.oktapreview.com/app/k36wkjw6EAEJVZXFFDAU/sso/saml/metadata
-  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
-  #        assertionConsumerIndex: 0
-  #        metadataTrustCheck: true
-  #        showSamlLoginLink: true
-  #        linkText: 'Okta Preview 1'
-  #        iconUrl: 'http://link.to/icon.jpg'
-  #        addShadowUserOnLogin: true
-  #        externalGroupsWhitelist:
-  #          - admin
-  #          - user
-  #        emailDomain:
-  #          - example.com
-  #        attributeMappings:
-  #          given_name: firstName
-  #          family_name: surname
-  #        providerDescription: 'Human readable description of this provider'
-  #      okta-local-2:
-  #        idpMetadata: |
-  #          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
-  #          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
-  #          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
-  #          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
-  #          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
-  #          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
-  #          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
-  #          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
-  #          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
-  #          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
-  #          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
-  #          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
-  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
-  #        assertionConsumerIndex: 0
-  #        metadataTrustCheck: true
-  #        showSamlLoginLink: true
-  #        linkText: 'Okta Preview 2'
-  #        addShadowUserOnLogin: true
-  #      vsphere.local:
-  #        idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local
-  #        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
-  #        assertionConsumerIndex: 0
-  #        showSamlLoginLink: true
-  #        linkText: 'Log in with vCenter SSO'
-  #        addShadowUserOnLogin: true
-  #        groupMappingMode: EXPLICITLY_MAPPED
-  #      openam-local:
-  #        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
-  #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
-  #        assertionConsumerIndex: 0
-  #        signMetaData: false
-  #        signRequest: false
-  #        showSamlLoginLink: true
-  #        linkText: 'Log in with OpenAM'
-  #        addShadowUserOnLogin: true
-  #        groupMappingMode: AS_SCOPES
-  #END SAML PROVIDERS
+#BEGIN SAML PROVIDERS
+#    providers:
+#      okta-signed-or-encrypted:
+#        idpMetadata: |
+#          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k36wkjw6EAEJVZXFFDAU"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+#          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+#          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+#          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+#          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+#          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+#          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+#          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+#          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+#          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+#          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+#          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_cfsamltemplate1_1/k36wkjw6EAEJVZXFFDAU/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_cfsamltemplate1_1/k36wkjw6EAEJVZXFFDAU/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        metadataTrustCheck: true
+#        showSamlLoginLink: true
+#        linkText: 'Okta Preview Signed'
+#      okta-local:
+#        idpMetadata: https://pivotal.oktapreview.com/app/k36wkjw6EAEJVZXFFDAU/sso/saml/metadata
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        metadataTrustCheck: true
+#        showSamlLoginLink: true
+#        linkText: 'Okta Preview 1'
+#        iconUrl: 'http://link.to/icon.jpg'
+#        addShadowUserOnLogin: true
+#        externalGroupsWhitelist:
+#          - admin
+#          - user
+#        emailDomain:
+#          - example.com
+#        attributeMappings:
+#          given_name: firstName
+#          family_name: surname
+#        providerDescription: 'Human readable description of this provider'
+#      okta-local-2:
+#        idpMetadata: |
+#          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+#          A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+#          MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+#          Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+#          VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+#          BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+#          AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+#          WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+#          Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+#          3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+#          vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+#          GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        metadataTrustCheck: true
+#        showSamlLoginLink: true
+#        linkText: 'Okta Preview 2'
+#        addShadowUserOnLogin: true
+#      vsphere.local:
+#        idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local
+#        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
+#        assertionConsumerIndex: 0
+#        showSamlLoginLink: true
+#        linkText: 'Log in with vCenter SSO'
+#        addShadowUserOnLogin: true
+#        groupMappingMode: EXPLICITLY_MAPPED
+#      openam-local:
+#        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
+#        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+#        assertionConsumerIndex: 0
+#        signMetaData: false
+#        signRequest: false
+#        showSamlLoginLink: true
+#        linkText: 'Log in with OpenAM'
+#        addShadowUserOnLogin: true
+#        groupMappingMode: AS_SCOPES
+#END SAML PROVIDERS
 
   authorize:
     url: http://localhost:8080/oauth/authorize
 
-  #  homeRedirect: http://example.com/
+#  homeRedirect: http://example.com/
 
   branding:
     companyName: Predix
-    #    productLogo: |
-    #      iVBORw0KGgoAAAANSUhEUgAAAR8AAAFoCAYAAABucP80AAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEAAAAAAAA+UO7fwAAAAlwSFlzAAALEgAACxIB0t1+/AAAZKVJREFUeNrtnXecXkX1/99n5j5lWyqQ0EJHepdeAgHpRZqKKILg15+9IVIEQhMExYJdsQPSVDoCAkrvPfQAARLSk21PuXPO74+7kc1md/PsZpdNmffr9bz22Vtm7tznzufOnDlzBiKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJDIAyFBfQGTpZrvz9yGUqwRTMEDJnhrXy0n6/leR7PikkOfxM+4c6uJEliKi+ES6ZdvzJxDKASsrT8+cxGajNiyYWSNKHY4cgiN7fhZ87H8fJQBVM9px2tpUt3K5rTKHpJDgCp7HT79rqIsXWPY92jEwd/quP0D6/vZiS+7SonQE8b9iZ9U08VtGC3fql2znwF/tiqeJECKWUXM4VBFvHOdmSrGW1qxMU4U5BrjHjwYYRSSkB2tp
-    #    squareLogo: |
-    #      AAABAAQAQEAAAAEAIAAoQAAARgAAACAgAAABACAAKBAAAG5AAAAYGAAAAQAgACgJAACWUAAAEBAAAAEAIAAoBAAAvlkAACgAAABAAAAAgAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAAgwAAAMMAAADuAAAA/wAAAP8AAADuAAAAwwAAAIMAAAAsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAawAAAPAAAADdAAAAeQAAAC0AAAAAAAAKAAAAvgAAANoAAAApAAAAXAAAAOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAADrAAAAXgAAAA
+#    productLogo: |
+#      iVBORw0KGgoAAAANSUhEUgAAAR8AAAFoCAYAAABucP80AAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAZiS0dEAAAAAAAA+UO7fwAAAAlwSFlzAAALEgAACxIB0t1+/AAAZKVJREFUeNrtnXecXkX1/99n5j5lWyqQ0EJHepdeAgHpRZqKKILg15+9IVIEQhMExYJdsQPSVDoCAkrvPfQAARLSk21PuXPO74+7kc1md/PsZpdNmffr9bz22Vtm7tznzufOnDlzBiKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJBKJRCKRSCQSiUQikUgkEolEIpFIJDIAyFBfQGTpZrvz9yGUqwRTMEDJnhrXy0n6/leR7PikkOfxM+4c6uJEliKi+ES6ZdvzJxDKASsrT8+cxGajNiyYWSNKHY4cgiN7fhZ87H8fJQBVM9px2tpUt3K5rTKHpJDgCp7HT79rqIsXWPY92jEwd/quP0D6/vZiS+7SonQE8b9iZ9U08VtGC3fql2znwF/tiqeJECKWUXM4VBFvHOdmSrGW1qxMU4U5BrjHjwYYRSSkB2tp
+#    squareLogo: |
+#      AAABAAQAQEAAAAEAIAAoQAAARgAAACAgAAABACAAKBAAAG5AAAAYGAAAAQAgACgJAACWUAAAEBAAAAEAIAAoBAAAvlkAACgAAABAAAAAgAAAAAEAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAsAAAAgwAAAMMAAADuAAAA/wAAAP8AAADuAAAAwwAAAIMAAAAsAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAawAAAPAAAADdAAAAeQAAAC0AAAAAAAAKAAAAvgAAANoAAAApAAAAXAAAAOUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMAAADrAAAAXgAAAA
     footerLegalText:  "Copyright © 2021 General Electric Company. All rights reserved."
     footerLinks:
       Contact Us: mailto:info@predix.io
@@ -583,21 +547,21 @@ uaa:
     enabled: false
     whitelist:
       endpoints:
-      - /oauth/authorize/**
-      - /oauth/token/**
-      - /check_token/**
-      - /login/**
-      - /login.do
-      - /logout/**
-      - /logout.do
-      - /saml/**
-      - /autologin/**
-      - /authenticate/**
-      - /idp_discovery/**
+        - /oauth/authorize/**
+        - /oauth/token/**
+        - /check_token/**
+        - /login/**
+        - /login.do
+        - /logout/**
+        - /logout.do
+        - /saml/**
+        - /autologin/**
+        - /authenticate/**
+        - /idp_discovery/**
       methods:
-      - GET
-      - HEAD
-      - OPTIONS
+        - GET
+        - HEAD
+        - OPTIONS
 
 # Google Analytics
 #analytics:
@@ -609,3 +573,35 @@ uaa:
 #  port: 2525
 #  user:
 #  password:
+
+# Configure Rest Templates
+#rest:
+#  template:
+#    timeout: 10000
+#    maxTotal: 20
+#    maxPerRoute: 2
+#    maxKeepAlive: 0
+
+#ldap:
+#  profile:
+#    file: ldap/ldap-search-and-bind.xml
+#  base:
+#    url: 'ldap://localhost:389/'
+#    userDn: 'cn=admin,dc=test,dc=com'
+#    password: 'password'
+#    searchBase: 'dc=test,dc=com'
+#    searchFilter: 'cn={0}'
+
+servlet:
+  session-store: database
+
+encryption:
+  active_key_label: CHANGE-THIS-KEY
+  encryption_keys:
+  - label: CHANGE-THIS-KEY
+    passphrase: CHANGEME
+
+#The secret that an external login server will use to authenticate to the uaa using the id `login`
+LOGIN_SECRET: loginsecret
+
+NUREGO_API_URL: https://api.nurego.com
