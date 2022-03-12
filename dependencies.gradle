@@ -131,7 +131,7 @@ libraries.splunkObservability = "com.splunk:splunk-otel-javaagent:1.4.0"
 // gradle plugins
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
 libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.7.1"
-libraries.cargoDockerPlugin = "com.bmuschko:gradle-docker-plugin:3.0.8"
+libraries.cargoDockerPlugin = "com.bmuschko:gradle-docker-plugin:7.2.0"
 libraries.prodepsGradlePlugin = "io.spring.gradle:propdeps-plugin:0.0.10.RELEASE"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"

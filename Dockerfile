@@ -1,4 +1,4 @@
-FROM tomcat:9.0.37-jdk8-openjdk-slim
+FROM tomcat:9.0.50-jdk11-openjdk-slim
 
 ARG MAINTAINER_EMAIL
 ARG VERSION

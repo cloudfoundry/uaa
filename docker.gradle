@@ -92,27 +92,26 @@ task copyContainerFiles(type: Copy) {
 task buildImage(type: DockerBuildImage) {
   dependsOn copyContainerFiles
   inputDir = file(build_context)
-  tag = System.getenv('DOCKER_REPO_URL') + '/uaa:' + version
+  images.add(System.getenv('DOCKER_REPO_URL') + '/uaa:' + version)
   buildArgs = [MAINTAINER_EMAIL: System.getenv('MAINTAINER_EMAIL'), VERSION: version]
 }
 
 task createUaaContainer(type: DockerCreateContainer) {
   dependsOn buildImage
-  targetImageId { buildImage.getImageId() }
+  targetImageId buildImage.imageId
   containerName = System.getenv('DOCKER_CONTAINER_NAME')
-  portBindings = ['8080:8080']
-  env = ["CATALINA_OPTS='-Dspring.profiles.active=default'"]
+  hostConfig.portBindings = ['8080:8080']
+  envVars.putAll(['CATALINA_OPTS': '-Dspring.profiles.active=default'])
 }
 
 task startUaaContainer(type: DockerStartContainer) {
   dependsOn createUaaContainer
-  targetContainerId { createUaaContainer.getContainerId() }
+  targetContainerId createUaaContainer.containerId
 }
 
 task pushUaaImage(type: DockerPushImage) {
   dependsOn buildImage
-  imageName = System.getenv('DOCKER_REPO_URL') + '/uaa:' + version
-  registryCredentials = new DockerRegistryCredentials()
+  images.add(System.getenv('DOCKER_REPO_URL') + '/uaa:' + version)
   registryCredentials.url = System.getenv('DOCKER_REPO_URL')
   registryCredentials.username = System.getenv('DOCKER_REPO_USER')
   registryCredentials.password = System.getenv('DOCKER_REPO_USER_PW')
