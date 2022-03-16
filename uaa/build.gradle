@@ -12,8 +12,6 @@ processResources {
 
 apply(plugin: "eclipse-wtp")
 apply(plugin: "org.springframework.boot")
-bootWar { enabled = false }
-war { enabled = true }
 
 eclipse {
     wtp {
