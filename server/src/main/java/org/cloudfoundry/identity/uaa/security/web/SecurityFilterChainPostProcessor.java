@@ -193,6 +193,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;
 
+            response.setHeader("Content-Security-Policy", "script-src 'self' 'unsafe-inline'");
             if (request.isSecure() || (!requireHttps)) {
                 // Ok. Just pass on.
                 if (redirect) {
