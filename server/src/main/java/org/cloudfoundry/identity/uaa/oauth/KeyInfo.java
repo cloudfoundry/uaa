@@ -12,11 +12,14 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -52,6 +55,8 @@ public abstract class KeyInfo {
 
     public abstract String algorithm();
 
+    protected abstract String getJavaAlgorithm(String sigAlg);
+
     protected String validateAndConstructTokenKeyUrl(String keyUrl) {
         if (!UaaUrlUtils.isUrl(keyUrl)) {
             throw new IllegalArgumentException("Invalid Key URL");
@@ -62,6 +67,7 @@ public abstract class KeyInfo {
 }
 
 class HmacKeyInfo extends KeyInfo {
+    private static final String DEFAULT_HMAC_ALGORITHM = "HMACSHA256";
     private Signer signer;
     private SignatureVerifier verifier;
     private final String keyId;
@@ -69,10 +75,15 @@ class HmacKeyInfo extends KeyInfo {
     private final String verifierKey;
 
     public HmacKeyInfo(String keyId, String signingKey, String keyUrl) {
+        this(keyId, signingKey, keyUrl, null);
+    }
+    public HmacKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
 
-        this.signer = new MacSigner(signingKey);
-        this.verifier = new MacSigner(signingKey);
+        String algorithm = getJavaAlgorithm(sigAlg);
+        SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
+        this.signer = new MacSigner(algorithm, hmacKey);
+        this.verifier = new MacSigner(algorithm, hmacKey);
 
         this.keyId = keyId;
         this.verifierKey = signingKey;
@@ -129,9 +140,19 @@ class HmacKeyInfo extends KeyInfo {
     public String algorithm() {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
     }
+
+     @Override
+     protected String getJavaAlgorithm(String sigAlg) {
+         if (sigAlg == null) {
+             return DEFAULT_HMAC_ALGORITHM;
+         } else {
+             return JwtAlgorithms.sigAlgJava(sigAlg);
+         }
+     }
 }
 
 class RsaKeyInfo extends KeyInfo {
+    private static final String DEFAULT_RSA_ALGORITHM = "SHA256withRSA";
     private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
     private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes());
     private final String keyId;
@@ -142,14 +163,18 @@ class RsaKeyInfo extends KeyInfo {
     private String verifierKey;
 
     public RsaKeyInfo(String keyId, String signingKey, String keyUrl) {
+        this(keyId, signingKey, keyUrl, null);
+    }
+    public RsaKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
 
         KeyPair keyPair = parseKeyPair(signingKey);
         RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
+        String algorithm = getJavaAlgorithm(sigAlg);
         String pemEncodePublicKey = pemEncodePublicKey(rsaPublicKey);
 
-        this.signer = new RsaSigner(signingKey);
-        this.verifier = new RsaVerifier(pemEncodePublicKey);
+        this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
+        this.verifier = new RsaVerifier(rsaPublicKey, algorithm);
         this.keyId = keyId;
         this.verifierKey = pemEncodePublicKey;
     }
@@ -275,5 +300,14 @@ class RsaKeyInfo extends KeyInfo {
     @Override
     public String algorithm() {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
+    }
+
+    @Override
+    protected String getJavaAlgorithm(String sigAlg) {
+        if (sigAlg == null) {
+            return DEFAULT_RSA_ALGORITHM;
+        } else {
+            return JwtAlgorithms.sigAlgJava(sigAlg);
+        }
     }
 }
