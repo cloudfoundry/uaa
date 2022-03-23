@@ -8,6 +8,9 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -40,7 +43,7 @@ public class RedirectSavingSamlContextProvider implements SAMLContextProvider {
         String clientId = request.getParameter("client_id");
         if(StringUtils.hasText(clientId)) { params.put("client_id", clientId); }
 
-        context.setRelayState(JsonUtils.writeValueAsString(params));
+        context.setRelayState(URLEncoder.encode(JsonUtils.writeValueAsString(params), StandardCharsets.UTF_8));
         return context;
     }
 }
