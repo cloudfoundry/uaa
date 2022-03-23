@@ -11,6 +11,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,7 +28,7 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
     @Override
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         RequestWrapper requestWrapper = new RequestWrapper(request);
-        String relayState = request.getParameter("RelayState");
+        String relayState = URLDecoder.decode(request.getParameter("RelayState"), StandardCharsets.UTF_8);
         Map<String, String> params = JsonUtils.readValue(relayState, new TypeReference<Map<String, String>>() {});
         if(params != null) {
             String redirect = params.get("redirect");
