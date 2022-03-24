@@ -68,5 +68,6 @@ docker run --privileged --tty --interactive --shm-size=1G \
   --volume "${VOLUME_TO_ATTACH}:${CONTAINER_MOUNT_POINT}" \
   --volume "${CONTAINER_GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
+  -p 8081:8080 \
   "${DOCKER_IMAGE}" \
   "${CONTAINER_SCRIPT_DIR}/integration-tests.sh" "${PROFILE_NAME},default"
