@@ -15,6 +15,16 @@
     <p th:text="#{'login.' + ${param.success}}">Success Message</p>
   </div>
 
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll("a[data-userId]").forEach(function (savedAccountLink) {
+        savedAccountLink.addEventListener('click', function () {
+          document.getElementById(savedAccountLink.getAttribute('data-userId')).submit();
+        })
+      })
+    });
+  </script>
+
   <div class="choose">
     <ul class="list-group">
       <li class="list-group-item" th:each="account, iter : ${savedAccounts}" th:inline="text">
@@ -23,7 +33,7 @@
           <input type="hidden" class="form-control" name="username" th:value="${account.username}" />
           <input type="hidden" class="form-control" name="login_hint" th:value="${'%7B%22origin%22:%22'+account.origin+'%22%7D'}" />
         </form>
-        <a href="#" th:data-userId="${account.userId}" th:onclick="document.getElementById(this.getAttribute('data-userId')).submit();">
+        <a href="#" th:data-userId="${account.userId}">
           <span class="account-avatar txt-c ptl txt-m" th:style="'background-color: rgb(' + ${account.red} + ',' + ${account.green} + ',' + ${account.blue} +')'">
             <div class="h2 abbr txt-c pan man em-high">[[${account.username[0]}]]</div>
           </span>
