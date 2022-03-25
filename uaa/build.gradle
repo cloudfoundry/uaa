@@ -165,6 +165,10 @@ integrationTest {
 
 task acceptanceTest(type: Test) {
   include "org/cloudfoundry/identity/uaa/acceptance/*.class"
+    // Exclude Selenium chromedriver based SAML login test if UAA is being run locally
+    if (System.getenv('DEPLOYMENT_TYPE') == 'local') {
+        exclude "org/cloudfoundry/identity/uaa/acceptance/SamlLoginAT.class"
+    }
 }
 
 task degradedTestCloud(type: Test) {
