@@ -15,13 +15,23 @@
     <p th:text="#{'login.' + ${param.success}}">Success Message</p>
   </div>
 
+  <script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll("a[data-userId]").forEach(function (savedAccountLink) {
+        savedAccountLink.addEventListener('click', function () {
+          document.getElementById(savedAccountLink.getAttribute('data-userId')).submit();
+        })
+      })
+    });
+  </script>
+
   <div class="choose">
     <ul class="list-group">
       <li class="list-group-item" th:each="account, iter : ${savedAccounts}" th:inline="text">
         <form th:id="${account.userId}" action="/login/idp_discovery" th:action="@{/login/idp_discovery}" method="post" role="form">
           <input type="hidden" class="form-control" name="email" th:value="${account.origin == 'uaa' || account.origin == 'ldap' ? account.username : account.email}" />
         </form>
-        <a href="#" th:data-userId="${account.userId}" th:onclick="document.getElementById(this.getAttribute('data-userId')).submit();">
+        <a href="#" th:data-userId="${account.userId}">
           <span class="account-avatar txt-c ptl txt-m" th:style="'background-color: rgb(' + ${account.red} + ',' + ${account.green} + ',' + ${account.blue} +')'">
             <div class="h2 abbr txt-c pan man em-high">[[${account.username[0]}]]</div>
           </span>
