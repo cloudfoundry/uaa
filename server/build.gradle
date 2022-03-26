@@ -10,6 +10,7 @@ dependencies {
     provided(libraries.tomcatEmbed)
     implementation(libraries.javaxMail)
 
+    implementation(libraries.jacksonBom)
     implementation(libraries.jacksonDatabind)
     implementation(libraries.jsonPath)
     implementation(libraries.zxing)

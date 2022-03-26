@@ -13,6 +13,7 @@ repositories {
 dependencies {
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(libraries.springBootStarterWeb)
+    implementation(libraries.jacksonBom)
     providedCompile(libraries.tomcatEmbed)
     providedRuntime(libraries.springBootStarterTomcat)
 }

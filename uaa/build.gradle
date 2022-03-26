@@ -27,6 +27,7 @@ dependencies {
         exclude(module: "jna")
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.jacksonBom)
     implementation(libraries.springBootStarter)
     implementation(libraries.springBootStarterWeb)
     implementation(libraries.springSecurityOauth) {

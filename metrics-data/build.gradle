@@ -1,6 +1,7 @@
 description = "CloudFoundry Identity Metrics Data Jar"
 
 dependencies {
+  implementation(libraries.jacksonBom)
   implementation(libraries.jacksonDatabind)
   implementation(libraries.jacksonAnnotations)
 }
