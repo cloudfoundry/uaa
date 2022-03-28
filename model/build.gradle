@@ -3,8 +3,12 @@ description = "CloudFoundry Identity Model JAR"
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
 
-    implementation(libraries.jacksonDatabind)
-    implementation(libraries.jacksonAnnotations)
+    implementation(libraries.jacksonDatabind) {
+        exclude(module: "jackson-bom")
+    }
+    implementation(libraries.jacksonAnnotations) {
+        exclude(module: "jackson-bom")
+    }
 
     implementation(libraries.javaxValidationApi)
 
