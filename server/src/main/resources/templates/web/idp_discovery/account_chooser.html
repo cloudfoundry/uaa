@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layouts/pui-account-discovery-main}">
 
-<script type="application/javascript"
-        src="resources/javascripts/account_chooser/saved_account_click_action.js"/>
 <div layout:fragment="page-content">
   <h4 class="txt-c pbxxl ptxl" th:text="${T(org.springframework.util.StringUtils).hasText(clientName) ? 'Sign in to continue to ' + clientName : 'Sign in to continue'}">
     Choose an account
@@ -18,6 +16,9 @@
     <p th:text="#{'login.' + ${param.success}}">Success Message</p>
   </div>
 
+
+  <script type="application/javascript"
+          src="resources/javascripts/account_chooser/saved_account_click_action.js"/>
   <div class="choose">
     <ul class="list-group">
       <li class="list-group-item" th:each="account, iter : ${savedAccounts}" th:inline="text">
