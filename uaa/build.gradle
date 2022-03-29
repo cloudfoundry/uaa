@@ -28,16 +28,11 @@ dependencies {
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
     implementation(libraries.springBootStarter)
-    implementation(libraries.springBootStarterWeb) {
-        exclude(module: "jackson-bom")
-    }
+    implementation(libraries.springBootStarterWeb)
     implementation(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
-    }
-    implementation(libraries.jacksonDatabind) {
-        exclude(module: "jackson-bom")
     }
     implementation(libraries.thymeLeaf) {
         exclude(module: "ognl")
@@ -57,8 +52,6 @@ dependencies {
 
     testImplementation(identityServer.sourceSets.test.output)
 
-    // remove commit if spring-boot defines a patched version
-    testImplementation("com.fasterxml.jackson:jackson-bom:2.13.2.20220324")
     testImplementation(project(":cloudfoundry-identity-model"))
     testImplementation(project(":cloudfoundry-identity-metrics-data"))
     testImplementation(libraries.apacheDsProtocolLdap) {
