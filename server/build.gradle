@@ -10,9 +10,7 @@ dependencies {
     provided(libraries.tomcatEmbed)
     implementation(libraries.javaxMail)
 
-    implementation(libraries.jacksonDatabind) {
-        exclude(module: "jackson-bom")
-    }
+    implementation(libraries.jacksonDatabind)
     implementation(libraries.jsonPath)
     implementation(libraries.zxing)
     implementation(libraries.springBeans)

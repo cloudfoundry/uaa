@@ -7,21 +7,15 @@ repositories {
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(libraries.springBootStarter)
-    implementation(libraries.springBootStarterWeb) {
-        exclude(module: "jackson-bom")
-    }
+    implementation(libraries.springBootStarterWeb)
     implementation(libraries.springBootStarterLog4j2)
     implementation(libraries.statsdClient)
     testImplementation(libraries.junit)
     testImplementation(libraries.mockito)
     testImplementation(libraries.springBootStarterTest)
 
-    implementation(libraries.jacksonDataformatYaml) {
-        exclude(module: "jackson-bom")
-    }
-    implementation(libraries.jacksonDatabind) {
-        exclude(module: "jackson-bom")
-    }
+    implementation(libraries.jacksonDataformatYaml)
+    implementation(libraries.jacksonDatabind)
 }
 
 test {

@@ -6,6 +6,7 @@ ext {
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.3.0"
 ext["flyway.version"] = "5.2.4"
+ext["jackson.version.databind"] = "2.13.2.2"
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
@@ -43,7 +44,7 @@ libraries.hamcrest = "org.hamcrest:hamcrest:${versions.hamcrestVersion}"
 libraries.hibernateValidator = "org.hibernate.validator:hibernate-validator"
 libraries.hsqldb = "org.hsqldb:hsqldb"
 libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations"
-libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:2.13.2.1"
+libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind"
 libraries.jacksonDataformatYaml = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml"
 libraries.javaxMail = "com.sun.mail:jakarta.mail"
 libraries.javaxServlet = "javax.servlet:jstl"
