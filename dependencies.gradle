@@ -4,7 +4,7 @@ ext {
 }
 
 
-ext["mariadb.version"] = "2.7.4"
+ext["mariadb.version"] = "2.7.5"
 ext["hibernate-validator.version"] = "6.0.19.Final"
 ext["flyway.version"] = "7.15.0"
 ext['log4j2.version'] = '2.17.2' // this pinning can be removed when we bump to a spring boot version that has 2.17.1+ (due to CVE https://github.com/advisories/GHSA-jfh8-c2jp-5v3q in log4j < 2.17.0)
