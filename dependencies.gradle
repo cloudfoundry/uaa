@@ -6,15 +6,13 @@ ext {
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.3.0"
 ext["flyway.version"] = "5.2.4"
-ext["jackson.version.databind"] = "2.13.2.2" // remove after version 2.13.3, CVE-2020-36518
-ext["spring-framework.version"] = '5.3.18'  // remove with new spring-boot
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
 versions.bouncyCastleVersion = "1.70"
 versions.hamcrestVersion = "2.2"
-versions.springBootVersion = "2.6.5"
+versions.springBootVersion = "2.6.6"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.1.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
