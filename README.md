@@ -66,7 +66,7 @@ Security OAuth that can do the heavy lifting if your client is Java.
 * Technical forum: [cf-dev mailing list](https://lists.cloudfoundry.org)
 * Docs: [docs/](/docs)
 * API Documentation: http://docs.cloudfoundry.org/api/uaa/
-* Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
+* Specification: [The OpenID Connect Core Framework](https://openid.net/specs/openid-connect-core-1_0.html) including [the Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
 * LDAP: [UAA LDAP Integration](/docs/UAA-LDAP.md)
 
 ## Quick Start

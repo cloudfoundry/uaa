@@ -171,6 +171,7 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Test
     public void testGetEntityId() throws Exception {
+        IdentityZoneHolder.set(withId("uaa"));
         conf.validateSamlServiceProvider(mockSamlServiceProviderForZone("uaa"));
         for (SamlServiceProviderHolder holder : conf.getSamlServiceProviders()) {
             SamlServiceProvider provider = holder.getSamlServiceProvider();

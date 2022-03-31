@@ -259,6 +259,7 @@ class UaaTokenServicesTests {
 
         @Test
         void happyCase() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
                     GRANT_TYPE_AUTHORIZATION_CODE,
                     Sets.newHashSet("openid", "user_attributes"),
@@ -282,6 +283,7 @@ class UaaTokenServicesTests {
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")
         @ParameterizedTest
         void authTime(Date authTimeDate) {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
                     GRANT_TYPE_AUTHORIZATION_CODE,
                     Sets.newHashSet("openid", "user_attributes"),

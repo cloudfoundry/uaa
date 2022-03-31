@@ -33,6 +33,8 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -128,8 +130,17 @@ public class UaaTestAccounts implements TestAccounts {
         return getAuthorizationHeader(username, password);
     }
 
+    /**
+     * Test method, preparing authorization header.
+     * Same steps to spring security 5.5.x and newer, e.g.
+     * https://github.com/spring-projects/spring-security/commit/e6c268add00bef40cc6f47d8963176f43b8a1de1
+     * @param username client_id
+     * @param password client_secret
+     * @return OAuth2 encoded client_id and client_secret, e.g. https://datatracker.ietf.org/doc/html/rfc2617#section-2
+     */
     public String getAuthorizationHeader(String username, String password) {
-        String credentials = String.format("%s:%s", username, password);
+        String credentials =
+            String.format("%s:%s", URLEncoder.encode(username, StandardCharsets.UTF_8), URLEncoder.encode(password, StandardCharsets.UTF_8));
         return String.format("Basic %s", new String(Base64.encode(credentials.getBytes())));
     }
 

@@ -4,11 +4,12 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -21,27 +22,33 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
+public class ExternalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ExernalOAuthLogoutHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthLogoutHandler.class);
 
   private final IdentityProviderProvisioning providerProvisioning;
   private final OidcMetadataFetcher oidcMetadataFetcher;
+  private final IdentityZoneManager identityZoneManager;
   private final Set<String> defaultOrigin = Set.of(OriginKeys.UAA, OriginKeys.LDAP);
 
-  public ExernalOAuthLogoutHandler(final IdentityProviderProvisioning providerProvisioning, final OidcMetadataFetcher oidcMetadataFetcher) {
+  public ExternalOAuthLogoutHandler(final IdentityProviderProvisioning providerProvisioning, final OidcMetadataFetcher oidcMetadataFetcher,
+      IdentityZoneManager identityZoneManager) {
     this.providerProvisioning = providerProvisioning;
     this.oidcMetadataFetcher = oidcMetadataFetcher;
+    this.identityZoneManager = identityZoneManager;
   }
 
   @Override
   protected String determineTargetUrl(final HttpServletRequest request, final HttpServletResponse response, final Authentication authentication) {
-    final AbstractExternalOAuthIdentityProviderDefinition oauthConfig = this.getOAuthProviderForAuthentication(authentication);
+    final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig =
+        this.getOAuthProviderForAuthentication(authentication);
     final String logoutUrl = this.getLogoutUrl(oauthConfig);
 
     if (logoutUrl == null) {
-      final String defaultUrl = this.getZoneDefaultUrl();
-      LOGGER.warn(String.format("OAuth logout null, use default: %s", defaultUrl));
+      final String defaultUrl = getZoneDefaultUrl();
+      if (LOGGER.isWarnEnabled()) {
+        LOGGER.warn(String.format("OAuth logout null, use default: %s", defaultUrl));
+      }
       return defaultUrl;
     }
 
@@ -49,8 +56,8 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
   }
 
   public String constructOAuthProviderLogoutUrl(final HttpServletRequest request, final String logoutUrl,
-      final AbstractExternalOAuthIdentityProviderDefinition oauthConfig) {
-    final StringBuffer oauthLogoutUriBuilder = request.getRequestURL();
+      final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig) {
+    final StringBuilder oauthLogoutUriBuilder = new StringBuilder(request.getRequestURL());
     if (StringUtils.hasText(request.getQueryString())) {
       oauthLogoutUriBuilder.append("?");
       oauthLogoutUriBuilder.append(request.getQueryString());
@@ -64,49 +71,53 @@ public class ExernalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     return sb.toString();
   }
 
-  public String getLogoutUrl(final AbstractExternalOAuthIdentityProviderDefinition oAuthIdentityProviderDefinition) {
+  public String getLogoutUrl(final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oAuthIdentityProviderDefinition) {
+    String logoutUrl = null;
     if (oAuthIdentityProviderDefinition != null && oAuthIdentityProviderDefinition.getLogoutUrl() != null) {
-      return oAuthIdentityProviderDefinition.getLogoutUrl().toString();
+      logoutUrl = oAuthIdentityProviderDefinition.getLogoutUrl().toString();
     } else {
       if (oAuthIdentityProviderDefinition instanceof OIDCIdentityProviderDefinition) {
         final OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) oAuthIdentityProviderDefinition;
         try {
           this.oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(oidcIdentityProviderDefinition);
-          return oidcIdentityProviderDefinition.getLogoutUrl() != null ? oidcIdentityProviderDefinition.getLogoutUrl().toString() : null;
         } catch (final OidcMetadataFetchingException e) {
           LOGGER.warn(e.getLocalizedMessage(), e);
         }
+        if (oidcIdentityProviderDefinition.getLogoutUrl() != null) {
+          logoutUrl = oidcIdentityProviderDefinition.getLogoutUrl().toString();
+        }
       }
     }
-    return null;
+    return logoutUrl;
   }
 
-  public AbstractExternalOAuthIdentityProviderDefinition getOAuthProviderForAuthentication(final Authentication authentication) {
+  public AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> getOAuthProviderForAuthentication(final Authentication authentication) {
     if (this.isExternalOAuthAuthentication(authentication)) {
       final UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-      final IdentityProvider identityProvider = this.providerProvisioning.retrieveByOrigin(principal.getOrigin(), principal.getZoneId());
+      final IdentityProvider<? extends AbstractIdentityProviderDefinition> identityProvider =
+          this.providerProvisioning.retrieveByOrigin(principal.getOrigin(), principal.getZoneId());
       if (identityProvider != null && identityProvider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition && (
           OriginKeys.OIDC10.equals(identityProvider.getType()) || OriginKeys.OAUTH20.equals(identityProvider.getType()))) {
         return (AbstractExternalOAuthIdentityProviderDefinition) identityProvider.getConfig();
       }
-
     }
     return null;
   }
 
   private boolean isExternalOAuthAuthentication(final Authentication authentication) {
-    if (authentication != null && authentication instanceof UaaAuthentication && authentication.getPrincipal() instanceof UaaPrincipal) {
+    if (authentication instanceof UaaAuthentication && authentication.getPrincipal() instanceof UaaPrincipal) {
       final UaaAuthentication uaaAuthentication = (UaaAuthentication) authentication;
       final UaaPrincipal principal = uaaAuthentication.getPrincipal();
       final String origin = principal.getOrigin();
-      return !this.defaultOrigin.contains(origin) && uaaAuthentication.getAuthenticationMethods() != null && uaaAuthentication.getAuthenticationMethods()
-          .contains("oauth");
+      return !this.defaultOrigin.contains(origin) &&
+              uaaAuthentication.getAuthenticationMethods() != null &&
+              uaaAuthentication.getAuthenticationMethods().contains("oauth");
     }
     return false;
   }
 
   private String getZoneDefaultUrl() {
-    IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+    IdentityZoneConfiguration config = identityZoneManager.getCurrentIdentityZone().getConfig();
     if (config == null) {
       config = new IdentityZoneConfiguration();
     }

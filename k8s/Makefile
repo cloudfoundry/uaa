@@ -21,6 +21,7 @@ format:
 	gofmt -l -s -w ${GOFILES}
 
 template_test:
+	go version
 	go test -count=1 ./test/...
 
 test: format template_test

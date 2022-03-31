@@ -59,7 +59,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
@@ -130,7 +130,7 @@ class ClientAdminBootstrapTests {
 
             clientAdminBootstrap.afterPropertiesSet();
 
-            verifyZeroInteractions(multitenantJdbcClientDetailsService);
+            verifyNoInteractions(multitenantJdbcClientDetailsService);
         }
     }
 
@@ -174,7 +174,7 @@ class ClientAdminBootstrapTests {
         void deleteFromYamlExistingClient() throws Exception {
             createClientInDb(clientIdToDelete, multitenantJdbcClientDetailsService);
             simpleAddClient(clientIdToDelete, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
-            verifyZeroInteractions(mockApplicationEventPublisher);
+            verifyNoInteractions(mockApplicationEventPublisher);
 
             clientAdminBootstrap.onApplicationEvent(null);
 
@@ -192,7 +192,7 @@ class ClientAdminBootstrapTests {
             clientAdminBootstrap.onApplicationEvent(new ContextRefreshedEvent(mock(ApplicationContext.class)));
 
             verify(multitenantJdbcClientDetailsService, times(1)).loadClientByClientId(clientIdToDelete, "uaa");
-            verifyZeroInteractions(mockApplicationEventPublisher);
+            verifyNoInteractions(mockApplicationEventPublisher);
         }
     }
 

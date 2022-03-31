@@ -327,7 +327,7 @@ class UaaTokenStoreTests {
         // https://datatracker.ietf.org/doc/html/rfc6749#section-10.10
         String code = store.createAuthorizationCode(clientAuthentication);
         assertNotNull(code);
-        assertTrue(code.length() >= 20);
+        assertTrue(code.length() >= 32);
     }
 
     public static class SameConnectionDataSource implements DataSource {

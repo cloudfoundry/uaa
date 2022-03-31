@@ -6,23 +6,23 @@ import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-public class CommonLoginPolicyTest {
+class CommonLoginPolicyTest {
     private CommonLoginPolicy commonLoginPolicy;
     private LockoutPolicyRetriever lockoutPolicyRetriever;
     private TimeService timeService;
@@ -31,8 +31,8 @@ public class CommonLoginPolicyTest {
     private AuditEventType successEventType;
     private boolean enabled = true;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         auditService = mock(UaaAuditService.class);
         timeService = mock(TimeService.class);
         lockoutPolicyRetriever = mock(LockoutPolicyRetriever.class);
@@ -43,18 +43,18 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void test_is_disabled() {
+    void test_is_disabled() {
         commonLoginPolicy = spy(new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, timeService, false));
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
         assertTrue(result.isAllowed());
         assertEquals(0, result.getFailureCount());
-        verifyZeroInteractions(lockoutPolicyRetriever);
-        verifyZeroInteractions(timeService);
-        verifyZeroInteractions(auditService);
+        verifyNoInteractions(lockoutPolicyRetriever);
+        verifyNoInteractions(timeService);
+        verifyNoInteractions(auditService);
     }
 
     @Test
-    public void isAllowed_whenLockoutAfterFailuresIsNegative_returnsTrue() {
+    void isAllowed_whenLockoutAfterFailuresIsNegative_returnsTrue() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(-1, -1, 300));
 
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
@@ -64,7 +64,7 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyUnsuccessfulRecentAttempts() {
+    void isAllowed_whenLockoutAfterFailuresIsPositive_returnsFalseIfTooManyUnsuccessfulRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 1, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
         List<AuditEvent> list = Collections.singletonList(auditEvent);
@@ -78,7 +78,7 @@ public class CommonLoginPolicyTest {
     }
 
     @Test
-    public void isAllowed_whenLockoutAfterFailuresIsPositive_returnsTrueIfNotTooManyUnsuccessfulRecentAttempts() {
+    void isAllowed_whenLockoutAfterFailuresIsPositive_returnsTrueIfNotTooManyUnsuccessfulRecentAttempts() {
         when(lockoutPolicyRetriever.getLockoutPolicy()).thenReturn(new LockoutPolicy(2, 2, 300));
         AuditEvent auditEvent = new AuditEvent(failureEventType, null, null, null, 1L, null, null, null);
         List<AuditEvent> list = Collections.singletonList(auditEvent);

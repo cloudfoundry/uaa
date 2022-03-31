@@ -113,6 +113,7 @@ public class OauthIDPWrapperFactoryBean {
         idpDefinition.setAttributeMappings((Map<String, Object>) idpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
         idpDefinition.setScopes((List<String>) idpDefinitionMap.get("scopes"));
         idpDefinition.setUserPropagationParameter((String) idpDefinitionMap.get("userPropagationParameter"));
+        idpDefinition.setGroupMappingMode(parseExternalGroupMappingMode(idpDefinitionMap.get("groupMappingMode")));
         String responseType = (String) idpDefinitionMap.get("responseType");
         if (hasText(responseType)) {
             idpDefinition.setResponseType(responseType);
@@ -126,6 +127,7 @@ public class OauthIDPWrapperFactoryBean {
                 idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
                 idpDefinition.setTokenUrl(new URL((String) idpDefinitionMap.get("tokenUrl")));
                 idpDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
+                idpDefinition.setLogoutUrl(idpDefinitionMap.get("logoutUrl") == null ? null : new URL((String) idpDefinitionMap.get("logoutUrl")));
             }
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL is malformed.", e);
@@ -133,6 +135,16 @@ public class OauthIDPWrapperFactoryBean {
         if (idpDefinitionMap.get("clientAuthInBody") instanceof Boolean) {
             idpDefinition.setClientAuthInBody((boolean)idpDefinitionMap.get("clientAuthInBody"));
         }
+    }
+
+    /* parse with null check because default should be null */
+    private AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode parseExternalGroupMappingMode(Object mode) {
+        if (mode instanceof String) {
+            if (AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES.toString().equals(mode)) {
+                return AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES;
+            }
+        }
+        return AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED;
     }
 
     public Map<String, AbstractExternalOAuthIdentityProviderDefinition> getOauthIdpDefinitions() {

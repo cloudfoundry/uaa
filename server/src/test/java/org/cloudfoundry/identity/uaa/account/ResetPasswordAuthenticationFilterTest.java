@@ -21,9 +21,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -38,11 +38,11 @@ import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServletResponse;
 import java.sql.Timestamp;
 
-import static junit.framework.TestCase.assertNull;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,11 +53,9 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ResetPasswordAuthenticationFilterTest {
+class ResetPasswordAuthenticationFilterTest {
 
-    private String code;
     private String password;
-    private String passwordConfirmation;
     private MockHttpServletRequest request;
     private HttpServletResponse response;
     private FilterChain chain;
@@ -68,21 +66,20 @@ public class ResetPasswordAuthenticationFilterTest {
     private AuthenticationSuccessHandler authenticationSuccessHandler;
     private AuthenticationEntryPoint entryPoint;
     private String email;
-    private InMemoryExpiringCodeStore codeStore;
 
-    @Before
-    @After
-    public void clear() {
+    @BeforeEach
+    @AfterEach
+    void clear() {
         SecurityContextHolder.clearContext();
     }
 
-    @Before
-    public void setup() {
-        codeStore = new InMemoryExpiringCodeStore(new TimeServiceImpl());
-        code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10*60*1000), "", IdentityZoneHolder.get().getId()).getCode();
+    @BeforeEach
+    void setup() {
+        var codeStore = new InMemoryExpiringCodeStore(new TimeServiceImpl());
+        var code = codeStore.generateCode("{}", new Timestamp(System.currentTimeMillis() + 10 * 60 * 1000), "", IdentityZoneHolder.get().getId()).getCode();
 
         password = "test";
-        passwordConfirmation = "test";
+        var passwordConfirmation = "test";
         email = "test@test.org";
 
         request = new MockHttpServletRequest("POST", "/reset_password.do");
@@ -106,12 +103,12 @@ public class ResetPasswordAuthenticationFilterTest {
     }
 
     @Test
-    public void test_happy_day_password_reset() throws Exception {
+    void test_happy_day_password_reset() throws Exception {
         happy_day_password_reset(resetPasswordResponse.getRedirectUri());
     }
 
     @Test
-    public void test_happy_day_password_reset_with_redirect() throws Exception {
+    void test_happy_day_password_reset_with_redirect() throws Exception {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "http://test.com", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
@@ -119,7 +116,7 @@ public class ResetPasswordAuthenticationFilterTest {
     }
 
     @Test
-    public void test_happy_day_password_reset_with_null_redirect() throws Exception {
+    void test_happy_day_password_reset_with_null_redirect() throws Exception {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, null, null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);
@@ -127,7 +124,7 @@ public class ResetPasswordAuthenticationFilterTest {
     }
 
     @Test
-    public void test_happy_day_password_reset_with_home_redirect() throws Exception {
+    void test_happy_day_password_reset_with_home_redirect() throws Exception {
         reset(service);
         resetPasswordResponse = new ResetPasswordService.ResetPasswordResponse(user, "home", null);
         when(service.resetPassword(any(ExpiringCode.class), eq(password))).thenReturn(resetPasswordResponse);

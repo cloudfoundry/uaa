@@ -22,6 +22,20 @@ pushd $(dirname $DIR)
   /etc/init.d/slapd start
   ldapadd -Y EXTERNAL -H ldapi:/// -f ./uaa/src/test/resources/ldap_db_init.ldif
   ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ./uaa/src/test/resources/ldap_init.ldif
-  ./gradlew "-Dspring.profiles.active=${TESTENV}" assemble --max-workers=4 --no-daemon --stacktrace --console=plain -x :cloudfoundry-identity-samples:assemble
-  ./gradlew "-Dspring.profiles.active=${TESTENV}" integrationTest --no-daemon --stacktrace --console=plain -x :cloudfoundry-identity-samples:assemble
+  ./gradlew "-Dspring.profiles.active=${TESTENV}" \
+            "-Djava.security.egd=file:/dev/./urandom" \
+            assemble \
+            --max-workers=4 \
+            --no-daemon \
+            --stacktrace \
+            --console=plain \
+            -x :cloudfoundry-identity-samples:assemble
+
+  ./gradlew "-Dspring.profiles.active=${TESTENV}" \
+            "-Djava.security.egd=file:/dev/./urandom" \
+            integrationTest \
+            --no-daemon \
+            --stacktrace \
+            --console=plain \
+            -x :cloudfoundry-identity-samples:assemble
 popd

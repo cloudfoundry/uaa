@@ -24,6 +24,10 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends AbstractExternalOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
+    public enum OAuthGroupMappingMode {
+        EXPLICITLY_MAPPED,
+        AS_SCOPES;
+    }
     private URL authUrl;
     private URL tokenUrl;
     private URL tokenKeyUrl;
@@ -40,6 +44,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private String issuer;
     private String responseType = "code";
     private String userPropagationParameter;
+    private OAuthGroupMappingMode groupMappingMode;
 
     public URL getAuthUrl() {
         return authUrl;
@@ -186,6 +191,20 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         return (T) this;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL) // prevent json data for default
+    public OAuthGroupMappingMode getGroupMappingMode() {
+        return groupMappingMode;
+    }
+
+    public T setGroupMappingMode(OAuthGroupMappingMode externalGroupMappingMode) {
+        if (externalGroupMappingMode == OAuthGroupMappingMode.EXPLICITLY_MAPPED) {
+            this.groupMappingMode = null;
+        } else {
+            this.groupMappingMode = externalGroupMappingMode;
+        }
+        return (T) this;
+    }
+
     @JsonIgnore
     public Class getParameterizedClass() {
         ParameterizedType parameterizedType =
@@ -208,6 +227,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(tokenKeyUrl, that.tokenKeyUrl)) return false;
         if (!Objects.equals(tokenKey, that.tokenKey)) return false;
         if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
+        if (!Objects.equals(logoutUrl, that.logoutUrl)) return false;
         if (!Objects.equals(linkText, that.linkText)) return false;
         if (!Objects.equals(relyingPartyId, that.relyingPartyId))
             return false;
@@ -216,6 +236,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(scopes, that.scopes)) return false;
         if (!Objects.equals(issuer, that.issuer)) return false;
         if (!Objects.equals(userPropagationParameter, that.userPropagationParameter)) return false;
+        if (!Objects.equals(groupMappingMode, that.groupMappingMode)) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -228,6 +249,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (tokenKeyUrl != null ? tokenKeyUrl.hashCode() : 0);
         result = 31 * result + (tokenKey != null ? tokenKey.hashCode() : 0);
         result = 31 * result + (userInfoUrl != null ? userInfoUrl.hashCode() : 0);
+        result = 31 * result + (logoutUrl != null ? logoutUrl.hashCode() : 0);
         result = 31 * result + (linkText != null ? linkText.hashCode() : 0);
         result = 31 * result + (showLinkText ? 1 : 0);
         result = 31 * result + (skipSslValidation ? 1 : 0);
@@ -236,6 +258,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (scopes != null ? scopes.hashCode() : 0);
         result = 31 * result + (issuer != null ? issuer.hashCode() : 0);
         result = 31 * result + (userPropagationParameter != null ? userPropagationParameter.hashCode() : 0);
+        result = 31 * result + (groupMappingMode != null ? groupMappingMode.hashCode() : 0);
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
         return result;
     }
