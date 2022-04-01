@@ -44,6 +44,28 @@
             document.getElementById("formAuthenticate").appendChild(input);
         }
         document.getElementById("formAuthenticate").submit();
+
+        // And send the token over to the server
+//        var req = new XMLHttpRequest();
+//        // using POST so query isn't logged
+//        req.open('POST', '', true);
+//        req.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+//
+//        req.onreadystatechange = function (e) {
+//            if (req.readyState == 4) {
+//                if (req.status == 200) {
+//                    //this is ok, we should have received a 302 and followed it
+//                } else if (req.status == 400) {
+//                    // if the OAuth response is invalid, generate an error message
+//                    alert('There was an error processing the token')
+//                } else {
+//                    alert('Something other than 200 was returned')
+//                }
+//            }
+//        };
+        //the result here is a redirect, so how d
+        //req.send(postBody);
+        // ]]>
     </script>
 </div>
 </html>
