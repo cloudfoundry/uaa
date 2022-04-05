@@ -12,9 +12,18 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
     public void doFilterInternal(HttpServletRequest request,
                                  HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
+        String requestURI = request.getRequestURI();
+        boolean isSamlRequest = request.getRequestURI().contains("/saml/idp") ||
+                requestURI.contains("/saml/login");
 
-        response.setHeader("Content-Security-Policy",
-                "script-src 'self' 'unsafe-inline'");
+        if (isSamlRequest) {
+            response.setHeader("Content-Security-Policy",
+                    "script-src 'self' 'unsafe-inline'");
+        } else {
+            response.setHeader("Content-Security-Policy",
+                    "script-src 'self'");
+        }
+
         chain.doFilter(request, response);
     }
 }
