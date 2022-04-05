@@ -1,24 +1,24 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ChainedAuthenticationManagerTest {
+class ChainedAuthenticationManagerTest {
 
     private Authentication success;
     private Authentication failure;
@@ -39,8 +39,8 @@ public class ChainedAuthenticationManagerTest {
         }
     }
     
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         success = mock(Authentication.class);
         failure = mock(Authentication.class);
 
@@ -66,7 +66,7 @@ public class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    public void testUaaAuthTrue() {
+    void testUaaAuthTrue() {
         managers[0].setAuthenticationManager(authenticateTrue);
         managers[1].setAuthenticationManager(authenticateFalse);
         Authentication result = authMgr.authenticate(failure);
@@ -78,7 +78,7 @@ public class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    public void testUaaAuthFalseLdapTrue() {
+    void testUaaAuthFalseLdapTrue() {
         managers[0].setAuthenticationManager(authenticateFalse);
         managers[1].setAuthenticationManager(authenticateTrue);
         Authentication result = authMgr.authenticate(failure);
@@ -90,7 +90,7 @@ public class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    public void testUaaAuthFalseLdapFalse() {
+    void testUaaAuthFalseLdapFalse() {
         managers[0].setAuthenticationManager(authenticateFalse);
         managers[1].setAuthenticationManager(authenticateFalse);
         Authentication result = authMgr.authenticate(failure);
@@ -100,7 +100,7 @@ public class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    public void testUaaAuthThrowLdapAuthFalse() {
+    void testUaaAuthThrowLdapAuthFalse() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateFalse);
         try {
@@ -115,7 +115,7 @@ public class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    public void testUaaAuthThrowLdapAuthTrue() {
+    void testUaaAuthThrowLdapAuthTrue() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateTrue);
         Authentication result = authMgr.authenticate(failure);
@@ -127,7 +127,7 @@ public class ChainedAuthenticationManagerTest {
     }
     
     @Test
-    public void testNonStringCredential() {
+    void testNonStringCredential() {
         when(success.getCredentials()).thenReturn(new Object());
         
         managers[0].setAuthenticationManager(authenticateThrow);
@@ -139,7 +139,7 @@ public class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    public void testNullAuthentication() {
+    void testNullAuthentication() {
         Authentication result = authMgr.authenticate(null);
         assertNull(result);
     }

@@ -156,7 +156,7 @@ public class CorsFilter extends OncePerRequestFilter {
                                     FilterChain filterChain,
                                     CorsConfiguration configuration) throws IOException, ServletException {
 
-        boolean isPreflightRequest = OPTIONS.toString().equals(request.getMethod());
+        boolean isPreflightRequest = OPTIONS.matches(request.getMethod());
 
         //Validate if this CORS request is allowed for this method
         String method = request.getMethod();

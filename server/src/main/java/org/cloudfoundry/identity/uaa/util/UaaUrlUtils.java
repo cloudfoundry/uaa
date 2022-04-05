@@ -27,10 +27,12 @@ import java.util.regex.Pattern;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
+import static org.springframework.util.StringUtils.hasLength;
 
 public abstract class UaaUrlUtils {
-   /** Pattern that matches valid subdomains.
+    private UaaUrlUtils() {}
+
+    /** Pattern that matches valid subdomains.
     *  According to https://tools.ietf.org/html/rfc3986#section-3.2.2
     */
     private static final Pattern VALID_SUBDOMAIN_PATTERN = Pattern.compile("([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]*[a-zA-Z0-9])");
@@ -58,11 +60,10 @@ public abstract class UaaUrlUtils {
         UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         if (zoneSwitchPossible) {
             String host = builder.build().getHost();
-            if (host != null && !currentIdentityZone.isUaa()) {
-                if (!host.startsWith(currentIdentityZone.getSubdomain() + ".")) {
-                    host = currentIdentityZone.getSubdomain() + "." + host;
-                    builder.host(host);
-                }
+            if (host != null && !currentIdentityZone.isUaa() &&
+                    !host.startsWith(currentIdentityZone.getSubdomain() + ".")) {
+                host = currentIdentityZone.getSubdomain() + "." + host;
+                builder.host(host);
             }
         }
         return builder;
@@ -71,7 +72,7 @@ public abstract class UaaUrlUtils {
     private static final Pattern allowedRedirectUriPattern = Pattern.compile(
             "^([a-zA-Z][a-zA-Z0-9+\\*\\-.]*)://" + //URL starts with 'some-scheme://' or 'https://' or 'http*://
                     "(.*:.*@)?" +                    //username/password in URL
-                    "(([a-zA-Z0-9\\-\\*\\_]+\\.)*" + //subdomains
+                    "(([a-zA-Z0-9\\-\\*\\_]+\\.){0,255}" + //subdomains (RFC1035) limited, regex backtracking disabled
                     "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
                     "[a-zA-Z0-9\\-]+" +              //tld
                     "(:[0-9]+)?(/.*|$)"              //port and path
@@ -128,14 +129,16 @@ public abstract class UaaUrlUtils {
         requestedUri = requestedUri.replace('\\', '/');
         String hostnameFromRequestedUri;
         try {
-            hostnameFromRequestedUri = new URI(requestedUri).getHost();
+            URI uri = new URI(requestedUri);
+            if (null == uri.getHost()) {
+                // If no host and no scheme, then likely relative URI, so just return true
+                // If no host but has scheme, then reject (e.g. http://AAA@@attacker.com?.example.com)
+                return null == uri.getScheme();
+            }
+            hostnameFromRequestedUri = uri.getHost();
         }
         catch (URISyntaxException ex) {
             return false;
-        }
-        if (hostnameFromRequestedUri == null) {
-            // No URI scheme, likely relative URI, so just return true
-            return true;
         }
 
         StringTokenizer st = new StringTokenizer(uriPattern, "/");
@@ -192,7 +195,7 @@ public abstract class UaaUrlUtils {
     }
 
     public static boolean isUrl(String url) {
-        if (isEmpty(url)) {
+        if (!hasLength(url)) {
             return false;
         }
         try {

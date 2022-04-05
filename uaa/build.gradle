@@ -12,6 +12,8 @@ processResources {
 
 apply(plugin: "org.springframework.boot")
 bootWar { enabled = false }
+jar { enabled = false }
+war { archiveClassifier = '' }
 war { enabled = true }
 
 
@@ -32,14 +34,19 @@ dependencies {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
+    implementation(libraries.thymeLeaf) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafSpring5) {
+        exclude(module: "ognl")
+    }
     runtimeOnly(libraries.springSecurityConfig)
     runtimeOnly(libraries.springRetry)
     runtimeOnly(libraries.aspectJWeaver)
     runtimeOnly(libraries.postgresql)
 
     implementation(libraries.javaxXmlBindApi)
-    implementation(libraries.javaxXmlBindCore)
-    implementation(libraries.javaxXmlBindImpl)
+    implementation(libraries.glassfishJaxb)
 
     providedCompile(libraries.tomcatEmbed)
 
@@ -60,7 +67,10 @@ dependencies {
     testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.junit)
     testImplementation(libraries.selenium)
-    testImplementation(libraries.dumbster)
+    testImplementation(libraries.dumbster) {
+        exclude(module: "mail")
+        exclude(module: "activation")
+    }
     testImplementation(libraries.zxing)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)

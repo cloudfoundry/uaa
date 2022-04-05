@@ -58,6 +58,25 @@
                             <entry key="name" value="The Ultimate Oauth App"/>
                         </map>
                     </entry>
+                    <entry key="appspecial">
+                        <map>
+                            <entry key="secret" value="appclient|secret!"/>
+                            <entry key="authorized-grant-types"
+                                   value="password,implicit,authorization_code,client_credentials,refresh_token"/>
+                            <entry key="scope"
+                                   value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme"/>
+                            <entry key="authorities" value="uaa.resource"/>
+                            <entry key="autoapprove">
+                                <list>
+                                    <value>openid</value>
+                                </list>
+                            </entry>
+                            <entry key="redirect-uri" value="http://localhost:8080/**,http://localhost:7000/**"/>
+                            <entry key="signup_redirect_url" value="http://localhost:8080/app/"/>
+                            <entry key="change_email_redirect_url" value="http://localhost:8080/app/"/>
+                            <entry key="name" value="The Ultimate Oauth App"/>
+                        </map>
+                    </entry>
                     <entry key="login">
                         <map>
                             <entry key="secret" value="loginsecret"/>

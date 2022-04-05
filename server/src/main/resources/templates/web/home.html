@@ -3,11 +3,11 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/main}">
 <head>
-    <th:block layout:include="nav :: head"></th:block>
+    <th:block layout:insert="~{nav :: head}"></th:block>
     <style th:each="tile,status : ${tiles}" th:utext="'.tile-' + ${status.count} + ' .tile-icon {background-image: url(&#34;' + @{${tile.appIcon}} + '&#34;)}'"></style>
 </head>
 <div layout:fragment="page-nav">
-    <th:block layout:replace="nav :: nav"></th:block>
+    <th:block layout:replace="~{nav :: nav}"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
     <h1>Where to?</h1>

@@ -104,7 +104,7 @@ public class HomeController {
         return "error";
     }
 
-    @RequestMapping({"/error", "/error404"})
+    @RequestMapping({"/error", "/error**"})
     public String errorGeneric(Model model) {
         populateBuildAndLinkInfo(model);
         return "error";
@@ -118,7 +118,14 @@ public class HomeController {
     }
 
     @RequestMapping("/oauth_error")
-    public String error_oauth() {
+    public String error_oauth(Model model, HttpServletRequest request) {
+        String OAUTH_ERROR = "oauth_error";
+        String exception = (String) request.getSession().getAttribute(OAUTH_ERROR);
+
+        if (hasText(exception)) {
+            model.addAttribute(OAUTH_ERROR, exception);
+            request.getSession().removeAttribute(OAUTH_ERROR);
+        }
         return "external_auth_error";
     }
 

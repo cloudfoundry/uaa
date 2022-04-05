@@ -10,6 +10,9 @@ buildscript {
         mavenCentral()
         jcenter()
         maven {
+            url("https://plugins.gradle.org/m2/")
+        }
+        maven {
             url("https://repo.spring.io/plugins-release")
         }
     }
@@ -20,6 +23,7 @@ buildscript {
         classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
+        classpath(libraries.testRetryPlugin)
     }
 }
 
@@ -33,6 +37,7 @@ allprojects {
     apply(plugin: "propdeps")
     apply(plugin: "propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
+    apply(plugin: "org.gradle.test-retry")
 
     dependencyManagement {
         imports {
@@ -88,6 +93,12 @@ subprojects {
         maxParallelForks = 6
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
+
+        retry {
+            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "true"));
+            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
+            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
+        }
 
         testLogging {
             events("skipped", "failed", "passed")
@@ -175,7 +186,7 @@ cargo {
 
         jvmArgs = ""
         jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
-        jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
+        jvmArgs = String.format("%s -Dlogging.config=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
         jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
         if (System.getProperty("spring.profiles.active", "").split(',').contains("debug")) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
@@ -198,6 +209,7 @@ cargo {
             property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
             property("smtp.host", "localhost")
             property("smtp.port", 2525)
+            property("java.security.egd", "file:/dev/./urandom")
         }
 
         containerProperties {

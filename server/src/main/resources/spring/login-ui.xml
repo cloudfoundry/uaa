@@ -257,6 +257,8 @@
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
+        <custom-filter ref="passwordChangeUiRequiredFilter" after="BASIC_AUTH_FILTER"/>
+        <custom-filter ref="mfaUiRequiredFilter" after="FORM_LOGIN_FILTER"/>
         <custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
         <csrf disabled="true"/>
     </http>
@@ -332,8 +334,20 @@
         <constructor-arg name="redirectNotLoggedIn" value="/login?error=invalid_login_request"/>
     </bean>
 
+    <bean id="keyInfoService" class="org.cloudfoundry.identity.uaa.oauth.KeyInfoService">
+        <constructor-arg name="uaaBaseURL" value="${uaa.url}"/>
+    </bean>
+
+    <bean id="externalOAuthLogoutHandler"
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler">
+        <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>
+        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+    </bean>
+
     <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">
         <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="externalOAuthLogoutHandler"/>
+        <constructor-arg ref="keyInfoService"/>
     </bean>
 
     <!--<mvc:resources location="/" mapping="/**" />-->
@@ -538,8 +552,4 @@
 
     <bean id="googleAuthenticatorConfigFactory"
           class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>
-
-    <bean id="keyInfoService" class="org.cloudfoundry.identity.uaa.oauth.KeyInfoService">
-        <constructor-arg name="uaaBaseURL" value="${uaa.url}"/>
-    </bean>
 </beans>

@@ -17,11 +17,11 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/pui-mfa-main}">
 <head>
-    <th:block layout:include="nav :: head"></th:block>
+    <th:block layout:insert="~{nav :: head}"></th:block>
 </head>
 <body>
 <div class="header" layout:fragment="page-header">
-    <th:block layout:include="nav :: nav"></th:block>
+    <th:block layout:insert="nav :: nav"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
     <h2 id="mfa-identity-zone" th:text="${identity_zone}" class="txt-c mbxl mfa-header"></h2>

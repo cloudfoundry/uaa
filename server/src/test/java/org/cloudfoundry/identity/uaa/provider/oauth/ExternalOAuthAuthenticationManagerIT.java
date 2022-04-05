@@ -1076,7 +1076,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("amr", Arrays.asList("mfa", "rba"));
         mockToken();
         UaaAuthentication authentication = (UaaAuthentication) externalOAuthAuthenticationManager.authenticate(xCodeToken);
-        assertThat(authentication.getAuthenticationMethods(), containsInAnyOrder("mfa", "rba", "ext"));
+        assertThat(authentication.getAuthenticationMethods(), containsInAnyOrder("mfa", "rba", "ext", "oauth"));
     }
 
     @Test

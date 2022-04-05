@@ -4,7 +4,7 @@ title: UAA API Reference
 search: true
 
 toc_footers:
-  - <a href="./propMappings/">Internal Property Mappings</a>
+  - <a href="https://docs.cloudfoundry.org/uaa">CF UAA Documentation</a>
 
 ---
 
@@ -18,13 +18,13 @@ toc_footers:
 
 The User Account and Authentication Service (UAA):
 
-- is an OAuth2 server that can be used for centralized identity management.
-- owns the user accounts and authentication sources (SAML, LDAP)
-- supports standard protocols such as SAML, LDAP and OpenID Connect to provide single sign-on and delegated authorization to web applications
+- is an OAuth2 / OpenID Connect (OIDC) server that can be used for centralized identity management.
+- owns the user accounts and authentication sources (SAML, LDAP, OIDC) and proxied authentication
+- supports standard protocols such as SAML, LDAP and OIDC to provide single sign-on and delegated authorization to web applications
 - can be invoked via JSON APIs
 - provides a basic login/approval UI for web client apps
 - supports APIs for user account management for an external web UI
-- most of the APIs are defined by the specs for the OAuth2, OpenID Connect, and SCIM standards.
+- most of the APIs are defined by the specs for the OAuth2, OIDC, and SCIM standards.
 
 
 # Authorization
@@ -632,6 +632,7 @@ _Error Codes_
 ## Logout.do
 
 The logout endpoint is meant to be used by applications to log the user out of the UAA session. UAA will only log a user out of the UAA session if they also hit this endpoint, and may also perform Single Logout with SAML providers if configured to do so.
+UAA will also log users out of OIDC proxied authenticated sessions based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html).
 The recommendation for application authors is to:
 
 * provide a local logout feature specific to the client application
@@ -639,7 +640,7 @@ The recommendation for application authors is to:
 * as part of the logout redirect to the logout endpoint using their client ID
 * provide a redirect param in the link to the logout success page of their application so
   that the user come back to a familiar place when logged out
-* add the logout success page to the client's redirect_uri configuration to whitelist the URL
+* add the logout success page to the client's redirect_uri (or rather post_logout_redirect_uri) configuration to whitelist the URL
 
 If the chosen redirect URI is not whitelisted, users will land on the UAA login page. This is a security feature intended to prevent open redirects as per [RFC 6749](https://tools.ietf.org/html/rfc6749#section-10.15).
 
@@ -793,6 +794,10 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                                                         |
 
 ## Updating an Identity Zone
+
+<aside class="notice">
+  You cannot update the `uaa` zone with the rest call here. The `uaa` zone needs to be updated via configuration yaml and rolling deployment.
+</aside>
 
 <%= render('IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md') %>
 <%= render('IdentityZoneEndpointDocs/updateIdentityZone/http-request.md') %>
@@ -2661,6 +2666,22 @@ _Request Parameters_
 _Response Fields_
 
 <%= render('LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md') %>
+
+## OpenID Connect Discovery
+
+Provide OpenID Connect metadata related to the specified server. This URI Discovery Mechanism for the Provider Configuration is defined in [OpenID Discovery Configuration](https://openid.net/specs/openid-connect-discovery-1_0.html) standard.
+
+#### OpenID Well-Known Configuration
+
+An OpenID Discovery Configuration Document MUST be queried using an HTTP GET request at path /.well-known/openid-configuration.
+
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/curl-request.md') %>
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/http-request.md') %>
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/http-response.md') %>
+
+_Response Fields_
+
+<%= render('OpenIdConnectEndpointDocs/getWellKnownOpenidConf/response-fields.md') %>
 
 ## Passcode
 

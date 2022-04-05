@@ -351,11 +351,18 @@ class UaaUrlUtilsTest {
             "a/b/*, a/b/c",
             "ab?/*, abc/def",
             "/abc/*, /abc/ab",
+            "/abc/*, /abc/ab@c",
             "http://foo.bar.com:8080, http://foo.bar.com:8080",
             "http://foo.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
             "http://*.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
             "http://*.bar.com*, http://foo.bar.com:80",
-            "https://*.bar.com*, https://foo.bar.com:443"
+            "https://*.bar.com*, https://foo.bar.com:443",
+            "myapp://callback, myapp://callback",
+            "myapp://callback*, myapp://callback#token=xyz123",
+            "https://*.example.com:*, https://john.doe@www.example.com:123",
+            "http://*.example.com, http://AAA@foo.example.com",
+            "http://*.some.server.com, http://username:password@foo.some.server.com",
+            "http://*some.server.com, http://username:password@some.server.com",
     })
     void findMatchingRedirectUri_urlParametersShouldResolveInIncomingUrl(
             String allowedRedirectUrl,
@@ -385,7 +392,18 @@ class UaaUrlUtilsTest {
             "/abc/*, a/abc/ab",
             "http://*.bar.com:8080, http://attacker.com?.bar.com:8080",
             "http://*.bar.com:8080/**, http://attacker.com#foo.bar.com:8080/app/foo",
-            "https://*.bar.com:8080/**, https://attacker.com#foo.bar.com:8443/app/foo"
+            "https://*.bar.com:8080/**, https://attacker.com#foo.bar.com:8443/app/foo",
+            "myapp://callback, myapp://badcallback",
+            "myapp://callback*, myapp://badcallback#token=123xyz",
+            "http://*.example.com, http://AAA@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@@@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@@@@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@attacker.com#.example.com",
+            "http://*.example.com, http://AAA@@attacker.com#.example.com",
+            "http://*some.server.com, http://username:password@attacker.com#some.server.com",
+            "http://*.server.com, http://username:password@attacker.com?some.server.com",
+            "http://*.some.server.com, http://username:password@attacker.com?.some.server.com",
     })
     void findMatchingRedirectUri_badRedirectUrlShouldResolveInFallbackUrl(
             String allowedRedirectUrl,

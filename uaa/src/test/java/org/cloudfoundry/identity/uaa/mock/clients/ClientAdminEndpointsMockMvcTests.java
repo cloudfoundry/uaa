@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
@@ -279,6 +280,28 @@ public class ClientAdminEndpointsMockMvcTests {
         mockMvc.perform(createClientPost).andExpect(status().isBadRequest());
         getClient(client.getClientId());
         verifyNoMoreInteractions(mockApplicationEventPublisher);
+    }
+
+    @Test
+    void testCreateClient_With_Secondary_Secret() throws Exception {
+        var client = new ClientDetailsCreation();
+        client.setClientId(new RandomValueStringGenerator().generate());
+        client.setClientSecret("primarySecret");
+        client.setSecondaryClientSecret("secondarySecret");
+        client.setAuthorizedGrantTypes(List.of("client_credentials"));
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(client));
+
+        mockMvc.perform(createClientPost)
+                .andExpect(status().isCreated());
+
+        getClient(client.getClientId());
+        verify(mockApplicationEventPublisher).publishEvent(abstractUaaEventCaptor.capture());
+        assertEquals(AuditEventType.ClientCreateSuccess, abstractUaaEventCaptor.getValue().getAuditEvent().getType());
     }
 
     @Test

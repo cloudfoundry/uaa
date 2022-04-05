@@ -12,6 +12,7 @@
   ],
   "userinfo_endpoint": "<context path>/userinfo",
   "jwks_uri": "<context path>/token_keys",
+  "end_session_endpoint": "<context path>/logout.do",
   "scopes_supported": [
     "openid",
     "profile",

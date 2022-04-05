@@ -321,6 +321,15 @@ class UaaTokenStoreTests {
         }
     }
 
+    @Test
+    void beOAuth2StandardCompliant() {
+        // oAuth 2.0 standard suggests 160 bits of randomness
+        // https://datatracker.ietf.org/doc/html/rfc6749#section-10.10
+        String code = store.createAuthorizationCode(clientAuthentication);
+        assertNotNull(code);
+        assertTrue(code.length() >= 32);
+    }
+
     public static class SameConnectionDataSource implements DataSource {
         private final Connection con;
 

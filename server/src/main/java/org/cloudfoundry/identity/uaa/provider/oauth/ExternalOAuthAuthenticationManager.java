@@ -241,8 +241,19 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
             authenticationData.setUsername(username);
 
-            List<? extends GrantedAuthority> authorities = extractExternalOAuthUserAuthorities(attributeMappings, claims);
-            authorities = mapAuthorities(codeToken.getOrigin(), authorities);
+            List<? extends GrantedAuthority> oidcAuthorities = extractExternalOAuthUserAuthorities(attributeMappings, claims);
+            List<? extends GrantedAuthority> authorities;
+            AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode groupMappingMode = config.getGroupMappingMode() != null ?
+                 config.getGroupMappingMode() : AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED;
+            switch (groupMappingMode) {
+                case AS_SCOPES:
+                    authorities = new LinkedList<>(oidcAuthorities);
+                    break;
+                case EXPLICITLY_MAPPED:
+                default:
+                    authorities = mapAuthorities(codeToken.getOrigin(), oidcAuthorities);
+                    break;
+            }
             authenticationData.setAuthorities(authorities);
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
@@ -314,6 +325,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 .collect(Collectors.toSet())
             );
         }
+        if (authentication.getAuthenticationMethods()==null) {
+            authentication.setAuthenticationMethods(new HashSet<>());
+        }
+        authentication.getAuthenticationMethods().add("oauth");
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
