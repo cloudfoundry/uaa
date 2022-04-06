@@ -32,15 +32,6 @@ class ContentSecurityPolicyFilterTest {
     void verifyRequestHasHeader() throws ServletException, IOException {
         filter.doFilter(request, response, chain);
 
-        assertEquals("script-src 'self'",
-                response.getHeader("Content-Security-Policy"));
-    }
-
-    @Test
-    void verifySamlRequestHasHeader() throws ServletException, IOException {
-        request.setRequestURI("/saml/idp/example.html");
-        filter.doFilter(request, response, chain);
-
         assertEquals("script-src 'self' 'unsafe-inline'",
                 response.getHeader("Content-Security-Policy"));
     }
