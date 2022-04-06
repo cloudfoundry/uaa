@@ -1,0 +1,20 @@
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: [ develop ]
+  pull_request:
+    branches: [ develop ]
+
+# Run job on CF landscape, e.g. ubuntu 1804 and bellsoft java 11
+jobs:
+  uaa_standalone_test:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'liberica'
+          java-version: '11'
+          cache: 'gradle'
+      - run: ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test

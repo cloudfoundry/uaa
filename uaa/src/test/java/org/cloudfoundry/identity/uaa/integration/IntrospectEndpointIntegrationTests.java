@@ -240,9 +240,56 @@ public class IntrospectEndpointIntegrationTests {
     }
 
     @Test
+    public void testValidPasswordGrant_ClientSecretAuthWithSpecialCharacters() {
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader("appspecial", "appclient|secret!"));
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        String userAccessToken = getUserToken(null);
+        formData.add("token", userAccessToken);
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
+        assertNotNull(introspectResponse.getBody());
+        System.out.println(introspectResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = introspectResponse.getBody();
+        assertNotNull(map.get("iss"));
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
+        assertEquals(true, map.get("active"));
+    }
+
+    @Test
     public void testValidPasswordGrant_ClientTokenAuth() {
         HttpHeaders tokenHeaders = new HttpHeaders();
         final String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "app", "appclientsecret");
+        tokenHeaders.set("Authorization", "Bearer " + clientCredentialsToken);
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        String userAccessToken = getUserToken(null);
+        formData.add("token", userAccessToken);
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
+        assertNotNull(introspectResponse.getBody());
+        System.out.println(introspectResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> map = introspectResponse.getBody();
+        assertNotNull(map.get("iss"));
+        assertEquals(testAccounts.getUserName(), map.get("user_name"));
+        assertEquals(testAccounts.getEmail(), map.get("email"));
+        assertEquals(true, map.get("active"));
+    }
+
+    @Test
+    public void testValidPasswordGrant_ClientTokenAuthWithSpecialCharacters() {
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        final String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "appspecial", "appclient|secret!");
         tokenHeaders.set("Authorization", "Bearer " + clientCredentialsToken);
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();

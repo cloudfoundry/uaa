@@ -181,7 +181,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
 
-        Mockito.verifyZeroInteractions(messageService);
+        Mockito.verifyNoInteractions(messageService);
     }
 
     @Test

@@ -31,6 +31,6 @@ public class PostgresLimitSqlAdapter implements LimitSqlAdapter {
             " < ? " +
             " ORDER BY " +
             expiresColumn +
-            " LIMIT "+maxRows+"))";
+            " LIMIT "+maxRows+" FOR UPDATE SKIP LOCKED))";
     }
 }

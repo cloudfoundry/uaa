@@ -41,7 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ClientAdminEndpointDocs extends AdminClientCreator {
     private String clientAdminToken;
 
-    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
+    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client.");
+    private static final FieldDescriptor secondaryClientSecretField = fieldWithPath("secondary_client_secret").optional(null).type(STRING).description("An optional, secondary secret string used for authenticating as this client to support secret rotation.");
     private static final FieldDescriptor actionField = fieldWithPath("action").constrained("Always required.").description("Set to `secret` to change client secret, `delete` to delete the client or `add` to add the client");
     private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
@@ -87,7 +88,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
     void createClient() throws Exception {
         Snippet requestFields = requestFields(
             (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
-                new FieldDescriptor[]{clientSecretField}
+                new FieldDescriptor[]{clientSecretField, secondaryClientSecretField}
             ));
 
         Snippet responseFields = responseFields(

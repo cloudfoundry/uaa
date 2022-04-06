@@ -3,13 +3,25 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/main}">
 <head>
-    <th:block layout:include="nav :: head"></th:block>
+    <th:block layout:insert="~{nav :: head}"></th:block>
 </head>
 <div layout:fragment="page-nav">
-    <th:block layout:replace="nav :: nav"></th:block>
+    <th:block layout:replace="~{nav :: nav}"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
+    <script type="text/javascript" th:inline="javascript">
+        function CopyToClipboard(id)
+        {
+            var r = document.createRange();
+            r.selectNode(document.getElementById(id));
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(r);
+            document.execCommand('copy');
+            window.getSelection().removeAllRanges();
+        }
+    </script>
     <h1>Temporary Authentication Code</h1>
-    <h2 th:text="${passcode}">my-code</h2>
+    <h2><samp id="passcode" th:text="${passcode}">my-code</samp>
+    <a href="#" onclick="CopyToClipboard('passcode');return false;"><i class="fa fa-copy"></i></a></h2>
 </div>
 </html>

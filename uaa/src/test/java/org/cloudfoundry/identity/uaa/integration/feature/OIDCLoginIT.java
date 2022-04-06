@@ -75,6 +75,7 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -83,7 +84,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -379,7 +379,10 @@ public class OIDCLoginIT {
         webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        Assert.assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl + "/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider"));
+        assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl + "/oauth_error"));
+        // no error as parameter sent
+        assertThat(webDriver.getCurrentUrl(), not(containsString("?error=")));
+        assertThat(webDriver.findElement(By.cssSelector("h2")).getText(), containsString("There was an error when authenticating against the external identity provider"));
 
         List<String> cookies = IntegrationTestUtils.getAccountChooserCookies(zoneUrl, webDriver);
         assertThat(cookies, not(Matchers.hasItem(startsWith("Saved-Account-"))));

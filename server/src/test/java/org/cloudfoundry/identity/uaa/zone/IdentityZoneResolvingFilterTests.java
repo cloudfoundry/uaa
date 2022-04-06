@@ -166,7 +166,7 @@ class IdentityZoneResolvingFilterTests {
         filter.doFilter(request, response, chain);
         assertEquals(HttpServletResponse.SC_NOT_FOUND, response.getStatus());
         assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
-        Mockito.verifyZeroInteractions(chain);
+        Mockito.verifyNoInteractions(chain);
     }
 
     @Test

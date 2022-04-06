@@ -65,7 +65,7 @@
     <sec:http name="secFilterOpen06" pattern="/saml/web/**" security="none"/>
     <sec:http name="secFilterOpen07" pattern="/vendor/**" security="none"/>
     <!--<sec:http pattern="/login" security="none" />-->
-    <sec:http name="secFilterOpen08" pattern="/error" security="none"/>
+    <sec:http name="secFilterOpen08" request-matcher="ant" pattern="/error**" security="none"/>
     <sec:http name="secFilterOpen11" pattern="/email_sent" security="none"/>
 
     <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none"/>
