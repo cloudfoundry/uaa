@@ -55,13 +55,14 @@
         <constructor-arg
                 value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
     </bean>
-    <beans profile="!cloud">
-        <bean id="databaseUrlModifier" class="org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier">
-            <constructor-arg name="databaseType" value="#{@platform}"/>
-            <constructor-arg name="url" value="${database.url}"/>
-            <property name="connectTimeoutSeconds" value="${database.connecttimeout:10}"/>
-        </bean>
 
+    <bean id="databaseUrlModifier" class="org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier">
+        <constructor-arg name="databaseType" value="#{@platform}"/>
+        <constructor-arg name="url" value="${database.url}"/>
+        <property name="connectTimeoutSeconds" value="${database.connecttimeout:10}"/>
+    </bean>
+
+    <beans profile="!cloud">
         <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
             <property name="driverClassName" value="${database.driverClassName}" />
             <property name="url" value="#{@databaseUrlModifier.getUrl()}" />
