@@ -20,7 +20,7 @@ versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.springVersion = "5.3.18"
 versions.tomcatCargoVersion = "9.0.60"
 versions.guavaVersion = "31.1-jre"
-versions.springCloud = "2.0.7.RELEASE"
+versions.springCloud = "2.0.9.RELEASE"
 versions.jakartaElVersion = "3.0.4"
 
 // Dependencies (some rely on shared versions, some are shared between projects)
