@@ -56,11 +56,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
@@ -219,6 +215,8 @@ public class LoginIT {
         attemptLogin(newUserEmail, USER_PASSWORD);
 
         assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
+        String lastLoginDate = webDriver.findElement(By.cssSelector("#last_login_time")).getAttribute("innerHTML");
+        assertFalse(lastLoginDate.isEmpty());
 
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
     }
