@@ -49,15 +49,15 @@ class UaaPasswordPolicyValidatorTests {
     @Test
     void min_password_length_is_always_1_if_set_to_0() {
         policy.setMinLength(0);
-        validatePassword("", "Password must be at least 1 characters in length.");
-        validatePassword(null, "Password must be at least 1 characters in length.");
+        validatePassword("", "Password must be 1 or more characters in length.");
+        validatePassword(null, "Password must be 1 or more characters in length.");
     }
 
     @Test
     void min_password_length_is_always_1_if_not_set() {
         policy.setMinLength(-1);
-        validatePassword("", "Password must be at least 1 characters in length.");
-        validatePassword(null, "Password must be at least 1 characters in length.");
+        validatePassword("", "Password must be 1 or more characters in length.");
+        validatePassword(null, "Password must be 1 or more characters in length.");
     }
 
 
@@ -68,17 +68,17 @@ class UaaPasswordPolicyValidatorTests {
 
     @Test
     void specialCharacterNotInListFailsValidation() {
-        validatePassword("Passsss1\u007F", "Password must contain at least 1 special characters.");
+        validatePassword("Passsss1\u007F", "Password must contain 1 or more special characters.");
     }
 
     @Test
     void testValidateWithNullPassword() {
-        validatePassword(null, "Password must be at least 10 characters in length.");
+        validatePassword(null, "Password must be 10 or more characters in length.");
     }
 
     @Test
     void testValidateShortPassword() {
-        validatePassword("Pas1", "Password must be at least 10 characters in length.");
+        validatePassword("Pas1", "Password must be 10 or more characters in length.");
     }
 
     @Test
@@ -88,22 +88,22 @@ class UaaPasswordPolicyValidatorTests {
 
     @Test
     void testValidateAllLowerCase() {
-        validatePassword("password2", "Password must contain at least 1 uppercase characters.");
+        validatePassword("password2", "Password must contain 1 or more uppercase characters.");
     }
 
     @Test
     void testValidateAllUpperCase() {
-        validatePassword("PASSWORD2", "Password must contain at least 1 lowercase characters.");
+        validatePassword("PASSWORD2", "Password must contain 1 or more lowercase characters.");
     }
 
     @Test
     void testValidateNoDigits() {
-        validatePassword("Password", "Password must contain at least 1 digit characters.");
+        validatePassword("Password", "Password must contain 1 or more digit characters.");
     }
 
     @Test
     void testValidateWithNoSpecialCharacter() {
-        validatePassword("Password123", "Password must contain at least 1 special characters.");
+        validatePassword("Password123", "Password must contain 1 or more special characters.");
     }
 
     @Test
@@ -116,7 +116,7 @@ class UaaPasswordPolicyValidatorTests {
 
     @Test
     void testValidateSpaceNotSpecialCharacter() {
-        validatePassword("Password123 ", "Password must contain at least 1 special characters.");
+        validatePassword("Password123 ", "Password must contain 1 or more special characters.");
     }
 
     private void validatePassword(String password, String ... expectedErrors) {
