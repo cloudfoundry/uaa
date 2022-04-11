@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.logging.LogEntries;
 import org.openqa.selenium.logging.LogEntry;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.logging.Level;
 
 import static java.util.stream.Collectors.toList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
@@ -55,6 +57,16 @@ public class SessionControllerIntegrationTests {
         List<LogEntry> entryList = entries.getAll().stream()
                 .filter(entry -> entry.getLevel().intValue() >= Level.SEVERE.intValue())
                 .collect(toList());
-        assertTrue(entryList.isEmpty());
+        assertTrue(entryList.isEmpty(), "No error");
+    }
+
+    @Test
+    public void sessionPageHasTheFunction() {
+        webDriver.get(baseUrl +
+                "/session?clientId=admin&messageOrigin=http://localhost:8080");
+
+        Object r = ((JavascriptExecutor)webDriver).executeScript(
+                "return typeof(handleMessage);");
+        assertEquals("function", r.toString());
     }
 }
