@@ -39,6 +39,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/* TOTP = Time-based, One-Time Password
+   MFA = Multi-Factor Authentication */
 @Controller
 @SessionAttributes("uaaMfaCredentials")
 @RequestMapping("/login/mfa")
