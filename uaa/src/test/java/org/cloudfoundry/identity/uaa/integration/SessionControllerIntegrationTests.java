@@ -8,21 +8,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.logging.LogEntries;
-import org.openqa.selenium.logging.LogEntry;
-import org.openqa.selenium.logging.LogType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.List;
-import java.util.logging.Level;
-
-import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -49,18 +41,6 @@ public class SessionControllerIntegrationTests {
     }
 
     @Test
-    public void sessionPageLoadedWithoutError() {
-        webDriver.get(baseUrl +
-                "/session?clientId=admin&messageOrigin=http://localhost:8080");
-
-        LogEntries entries = webDriver.manage().logs().get(LogType.BROWSER);
-        List<LogEntry> entryList = entries.getAll().stream()
-                .filter(entry -> entry.getLevel().intValue() >= Level.SEVERE.intValue())
-                .collect(toList());
-        assertTrue(entryList.isEmpty(), "No error");
-    }
-
-    @Test
     public void sessionPageHasTheFunction() {
         webDriver.get(baseUrl +
                 "/session?clientId=admin&messageOrigin=http://localhost:8080");
@@ -68,5 +48,19 @@ public class SessionControllerIntegrationTests {
         Object r = ((JavascriptExecutor)webDriver).executeScript(
                 "return typeof(handleMessage);");
         assertEquals("function", r.toString());
+    }
+
+    @Test
+    public void sessionManagementPageHasTheFunction() {
+        webDriver.get(baseUrl +
+                "/session_management?clientId=admin&messageOrigin=http://localhost:8080");
+
+        Object origin = ((JavascriptExecutor)webDriver).executeScript(
+                "return origin;");
+        assertEquals("http://localhost:8080", origin.toString());
+
+        Object clientId = ((JavascriptExecutor)webDriver).executeScript(
+                "return clientId;");
+        assertEquals("admin", clientId.toString());
     }
 }
