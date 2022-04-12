@@ -51,7 +51,7 @@ public class SessionControllerIntegrationTests {
     }
 
     @Test
-    public void sessionManagementPageHasTheFunction() {
+    public void sessionManagementPageHasVariablesSet() {
         webDriver.get(baseUrl +
                 "/session_management?clientId=admin&messageOrigin=http://localhost:8080");
 
