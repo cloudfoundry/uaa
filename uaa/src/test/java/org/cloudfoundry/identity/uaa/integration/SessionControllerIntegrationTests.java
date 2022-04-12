@@ -55,12 +55,12 @@ public class SessionControllerIntegrationTests {
         webDriver.get(baseUrl +
                 "/session_management?clientId=admin&messageOrigin=http://localhost:8080");
 
-        Object origin = ((JavascriptExecutor)webDriver).executeScript(
-                "return origin;");
-        assertEquals("http://localhost:8080", origin.toString());
-
         Object clientId = ((JavascriptExecutor)webDriver).executeScript(
                 "return clientId;");
         assertEquals("admin", clientId.toString());
+
+        Object origin = ((JavascriptExecutor)webDriver).executeScript(
+                "return messageOrigin;");
+        assertEquals("http://localhost:8080", origin.toString());
     }
 }
