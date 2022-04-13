@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -2305,7 +2306,7 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
-        String providerName = new RandomValueStringGenerator(5).generate();
+        String providerName = new AlphanumericRandomValueStringGenerator(5).generate();
         final MfaProvider<GoogleMfaProviderConfig> wantedMfaConfig =
             new MfaProvider().setName(providerName);
         MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
