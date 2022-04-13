@@ -2305,7 +2305,8 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
-        final MfaProvider<GoogleMfaProviderConfig> wantedMfaConfig = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
+        final MfaProvider<GoogleMfaProviderConfig> wantedMfaConfig =
+            new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
         MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
