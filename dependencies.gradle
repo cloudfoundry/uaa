@@ -16,7 +16,7 @@ versions.springBootVersion = "2.6.6"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.1.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.springVersion = "5.3.18"
+versions.springVersion = "5.3.19"
 versions.tomcatCargoVersion = "9.0.62"
 versions.guavaVersion = "31.1-jre"
 
