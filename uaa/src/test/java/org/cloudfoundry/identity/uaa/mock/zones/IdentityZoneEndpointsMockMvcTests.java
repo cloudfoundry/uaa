@@ -2077,6 +2077,7 @@ class IdentityZoneEndpointsMockMvcTests {
     void updateZoneWithValidMfaConfigWithoutIdInBody_Succeeds() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
+        assert mfaProvider.getName() != null;
         identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
         String id = identityZone.getId();
         identityZone.setId(null);
@@ -2311,7 +2312,10 @@ class IdentityZoneEndpointsMockMvcTests {
         if (hasText(zoneId)) {
             createMfaRequest.header("X-Identity-Zone-Id", zoneId);
         }
-        MockHttpServletResponse mfaProviderResponse = mockMvc.perform(createMfaRequest).andReturn().getResponse();
+        MockHttpServletResponse mfaProviderResponse = mockMvc.perform(createMfaRequest)
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
         mfaProvider = JsonUtils.readValue(mfaProviderResponse.getContentAsString(), MfaProvider.class);
         return mfaProvider;
     }
