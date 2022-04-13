@@ -74,6 +74,7 @@ import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -2313,6 +2314,7 @@ class IdentityZoneEndpointsMockMvcTests {
             createMfaRequest.header("X-Identity-Zone-Id", zoneId);
         }
         MockHttpServletResponse mfaProviderResponse = mockMvc.perform(createMfaRequest)
+                .andDo(print())
                 .andExpect(status().isCreated())
                 .andReturn()
                 .getResponse();
@@ -2371,6 +2373,7 @@ class IdentityZoneEndpointsMockMvcTests {
                         .header("Authorization", "Bearer " + token)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(identityZone)))
+                .andDo(print())
                 .andExpect(status().is(expect.value()))
                 .andExpect(content().string(containsString(expectedContent)))
                 .andReturn();
