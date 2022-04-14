@@ -16,8 +16,7 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
                                  HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        response.setHeader("Content-Security-Policy",
-                "script-src 'self' 'unsafe-inline'");
+        response.setHeader("Content-Security-Policy", "script-src 'self'");
         chain.doFilter(request, response);
     }
 
