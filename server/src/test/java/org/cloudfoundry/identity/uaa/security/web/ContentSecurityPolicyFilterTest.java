@@ -32,7 +32,7 @@ class ContentSecurityPolicyFilterTest {
     void verifyRequestHasHeader() throws ServletException, IOException {
         filter.doFilter(request, response, chain);
 
-        assertEquals("script-src 'self' 'unsafe-inline'",
+        assertEquals("script-src 'self'",
                 response.getHeader("Content-Security-Policy"));
     }
 
