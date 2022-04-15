@@ -522,6 +522,24 @@ class UaaUrlUtilsTest {
         assertThat(UaaUrlUtils.getSubdomain("a.b.c.d.e"), is("a.b.c.d.e."));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "/servlet, /pathInfo, /servlet/pathInfo",
+            "/servlet, , /servlet",
+            ",         /pathInfo, /pathInfo",
+            ",         ,          ''"
+
+    })
+    void getRequestPathCombinesServletPathAndPathInfo(
+            String servletPath, String pathInfo, String expected
+    ) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath(servletPath);
+        request.setPathInfo(pathInfo);
+
+        assertEquals(expected, UaaUrlUtils.getRequestPath(request));
+    }
+
     private static void validateRedirectUri(List<String> urls, boolean result) {
         Map<String, String> failed = getUnsuccessfulUrls(urls, result);
         if (!failed.isEmpty()) {
