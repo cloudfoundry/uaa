@@ -11,7 +11,6 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 class ContentSecurityPolicyFilterTest {
@@ -59,6 +58,14 @@ class ContentSecurityPolicyFilterTest {
         filter.doFilter(request, response, chain);
 
         assertNotNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldNotAddHeader_WhenRespondingTo_LoginImplicitPageRequests() throws ServletException, IOException {
+        request.setServletPath("/login_implicit");
+        filter.doFilter(request, response, chain);
+
+        assertNull(response.getHeader("Content-Security-Policy"));
     }
 
     @Test

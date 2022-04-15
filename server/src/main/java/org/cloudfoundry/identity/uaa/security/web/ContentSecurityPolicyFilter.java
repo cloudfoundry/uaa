@@ -7,6 +7,8 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
     @Override
@@ -21,8 +23,10 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = UaaUrlUtils.getRequestPath(request);
+        final String requestPath = UaaUrlUtils.getRequestPath(request);
+        final List<String> pathsWithHtmlInlineScripts = Arrays.asList("/saml/", "/login_implicit");
 
-        return path.startsWith("/saml/");
+        return pathsWithHtmlInlineScripts.stream()
+                .anyMatch(requestPath::startsWith);
     }
 }
