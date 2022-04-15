@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.*;
@@ -16,5 +17,12 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
         response.setHeader("Content-Security-Policy",
                 "script-src 'self' 'unsafe-inline'");
         chain.doFilter(request, response);
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = UaaUrlUtils.getRequestPath(request);
+
+        return path.startsWith("/saml/");
     }
 }

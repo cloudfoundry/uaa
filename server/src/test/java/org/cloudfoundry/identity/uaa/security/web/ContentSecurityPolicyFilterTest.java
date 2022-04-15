@@ -10,7 +10,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 
 class ContentSecurityPolicyFilterTest {
@@ -34,6 +35,30 @@ class ContentSecurityPolicyFilterTest {
 
         assertEquals("script-src 'self' 'unsafe-inline'",
                 response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldNotAddHeader_WhenRespondingTo_SamlAuthRequests() throws ServletException, IOException {
+        request.setServletPath("/saml/some-path");
+        filter.doFilter(request, response, chain);
+
+        assertNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldAddHeader_ForSamlSomeOtherThing() throws ServletException, IOException {
+        request.setServletPath("/samlSomeOtherThing");
+        filter.doFilter(request, response, chain);
+
+        assertNotNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldAddHeader_ForSamlInMiddleOfPath() throws ServletException, IOException {
+        request.setServletPath("/other/saml/");
+        filter.doFilter(request, response, chain);
+
+        assertNotNull(response.getHeader("Content-Security-Policy"));
     }
 
     @Test
