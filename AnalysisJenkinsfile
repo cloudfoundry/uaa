@@ -174,7 +174,7 @@ pipeline {
                                     int issueCount = sh(label: 'Count Coverity issues', returnStdout: true, script: '''#!/usr/bin/env bash
                                         curl -s --user "${COVERITY_USR}:${COVERITY_PSW}" \
                                              "https://${COVERITY_HOST}:${COVERITY_PORT}/api/viewContents/issues/v1/${COVERITY_VIEW}?projectId=${COVERITY_PROJECT}&rowCount=1" \
-                                        | jq '.viewContentsV1.totalRows'
+                                        | jq ".viewContentsV1.totalRows"
                                     ''').trim().toInteger()
 
                                     if (issueCount > 0) {
