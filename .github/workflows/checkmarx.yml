@@ -29,12 +29,17 @@ jobs:
       issues: write # for checkmarx-ts/checkmarx-cxflow-github-action to write feedback to github issues
       pull-requests: write # for checkmarx-ts/checkmarx-cxflow-github-action to write feedback to PR
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
 
     # Steps require - checkout code, run CxFlow Action, Upload SARIF report (optional)
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v3
+    - uses: actions/setup-java@v3
+      with:
+        distribution: 'liberica'
+        java-version: '11'
+        cache: 'gradle'
     # Runs the Checkmarx Scan leveraging the latest version of CxFlow - REFER to Action README for list of inputs
     - name: Checkmarx CxFlow Action
       uses: checkmarx-ts/checkmarx-cxflow-github-action@9975af7d6b957abec9ee9646effa3fb3b82c5314
