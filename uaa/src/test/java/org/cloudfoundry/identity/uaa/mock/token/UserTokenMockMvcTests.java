@@ -181,7 +181,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 .param("expires_in", "44000")
         )
             .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString("\"Unauthorized grant type: user_token\"")));
+            .andExpect(content().string(containsString("\"Unauthorized grant type\"")));
     }
 
     @Test
