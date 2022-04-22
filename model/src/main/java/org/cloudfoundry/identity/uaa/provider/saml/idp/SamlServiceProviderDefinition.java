@@ -108,6 +108,13 @@ public class SamlServiceProviderDefinition {
         }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true);
+            factory.setFeature("http://xml.org/sax/features/validation", false);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setValidating(false);
+            factory.setNamespaceAware(true);
             factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
