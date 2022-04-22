@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,6 +91,7 @@ class JdbcAuditServiceTests {
                 Thread.sleep(500);
             }
         }
+        Assumptions.assumeTrue(retry < 5);
         return -1;
     }
 }
