@@ -55,16 +55,18 @@ class JdbcAuditServiceTests {
     }
 
     @Test
-    void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
+    void findMethodOnlyReturnsEventsWithinRequestedPeriod() throws InterruptedException {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         // Set the created column to one hour past
-        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
+        jdbcTemplate.update("update sec_audit set created=? where identity_zone_id=? and principal_id='clientA'", new Timestamp(now - 3600 * 1000), IdentityZone.getUaaZoneId());
+        auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
+        auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientB"), getAuditEvent(PrincipalAuthenticationFailure, "clientB").getIdentityZoneId());
+
         // Find events within last 2 mins
-        List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId());
-        assertEquals(1, events.size());
+        assertEquals(3, waitForEntries("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId()));
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal) {
@@ -75,4 +77,19 @@ class JdbcAuditServiceTests {
         return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaaZoneId(), null, null);
     }
 
+    protected long waitForEntries(String principalId, long after, String zoneId) throws InterruptedException {
+        int retry = 0;
+        List<AuditEvent> events;
+        while(retry++ < 5) {
+            try {
+                events = auditService.find(principalId, after, zoneId);
+                if (events != null && events.size() > 0) {
+                    return events.size();
+                }
+            } catch (Exception e) {
+                Thread.sleep(500);
+            }
+        }
+        return -1;
+    }
 }
