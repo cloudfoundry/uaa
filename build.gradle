@@ -95,7 +95,7 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "true"));
+            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "false"));
             maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
             maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
         }
