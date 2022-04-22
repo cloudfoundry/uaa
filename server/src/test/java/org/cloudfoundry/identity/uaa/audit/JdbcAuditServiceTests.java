@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.audit;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,18 +55,16 @@ class JdbcAuditServiceTests {
     }
 
     @Test
-    void findMethodOnlyReturnsEventsWithinRequestedPeriod() throws InterruptedException {
+    void findMethodOnlyReturnsEventsWithinRequestedPeriod() {
         long now = System.currentTimeMillis();
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         // Set the created column to one hour past
-        jdbcTemplate.update("update sec_audit set created=? where identity_zone_id=? and principal_id='clientA'", new Timestamp(now - 3600 * 1000), IdentityZone.getUaaZoneId());
-        auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
-        auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
+        jdbcTemplate.update("update sec_audit set created=?", new Timestamp(now - 3600 * 1000));
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientB"), getAuditEvent(PrincipalAuthenticationFailure, "clientB").getIdentityZoneId());
-
         // Find events within last 2 mins
-        assertEquals(3, waitForEntries("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId()));
+        List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId());
+        assertEquals(1, events.size());
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal) {
@@ -78,20 +75,4 @@ class JdbcAuditServiceTests {
         return new AuditEvent(type, principal, authDetails, data, System.currentTimeMillis(), IdentityZone.getUaaZoneId(), null, null);
     }
 
-    protected long waitForEntries(String principalId, long after, String zoneId) throws InterruptedException {
-        int retry = 0;
-        List<AuditEvent> events;
-        while(retry++ < 5) {
-            try {
-                events = auditService.find(principalId, after, zoneId);
-                if (events != null && events.size() > 0) {
-                    return events.size();
-                }
-            } catch (Exception e) {
-                Thread.sleep(500);
-            }
-        }
-        Assumptions.assumeTrue(retry < 5);
-        return -1;
-    }
 }
