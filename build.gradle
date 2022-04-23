@@ -24,6 +24,8 @@ buildscript {
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
         classpath(libraries.testRetryPlugin)
+        classpath(libraries.gradleJcocoPlugin)
+        classpath(libraries.sonarqubePlugin)
     }
 }
 
@@ -38,6 +40,8 @@ allprojects {
     apply(plugin: "propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
     apply(plugin: "org.gradle.test-retry")
+    apply(plugin: "org.barfuin.gradle.jacocolog")
+    apply(plugin: "org.sonarqube")
 
     dependencyManagement {
         imports {
@@ -221,6 +225,15 @@ cargo {
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "cloudfoundry-identity-parent"
+        property "sonar.organization", "cloudfoundry-1"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.java.source", JavaVersion.current()
     }
 }
 
