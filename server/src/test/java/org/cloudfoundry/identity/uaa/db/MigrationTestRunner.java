@@ -26,6 +26,10 @@ public class MigrationTestRunner {
             Assert.fail(failedMigrations.size() + " of " + migrationList.size() + " migrations failed.");
         }
         for (MigrationTest test : tests) {
+            if (tests.length > 0) {
+                flyway.clean();
+                flyway.migrate();
+            }
             if (migrationList.stream().anyMatch(e -> e.version.equalsIgnoreCase(test.getTargetMigration()))) {
                 try {
                     test.runAssertions();

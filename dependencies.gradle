@@ -5,6 +5,7 @@ ext {
 
 // Versions we're overriding from the Spring Boot Bom
 //ext["xxx.version"] = "x.y.z"
+ext["flyway.version"] = "7.15.0"
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"

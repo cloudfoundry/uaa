@@ -53,13 +53,11 @@ public abstract class UaaJavaMigration implements JavaMigration {
   }
 
   @Override
-  public boolean isBaselineMigration() {
-    return false;
-
-  }
-
-  @Override
   public boolean canExecuteInTransaction() {
     return true;
+  }
+
+  public boolean isStateScript() {
+    return false;
   }
 }
