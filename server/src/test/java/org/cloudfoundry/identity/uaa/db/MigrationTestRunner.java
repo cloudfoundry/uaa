@@ -1,12 +1,11 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.MigrationInfo;
-import org.flywaydb.core.api.callback.BaseFlywayCallback;
+import org.flywaydb.core.api.output.InfoOutput;
 import org.junit.Assert;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -20,32 +19,23 @@ public class MigrationTestRunner {
 
     public void run(MigrationTest... tests) {
         final int[] assertionsRan = {0};
-        flyway.setCallbacks(new BaseFlywayCallback() {
-            @Override
-            public void afterEachMigrate(Connection connection, MigrationInfo info) {
-                super.afterEachMigrate(connection, info);
+        flyway.migrate();
+        List<InfoOutput> migrationList = flyway.info().getInfoResult().migrations;
+        List<InfoOutput> failedMigrations = migrationList.stream().filter(e -> !"success".equalsIgnoreCase((e.state))).collect(Collectors.toList());
+        if (failedMigrations != null && !failedMigrations.isEmpty()) {
+            Assert.fail(failedMigrations.size() + " of " + migrationList.size() + " migrations failed.");
+        }
+        for (MigrationTest test : tests) {
+            if (migrationList.stream().anyMatch(e -> e.version.equalsIgnoreCase(test.getTargetMigration()))) {
                 try {
-                    if (!connection.getAutoCommit()) {
-                        connection.commit();
-                    }
-                } catch (SQLException e) {
+                    test.runAssertions();
+                } catch (Exception e) {
                     Assert.fail(e.getMessage());
                 }
-
-                for (MigrationTest test : tests) {
-                    if (test.getTargetMigration().equals(info.getVersion().getVersion())) {
-                        try {
-                            test.runAssertions();
-                        } catch (Exception e) {
-                            Assert.fail(e.getMessage());
-                        }
-                        assertionsRan[0]++;
-                    }
-                }
+                assertionsRan[0]++;
             }
-        });
-        flyway.migrate();
 
+        }
         assertThat("Not every db migration ran", assertionsRan[0], is(tests.length));
     }
 }

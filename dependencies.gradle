@@ -4,8 +4,7 @@ ext {
 }
 
 // Versions we're overriding from the Spring Boot Bom
-ext["mariadb.version"] = "2.3.0"
-ext["flyway.version"] = "5.2.4"
+//ext["xxx.version"] = "x.y.z"
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"

@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.RowMapper;
 /**
  * Created by fhanik on 3/5/14.
  */
-public class DatabaseInformation1_5_3 {
+public abstract class DatabaseInformation1_5_3 extends UaaJavaMigration {
 
     public static List<String> tableNames = Collections.unmodifiableList(Arrays.asList(
                     "users",

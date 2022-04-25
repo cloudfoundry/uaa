@@ -15,10 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
@@ -27,12 +28,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
+public class Create_Groups_For_Zones_2_5_2 extends UaaJavaMigration {
 
     private static Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
+    public void migrate(Context context) throws Exception {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(context.getConnection(), true));
         String groupCreateSQL = "INSERT INTO groups (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)";
         Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
 

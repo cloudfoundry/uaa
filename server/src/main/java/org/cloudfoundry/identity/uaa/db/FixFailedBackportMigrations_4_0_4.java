@@ -14,9 +14,9 @@
  */
 package org.cloudfoundry.identity.uaa.db;
 
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
@@ -36,7 +36,7 @@ import java.util.Set;
  * several migrations where made in 3.10.0
  * This restores these migrations
  */
-public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
+public class FixFailedBackportMigrations_4_0_4 extends UaaJavaMigration {
 
     private static final Logger logger = LoggerFactory.getLogger(FixFailedBackportMigrations_4_0_4.class);
 
@@ -57,7 +57,8 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
     }
 
     @Override
-    public void migrate(Connection connection) {
+    public void migrate(Context context) throws Exception {
+        Connection connection = context.getConnection();
         if ("hsqldb".equals(type)) {
             //we don't have this problem with hsqldb
             logger.info("Skipping 4.0.4 migration for " + type + ", not affected by 3.9.9 back ports.");
