@@ -289,6 +289,6 @@ public class UaaStringUtils {
     }
 
     public static String getCleanedUserControlString(String input) {
-        return input.replaceAll("[\n\r\t]", "_");
+        return input != null ? input.replaceAll("[\n\r\t]", "_") : null;
     }
 }
