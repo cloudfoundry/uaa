@@ -24,16 +24,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MARKUS_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon build sonarqube jacocoTestReport || true
-      - name: Re-Analyze with SonarCloud         
-        uses: SonarSource/sonarcloud-github-action@de2e56b42aa84d0b1c5b622644ac17e505c9a049
-        env:
-          GITHUB_TOKEN: ${{ secrets.MARKUS_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }} 
-        with:
-          # Additional arguments for the sonarcloud scanner
-          args:             
-            # Unique keys of your project and organization. You can find them in SonarCloud > Information (bottom-left menu)
-            # mandatory
-            -Dsonar.projectKey=cloudfoundry-identity-parent
-            -Dsonar.organization=cloudfoundry-1
+        run: >- 
+          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport || true
+          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon jacocoTestReport
+          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon sonarqube
