@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -191,7 +192,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - creating id[" + body.getId() + "] subdomain[" + body.getSubdomain() + "]");
+            logger.debug("Zone - creating id[" + UaaStringUtils.getCleanedUserControlString(body.getId()) + "] subdomain[" + UaaStringUtils.getCleanedUserControlString(body.getSubdomain()) + "]");
             IdentityZone created = zoneDao.create(body);
             logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             IdentityZoneHolder.set(created);
@@ -262,7 +263,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
 
-            logger.debug("Zone - updating id[" + id + "] subdomain[" + body.getSubdomain() + "]");
+            logger.debug("Zone - updating id[" + UaaStringUtils.getCleanedUserControlString(id) + "] subdomain[" + UaaStringUtils.getCleanedUserControlString(body.getSubdomain()) + "]");
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated);
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");

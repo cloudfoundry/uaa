@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.opensaml.common.SAMLException;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.core.AuthnRequest;
@@ -81,38 +82,39 @@ public class IdpInitiatedLoginController {
         if (!hasText(sp)) {
             throw new ProviderNotFoundException("Missing sp request parameter. sp parameter must be a valid and configured entity ID");
         }
-        log.debug(String.format("IDP is initiating authentication request to SP[%s]", sp));
+        log.debug(String.format("IDP is initiating authentication request to SP[%s]", UaaStringUtils.getCleanedUserControlString(sp)));
         Optional<SamlServiceProviderHolder> holder = configurator.getSamlServiceProviders().stream().filter(serviceProvider -> sp.equals(serviceProvider.getSamlServiceProvider().getEntityId())).findFirst();
         if (holder.isEmpty()) {
-            log.debug(String.format("SP[%s] was not found, aborting saml response", sp));
+            log.debug(String.format("SP[%s] was not found, aborting saml response", UaaStringUtils.getCleanedUserControlString(sp)));
             throw new ProviderNotFoundException("Invalid sp entity ID. sp parameter must be a valid and configured entity ID");
         }
         if (!holder.get().getSamlServiceProvider().isActive()) {
-            log.debug(String.format("SP[%s] is disabled, aborting saml response", sp));
+            log.debug(String.format("SP[%s] is disabled, aborting saml response", UaaStringUtils.getCleanedUserControlString(sp)));
             throw new ProviderNotFoundException("Service provider is disabled.");
         }
         if (!holder.get().getSamlServiceProvider().getConfig().isEnableIdpInitiatedSso()) {
-            log.debug(String.format("SP[%s] initiated login is disabled, aborting saml response", sp));
+            log.debug(String.format("SP[%s] initiated login is disabled, aborting saml response", UaaStringUtils.getCleanedUserControlString(sp)));
             throw new ProviderNotFoundException("IDP initiated login is disabled for this service provider.");
         }
 
         String nameId = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";
         try {
             String assertionLocation = getAssertionConsumerURL(sp);
-            log.debug(String.format("IDP is sending assertion for SP[%s] to %s", sp, assertionLocation));
+            log.debug(String.format("IDP is sending assertion for SP[%s] to %s", UaaStringUtils.getCleanedUserControlString(sp),
+                UaaStringUtils.getCleanedUserControlString(assertionLocation)));
             AuthnRequest authnRequest = idpWebSsoProfile.buildIdpInitiatedAuthnRequest(nameId, sp, assertionLocation);
             SAMLMessageContext samlContext = getSamlContext(sp, authnRequest, request, response);
             idpWebSsoProfile.sendResponse(SecurityContextHolder.getContext().getAuthentication(),
                                           samlContext,
                                           getIdpIniatedOptions());
-            log.debug(String.format("IDP initiated authentication and responded to SP[%s]", sp));
+            log.debug(String.format("IDP initiated authentication and responded to SP[%s]", UaaStringUtils.getCleanedUserControlString(sp)));
         } catch (MetadataProviderException |
             SAMLException |
             SecurityException |
             MessageEncodingException |
             MarshallingException |
             SignatureException e) {
-            log.debug(String.format("IDP is unable to process assertion for SP[%s]", sp), e);
+            log.debug(String.format("IDP is unable to process assertion for SP[%s]", UaaStringUtils.getCleanedUserControlString(sp)), e);
             throw new ProviderNotFoundException("Unable to process SAML assertion. Response not sent.");
         }
     }

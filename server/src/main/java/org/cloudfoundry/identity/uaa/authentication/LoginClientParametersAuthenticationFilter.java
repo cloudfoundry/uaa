@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.BadCredentialsException;
 
 import javax.servlet.http.HttpServletRequest;
@@ -36,10 +37,10 @@ public class LoginClientParametersAuthenticationFilter extends AbstractClientPar
             throw new BadCredentialsException("Request does not contain credentials.");
         } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
             logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
-                    clientAuthenticationManager + "; clientId:"+clientId);
+                    clientAuthenticationManager + "; clientId:" + UaaStringUtils.getCleanedUserControlString(clientId));
             throw new BadCredentialsException("Request does not contain client credentials.");
         } else {
-            logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+            logger.debug("Located credentials in request, with keys: " + UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
 
             doClientCredentialLogin(req, loginInfo, clientId);
         }

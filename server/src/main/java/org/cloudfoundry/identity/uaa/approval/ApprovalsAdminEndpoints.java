@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
@@ -132,7 +133,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.warn(String.format("Error[2] %s attempting to update approvals for %s", currentUserId, approval.getUserId()));
+                logger.warn(String.format("Error[2] %s attempting to update approvals for %s",
+                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -154,7 +156,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.warn(String.format("Error[1] %s attemting to update approvals for %s.", currentUserId, approval.getUserId()));
+                logger.warn(String.format("Error[1] %s attemting to update approvals for %s.",
+                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -182,7 +185,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
     public ActionResult revokeApprovals(@RequestParam() String clientId) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = getCurrentUserId();
-        logger.debug("Revoking all existing approvals for user: " + userId + " and client " + clientId);
+        logger.debug("Revoking all existing approvals for user: " + UaaStringUtils.getCleanedUserControlString(userId) +
+            " and client " + UaaStringUtils.getCleanedUserControlString(clientId));
         approvalStore.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
         return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
     }

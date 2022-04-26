@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,8 +63,8 @@ public class UserIdConversionEndpoints implements InitializingBean {
             @RequestParam(required = false, defaultValue = "100") int count,
             @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
         if (!enabled) {
-            logger.info("Request from user " + securityContextAccessor.getAuthenticationInfo() +
-                    " received at disabled Id translation endpoint with filter:" + filter);
+            logger.info("Request from user " + UaaStringUtils.getCleanedUserControlString(securityContextAccessor.getAuthenticationInfo()) +
+                    " received at disabled Id translation endpoint with filter:" + UaaStringUtils.getCleanedUserControlString(filter));
             return new ResponseEntity<>("Illegal Operation: Endpoint not enabled.", HttpStatus.BAD_REQUEST);
         }
 

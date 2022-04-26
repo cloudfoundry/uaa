@@ -17,6 +17,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.util.StringUtils;
 
+import javax.xml.parsers.DocumentBuilder;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
@@ -287,4 +288,7 @@ public class UaaStringUtils {
         return result.substring(1, result.length()-1);
     }
 
+    public static String getCleanedUserControlString(String input) {
+        return input.replaceAll("[\n\r\t]", "_");
+    }
 }
