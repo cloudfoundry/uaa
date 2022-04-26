@@ -82,7 +82,7 @@ public class IdpInitiatedLoginController {
         if (!hasText(sp)) {
             throw new ProviderNotFoundException("Missing sp request parameter. sp parameter must be a valid and configured entity ID");
         }
-        log.debug(String.format("IDP is initiating authentication request to SP[%s]", UaaStringUtils.getCleanedUserControlString(sp)));
+        log.debug("IDP is initiating authentication request to SP[{}]", UaaStringUtils.getCleanedUserControlString(sp));
         Optional<SamlServiceProviderHolder> holder = configurator.getSamlServiceProviders().stream().filter(serviceProvider -> sp.equals(serviceProvider.getSamlServiceProvider().getEntityId())).findFirst();
         if (holder.isEmpty()) {
             log.debug("SP[{}] was not found, aborting saml response", UaaStringUtils.getCleanedUserControlString(sp));

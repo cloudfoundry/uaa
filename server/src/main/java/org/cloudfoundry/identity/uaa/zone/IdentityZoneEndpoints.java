@@ -192,7 +192,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - creating id[" + UaaStringUtils.getCleanedUserControlString(body.getId()) + "] subdomain[" + UaaStringUtils.getCleanedUserControlString(body.getSubdomain()) + "]");
+            logger.debug("Zone - creating id[{}] subdomain[{}]",
+                UaaStringUtils.getCleanedUserControlString(body.getId()),
+                UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
+            );
             IdentityZone created = zoneDao.create(body);
             logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             IdentityZoneHolder.set(created);
@@ -263,7 +266,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
 
-            logger.debug("Zone - updating id[" + UaaStringUtils.getCleanedUserControlString(id) + "] subdomain[" + UaaStringUtils.getCleanedUserControlString(body.getSubdomain()) + "]");
+            logger.debug("Zone - updating id[{}] subdomain[{}]",
+                UaaStringUtils.getCleanedUserControlString(id),
+                UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
+            );
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated);
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");

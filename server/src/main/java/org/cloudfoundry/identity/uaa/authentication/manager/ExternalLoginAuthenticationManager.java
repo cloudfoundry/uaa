@@ -115,7 +115,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-        logger.debug("Starting external authentication for:" + UaaStringUtils.getCleanedUserControlString(request.toString()));
+        logger.debug("Starting external authentication for:{}", UaaStringUtils.getCleanedUserControlString(request.toString()));
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
         UaaUser userFromRequest = getUser(request, authenticationData);
         if (userFromRequest == null) {
