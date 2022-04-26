@@ -23,8 +23,8 @@ jobs:
       - run: ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport
 
   Analysis:
+    needs: UAA-Test
     runs-on: ubuntu-latest
-
     steps:   
       - name: Analyze with SonarCloud         
 
@@ -41,7 +41,6 @@ jobs:
             # mandatory
             -Dsonar.projectKey=cloudfoundry-identity-parent
             -Dsonar.organization=cloudfoundry-1
-            jacocoTestReport
             # Comma-separated paths to directories containing main source files.
             #-Dsonar.sources= # optional, default is project base directory
             # When you need the analysis to take place in a directory other than the one from which it was launched
