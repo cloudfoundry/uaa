@@ -40,7 +40,7 @@ public class LoginClientParametersAuthenticationFilter extends AbstractClientPar
                     clientAuthenticationManager + "; clientId:" + UaaStringUtils.getCleanedUserControlString(clientId));
             throw new BadCredentialsException("Request does not contain client credentials.");
         } else {
-            logger.debug("Located credentials in request, with keys: " + UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
+            logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
 
             doClientCredentialLogin(req, loginInfo, clientId);
         }

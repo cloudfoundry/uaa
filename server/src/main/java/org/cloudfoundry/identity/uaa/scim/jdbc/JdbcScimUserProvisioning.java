@@ -182,7 +182,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
-        logger.debug("Creating new user: " + UaaStringUtils.getCleanedUserControlString(user.getUserName()));
+        logger.debug("Creating new user: {}", UaaStringUtils.getCleanedUserControlString(user.getUserName()));
 
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = zoneId;

@@ -196,7 +196,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     protected Authentication attemptTokenAuthentication(HttpServletRequest request, HttpServletResponse response) {
         String grantType = request.getParameter("grant_type");
-        logger.debug("Processing token user authentication for grant:" + UaaStringUtils.getCleanedUserControlString(grantType));
+        logger.debug("Processing token user authentication for grant:{}",UaaStringUtils.getCleanedUserControlString(grantType));
         Authentication authResult = null;
         if (GRANT_TYPE_PASSWORD.equals(grantType)) {
             Authentication credentials = extractCredentials(request);

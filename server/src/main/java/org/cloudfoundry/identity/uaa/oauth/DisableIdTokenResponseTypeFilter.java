@@ -79,17 +79,17 @@ public class DisableIdTokenResponseTypeFilter extends OncePerRequestFilter {
         logger.debug("Processing id_token disable filter");
 
         HttpServletRequest requestWrapper = request;
-        logger.debug(String.format("pre id_token disable:%b pathinfo:%s request_uri:%s response_type:%s",isIdTokenDisabled(),
+        logger.debug("pre id_token disable:{} pathinfo:{} request_uri:{} response_type:{}",isIdTokenDisabled(),
             UaaStringUtils.getCleanedUserControlString(requestWrapper.getPathInfo()),
             UaaStringUtils.getCleanedUserControlString(request.getRequestURI()),
-            UaaStringUtils.getCleanedUserControlString(requestWrapper.getParameter(RESPONSE_TYPE))));
+            UaaStringUtils.getCleanedUserControlString(requestWrapper.getParameter(RESPONSE_TYPE)));
         if (isIdTokenDisabled() && (applyPath(request.getPathInfo()) || applyPath(request.getRequestURI()))) {
             requestWrapper = new RemoveIdTokenParameterValueWrapper(request);
         }
-        logger.debug(String.format("post id_token disable:%b pathinfo:%s request_uri:%s response_type:%s",isIdTokenDisabled(),
+        logger.debug("post id_token disable:{} pathinfo:{} request_uri:{} response_type:{}",isIdTokenDisabled(),
             UaaStringUtils.getCleanedUserControlString(requestWrapper.getPathInfo()),
             UaaStringUtils.getCleanedUserControlString(request.getRequestURI()),
-            UaaStringUtils.getCleanedUserControlString(requestWrapper.getParameter(RESPONSE_TYPE))));
+            UaaStringUtils.getCleanedUserControlString(requestWrapper.getParameter(RESPONSE_TYPE)));
         filterChain.doFilter(requestWrapper, response);
     }
 

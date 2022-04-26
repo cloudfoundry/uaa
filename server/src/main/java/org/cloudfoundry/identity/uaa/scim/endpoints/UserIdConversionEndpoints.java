@@ -63,8 +63,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
             @RequestParam(required = false, defaultValue = "100") int count,
             @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
         if (!enabled) {
-            logger.info("Request from user " + UaaStringUtils.getCleanedUserControlString(securityContextAccessor.getAuthenticationInfo()) +
-                    " received at disabled Id translation endpoint with filter:" + UaaStringUtils.getCleanedUserControlString(filter));
+            logger.info("Request from user {} received at disabled Id translation endpoint with filter:{}",
+                UaaStringUtils.getCleanedUserControlString(securityContextAccessor.getAuthenticationInfo()),
+                UaaStringUtils.getCleanedUserControlString(filter));
             return new ResponseEntity<>("Illegal Operation: Endpoint not enabled.", HttpStatus.BAD_REQUEST);
         }
 

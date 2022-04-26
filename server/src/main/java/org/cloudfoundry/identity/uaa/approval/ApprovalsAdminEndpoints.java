@@ -133,8 +133,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.warn(String.format("Error[2] %s attempting to update approvals for %s",
-                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
+                logger.warn("Error[2] {} attempting to update approvals for {}",
+                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -156,8 +156,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.warn(String.format("Error[1] %s attemting to update approvals for %s.",
-                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
+                logger.warn("Error[1] {} attemting to update approvals for {}.",
+                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -185,8 +185,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
     public ActionResult revokeApprovals(@RequestParam() String clientId) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = getCurrentUserId();
-        logger.debug("Revoking all existing approvals for user: " + UaaStringUtils.getCleanedUserControlString(userId) +
-            " and client " + UaaStringUtils.getCleanedUserControlString(clientId));
+        logger.debug("Revoking all existing approvals for user: {} and client {}",
+            UaaStringUtils.getCleanedUserControlString(userId), UaaStringUtils.getCleanedUserControlString(clientId));
         approvalStore.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
         return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
     }

@@ -518,7 +518,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
-            logger.debug("Validating signed_request: " + UaaStringUtils.getCleanedUserControlString(idToken));
+            logger.debug("Validating signed_request: {}", UaaStringUtils.getCleanedUserControlString(idToken));
             //split request into signature and data
             String[] signedRequests = idToken.split("\\.", 2);
             //parse signature

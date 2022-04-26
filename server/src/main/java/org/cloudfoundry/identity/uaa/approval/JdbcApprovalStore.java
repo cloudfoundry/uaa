@@ -87,7 +87,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     public boolean refreshApproval(final Approval approval, final String zoneId) {
-        logger.debug(String.format("refreshing approval: [%s]", UaaStringUtils.getCleanedUserControlString(approval.toString())));
+        logger.debug("refreshing approval: [{}]", UaaStringUtils.getCleanedUserControlString(approval.toString()));
         int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, ps -> {
             ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
             ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
@@ -105,7 +105,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public boolean addApproval(final Approval approval, final String zoneId) {
-        logger.debug(String.format("adding approval: [%s]", UaaStringUtils.getCleanedUserControlString(approval.toString())));
+        logger.debug("adding approval: [{}]", UaaStringUtils.getCleanedUserControlString(approval.toString()));
         try {
             refreshApproval(approval, zoneId); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the

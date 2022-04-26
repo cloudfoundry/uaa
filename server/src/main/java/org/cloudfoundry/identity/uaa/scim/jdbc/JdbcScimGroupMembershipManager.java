@@ -148,7 +148,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (exists(groupId, member.getMemberId(), zoneId)) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
         }
-        logger.debug("Associating group:" + UaaStringUtils.getCleanedUserControlString(groupId) + " with member:" + UaaStringUtils.getCleanedUserControlString(member.toString()));
+        logger.debug("Associating group:{} with member:{}",
+            UaaStringUtils.getCleanedUserControlString(groupId),
+            UaaStringUtils.getCleanedUserControlString(member.toString()));
         jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
             ps.setString(1, groupId);
             ps.setString(2, member.getMemberId());
@@ -279,7 +281,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     public List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members, String zoneId)
             throws ScimResourceNotFoundException {
         List<ScimGroupMember> currentMembers = getMembers(groupId, false, zoneId);
-        logger.debug("current-members: " + UaaStringUtils.getCleanedUserControlString(currentMembers.toString()) + ", in request: " + UaaStringUtils.getCleanedUserControlString(members.toString()));
+        logger.debug("current-members: {}, in request: {}",
+            UaaStringUtils.getCleanedUserControlString(currentMembers.toString()),
+            UaaStringUtils.getCleanedUserControlString(members.toString()));
 
         List<ScimGroupMember> currentMembersToRemove = new ArrayList<>(currentMembers);
         currentMembersToRemove.removeAll(members);

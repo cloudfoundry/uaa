@@ -25,9 +25,10 @@ public class OpenIdSessionStateCalculator {
 
         String text = String.format("%s %s %s %s", clientId, origin, currentUserId, salt);
         byte[] hash = DigestUtils.sha256(text.getBytes(StandardCharsets.UTF_8));
-        logger.debug(String.format("Calculated OIDC session state for clientId=%s, origin=%s, sessionId=REDACTED, salt=%s",
-            UaaStringUtils.getCleanedUserControlString(clientId), UaaStringUtils.getCleanedUserControlString(origin),
-            UaaStringUtils.getCleanedUserControlString(salt)));
+        logger.debug("Calculated OIDC session state for clientId={}, origin={}, sessionId=REDACTED, salt={}",
+            UaaStringUtils.getCleanedUserControlString(clientId),
+            UaaStringUtils.getCleanedUserControlString(origin),
+            UaaStringUtils.getCleanedUserControlString(salt));
         return String.format("%s.%s", Hex.encodeHexString(hash).toLowerCase(), salt);
     }
 

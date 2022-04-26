@@ -126,7 +126,7 @@ public class AuthzAuthenticationFilter implements Filter {
             if (loginInfo.isEmpty()) {
                 throw new BadCredentialsException("Request does not contain credentials.");
             } else {
-                logger.debug("Located credentials in request, with keys: " + UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
+                logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
                 if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }
