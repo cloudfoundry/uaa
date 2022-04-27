@@ -7,6 +7,9 @@ on:
     branches: [ develop ]
 
 # Run job on CF landscape, e.g. ubuntu 1804 and bellsoft java 11
+permissions:
+  contents: read
+
 jobs:
   uaa_standalone_test:
     runs-on: ubuntu-18.04
