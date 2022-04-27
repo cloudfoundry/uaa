@@ -231,7 +231,7 @@ sonarqube {
         property "sonar.projectKey", "cloudfoundry-identity-parent"
         property "sonar.organization", "cloudfoundry-1"
         property "sonar.host.url", "https://sonarcloud.io"
-        property "sonar.exclusions", "samples/**/*.*,**/*Test.java,**/*Tests.java,**/*IT.java
+        property "sonar.exclusions", "samples/**/*.*,**/*Test.java,**/*Tests.java,**/*IT.java"
         property "sonar.java.source", JavaVersion.current()
     }
 }
