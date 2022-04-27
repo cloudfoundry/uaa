@@ -35,6 +35,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.owasp.esapi.ESAPI;
+import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -61,6 +63,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -142,6 +145,16 @@ class SamlAuthenticationMockMvcTests {
         testLogger = new InterceptingLogger();
         originalAuditServiceLogger = loggingAuditService.getLogger();
         loggingAuditService.setLogger(testLogger);
+        Properties esapiProps = new Properties();
+        esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
+        esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
+        esapiProps.put("Logger.LogEncodingRequired", "false");
+        esapiProps.put("Logger.UserInfo", "true");
+        esapiProps.put("Logger.ClientInfo", "true");
+        esapiProps.put("Logger.ApplicationName", "uaa");
+        esapiProps.put("Logger.LogApplicationName", "false");
+        esapiProps.put("Logger.LogServerIP", "false");
+        ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
     }
 
     @AfterEach
