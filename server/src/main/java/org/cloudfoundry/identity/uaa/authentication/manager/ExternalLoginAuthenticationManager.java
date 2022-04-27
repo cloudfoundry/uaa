@@ -223,8 +223,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             userDetails = (UserDetails) request.getPrincipal();
         } else if (request instanceof UsernamePasswordAuthenticationToken) {
             String username = request.getPrincipal().toString();
-            String password = request.getCredentials() != null ? request.getCredentials().toString() : "";
-            userDetails = new User(username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
+            Object credentials = request.getCredentials();
+            userDetails = new User(username, (credentials != null) ? credentials.toString() : "",
+                                   true, true, true, true, UaaAuthority.USER_AUTHORITIES);
         } else if (request.getPrincipal() == null) {
             logger.debug(this.getClass().getName() + "[" + name + "] cannot process null principal");
             return null;

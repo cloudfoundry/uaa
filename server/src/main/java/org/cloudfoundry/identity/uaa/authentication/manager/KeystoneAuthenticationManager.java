@@ -118,12 +118,11 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
 
         public static class KeystoneCredentials {
             private String username;
-            private String password;
+            private char[] password;
 
             public KeystoneCredentials(String username, String password) {
-                super();
-                this.username = username;
-                this.password = password;
+                setUsername( username );
+                setPassword( password );
             }
 
             public String getUsername() {
@@ -135,11 +134,11 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
             }
 
             public String getPassword() {
-                return password;
+                return (password == null) ? null : new String(password);
             }
 
             public void setPassword(String password) {
-                this.password = password;
+                this.password = (password == null) ? null : password.toCharArray();
             }
 
         }

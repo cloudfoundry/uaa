@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class AutologinRequestConverter extends AbstractHttpMessageConverter<AutologinRequest> {
 
@@ -64,20 +65,22 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     protected AutologinRequest readInternal(Class<? extends AutologinRequest> clazz, HttpInputMessage inputMessage)
                     throws IOException, HttpMessageNotReadableException {
 
-        String username, password;
+        AutologinRequest result = new AutologinRequest();
+
+        Function<String,String> getValue;
         if (isJsonContent(inputMessage.getHeaders().get(HttpHeaders.CONTENT_TYPE))) {
             Map<String, String> map = JsonUtils.readValue(stringConverter.read(String.class, inputMessage),
                                                           new TypeReference<Map<String, String>>() {});
-            username = map.get("username");
-            password = map.get("password");
+            if (map == null) {
+                return result;
+            }
+            getValue = map::get;
         } else {
             MultiValueMap<String, String> map = formConverter.read(null, inputMessage);
-            username = map.getFirst("username");
-            password = map.getFirst("password");
+            getValue = map::getFirst;
         }
-        AutologinRequest result = new AutologinRequest();
-        result.setUsername(username);
-        result.setPassword(password);
+        result.setUsername(getValue.apply( "username" ));
+        result.setPassword(getValue.apply( "password" ));
         return result;
     }
 
