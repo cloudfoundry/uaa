@@ -64,7 +64,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
-    private static final String SUBDOMAIN_CONST = "] subdomain [";
+    private static final String ID_SUBDOMAIN_LOGGING = "[{}] subdomain [{}]";
 
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
@@ -198,7 +198,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
                 UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
             );
             IdentityZone created = zoneDao.create(body);
-            logger.debug("Zone - created id[" + created.getId() + SUBDOMAIN_CONST + created.getSubdomain() + "]");
+            logger.debug("Zone - created id " + ID_SUBDOMAIN_LOGGING, created.getId(), created.getSubdomain());
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
             defaultIdp.setName(OriginKeys.UAA);
@@ -209,7 +209,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             idpDefinition.setPasswordPolicy(null);
             defaultIdp.setConfig(idpDefinition);
             idpDao.create(defaultIdp, created.getId());
-            logger.debug("Created default IDP in zone - created id[" + created.getId() + SUBDOMAIN_CONST + created.getSubdomain() + "]");
+            logger.debug("Created default IDP in zone - created id " + ID_SUBDOMAIN_LOGGING, created.getId(), created.getSubdomain());
             createUserGroups(created);
             return new ResponseEntity<>(removeKeys(created), CREATED);
         } finally {
@@ -273,7 +273,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             );
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated);
-            logger.debug("Zone - updated id[" + updated.getId() + SUBDOMAIN_CONST + updated.getSubdomain() + "]");
+            logger.debug("Zone - updated id " + ID_SUBDOMAIN_LOGGING, updated.getId(), updated.getSubdomain());
             createUserGroups(updated);
             return new ResponseEntity<>(removeKeys(updated), OK);
         } catch (InvalidIdentityZoneDetailsException ex) {
