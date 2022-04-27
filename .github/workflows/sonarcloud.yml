@@ -2,7 +2,7 @@ name: SonarCloud analysis
 
 on:
   push:
-    branches: [ develop, ci-passed, gh-pages ]
+    branches: [ develop ]
   pull_request:
     branches: [ develop ]
   workflow_dispatch:
@@ -22,9 +22,8 @@ jobs:
           cache: 'gradle'
       - name: Analyze with SonarCloud
         env:
-          GITHUB_TOKEN: ${{ secrets.MARKUS_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >- 
           ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport || true;
-          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon jacocoTestReport;
-          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon sonarqube;
+          ./gradlew --no-daemon sonarqube;
+          ./gradlew --no-daemon jacocoTestReport;
