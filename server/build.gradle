@@ -22,6 +22,9 @@ dependencies {
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityJwt)
     implementation(libraries.springSecurityWeb)
+    implementation(libraries.spingSamlEsapiDependencyVersion) {
+        transitive = false
+    }
     implementation(libraries.springSecuritySaml)
     implementation(libraries.springSessionJdbc)
 
