@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.impl.config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
+import org.owasp.esapi.ESAPI;
+import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.MDC;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -29,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -213,7 +216,17 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             System.err.println("Error loading log4j config from location: " + log4jConfigLocation);
             e.printStackTrace();
         }
-
+        // add minimal configuration according to https://github.com/ESAPI/esapi-java-legacy/wiki/Using-ESAPI-with-SLF4J
+        Properties esapiProps = new Properties();
+        esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
+        esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
+        esapiProps.put("Logger.LogEncodingRequired", Boolean.FALSE.toString());
+        esapiProps.put("Logger.UserInfo", Boolean.TRUE.toString());
+        esapiProps.put("Logger.ClientInfo", Boolean.TRUE.toString());
+        esapiProps.put("Logger.ApplicationName", "uaa");
+        esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
+        esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
+        ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
         MDC.put("context", contextPath); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
