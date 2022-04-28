@@ -220,12 +220,12 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         Properties esapiProps = new Properties();
         esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
         esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
-        esapiProps.put("Logger.LogEncodingRequired", "false");
-        esapiProps.put("Logger.UserInfo", "true");
-        esapiProps.put("Logger.ClientInfo", "true");
+        esapiProps.put("Logger.LogEncodingRequired", Boolean.FALSE.toString());
+        esapiProps.put("Logger.UserInfo", Boolean.TRUE.toString());
+        esapiProps.put("Logger.ClientInfo", Boolean.TRUE.toString());
         esapiProps.put("Logger.ApplicationName", "uaa");
-        esapiProps.put("Logger.LogApplicationName", "false");
-        esapiProps.put("Logger.LogServerIP", "false");
+        esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
+        esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
         ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
         MDC.put("context", contextPath); // used to fill in %X{context} in our `property.log_pattern` log format
     }
