@@ -119,9 +119,13 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         UriComponents nonNormalizedUri = uriComponentsBuilder.build();
 
         try {
-            uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
-            uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
-            if(hasWildcarPort) {
+            if (nonNormalizedUri.getHost() != null) {
+                uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
+            }
+            if (nonNormalizedUri.getScheme() != null) {
+                uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
+            }
+            if (hasWildcarPort) {
                 uriComponentsBuilder.port(99999);
             }
         } catch (NullPointerException e) {
