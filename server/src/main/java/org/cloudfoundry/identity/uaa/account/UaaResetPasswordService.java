@@ -43,6 +43,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
 
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
     public static final String FORGOT_PASSWORD_INTENT_PREFIX = "forgot_password_for_id:";
+    private static final String FORCE_PASSWORD_CHANGE_SAME_AS_OLD = "force_password_change.same_as_old";
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
@@ -75,7 +76,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     @Override
     public void resetUserPassword(String userId, String password) {
         if (scimUserProvisioning.checkPasswordMatches(userId, password, identityZoneManager.getCurrentIdentityZoneId())) {
-            throw new InvalidPasswordException(resourcePropertySource != null && resourcePropertySource.getProperty("force_password_change.same_as_old") != null ? resourcePropertySource.getProperty("force_password_change.same_as_old").toString() : "force_password_change.same_as_old", UNPROCESSABLE_ENTITY);
+            throw new InvalidPasswordException(resourcePropertySource != null && resourcePropertySource.getProperty(FORCE_PASSWORD_CHANGE_SAME_AS_OLD) != null ? resourcePropertySource.getProperty(FORCE_PASSWORD_CHANGE_SAME_AS_OLD).toString() : FORCE_PASSWORD_CHANGE_SAME_AS_OLD, UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(password);
         ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
