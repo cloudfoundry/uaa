@@ -53,8 +53,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
-    public static final long EXPIRATION_TIME = 5*60*1000;
-    public static final long LEGACY_CODE_EXPIRATION_TIME = 3*24*60*60*1000;
+    public static final long EXPIRATION_TIME =  1_000L*5*60;
+    public static final long LEGACY_CODE_EXPIRATION_TIME =  1_000L*3*24*60*60;
     public static final String USER_AUTHENTICATION_UAA_AUTHENTICATION = "userAuthentication.uaaAuthentication";
     public static final String USER_AUTHENTICATION_UAA_PRINCIPAL = "userAuthentication.uaaPrincipal";
     public static final String USER_AUTHENTICATION_AUTHORITIES = "userAuthentication.authorities";
