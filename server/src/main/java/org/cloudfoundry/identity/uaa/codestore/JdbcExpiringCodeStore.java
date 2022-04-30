@@ -51,7 +51,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     private TimeService timeService;
 
     private AtomicLong lastExpired = new AtomicLong();
-    private long expirationInterval = 60 * 1000; // once a minute
+    private long expirationInterval = 60 * 1_000L; // once a minute
 
     public long getExpirationInterval() {
         return expirationInterval;
