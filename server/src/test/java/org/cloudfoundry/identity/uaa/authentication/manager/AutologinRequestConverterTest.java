@@ -69,8 +69,8 @@ class AutologinRequestConverterTest {
     when(inputMessage.getBody()).thenReturn(inputStream);
     AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
     assertNotNull(autologin);
-    assertEquals(autologin.getUsername(), "user");
-    assertEquals(autologin.getPassword(), "pwd");
+    assertEquals("user", autologin.getUsername());
+    assertEquals("pwd", autologin.getPassword());
   }
 
   @Test
