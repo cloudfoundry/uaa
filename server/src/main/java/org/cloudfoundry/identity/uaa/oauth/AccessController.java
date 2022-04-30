@@ -20,6 +20,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
@@ -244,7 +245,7 @@ public class AccessController {
         return result;
     }
 
-    @RequestMapping("/oauth/error")
+    @GetMapping("/oauth/error")
     public String handleError(WebRequest request, Map<String, Object> model) {
         // There is already an error entry in the model
         Object object = request.getAttribute("error", RequestAttributes.SCOPE_REQUEST);

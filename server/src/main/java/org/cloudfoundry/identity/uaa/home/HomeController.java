@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
@@ -96,7 +97,7 @@ public class HomeController {
         return clientMetadata.isShowOnHomePage() && clientMetadata.getAppLaunchUrl() != null;
     }
 
-    @RequestMapping("/error500")
+    @GetMapping("/error500")
     public String error500(Model model, HttpServletRequest request) {
         logger.error("Internal error", (Throwable) request.getAttribute("javax.servlet.error.exception"));
 
@@ -104,20 +105,20 @@ public class HomeController {
         return "error";
     }
 
-    @RequestMapping({"/error", "/error**"})
+    @GetMapping({"/error", "/error**"})
     public String errorGeneric(Model model) {
         populateBuildAndLinkInfo(model);
         return "error";
     }
 
-    @RequestMapping("/saml_error")
+    @GetMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
         model.addAttribute("saml_error", exception.getMessage());
         return "external_auth_error";
     }
 
-    @RequestMapping("/oauth_error")
+    @GetMapping("/oauth_error")
     public String error_oauth(Model model, HttpServletRequest request) {
         String OAUTH_ERROR = "oauth_error";
         String exception = (String) request.getSession().getAttribute(OAUTH_ERROR);
