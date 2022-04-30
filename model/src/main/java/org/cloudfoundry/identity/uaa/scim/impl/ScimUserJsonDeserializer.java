@@ -85,8 +85,6 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     user.setVerified(jp.readValueAs(Boolean.class));
                 } else if (OriginKeys.ORIGIN.equalsIgnoreCase(fieldName)) {
                     user.setOrigin(jp.readValueAs(String.class));
-                } else if ("externalId".equalsIgnoreCase(fieldName)) {
-                    user.setExternalId(jp.readValueAs(String.class));
                 } else if ("zoneId".equalsIgnoreCase(fieldName)) {
                     user.setZoneId(jp.readValueAs(String.class));
                 } else if ("salt".equalsIgnoreCase(fieldName)) {
