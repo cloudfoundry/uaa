@@ -57,7 +57,7 @@ public abstract class DatabaseInformation1_5_3 extends UaaJavaMigration {
         public ColumnInfo(String sql, String tableName, String columnName) {
             this.sql = sql;
             this.columnName = columnName;
-            this.tableName = tableName;
+            this.tableName = "`" + tableName + "`";
         }
     }
 

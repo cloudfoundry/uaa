@@ -35,7 +35,7 @@ public class JdbcScimGroupExternalMembershipManager
 
     static final String EXTERNAL_GROUP_MAPPING_TABLE = "external_group_mapping";
 
-    private static final String GROUP_TABLE = "groups";
+    private static final String GROUP_TABLE = "`groups`";
 
     private static final String JOIN_GROUP_TABLE = String.format("%s g, %s gm", GROUP_TABLE, EXTERNAL_GROUP_MAPPING_TABLE);
 

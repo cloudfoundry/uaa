@@ -40,7 +40,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     protected static final String GROUP_FIELDS = "id,displayName,description,created,lastModified,version,identity_zone_id";
 
-    protected static final String GROUP_TABLE = "groups";
+    protected static final String GROUP_TABLE = "`groups`";
     private static final String GROUP_MEMBERSHIP_TABLE = "group_membership";
     private static final String EXTERNAL_GROUP_TABLE = "external_group_mapping";
 

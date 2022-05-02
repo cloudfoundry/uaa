@@ -11,5 +11,5 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 
--- add zone id to the groups table
-ALTER TABLE groups ADD COLUMN description varchar(255);
+-- add zone id to the `groups` table
+ALTER TABLE `groups` ADD COLUMN description varchar(255);

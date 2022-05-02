@@ -11,7 +11,7 @@
 -- subcomponent's license, as noted in the LICENSE file.
 --
 
--- add zone id to the groups table
-ALTER TABLE groups ADD COLUMN identity_zone_id varchar(36) DEFAULT 'uaa' NOT NULL;
-ALTER TABLE groups DROP INDEX unique_uk_2;
-ALTER TABLE groups ADD UNIQUE KEY groups_unique_key(displayname, identity_zone_id);
+-- add zone id to the `groups` table
+ALTER TABLE `groups` ADD COLUMN identity_zone_id varchar(36) DEFAULT 'uaa' NOT NULL;
+ALTER TABLE `groups` DROP INDEX unique_uk_2;
+ALTER TABLE `groups` ADD UNIQUE KEY groups_unique_key(displayname, identity_zone_id);

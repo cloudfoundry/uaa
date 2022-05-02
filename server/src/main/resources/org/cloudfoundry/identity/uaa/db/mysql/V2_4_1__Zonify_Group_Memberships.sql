@@ -21,7 +21,7 @@ ALTER TABLE external_group_mapping DROP PRIMARY KEY;
 ALTER TABLE external_group_mapping ADD COLUMN `id` int(11) unsigned PRIMARY KEY AUTO_INCREMENT;
 
 UPDATE group_membership SET identity_zone_id = (SELECT identity_zone_id FROM users where users.id = group_membership.member_id);
-UPDATE group_membership SET identity_zone_id = (SELECT 'uaa' FROM groups where groups.id = group_membership.member_id);
+UPDATE group_membership SET identity_zone_id = (SELECT 'uaa' FROM `groups` where groups.id = group_membership.member_id);
 
 UPDATE external_group_mapping SET identity_zone_id = 'uaa', origin='ldap';
 
