@@ -25,6 +25,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >- 
-          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test integrationTest jacocoTestReport || true;
+          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport || true;
           ./gradlew --no-daemon sonarqube;
           ./gradlew --no-daemon jacocoTestReport;
