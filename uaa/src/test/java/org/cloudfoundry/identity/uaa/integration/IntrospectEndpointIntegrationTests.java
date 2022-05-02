@@ -156,11 +156,11 @@ public class IntrospectEndpointIntegrationTests {
         assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
 
         // Test that Spring's default converter can create an auth from the response.
         Authentication auth = (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
@@ -232,11 +232,11 @@ public class IntrospectEndpointIntegrationTests {
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @Test
@@ -255,11 +255,11 @@ public class IntrospectEndpointIntegrationTests {
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @Test
@@ -279,11 +279,11 @@ public class IntrospectEndpointIntegrationTests {
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @Test
@@ -303,11 +303,11 @@ public class IntrospectEndpointIntegrationTests {
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @Test
@@ -328,11 +328,11 @@ public class IntrospectEndpointIntegrationTests {
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @Test
@@ -432,11 +432,11 @@ public class IntrospectEndpointIntegrationTests {
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @Test
@@ -455,9 +455,9 @@ public class IntrospectEndpointIntegrationTests {
         assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
+        Map<String, Object> map = introspectResponse.getBody();
         assertNull(map.get("az_attr"));
-        assertEquals(true, map.get("active"));
+        assertEquals(Boolean.valueOf(true), (Boolean) map.get("active"));
     }
 
     @SuppressWarnings("unchecked")

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
@@ -125,7 +126,7 @@ public class AuthzAuthenticationFilter implements Filter {
             if (loginInfo.isEmpty()) {
                 throw new BadCredentialsException("Request does not contain credentials.");
             } else {
-                logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+                logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
                 if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }

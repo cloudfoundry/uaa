@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -517,7 +518,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
-            logger.debug("Validating signed_request: " + idToken);
+            logger.debug("Validating signed_request: {}", UaaStringUtils.getCleanedUserControlString(idToken));
             //split request into signature and data
             String[] signedRequests = idToken.split("\\.", 2);
             //parse signature

@@ -13,6 +13,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.owasp.esapi.ESAPI;
+import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.request.RequestDocumentation;
@@ -22,6 +24,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUserInZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
@@ -135,6 +138,16 @@ class UaaSamlIDPEndpointDocs extends EndpointDocs {
         requestBody.getConfig().setStaticCustomAttributes(staticAttributes);
         requestBody.getConfig().getAttributeMappings().put("email", "primary-email");
         IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
+        Properties esapiProps = new Properties();
+        esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
+        esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
+        esapiProps.put("Logger.LogEncodingRequired", Boolean.FALSE.toString());
+        esapiProps.put("Logger.UserInfo", Boolean.TRUE.toString());
+        esapiProps.put("Logger.ClientInfo", Boolean.TRUE.toString());
+        esapiProps.put("Logger.ApplicationName", "uaa");
+        esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
+        esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
+        ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
     }
 
     @Test

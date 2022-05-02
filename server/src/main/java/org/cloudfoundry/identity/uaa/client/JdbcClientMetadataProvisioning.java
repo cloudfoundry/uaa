@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,13 +58,13 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
 
     @Override
     public ClientMetadata retrieve(String clientId, String zoneId) {
-        logger.debug("Retrieving UI details for client: " + clientId);
+        logger.debug("Retrieving UI details for client: {}", UaaStringUtils.getCleanedUserControlString(clientId));
         return jdbcTemplate.queryForObject(CLIENT_METADATA_QUERY, mapper, clientId, zoneId);
     }
 
     @Override
     public ClientMetadata update(ClientMetadata resource, String zoneId) {
-        logger.debug("Updating metadata for client: " + resource.getClientId());
+        logger.debug("Updating metadata for client: {}", UaaStringUtils.getCleanedUserControlString(resource.getClientId()));
 
         updateClientNameIfNotEmpty(resource, zoneId);
         int updated = jdbcTemplate.update(CLIENT_METADATA_UPDATE, ps -> {

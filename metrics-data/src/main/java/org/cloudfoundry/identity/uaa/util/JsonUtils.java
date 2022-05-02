@@ -139,12 +139,14 @@ public class JsonUtils {
         for(String property : propertiesToExclude) {
             if(property.contains(".")) {
                 String[] split = property.split("\\.", 2);
-                if(properties.containsKey(split[0])) {
+                if (properties != null && properties.containsKey(split[0])) {
                     Object inner = properties.get(split[0]);
                     properties.put(split[0], JsonUtils.readValue(serializeExcludingProperties(inner, split[1]), new TypeReference<Map<String, Object>>() {}));
                 }
             } else {
-                properties.remove(property);
+                if (properties != null) {
+                    properties.remove(property);
+                }
             }
         }
         return JsonUtils.writeValueAsString(properties);

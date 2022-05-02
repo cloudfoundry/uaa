@@ -69,12 +69,16 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + redirectUri);
             }
         } catch (InvalidPasswordException e) {
-            refreshCode(request, expiringCode);
+            if (expiringCode != null) {
+                refreshCode(request, expiringCode);
+            }
             entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));
         } catch (UaaException e) {
             entryPoint.commence(request, response, new InternalAuthenticationServiceException(e.getMessage(), e));
         } catch (PasswordConfirmationException pe) {
-            refreshCode(request, expiringCode);
+            if (expiringCode != null) {
+                refreshCode(request, expiringCode);
+            }
             entryPoint.commence(request, response, new BadCredentialsException("Password did not pass validation.", pe));
         }
         return;
