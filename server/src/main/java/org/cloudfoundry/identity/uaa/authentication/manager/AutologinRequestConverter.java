@@ -48,6 +48,7 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     }
 
     @Override
+    @SuppressWarnings("NullableProblems")
     protected boolean supports(Class<?> clazz) {
         return AutologinRequest.class.isAssignableFrom(clazz);
     }
@@ -64,6 +65,7 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     }
 
     @Override
+    @SuppressWarnings({"NullableProblems", "Convert2Diamond"})
     protected AutologinRequest readInternal(Class<? extends AutologinRequest> clazz, HttpInputMessage inputMessage)
                     throws IOException, HttpMessageNotReadableException {
 
@@ -87,9 +89,10 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     }
 
     @Override
+    @SuppressWarnings("NullableProblems")
     protected void writeInternal(AutologinRequest t, HttpOutputMessage outputMessage) throws IOException,
                     HttpMessageNotWritableException {
-        MultiValueMap<String, String> map = new LinkedMaskingMultiValueMap<String, String>(PASSWORD);
+        MultiValueMap<String, String> map = new LinkedMaskingMultiValueMap<>(PASSWORD);
         if (t.getUsername() != null) {
             map.set(USERNAME, t.getUsername());
         }

@@ -73,10 +73,6 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
             auth = new KeystoneAuthentication(tenant, username, password);
         }
 
-//        public KeystoneV2AuthenticationRequest(KeystoneAuthentication auth) {
-//            this.auth = auth;
-//        }
-
         @JsonProperty("auth")
         public KeystoneAuthentication getAuth() {
             return auth;
@@ -157,9 +153,10 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
             }
         }
 
+        @SuppressWarnings({"FieldCanBeLocal", "unused"})
         public static class KeystoneAuthentication {
             private final String[] methods = new String[] {"password"};
-            private final String domain; // No getter and no toString?
+            private final String domain; // No getter and no toString? assuming needed for JSON object
             private final KeystoneCredentials credentials;
 
             public KeystoneAuthentication(String domain, String username, String password) {
