@@ -113,7 +113,7 @@ libraries.velocity = "org.apache.velocity:velocity-engine-core:2.3"
 libraries.xerces = "xerces:xercesImpl:2.12.2"
 libraries.zxing = "com.google.zxing:javase:3.5.0"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:8.23"
-libraries.xmlSecurity = "org.apache.santuario:xmlsec:2.3.0"
+libraries.xmlSecurity = "org.apache.santuario:xmlsec:3.0.0"
 libraries.orgJson = "org.json:json:20220320"
 libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.4.0.0"
 
