@@ -13,7 +13,7 @@ permissions:
 jobs:
   Sonar-Test-Analysis:
     runs-on: ubuntu-18.04
-    if: github.actor != 'dependabot[bot]' && github.actor != 'dependabot-preview[bot]'
+    if: env.SONAR_TOKEN && github.actor != 'dependabot[bot]' && github.actor != 'dependabot-preview[bot]'
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-java@v3
