@@ -3,22 +3,15 @@ package org.cloudfoundry.identity.uaa.scim.validate;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.passay.CharacterRule;
-import org.passay.EnglishCharacterData;
-import org.passay.LengthRule;
 import org.passay.PasswordData;
 import org.passay.PropertiesMessageResolver;
-import org.passay.Rule;
 import org.passay.RuleResult;
 import org.springframework.beans.factory.annotation.Qualifier;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -46,11 +39,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     public static final String DEFAULT_MESSAGE_PATH = "/messages.properties";
 
-    private static PropertiesMessageResolver messageResolver;
-
-    static {
-            messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
-    }
+    private static final PropertiesMessageResolver messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
 
     public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
                                       final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
@@ -60,10 +49,6 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     @Override
     public void validate(String password) throws InvalidPasswordException {
-        if (password == null) {
-            password = "";
-        }
-
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
@@ -78,7 +63,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         }
 
         org.passay.PasswordValidator validator = validator(policy, messageResolver);
-        RuleResult result = validator.validate(new PasswordData(password));
+        RuleResult result = validator.validate(new PasswordData((password != null) ? password : ""));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>(validator.getMessages(result));
             if (!errorMessages.isEmpty()) {
