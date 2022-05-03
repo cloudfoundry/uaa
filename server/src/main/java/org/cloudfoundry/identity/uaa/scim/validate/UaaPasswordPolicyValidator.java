@@ -85,27 +85,4 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             }
         }
     }
-
-    public org.passay.PasswordValidator getPasswordValidator(PasswordPolicy policy) {
-        List<Rule> rules = new ArrayList<>();
-
-        //length is always a rule. We do not allow blank password
-        int minLength = Math.max(1, policy.getMinLength());
-        int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
-        rules.add(new LengthRule(minLength, maxLength));
-
-        if (policy.getRequireUpperCaseCharacter()>0) {
-            rules.add(new CharacterRule(EnglishCharacterData.UpperCase, policy.getRequireUpperCaseCharacter()));
-        }
-        if (policy.getRequireLowerCaseCharacter()>0) {
-            rules.add(new CharacterRule(EnglishCharacterData.LowerCase, policy.getRequireLowerCaseCharacter()));
-        }
-        if (policy.getRequireDigit()>0) {
-            rules.add(new CharacterRule(EnglishCharacterData.Digit, policy.getRequireDigit()));
-        }
-        if (policy.getRequireSpecialCharacter() > 0) {
-            rules.add(new CharacterRule(EnglishCharacterData.Special, policy.getRequireSpecialCharacter()));
-        }
-        return new org.passay.PasswordValidator(rules);
-    }
 }
