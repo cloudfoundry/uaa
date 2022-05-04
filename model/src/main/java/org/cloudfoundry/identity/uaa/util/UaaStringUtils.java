@@ -91,8 +91,9 @@ public class UaaStringUtils {
      */
     public static Map<String, ?> hidePasswords(Map<String, ?> map) {
         Map<String, Object> result = new LinkedHashMap<>(map);
-        for (String key : map.keySet()) {
-            Object value = map.get(key);
+        for (Map.Entry<String, ?> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
             if (value instanceof String) {
                 if (isPassword(key)) {
                     result.put(key, "#");
@@ -288,6 +289,9 @@ public class UaaStringUtils {
     }
 
     public static String getCleanedUserControlString(String input) {
-        return input != null ? input.replaceAll("[\n\r\t]", "_") : null;
+        if (input == null) {
+            return null;
+        }
+        return input.replaceAll("[\n\r\t]", "_");
     }
 }
