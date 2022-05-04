@@ -82,7 +82,7 @@ public class Claims {
     @JsonProperty(ClaimConstants.PROFILE)
     private String profile;
     @JsonProperty(ClaimConstants.USER_ATTRIBUTES)
-    private String userAttributes;
+    private Map<String,List<String>> userAttributes;
     @JsonProperty(ClaimConstants.REVOCABLE)
     private boolean revocable;
     @JsonProperty(ClaimConstants.EXTERNAL_ATTR)
@@ -306,11 +306,11 @@ public class Claims {
         this.profile = profile;
     }
 
-    public String getUserAttributes() {
+    public Map<String,List<String>> getUserAttributes() {
         return userAttributes;
     }
 
-    public void setUserAttributes(String userAttributes) {
+    public void setUserAttributes(Map<String,List<String>> userAttributes) {
         this.userAttributes = userAttributes;
     }
 
