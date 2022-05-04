@@ -65,15 +65,12 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     public interface KeystoneAuthenticationRequest {
     }
 
+    // Manual creation, but must support JSON serialization - does NOT support direct binding from JSON (no default constructors)
     public static class KeystoneV2AuthenticationRequest implements KeystoneAuthenticationRequest{
-        private KeystoneAuthentication auth;
+        private final KeystoneAuthentication auth;
 
         public KeystoneV2AuthenticationRequest(String tenant, String username, String password) {
             auth = new KeystoneAuthentication(tenant, username, password);
-        }
-
-        public KeystoneV2AuthenticationRequest(KeystoneAuthentication auth) {
-            this.auth = auth;
         }
 
         @JsonProperty("auth")
@@ -81,15 +78,9 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
             return auth;
         }
 
-        @JsonProperty("auth")
-        public void setAuth(KeystoneAuthentication auth) {
-            this.auth = auth;
-        }
-
-
         public static class KeystoneAuthentication {
-            private String tenant;
-            private KeystoneCredentials credentials;
+            private final String tenant;
+            private final KeystoneCredentials credentials;
 
             public KeystoneAuthentication(String tenant, String username, String password) {
                 this.tenant = tenant;
@@ -101,53 +92,44 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
                 return tenant;
             }
 
-            @JsonProperty("tenantName")
-            public void setTenant(String tenant) {
-                this.tenant = tenant;
-            }
-
             @JsonProperty("passwordCredentials")
             public KeystoneCredentials getCredentials() {
                 return credentials;
             }
-
-            public void setCredentials(KeystoneCredentials credentials) {
-                this.credentials = credentials;
-            }
         }
 
-        public static class KeystoneCredentials {
-            private String username;
-            private String password;
+        public static class KeystoneCredentials extends NonStringPassword {
+            private final String username;
 
             public KeystoneCredentials(String username, String password) {
-                super();
+                super(password);
                 this.username = username;
-                this.password = password;
             }
 
+            @JsonProperty("username")
             public String getUsername() {
                 return username;
             }
-
-            public void setUsername(String username) {
-                this.username = username;
-            }
-
-            public String getPassword() {
-                return password;
-            }
-
-            public void setPassword(String password) {
-                this.password = password;
-            }
-
         }
 
     }
 
+    public static class NonStringPassword {
+        private final char[] password;
+
+        protected NonStringPassword(String password) {
+            this.password = (password == null) ? null : password.toCharArray();
+        }
+
+        @JsonProperty("password")
+        public String getPassword() {
+            return (password == null) ? null : new String(password);
+        }
+    }
+
+    // Manual creation, but must support JSON serialization - does NOT support direct binding from JSON (no default constructors)
     public static class KeystoneV3AuthenticationRequest implements KeystoneAuthenticationRequest{
-        private KeystoneIdentity identity;
+        private final KeystoneIdentity identity;
 
         public KeystoneV3AuthenticationRequest(String domain, String username, String password) {
             identity = new KeystoneIdentity(new KeystoneAuthentication(domain, username, password));
@@ -163,23 +145,19 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
                 this.auth = auth;
             }
 
-            private KeystoneAuthentication auth;
+            private final KeystoneAuthentication auth;
+
             @JsonProperty("identity")
             public KeystoneAuthentication getAuth() {
                 return auth;
             }
-
-            @JsonProperty("identity")
-            public void setAuth(KeystoneAuthentication auth) {
-                this.auth = auth;
-            }
-
         }
 
+        @SuppressWarnings({"FieldCanBeLocal", "unused"})
         public static class KeystoneAuthentication {
-            private String[] methods = new String[] {"password"};
-            private String domain;
-            private KeystoneCredentials credentials;
+            private final String[] methods = new String[] {"password"};
+            private final String domain; // No getter and no toString? assuming needed for JSON object
+            private final KeystoneCredentials credentials;
 
             public KeystoneAuthentication(String domain, String username, String password) {
                 this.domain = domain;
@@ -191,25 +169,15 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
                 return methods;
             }
 
-            @JsonProperty("methods")
-            public void setMethods(String[] methods) {
-                this.methods = methods;
-            }
-
             @JsonProperty("password")
             public KeystoneCredentials getCredentials() {
                 return credentials;
             }
-
-            @JsonProperty("password")
-            public void setCredentials(KeystoneCredentials credentials) {
-                this.credentials = credentials;
-            }
         }
 
         public static class KeystoneCredentials {
+            private final KeystoneUser user;
 
-            private KeystoneUser user;
             public KeystoneCredentials(String username, String password) {
                 user = new KeystoneUser(username, password);
             }
@@ -217,41 +185,24 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
             public KeystoneUser getUser() {
                 return user;
             }
-
-            public void setUser(KeystoneUser user) {
-                this.user = user;
-            }
         }
 
-        public static class KeystoneUser {
-            private String name;
-            private String password;
+        public static class KeystoneUser extends NonStringPassword {
+            private final String name;
 
             public KeystoneUser(String name, String password) {
+                super(password);
                 this.name = name;
-                this.password = password;
             }
 
             public KeystoneDomain getDomain() {
                 return new KeystoneDomain();
             }
 
+            @JsonProperty("username")
             public String getName() {
                 return name;
             }
-
-            public void setName(String name) {
-                this.name = name;
-            }
-
-            public String getPassword() {
-                return password;
-            }
-
-            public void setPassword(String password) {
-                this.password = password;
-            }
-
         }
 
         public static class KeystoneDomain {

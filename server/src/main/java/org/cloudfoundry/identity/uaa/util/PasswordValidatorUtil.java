@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import org.apache.commons.io.IOUtils;
 import org.cloudfoundry.identity.uaa.authentication.GenericPasswordPolicy;
 import org.passay.CharacterRule;
 import org.passay.EnglishCharacterData;
@@ -24,7 +25,6 @@ import org.passay.PasswordValidator;
 import org.passay.PropertiesMessageResolver;
 import org.passay.Rule;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,18 +46,12 @@ public final class PasswordValidatorUtil {
                     "Error loading default message properties.",
                     e);
         } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            IOUtils.closeQuietly(in); // null safe
         }
     }
 
 
-    public static PasswordValidator validator(GenericPasswordPolicy policy,
+    public static PasswordValidator validator(GenericPasswordPolicy<?> policy,
                                               MessageResolver messageResolver) {
         List<Rule> rules = new ArrayList<>();
 
@@ -65,7 +59,7 @@ public final class PasswordValidatorUtil {
         int minLength = Math.max(1, policy.getMinLength());
         int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
         rules.add(new LengthRule(minLength, maxLength));
-        
+
         if (policy.getRequireUpperCaseCharacter()>0) {
             rules.add(new CharacterRule(EnglishCharacterData.UpperCase, policy.getRequireUpperCaseCharacter()));
         }
