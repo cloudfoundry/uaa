@@ -1,14 +1,18 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.core.GrantedAuthority;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(PollutionPreventionExtension.class)
 class UaaStringUtilsTest {
 
     private Map<String, Object> map;
@@ -57,7 +60,7 @@ class UaaStringUtilsTest {
     @Test
     void replace_zone_variables() {
         replaceZoneVariables(IdentityZone.getUaa());
-        IdentityZone zone = MultitenancyFixture.identityZone("otherId", "otherDomain");
+        IdentityZone zone = ModelTestUtils.identityZone("otherId", "otherDomain");
         replaceZoneVariables(zone);
     }
 
@@ -235,6 +238,7 @@ class UaaStringUtilsTest {
         String a = UaaStringUtils.convertISO8859_1_to_UTF_8(s);
         assertEquals(s, a);
         assertEquals('\u0000', a.toCharArray()[1]);
+        assertNull(UaaStringUtils.convertISO8859_1_to_UTF_8(null));
     }
 
     @Test
