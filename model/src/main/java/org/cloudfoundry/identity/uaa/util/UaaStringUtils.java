@@ -27,10 +27,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -41,6 +42,9 @@ public final class UaaStringUtils {
 
     public static final String ISO_8859_1 = "ISO-8859-1";
     public static final String UTF_8 = "UTF-8";
+
+    private static final Pattern CAML_PATTERN = Pattern.compile("([a-z])([A-Z])");
+    private static final Pattern CTRL_PATTERN = Pattern.compile("[\n\r\t]");
 
     private UaaStringUtils() {
     }
@@ -69,10 +73,11 @@ public final class UaaStringUtils {
      * @return the same value with camels comverted to underscores
      */
     public static String camelToUnderscore(String value) {
+
         String result = value.replace(" ", "_");
-        result = result.replaceAll("([a-z])([A-Z])", "$1_$2");
+        result = CAML_PATTERN.matcher(result).replaceAll("$1_$2");
         result = result.replace(".", "_");
-        result = result.toLowerCase();
+        result = result.toLowerCase(Locale.US);
         return result;
     }
 
@@ -186,7 +191,7 @@ public final class UaaStringUtils {
         return constructWildcards(wildcardStrings, UaaStringUtils::constructSimpleWildcardPattern);
     }
 
-    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings, Function<String, String> replace) {
+    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings, UnaryOperator<String> replace) {
         Set<Pattern> wildcards = new HashSet<>();
         for (String wildcard : wildcardStrings) {
             String pattern = replace.apply(wildcard);
@@ -195,7 +200,7 @@ public final class UaaStringUtils {
         return wildcards;
     }
 
-    public static boolean matches(Set<Pattern> wildcards, String scope) {
+    public static boolean matches(Iterable<Pattern> wildcards, String scope) {
         for (Pattern wildcard : wildcards) {
             if (wildcard.matcher(scope).matches()) {
                 return true;
@@ -234,7 +239,7 @@ public final class UaaStringUtils {
     }
 
     private static boolean isPassword(String key) {
-        key = key.toLowerCase();
+        key = key.toLowerCase(Locale.US);
         return
             key.endsWith("password") ||
             key.endsWith("secret") ||
@@ -266,7 +271,7 @@ public final class UaaStringUtils {
         return result;
     }
 
-    public static boolean containsIgnoreCase(List<String> list, String findMe) {
+    public static boolean containsIgnoreCase(Iterable<String> list, String findMe) {
         for (String s : list) {
             if (findMe.equalsIgnoreCase(s)) {
                 return true;
@@ -295,6 +300,6 @@ public final class UaaStringUtils {
         if (input == null) {
             return null;
         }
-        return input.replaceAll("[\n\r\t]", "_");
+        return CTRL_PATTERN.matcher(input).replaceAll("_");
     }
 }
