@@ -34,13 +34,16 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class UaaStringUtils {
+public final class UaaStringUtils {
 
     public static final String ZONE_VAR_ID = "{zone.id}";
     public static final String ZONE_VAR_SUBDOMAIN = "{zone.subdomain}";
 
     public static final String ISO_8859_1 = "ISO-8859-1";
     public static final String UTF_8 = "UTF-8";
+
+    private UaaStringUtils() {
+    }
 
     public static String replaceZoneVariables(String s, IdentityZone zone) {
         return s.replace(ZONE_VAR_ID, zone.getId()).replace(ZONE_VAR_SUBDOMAIN, zone.getSubdomain());
@@ -210,7 +213,7 @@ public class UaaStringUtils {
      * @return a map of String values
      */
     public static Map<String, ?> getMapFromProperties(Properties properties, String prefix) {
-        Map<String, Object> result = new HashMap<String, Object>();
+        Map<String, Object> result = new HashMap<>();
         for (String key : properties.stringPropertyNames()) {
             if (key.startsWith(prefix)) {
                 String name = key.substring(prefix.length());
@@ -242,7 +245,7 @@ public class UaaStringUtils {
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {
         if (authorities==null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         }
         Set<String> result = new HashSet<>();
         for (GrantedAuthority authority : authorities) {
@@ -253,7 +256,7 @@ public class UaaStringUtils {
 
     public static List<? extends GrantedAuthority> getAuthoritiesFromStrings(Collection<String> authorities) {
         if (authorities==null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         List<GrantedAuthority> result = new LinkedList<>();
