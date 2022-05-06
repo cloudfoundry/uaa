@@ -8,7 +8,6 @@ LABEL maintainer="${MAINTAINER_EMAIL}"
 ENV CLOUDFOUNDRY_CONFIG_PATH /uaa
 
 COPY cloudfoundry-identity-uaa-${VERSION}.war /usr/local/tomcat/webapps/ROOT.war
-COPY uaa-docker.yml /uaa/uaa.yml
 
 RUN set -eux; \
     \
@@ -18,6 +17,7 @@ RUN set -eux; \
     \
     chown -R dockeruser:docker /usr/local/tomcat; \
     ls -l /usr/local/tomcat; \
+    mkdir /uaa; \
     chown -R dockeruser:docker /uaa; \
     ls -l /uaa
 
