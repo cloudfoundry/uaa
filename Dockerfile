@@ -6,6 +6,7 @@ ARG VERSION
 LABEL maintainer="${MAINTAINER_EMAIL}"
 
 ENV CLOUDFOUNDRY_CONFIG_PATH /uaa
+ENV SECRETS_DIR /uaa/secrets
 
 COPY cloudfoundry-identity-uaa-${VERSION}.war /usr/local/tomcat/webapps/ROOT.war
 
@@ -17,7 +18,7 @@ RUN set -eux; \
     \
     chown -R dockeruser:docker /usr/local/tomcat; \
     ls -l /usr/local/tomcat; \
-    mkdir /uaa; \
+    mkdir -p /uaa/secrets; \
     chown -R dockeruser:docker /uaa; \
     ls -l /uaa
 
