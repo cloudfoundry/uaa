@@ -40,6 +40,7 @@ public class ClientAdminBootstrapMultipleSecretsTest {
 		Set<String> clientsToDelete = new HashSet<>();
 		boolean defaultOverride = true;
 		Set<String> autoApproveClients = new HashSet<>();
+		Set<String> allowPublicClients = new HashSet<>();
 		clients = new HashMap<>();
 
 		PasswordEncoder passwordEncoder = mock(PasswordEncoder.class);
@@ -69,7 +70,8 @@ public class ClientAdminBootstrapMultipleSecretsTest {
 
 		ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
 
-		clientAdminBootstrap = new ClientAdminBootstrap(passwordEncoder, clientRegistrationService, clientMetadataProvisioning, defaultOverride, clients, autoApproveClients, clientsToDelete, null);
+		clientAdminBootstrap = new ClientAdminBootstrap(passwordEncoder, clientRegistrationService, clientMetadataProvisioning, defaultOverride, clients, autoApproveClients, clientsToDelete, null,
+				allowPublicClients);
 
 		oneSecretClient = new BaseClientDetails();
 		oneSecretClient.setClientId(clientId);

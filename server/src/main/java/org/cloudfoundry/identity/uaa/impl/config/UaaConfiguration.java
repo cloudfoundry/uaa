@@ -188,6 +188,7 @@ public class UaaConfiguration {
         public static class Client {
             public String override;
             public List<String> autoapprove;
+            public List<String> allowpublic;
         }
 
         public static class Authorize {
@@ -210,6 +211,7 @@ public class UaaConfiguration {
         public String id;
         public boolean override;
         public List<String> autoapprove;
+        public List<String> allowpublic;
         public String scope;
         public String secret;
         public String authorities;

@@ -78,6 +78,8 @@ class ClientAdminBootstrapTests {
     private JdbcTemplate jdbcTemplate;
 
     private String autoApproveId;
+
+    private String allowPublicId;
     private Map<String, Map<String, Object>> clients;
 
     @BeforeEach
@@ -92,6 +94,7 @@ class ClientAdminBootstrapTests {
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
 
         autoApproveId = "autoapprove-" + randomValueStringGenerator.generate().toLowerCase();
+        allowPublicId = "public-" + randomValueStringGenerator.generate().toLowerCase();
         clients = new HashMap<>();
 
         clientAdminBootstrap = new ClientAdminBootstrap(
@@ -102,7 +105,8 @@ class ClientAdminBootstrapTests {
                 clients,
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
-                null);
+                null,
+                Collections.singleton(allowPublicId));
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -121,7 +125,8 @@ class ClientAdminBootstrapTests {
                     null,
                     Collections.emptySet(),
                     Collections.emptySet(),
-                    null);
+                    null,
+                    Collections.emptySet());
         }
 
         @Test
@@ -157,7 +162,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(clientIdToDelete),
                     Collections.singleton(clientIdToDelete),
-                    null);
+                    null, Collections.singleton(clientIdToDelete));
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
@@ -314,7 +319,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(autoApproveId),
                     Collections.emptySet(),
-                    null);
+                    null, Collections.singleton(allowPublicId));
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -373,8 +378,7 @@ class ClientAdminBootstrapTests {
                         clients,
                         Collections.singleton(autoApproveId),
                         Collections.emptySet(),
-                        null
-                );
+                        null, Collections.singleton(allowPublicId));
             }
 
             @Test
