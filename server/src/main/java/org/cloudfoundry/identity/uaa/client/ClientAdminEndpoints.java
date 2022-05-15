@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
@@ -673,6 +674,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             if (additionalInformation.get(key) == null) {
                 additionalInformation.remove(key);
             }
+        }
+        if (Boolean.FALSE.equals(additionalInformation.get(ClientConstants.ALLOW_PUBLIC))) {
+            additionalInformation.remove(ClientConstants.ALLOW_PUBLIC);
         }
         details.setAdditionalInformation(additionalInformation);
 
