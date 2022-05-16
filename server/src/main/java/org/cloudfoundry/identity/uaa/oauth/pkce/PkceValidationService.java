@@ -69,17 +69,20 @@ public class PkceValidationService {
     
     /**
      * Check presence of PKCE parameters and validate.
-     *
-     * @param requestParameters Map of query parameters of Authorization request.
-     * @param codeVerifier Code verifier.
-     * @param clientDetails Allow public information from client
+     * @param requestParameters
+     *        Map of query parameters of Authorization request.
+     * @param codeVerifier
+     *        Code verifier.
+     * @param clientDetails
+     *        Allow public information from client
      * @return true: (1) in case of Authorization Code Grant without PKCE.
-     * (2) in case of Authorization Code Grant with PKCE and code verifier
-     * matched with code challenge based on code challenge method.
-     * false: in case of Authorization Code Grant with PKCE and code verifier
-     * does not match with code challenge based on code challenge method.
-     * @throws PkceValidationException (1) Code verifier must be provided for this authorization code.
-     * (2) Code verifier not required for this authorization code.
+     *               (2) in case of Authorization Code Grant with PKCE and code verifier
+     *                   matched with code challenge based on code challenge method.
+     *         false: in case of Authorization Code Grant with PKCE and code verifier
+     *                does not match with code challenge based on code challenge method.
+     * @throws PkceValidationException
+     *         (1) Code verifier must be provided for this authorization code.
+     *         (2) Code verifier not required for this authorization code.
      */
     public boolean checkAndValidate(Map<String, String> requestParameters, String codeVerifier, ClientDetails clientDetails) throws PkceValidationException {
         if (!hasPkceParameters(requestParameters, codeVerifier)) {
