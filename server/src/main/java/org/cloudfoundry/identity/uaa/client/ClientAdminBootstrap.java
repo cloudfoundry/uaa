@@ -126,10 +126,10 @@ public class ClientAdminBootstrap implements
             try {
                 BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.ALLOW_PUBLIC, true);
-                logger.debug("Adding allowpublic flag to client: " + clientId);
+                logger.debug("Adding allowpublic flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
             } catch (NoSuchClientException n) {
-                logger.debug("Client not found, unable to set allowpublic: " + clientId);
+                logger.debug("Client not found, unable to set allowpublic: {}", clientId);
             }
         }
     }
