@@ -60,19 +60,19 @@ public class ClientAdminBootstrap implements
     private final boolean defaultOverride;
 
     /**
-     * @param defaultOverride the default override flag to set. Flag to indicate
-     * that client details should override existing values
-     * by default. If true and the override flag is not
-     * set in the client details input then the details
-     * will override any existing details with the same id.
-     * @param clients the clients to set
+     * @param defaultOverride    the default override flag to set. Flag to indicate
+     *                           that client details should override existing values
+     *                           by default. If true and the override flag is not
+     *                           set in the client details input then the details
+     *                           will override any existing details with the same id.
+     * @param clients            the clients to set
      * @param autoApproveClients A set of client ids that are unconditionally to be
-     * autoapproved (independent of the settings in the
-     * client details map). These clients will have
-     * <code>autoapprove=true</code> when they are inserted
-     * into the client details store.
+     *                           autoapproved (independent of the settings in the
+     *                           client details map). These clients will have
+     *                           <code>autoapprove=true</code> when they are inserted
+     *                           into the client details store.
      * @param allowPublicClients A set of client ids that are allowed to be used
-     * without client_secret parameter but with PKCE S256 method
+     *                           without client_secret parameter but with PKCE S256 method
      */
     ClientAdminBootstrap(
             final PasswordEncoder passwordEncoder,
