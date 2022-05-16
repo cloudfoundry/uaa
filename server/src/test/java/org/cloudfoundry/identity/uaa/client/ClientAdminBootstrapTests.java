@@ -342,6 +342,23 @@ class ClientAdminBootstrapTests {
         }
 
         @Test
+        void simpleAddClientWithAllowPublic() {
+            Map<String, Object> map = createClientMap(allowPublicId);
+            BaseClientDetails output = new BaseClientDetails(autoApproveId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            output.setClientSecret("bar");
+
+            doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
+            clients.put((String) map.get("id"), map);
+
+            BaseClientDetails expectedAdd = new BaseClientDetails(output);
+
+            clientAdminBootstrap.afterPropertiesSet();
+            BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
+            expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.ALLOW_PUBLIC, true));
+            verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
+        }
+
+        @Test
         void overrideClient() {
             String clientId = randomValueStringGenerator.generate();
             BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
