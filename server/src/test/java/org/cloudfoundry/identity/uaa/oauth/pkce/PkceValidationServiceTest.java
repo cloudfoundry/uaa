@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,10 +15,13 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
+import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
  * 
@@ -88,20 +94,20 @@ public class PkceValidationServiceTest {
 
     @Test
     public void testNoPkceParametersForEvaluation() throws Exception {
-        assertTrue(pkceValidationService.checkAndValidate(authorizeRequestParameters, null));
+        assertTrue(pkceValidationService.checkAndValidate(authorizeRequestParameters, null, null));
     }
 
     @Test(expected = PkceValidationException.class)
     public void testCodeChallengeMissingForEvaluation() throws Exception {
         pkceValidationService.checkAndValidate(authorizeRequestParameters,
-                validPlainCodeChallengeOrCodeVerifierParameter);
+                validPlainCodeChallengeOrCodeVerifierParameter, null);
     }
 
     @Test(expected = PkceValidationException.class)
     public void testCodeVerifierMissingForEvaluation() throws Exception {
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
                 validPlainCodeChallengeOrCodeVerifierParameter);
-        pkceValidationService.checkAndValidate(authorizeRequestParameters, "");
+        pkceValidationService.checkAndValidate(authorizeRequestParameters, "", null);
     }
 
     @Test
@@ -109,7 +115,7 @@ public class PkceValidationServiceTest {
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
                 validPlainCodeChallengeOrCodeVerifierParameter);
         assertThat(pkceValidationService.checkAndValidate(authorizeRequestParameters,
-                validPlainCodeChallengeOrCodeVerifierParameter), is(true));
+                validPlainCodeChallengeOrCodeVerifierParameter,null), is(true));
     }
 
     @Test
@@ -117,7 +123,17 @@ public class PkceValidationServiceTest {
         Set<String> testHashSet = new HashSet<>(Arrays.asList("S256", "plain"));
         assertEquals(testHashSet, pkceValidationService.getSupportedCodeChallengeMethods());
     }
-    
+
+    @Test
+    public void testPlainCodeChallengeMethodForPublicUse() throws Exception {
+        ClientDetails client = mock(ClientDetails.class);
+        when(client.getAdditionalInformation()).thenReturn(Map.of(ClientConstants.ALLOW_PUBLIC, "true"));
+        authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
+            validPlainCodeChallengeOrCodeVerifierParameter);
+        assertThrows(InvalidGrantException.class, () -> pkceValidationService.checkAndValidate(authorizeRequestParameters,
+            validPlainCodeChallengeOrCodeVerifierParameter,client));
+    }
+
     private Map<String,PkceVerifier> createPkceVerifiers() {
         S256PkceVerifier s256PkceVerifier = new S256PkceVerifier();
         PlainPkceVerifier plainPkceVerifier = new PlainPkceVerifier();

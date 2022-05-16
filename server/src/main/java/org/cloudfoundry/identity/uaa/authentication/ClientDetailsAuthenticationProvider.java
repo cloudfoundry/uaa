@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
@@ -45,6 +47,14 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for(String pwd: passwordList) {
             try {
                 User user = new User(userDetails.getUsername(), pwd, userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
+                if (authentication.getCredentials() == null && hasCodeVerifier(authentication.getDetails()) && userDetails instanceof UaaClient) {
+                    UaaClient uaaClient = (UaaClient) userDetails;
+                    Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
+                    if (allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic) ||
+                        allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic)) {
+                        break;
+                    }
+                }
                 super.additionalAuthenticationChecks(user, authentication);
                 error = null;
                 break;
@@ -55,5 +65,11 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         if (error!=null) {
             throw error;
         }
+    }
+
+    private boolean hasCodeVerifier(Object uaaAuthenticationDetails) {
+        return uaaAuthenticationDetails instanceof UaaAuthenticationDetails &&
+            ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() != null &&
+            ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap().get("code_verifier") != null;
     }
 }
