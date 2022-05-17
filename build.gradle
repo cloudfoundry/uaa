@@ -32,7 +32,6 @@ allprojects {
 
     dependencyManagement {
         imports {
-            mavenBom(libraries.springBom)
             mavenBom(libraries.springBootBom)
         }
     }
