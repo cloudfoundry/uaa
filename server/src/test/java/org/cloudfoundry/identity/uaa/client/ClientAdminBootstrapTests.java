@@ -368,11 +368,8 @@ class ClientAdminBootstrapTests {
             doThrow(new NoSuchClientException(allowPublicId)).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
             clients.put((String) map.get("id"), map);
 
-            BaseClientDetails expectedAdd = new BaseClientDetails(output);
-
             clientAdminBootstrap.afterPropertiesSet();
-            BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
-            verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(expectedUpdate, "uaa");
+            verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(any(), any());
         }
 
         @Test
