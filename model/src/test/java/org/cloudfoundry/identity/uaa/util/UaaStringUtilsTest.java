@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
 class UaaStringUtilsTest {
@@ -83,7 +84,19 @@ class UaaStringUtilsTest {
         Map<String, ?> result = UaaStringUtils.hidePasswords(map);
         checkPasswords(result);
 
+        map.put("fail", "reason");
+        result = UaaStringUtils.hidePasswords(map);
+        assertThat(map, hasEntry("fail", "reason"));
+        result.remove("fail");
+        checkPasswords(result);
+
         Properties presult = UaaStringUtils.hidePasswords(properties);
+        checkPasswords(new HashMap(presult));
+
+        properties.put("fail", "reason");
+        presult = UaaStringUtils.hidePasswords(properties);
+        assertThat(presult, hasEntry("fail", "reason"));
+        presult.remove("fail");
         checkPasswords(new HashMap(presult));
     }
 
@@ -386,7 +399,7 @@ class UaaStringUtilsTest {
         Properties properties = new Properties();
         properties.put("pre.key", "value");
         Map<String, ?> objectMap = UaaStringUtils.getMapFromProperties(properties, "pre.");
-        assertTrue(objectMap.containsKey("key"));
+        assertThat(objectMap, hasEntry("key", "value"));
     }
 
     private static void replaceZoneVariables(IdentityZone zone) {
