@@ -777,7 +777,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private ModelAndView handleException(Exception e, ServletWebRequest webRequest) throws Exception {
 
         ResponseEntity<OAuth2Exception> translate = getExceptionTranslator().translate(e);
-        webRequest.getResponse().setStatus(translate.getStatusCode().value());
+        if (webRequest.getResponse() != null) {
+            webRequest.getResponse().setStatus(translate.getStatusCode().value());
+        }
 
         if (e instanceof ClientAuthenticationException || e instanceof RedirectMismatchException) {
             Map<String, Object> map = new HashMap<>();

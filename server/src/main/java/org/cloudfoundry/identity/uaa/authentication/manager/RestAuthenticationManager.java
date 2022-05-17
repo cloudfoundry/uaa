@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -129,7 +130,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
     }
 
     protected boolean evaluateResponse(Authentication authentication, ResponseEntity<Map> response) {
-        String userFromUaa = (String) response.getBody().get("username");
+        String userFromUaa = response.getBody() != null ? (String) response.getBody().get("username") : UaaStringUtils.EMPTY_STRING;
         return userFromUaa.equals(authentication.getPrincipal().toString());
     }
 

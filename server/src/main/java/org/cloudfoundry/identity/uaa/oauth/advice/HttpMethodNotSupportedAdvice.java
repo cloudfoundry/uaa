@@ -27,7 +27,8 @@ public class HttpMethodNotSupportedAdvice {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         ResponseEntity<OAuth2Exception> result =  exceptionTranslator.translate(e);
         if (HttpMethod.POST.matches(e.getMethod())) {
-            OAuth2Exception cause = new OAuth2Exception("Parameters must be passed in the body of the request", result.getBody().getCause()) {
+            OAuth2Exception cause = new OAuth2Exception("Parameters must be passed in the body of the request",
+                result.getBody() != null ? result.getBody().getCause() : null) {
                 public String getOAuth2ErrorCode() {
                     return "query_string_not_allowed";
                 }

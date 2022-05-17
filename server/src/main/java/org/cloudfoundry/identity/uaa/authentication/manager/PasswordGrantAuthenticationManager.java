@@ -188,7 +188,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
 
             if (tokenResponse.hasBody()) {
                 Map<String, String> body = tokenResponse.getBody();
-                idToken = body.get("id_token");
+                idToken = body != null ? body.get("id_token") : null;
             }
         } catch (HttpClientErrorException e) {
             publish(new IdentityProviderAuthenticationFailureEvent(authentication, userName, OriginKeys.OIDC10, IdentityZoneHolder.getCurrentZoneId()));

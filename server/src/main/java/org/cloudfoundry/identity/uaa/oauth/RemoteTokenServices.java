@@ -122,6 +122,9 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", getAuthorizationHeader(clientId, clientSecret));
         Map<String, Object> map = postForMap(checkTokenEndpointUrl, formData, headers);
+        if (map == null) {
+            map = Collections.emptyMap();
+        }
 
         if (map.containsKey("error")) {
             logger.debug("check_token returned error: " + map.get("error"));
