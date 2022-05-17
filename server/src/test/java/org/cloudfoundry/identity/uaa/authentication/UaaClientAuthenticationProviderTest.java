@@ -102,6 +102,7 @@ class UaaClientAuthenticationProviderTest {
         client = createClient(ClientConstants.ALLOW_PUBLIC, "true");
         UsernamePasswordAuthenticationToken a = getAuthenticationToken();
         authenticationProvider.additionalAuthenticationChecks(new UaaClient("x", "x", Collections.emptyList(), client.getAdditionalInformation()), a);
+        assertNotNull(a);
     }
 
     @Test
@@ -109,6 +110,7 @@ class UaaClientAuthenticationProviderTest {
         client = createClient(ClientConstants.ALLOW_PUBLIC, true);
         UsernamePasswordAuthenticationToken a = getAuthenticationToken();
         authenticationProvider.additionalAuthenticationChecks(new UaaClient("x", "x", Collections.emptyList(), client.getAdditionalInformation()), a);
+        assertNotNull(a);
     }
 
     @Test

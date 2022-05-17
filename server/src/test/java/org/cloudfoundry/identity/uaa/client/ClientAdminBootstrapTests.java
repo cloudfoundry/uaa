@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -344,7 +345,7 @@ class ClientAdminBootstrapTests {
         @Test
         void simpleAddClientWithAllowPublic() {
             Map<String, Object> map = createClientMap(allowPublicId);
-            BaseClientDetails output = new BaseClientDetails(autoApproveId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            BaseClientDetails output = new BaseClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
             output.setClientSecret("bar");
 
             doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
@@ -355,7 +356,23 @@ class ClientAdminBootstrapTests {
             clientAdminBootstrap.afterPropertiesSet();
             BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
             expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.ALLOW_PUBLIC, true));
-            verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(expectedUpdate, "uaa");
+        }
+
+        @Test
+        void simpleAddClientWithAllowPublicNoClient() {
+            Map<String, Object> map = createClientMap(allowPublicId);
+            BaseClientDetails output = new BaseClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            output.setClientSecret("bar");
+
+            doThrow(new NoSuchClientException(allowPublicId)).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
+            clients.put((String) map.get("id"), map);
+
+            BaseClientDetails expectedAdd = new BaseClientDetails(output);
+
+            clientAdminBootstrap.afterPropertiesSet();
+            BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
+            verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(expectedUpdate, "uaa");
         }
 
         @Test
