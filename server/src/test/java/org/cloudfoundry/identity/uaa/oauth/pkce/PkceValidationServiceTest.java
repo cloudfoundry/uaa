@@ -134,6 +134,17 @@ public class PkceValidationServiceTest {
             validPlainCodeChallengeOrCodeVerifierParameter,client));
     }
 
+    @Test
+    public void testPlainCodeChallengeMethodForPublicUseNotAllowed() throws Exception {
+        ClientDetails client = mock(ClientDetails.class);
+        when(client.getAdditionalInformation()).thenReturn(Map.of("foo", "bar"));
+        authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
+            validPlainCodeChallengeOrCodeVerifierParameter);
+        authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, new PlainPkceVerifier().getCodeChallengeMethod());
+        assertThat(pkceValidationService.checkAndValidate(authorizeRequestParameters,
+            validPlainCodeChallengeOrCodeVerifierParameter,null), is(true));
+    }
+
     private Map<String,PkceVerifier> createPkceVerifiers() {
         S256PkceVerifier s256PkceVerifier = new S256PkceVerifier();
         PlainPkceVerifier plainPkceVerifier = new PlainPkceVerifier();
