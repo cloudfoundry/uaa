@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
@@ -50,7 +52,7 @@ public abstract class UaaUrlUtils {
     }
 
     public static String getUaaHost(IdentityZone currentIdentityZone) {
-        return getURIBuilder("", false, currentIdentityZone).build().getHost();
+        return getURIBuilder(Strings.EMPTY_STRING, false, currentIdentityZone).build().getHost();
     }
 
     private static UriComponentsBuilder getURIBuilder(
@@ -184,12 +186,13 @@ public abstract class UaaUrlUtils {
 
     private static String[] decodeValue(List<String> value) {
         if (value == null) {
-            return null;
+            return Strings.EMPTY_STRING_ARRAY;
         }
         String[] result = new String[value.size()];
         int pos = 0;
         for (String s : value) {
-            result[pos++] = UriUtils.decode(s, "UTF-8");
+            result[pos] = UriUtils.decode(s, "UTF-8");
+            pos++;
         }
         return result;
     }
@@ -215,7 +218,7 @@ public abstract class UaaUrlUtils {
     public static String addFragmentComponent(String urlString, String component) {
         URI uri = URI.create(urlString);
         UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
-        builder.fragment(hasText(uri.getFragment()) ? uri.getFragment() + "&" + component : component);
+        builder.fragment(hasText(uri.getFragment()) ? ( uri.getFragment() + "&" + component ) : component);
         return builder.build().toUriString();
     }
 
@@ -225,7 +228,7 @@ public abstract class UaaUrlUtils {
         }
 
         subdomain = subdomain.trim();
-        subdomain = subdomain.endsWith(".") ? subdomain : subdomain + ".";
+        subdomain = subdomain.endsWith(".") ? subdomain : ( subdomain + "." );
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         builder.host(subdomain + builder.build().getHost());
@@ -235,7 +238,7 @@ public abstract class UaaUrlUtils {
     public static String getSubdomain(String subdomain) {
         if (hasText(subdomain)) {
             subdomain = subdomain.trim();
-            subdomain = subdomain.endsWith(".") ? subdomain : subdomain + ".";
+            subdomain = subdomain.endsWith(".") ? subdomain : ( subdomain + "." );
         }
         return subdomain;
     }
@@ -256,10 +259,10 @@ public abstract class UaaUrlUtils {
         String pathInfo = request.getPathInfo();
 
         if (servletPath == null) {
-            servletPath = "";
+            servletPath = Strings.EMPTY_STRING;
         }
         if (pathInfo == null) {
-            pathInfo = "";
+            pathInfo = Strings.EMPTY_STRING;
         }
 
         return String.format("%s%s", servletPath, pathInfo);
@@ -283,13 +286,18 @@ public abstract class UaaUrlUtils {
         UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri);
         UriComponents nonNormalizedUri = uriComponentsBuilder.build();
 
-        try {
-            uriComponentsBuilder.host(nonNormalizedUri.getHost().toLowerCase());
-            uriComponentsBuilder.scheme(nonNormalizedUri.getScheme().toLowerCase());
-            uriComponentsBuilder.replacePath(decodeUriPath(nonNormalizedUri.getPath()));
-        } catch (NullPointerException e) {
-            throw new IllegalArgumentException("URI host and scheme must not be null");
+        var host = nonNormalizedUri.getHost();
+        if (!hasText(host)) {
+            throw new IllegalArgumentException("URI host must not be null");
         }
+        uriComponentsBuilder.host(host.toLowerCase(Locale.US));
+
+        var schema = nonNormalizedUri.getScheme();
+        if (!hasText(schema)) {
+            throw new IllegalArgumentException("URI scheme must not be null");
+        }
+        uriComponentsBuilder.scheme(schema.toLowerCase(Locale.US));
+        uriComponentsBuilder.replacePath(decodeUriPath(nonNormalizedUri.getPath()));
 
         return uriComponentsBuilder.build().toString();
     }
