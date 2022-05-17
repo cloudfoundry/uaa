@@ -130,7 +130,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
     }
 
     protected boolean evaluateResponse(Authentication authentication, ResponseEntity<Map> response) {
-        String userFromUaa = response.getBody() != null ? (String) response.getBody().get("username") : UaaStringUtils.EMPTY_STRING;
+        String userFromUaa = response.getBody() != null && response.getBody().get("username") != null ? (String) response.getBody().get("username") : UaaStringUtils.EMPTY_STRING;
         return userFromUaa.equals(authentication.getPrincipal().toString());
     }
 
