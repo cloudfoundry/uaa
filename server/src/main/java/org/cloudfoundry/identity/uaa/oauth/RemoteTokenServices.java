@@ -29,6 +29,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -122,9 +123,6 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", getAuthorizationHeader(clientId, clientSecret));
         Map<String, Object> map = postForMap(checkTokenEndpointUrl, formData, headers);
-        if (map == null) {
-            map = Collections.emptyMap();
-        }
 
         if (map.containsKey("error")) {
             logger.debug("check_token returned error: " + map.get("error"));
@@ -228,9 +226,10 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         if (headers.getContentType() == null) {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         }
+        ResponseEntity<Map> response = restTemplate.exchange(path, HttpMethod.POST,
+            new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class);
         @SuppressWarnings("rawtypes")
-        Map map = restTemplate.exchange(path, HttpMethod.POST,
-                        new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class).getBody();
+        Map map = response != null ? response.getBody() : Collections.emptyMap();
         @SuppressWarnings("unchecked")
         Map<String, Object> result = map;
         return result;
