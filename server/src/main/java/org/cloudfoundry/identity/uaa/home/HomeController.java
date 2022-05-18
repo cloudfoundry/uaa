@@ -10,11 +10,16 @@ import org.cloudfoundry.identity.uaa.zone.Links;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.ArrayList;
@@ -113,7 +118,9 @@ public class HomeController {
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
-        model.addAttribute("saml_error", exception.getMessage());
+        if (exception != null) {
+            model.addAttribute("saml_error", exception.getMessage());
+        }
         return "external_auth_error";
     }
 
@@ -126,6 +133,18 @@ public class HomeController {
             model.addAttribute(OAUTH_ERROR, exception);
             request.getSession().removeAttribute(OAUTH_ERROR);
         }
+        return "external_auth_error";
+    }
+
+    @RequestMapping("/rejected")
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String handleRequestRejected(Model model,
+        @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
+        @RequestAttribute(RequestDispatcher.ERROR_REQUEST_URI) String uri) {
+
+        logger.warn("Request with URI [{}] rejected. {}", uri, ex.getMessage());
+        model.addAttribute("oauth_error", "Request from internal firewall rejected");
+
         return "external_auth_error";
     }
 
