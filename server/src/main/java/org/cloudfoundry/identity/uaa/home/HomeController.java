@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -142,7 +144,7 @@ public class HomeController {
         @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
         @RequestAttribute(RequestDispatcher.ERROR_REQUEST_URI) String uri) {
 
-        logger.warn("Request with URI [{}] rejected. {}", uri, ex.getMessage());
+        logger.warn("Request with encoded URI [{}] rejected. {}", URLEncoder.encode(uri, StandardCharsets.UTF_8), ex.getMessage());
         model.addAttribute("oauth_error", "Request from internal firewall rejected");
 
         return "external_auth_error";
