@@ -191,6 +191,9 @@ public abstract class UaaUrlUtils {
         String[] result = new String[value.size()];
         int pos = 0;
         for (String s : value) {
+            if (s == null) {
+                return Strings.EMPTY_STRING_ARRAY;
+            }
             result[pos] = UriUtils.decode(s, "UTF-8");
             pos++;
         }
