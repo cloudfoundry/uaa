@@ -202,7 +202,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         final var createdClientDetails = createClientDetailsInternal(client);
         if (client.getSecondaryClientSecret() != null) {
             clientDetailsValidator.getClientSecretValidator().validate(client.getSecondaryClientSecret());
-            clientRegistrationService.addClientSecret(createdClientDetails.getClientId(),
+            clientRegistrationService.addClientSecret(createdClientDetails != null ? createdClientDetails.getClientId() : client.getClientId(),
                     client.getSecondaryClientSecret(), IdentityZoneHolder.get().getId());
         }
         return createdClientDetails;

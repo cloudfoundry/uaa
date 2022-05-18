@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -97,6 +98,9 @@ public class SocialClientUserDetailsSource implements InitializingBean, PreAuthe
     public Authentication getPrincipal() {
         @SuppressWarnings("unchecked")
         Map<String, String> map = restTemplate.getForObject(userInfoUrl, Map.class);
+        if (map == null) {
+            map = Collections.emptyMap();
+        }
         String userName = getUserName(map);
         String email = null;
         if (map.containsKey("email")) {

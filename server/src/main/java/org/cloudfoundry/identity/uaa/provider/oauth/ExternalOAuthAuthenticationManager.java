@@ -692,7 +692,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                           }
                 );
         logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-        return responseEntity.getBody().get(getTokenFieldName(config));
+        return responseEntity.getBody() != null ? responseEntity.getBody().get(getTokenFieldName(config)) : UaaStringUtils.EMPTY_STRING;
     }
 
     private String getSessionValue(String value) {
@@ -712,7 +712,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     private String getTokenFieldName(AbstractExternalOAuthIdentityProviderDefinition config) {
         String responseType = getResponseType(config);
-        if (responseType == "code" || responseType == "token") {
+        if ("code".equals(responseType) || "token".equals(responseType)) {
             return "access_token"; // Oauth 2.0
         }
         return responseType;
