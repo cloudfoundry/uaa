@@ -127,6 +127,16 @@ class UaaUrlUtilsTest {
     }
 
     @Test
+    void getParameterMapFromInvalidQueryString() {
+        String url = "http://localhost:8080/uaa/oauth/authorize?client_id&response_type=code&redirect_uri=&=value";
+        Map<String, String[]> map = UaaUrlUtils.getParameterMap(url);
+        assertNotNull(map);
+        assertEquals("code", map.get("response_type")[0]);
+        assertEquals("", map.get("redirect_uri")[0]);
+        assertEquals(Strings.EMPTY_STRING_ARRAY, map.get("client_id"));
+    }
+
+    @Test
     void getUaaUrl() {
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, IdentityZone.getUaa()));
     }
