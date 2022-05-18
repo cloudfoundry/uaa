@@ -226,12 +226,13 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         if (headers.getContentType() == null) {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         }
+        @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = restTemplate.exchange(path, HttpMethod.POST,
             new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class);
         @SuppressWarnings("rawtypes")
-        Map map = response != null ? response.getBody() : Collections.emptyMap();
+        Map map = response != null && response.getBody() != null ? response.getBody() : Collections.emptyMap();
         @SuppressWarnings("unchecked")
-        Map<String, Object> result = map;
+        Map<String, Object> result = map != null ? map : Collections.emptyMap();
         return result;
     }
 

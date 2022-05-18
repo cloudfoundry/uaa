@@ -15,6 +15,8 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.web.authentication.session.SessionAuthenticationException;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,6 +24,8 @@ import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -136,4 +140,15 @@ public class UaaAuthorizationEndpointParamaterizedTest {
         uaaAuthorizationEndpoint.commence(request, response, authException);
     }
 
+    @Test
+    public void test_authorization_exception() throws Exception {
+        RedirectMismatchException redirectMismatchException = new RedirectMismatchException("error");
+        ServletWebRequest servletWebRequest = mock(ServletWebRequest.class);
+        MockHttpServletResponse mockHttpServletResponse = new MockHttpServletResponse();
+        when(servletWebRequest.getResponse()).thenReturn(mockHttpServletResponse);
+        ModelAndView modelAndView = uaaAuthorizationEndpoint.handleOAuth2Exception(redirectMismatchException, servletWebRequest);
+        assertNotNull(modelAndView);
+        assertFalse(modelAndView.getModelMap().isEmpty());
+        assertEquals("forward:/oauth/error", modelAndView.getViewName());
+    }
 }
