@@ -16,7 +16,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.WebAttributes;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
@@ -145,7 +147,7 @@ class HomeControllerViewTests extends TestClassNullifier {
             "/saml_error"
     })
     void errorBranding(final String errorUrl) throws Exception {
-        mockMvc.perform(get(errorUrl))
+        mockMvc.perform(get(errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));

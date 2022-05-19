@@ -33,6 +33,9 @@ import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class HomeController {
+
+    private static final String EXTERNAL_AUTH_ERROR = "external_auth_error";
+    private static final String ERROR = "error";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final JdbcClientMetadataProvisioning clientMetadataProvisioning;
     private final Links globalLinks;
@@ -108,22 +111,20 @@ public class HomeController {
         logger.error("Internal error", (Throwable) request.getAttribute("javax.servlet.error.exception"));
 
         populateBuildAndLinkInfo(model);
-        return "error";
+        return ERROR;
     }
 
     @RequestMapping({"/error", "/error**"})
     public String errorGeneric(Model model) {
         populateBuildAndLinkInfo(model);
-        return "error";
+        return ERROR;
     }
 
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
-        if (exception != null) {
-            model.addAttribute("saml_error", exception.getMessage());
-        }
-        return "external_auth_error";
+        model.addAttribute("saml_error", exception.getMessage());
+        return EXTERNAL_AUTH_ERROR;
     }
 
     @RequestMapping("/oauth_error")
@@ -135,7 +136,7 @@ public class HomeController {
             model.addAttribute(OAUTH_ERROR, exception);
             request.getSession().removeAttribute(OAUTH_ERROR);
         }
-        return "external_auth_error";
+        return EXTERNAL_AUTH_ERROR;
     }
 
     @RequestMapping("/rejected")
@@ -147,7 +148,7 @@ public class HomeController {
         logger.warn("Request with encoded URI [{}] rejected. {}", URLEncoder.encode(uri, StandardCharsets.UTF_8), ex.getMessage());
         model.addAttribute("oauth_error", "Request from internal firewall rejected");
 
-        return "external_auth_error";
+        return EXTERNAL_AUTH_ERROR;
     }
 
     private static class TileData {
