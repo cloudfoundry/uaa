@@ -26,6 +26,6 @@ dependencies {
         exclude(module: "spring-aop")
     }
 
-    testImplementation(identityServer.configurations.testCompile.dependencies)
+    testImplementation(identityServer.configurations.testImplementation.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
 }
