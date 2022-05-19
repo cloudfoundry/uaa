@@ -41,7 +41,18 @@ public class ErrorRoutingIT {
         CallErrorPageAndCheckHttpStatusCode("/error404", 200);
         CallErrorPageAndCheckHttpStatusCode("/error500", 200);
         CallErrorPageAndCheckHttpStatusCode("/errorAny", 200);
+        CallErrorPageAndCheckHttpStatusCode("/rejected", 200);
 
+    }
+
+    @Test
+    public void testRequestRejectedExceptionErrorPage() throws IOException {
+        final String rejectedEndpoint = "/login;endpoint=x"; // spring securiy throws RequestRejectedException and by default status 500, but now 400
+        webDriver.get(baseUrl + rejectedEndpoint);
+
+        Assert.assertTrue("Check if on the error page", webDriver.findElement(By.tagName("h2")).getText().contains("Request from internal firewall rejected"));
+
+        CallErrorPageAndCheckHttpStatusCode(rejectedEndpoint, 400);
     }
 
     private void CallErrorPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {
