@@ -46,6 +46,8 @@ public final class UaaStringUtils {
     private static final Pattern CAML_PATTERN = Pattern.compile("([a-z])([A-Z])");
     private static final Pattern CTRL_PATTERN = Pattern.compile("[\n\r\t]");
 
+    public static final String EMPTY_STRING = "";
+
     private UaaStringUtils() {
     }
 
