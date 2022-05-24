@@ -185,12 +185,11 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }
 
-                String passcode = expiringCodeAuthentication.getPasscode();
-                if (StringUtils.isEmpty(passcode)) {
+                if (StringUtils.isEmpty(expiringCodeAuthentication.getPasscode())) {
                     throw new InsufficientAuthenticationException("Passcode information is missing.");
                 }
 
-                ExpiringCode eCode = doRetrieveCode(passcode);
+                ExpiringCode eCode = doRetrieveCode(expiringCodeAuthentication.getPasscode());
                 PasscodeInformation pi = null;
                 if (eCode != null && eCode.getData() != null) {
                     try {

@@ -316,7 +316,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     // Checks the existing password for a user
-    public boolean checkPasswordMatches(String id, String password, String zoneId) {
+    public boolean checkPasswordMatches(String id, CharSequence password, String zoneId) {
         String currentPassword;
         try {
             currentPassword =
