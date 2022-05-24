@@ -145,8 +145,8 @@ public class HomeController {
         @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
         @RequestAttribute(RequestDispatcher.ERROR_REQUEST_URI) String uri) {
 
-        logger.warn("Request with encoded URI [{}] rejected. {}", URLEncoder.encode(uri, StandardCharsets.UTF_8), ex.getMessage());
-        model.addAttribute("oauth_error", "Request from internal firewall rejected");
+        logger.error("Request with encoded URI [{}] rejected. {}", URLEncoder.encode(uri, StandardCharsets.UTF_8), ex.getMessage());
+        model.addAttribute("oauth_error", "The request was rejected because it contained a potentially malicious character.");
 
         return EXTERNAL_AUTH_ERROR;
     }

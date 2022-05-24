@@ -50,7 +50,7 @@ public class ErrorRoutingIT {
         final String rejectedEndpoint = "/login;endpoint=x"; // spring securiy throws RequestRejectedException and by default status 500, but now 400
         webDriver.get(baseUrl + rejectedEndpoint);
 
-        Assert.assertTrue("Check if on the error page", webDriver.findElement(By.tagName("h2")).getText().contains("Request from internal firewall rejected"));
+        Assert.assertTrue("Check if on the error page", webDriver.findElement(By.tagName("h2")).getText().contains("The request was rejected because it contained a potentially malicious character."));
 
         CallErrorPageAndCheckHttpStatusCode(rejectedEndpoint, 400);
     }
