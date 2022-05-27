@@ -74,6 +74,14 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
+    public void noPasswordCastException() {
+        LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
+        definition.getBindPassword();
+        definition.setBindPassword("value");
+        definition.getBindPassword();
+    }
+
+    @Test
     public void test_tls_options() {
         ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
         ldapIdentityProviderDefinition.setTlsConfiguration(LDAP_TLS_NONE);

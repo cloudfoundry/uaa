@@ -123,7 +123,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return loginHintToUse;
     }
 
-    private Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
+    Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
         String clientId = config.getRelyingPartyId();
