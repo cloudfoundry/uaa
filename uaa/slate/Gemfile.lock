@@ -94,7 +94,7 @@ GEM
     parallel (1.10.0)
     public_suffix (4.0.6)
     racc (1.6.0)
-    rack (2.0.8)
+    rack (2.2.3.1)
     rb-fsevent (0.9.8)
     rb-inotify (0.9.8)
       ffi (>= 0.5.0)
@@ -127,6 +127,7 @@ DEPENDENCIES
   middleman-sprockets (~> 4.1.1)
   middleman-syntax (~> 3.0.0)
   nokogiri (~> 1.13.6)
+  rack (~> 2.2.3.1)
   redcarpet (~> 3.5.1)
   rouge (~> 2.0.5)
   therubyracer
