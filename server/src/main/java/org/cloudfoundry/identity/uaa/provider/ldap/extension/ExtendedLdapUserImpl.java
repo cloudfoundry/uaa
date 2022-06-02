@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
+import org.cloudfoundry.identity.uaa.authentication.NonStringPassword;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -32,7 +33,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private String phoneNumberAttributeName;
     private String emailVerifiedAttributeName;
     private String dn;
-    private String password;
+    private NonStringPassword password = new NonStringPassword(null);
     private String username;
     private Collection<? extends GrantedAuthority> authorities = AuthorityUtils.NO_AUTHORITIES;
     private boolean accountNonExpired = true;
@@ -101,11 +102,11 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public String getPassword() {
-        return password;
+        return password.getPassword();
     }
 
     public void setPassword(String password) {
-        this.password = password;
+        this.password = new NonStringPassword(password);
     }
 
     public String getUsername() {

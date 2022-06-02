@@ -42,6 +42,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URL;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
@@ -122,7 +123,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return loginHintToUse;
     }
 
-    private Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
+    Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
         String clientId = config.getRelyingPartyId();
@@ -131,10 +132,10 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartyId or relyingPartySecret.");
         }
         String userName = authentication.getPrincipal() instanceof String ? (String)authentication.getPrincipal() : null;
-        String password = authentication.getCredentials() instanceof String ? (String)authentication.getCredentials() : null;
-        if (userName == null || password == null) {
+        if (userName == null || authentication.getCredentials() == null || !(authentication.getCredentials() instanceof String)) {
             throw new BadCredentialsException("Request is missing username or password.");
         }
+        Supplier<String> passProvider = () -> (String) authentication.getCredentials();
         RestTemplate rt;
         if (config.isSkipSslValidation()) {
             rt = restTemplateConfig.trustingRestTemplate();
@@ -157,7 +158,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         params.add("grant_type", GRANT_TYPE_PASSWORD);
         params.add("response_type","id_token");
         params.add("username", userName);
-        params.add("password", password);
+        params.add("password", passProvider.get());
 
         List<Prompt> prompts = config.getPrompts();
         List<String> promptsToInclude = new ArrayList<>();
