@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.*;
 import org.cloudfoundry.identity.uaa.util.TimeBasedExpiringValueMap;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -147,7 +148,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (exists(groupId, member.getMemberId(), zoneId)) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
         }
-        logger.debug("Associating group:" + groupId + " with member:" + member);
+        logger.debug("Associating group:{} with member:{}",
+            UaaStringUtils.getCleanedUserControlString(groupId),
+            UaaStringUtils.getCleanedUserControlString(member.toString()));
         jdbcTemplate.update(ADD_MEMBER_SQL, ps -> {
             ps.setString(1, groupId);
             ps.setString(2, member.getMemberId());
@@ -278,7 +281,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     public List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members, String zoneId)
             throws ScimResourceNotFoundException {
         List<ScimGroupMember> currentMembers = getMembers(groupId, false, zoneId);
-        logger.debug("current-members: " + currentMembers + ", in request: " + members);
+        logger.debug("current-members: {}, in request: {}",
+            UaaStringUtils.getCleanedUserControlString(currentMembers.toString()),
+            UaaStringUtils.getCleanedUserControlString(members.toString()));
 
         List<ScimGroupMember> currentMembersToRemove = new ArrayList<>(currentMembers);
         currentMembersToRemove.removeAll(members);

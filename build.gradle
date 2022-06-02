@@ -8,7 +8,6 @@ buildscript {
 
     repositories {
         mavenCentral()
-        jcenter()
         maven {
             url("https://plugins.gradle.org/m2/")
         }
@@ -24,6 +23,8 @@ buildscript {
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
         classpath(libraries.testRetryPlugin)
+        classpath(libraries.gradleJcocoPlugin)
+        classpath(libraries.sonarqubePlugin)
     }
 
     allprojects {
@@ -44,9 +45,10 @@ apply(plugin: "com.bmuschko.cargo")
 
 allprojects {
     apply(plugin: "propdeps")
-    apply(plugin: "propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
     apply(plugin: "org.gradle.test-retry")
+    apply(plugin: "org.barfuin.gradle.jacocolog")
+    apply(plugin: "org.sonarqube")
 
     dependencyManagement {
         imports {
@@ -125,7 +127,7 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "true"));
+            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "false"));
             maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
             maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
         }
@@ -251,6 +253,16 @@ cargo {
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "cloudfoundry-identity-parent"
+        property "sonar.organization", "cloudfoundry-1"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.exclusions", "samples/**/*.*,**/*Test.java,**/*Tests.java,**/*IT.java"
+        property "sonar.java.source", JavaVersion.current()
     }
 }
 

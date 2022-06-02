@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -182,7 +183,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
-        logger.debug("Creating new user: " + user.getUserName());
+        logger.debug("Creating new user: {}", UaaStringUtils.getCleanedUserControlString(user.getUserName()));
 
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = zoneId;

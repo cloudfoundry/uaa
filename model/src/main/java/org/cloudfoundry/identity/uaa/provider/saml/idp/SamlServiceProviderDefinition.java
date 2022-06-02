@@ -15,11 +15,11 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
@@ -107,9 +107,7 @@ public class SamlServiceProviderDefinition {
             throw new IllegalArgumentException("Invalid metadata XML contents:"+xml);
         }
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setExpandEntityReferences(false);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = ObjectUtils.getDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException e) {
             throw new IllegalArgumentException("Unable to create document parser.", e);

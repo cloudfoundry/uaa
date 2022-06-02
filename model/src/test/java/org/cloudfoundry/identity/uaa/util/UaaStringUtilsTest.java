@@ -1,21 +1,26 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.security.core.GrantedAuthority;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(PollutionPreventionExtension.class)
 class UaaStringUtilsTest {
 
     private Map<String, Object> map;
@@ -30,6 +35,7 @@ class UaaStringUtilsTest {
         map.put("password", "password");
         map.put("signing-key", "signing-key");
         map.put("secret", "secret");
+        map.put("serviceproviderkey", "key");
 
         properties = new Properties();
         for (String key : map.keySet()) {
@@ -55,7 +61,7 @@ class UaaStringUtilsTest {
     @Test
     void replace_zone_variables() {
         replaceZoneVariables(IdentityZone.getUaa());
-        IdentityZone zone = MultitenancyFixture.identityZone("otherId", "otherDomain");
+        IdentityZone zone = ModelTestUtils.identityZone("otherId", "otherDomain");
         replaceZoneVariables(zone);
     }
 
@@ -78,7 +84,19 @@ class UaaStringUtilsTest {
         Map<String, ?> result = UaaStringUtils.hidePasswords(map);
         checkPasswords(result);
 
+        map.put("fail", "reason");
+        result = UaaStringUtils.hidePasswords(map);
+        assertThat(map, hasEntry("fail", "reason"));
+        result.remove("fail");
+        checkPasswords(result);
+
         Properties presult = UaaStringUtils.hidePasswords(properties);
+        checkPasswords(new HashMap(presult));
+
+        properties.put("fail", "reason");
+        presult = UaaStringUtils.hidePasswords(properties);
+        assertThat(presult, hasEntry("fail", "reason"));
+        presult.remove("fail");
         checkPasswords(new HashMap(presult));
     }
 
@@ -106,6 +124,13 @@ class UaaStringUtilsTest {
         assertFalse(UaaStringUtils.containsWildcard("space.developer"));
         assertTrue(UaaStringUtils.containsWildcard("space.*.*.developer"));
         assertTrue(UaaStringUtils.containsWildcard("*"));
+        assertFalse(UaaStringUtils.containsWildcard(null));
+    }
+
+    @Test
+    void constructWildcards() {
+        assertEquals(Set.of(), UaaStringUtils.constructWildcards(Collections.EMPTY_LIST));
+        assertFalse(UaaStringUtils.constructWildcards(Collections.singletonList("any")).contains("any"));
     }
 
     @Test
@@ -226,6 +251,7 @@ class UaaStringUtilsTest {
         String a = UaaStringUtils.convertISO8859_1_to_UTF_8(s);
         assertEquals(s, a);
         assertEquals('\u0000', a.toCharArray()[1]);
+        assertNull(UaaStringUtils.convertISO8859_1_to_UTF_8(null));
     }
 
     @Test
@@ -339,6 +365,41 @@ class UaaStringUtilsTest {
         assertEquals("Y1sPgF\\\"Yj4xYZ\\\"", UaaStringUtils.toJsonString("Y1sPgF\"Yj4xYZ\""));
         assertNull(UaaStringUtils.toJsonString(null));
         assertEquals("", UaaStringUtils.toJsonString(""));
+    }
+
+    @Test
+    void testGetAuthoritiesFromStrings() {
+        List<? extends GrantedAuthority> authorities = UaaStringUtils.getAuthoritiesFromStrings(null);
+        assertEquals(Collections.EMPTY_LIST, authorities);
+        assertEquals(0, UaaStringUtils.getStringsFromAuthorities(null).size());
+        authorities = UaaStringUtils.getAuthoritiesFromStrings(Collections.singletonList("uaa.user"));
+        assertEquals(Set.of("uaa.user"), UaaStringUtils.getStringsFromAuthorities(authorities));
+    }
+
+    @Test
+    void getCleanedUserControlString() {
+        assertNull(UaaStringUtils.getCleanedUserControlString(null));
+        assertEquals("test_test", UaaStringUtils.getCleanedUserControlString("test\rtest"));
+    }
+
+    @Test
+    void getHostIfArgIsURL() {
+        assertEquals("string", UaaStringUtils.getHostIfArgIsURL("string"));
+        assertEquals("host", UaaStringUtils.getHostIfArgIsURL("http://host/path"));
+    }
+
+    @Test
+    void containsIgnoreCase() {
+        assertTrue(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "one"));
+        assertFalse(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "any"));
+    }
+
+    @Test
+    void getMapFromProperties() {
+        Properties properties = new Properties();
+        properties.put("pre.key", "value");
+        Map<String, ?> objectMap = UaaStringUtils.getMapFromProperties(properties, "pre.");
+        assertThat(objectMap, hasEntry("key", "value"));
     }
 
     private static void replaceZoneVariables(IdentityZone zone) {

@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -517,7 +518,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
-            logger.debug("Validating signed_request: " + idToken);
+            logger.debug("Validating signed_request: {}", UaaStringUtils.getCleanedUserControlString(idToken));
             //split request into signature and data
             String[] signedRequests = idToken.split("\\.", 2);
             //parse signature
@@ -691,7 +692,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                           }
                 );
         logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
-        return responseEntity.getBody().get(getTokenFieldName(config));
+        return responseEntity.getBody() != null ? responseEntity.getBody().get(getTokenFieldName(config)) : UaaStringUtils.EMPTY_STRING;
     }
 
     private String getSessionValue(String value) {
@@ -711,7 +712,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     private String getTokenFieldName(AbstractExternalOAuthIdentityProviderDefinition config) {
         String responseType = getResponseType(config);
-        if (responseType == "code" || responseType == "token") {
+        if ("code".equals(responseType) || "token".equals(responseType)) {
             return "access_token"; // Oauth 2.0
         }
         return responseType;

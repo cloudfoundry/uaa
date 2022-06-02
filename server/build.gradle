@@ -22,6 +22,9 @@ dependencies {
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityJwt)
     implementation(libraries.springSecurityWeb)
+    implementation(libraries.spingSamlEsapiDependencyVersion) {
+        transitive = false
+    }
     implementation(libraries.springSecuritySaml) {
         exclude(module: "bcprov-ext-jdk15on")
     }
@@ -116,6 +119,8 @@ dependencies {
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
 }
 
 jar {

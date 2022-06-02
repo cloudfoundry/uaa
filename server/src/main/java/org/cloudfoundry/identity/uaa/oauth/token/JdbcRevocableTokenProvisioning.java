@@ -77,7 +77,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
             checkExpired();
         }
         RevocableToken result = template.queryForObject(GET_QUERY, rowMapper, id, zoneId);
-        if (checkExpired && result.getExpiresAt() < timeService.getCurrentTimeMillis()) {
+        if (checkExpired && result != null && result.getExpiresAt() < timeService.getCurrentTimeMillis()) {
             delete(id, 0, zoneId);
             throw new EmptyResultDataAccessException("Token expired.", 1);
         }

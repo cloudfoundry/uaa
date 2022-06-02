@@ -51,7 +51,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     private TimeService timeService;
 
     private AtomicLong lastExpired = new AtomicLong();
-    private long expirationInterval = 60 * 1000; // once a minute
+    private long expirationInterval = 60 * 1_000L; // once a minute
 
     public long getExpirationInterval() {
         return expirationInterval;
@@ -121,7 +121,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
         try {
             ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code, zoneId);
-            if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
+            if (expiringCode != null && expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
             }
             return expiringCode;
@@ -143,7 +143,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             if (expiringCode != null) {
                 jdbcTemplate.update(delete, code, zoneId);
             }
-            if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
+            if (expiringCode != null && expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
             }
             return expiringCode;
