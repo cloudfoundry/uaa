@@ -33,7 +33,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @SuppressWarnings("ALL")
 public class IdentityProviderConfigValidationDelegatorTest {
@@ -74,8 +74,8 @@ public class IdentityProviderConfigValidationDelegatorTest {
         provider.setOriginKey(UAA);
         validator.validate(provider);
         verify(uaaValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(xoauthValidator);
-        verifyZeroInteractions(ldapValidator);
+        verifyNoMoreInteractions(xoauthValidator);
+        verifyNoMoreInteractions(ldapValidator);
     }
 
     @Test
@@ -84,8 +84,8 @@ public class IdentityProviderConfigValidationDelegatorTest {
         provider.setOriginKey(LDAP);
         validator.validate(provider);
         verify(ldapValidator, times(1)).validate(same(provider));
-        verifyZeroInteractions(uaaValidator);
-        verifyZeroInteractions(xoauthValidator);
+        verifyNoMoreInteractions(uaaValidator);
+        verifyNoMoreInteractions(xoauthValidator);
     }
 
     @Test
@@ -95,8 +95,8 @@ public class IdentityProviderConfigValidationDelegatorTest {
             provider.setOriginKey("any");
             validator.validate(provider);
             verify(xoauthValidator, times(1)).validate(same(provider));
-            verifyZeroInteractions(uaaValidator);
-            verifyZeroInteractions(ldapValidator);
+            verifyNoMoreInteractions(uaaValidator);
+            verifyNoMoreInteractions(ldapValidator);
             Mockito.reset(xoauthValidator);
         }
     }

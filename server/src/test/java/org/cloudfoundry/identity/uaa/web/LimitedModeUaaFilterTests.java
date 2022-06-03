@@ -42,7 +42,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
@@ -97,7 +97,7 @@ public class LimitedModeUaaFilterTests {
         request.setMethod(POST.name());
         filter.setStatusFile(statusFile);
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(chain);
+        verifyNoMoreInteractions(chain);
         assertEquals(SC_SERVICE_UNAVAILABLE, response.getStatus());
     }
 
@@ -133,7 +133,7 @@ public class LimitedModeUaaFilterTests {
             setPathInfo(pathInfo);
             reset(chain);
             filter.doFilterInternal(request, response, chain);
-            verifyZeroInteractions(chain);
+            verifyNoMoreInteractions(chain);
             assertEquals(SC_SERVICE_UNAVAILABLE, response.getStatus());
         }
     }

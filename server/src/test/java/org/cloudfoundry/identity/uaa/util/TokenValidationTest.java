@@ -590,7 +590,7 @@ public class TokenValidationTest {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
                 .checkRevocableTokenStore(revocableTokenProvisioning);
 
-        verifyZeroInteractions(revocableTokenProvisioning);
+        verifyNoMoreInteractions(revocableTokenProvisioning);
     }
 
     @Test

@@ -95,7 +95,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
 
         assertEquals(HttpServletResponse.SC_NOT_FOUND, response.getStatus());
         assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
-        Mockito.verifyZeroInteractions(chain);
+        Mockito.verifyNoMoreInteractions(chain);
     }
 
     private void assertFindsCorrectSubdomain(final String subDomainInput, final String incomingHostname, String... additionalInternalHostnames) throws ServletException, IOException {
@@ -152,7 +152,7 @@ public class IdentityZoneResolvingFilterTests extends JdbcTestBase {
         filter.doFilter(request, response, chain);
         assertEquals(HttpServletResponse.SC_NOT_FOUND, response.getStatus());
         assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
-        Mockito.verifyZeroInteractions(chain);
+        Mockito.verifyNoMoreInteractions(chain);
     }
 
     @Test

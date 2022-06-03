@@ -53,7 +53,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
@@ -126,8 +126,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
-        verifyZeroInteractions(samlAuthFilter);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(samlAuthFilter);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
     }
 
 
@@ -138,8 +138,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(samlAuthFilter, times(1)).attemptAuthentication(same(request), same(response));
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(passwordAuthManager);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
     }
 
     @Test
@@ -147,9 +147,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verifyZeroInteractions(xoAuthAuthenticationManager);
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(passwordAuthManager);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
         ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());
@@ -167,8 +167,8 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         ArgumentCaptor<XOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(XOAuthCodeToken.class);
         verify(xoAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(passwordAuthManager);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
         assertEquals(idToken, authenticateData.getValue().getIdToken());
         assertNull(authenticateData.getValue().getOrigin());
     }
@@ -178,9 +178,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verifyZeroInteractions(xoAuthAuthenticationManager);
-        verifyZeroInteractions(passwordAuthManager);
-        verifyZeroInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
+        verifyNoMoreInteractions(passwordAuthManager);
+        verifyNoMoreInteractions(xoAuthAuthenticationManager);
         ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
         assertNotNull(exceptionArgumentCaptor.getValue());

@@ -162,7 +162,7 @@ class ChangeEmailControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile?error_message_code=email_change.non-uaa-origin"));
 
-        Mockito.verifyZeroInteractions(changeEmailService);
+        Mockito.verifyNoMoreInteractions(changeEmailService);
     }
 
     @Test

@@ -101,7 +101,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @WithSpring
@@ -674,7 +674,7 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
-        verifyZeroInteractions(mockgroupMembershipManager);
+        verifyNoMoreInteractions(mockgroupMembershipManager);
     }
 
     @Test
@@ -701,7 +701,7 @@ class ScimUserEndpointsTests {
         scimUserEndpoints.setApprovalStore(mockApprovalStore);
 
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
-        verifyZeroInteractions(mockApprovalStore);
+        verifyNoMoreInteractions(mockApprovalStore);
     }
 
     @Test

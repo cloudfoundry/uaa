@@ -80,7 +80,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
@@ -187,9 +187,9 @@ public class StatelessMfaAuthenticationFilterTests {
     public void non_password_grants_ignored() throws Exception {
         request.setParameter(GRANT_TYPE, "other-than-password");
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(googleAuthenticator);
+        verifyNoMoreInteractions(googleAuthenticator);
         verify(chain).doFilter(same(request), same(response));
-        verifyZeroInteractions(publisher);
+        verifyNoMoreInteractions(publisher);
     }
 
     @Test
@@ -204,8 +204,8 @@ public class StatelessMfaAuthenticationFilterTests {
         try {
             filter.checkMfaCode(request);
         } catch (Exception e) {
-            verifyZeroInteractions(chain);
-            verifyZeroInteractions(googleAuthenticator);
+            verifyNoMoreInteractions(chain);
+            verifyNoMoreInteractions(googleAuthenticator);
             throw e;
         }
     }
@@ -282,7 +282,7 @@ public class StatelessMfaAuthenticationFilterTests {
         try {
             filter.checkMfaCode(request);
         } catch (Exception x) {
-            verifyZeroInteractions(chain);
+            verifyNoMoreInteractions(chain);
             throw x;
         }
     }
@@ -313,10 +313,10 @@ public class StatelessMfaAuthenticationFilterTests {
     public void no_mfa_configured() throws Exception {
         zone.getConfig().getMfaConfig().setEnabled(false);
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(googleAuthenticator);
-        verifyZeroInteractions(mfaProvider);
+        verifyNoMoreInteractions(googleAuthenticator);
+        verifyNoMoreInteractions(mfaProvider);
         verify(chain).doFilter(same(request), same(response));
-        verifyZeroInteractions(publisher);
+        verifyNoMoreInteractions(publisher);
     }
 
 

@@ -63,7 +63,7 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class TotpMfaEndpointTest {
@@ -248,7 +248,7 @@ public class TotpMfaEndpointTest {
         );
 
         assertEquals("mfa/enter_code", returnView.getViewName());
-        verifyZeroInteractions(sessionStatus);
+        verifyNoMoreInteractions(sessionStatus);
         verifyMfaEvent(MfaAuthenticationFailureEvent.class);
     }
 
@@ -275,7 +275,7 @@ public class TotpMfaEndpointTest {
           sessionStatus
         );
 
-        verifyZeroInteractions(sessionStatus);
+        verifyNoMoreInteractions(sessionStatus);
         verifyMfaEvent(MfaAuthenticationFailureEvent.class);
     }
 
@@ -297,7 +297,7 @@ public class TotpMfaEndpointTest {
         );
 
         assertEquals("mfa/enter_code", returnView.getViewName());
-        verifyZeroInteractions(sessionStatus);
+        verifyNoMoreInteractions(sessionStatus);
         verifyMfaEvent(MfaAuthenticationFailureEvent.class);
     }
 
@@ -316,7 +316,7 @@ public class TotpMfaEndpointTest {
             sessionStatus
         );
         assertEquals("mfa/enter_code", returnView.getViewName());
-        verifyZeroInteractions(sessionStatus);
+        verifyNoMoreInteractions(sessionStatus);
         verifyMfaEvent(MfaAuthenticationFailureEvent.class);
     }
 
@@ -335,7 +335,7 @@ public class TotpMfaEndpointTest {
             sessionStatus
         );
         assertEquals("mfa/enter_code", returnView.getViewName());
-        verifyZeroInteractions(sessionStatus);
+        verifyNoMoreInteractions(sessionStatus);
         verifyMfaEvent(MfaAuthenticationFailureEvent.class);
     }
 
