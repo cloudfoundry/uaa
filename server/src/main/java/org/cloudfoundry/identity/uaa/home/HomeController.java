@@ -1,9 +1,24 @@
 package org.cloudfoundry.identity.uaa.home;
 
+import static java.util.Objects.nonNull;
+import static org.springframework.util.StringUtils.hasText;
+
+import javax.servlet.RequestDispatcher;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
@@ -13,28 +28,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
 
-import static java.util.Objects.nonNull;
-import static org.springframework.util.StringUtils.hasText;
-
+@SuppressWarnings("SpringMVCViewInspection")
 @Controller
 public class HomeController {
 
@@ -56,26 +64,26 @@ public class HomeController {
     }
 
     private void populateBuildAndLinkInfo(Model model) {
-        Map<String, Object> attributes = new HashMap<>();
-        model.addAllAttributes(attributes);
+        model.addAllAttributes( new HashMap<>() );
     }
 
     @RequestMapping(value = {"/", "/home"})
     public String home(Model model, Principal principal) {
-        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        IdentityZone identityZone = getIdentityZone();
+        IdentityZoneConfiguration config = identityZone.getConfig();
         String homePage =
                 config != null && config.getLinks().getHomeRedirect() != null ? config.getLinks().getHomeRedirect() :
                         globalLinks != null && globalLinks.getHomeRedirect() != null ?
                                 globalLinks.getHomeRedirect() : null;
         if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
-            homePage = UaaStringUtils.replaceZoneVariables(homePage, IdentityZoneHolder.get());
+            homePage = UaaStringUtils.replaceZoneVariables( homePage, identityZone );
             return "redirect:" + homePage;
         }
 
         model.addAttribute("principal", principal);
 
         List<TileData> tiles = new ArrayList<>();
-        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
+        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll( identityZone.getId());
 
         clientMetadataList.stream()
                 .filter(this::shouldShowClient)
@@ -98,12 +106,12 @@ public class HomeController {
             clientName = clientMetadata.getClientId();
         }
 
-        return new TileData(
-                clientMetadata.getClientId(),
-                clientMetadata.getAppLaunchUrl().toString(),
-                "data:image/png;base64," + clientMetadata.getAppIcon(),
-                clientName
-        );
+        return TileData.builder()
+                .clientId( clientMetadata.getClientId() )
+                .appLaunchUrl( clientMetadata.getAppLaunchUrl().toString() )
+                .appIcon( "data:image/png;base64," + clientMetadata.getAppIcon() )
+                .clientName( clientName )
+                .build();
     }
 
     private boolean shouldShowClient(ClientMetadata clientMetadata) {
@@ -126,6 +134,18 @@ public class HomeController {
 
         populateBuildAndLinkInfo(model);
         return ERROR;
+    }
+
+    @RequestMapping(path = "/error429", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    @ResponseBody
+    public String error429Json() {
+        return "{\"error\": \"Too Many Requests\"}";
+    }
+
+    @RequestMapping("/error429")
+    public String error429() {
+        return "error429";
     }
 
     @RequestMapping({"/error", "/error**"})
@@ -168,33 +188,18 @@ public class HomeController {
         return EXTERNAL_AUTH_ERROR;
     }
 
+    @SuppressWarnings("deprecation")
+    private static IdentityZone getIdentityZone() {
+        return IdentityZoneHolder.get();
+    }
+
+    @Getter
+    @AllArgsConstructor
+    @Builder
     private static class TileData {
-        private String appLaunchUrl;
-        private String appIcon;
-        private String clientId;
-        private String clientName;
-
-        private TileData(String clientId, String appLaunchUrl, String appIcon, String clientName) {
-            this.appLaunchUrl = appLaunchUrl;
-            this.appIcon = appIcon;
-            this.clientId = clientId;
-            this.clientName = clientName;
-        }
-
-        public String getClientId() {
-            return clientId;
-        }
-
-        public String getAppIcon() {
-            return appIcon;
-        }
-
-        public String getAppLaunchUrl() {
-            return appLaunchUrl;
-        }
-
-        public String getClientName() {
-            return clientName;
-        }
+        private final String clientId;
+        private final String appLaunchUrl;
+        private final String appIcon;
+        private final String clientName;
     }
 }

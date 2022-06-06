@@ -1,0 +1,172 @@
+package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+
+import org.cloudfoundry.identity.uaa.ratelimiting.AbstractExceptionTestSupport;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByType;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactory;
+import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
+
+@SuppressWarnings("SameParameterValue")
+public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionTestSupport {
+    CallerIdSupplierByType callerIdSupplier = Mockito.mock( CallerIdSupplierByType.class );
+
+    @Test
+    public void factoriesSupplier_Empty_TypeProperties() {
+        expectException( "All paths not limited: ", Collections.emptyList() );
+    }
+
+    @Test
+    public void factoriesSupplier_toString() {
+        List<TypeProperties> typePropertiesList = List.of(
+                TypeProperties.builder().name( "N1" ).withCallerCredentialsID( "2r/1s" ).pathSelector( "startsWith:/F-35B" ).build(),
+                TypeProperties.builder().name( "N2" ).withCallerRemoteAddressID( "4r/2s" ).pathSelectors( "contains:F-22", "equals:/F-35" ).build(),
+                TypeProperties.builder().name( "N3" ).withCallerRemoteAddressID( "2r/1s" ).pathSelectors( "equals:/F-22", "contains:F-35B" ).build(),
+                TypeProperties.builder().name( "N4" ).withoutCallerID( "4r/2s" ).global( "50r/s" ).pathSelector( "startsWith:/F-22" ).build(),
+                TypeProperties.builder().name( "Others" ).global( "150r/5s" ).pathSelector( "other" ).build(),
+                TypeProperties.builder().name( "All" ).global( "100r/3s" ).pathSelector( "All" ).build() );
+
+        InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, typePropertiesList );
+        checkFactoryCollections( fs, 8,
+                                 "   Equals:",
+                                 "      /F-35 -> N2:RemoteAddressID @ 4r/2s",
+                                 "      /F-22 -> N3:RemoteAddressID @ 2r/s",
+                                 "   StartsWith:",
+                                 "      /F-35B -> N1:CredentialsID @ 2r/s",
+                                 "      /F-22 -> N4:",
+                                 "         NoID @ 4r/2s",
+                                 "         Global @ 50r/s",
+                                 "   Contains:",
+                                 "      F-35B -> N3:RemoteAddressID @ 2r/s",
+                                 "      F-22 -> N2:RemoteAddressID @ 4r/2s",
+                                 "   Other:",
+                                 "      Others:Global @ 150r/5s",
+                                 "   All:",
+                                 "      All:Global @ 100r/3s",
+                                 "" );
+    }
+
+    @Test
+    public void factoriesSupplier_validate_Ordered_Map() {
+        TypeProperties n1 = TypeProperties.builder().name( "N1" ).global( "2r/1s" ).pathSelectors( "equals:/F-22", "equals:/F-35A", "equals:/F-35B", "equals:/F-35C", "equals:/F-35I" ).build();
+        TypeProperties n2 = TypeProperties.builder().name( "N2" ).global( "4r/2s" ).withoutCallerID( "1r/5s" ).pathSelectors( "startsWith:/F-35", "startsWith:/F-22" ).build();
+        TypeProperties all = TypeProperties.builder().name( "All" ).global( "100r/3s" ).pathSelector( "all" ).build();
+        List<TypeProperties> typePropertiesList = List.of( n1, n2, all );
+
+        InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, typePropertiesList );
+        checkFactoryCollections( fs, 8,
+                                 "   Equals:",
+                                 "      /F-22 -> N1:Global @ 2r/s",
+                                 "      /F-35A -> N1:Global @ 2r/s",
+                                 "      /F-35B -> N1:Global @ 2r/s",
+                                 "      /F-35C -> N1:Global @ 2r/s",
+                                 "      /F-35I -> N1:Global @ 2r/s",
+                                 "   StartsWith:",
+                                 "      /F-22 -> N2:",
+                                 "         NoID @ 1r/5s",
+                                 "         Global @ 4r/2s",
+                                 "      /F-35 -> N2:",
+                                 "         NoID @ 1r/5s",
+                                 "         Global @ 4r/2s",
+                                 "   All:",
+                                 "      All:Global @ 100r/3s",
+                                 "" );
+        // 1 - non Global !all
+        // 2 - non Global all
+        // 3 - Global !all
+        // 4 - Global all
+        check( fs, "/A-10", Expected.from( all ).withGlobal() ); // only 1 factory : 4 - Global all
+        check( fs, "/F-35I", // 2 factories returned
+               Expected.from( n1 ).withGlobal(), // 3 - Global !all
+               Expected.from( all ).withGlobal() ); // 4 - Global all
+        check( fs, "/F-22/42986123", // 3 factories returned
+               Expected.from( n2 ).withNoID(), // 1 - non Global !all
+               Expected.from( n2 ).withGlobal(), // 3 - Global !all
+               Expected.from( all ).withGlobal() ); // 4 - Global all
+    }
+
+    static class Expected {
+        private final TypeProperties props;
+        private String callerID;
+        private String windowType;
+        private RequestsPerWindowSecs requestsPerWindow;
+
+        static Expected from( TypeProperties props ) {
+            return new Expected( props );
+        }
+
+        Expected withGlobal() {
+            return withCannedCallerID( WindowType.GLOBAL );
+        }
+
+        Expected withNoID() {
+            return withCannedCallerID( WindowType.NON_GLOBAL.NoID );
+        }
+
+        private Expected withCannedCallerID( WindowType windowType ) {
+            callerID = windowType.cannedCallerID();
+            this.windowType = windowType.windowType();
+            requestsPerWindow = windowType.extractRequestsPerWindowFrom( props );
+            return this;
+        }
+
+        private Expected( TypeProperties props ) {
+            this.props = props;
+        }
+
+        CompoundKey compoundKey() {
+            return CompoundKey.from( props.name(), windowType, callerID );
+        }
+    }
+
+    private void check( InternalLimiterFactoriesSupplierImpl fs, String path, Expected... orderedExpectedData ) {
+        LinkedHashMap<CompoundKey, InternalLimiterFactory> map = fs.internalFactoryMapFor( callerIdSupplier, path );
+        Iterator<CompoundKey> keys = map.keySet().iterator(); // ordered set
+        for ( int i = 0; i < orderedExpectedData.length; i++ ) {
+            Expected expected = orderedExpectedData[i];
+            if ( !keys.hasNext() ) {
+                fail( "expected " + orderedExpectedData.length + " factories, but got only " + i + ": " + map );
+            }
+            CompoundKey key = keys.next();
+            InternalLimiterFactoryImpl factory = (InternalLimiterFactoryImpl)map.get( key );
+            assertEquals( expected.compoundKey(), key, "key mismatch on expected[" + i + "]" );
+            assertEquals( expected.requestsPerWindow, factory.getRequestsPerWindow(), "RequestsPerWindow mismatch on expected[" + i + "]" );
+            assertEquals( expected.props.name(), factory.getName(), "name mismatch on expected[" + i + "]" );
+            assertEquals( expected.windowType, factory.getWindowType(), "windowType mismatch on expected[" + i + "]" );
+        }
+        if ( keys.hasNext() ) {
+            fail( "expected " + orderedExpectedData.length + " factories, but got " + map.size() + ": " + map );
+        }
+    }
+
+    private void checkFactoryCollections( InternalLimiterFactoriesSupplierImpl fs, int expectedFactoryCount, String... lines ) {
+        String lfsString = fs.toString();
+        assertEquals( expectedFactoryCount, fs.typePropertiesPathOptionsCount(), lfsString );
+
+        StringBuilder sb = new StringBuilder().append( "InternalLimiterFactoriesSupplier:" );
+        for ( String line : lines ) {
+            sb.append( '\n' ).append( line );
+        }
+        assertEquals( sb.toString(), lfsString );
+    }
+
+    private void expectException( String expectedMessageOrPrefix, Collection<TypeProperties> tps ) {
+        expectException( expectedMessageOrPrefix, null, tps );
+    }
+
+    private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<TypeProperties> tps ) {
+        expectException( expectedMessageOrPrefix, expectedExceptionCauseClass,
+                         () -> new InternalLimiterFactoriesSupplierImpl( null, null, tps ) );
+    }
+}

@@ -39,6 +39,7 @@ public class ErrorRoutingIT {
     public void testStatusCodeToErrorPage() throws IOException {
         CallErrorPageAndCheckHttpStatusCode("/error", 200);
         CallErrorPageAndCheckHttpStatusCode("/error404", 200);
+        CallErrorPageAndCheckHttpStatusCode("/error429", 200);
         CallErrorPageAndCheckHttpStatusCode("/error500", 200);
         CallErrorPageAndCheckHttpStatusCode("/errorAny", 200);
         CallErrorPageAndCheckHttpStatusCode("/rejected", 200);
