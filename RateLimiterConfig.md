@@ -43,11 +43,11 @@ lines start with "Rate Limited path" and include the Limiting Compound Key.
 3. AllCallsWithDetails - multi-line logs, all requests; first line start with
 "********************************** RateLimiter w/ path" (see [Note](#WithDetails))
 
-#### <a id="AllCalls"></a> Note - includes the duration of the limiter overhead in nanoseconds:
+#### <a id="AllCalls"></a> Note - *AllCalls* includes the duration of the limiter overhead in nanoseconds:
 - Limited requests include "-- LIMITED by" text AND the Limiting Compound Key. 
 - Non-Limited requests include "-- NOT limited" text. 
 
-#### <a id="WithDetails"></a> Note - reading the output should be strait forward:
+#### <a id="WithDetails"></a> Note - reading the *AllCallsWithDetails* output should be strait forward:
 - Limited requests include which internal limiter(s) were called and which was the limiting internal limiter.
 - Non-Limited requests include the requests remaining for all the internal limiter(s) -
 after the current request has consumed an entry.
@@ -146,7 +146,7 @@ However, if an endpoint MUST have a *Credential ID*, then the combination of the
 *withCallerCredentialsID* and a "**0r/s**" *withoutCallerID* will limit
 (short circuit) all calls without a *Credential ID*! 
 
-#### <a id="RequestsPerWindowSecs"></a> Notes:
+#### <a id="RequestsPerWindowSecs"></a> Notes - *Window Type*'s *M* requests per *N* seconds:
 - *M* requests can be zero '0' which means that ALL requests are blocked (in the example: "withoutCallerID: 0r/s").
 - A form of Burst request support can be achieved by increasing both the *M* and *N* proportionally, e.g. you
 want the calls to an endpoint from the same server to average a max of "5r/s", but are ok with a burst of 15r/s,
