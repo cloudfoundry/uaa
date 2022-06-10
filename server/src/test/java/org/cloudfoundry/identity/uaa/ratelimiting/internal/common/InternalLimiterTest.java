@@ -245,7 +245,7 @@ class InternalLimiterTest {
 
     private boolean checkList( List<RecordingInternalLimiter> limiters ) {
         List<InternalLimiter> iLimiters = cast( limiters );
-        return LimiterImpl.from( iLimiters, LoggingOption.OnlyLimited ).shouldLimit();
+        return LimiterImpl.from( iLimiters, LoggingOption.DEFAULT ).shouldLimit();
     }
 
     private String compressCalls() {

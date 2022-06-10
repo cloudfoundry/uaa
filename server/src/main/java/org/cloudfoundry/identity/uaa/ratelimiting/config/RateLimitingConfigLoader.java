@@ -118,22 +118,31 @@ public class RateLimitingConfigLoader implements Runnable {
     @SuppressWarnings("BusyWait")
     @Override
     public void run() {
-        while ( !wereDying ) {
-            long nextRunTime = currentTimeSupplier.now() + 15000;
-            try {
-                Thread.sleep( 2000 ); // check every 15 seconds (2 here & rest below)
-                checkForUpdatedProperties();
-                Thread.sleep( nextRunTime - currentTimeSupplier.now() );
+        logger.logUpdate( "Polling Background thread started" );
+        try {
+            while ( !wereDying ) {
+                try {
+                    long nextRunTime = currentTimeSupplier.now() + 15000;
+                    Thread.sleep( 2000 ); // check every 15 seconds (2 here & rest below)
+                    checkForUpdatedProperties();
+                    Thread.sleep( nextRunTime - currentTimeSupplier.now() );
+                }
+                catch ( InterruptedException e ) {
+                    // As it is a Daemon, ignore InterruptedException and check if "wereDying"!
+                }
+                catch ( RateLimitingConfigException e ) {
+                    logger.logError( e );
+                }
+                catch ( Exception e ) {
+                    logger.logUnhandledError( e ); // Log everything else
+                }
             }
-            catch ( InterruptedException e ) {
-                // As it is a Daemon, ignore InterruptedException and check if "wereDying"!
-            }
-            catch ( RateLimitingConfigException e ) {
-                logger.logError( e );
-            }
-            catch ( RuntimeException e ) {
-                logger.logUnhandledError( e ); // Log everything else
-            }
+        }
+        catch (Exception e) {
+            logger.logUnhandledError( e );
+        }
+        finally {
+            logger.logUpdate( "Polling Background thread stopping" );
         }
     }
 
@@ -147,6 +156,7 @@ public class RateLimitingConfigLoader implements Runnable {
         public InternalLimiterFactoriesSupplierImpl process() {
             // re-initialize
             credentialIdExtractor = null;
+            loggingOption = null;
             tps = new ArrayList<>();
 
             loadYamlString();
@@ -221,7 +231,9 @@ public class RateLimitingConfigLoader implements Runnable {
                     }
 
                     try {
-                        processDTO( dto );
+                        if (dto != null) {
+                            processDTO( dto );
+                        }
                     }
                     catch ( RateLimitingConfigException e ) {
                         String message = YAML_DOCUMENT_PREFIX + i + "] " + e.getMessage() + YAML_DOCUMENT_WAS + doc + "\n";

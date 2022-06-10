@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -25,7 +26,7 @@ public class LimiterImpl implements Limiter {
     private int indexOfLimiting;
 
     private LimiterImpl( LoggingOption loggingOption, List<InternalLimiter> limiters ) {
-        this.loggingOption = (loggingOption != null) ? loggingOption : LoggingOption.OnlyLimited;
+        this.loggingOption = LoggingOption.deNull( loggingOption );
         int count = limiters.size();
         // size the arrays and list from the (1-n) InternalLimiter.
         remaining = new int[count];
@@ -83,8 +84,9 @@ public class LimiterImpl implements Limiter {
     }
 
     @Override
-    public void log( String requestPath, Consumer<String> logger ) {
-        loggingOption.log( requestPath, logger, this );
+    public void log( String requestPath, Consumer<String> logger, Instant startTime ) {
+        Instant endTime = (startTime == null) ? null : Instant.now();
+        loggingOption.log( requestPath, logger, startTime, this, endTime );
     }
 
     public CompoundKey getLimitingKey() {

@@ -1,18 +1,12 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.BiPredicate;
 
-import lombok.AllArgsConstructor;
 import lombok.NonNull;
-import lombok.ToString;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.PathMatchType;
@@ -32,8 +26,8 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     static final String TO_STRING_INDENT = "   ";
 
     private final Map<String, TypeProperties> pathEqualsToProperties = new LinkedHashMap<>();
-    private final List<LengthBasedPathToTypeProperties> pathStartsWithProperties = new ArrayList<>();
-    private final List<LengthBasedPathToTypeProperties> pathContainsProperties = new ArrayList<>();
+    private final PathFragmentToTypePropertiesMapper pathStartsWithProperties;
+    private final PathFragmentToTypePropertiesMapper pathContainsProperties;
     private final TypeProperties pathOtherProperties;
     private final TypeProperties allProperties;
 
@@ -69,10 +63,10 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         if ( (servletPath == null) || servletPath.isEmpty() ) {
             pathProperties = pathOtherProperties;
         } else {
-            if ( null == (pathProperties = pathEqualsToProperties.get( servletPath )) ) { //. . . . . . . . . . . . . . . 1st - Direct look up for Equals
-                if ( null == (pathProperties = check( pathStartsWithProperties, servletPath, String::startsWith )) ) { // 2nd - Longest PathFragment that StartsWith
-                    if ( null == (pathProperties = check( pathContainsProperties, servletPath, String::contains )) ) { // 3rd - Longest PathFragment that Contains
-                        pathProperties = pathOtherProperties; //. . . . . . . . . . . . . . . . . . . . . . . . . . . . . 4th - Other
+            if ( null == (pathProperties = pathEqualsToProperties.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals
+                if ( null == (pathProperties = pathStartsWithProperties.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
+                    if ( null == (pathProperties = pathContainsProperties.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains
+                        pathProperties = pathOtherProperties; // . . . . . . . . . . . . . . . . . . . 4th - Other
                     }
                 }
             }
@@ -114,16 +108,16 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     public InternalLimiterFactoriesSupplierImpl( AuthorizationCredentialIdExtractor credentialIdExtractor,
                                                  LoggingOption loggingOption, Collection<TypeProperties> tps ) {
         callerIdSupplierByTypeFactory = CallerIdSupplierByTypeFactoryFactory.from( credentialIdExtractor );
-        this.loggingOption = (loggingOption != null) ? loggingOption : LoggingOption.OnlyLimited;
+        this.loggingOption = LoggingOption.deNull( loggingOption );
 
-        Map<String, TypeProperties> propertiesByType = new HashMap<>(); // Track dups
-        Map<String, LengthBasedPathToTypeProperties> ptfStartsWiths = new HashMap<>(); // Track dups
-        Map<String, LengthBasedPathToTypeProperties> ptfContains = new HashMap<>(); // Track dups
+        Map<String, TypeProperties> propertiesByName = new HashMap<>(); // Track dups
+        Map<String, PathFragmentToTypeProperties> ptfStartsWiths = new HashMap<>(); // Track dups
+        Map<String, PathFragmentToTypeProperties> ptfContains = new HashMap<>(); // Track dups
         TypeProperties pathOtherProperties = null;
         TypeProperties allProperties = null;
         for ( TypeProperties newProperties : tps ) {
             if ( newProperties != null ) {
-                checkDuplicateType( propertiesByType, newProperties );
+                checkDuplicateName( propertiesByName, newProperties );
 
                 List<PathSelector> selectors = newProperties.pathSelectors();
                 for ( PathSelector selector : selectors ) {
@@ -151,8 +145,8 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
                 }
             }
         }
-        transferOrdered( pathStartsWithProperties, ptfStartsWiths );
-        transferOrdered( pathContainsProperties, ptfContains );
+        pathStartsWithProperties = new PathFragmentToTypePropertiesMapper( String::startsWith, ptfStartsWiths.values() );
+        pathContainsProperties = new PathFragmentToTypePropertiesMapper( String::contains, ptfContains.values() );
         this.pathOtherProperties = pathOtherProperties;
         this.allProperties = allProperties;
         assertAllPathsCovered();
@@ -176,54 +170,13 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         return null; // Happy case!
     }
 
-    private static void transferOrdered( List<LengthBasedPathToTypeProperties> target, Map<String, LengthBasedPathToTypeProperties> ptFactories ) {
-        target.addAll( ptFactories.values() );
-        Collections.sort( target );
-    }
-
-    @AllArgsConstructor
-    @ToString
-    private static class LengthBasedPathToTypeProperties implements Comparable<LengthBasedPathToTypeProperties> {
-        private final String pathFragment;
-        private final TypeProperties properties;
-
-        /**
-         * This compareTo is used to order the LengthBasedPathToProperties by increasing pathFragment length, e.g. longer before shorter
-         *
-         * @param them not null
-         */
-        @Override
-        public int compareTo( LengthBasedPathToTypeProperties them ) {
-            int thisLen = this.pathFragment.length();
-            int themLen = them.pathFragment.length();
-            // Note: the following trick only works when the subtraction of the ints can not overflow!
-            return themLen - thisLen;
-        }
-
-        public boolean equals( LengthBasedPathToTypeProperties them ) {
-            return (this == them) || ((them != null)
-                                      && this.pathFragment.equals( them.pathFragment ));
-        }
-
-        @Override
-        public boolean equals( Object them ) {
-            return (this == them) || ((them instanceof LengthBasedPathToTypeProperties)
-                                      && equals( (LengthBasedPathToTypeProperties)them ));
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash( pathFragment );
-        }
-    }
-
-    private static void checkDuplicateType( Map<String, TypeProperties> PropertiesByType, TypeProperties newProperties ) {
-        String type = newProperties.name();
-        TypeProperties prevProperties = PropertiesByType.get( type );
+    private static void checkDuplicateName( Map<String, TypeProperties> PropertiesByName, TypeProperties newProperties ) {
+        String name = newProperties.name();
+        TypeProperties prevProperties = PropertiesByName.get( name );
         if ( prevProperties != null ) {
-            throw new RateLimitingConfigException( "Duplicate named ('" + type + "') Rate Limiting configurations" );
+            throw new RateLimitingConfigException( "Duplicate named ('" + name + "') Rate Limiting configurations" );
         }
-        PropertiesByType.put( type, newProperties );
+        PropertiesByName.put( name, newProperties );
     }
 
     private static TypeProperties checkDuplicateSpecial( PathSelector selector, TypeProperties prevProperties, TypeProperties newProperties ) {
@@ -242,25 +195,13 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         map.put( path, newProperties );
     }
 
-    private static void checkDuplicatePathLBPTProperties( PathSelector selector, Map<String, LengthBasedPathToTypeProperties> map, TypeProperties newProperties ) {
+    private static void checkDuplicatePathLBPTProperties( PathSelector selector, Map<String, PathFragmentToTypeProperties> map, TypeProperties newProperties ) {
         String path = selector.getPath();
-        LengthBasedPathToTypeProperties prevPathToProperties = map.get( path );
+        PathFragmentToTypeProperties prevPathToProperties = map.get( path );
         if ( prevPathToProperties != null ) {
-            errorDupProperties( selector, prevPathToProperties.properties, newProperties );
+            errorDupProperties( selector, prevPathToProperties.getProperties(), newProperties );
         }
-        map.put( path, new LengthBasedPathToTypeProperties( path, newProperties ) );
-    }
-
-    private static TypeProperties check( List<LengthBasedPathToTypeProperties> ordered, String servletPath, BiPredicate<String, String> selector ) {
-        int maxLength = servletPath.length();
-        for ( LengthBasedPathToTypeProperties ptf : ordered ) { // Longest to Shortest pathFragments - finding the match that is longest!
-            if ( ptf.pathFragment.length() <= maxLength ) { // Skip the ones that are too Long
-                if ( selector.test( servletPath, ptf.pathFragment ) ) {
-                    return ptf.properties;
-                }
-            }
-        }
-        return null;
+        map.put( path, new PathFragmentToTypeProperties( path, newProperties ) );
     }
 
     private static void errorDupProperties( PathSelector selector, TypeProperties prevProperties, TypeProperties newProperties ) {
@@ -276,11 +217,9 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         }
     }
 
-    private static void appendTo( StringBuilder sb, PathMatchType type, List<LengthBasedPathToTypeProperties> lengthBasedPathProperties ) {
-        appendPathMatchType( sb, type, !lengthBasedPathProperties.isEmpty() );
-        for ( LengthBasedPathToTypeProperties pathProperties : lengthBasedPathProperties ) {
-            appendPropertiesWithPath( sb, pathProperties.pathFragment, pathProperties.properties );
-        }
+    private static void appendTo( StringBuilder sb, PathMatchType type, PathFragmentToTypePropertiesMapper mapper ) {
+        appendPathMatchType( sb, type, !mapper.isEmpty() );
+        mapper.stream().forEach( t -> appendPropertiesWithPath( sb, t.getPathFragment(), t.getProperties() ) );
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -322,8 +261,8 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         return (o == null) ? 0 : 1;
     }
 
-    private static int cnt( Collection<?> collection ) {
-        return collection.size();
+    private static int cnt( PathFragmentToTypePropertiesMapper mapper ) {
+        return mapper.count();
     }
 
     private static int cnt( Map<?, ?> map ) {

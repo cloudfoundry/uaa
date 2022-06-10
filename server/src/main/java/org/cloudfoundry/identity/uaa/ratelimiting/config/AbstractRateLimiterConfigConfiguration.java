@@ -63,7 +63,7 @@ public abstract class AbstractRateLimiterConfigConfiguration {
         }
 
         @Override
-        public void logUnhandledError( RuntimeException e ) {
+        public void logUnhandledError( Exception e ) {
         }
 
         @Override

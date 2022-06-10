@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core;
 
 import java.lang.reflect.Field;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -9,6 +11,24 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LoggingOptionTest {
+
+    @Test
+    void addDuration() {
+        check( "0ns", 0,0,0 );
+        check( "7ns", 0,0,7 );
+        check( "72ns", 0,0,72 );
+        check( "2089ns", 0,2,89 );
+        check( "1003645ns", 1,3,645 );
+    }
+
+    private void check( String expectedDuration, int secs, int ms, int ns ) {
+        Duration duration = Duration.ofNanos( ns + (1000 * (ms + (1000L * secs))) );
+        Instant startTime = Instant.now();
+        Instant endTime = startTime.plus( duration );
+        StringBuilder sb = new StringBuilder();
+        LoggingOption.addDuration( sb, startTime, endTime );
+        assertEquals( "(" + expectedDuration + ") ", sb.toString() );
+    }
 
     @Test
     void valueFor() {
@@ -97,7 +117,7 @@ class LoggingOptionTest {
 
         private String execute( LoggingOption option, int expectedCalls ) {
             MockLogger logger = new MockLogger();
-            option.log( requestPath, logger, this );
+            option.log( requestPath, logger, null, this, null );
             assertEquals( expectedCalls, logger.calls, requestPath + ":" + option );
             return logger.value;
         }

@@ -65,11 +65,17 @@ public class LimiterManagerImpl implements LimiterManager,
      * Note-3: Frequency order is immaterial, if no limiting is indicated, as every <code>InternalLimiter</code> must be checked.
      * However, if any <code>InternalLimiter</code>, before the last one, indicates limiting, then subsequent <code>InternalLimiter</code>(s)
      * are not involved, and they are not seized for exclusive access.
+     * <p>
+     * Note-3: Special Scenario - where no internal limiter factories returned:<ul>
+     * <li>no "all"</li>
+     * <li>path-based selected, but only withCallerCredentialsID and no CredentialID</li>
+     * <li>"other" exists but superseded by path-based</li>
+     * </ul>
      */
     // package protected for testing
     List<InternalLimiter> generateLimiterList( RequestInfo info, InternalLimiterFactoriesSupplier supplier ) {
         Map<CompoundKey, InternalLimiterFactory> factoryMap = supplier.factoryMapFor( info );
-        if ( (factoryMap == null) || factoryMap.isEmpty() ) { // null is the initial default from the NOOP version
+        if ( (factoryMap == null) || factoryMap.isEmpty() ) { // null (NOOP version); empty (special scenario)
             return null;
         }
         List<InternalLimiter> limiters = new ArrayList<>( factoryMap.size() );

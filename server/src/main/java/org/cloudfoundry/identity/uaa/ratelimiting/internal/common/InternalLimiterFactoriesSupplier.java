@@ -29,7 +29,7 @@ public interface InternalLimiterFactoriesSupplier {
 
     @NonNull
     default LoggingOption getLoggingOption() {
-        return LoggingOption.OnlyLimited;
+        return LoggingOption.DEFAULT;
     }
 
     InternalLimiterFactoriesSupplier NOOP = info -> null;

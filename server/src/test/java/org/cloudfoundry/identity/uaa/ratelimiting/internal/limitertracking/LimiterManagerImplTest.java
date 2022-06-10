@@ -104,7 +104,7 @@ class LimiterManagerImplTest {
     Map<CompoundKey, InternalLimiter> instanceTracking = new LinkedHashMap<>();
 
     private void record( List<InternalLimiter> iLimiters ) {
-        boolean limit = LimiterImpl.from( iLimiters, LoggingOption.OnlyLimited ).shouldLimit();
+        boolean limit = LimiterImpl.from( iLimiters, LoggingOption.DEFAULT ).shouldLimit();
         for ( InternalLimiter currentLimiter : iLimiters ) {
             CompoundKey compoundKey = currentLimiter.getCompoundKey();
             String resultsKey = resultsKey( compoundKey );

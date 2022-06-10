@@ -15,7 +15,7 @@ public interface RateLimitingConfig {
 
         void logError( RateLimitingConfigException e );
 
-        void logUnhandledError( RuntimeException e );
+        void logUnhandledError( Exception e );
 
         void logUpdate( String msg );
 

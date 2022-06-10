@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.ratelimiting;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Enumeration;
 import javax.servlet.FilterChain;
@@ -59,11 +61,13 @@ public class RateLimitingFilter extends HttpFilter {
                              HttpServletResponse response, FilterChain filterChain )
             throws ServletException, IOException {
         if ( rateLimiter != null ) { // rateLimiting is active
+            boolean infoEnabled = log.isInfoEnabled();
+            Instant startTime = infoEnabled ? Instant.now() : null;
             String requestPath = request.getRequestURI();
             try {
                 Limiter limiter = rateLimiter.checkRequest( request );
-                if ( log.isInfoEnabled() ) {
-                    limiter.log( requestPath, log::info );
+                if ( infoEnabled ) {
+                    limiter.log( requestPath, log::info, startTime );
                 }
                 if ( limiter.shouldLimit() ) {
                     limitRequest( response );

@@ -4,6 +4,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.AbstractExceptionTestSupport;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByTypeFactory;
@@ -51,7 +52,7 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
                                              credentialIdTypes );
     }
 
-    private void expectSuccess( int typePropertiesPathOptions, CredentialIdType... credentialIdTypesArray ) {
+    private void expectSuccess( int typePropertiesPathOptions, LoggingOption expectedLoggingOption, CredentialIdType... credentialIdTypesArray ) {
         RateLimitingConfigLoader loader = createLoader( credentialIdTypesArray );
         boolean updated = loader.checkForUpdatedProperties();
         assertTrue( updated );
@@ -69,6 +70,11 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         } else {
             assertNull( extractor, "AuthorizationCredentialIdExtractor" );
         }
+        assertSame( expectedLoggingOption, lfs.getLoggingOption() );
+    }
+
+    private void expectSuccess( int typePropertiesPathOptions, CredentialIdType... credentialIdTypesArray ) {
+        expectSuccess( typePropertiesPathOptions, LoggingOption.DEFAULT, credentialIdTypesArray );
     }
 
     @Test
@@ -90,6 +96,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesHappyCaseExtraDocSeps()
             throws Exception {
         String[] yaml = { // Extra "c-directives-end"s (document sep)
+                          "---",
+                          "# a comment",
+                          "# another comment",
                           "---",
                           "name: ALL",
                           "global: 150r/s",
@@ -178,6 +187,58 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
         expectSuccess( 10 ); // "other" and "all" in config
+    }
+
+    @Test
+    void checkForHappyCaseLoggingOptionOnlyLimited()
+            throws Exception {
+        String[] yaml = {
+                "# Explicit Default",
+                "loggingOption: OnlyLimited",
+                "---",
+                "name: All",
+                "global: 150r/s",
+                "pathSelectors:",
+                "  - 'all'",
+                ""
+        };
+
+        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
+        expectSuccess( 1 );
+    }
+
+    @Test
+    void checkForHappyCaseLoggingOptionAllCalls()
+            throws Exception {
+        String[] yaml = {
+                "loggingOption: AllCalls",
+                "---",
+                "name: All",
+                "global: 150r/s",
+                "pathSelectors:",
+                "  - 'all'",
+                ""
+        };
+
+        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
+        expectSuccess( 1, LoggingOption.AllCalls );
+    }
+
+    @Test
+    void checkForHappyCaseLoggingOptionAllCallsWithDetails()
+            throws Exception {
+        String[] yaml = {
+                "loggingOption: AllCallsWithDetails",
+                "---",
+                "name: All",
+                "global: 150r/s",
+                "pathSelectors:",
+                "  - 'all'",
+                ""
+        };
+
+        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
+        expectSuccess( 1, LoggingOption.AllCallsWithDetails );
     }
 
     @Test

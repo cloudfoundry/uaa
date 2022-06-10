@@ -147,9 +147,9 @@ public class CredentialIdTypeJWT implements CredentialIdType {
             return info == null ? null : from( info.getAuthorizationHeader() );
         }
 
-        static JWTparts from( String authorization ) {
+        static JWTparts from( String authorization ) { // . . . . . . .1234567
             if ( (authorization != null) && authorization.startsWith( "Bearer " ) ) {
-                String token = authorization.substring( 7 ).trim(); // 1234567
+                String token = authorization.substring( 7 ).trim();
                 String[] parts = token.split( "\\." );
                 if ( (3 <= parts.length) && looksOK( parts[0] ) && looksOK( parts[1] ) && looksOK( parts[2] ) ) {
                     return new JWTparts( token, parts );

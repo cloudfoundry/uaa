@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.config.AbstractRateLimiterConf
 import org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -43,7 +44,7 @@ public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigCon
             }
 
             @Override
-            public void logUnhandledError( RuntimeException e ) {
+            public void logUnhandledError( Exception e ) {
                 logger.error( messageWith( " (unhandled)", e ), e );
             }
 
@@ -52,12 +53,13 @@ public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigCon
                 logger.info( msg );
             }
 
-            private String messageWith( String typePLus, RuntimeException e ) {
+            private String messageWith( String typePLus, Exception e ) {
                 StringBuilder sb = new StringBuilder();
                 sb.append( RateLimiterConfigConfiguration.class.getSimpleName() ).append( typePLus ).append( ": " );
-                String eMessage = e.getMessage();
-                if ( !eMessage.contains( sourceReference ) ) {
-                    sb.append( sourceReference ).append( " | " );
+                String eMessage = (e == null) ? "-No Exception-" : Null.defaultOn( e.getMessage(), "-No Message-" );
+                String reference = Null.defaultOn( sourceReference, "-No sourceReference-" );
+                if ( !eMessage.contains( reference ) ) {
+                    sb.append( reference ).append( " | " );
                 }
                 return sb.append( eMessage ).toString();
             }

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core;
 
+import java.time.Instant;
 import java.util.function.Consumer;
 
 public interface Limiter {
@@ -12,7 +13,7 @@ public interface Limiter {
     boolean shouldLimit();
 
     @SuppressWarnings("unused")
-    default void log( String requestPath, Consumer<String> logger ) {
+    default void log( String requestPath, Consumer<String> logger, Instant startTime ) {
         // default is don't log!
     }
 
