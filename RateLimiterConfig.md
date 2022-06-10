@@ -1,6 +1,6 @@
-# UAA Rate Limiting
+# <a id="TOC"></a>UAA Rate Limiting
 
-<a id="TOC"></a>TOC:<p>
+TOC:<p>
 &nbsp; &nbsp;          [Enablement](#Enablement)<br>
 &nbsp; &nbsp;          [Configuration file structure](#FileStruct)<br>
 &nbsp; &nbsp;          [Request Logging Option Definition](#DocRLOD)<br>
