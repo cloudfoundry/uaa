@@ -123,7 +123,8 @@ public class HomeController {
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
-        model.addAttribute("saml_error", exception.getMessage());
+        String errorMessage = exception != null ? exception.getMessage() : "";
+        model.addAttribute("saml_error", errorMessage);
         return EXTERNAL_AUTH_ERROR;
     }
 
