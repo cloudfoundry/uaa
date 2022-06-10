@@ -253,7 +253,7 @@ are added for processing (mutual-exclusion locking) in the following order:
 The reason for the order is twofold:
 1. Since the processing of the *InternalLimiter*(s) stops as soon as one indicates that it is limiting,
 and it was assumed that the "non-global" and/or the "non-all" would have lower limits,
-they would be checked and limit sooner!
+they should be checked and limit sooner!
 2. While "non-global" and/or the "non-all" would probably have lower limits,
 they would also individually participate less frequently in each request;
 as such they are expected to have the least mutual-exclusion contention
