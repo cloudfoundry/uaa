@@ -71,7 +71,7 @@ The JWT *keyed* Credential ID Definition's (optional) *parameters* are:
 1. JWT section reference.  Sections can be referred to by their
 offset/index (0-2) (see [Note](#JWT-section))
 2. Regex value extractor - example above shows email value extractor
-to extract from the "claims" section (see [Note](#Regex-limits^))
+to extract from the "claims" section (see [Note](#Regex-limits))
 
 The plus sign ('+') is the separator between the *section reference* and
 the *Regex value extractor* (if there is no
@@ -115,9 +115,9 @@ The above example *Limiter Map* can be viewed as three subsections all of which 
 1. "name" - every *Limiter Map* must have a *name* - this is used for two purposes: as part of the
 CompoundKey AND for error reporting.
 2. "pathSelectors" - every *Limiter Map* must have a *pathSelectors* field AND at least one
-*pathSelector* (see [Note](pathSelector)).
+*pathSelector* (see [Note](#pathSelector)).
 3. *Window Type*(s) - where each has *M* requests per *N* seconds (*M*r/*N*s) with *N* defaulting to 1,
-and with a maximum of 1800 (30 mins) (see [Note 1](WindowType) and [Note 2](RequestsPerWindowSecs)). 
+and with a maximum of 1800 (30 mins) (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)). 
 
 #### <a id="pathSelector"></a> Note - there are five types of *pathSelector*s:
 - *equals:*/... (the path, after the colin ':', MUST start with a slash '/').
@@ -161,7 +161,7 @@ delay (e.g. like a "tar pit").
 
 Because the *other* and the *all* must be alone - *Rule 1* means that there can be at most one of each!
 
-### <a id="Rule 2"></a> Rule 2: Every path must be covered by an *active* limiter (e.g. at least one *Window Type* within at least one *Limiter Map*)
+### <a id="Rule-2"></a> Rule 2: Every path must be covered by an *active* limiter (e.g. at least one *Window Type* within at least one *Limiter Map*)
 
 To ensure *Rule 2*, either an *other* OR an *all* must exists with a *global* *Window Type*.
 
@@ -170,7 +170,7 @@ can support *Integer.MAX* for the requests per second!
 
 ### Information 1: Selection of Single or Multiple *Limiter Map*(s)
 
-As mentioned [above](pathSelector) there are five types of *pathSelector*s which fall into two groups:
+As mentioned [above](#pathSelector) there are five types of *pathSelector*s which fall into two groups:
 - *all*
 - non-all (path based)
 
@@ -184,7 +184,7 @@ The "non-all" *Limiter Map* selection is the first match found in following orde
 3. *contains*   (uses an ordered list to find the longest matching path, linear search).
 4. *other*      (obviously if there is no *other*, and none of the above matched, then there will be no "non-all")
 
-Remember that [Rule 2](Rule 2) says that there will exist an *all* and/or *other* with a *global* *Window Type*,
+Remember that [Rule 2](#Rule-2) says that there will exist an *all* and/or *other* with a *global* *Window Type*,
 which means that there will always be at least one *Limiter Map* selected.
 
 ### Information 2: Selection of Single or Multiple *Window Type*(s)
