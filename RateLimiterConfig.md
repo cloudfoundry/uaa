@@ -1,6 +1,22 @@
 # UAA Rate Limiting
 
-## Enablement
+<a id="TOC"></a>TOC:<p>
+&nbsp; &nbsp;          [Enablement](#Enablement)<br>
+&nbsp; &nbsp;          [Configuration file structure](#FileStruct)<br>
+&nbsp; &nbsp;          [Request Logging Option Definition](#DocRLOD)<br>
+&nbsp; &nbsp;          [Request Credential ID Definition](#DocRCID)<br>
+&nbsp; &nbsp; &nbsp;   [JWT *parameters*](#JWTparms)<br>
+&nbsp; &nbsp;          [Request Limit(s) Definition(s)](#DocRLD)<br>
+&nbsp; &nbsp;          [Minimum and Multiple Request Limit Definition(s) rules & information](#RulesAndInfos)<br>
+&nbsp; &nbsp; &nbsp;   [Rule 1: No two *Limiter Map*s can contain an identical *pathSelector*](#Rule-1)<br>
+&nbsp; &nbsp; &nbsp;   [Rule 2: Every path must be covered by an *active* limiter](#Rule-2)<br>
+&nbsp; &nbsp; &nbsp;   [Information 1: Selection of Single or Multiple *Limiter Map*(s)](#Information-1)<br>
+&nbsp; &nbsp; &nbsp;   [Information 2: Selection of Single or Multiple *Window Type*(s)](#Information-2)<br>
+&nbsp; &nbsp; &nbsp;   [Information 3: Order of *Window Type* limiter(s) from Multiple *Limiter Map*s](#Information-3)<br>
+
+<br>
+                                              
+## <a id="Enablement"></a> Enablement
 
 Rate Limiting is enabled by an environment variable
 "RateLimiterConfigUrl" that must start with either "http://" or "https://"
@@ -9,7 +25,9 @@ Rate Limiting is enabled by an environment variable
 You can see (and use) an example with:
 > export&nbsp;RateLimiterConfigUrl=https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml
 
-## Configuration file structure
+<small>[back to TOC](#TOC)</small>
+
+## <a id="FileStruct"></a> Configuration file structure
 
 The file is made up of a number of Yaml Documents (documents are delineated/separated by line with three dashes "---").
 
@@ -31,7 +49,9 @@ Each Yaml Document is parsed as one of three types:
 While the fields are different for each of the above types, intermixing the
 fields should generate an error referencing the intermixed Document!
 
-## Request Logging Option Definition "Yaml Document"
+<small>[back to TOC](#TOC)</small>
+
+## <a id="DocRLOD"></a> Request Logging Option Definition "Yaml Document"
                                                  
 This Document consists of a single field, e.g.:
 > loggingOption: AllCalls
@@ -52,7 +72,9 @@ lines start with "Rate Limited path" and include the Limiting Compound Key.
 - Non-Limited requests include the requests remaining for all the internal limiter(s) -
 after the current request has consumed an entry.
 
-## Request Credential ID Definition "Yaml Document"
+<small>[back to TOC](#TOC)</small>
+
+## <a id="DocRCID"></a> Request Credential ID Definition "Yaml Document"
 
 This Document consists of a single field, e.g.:
 > credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
@@ -65,7 +87,9 @@ Note: if there are no *parameters*, the colin is optional).
 Currently, only one type of *credentialID* is currently supported,
 specifically the "JWT" (shown in the above example).
 
-### JWT *parameters*
+<small>[back to TOC](#TOC)</small>
+
+### <a id="JWTparms"></a> JWT *parameters*
 
 The JWT *keyed* Credential ID Definition's (optional) *parameters* are:
 1. JWT section reference.  Sections can be referred to by their
@@ -97,7 +121,9 @@ So, a JWT *keyed* Credential ID Definition can successfully produce three kinds 
 Base64 decoded section. (implementation supports multiple capture groups and adds
 vertical bars '|' around and between the capture groups)
 
-## Request Limit(s) Definition(s) "Yaml Document"
+<small>[back to TOC](#TOC)</small>
+
+## <a id="DocRLD"></a> Request Limit(s) Definition(s) "Yaml Document"
 
 These Document(s) (called a *Limiter Set* or *Limiter Map*) consist of at
 least three (3) and no more than six (6) fields, e.g.:
@@ -155,11 +181,17 @@ just change the "5r/s" to "15r/3s".
 of much larger numbers for the *Window Secs*, except possibly to support (future feature) of an exponential
 delay (e.g. like a "tar pit"). 
 
-## Minimum and Multiple Request Limit Definition(s) rules & information 
+<small>[back to TOC](#TOC)</small>
 
-### <a id="Rule 1"></a> Rule 1: No two *Limiter Map*s can contain an identical *pathSelector*
+## <a id="RulesAndInfos"></a> Minimum and Multiple Request Limit Definition(s) rules & information
+
+<small>[back to TOC](#TOC)</small>
+
+### <a id="Rule-1"></a> Rule 1: No two *Limiter Map*s can contain an identical *pathSelector*
 
 Because the *other* and the *all* must be alone - *Rule 1* means that there can be at most one of each!
+
+<small>[back to TOC](#TOC)</small>
 
 ### <a id="Rule-2"></a> Rule 2: Every path must be covered by an *active* limiter (e.g. at least one *Window Type* within at least one *Limiter Map*)
 
@@ -168,7 +200,9 @@ To ensure *Rule 2*, either an *other* OR an *all* must exists with a *global* *W
 Note: if you really don't want any global limit, the *other*'s OR the *all*'s *global* *Window Type*
 can support *Integer.MAX* for the requests per second!
 
-### Information 1: Selection of Single or Multiple *Limiter Map*(s)
+<small>[back to TOC](#TOC)</small>
+
+### <a id="Information-1"></a> Information 1: Selection of Single or Multiple *Limiter Map*(s)
 
 As mentioned [above](#pathSelector) there are five types of *pathSelector*s which fall into two groups:
 - *all*
@@ -187,7 +221,9 @@ The "non-all" *Limiter Map* selection is the first match found in following orde
 Remember that [Rule 2](#Rule-2) says that there will exist an *all* and/or *other* with a *global* *Window Type*,
 which means that there will always be at least one *Limiter Map* selected.
 
-### Information 2: Selection of Single or Multiple *Window Type*(s)
+<small>[back to TOC](#TOC)</small>
+
+### <a id="Information-2"></a> Information 2: Selection of Single or Multiple *Window Type*(s)
 
 For each of the *Limiter Map*(s) selected, the *Window Type*(s) are checked to see if any apply
 (possibly one from each group: *global* and non-global).
@@ -203,7 +239,9 @@ because all *Limiter Map*(s) were ignored -- it is predicated on not having a *g
 The result is (ignoring the Special Scenario) where there will be between 1 and 4
 *Limiter Map* & *Window Type* combinations (or *InternalLimiter*s)!
 
-### Information 1: Order of *Window Type* limiter(s) from Multiple *Limiter Map*s 
+<small>[back to TOC](#TOC)</small>
+
+### <a id="Information-3"></a> Information 3: Order of *Window Type* limiter(s) from Multiple *Limiter Map*s
 
 If there are more than one *Limiter Map* & *Window Type* combinations, then they (the *InternalLimiter*s)
 are added for processing (mutual-exclusion locking) in the following order:
@@ -222,3 +260,5 @@ as such they are expected to have the least mutual-exclusion contention
 (waiting for lock freeing) so they should be checked first
 and holding the lock a bit longer is not as detrimental as
 holding the lock longer on the others, especially *all*'s *global*!
+
+<small>[back to TOC](#TOC)</small>
