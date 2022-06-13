@@ -10,12 +10,19 @@ import org.cloudfoundry.identity.uaa.zone.Links;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +33,9 @@ import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class HomeController {
+
+    private static final String EXTERNAL_AUTH_ERROR = "external_auth_error";
+    private static final String ERROR = "error";
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final JdbcClientMetadataProvisioning clientMetadataProvisioning;
     private final Links globalLinks;
@@ -101,20 +111,20 @@ public class HomeController {
         logger.error("Internal error", (Throwable) request.getAttribute("javax.servlet.error.exception"));
 
         populateBuildAndLinkInfo(model);
-        return "error";
+        return ERROR;
     }
 
     @RequestMapping({"/error", "/error**"})
     public String errorGeneric(Model model) {
         populateBuildAndLinkInfo(model);
-        return "error";
+        return ERROR;
     }
 
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
         model.addAttribute("saml_error", exception.getMessage());
-        return "external_auth_error";
+        return EXTERNAL_AUTH_ERROR;
     }
 
     @RequestMapping("/oauth_error")
@@ -126,7 +136,19 @@ public class HomeController {
             model.addAttribute(OAUTH_ERROR, exception);
             request.getSession().removeAttribute(OAUTH_ERROR);
         }
-        return "external_auth_error";
+        return EXTERNAL_AUTH_ERROR;
+    }
+
+    @RequestMapping("/rejected")
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public String handleRequestRejected(Model model,
+        @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
+        @RequestAttribute(RequestDispatcher.ERROR_REQUEST_URI) String uri) {
+
+        logger.error("Request with encoded URI [{}] rejected. {}", URLEncoder.encode(uri, StandardCharsets.UTF_8), ex.getMessage());
+        model.addAttribute("oauth_error", "The request was rejected because it contained a potentially malicious character.");
+
+        return EXTERNAL_AUTH_ERROR;
     }
 
     private static class TileData {

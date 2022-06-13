@@ -16,7 +16,10 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -24,6 +27,7 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.ui.Model;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
@@ -35,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -136,13 +141,30 @@ class HomeControllerViewTests extends TestClassNullifier {
     @ParameterizedTest
     @ValueSource(strings = {
             "/error",
-            "/error404"
+            "/error404",
+            "/error500",
+            "/oauth_error",
+            "/saml_error"
     })
     void errorBranding(final String errorUrl) throws Exception {
-        mockMvc.perform(get(errorUrl))
+        mockMvc.perform(get(errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "/rejected"
+    })
+    void errorRejection(final String errorUrl) throws Exception {
+        mockMvc.perform(get(errorUrl))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void handleRequestRejected() {
+        assertEquals("external_auth_error", homeController.handleRequestRejected(mock(Model.class), new RequestRejectedException(""), ""));
     }
 
     @Test
