@@ -1,8 +1,3 @@
-ext {
-    tomcatVersion = "9.0.27"
-    libraries = [:]
-}
-
 ext["flyway.version"] = "7.15.0" // flyway 8+ drops support for mysql 5.7
 
 def versions = [:]
@@ -16,10 +11,15 @@ versions.springBootVersion = "2.6.8"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.1.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.tomcatVersion = tomcatVersion
+versions.tomcatVersion = "9.0.27"
 versions.xmlBind = "2.3.0"
 versions.statsdClientVersion = "3.1.0" // statsd is not included in spring-boot 2.2 and later, so we need to specify the dependency explicitly
 versions.junitVersion = "4.13.2" // Needed to support junit 4 with spring-boot 2.4
+
+ext {
+    tomcatVersion = "${versions.tomcatVersion}"
+    libraries = [:]
+}
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
