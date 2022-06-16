@@ -11,9 +11,6 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 100
-  ignore:
-  - dependency-name: "org.apache.tomcat:*"
-    update-types: ["version-update:semver-major"] # Stay in Tomcat 9 because it is still supported, likely until 2027 (https://endoflife.date/tomcat), and bumping to Tomcat 10 requires some major code changes
 - package-ecosystem: gradle
   directory: "/statsd"
   schedule:
@@ -26,6 +23,9 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 100
+  ignore:
+  - dependency-name: "org.apache.tomcat:*"
+    update-types: ["version-update:semver-major"] # Stay in Tomcat 9 because it is still supported, likely until 2027 (https://endoflife.date/tomcat), and bumping to Tomcat 10 requires some major code changes
 - package-ecosystem: gradle
   directory: "/model"
   schedule:
