@@ -505,7 +505,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                     .param("client_secret", SECRET)
                     .param(OAuth2Utils.CLIENT_ID, clientWithoutRefresh.getClientId()))
             .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.error_description").value("Unauthorized grant type: refresh_token"));
+            .andExpect(jsonPath("$.error_description").value("Unauthorized grant type"));
     }
 
     int countTokens(String clientId, String userId) {
