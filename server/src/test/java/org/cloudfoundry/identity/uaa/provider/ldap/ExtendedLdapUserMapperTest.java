@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImp
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.NameAwareAttributes;
 import org.springframework.security.core.GrantedAuthority;
@@ -90,5 +91,12 @@ public class ExtendedLdapUserMapperTest  {
         UserDetails userDetails = mapper.mapUserFromContext(adapter, "marissa", authorities);
         assertThat(userDetails instanceof ExtendedLdapUserImpl, is(true));
         return (ExtendedLdapUserImpl)userDetails;
+    }
+
+    @Test
+    public void noNPE() {
+        ExtendedLdapUserImpl user = new ExtendedLdapUserImpl(Mockito.mock(ExtendedLdapUserDetails.class));
+        user.setPassword("pass");
+        assertEquals("pass", user.getPassword());
     }
 }

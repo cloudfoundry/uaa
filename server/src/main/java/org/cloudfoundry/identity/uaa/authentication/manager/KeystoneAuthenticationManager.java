@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.authentication.NonStringPassword;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -112,19 +113,6 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
             }
         }
 
-    }
-
-    public static class NonStringPassword {
-        private final char[] password;
-
-        protected NonStringPassword(String password) {
-            this.password = (password == null) ? null : password.toCharArray();
-        }
-
-        @JsonProperty("password")
-        public String getPassword() {
-            return (password == null) ? null : new String(password);
-        }
     }
 
     // Manual creation, but must support JSON serialization - does NOT support direct binding from JSON (no default constructors)

@@ -15,7 +15,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.authentication.NonStringPassword;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -45,18 +45,18 @@ public class IdentityProviderValidationRequest {
 
     public static class UsernamePasswordAuthentication implements Authentication {
         private final String username;
-        private final String password;
+        private final NonStringPassword password;
 
         @JsonCreator
         public UsernamePasswordAuthentication(
             @JsonProperty("username") String username,
             @JsonProperty("password") String password) {
-            this.password = password;
+            this.password = new NonStringPassword(password);
             this.username = username;
         }
 
         public String getPassword() {
-            return password;
+            return password.getPassword();
         }
 
         public String getUsername() {

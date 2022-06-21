@@ -112,4 +112,9 @@
     <error-page>
         <location>/error</location>
     </error-page>
+
+    <error-page>
+        <exception-type>org.springframework.security.web.firewall.RequestRejectedException</exception-type>
+        <location>/rejected</location>
+    </error-page>
 </web-app>
