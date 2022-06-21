@@ -86,6 +86,7 @@
                             <entry key="authorities"
                                    value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write"/>
                             <entry key="autoapprove" value="true"/>
+                            <entry key="allowpublic" value="true"/>
                         </map>
                     </entry>
                     <entry key="dashboard">

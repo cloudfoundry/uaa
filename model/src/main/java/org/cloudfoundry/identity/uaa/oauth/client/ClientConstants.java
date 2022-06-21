@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth.client;
 public class ClientConstants {
     public static final String ALLOWED_PROVIDERS = "allowedproviders";
     public static final String AUTO_APPROVE = "autoapprove";
+    public static final String ALLOW_PUBLIC = "allowpublic";
     public static final String CREATED_WITH = "createdwith";
     public static final String CLIENT_NAME = "name";
     public static final String APPROVALS_DELETED = "approvals_deleted";

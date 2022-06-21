@@ -1,9 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce;
 
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -70,6 +73,8 @@ public class PkceValidationService {
      *        Map of query parameters of Authorization request.
      * @param codeVerifier
      *        Code verifier.
+     * @param clientDetails
+     *        Allow public information from client
      * @return true: (1) in case of Authorization Code Grant without PKCE.
      *               (2) in case of Authorization Code Grant with PKCE and code verifier
      *                   matched with code challenge based on code challenge method.
@@ -79,11 +84,15 @@ public class PkceValidationService {
      *         (1) Code verifier must be provided for this authorization code.
      *         (2) Code verifier not required for this authorization code.
      */
-    public boolean checkAndValidate(Map<String, String> requestParameters, String codeVerifier) throws PkceValidationException {
+    public boolean checkAndValidate(Map<String, String> requestParameters, String codeVerifier, ClientDetails clientDetails) throws PkceValidationException {
         if (!hasPkceParameters(requestParameters, codeVerifier)) {
             return true;
         }
         String codeChallengeMethod = extractCodeChallengeMethod(requestParameters);
+        if (!"S256".equalsIgnoreCase(codeChallengeMethod) && clientDetails != null && clientDetails.getAdditionalInformation() != null
+            && clientDetails.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC) != null) {
+            throw new InvalidGrantException("Public client must use code challange method S256");
+        }
         return pkceVerifiers.get(codeChallengeMethod).verify(codeVerifier,
                 requestParameters.get(PkceValidationService.CODE_CHALLENGE));
     }

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
@@ -595,11 +596,11 @@ class ClientAdminEndpointsTests {
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
 
         input.setScope(Collections.singletonList(input.getClientId() + ".read"));
-        input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
+        input.setAdditionalInformation(Collections.singletonMap(ClientConstants.ALLOW_PUBLIC, false));
         ClientDetails result = endpoints.updateClientDetails(input, input.getClientId());
         assertNull(result.getClientSecret());
         detail.setScope(input.getScope());
-        detail.setAdditionalInformation(input.getAdditionalInformation());
+        detail.setAdditionalInformation(Collections.emptyMap());
         verify(clientRegistrationService).updateClientDetails(detail, "testzone");
     }
 

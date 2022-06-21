@@ -212,7 +212,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(SnippetUtils.constraints.value("Required if provided on authorization request"), SnippetUtils.type.value(STRING)),
                 parameterWithName("code").description(codeDescription).attributes(SnippetUtils.constraints.value("Required"), SnippetUtils.type.value(STRING)),
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `authorization_code`"),
-                clientSecretParameter,
+                clientSecretParameter.description("<small><mark>UAA 75.21.0</mark></small> Optional and can be omitted if client has configured allowpublic and [PKCE](https://tools.ietf.org/html/rfc7636) with `code_challange_method=S256` is used to create to `code`."),
                 codeVerifier,
                 opaqueFormatParameter
         );
@@ -669,6 +669,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(RESPONSE_TYPE, "code")
                 .param(CLIENT_ID, "login")
                 .param(REDIRECT_URI, redirect)
+                .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
+                .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
                 .param(STATE, new RandomValueStringGenerator().generate());
 
         MockHttpServletResponse authCodeResponse = mockMvc.perform(getAuthCode)
@@ -687,6 +689,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
                 .param("code", code)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                .param(PkceValidationService.CODE_VERIFIER, UaaTestAccounts.CODE_VERIFIER)
                 .param(REDIRECT_URI, redirect);
 
         Snippet requestParameters = requestParameters(
@@ -694,7 +697,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 parameterWithName(REDIRECT_URI).type(STRING).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(SnippetUtils.constraints.value("Required if provided on authorization request")),
                 parameterWithName("code").required().type(STRING).description(codeDescription),
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `authorization_code`"),
-                clientSecretParameter,
+                clientSecretParameter.description("<small><mark>UAA 75.21.0</mark></small> Optional and can be omitted if client has configured allowpublic and [PKCE](https://tools.ietf.org/html/rfc7636) with `code_challange_method=S256` is used to create to `code`."),
+                codeVerifier,
                 opaqueFormatParameter
         );
 

@@ -22,6 +22,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
@@ -78,6 +79,8 @@ class ClientAdminBootstrapTests {
     private JdbcTemplate jdbcTemplate;
 
     private String autoApproveId;
+
+    private String allowPublicId;
     private Map<String, Map<String, Object>> clients;
 
     @BeforeEach
@@ -92,6 +95,7 @@ class ClientAdminBootstrapTests {
         clientMetadataProvisioning = new JdbcClientMetadataProvisioning(multitenantJdbcClientDetailsService, jdbcTemplate);
 
         autoApproveId = "autoapprove-" + randomValueStringGenerator.generate().toLowerCase();
+        allowPublicId = "public-" + randomValueStringGenerator.generate().toLowerCase();
         clients = new HashMap<>();
 
         clientAdminBootstrap = new ClientAdminBootstrap(
@@ -102,7 +106,8 @@ class ClientAdminBootstrapTests {
                 clients,
                 Collections.singleton(autoApproveId),
                 Collections.emptySet(),
-                null);
+                null,
+                Collections.singleton(allowPublicId));
 
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
@@ -121,7 +126,8 @@ class ClientAdminBootstrapTests {
                     null,
                     Collections.emptySet(),
                     Collections.emptySet(),
-                    null);
+                    null,
+                    Collections.emptySet());
         }
 
         @Test
@@ -157,7 +163,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(clientIdToDelete),
                     Collections.singleton(clientIdToDelete),
-                    null);
+                    null, Collections.singleton(clientIdToDelete));
             clientAdminBootstrap.setApplicationEventPublisher(mockApplicationEventPublisher);
         }
 
@@ -314,7 +320,7 @@ class ClientAdminBootstrapTests {
                     clients,
                     Collections.singleton(autoApproveId),
                     Collections.emptySet(),
-                    null);
+                    null, Collections.singleton(allowPublicId));
             when(mockClientMetadataProvisioning.update(any(ClientMetadata.class), anyString())).thenReturn(new ClientMetadata());
         }
 
@@ -334,6 +340,36 @@ class ClientAdminBootstrapTests {
             BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
             expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
             verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
+        }
+
+        @Test
+        void simpleAddClientWithAllowPublic() {
+            Map<String, Object> map = createClientMap(allowPublicId);
+            BaseClientDetails output = new BaseClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            output.setClientSecret("bar");
+
+            doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
+            clients.put((String) map.get("id"), map);
+
+            BaseClientDetails expectedAdd = new BaseClientDetails(output);
+
+            clientAdminBootstrap.afterPropertiesSet();
+            BaseClientDetails expectedUpdate = new BaseClientDetails(expectedAdd);
+            expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.ALLOW_PUBLIC, true));
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(expectedUpdate, "uaa");
+        }
+
+        @Test
+        void simpleAddClientWithAllowPublicNoClient() {
+            Map<String, Object> map = createClientMap(allowPublicId);
+            BaseClientDetails output = new BaseClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            output.setClientSecret("bar");
+
+            doThrow(new NoSuchClientException(allowPublicId)).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
+            clients.put((String) map.get("id"), map);
+
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService, never()).updateClientDetails(any(), any());
         }
 
         @Test
@@ -373,8 +409,7 @@ class ClientAdminBootstrapTests {
                         clients,
                         Collections.singleton(autoApproveId),
                         Collections.emptySet(),
-                        null
-                );
+                        null, Collections.singleton(allowPublicId));
             }
 
             @Test

@@ -62,7 +62,8 @@ public class PkceEnhancedAuthorizationCodeTokenGranter extends AuthorizationCode
          * PKCE code verifier parameter verification
          */
         try {
-            if (pkceValidationService != null && !pkceValidationService.checkAndValidate(storedAuth.getOAuth2Request().getRequestParameters(), codeVerifier)) {
+            if ( pkceValidationService != null &&
+                !pkceValidationService.checkAndValidate(storedAuth.getOAuth2Request().getRequestParameters(), codeVerifier, client)) {
                 // has PkceValidation service and validation failed
                 throw new InvalidGrantException("Invalid code verifier: " + codeVerifier);
             }

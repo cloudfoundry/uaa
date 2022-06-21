@@ -308,7 +308,7 @@
 
 
     <bean id="clientDetailsUserService"
-          class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+          class="org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService">
         <constructor-arg ref="jdbcClientDetailsService"/>
         <property name="passwordEncoder" ref="cachingPasswordEncoder"/>
     </bean>
