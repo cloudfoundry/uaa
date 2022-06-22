@@ -33,7 +33,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private String phoneNumberAttributeName;
     private String emailVerifiedAttributeName;
     private String dn;
-    private NonStringPassword password = new NonStringPassword(null);
+    private transient NonStringPassword password = new NonStringPassword(null);
     private String username;
     private Collection<? extends GrantedAuthority> authorities = AuthorityUtils.NO_AUTHORITIES;
     private boolean accountNonExpired = true;
