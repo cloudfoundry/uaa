@@ -45,7 +45,7 @@ public class IdentityProviderValidationRequest {
 
     public static class UsernamePasswordAuthentication implements Authentication {
         private final String username;
-        private final NonStringPassword password;
+        private final transient NonStringPassword password;
 
         @JsonCreator
         public UsernamePasswordAuthentication(

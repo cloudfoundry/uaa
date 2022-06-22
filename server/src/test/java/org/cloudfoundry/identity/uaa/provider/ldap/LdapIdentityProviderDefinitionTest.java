@@ -76,9 +76,9 @@ public class LdapIdentityProviderDefinitionTest {
     @Test
     public void noPasswordCastException() {
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
-        definition.getBindPassword();
+        assertNull(definition.getBindPassword());
         definition.setBindPassword("value");
-        definition.getBindPassword();
+        assertEquals("value", definition.getBindPassword());
     }
 
     @Test
