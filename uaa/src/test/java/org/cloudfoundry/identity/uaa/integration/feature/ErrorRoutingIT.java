@@ -42,6 +42,7 @@ public class ErrorRoutingIT {
         CallErrorPageAndCheckHttpStatusCode("/error500", 200);
         CallErrorPageAndCheckHttpStatusCode("/errorAny", 200);
         CallErrorPageAndCheckHttpStatusCode("/rejected", 200);
+        CallErrorPageAndCheckHttpStatusCode("/saml_error", 200);
 
     }
 

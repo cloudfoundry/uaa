@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.nonNull;
 import static org.springframework.util.StringUtils.hasText;
 
 @Controller
@@ -123,7 +124,10 @@ public class HomeController {
     @RequestMapping("/saml_error")
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
-        model.addAttribute("saml_error", exception.getMessage());
+
+        if (nonNull(exception)) {
+            model.addAttribute("saml_error", exception.getMessage());
+        }
         return EXTERNAL_AUTH_ERROR;
     }
 
