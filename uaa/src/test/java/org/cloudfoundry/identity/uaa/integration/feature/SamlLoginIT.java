@@ -71,7 +71,10 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.URI;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -1423,6 +1426,14 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/logout.do");
     }
 
+    @Test
+    public void testSpringSamlEndpointsWithEmptyContext() throws IOException {
+        CallEmpptyPageAndCheckHttpStatusCode("/saml/discovery", 200);
+        CallEmpptyPageAndCheckHttpStatusCode("/saml/SingleLogout", 400);
+        CallEmpptyPageAndCheckHttpStatusCode("/saml/login/alias/foo", 400);
+        CallEmpptyPageAndCheckHttpStatusCode("/saml/web/metadata/login", 404);
+        CallEmpptyPageAndCheckHttpStatusCode("/saml/SSO/foo", 200);
+    }
 
     public SamlIdentityProviderDefinition createTestZone2IDP(String alias) {
         return createSimplePHPSamlIDP(alias, "testzone2");
@@ -1494,5 +1505,12 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+    }
+
+    private void CallEmpptyPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {
+        HttpURLConnection cn = (HttpURLConnection)new URL(baseUrl + errorPath).openConnection();
+        cn.setRequestMethod("GET");
+        cn.connect();
+        assertEquals("Check status code from " + errorPath + " is " + codeExpected, cn.getResponseCode(), codeExpected);
     }
 }
