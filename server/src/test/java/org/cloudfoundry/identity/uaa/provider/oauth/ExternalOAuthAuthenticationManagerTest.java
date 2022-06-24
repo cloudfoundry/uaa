@@ -5,10 +5,12 @@ import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -18,6 +20,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.Signer;
@@ -35,6 +38,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.ALG;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
@@ -42,6 +46,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -295,5 +300,99 @@ public class ExternalOAuthAuthenticationManagerTest {
         Set<String> authicatedAuthorities = AuthorityUtils.authorityListToSet(authenticationData.getAuthorities());
         assertThat(roles.toArray(), arrayContainingInAnyOrder(authicatedAuthorities.toArray()));
         // no exception expected, but same array content in authority list
+    }
+
+  @Test
+  public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
+    Map<String, Object> header = map(
+        entry(ALG, "HS256"),
+        entry(KID, "oidc-provider-key")
+    );
+    Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+    Map<String, Object> claims = map(
+        entry("external_family_name", Collections.emptyList()),
+        entry("external_given_name", Arrays.asList("bar", "bar")),
+        entry("external_email", "foo@bar.org"),
+        entry(ISS, oidcConfig.getIssuer()),
+        entry(AUD, "uaa-relying-party"),
+        entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+        entry(SUB, "abc-def-asdf")
+    );
+    Map<String, Object> externalGroupMapping = map(
+        entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name"),
+        entry(ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME, "external_given_name"),
+        entry(ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME, "external_email"),
+        entry(ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME, "external_phone")
+    );
+    oidcConfig.setAttributeMappings(externalGroupMapping);
+    provider.setConfig(oidcConfig);
+    IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+    String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+    ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+    UaaUser uaaUser = authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
+    assertNotNull(uaaUser);
+    assertNull(uaaUser.getFamilyName());
+    assertEquals("bar", uaaUser.getGivenName());
+    assertEquals("foo@bar.org", uaaUser.getEmail());
+  }
+
+    @Test
+    public void getUser_doesThrowWhenIdTokenMappingIsAmbigous() {
+        Map<String, Object> header = map(
+            entry(ALG, "HS256"),
+            entry(KID, "oidc-provider-key")
+        );
+        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        Map<String, Object> claims = map(
+            entry("external_family_name", Arrays.asList("bar", "baz")),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        Map<String, Object> externalGroupMapping = map(
+            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name")
+        );
+        oidcConfig.setAttributeMappings(externalGroupMapping);
+        provider.setConfig(oidcConfig);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+        expectedException.expect(BadCredentialsException.class);
+        expectedException.expectMessage("Claim mapping for family_name is ambigous");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
+    }
+
+    @Test
+    public void getUser_doesThrowWhenIdTokenMappingIsWrongType() {
+        Map<String, Object> header = map(
+            entry(ALG, "HS256"),
+            entry(KID, "oidc-provider-key")
+        );
+        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        Map<String, Object> entryMap = map(
+            entry("external_map_name", Arrays.asList("bar", "baz"))
+        );
+        Map<String, Object> claims = map(
+            entry("external_family_name", entryMap),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        Map<String, Object> externalGroupMapping = map(
+            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name")
+        );
+        oidcConfig.setAttributeMappings(externalGroupMapping);
+        provider.setConfig(oidcConfig);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+        expectedException.expect(BadCredentialsException.class);
+        expectedException.expectMessage("External token attribute external_family_name cannot be mapped to user attribute family_name");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
     }
 }
