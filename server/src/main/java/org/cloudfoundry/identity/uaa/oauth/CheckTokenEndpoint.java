@@ -92,6 +92,10 @@ public class CheckTokenEndpoint implements InitializingBean {
             throw new ParameterParsingException();
         }
 
+        if (!hasText(value)) {
+            throw new InvalidTokenException("Token parameter must be set");
+        }
+
         if (hasText(request.getQueryString()) && !isAllowQueryString()) {
             logger.debug("Call to /oauth/check_token contains a query string. Aborting.");
             throw new HttpRequestMethodNotSupportedException("POST");
