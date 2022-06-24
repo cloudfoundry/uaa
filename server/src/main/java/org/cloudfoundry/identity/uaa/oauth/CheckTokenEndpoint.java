@@ -84,7 +84,7 @@ public class CheckTokenEndpoint implements InitializingBean {
     @RequestMapping(value = "/check_token", method = POST)
     @ResponseBody
     @Deprecated
-    public Claims checkToken(@RequestParam("token") String value,
+    public Claims checkToken(@RequestParam(name = "token",  required = false, defaultValue = "") String value,
                              @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes,
                              HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
 
