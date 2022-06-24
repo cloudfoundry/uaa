@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Sets;
+import org.apache.logging.log4j.util.Strings;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -1035,5 +1036,21 @@ public class CheckTokenEndpointTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         assertNull(result.getAzAttr());
+    }
+
+    @Test
+    public void testNullAndEmptyToken() throws Exception {
+        try {
+            endpoint.checkToken(null, Collections.emptyList(), request);
+            fail("wrong state for check_token");
+        } catch (InvalidTokenException e) {
+            assertEquals("Token parameter must be set", e.getMessage());
+        }
+        try {
+            endpoint.checkToken(Strings.EMPTY, Collections.emptyList(), request);
+            fail("wrong state for check_token");
+        } catch (InvalidTokenException e) {
+            assertEquals("Token parameter must be set", e.getMessage());
+        }
     }
 }
