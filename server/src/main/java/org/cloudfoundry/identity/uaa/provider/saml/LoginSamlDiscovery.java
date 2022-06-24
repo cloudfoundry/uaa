@@ -49,6 +49,12 @@ public class LoginSamlDiscovery extends SAMLDiscovery {
             httpServletResponse.sendRedirect(
                 httpServletResponse.encodeRedirectURL(httpServletRequest.getContextPath() + "/login?error=idp_not_found")
             );
+        } catch (Exception allOtherException) {
+            logger.warn("SAML Discovery exception", allOtherException);
+            HttpServletResponse httpServletResponse = (HttpServletResponse)response;
+            HttpServletRequest httpServletRequest = (HttpServletRequest)request;
+            httpServletRequest.getSession(true).setAttribute("oauth_error", allOtherException.getMessage());
+            httpServletResponse.sendRedirect(httpServletRequest.getContextPath() + "/oauth_error");
         }
     }
 

@@ -7,6 +7,8 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.opensaml.common.SAMLException;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
@@ -108,8 +111,18 @@ public class HomeController {
     }
 
     @RequestMapping("/error500")
-    public String error500(Model model, HttpServletRequest request) {
-        logger.error("Internal error", (Throwable) request.getAttribute("javax.servlet.error.exception"));
+    public String error500(Model model, HttpServletRequest request, HttpServletResponse response) {
+        Throwable genericException = (Throwable) request.getAttribute("javax.servlet.error.exception");
+        logger.error("Internal error", genericException);
+
+        // check for common SAML related exceptions and redirect these to bad_request
+        if (nonNull(genericException) &&
+            (genericException.getCause() instanceof SAMLException || genericException.getCause() instanceof MetadataProviderException)) {
+            Exception samlException = (Exception) genericException.getCause();
+            model.addAttribute("saml_error", samlException.getMessage());
+            response.setStatus(400);
+            return EXTERNAL_AUTH_ERROR;
+        }
 
         populateBuildAndLinkInfo(model);
         return ERROR;
