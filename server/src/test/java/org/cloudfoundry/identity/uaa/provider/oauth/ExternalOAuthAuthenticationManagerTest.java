@@ -338,7 +338,7 @@ public class ExternalOAuthAuthenticationManagerTest {
   }
 
     @Test
-    public void getUser_doesThrowWhenIdTokenMappingIsAmbigous() {
+    public void getUser_doesThrowWhenIdTokenMappingIsAmbiguous() {
         Map<String, Object> header = map(
             entry(ALG, "HS256"),
             entry(KID, "oidc-provider-key")
@@ -360,7 +360,7 @@ public class ExternalOAuthAuthenticationManagerTest {
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
         expectedException.expect(BadCredentialsException.class);
-        expectedException.expectMessage("Claim mapping for family_name is ambigous");
+        expectedException.expectMessage("Claim mapping for family_name attribute is ambiguous");
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
     }

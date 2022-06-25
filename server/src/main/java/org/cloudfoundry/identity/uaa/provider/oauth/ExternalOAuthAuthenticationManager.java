@@ -404,11 +404,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             } else if (entry.size() == 0) {
                 return null;
             } else {
-                logger.warn("Claim mapping for {} is ambigous. ({}) ", claimName, entry.size());
-                throw new BadCredentialsException("Claim mapping for " + internalName + " is ambigous");
+                logger.warn("Claim mapping for {} attribute is ambiguous. ({}) ", claimName, entry.size());
+                throw new BadCredentialsException("Claim mapping for " + internalName + " attribute is ambiguous");
             }
         }
-        logger.warn("Claim {} cannot be mapped because of invalid type {} ", claimName, claimObject.getClass().getSimpleName());
+        logger.warn("Claim attribute {} cannot be mapped because of invalid type {} ", claimName, claimObject.getClass().getSimpleName());
         throw new BadCredentialsException("External token attribute " + claimName + " cannot be mapped to user attribute " + internalName);
     }
 
