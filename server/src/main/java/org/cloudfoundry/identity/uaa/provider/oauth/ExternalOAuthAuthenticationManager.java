@@ -399,9 +399,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         if (claimObject instanceof Collection) {
             Set<String> entry = ((Collection<?>) claimObject).stream().map(String.class::cast).collect(Collectors.toSet());
-            if (entry.size() == 1 && entry.stream().findFirst().isPresent()) {
-                return entry.stream().findFirst().get();
-            } else if (entry.size() == 0) {
+            if (entry.size() == 1 ) {
+                return entry.stream().collect(Collectors.toList()).get(0);
+            } else if (entry.isEmpty()) {
                 return null;
             } else {
                 logger.warn("Claim mapping for {} attribute is ambiguous. ({}) ", claimName, entry.size());
