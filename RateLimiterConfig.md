@@ -60,7 +60,7 @@ There are three logging options:
 1. OnlyLimited  (the default) - single line logs, only requests that are limited;
 lines start with "Rate Limited path" and include the Limiting Compound Key.
 2. AllCalls - single line logs, all requests; lines start with "path" (see [Note](#AllCalls))
-3. AllCallsWithDetails - multi-line logs, all requests; first line start with
+3. AllCallsWithDetails - multi-line logs, all requests; first line starts with
 "********************************** RateLimiter w/ path" (see [Note](#WithDetails))
 
 #### <a id="AllCalls"></a> Note - *AllCalls* includes the duration of the limiter overhead in nanoseconds:

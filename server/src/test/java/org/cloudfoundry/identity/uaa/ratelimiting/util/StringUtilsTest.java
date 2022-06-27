@@ -8,9 +8,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class StringUtilsTest {
-    private static final List<Object> EMPTY = List.of();
-    private static final List<Object> JUST_NULLS = Arrays.asList( new Object[]{null} );
-    private static final List<Object> VALUES = Arrays.asList( new Object[]{5, 2, null, 7, "Martin Fowler"} );
+    private static final Object[] EMPTY = new Object[0];
+    private static final Object[] JUST_NULLS = new Object[]{null};
+    private static final Object[] VALUES = new Object[]{5, 2, null, 7, "Martin Fowler"};
 
     @Test
     void normalize() {

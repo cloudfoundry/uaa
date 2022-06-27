@@ -287,7 +287,7 @@ public class RateLimitingConfigLoader implements Runnable {
                 if ( type == null ) {
                     throw new RateLimitingConfigException( definition + " not found, " +
                                                            StringUtils.options( "registered type",
-                                                                                credentialIdTypesByKey.keySet() ) );
+                                                                                credentialIdTypesByKey.keySet().toArray() ) );
                 }
                 credentialIdExtractor = type.factory( credentialIdDefinition.getPostKeyConfig() );
             }
@@ -305,7 +305,7 @@ public class RateLimitingConfigLoader implements Runnable {
                 if ( this.loggingOption == null ) {
                     throw new RateLimitingConfigException( definition + " not found, " +
                                                            StringUtils.options( "valid option",
-                                                                                (Object[])LoggingOption.values() ) );
+                                                                                LoggingOption.values() ) );
                 }
             }
         }

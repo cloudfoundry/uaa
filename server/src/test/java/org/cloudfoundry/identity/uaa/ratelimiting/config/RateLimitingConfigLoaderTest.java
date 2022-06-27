@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.AbstractExceptionTestSupport;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
@@ -45,6 +47,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     Fetcher fetcher = Mockito.mock( Fetcher.class );
 
     SupplierUpdatable supplierUpdatable = new SupplierUpdatable();
+
+    List<Exception> exceptionCollector = new ArrayList<>();
 
     private RateLimitingConfigLoader createLoader( CredentialIdType... credentialIdTypes ) {
         return new RateLimitingConfigLoader( logger, fetcher, supplierUpdatable,
@@ -255,7 +259,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectSuccess( 1, new CredentialIdTypeJWT() );
+        expectSuccess( 1,
+                       new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -272,7 +277,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectSuccess( 1, new CredentialIdTypeJWT() );
+        expectSuccess( 1,
+                       new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -289,7 +295,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectSuccess( 1, new CredentialIdTypeJWT() );
+        expectSuccess( 1,
+                       new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -306,7 +313,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectException( "document[0] Unrecognized JWT section reference ", new CredentialIdTypeJWT() );
+        expectException( "document[0] Unrecognized JWT section reference ",
+                         new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -323,7 +331,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectException( "document[0] Empty key from: ", new CredentialIdTypeJWT() );
+        expectException( "document[0] Empty key from: ",
+                         new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -342,7 +351,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectException( "document[1] Second 'credentialID' (key == 'JWT')", new CredentialIdTypeJWT() );
+        expectException( "document[1] Second 'credentialID' (key == 'JWT')",
+                         new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -359,7 +369,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectException( "document[0] 'credentialID' (key == '!JWT') not found, ", new CredentialIdTypeJWT() );
+        expectException( "document[0] 'credentialID' (key == '!JWT') not found, ",
+                         new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test
@@ -376,7 +387,8 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-        expectException( "document[1] Contained both a 'limiter' (name == 'Info') and a 'credentialID' (key == 'JWT')", new CredentialIdTypeJWT() );
+        expectException( "document[1] Contained both a 'limiter' (name == 'Info') and a 'credentialID' (key == 'JWT')",
+                         new CredentialIdTypeJWT(exceptionCollector::add) );
     }
 
     @Test

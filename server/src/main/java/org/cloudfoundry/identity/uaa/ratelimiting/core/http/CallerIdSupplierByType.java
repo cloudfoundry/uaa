@@ -5,12 +5,12 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
  */
 public interface CallerIdSupplierByType {
     /**
-     * @return null if Caller did not provide Credentials or a string form of the Credentials
+     * @return string form of the extract Credentials -- null if Caller did not provide Credentials or there was an error extracting the Credentials
      */
     String getCallerCredentialsID();
 
     /**
-     * @return null if Caller did not provide a RemoteAddress or a string form of the RemoteAddress
+     * @return string form of the RemoteAddress -- while, in theory, there might not be a RemoteAddress (and null would be returned); in practice, there should always be one!
      */
     String getCallerRemoteAddressID();
 }

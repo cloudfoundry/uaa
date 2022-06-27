@@ -20,23 +20,11 @@ public class StringUtils {
         return (value == null) ? "" : value.trim();
     }
 
-    public static String options( String labelSingularButPluralWithAnS, Collection<?> validOptions ) {
-        return options( labelSingularButPluralWithAnS, convert( validOptions ) );
-    }
-
-    public static String options( String labelSingular, String labelPlural, Collection<?> validOptions ) {
-        return options( labelSingular, labelPlural, convert( validOptions ) );
-    }
-
-    public static String options( Collection<?> validOptions ) {
-        return options( convert( validOptions ) );
-    }
-
-    public static String options( String labelSingularButPluralWithAnS, Object... validOptions ) {
+    public static String options( String labelSingularButPluralWithAnS, Object[] validOptions ) {
         return options( labelSingularButPluralWithAnS, labelSingularButPluralWithAnS + "s", validOptions );
     }
 
-    public static String options( String labelSingular, String labelPlural, Object... validOptions ) {
+    public static String options( String labelSingular, String labelPlural, Object[] validOptions ) {
         switch ( count( validOptions ) ) {
             case 0:
                 return "no " + labelPlural;
@@ -47,14 +35,8 @@ public class StringUtils {
         }
     }
 
-    public static String options( Object... validOptions ) {
+    public static String options( Object[] validOptions ) {
         return (0 == count( validOptions )) ? "" : optionsNotEmpty( validOptions );
-    }
-
-    private static Object[] convert( Collection<?> collection ) {
-        int count = (collection == null) ? 0 : collection.size();
-        Object[] items = new Object[count];
-        return (count == 0) ? items : collection.toArray( items );
     }
 
     private static int count( Object[] array ) {

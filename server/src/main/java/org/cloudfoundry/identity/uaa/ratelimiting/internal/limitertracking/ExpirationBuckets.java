@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 
-import lombok.AllArgsConstructor;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
@@ -13,7 +16,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     private final CompoundKeyPurger compoundKeyPurger;
     private final int wrapAroundMask;
     private final long buckets; // need long version for efficient bounds checking
-    private final ExpirationStack.Head[] expirationsBucketRing;
+    private final List<CompoundKey>[] expirationsBucketRing;
     private ExpirationBucketMapping ebm;
     private volatile boolean wereDying = false;
 
@@ -24,9 +27,10 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
         int buckets = powerOf2atLeast( minimumBuckets + 2 ); // need extra two (seconds)
         this.buckets = buckets; // long version for efficient bounds checking
         wrapAroundMask = buckets - 1;
-        expirationsBucketRing = new ExpirationStack.Head[buckets];
+        //noinspection unchecked
+        expirationsBucketRing = new List[buckets];
         for ( int i = 0; i < expirationsBucketRing.length; i++ ) {
-            expirationsBucketRing[i] = new ExpirationStack.Head();
+            expirationsBucketRing[i] = Collections.synchronizedList( new LinkedList<>() ); // Cheap adding!
         }
         // provide ebm with purging 'tail' being two seconds behind available adding offsets
         ebm = new ExpirationBucketMapping( 0,
@@ -36,7 +40,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
 
     @Override
     public void addCompoundKeyExpiration( CompoundKey compoundKey, long expirationSecond ) {
-        ExpirationStack.Head bucket = getBucket( expirationSecond );
+        List<CompoundKey> bucket = getBucket( expirationSecond );
         bucket.add( compoundKey );
     }
 
@@ -47,7 +51,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     // public for testing
     public void processExpirations() {
         long secondToPurge = currentSecondNow() - 2; // purge two seconds behind possible adds!
-        getBucket( secondToPurge ).purge( compoundKeyPurger, secondToPurge );
+        purge( getBucket( secondToPurge ), compoundKeyPurger, secondToPurge );
         updateBucketBase( secondToPurge );
     }
 
@@ -88,7 +92,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
         }
     }
 
-    synchronized ExpirationStack.Head getBucket( long secondOfInterest ) {
+    synchronized List<CompoundKey> getBucket( long secondOfInterest ) {
         long secondsOffset = secondOfInterest - ebm.currentRingBucketBaseSecond;
         if ( (secondsOffset < 0) || (buckets <= secondsOffset) ) {
             throw new BucketRingBoundsException( ebm, buckets, secondOfInterest );
@@ -137,44 +141,10 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
         }
     }
 
-    interface ExpirationStack {
-        @AllArgsConstructor
-        @ToString
-        class Node {
-            private final CompoundKey compoundKey;
-            private final Node next;
+    public void purge( List<CompoundKey> keys, CompoundKeyPurger compoundKeyPurger, long secondToPurge ) {
+        for ( CompoundKey compoundKey : keys ) {
+            compoundKeyPurger.removeCompoundKey( compoundKey, secondToPurge );
         }
-
-        @ToString
-        class Head {
-            private Node first;
-            private int count;
-
-            public synchronized int getCount() {
-                return count;
-            }
-
-            public synchronized void add( CompoundKey compoundKey ) {
-                first = new Node( compoundKey, first );
-                count++;
-            }
-
-            public synchronized CompoundKey peek() {
-                return (first == null) ? null : first.compoundKey;
-            }
-
-            public synchronized void drop() {
-                if ( first != null ) {
-                    first = first.next;
-                    count--;
-                }
-            }
-
-            public void purge( CompoundKeyPurger compoundKeyPurger, long secondToPurge ) {
-                for ( CompoundKey compoundKey; null != (compoundKey = peek()); drop() ) {
-                    compoundKeyPurger.removeCompoundKey( compoundKey, secondToPurge );
-                }
-            }
-        }
+        keys.clear();
     }
 }

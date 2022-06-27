@@ -60,7 +60,7 @@ class ExpirationBucketsTest {
     }
 
     private void assertBadBucketSecondRequest( long second ) {
-        ExpirationStack.Head bucket;
+        List<CompoundKey> bucket;
 
         try {
             bucket = buckets.getBucket( second );
@@ -82,18 +82,6 @@ class ExpirationBucketsTest {
         long bucketBaseSecond = buckets.currentSecondNow() - 2;
         assertBucketMappings( 0, bucketBaseSecond );
 
-        for ( int i = 0; i <= 31; i++ ) {
-            ExpirationStack.Head bucket = buckets.getBucket( bucketBaseSecond + i );
-            bucket.add( ck( "" + i ) );
-            bucket.add( ck( "-" + i ) );
-        }
-        for ( int i = 0; i <= 31; i++ ) {
-            ExpirationStack.Head bucket = buckets.getBucket( bucketBaseSecond + i );
-            assertEquals( 2, bucket.getCount() );
-            assertEquals( ck( "-" + i ), bucket.peek() );
-            bucket.drop();
-            assertEquals( ck( "" + i ), bucket.peek() );
-        }
         assertBadBucketSecondRequest( bucketBaseSecond - 1 );
         assertBadBucketSecondRequest( bucketBaseSecond + 32 );
     }

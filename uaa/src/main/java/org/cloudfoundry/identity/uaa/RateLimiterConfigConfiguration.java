@@ -5,6 +5,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ratelimiting.config.AbstractRateLimiterConfigConfiguration;
 import org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractorErrorLogger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 import org.springframework.context.annotation.Bean;
@@ -23,14 +24,16 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConf
  */
 @Configuration
 public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigConfiguration {
+    private final Log logger = LogFactory.getLog( RateLimitingConfigLoader.class );
 
     @Bean
     public RateLimitingConfigLoader loader() {
-        return createLoader( new CredentialIdTypeJWT() );
+        AuthorizationCredentialIdExtractorErrorLogger errLogger =
+                ( e ) -> logger.error( "AuthorizationCredentialIdExtractor", e );
+        return createLoader( new CredentialIdTypeJWT( errLogger ) );
     }
 
     protected LoaderLogger loaderLogger() {
-        Log logger = LogFactory.getLog( RateLimitingConfigLoader.class );
         logger.info( "RateLimiting initializing (wd: " + System.getProperty( "user.dir" ) );
         return new LoaderLogger() {
             @Override
