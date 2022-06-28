@@ -85,6 +85,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
@@ -351,10 +352,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             Map<String, Object> claims = authenticationData.getClaims();
 
             String username = authenticationData.getUsername();
-            String givenName = (String) claims.get(givenNameClaim == null ? "given_name" : givenNameClaim);
-            String familyName = (String) claims.get(familyNameClaim == null ? "family_name" : familyNameClaim);
-            String phoneNumber = (String) claims.get(phoneClaim == null ? "phone_number" : phoneClaim);
-            String email = (String) claims.get(emailClaim == null ? "email" : emailClaim);
+            String givenName =  getMappedClaim(givenNameClaim, "given_name", claims);
+            String familyName = getMappedClaim(familyNameClaim, "family_name", claims);
+            String phoneNumber = getMappedClaim(phoneClaim, "phone_number", claims);
+            String email = getMappedClaim(emailClaim, "email",claims);
             Object verifiedObj = claims.get(emailVerifiedClaim == null ? "email_verified" : emailVerifiedClaim);
             boolean verified =  verifiedObj instanceof Boolean ? (Boolean)verifiedObj: false;
 
@@ -384,6 +385,31 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         logger.debug("Authenticate data is missing, unable to return user");
         return null;
+    }
+
+    private String getMappedClaim(String externalName, String internalName, Map<String, Object> claims) {
+        String claimName = isNull(externalName) ? internalName : externalName;
+        Object claimObject = claims.get(claimName);
+
+        if (isNull(claimObject)) {
+            return null;
+        }
+        if (claimObject instanceof String) {
+            return (String) claimObject;
+        }
+        if (claimObject instanceof Collection) {
+            Set<String> entry = ((Collection<?>) claimObject).stream().map(String.class::cast).collect(Collectors.toSet());
+            if (entry.size() == 1 ) {
+                return entry.stream().collect(Collectors.toList()).get(0);
+            } else if (entry.isEmpty()) {
+                return null;
+            } else {
+                logger.warn("Claim mapping for {} attribute is ambiguous. ({}) ", claimName, entry.size());
+                throw new BadCredentialsException("Claim mapping for " + internalName + " attribute is ambiguous");
+            }
+        }
+        logger.warn("Claim attribute {} cannot be mapped because of invalid type {} ", claimName, claimObject.getClass().getSimpleName());
+        throw new BadCredentialsException("External token attribute " + claimName + " cannot be mapped to user attribute " + internalName);
     }
 
     private List<? extends GrantedAuthority> extractExternalOAuthUserAuthorities(Map<String, Object> attributeMappings, Map<String, Object> claims) {
