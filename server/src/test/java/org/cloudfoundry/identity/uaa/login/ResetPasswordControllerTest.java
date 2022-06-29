@@ -190,7 +190,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, "http://localhost");
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())
@@ -350,7 +350,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                                                         TemplateEngine mailTemplateEngine,
                                                         ExpiringCodeStore codeStore,
                                                         UaaUserDatabase userDatabase) {
-            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase);
+            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase, null);
         }
     }
 
