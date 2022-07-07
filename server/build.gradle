@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply(plugin: "war")
 
 description = "CloudFoundry Identity Server JAR"
 
@@ -7,7 +7,7 @@ dependencies {
     implementation(project(":cloudfoundry-identity-model"))
 
     implementation(libraries.tomcatJdbc)
-    provided(libraries.tomcatEmbed)
+    providedCompile(libraries.tomcatEmbed)
     implementation(libraries.javaxMail)
 
     implementation(libraries.jacksonDatabind)

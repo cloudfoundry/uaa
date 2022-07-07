@@ -18,7 +18,6 @@ buildscript {
 
     dependencies {
         classpath(libraries.cargoGradlePlugin)
-        classpath(libraries.prodepsGradlePlugin)
         classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
@@ -33,9 +32,9 @@ apply(from: "dependencies.gradle")
 def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
 
 apply(plugin: "com.bmuschko.cargo")
+apply(plugin: "war")
 
 allprojects {
-    apply(plugin: "propdeps")
     apply(plugin: "io.spring.dependency-management")
     apply(plugin: "org.gradle.test-retry")
     apply(plugin: "org.barfuin.gradle.jacocolog")
@@ -47,8 +46,6 @@ allprojects {
             mavenBom(libraries.springBootBom)
         }
     }
-
-    configurations.provided.transitive = false
 
     repositories {
         mavenCentral()
