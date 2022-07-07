@@ -20,7 +20,13 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.YamlConfigFileDTO.LimiterMap;
 
 public class RateLimitingConfigMapper {
-    public static final String NO_NAME_PROVIDED = "Incomplete Rate Limiting configuration entry - No 'name' provided; in: ";
+    public static final String CREDENTIAL_ID_NOT_FOUND_PREFIX = "credentialID not found, provided '";
+    public static final String LOGGING_OPTION_NOT_FOUND_PREFIX = "loggingOption not found, provided '";
+    static final String ERROR_IN_LIMITER_MAPPINGS_PREFIX = "Error in limiterMappings[";
+
+    static final String NO_NAME_PROVIDED_PREFIX = "Incomplete Rate Limiting configuration entry - No 'name' provided; in: ";
+    static final String DUPLICATE_PATH_SELECTOR_PREFIX = "Duplicate PathSelector (";
+    static final String DUPLICATE_NAME_PREFIX = "Duplicate Name (";
 
     private final boolean updatingEnabled;
     private final MillisTimeSupplier currentTimeSupplier;
@@ -45,23 +51,42 @@ public class RateLimitingConfigMapper {
 
     // package friendly for testing
     @SuppressWarnings("unused")
+    YamlConfigFileDTO getDtoPrevious() {
+        return dtoPrevious;
+    }
+
+    // package friendly for testing
+    @SuppressWarnings("unused")
     boolean hasCredentialIdTypes() {
         return !credentialIdTypesByKey.isEmpty();
     }
 
     public RateLimitingFactoriesSupplierWithStatus map( RateLimitingFactoriesSupplierWithStatus current, String fromSource, YamlConfigFileDTO dto ) {
+        return checkNoChange( dto ) ? null : createErrorSupplierPair( dto ).map( current, fromSource, updatingEnabled, currentTimeSupplier.now() );
+    }
+
+    // package friendly for testing
+    boolean checkNoChange( YamlConfigFileDTO dto ) {
         if ( (dto == null) || dto.equals( dtoPrevious ) ) {
-            return null;
+            return true;
         }
         dtoPrevious = dto;
-        ErrorSupplierPair pair;
+        return false;
+    }
+
+    // package friendly for testing
+    ErrorSupplierPair createErrorSupplierPair( YamlConfigFileDTO dto ) {
         try {
-            pair = ErrorSupplierPair.with( new Mapper().map( dto ) );
+            return ErrorSupplierPair.with( getSupplier( dto ) );
         }
         catch ( RuntimeException e ) {
-            pair = ErrorSupplierPair.with( e );
+            return ErrorSupplierPair.with( e );
         }
-        return pair.map( current, fromSource, updatingEnabled, currentTimeSupplier.now() );
+    }
+
+    // package friendly for testing
+    InternalLimiterFactoriesSupplier getSupplier( YamlConfigFileDTO dto ) {
+        return new Mapper().map( dto );
     }
 
     private void populateCredentialIdTypes( CredentialIdType[] credentialIdTypes ) {
@@ -99,7 +124,7 @@ public class RateLimitingConfigMapper {
                             validateAndAdd( parse( limiterMaps.get( i ) ) );
                         }
                         catch ( Exception e ) {
-                            throw new RateLimitingConfigException( "Error in limiterMappings[" + i + "] of: " + e.getMessage(), e );
+                            throw new RateLimitingConfigException( ERROR_IN_LIMITER_MAPPINGS_PREFIX + i + "] of: " + e.getMessage(), e );
                         }
                     }
                 }
@@ -120,14 +145,14 @@ public class RateLimitingConfigMapper {
             private void checkDupName( LimiterMapping mapping, String name ) {
                 LimiterMapping existing = limiterMappingsByName.put( name, mapping );
                 if ( existing != null ) {
-                    throw new RateLimitingConfigException( "Duplicate Name (" + name + ") other's data (" + existing + ")" );
+                    throw new RateLimitingConfigException( DUPLICATE_NAME_PREFIX + name + ") other's data (" + existing + ")" );
                 }
             }
 
             private void checkDupPath( String name, PathSelector ps ) {
                 String existingName = limiterNamesByPathSelector.put( ps, name );
                 if ( existingName != null ) {
-                    throw new RateLimitingConfigException( "Duplicate PathSelector (" + ps + ") other's name (" + existingName + ")" );
+                    throw new RateLimitingConfigException( DUPLICATE_PATH_SELECTOR_PREFIX + ps + ") other's name (" + existingName + ")" );
                 }
             }
 
@@ -138,7 +163,7 @@ public class RateLimitingConfigMapper {
 
                 String name = limiterMap.getName();
                 if ( name == null ) {
-                    throw new RateLimitingConfigException( NO_NAME_PROVIDED + limiterMap );
+                    throw new RateLimitingConfigException( NO_NAME_PROVIDED_PREFIX + limiterMap );
                 }
                 return LimiterMapping.builder()
                         .name( name )
@@ -157,7 +182,7 @@ public class RateLimitingConfigMapper {
         if ( definition != null ) {
             CredentialIdType type = credentialIdTypesByKey.get( definition.getKey() );
             if ( type == null ) {
-                throw new RateLimitingConfigException( definition + " not found, " +
+                throw new RateLimitingConfigException( CREDENTIAL_ID_NOT_FOUND_PREFIX + definition + "'; " +
                                                        StringUtils.options( "registered type",
                                                                             credentialIdTypesByKey.keySet().toArray() ) );
             }
@@ -171,7 +196,7 @@ public class RateLimitingConfigMapper {
         if ( loggingOptionDefinition != null ) {
             LoggingOption loggingOption = LoggingOption.valueFor( loggingOptionDefinition );
             if ( loggingOption == null ) {
-                throw new RateLimitingConfigException( loggingOptionDefinition + " not found, " +
+                throw new RateLimitingConfigException( LOGGING_OPTION_NOT_FOUND_PREFIX + loggingOptionDefinition + "'; " +
                                                        StringUtils.options( "valid option",
                                                                             LoggingOption.values() ) );
             }

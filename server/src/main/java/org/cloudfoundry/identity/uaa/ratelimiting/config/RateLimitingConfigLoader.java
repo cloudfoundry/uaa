@@ -18,6 +18,7 @@ public class RateLimitingConfigLoader implements Runnable {
     public static final String YAML_FETCH_FAILED = "Fetch Failed";
     public static final String YAML_NULL = "null";
     public static final String YAML_EMPTY = "empty";
+    public static final String YAML_NO_DATA = "no data";
     public static final String TYPE_PROPERTIES_PROBLEM = "unacceptable/incompatible TypeProperties: ";
 
     private final LoaderLogger logger;
@@ -26,7 +27,7 @@ public class RateLimitingConfigLoader implements Runnable {
     private final RateLimitingConfigMapper configMapper;
     private final LimiterFactorySupplierUpdatable supplierUpdatable;
     private final MillisTimeSupplier currentTimeSupplier;
-    private final BindYaml bindYaml;
+    private final BindYaml<YamlConfigFileDTO> bindYaml;
     private final YamlMapper yamlMapper;
     private volatile boolean wereDying = false;
     private Thread backgroundThread;
@@ -63,7 +64,7 @@ public class RateLimitingConfigLoader implements Runnable {
         this.configMapper = configMapper;
         this.supplierUpdatable = supplierUpdatable;
         this.currentTimeSupplier = MillisTimeSupplier.deNull( currentTimeSupplier );
-        bindYaml = new BindYaml( dynamicUpdateURL );
+        bindYaml = new BindYaml<>( YamlConfigFileDTO.class, dynamicUpdateURL );
         yamlMapper = new YamlMapper( current );
 
         if ( fetcher != null ) { // Rate Limiting active
@@ -162,14 +163,18 @@ public class RateLimitingConfigLoader implements Runnable {
             if ( yamlString == null ) {
                 throw new YamlRateLimitingConfigException( null, YAML_NULL );
             }
-            yamlString = yamlString.trim();
+            yamlString = yamlString.stripLeading();
             if ( yamlString.isEmpty() ) {
                 throw new YamlRateLimitingConfigException( yamlString, YAML_EMPTY );
+            }
+            yamlString = BindYaml.removeLeadingEmptyDocuments( yamlString );
+            if ( yamlString.isEmpty() ) {
+                throw new YamlRateLimitingConfigException( yamlString, YAML_NO_DATA );
             }
         }
 
         private YamlConfigFileDTO parseFile( String yamlString ) {
-            return bindYaml.bind( YamlConfigFileDTO.class, yamlString );
+            return bindYaml.bind( yamlString );
         }
     }
 }

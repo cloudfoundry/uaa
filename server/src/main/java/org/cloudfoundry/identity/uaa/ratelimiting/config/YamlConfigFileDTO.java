@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,14 +17,18 @@ import org.yaml.snakeyaml.Yaml;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @EqualsAndHashCode
+@AllArgsConstructor
 public class YamlConfigFileDTO {
     @Getter
     @Setter
+    @Builder
     @ToString
     @NoArgsConstructor
     @EqualsAndHashCode
+    @AllArgsConstructor
     public static class LimiterMap {
         private String name;
         private String global;

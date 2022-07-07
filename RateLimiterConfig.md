@@ -3,8 +3,12 @@
 TOC:<p>
 &nbsp; &nbsp;          [Enablement](#Enablement)<br>
 &nbsp; &nbsp;          [Configuration file structure](#FileStruct)<br>
-&nbsp; &nbsp;          [Request Logging Option Definition](#DocRLOD)<br>
-&nbsp; &nbsp;          [Request Credential ID Definition](#DocRCID)<br>
+
+&nbsp; &nbsp;          [Common Root Fields (from both the local file and the URL)](#DocCommonFields)<br>
+&nbsp; &nbsp;          [LimiterMap Fields](#DocLimiterMapFields)<br>
+
+&nbsp; &nbsp;          [Logging Option Definition](#DocLOD)<br>
+&nbsp; &nbsp;          [Credential ID Definition](#DocCID)<br>
 &nbsp; &nbsp; &nbsp;   [JWT *parameters*](#JWTparms)<br>
 &nbsp; &nbsp;          [Request Limit(s) Definition(s)](#DocRLD)<br>
 &nbsp; &nbsp;          [Minimum and Multiple Request Limit Definition(s) rules & information](#RulesAndInfos)<br>
@@ -18,45 +22,61 @@ TOC:<p>
                                               
 ## <a id="Enablement"></a> Enablement
 
-Rate Limiting is enabled by an environment variable
-"RateLimiterConfigUrl" that must start with either "http://" or "https://"
-(from an enablement perspective the rest of the URL does NOT matter).
+Rate Limiting is enabled in two ways:
+1. by an environment variable "RateLimiterConfigUrl" (which acts as a source of dynamic configuration updates), that must start with either "http://" or "https://" (from an enablement perspective the rest of the URL does NOT matter).
+2. by a local file "RateLimiterConfig.yml", that must exist in the root of the applications "resource" directory.
 
-You can see (and use) an example with:
+You can see (and use) a URL example with:
 > export&nbsp;RateLimiterConfigUrl=https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml
+
+Obviously the local file "RateLimiterConfig.yml", is read once on startup, and assuming there are no errors, will become the initial (and default) limits.
+If there is an error interpreting the local file "RateLimiterConfig.yml", the error is logged (and available at the "RateLimitingStatus" endpoint), and
+Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is activated, but with no initial (and default) limits!
+
+There is one difference between the local file "RateLimiterConfig.yml" and the environment
+variable "RateLimiterConfigUrl" based file; the local file "RateLimiterConfig.yml" can 
+contain one more field "dynamicConfigUrl", if present and the value starts with
+"http://" or "https://", then it becomes the default source of dynamic configuration updates
+(if the environment variable "RateLimiterConfigUrl" exists it supersedes the
+"dynamicConfigUrl" field in the local file "RateLimiterConfig.yml").
+
 
 <small>[back to TOC](#TOC)</small>
 
 ## <a id="FileStruct"></a> Configuration file structure
 
-The file is made up of a number of Yaml Documents (documents are delineated/separated by line with three dashes "---").
+The file is basically a single Yaml Document (documents are delineated/separated by lines with three dashes "---");
+leading empty documents are ignored
+(note: the behaviour when more than one remaining document exists has not been tested).
 
-Each Document is processed individually, and numbered 0-n (the zero document is the one
-before the first line of three dashes "---").
-This numbering allows the processor to report explicitly which document
-has a parsing problem - this allows for much more actionable error messages.
-
-Line comments (line starts with a Pound Sign "#") are allowed any place (and ignored).
-
-Empty Documents (or those with just comments &/ blank lines) are counted, but ignored.
-
-Each Yaml Document is parsed as one of three types:
-
-- Request Logging Option Definition (optional - only one allowed)
-- Request Credential ID Definition (optional - only one allowed)
-- Request Limit Definition (not optional - at least one required)
-
-While the fields are different for each of the above types, intermixing the
-fields should generate an error referencing the intermixed Document!
+Line comments (lines starting with a Pound Sign "#") are allowed any place (and ignored)
+in the remaining single document.
 
 <small>[back to TOC](#TOC)</small>
 
-## <a id="DocRLOD"></a> Request Logging Option Definition "Yaml Document"
-                                                 
+## <a id="DocCommonFields"></a> Common Fields (from both the local file and the URL)
+
+* loggingOption - (optional) String (see [Details](#DocLOD))
+* credentialID - (optional) String (see [Details](#DocCID))
+* limiterMappings - List of [LimiterMap(s)](#DocLimiterMapFields)(s)
+
+## <a id="DocLimiterMapFields"></a> LimiterMap Fields
+
+* name - (required) String
+* global - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
+* withCallerCredentialsID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
+* withCallerRemoteAddressID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
+* withoutCallerID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
+* pathSelectors - (required non-empty) List of String(s) - (see [Path Selector](#pathSelector)) 
+
+#### <a id="RequiredRS"></a> Note - There must be at least ONE Window Type in a Limiter Map!
+
+## <a id="DocLOD"></a> Logging Option Definition
+
 This Document consists of a single field, e.g.:
 > loggingOption: AllCalls
 
-There are three logging options:
+The 'loggingOption' field has three logging options:
 1. OnlyLimited  (the default) - single line logs, only requests that are limited;
 lines start with "Rate Limited path" and include the Limiting Compound Key.
 2. AllCalls - single line logs, all requests; lines start with "path" (see [Note](#AllCalls))
@@ -74,7 +94,9 @@ after the current request has consumed an entry.
 
 <small>[back to TOC](#TOC)</small>
 
-## <a id="DocRCID"></a> Request Credential ID Definition "Yaml Document"
+## <a id="DocCID"></a> Credential ID Definition
+
+XXX
 
 This Document consists of a single field, e.g.:
 > credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
@@ -125,7 +147,7 @@ vertical bars '|' around and between the capture groups)
 
 ## <a id="DocRLD"></a> Request Limit(s) Definition(s) "Yaml Document"
 
-These Document(s) (called a *Limiter Set* or *Limiter Map*) consist of at
+These Document(s) (called a *Limiter Map*) consist of at
 least three (3) and no more than six (6) fields, e.g.:
 > name: info<br>
 > withCallerCredentialsID: 50r/s<br>
@@ -145,7 +167,7 @@ CompoundKey AND for error reporting.
 3. *Window Type*(s) - where each has *M* requests per *N* seconds (*M*r/*N*s) with *N* defaulting to 1,
 and with a maximum of 1800 (30 mins) (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)). 
 
-#### <a id="pathSelector"></a> Note - there are five types of *pathSelector*s:
+#### <a id="pathSelector"></a> Note - there are five types of *pathSelector*s (the first three require a path value be indicated after the colon):
 - *equals:*/... (the path, after the colin ':', MUST start with a slash '/').
 - *startsWith:*/... (the path, after the colin ':', MUST start with a slash '/').
 - *contains:*... (the path, after the colin ':', MUST not be empty).
@@ -161,7 +183,7 @@ non-global *Window Type*s are checked in the following order and first active ST
 1. *withCallerCredentialsID* - this one, if provided, will be active,
 IFF *Credential ID Definition* exists AND it can successfully extract the *Credential ID*
 2. *withCallerRemoteAddressID* - this one, if provided, will be active,
-IFF a caller IP address can be found (developer has never seen this not exists)!
+IFF a caller IP address can be found (developer has never seen this not exist)!
 3. *withoutCallerID* - this one, if provided, will be active,
 IFF the other two options were not active!
 

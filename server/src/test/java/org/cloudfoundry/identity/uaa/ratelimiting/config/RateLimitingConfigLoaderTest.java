@@ -87,11 +87,12 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     @Test
     void checkForUpdatedPropertiesHappyCaseNoDocSeps()
             throws Exception {
-        String[] yaml = { // No "c-directives-end"s (document sep)
-                          "name: ALL",
-                          "global: 150r/s",
-                          "pathSelectors:",
-                          " - 'all'",
+        String[] yaml = {
+                          "limiterMappings:",
+                          "- name: ALL",
+                          "  global: 150r/s",
+                          "  pathSelectors:",
+                          "  - 'all'",
                           ""
         };
 
@@ -104,15 +105,12 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = { // Extra "c-directives-end"s (document sep)
                           "---",
-                          "# a comment",
-                          "# another comment",
                           "---",
-                          "name: ALL",
-                          "global: 150r/s",
-                          "pathSelectors:",
-                          " - 'all'",
-                          "---",
-                          ""
+                          "limiterMappings:",
+                          "- name: ALL",
+                          "  global: 150r/s",
+                          "  pathSelectors:",
+                          "  - 'all'",
         };
 
         when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
@@ -123,72 +121,64 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesHappyCaseManyDocs()
             throws Exception {
         String[] yaml = {
-                "---",
-                "name: Info",
-                "global: 50r/s",
-                "withCallerRemoteAddressID: 2r/s",
-                "withoutCallerID: 4r/s",
-                "pathSelectors:",
-                "- 'equals:/info'",
-                "---",
-                "name: Authenticate",
-                "global: 50r/s",
-                "withCallerRemoteAddressID: 5r/s",
-                "withoutCallerID: 10r/s",
-                "pathSelectors:",
-                "- 'equals:/authenticate'",
-                "---",
-                "name: AuthToken",
-                "global: 50r/s",
-                "withCallerRemoteAddressID: 2r/s",
-                "withoutCallerID: 4r/s",
-                "pathSelectors:",
-                "- 'equals:/oauth/token'",
-                "---",
-                "name: AuthAuthorize",
-                "global: 25r/s",
-                "withCallerRemoteAddressID: 1r/s",
-                "withoutCallerID: 2r/s",
-                "pathSelectors:",
-                "- 'equals:/oauth/authorize'",
-                "---",
-                "name: LoginPage",
-                "withCallerRemoteAddressID: 3r/3s",
-                "withoutCallerID: 2r/s",
-                "global: 25r/s",
-                "pathSelectors:",
-                "- 'equals:/login'",
-                "---",
-                "name: LoginResource",
-                "global: 150r/s",
-                "withCallerRemoteAddressID: 12r/3s",
-                "withoutCallerID: 6r/s",
-                "pathSelectors:",
-                "- 'startsWith:/resources/'",
-                "- 'startsWith:/vendor/'",
-                "---",
-                "name: LoginDo",
-                "global: 25r/s",
-                "withCallerRemoteAddressID: 1r/s",
-                "withoutCallerID: 2r/s",
-                "pathSelectors:",
-                "- 'equals:/login.do'",
-                "---",
-                "name: EverythingElse",
-                "global: 250r/s",
-                "withCallerCredentialsID: 50r/s",
-                "withCallerRemoteAddressID: 50r/s",
-                "withoutCallerID: 25r/s",
-                "pathSelectors:",
-                "- 'other'",
-                "---",
-                "name: ALL",
-                "global: 1000r/s",
-                "withCallerCredentialsID: 80r/s",
-                "withCallerRemoteAddressID: 80r/s",
-                "withoutCallerID: 35r/s",
-                "pathSelectors:",
-                "- 'all'",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 50r/s",
+                "  withCallerRemoteAddressID: 2r/s",
+                "  withoutCallerID: 4r/s",
+                "  pathSelectors:",
+                "  - 'equals:/info'",
+                "- name: Authenticate",
+                "  global: 50r/s",
+                "  withCallerRemoteAddressID: 5r/s",
+                "  withoutCallerID: 10r/s",
+                "  pathSelectors:",
+                "  - 'equals:/authenticate'",
+                "- name: AuthToken",
+                "  global: 50r/s",
+                "  withCallerRemoteAddressID: 2r/s",
+                "  withoutCallerID: 4r/s",
+                "  pathSelectors:",
+                "  - 'equals:/oauth/token'",
+                "- name: AuthAuthorize",
+                "  global: 25r/s",
+                "  withCallerRemoteAddressID: 1r/s",
+                "  withoutCallerID: 2r/s",
+                "  pathSelectors:",
+                "  - 'equals:/oauth/authorize'",
+                "- name: LoginPage",
+                "  withCallerRemoteAddressID: 3r/3s",
+                "  withoutCallerID: 2r/s",
+                "  global: 25r/s",
+                "  pathSelectors:",
+                "  - 'equals:/login'",
+                "- name: LoginResource",
+                "  global: 150r/s",
+                "  withCallerRemoteAddressID: 12r/3s",
+                "  withoutCallerID: 6r/s",
+                "  pathSelectors:",
+                "  - 'startsWith:/resources/'",
+                "  - 'startsWith:/vendor/'",
+                "- name: LoginDo",
+                "  global: 25r/s",
+                "  withCallerRemoteAddressID: 1r/s",
+                "  withoutCallerID: 2r/s",
+                "  pathSelectors:",
+                "  - 'equals:/login.do'",
+                "- name: EverythingElse",
+                "  global: 250r/s",
+                "  withCallerCredentialsID: 50r/s",
+                "  withCallerRemoteAddressID: 50r/s",
+                "  withoutCallerID: 25r/s",
+                "  pathSelectors:",
+                "  - 'other'",
+                "- name: ALL",
+                "  global: 1000r/s",
+                "  withCallerCredentialsID: 80r/s",
+                "  withCallerRemoteAddressID: 80r/s",
+                "  withoutCallerID: 35r/s",
+                "  pathSelectors:",
+                "  - 'all'",
                 ""
         };
 
@@ -202,10 +192,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         String[] yaml = {
                 "# Explicit Default",
                 "loggingOption: OnlyLimited",
-                "---",
-                "name: All",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: All",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'all'",
                 ""
         };
@@ -219,10 +209,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "loggingOption: AllCalls",
-                "---",
-                "name: All",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: All",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'all'",
                 ""
         };
@@ -236,10 +226,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "loggingOption: AllCallsWithDetails",
-                "---",
-                "name: All",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: All",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'all'",
                 ""
         };
@@ -253,10 +243,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: JWT",
-                "---",
-                "name: All",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: All",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'all'",
                 ""
         };
@@ -271,10 +261,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: JWT:payload",
-                "---",
-                "name: All",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: All",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'all'",
                 ""
         };
@@ -289,10 +279,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: 'JWT:Claims+\"email\": *\"(.*?)\"'",
-                "---",
-                "name: All",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: All",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'all'",
                 ""
         };
@@ -307,10 +297,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: JWT:-1",
-                "---",
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
                 ""
         };
@@ -325,10 +315,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: ':-1'",
-                "---",
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
                 ""
         };
@@ -343,13 +333,12 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: 'JWT'",
-                "---",
-                "credentialID: 'JWT'",
-                "---",
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
+                "credentialID: 'JWT'",
                 ""
         };
 
@@ -363,10 +352,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             throws Exception {
         String[] yaml = {
                 "credentialID: '!JWT'",
-                "---",
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
                 ""
         };
@@ -380,11 +369,11 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BothLimitsAndCredentialID()
             throws Exception {
         String[] yaml = {
-                "---",
                 "credentialID: JWT",
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
                 ""
         };
@@ -422,8 +411,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadFormat_global()
             throws Exception {
         String[] yaml = {
-                "name: PebblesBirthDate",
-                "global: 15r/m",
+                "limiterMappings:",
+                "- name: PebblesBirthDate",
+                "  global: 15r/m",
                 ""
         };
 
@@ -435,8 +425,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadData_WindowSecs()
             throws Exception {
         String[] yaml = {
-                "name: PebblesBirthDate",
-                "global: 150r/3600s",
+                "limiterMappings:",
+                "- name: PebblesBirthDate",
+                "  global: 150r/3600s",
                 ""
         };
 
@@ -448,9 +439,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadData()
             throws Exception {
         String[] yaml = {
-                "---",
-                "name: Info",
-                "windowSecs: 1",
+                "limiterMappings:",
+                "- name: Info",
+                "  windowSecs: 1",
                 ""
         };
 
@@ -462,9 +453,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadData_NoPathSelector()
             throws Exception {
         String[] yaml = {
-                "---",
-                "name: Info",
-                "global: 15r/s",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 15r/s",
                 ""
         };
 
@@ -476,9 +467,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadData_NoLimits()
             throws Exception {
         String[] yaml = {
-                "---",
-                "name: Info",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
                 ""
         };
@@ -491,9 +482,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadPathSelector()
             throws Exception {
         String[] yaml = {
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:info'", // no leading '/'
                 ""
         };
@@ -506,9 +498,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_BadPathMatchType()
             throws Exception {
         String[] yaml = {
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - '!equals:/info'",
                 ""
         };
@@ -521,8 +514,9 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_NoName()
             throws Exception {
         String[] yaml = {
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
                 ""
         };
@@ -535,14 +529,14 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     void checkForUpdatedPropertiesException_ConflictingData()
             throws Exception {
         String[] yaml = {
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "limiterMappings:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/info'",
-                "---",
-                "name: Info",
-                "global: 150r/s",
-                "pathSelectors:",
+                "- name: Info",
+                "  global: 150r/s",
+                "  pathSelectors:",
                 "  - 'equals:/authenticate'",
                 ""
         };

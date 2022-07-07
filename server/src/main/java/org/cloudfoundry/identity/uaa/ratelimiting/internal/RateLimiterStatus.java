@@ -146,5 +146,5 @@ public class RateLimiterStatus {
     private static final ObjectMapper OM = new ObjectMapper();
 
     public static final RateLimiterStatus NO_RATE_LIMITING =
-            builder().current( Current.builder().status( CurrentStatus.DISABLED ).build() ).build();
+            builder().current( Current.builder().status( CurrentStatus.DISABLED ).asOf( MillisTimeSupplier.SYSTEM.now() ).build() ).build();
 }

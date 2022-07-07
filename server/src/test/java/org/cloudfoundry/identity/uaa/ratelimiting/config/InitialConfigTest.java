@@ -31,6 +31,10 @@ class InitialConfigTest {
             "      - 'equals:/authenticate'\n" +
             "";
 
+    private static final String EMPTY_LEADING_DOCS = "\n" +
+                                                     "---\n" +
+                                                     "---\n";
+
     @Test
     void create() {
         InitialConfig ic = InitialConfig.create();
@@ -40,29 +44,27 @@ class InitialConfigTest {
 
     @Test
     void loadFile() {
-        assertNull( InitialConfig.loadFile( null ) );
+        assertNull( InitialConfig.loadFile( null, "test-0" ) );
 
-        assertEquals( SAMPLE_RATE_LIMITER_CONFIG_FILE, InitialConfig.loadFile( new ByteArrayInputStream(
-                SAMPLE_RATE_LIMITER_CONFIG_FILE.getBytes( StandardCharsets.UTF_8 ) ) ) );
+        assertNull( InitialConfig.loadFile( inputStringFrom( " \n" ), "test-1" ) );
+        assertNull( InitialConfig.loadFile( inputStringFrom( EMPTY_LEADING_DOCS ), "test-2" ) );
 
-        assertNull( InitialConfig.loadFile( inputStringFrom( " \n" ) ) );
-
-        assertEquals( SAMPLE_RATE_LIMITER_CONFIG_FILE, InitialConfig.loadFile( inputStringFrom( SAMPLE_RATE_LIMITER_CONFIG_FILE ) ) );
+        assertEquals( SAMPLE_RATE_LIMITER_CONFIG_FILE, InitialConfig.loadFile(
+                inputStringFrom( EMPTY_LEADING_DOCS + SAMPLE_RATE_LIMITER_CONFIG_FILE ) , "test-3").body );
     }
 
-    @Test
     InputStream inputStringFrom( String fileContents ) {
         return new ByteArrayInputStream( fileContents.getBytes( StandardCharsets.UTF_8 ) );
     }
 
     @Test
     void parseFile() {
-        InitialConfig.ExtendedYamlConfigFileDTO dto = InitialConfig.parseFile( SAMPLE_RATE_LIMITER_CONFIG_FILE );
-        assertEquals( dto.toString(),
-                      SAMPLE_RATE_LIMITER_CONFIG_FILE_ROUND_TRIPPED_THRU_SNAKE_YAML );
+        BindYaml<InitialConfig.ExtendedYamlConfigFileDTO> bindYaml = new BindYaml<>( InitialConfig.ExtendedYamlConfigFileDTO.class, "test" );
+        InitialConfig.ExtendedYamlConfigFileDTO dto = InitialConfig.parseFile( bindYaml, SAMPLE_RATE_LIMITER_CONFIG_FILE );
+        assertEquals( dto.toString(), SAMPLE_RATE_LIMITER_CONFIG_FILE_ROUND_TRIPPED_THRU_SNAKE_YAML );
 
         try {
-            dto = InitialConfig.parseFile( "BadField" + SAMPLE_RATE_LIMITER_CONFIG_FILE );
+            dto = InitialConfig.parseFile( bindYaml, "BadField" + SAMPLE_RATE_LIMITER_CONFIG_FILE );
             fail( "expected Exception, but got dto: " + dto );
         }
         catch ( YamlRateLimitingConfigException expected ) {

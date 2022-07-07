@@ -3,11 +3,26 @@ package org.cloudfoundry.identity.uaa.ratelimiting.util;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class StringUtilsTest {
     private static final Object[] EMPTY = new Object[0];
     private static final Object[] JUST_NULLS = new Object[]{null};
     private static final Object[] VALUES = new Object[]{5, 2, null, 7, "Martin Fowler"};
+
+    private static class MyException extends Exception {
+        @Override
+        public String getMessage() {
+            return null;
+        }
+    }
+
+    @Test
+    void toErrorMsg() {
+        assertNull( StringUtils.toErrorMsg( null ) );
+        assertEquals( "Fred", StringUtils.toErrorMsg( new IllegalStateException("Fred") ) );
+        assertEquals( MyException.class.getSimpleName(), StringUtils.toErrorMsg( new MyException() ) );
+    }
 
     @Test
     void normalize() {

@@ -1,11 +1,11 @@
 
 ---
-dynamicConfigUrl: urlGoesHere
+dynamicConfigUrl: 'https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/Proposed/RateLimiters.yaml'
 
 #loggingOption: AllCallsWithDetails
 loggingOption: AllCalls
 #loggingOption: OnlyLimited
-#OnlyLimited is the default
+# OnlyLimited is the default
 
 credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
 

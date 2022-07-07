@@ -21,8 +21,7 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConf
  * <p>
  * Note: some messy-bits in the super class
  * <p>
- * Example Source References:
- * file:///workspace/RateLimitingConfigNew.yaml (file local)
+ * Example Source Reference:
  * <a href="https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml">https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml</a> (url)
  */
 @Configuration
