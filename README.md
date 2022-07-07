@@ -101,8 +101,8 @@ First run the UAA server as described above:
 From another terminal you can use curl to verify that UAA has started by
 requesting system information:
 
-    $ curl -H "Accept: application/json" localhost:8080/uaa/login
-    {"app":{"version":"0.0.0"},"links":{"uaa":"http://localhost:8080/uaa","passwd":"/forgot_password","login":"http://localhost:8080/uaa","register":"/create_account"},"zone_name":"uaa","entityID":"cloudfoundry-saml-login","commit_id":"b257883","idpDefinitions":{},"prompts":{"username":["text","Email"],"password":["password","Password"]},"timestamp":"2022-06-29T03:58:05-0700"}
+    $ curl -sS localhost:8080/uaa/login > /dev/null && echo "RUNNING"
+    RUNNING
 
 For complex requests it is more convenient to interact with UAA using 
 `uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
