@@ -31,7 +31,8 @@ public class RateLimitingConfigMapper {
     private final boolean updatingEnabled;
     private final MillisTimeSupplier currentTimeSupplier;
     private final Map<String, CredentialIdType> credentialIdTypesByKey = new HashMap<>();
-    private YamlConfigFileDTO dtoPrevious; // Cached data
+    // package friendly for testing
+    YamlConfigFileDTO dtoPrevious; // Cached data
 
     /**
      * Constructor
@@ -51,14 +52,8 @@ public class RateLimitingConfigMapper {
 
     // package friendly for testing
     @SuppressWarnings("unused")
-    YamlConfigFileDTO getDtoPrevious() {
-        return dtoPrevious;
-    }
-
-    // package friendly for testing
-    @SuppressWarnings("unused")
-    boolean hasCredentialIdTypes() {
-        return !credentialIdTypesByKey.isEmpty();
+    int getCredentialIdTypeCount() {
+        return credentialIdTypesByKey.size();
     }
 
     public RateLimitingFactoriesSupplierWithStatus map( RateLimitingFactoriesSupplierWithStatus current, String fromSource, YamlConfigFileDTO dto ) {
@@ -77,7 +72,7 @@ public class RateLimitingConfigMapper {
     // package friendly for testing
     ErrorSupplierPair createErrorSupplierPair( YamlConfigFileDTO dto ) {
         try {
-            return ErrorSupplierPair.with( getSupplier( dto ) );
+            return ErrorSupplierPair.with( createSupplier( dto ) );
         }
         catch ( RuntimeException e ) {
             return ErrorSupplierPair.with( e );
@@ -85,96 +80,15 @@ public class RateLimitingConfigMapper {
     }
 
     // package friendly for testing
-    InternalLimiterFactoriesSupplier getSupplier( YamlConfigFileDTO dto ) {
-        return new Mapper().map( dto );
-    }
+    InternalLimiterFactoriesSupplier createSupplier( YamlConfigFileDTO dto ) {
+        AuthorizationCredentialIdExtractor credentialIdExtractor = parseCredentialIdDefinition( dto.getCredentialID() );
+        LoggingOption loggingOption = parseLoggingOption( dto.getLoggingOption() );
+        List<LimiterMapping> limiterMappings = new LimiterMapsMapper().parse( dto.getLimiterMappings() );
 
-    private void populateCredentialIdTypes( CredentialIdType[] credentialIdTypes ) {
-        if ( credentialIdTypes != null ) {
-            for ( CredentialIdType type : credentialIdTypes ) {
-                if ( type != null ) {
-                    if ( null != credentialIdTypesByKey.put( type.key(), type ) ) {
-                        throw new Error( "CredentialIdType key '" + type.key() + "' -- Coding error!" );
-                    }
-                }
-            }
+        if ( limiterMappings.isEmpty() ) {
+            throw new RateLimitingConfigException( "No limiterMappings" );
         }
-    }
-
-    private class Mapper {
-        public InternalLimiterFactoriesSupplier map( YamlConfigFileDTO dto )
-                throws RateLimitingConfigException {
-
-            AuthorizationCredentialIdExtractor credentialIdExtractor = parseCredentialIdDefinition( dto.getCredentialID() );
-            LoggingOption loggingOption = parseLoggingOption( dto.getLoggingOption() );
-            List<LimiterMapping> limiterMappings = new LimiterMapsMapper().parse( dto.getLimiterMappings() );
-
-            return new InternalLimiterFactoriesSupplierImpl( credentialIdExtractor, loggingOption, limiterMappings );
-        }
-
-        private class LimiterMapsMapper {
-            private final Map<String, LimiterMapping> limiterMappingsByName = new HashMap<>();
-            private final Map<PathSelector, String> limiterNamesByPathSelector = new HashMap<>();
-            private final List<LimiterMapping> limiterMappings = new ArrayList<>();
-
-            public List<LimiterMapping> parse( List<LimiterMap> limiterMaps ) {
-                if ( limiterMaps != null ) {
-                    for ( int i = 0; i < limiterMaps.size(); i++ ) {
-                        try {
-                            validateAndAdd( parse( limiterMaps.get( i ) ) );
-                        }
-                        catch ( Exception e ) {
-                            throw new RateLimitingConfigException( ERROR_IN_LIMITER_MAPPINGS_PREFIX + i + "] of: " + e.getMessage(), e );
-                        }
-                    }
-                }
-                return limiterMappings;
-            }
-
-            private void validateAndAdd( LimiterMapping mapping ) {
-                if ( mapping != null ) {
-                    String name = mapping.name();
-                    checkDupName( mapping, name );
-                    for ( PathSelector ps : mapping.pathSelectors() ) {
-                        checkDupPath( name, ps );
-                    }
-                    limiterMappings.add( mapping );
-                }
-            }
-
-            private void checkDupName( LimiterMapping mapping, String name ) {
-                LimiterMapping existing = limiterMappingsByName.put( name, mapping );
-                if ( existing != null ) {
-                    throw new RateLimitingConfigException( DUPLICATE_NAME_PREFIX + name + ") other's data (" + existing + ")" );
-                }
-            }
-
-            private void checkDupPath( String name, PathSelector ps ) {
-                String existingName = limiterNamesByPathSelector.put( ps, name );
-                if ( existingName != null ) {
-                    throw new RateLimitingConfigException( DUPLICATE_PATH_SELECTOR_PREFIX + ps + ") other's name (" + existingName + ")" );
-                }
-            }
-
-            private LimiterMapping parse( LimiterMap limiterMap ) {
-                if ( (limiterMap == null) || limiterMap.normalizeAndCheckEmpty() ) {
-                    return null;
-                }
-
-                String name = limiterMap.getName();
-                if ( name == null ) {
-                    throw new RateLimitingConfigException( NO_NAME_PROVIDED_PREFIX + limiterMap );
-                }
-                return LimiterMapping.builder()
-                        .name( name )
-                        .global( limiterMap.getGlobal() )
-                        .withCallerCredentialsID( limiterMap.getWithCallerCredentialsID() )
-                        .withCallerRemoteAddressID( limiterMap.getWithCallerRemoteAddressID() )
-                        .withoutCallerID( limiterMap.getWithoutCallerID() )
-                        .pathSelectors( limiterMap.getPathSelectors() )
-                        .build();
-            }
-        }
+        return new InternalLimiterFactoriesSupplierImpl( credentialIdExtractor, loggingOption, limiterMappings );
     }
 
     private AuthorizationCredentialIdExtractor parseCredentialIdDefinition( String credentialIdDefinition ) {
@@ -203,5 +117,82 @@ public class RateLimitingConfigMapper {
             return loggingOption;
         }
         return LoggingOption.OnlyLimited;
+    }
+
+    private static class LimiterMapsMapper {
+        private final Map<String, LimiterMapping> limiterMappingsByName = new HashMap<>();
+        private final Map<PathSelector, String> limiterNamesByPathSelector = new HashMap<>();
+        private final List<LimiterMapping> limiterMappings = new ArrayList<>();
+
+        public List<LimiterMapping> parse( List<LimiterMap> limiterMaps ) {
+            if ( limiterMaps != null ) {
+                for ( int i = 0; i < limiterMaps.size(); i++ ) {
+                    try {
+                        validateAndAdd( parse( limiterMaps.get( i ) ) );
+                    }
+                    catch ( Exception e ) {
+                        throw new RateLimitingConfigException( ERROR_IN_LIMITER_MAPPINGS_PREFIX + i + "] of: " + e.getMessage(), e );
+                    }
+                }
+            }
+            return limiterMappings;
+        }
+
+        private void validateAndAdd( LimiterMapping mapping ) {
+            if ( mapping != null ) {
+                String name = mapping.name();
+                checkDupName( mapping, name );
+                for ( PathSelector ps : mapping.pathSelectors() ) {
+                    checkDupPath( name, ps );
+                }
+                limiterMappings.add( mapping );
+            }
+        }
+
+        private void checkDupName( LimiterMapping mapping, String name ) {
+            LimiterMapping existing = limiterMappingsByName.put( name, mapping );
+            if ( existing != null ) {
+                throw new RateLimitingConfigException( DUPLICATE_NAME_PREFIX + name + ") other's data (" + existing + ")" );
+            }
+        }
+
+        private void checkDupPath( String name, PathSelector ps ) {
+            String existingName = limiterNamesByPathSelector.put( ps, name );
+            if ( existingName != null ) {
+                throw new RateLimitingConfigException( DUPLICATE_PATH_SELECTOR_PREFIX + ps + ") other's name (" + existingName + ")" );
+            }
+        }
+
+        private LimiterMapping parse( LimiterMap limiterMap ) {
+            if ( (limiterMap == null) || limiterMap.normalizeAndCheckEmpty() ) {
+                return null;
+            }
+
+            String name = limiterMap.getName();
+            if ( name == null ) {
+                throw new RateLimitingConfigException( NO_NAME_PROVIDED_PREFIX + limiterMap );
+            }
+            return LimiterMapping.builder()
+                    .name( name )
+                    .global( limiterMap.getGlobal() )
+                    .withCallerCredentialsID( limiterMap.getWithCallerCredentialsID() )
+                    .withCallerRemoteAddressID( limiterMap.getWithCallerRemoteAddressID() )
+                    .withoutCallerID( limiterMap.getWithoutCallerID() )
+                    .pathSelectors( limiterMap.getPathSelectors() )
+                    .build();
+        }
+    }
+
+
+    private void populateCredentialIdTypes( CredentialIdType[] credentialIdTypes ) {
+        if ( credentialIdTypes != null ) {
+            for ( CredentialIdType type : credentialIdTypes ) {
+                if ( type != null ) {
+                    if ( null != credentialIdTypesByKey.put( type.key(), type ) ) {
+                        throw new Error( "CredentialIdType key '" + type.key() + "' -- Coding error!" );
+                    }
+                }
+            }
+        }
     }
 }

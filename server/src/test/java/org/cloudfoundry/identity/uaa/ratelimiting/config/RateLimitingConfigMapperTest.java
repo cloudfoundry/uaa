@@ -1,162 +1,120 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
+import java.util.List;
+import java.util.function.Function;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.AbstractExceptionTestSupport;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByTypeFactory;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
-import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.InternalLimiterFactoriesSupplierImpl;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.junit.jupiter.api.Test;
-import org.yaml.snakeyaml.constructor.ConstructorException;
 
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.YamlConfigFileDTO.LimiterMap;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
 public class RateLimitingConfigMapperTest extends AbstractExceptionTestSupport {
+    public static final LimiterMap LIMITER_MAP_All_all = LimiterMap.builder().name( "All" ).global( "1r/s" ).pathSelectors( List.of( "all" ) ).build();
+    public static final LimiterMap LIMITER_MAP_AAA_all = LimiterMap.builder().name( "AAA" ).withCallerCredentialsID( "1r/s" ).pathSelectors( List.of( "all" ) ).build();
+    public static final LimiterMap LIMITER_MAP_AAA_other = LimiterMap.builder().name( "AAA" ).withCallerRemoteAddressID( "1r/s" ).pathSelectors( List.of( "other" ) ).build();
+    public static final LimiterMap LIMITER_MAP_All_other = LimiterMap.builder().name( "All" ).withoutCallerID( "1r/s" ).pathSelectors( List.of( "other" ) ).build();
+    public static final LimiterMap LIMITER_MAP_AAA_badPath = LimiterMap.builder().name( "AAA" ).global( "1r/s" ).pathSelectors( List.of( "equals" ) ).build();
+    static final List<LimiterMap> MINIMAL_LIMITER_MAPPINGS = List.of( LIMITER_MAP_All_all );
+    static final YamlConfigFileDTO MINIMAL_DTO = YamlConfigFileDTO.builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).build();
+    static final YamlConfigFileDTO EMPTY_DTO = new YamlConfigFileDTO();
+
     MillisTimeSupplier currentTimeSupplier = new MillisTimeSupplier.Mock();
 
     private RateLimitingConfigMapper createMapper( CredentialIdType... credentialIdTypes ) {
-        return new RateLimitingConfigMapper( true, credentialIdTypes );
+        return new RateLimitingConfigMapper( true, currentTimeSupplier, credentialIdTypes );
     }
 
-//    private void expectSuccess( int typePropertiesPathOptions, LoggingOption expectedLoggingOption, CredentialIdType... credentialIdTypesArray ) {
-//        RateLimitingConfigMapper mapper = createMapper( credentialIdTypesArray );
-//        if ( mapper.hasCredentialIdTypes() ) {
-//            assertNotNull( extractor, "AuthorizationCredentialIdExtractor" );
-//        } else {
-//            assertNull( extractor, "AuthorizationCredentialIdExtractor" );
-//        }
-//    }
-//
-//    private void expectSuccess( int typePropertiesPathOptions, CredentialIdType... credentialIdTypesArray ) {
-//        expectSuccess( typePropertiesPathOptions, LoggingOption.DEFAULT, credentialIdTypesArray );
-//    }
-//
-//    @Test
-//    void checkForUpdatedPropertiesHappyCaseNoDocSeps()
-//            throws Exception {
-//        String[] yaml = {
-//                          "limiterMappings:",
-//                          "- name: ALL",
-//                          "  global: 150r/s",
-//                          "  pathSelectors:",
-//                          "  - 'all'",
-//                          ""
-//        };
-//
-//        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-//        expectSuccess( 1 ); // just the All!
-//    }
-//
-//    @Test
-//    void checkForUpdatedPropertiesHappyCaseExtraDocSeps()
-//            throws Exception {
-//        String[] yaml = { // Extra "c-directives-end"s (document sep)
-//                          "---",
-//                          "---",
-//                          "limiterMappings:",
-//                          "- name: ALL",
-//                          "  global: 150r/s",
-//                          "  pathSelectors:",
-//                          "  - 'all'",
-//        };
-//
-//        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-//        expectSuccess( 1 ); // just the All!
-//    }
-//
-//    @Test
-//    void checkForUpdatedPropertiesHappyCaseManyDocs()
-//            throws Exception {
-//        String[] yaml = {
-//                "limiterMappings:",
-//                "- name: Info",
-//                "  global: 50r/s",
-//                "  withCallerRemoteAddressID: 2r/s",
-//                "  withoutCallerID: 4r/s",
-//                "  pathSelectors:",
-//                "  - 'equals:/info'",
-//                "- name: Authenticate",
-//                "  global: 50r/s",
-//                "  withCallerRemoteAddressID: 5r/s",
-//                "  withoutCallerID: 10r/s",
-//                "  pathSelectors:",
-//                "  - 'equals:/authenticate'",
-//                "- name: AuthToken",
-//                "  global: 50r/s",
-//                "  withCallerRemoteAddressID: 2r/s",
-//                "  withoutCallerID: 4r/s",
-//                "  pathSelectors:",
-//                "  - 'equals:/oauth/token'",
-//                "- name: AuthAuthorize",
-//                "  global: 25r/s",
-//                "  withCallerRemoteAddressID: 1r/s",
-//                "  withoutCallerID: 2r/s",
-//                "  pathSelectors:",
-//                "  - 'equals:/oauth/authorize'",
-//                "- name: LoginPage",
-//                "  withCallerRemoteAddressID: 3r/3s",
-//                "  withoutCallerID: 2r/s",
-//                "  global: 25r/s",
-//                "  pathSelectors:",
-//                "  - 'equals:/login'",
-//                "- name: LoginResource",
-//                "  global: 150r/s",
-//                "  withCallerRemoteAddressID: 12r/3s",
-//                "  withoutCallerID: 6r/s",
-//                "  pathSelectors:",
-//                "  - 'startsWith:/resources/'",
-//                "  - 'startsWith:/vendor/'",
-//                "- name: LoginDo",
-//                "  global: 25r/s",
-//                "  withCallerRemoteAddressID: 1r/s",
-//                "  withoutCallerID: 2r/s",
-//                "  pathSelectors:",
-//                "  - 'equals:/login.do'",
-//                "- name: EverythingElse",
-//                "  global: 250r/s",
-//                "  withCallerCredentialsID: 50r/s",
-//                "  withCallerRemoteAddressID: 50r/s",
-//                "  withoutCallerID: 25r/s",
-//                "  pathSelectors:",
-//                "  - 'other'",
-//                "- name: ALL",
-//                "  global: 1000r/s",
-//                "  withCallerCredentialsID: 80r/s",
-//                "  withCallerRemoteAddressID: 80r/s",
-//                "  withoutCallerID: 35r/s",
-//                "  pathSelectors:",
-//                "  - 'all'",
-//                ""
-//        };
-//
-//        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-//        expectSuccess( 10 ); // "other" and "all" in config
-//    }
-//
-//    @Test
-//    void checkForHappyCaseLoggingOptionOnlyLimited()
-//            throws Exception {
-//        String[] yaml = {
-//                "# Explicit Default",
-//                "loggingOption: OnlyLimited",
-//                "limiterMappings:",
-//                "- name: All",
-//                "  global: 150r/s",
-//                "  pathSelectors:",
-//                "  - 'all'",
-//                ""
-//        };
-//
-//        when( fetcher.fetchYaml() ).thenReturn( String.join( "\n", yaml ) );
-//        expectSuccess( 1 );
-//    }
-//
+    @Test
+    void checkForCredentialIdTypes() {
+        assertEquals( 0, new RateLimitingConfigMapper( true ).getCredentialIdTypeCount() );
+        assertEquals( 1, new RateLimitingConfigMapper( true, new CredentialIdTypeJWT( null ) ).getCredentialIdTypeCount() );
+        assertEquals( 2, new RateLimitingConfigMapper( true, new CredentialIdTypeJWT( null ), new CredentialIdTypeJWTjsonField( null ) ).getCredentialIdTypeCount() );
+    }
+
+    @Test
+    void check_map_and_checkNoChange() {
+        RateLimitingConfigMapper mapper = createMapper();
+        assertNull( mapper.dtoPrevious );
+        assertTrue( mapper.checkNoChange( null ) );
+        assertNull( mapper.dtoPrevious );
+        assertFalse( mapper.checkNoChange( EMPTY_DTO ) );
+        assertEquals( EMPTY_DTO, mapper.dtoPrevious ); // cache Updated!
+        assertTrue( mapper.checkNoChange( EMPTY_DTO ) );
+        assertEquals( EMPTY_DTO, mapper.dtoPrevious );
+
+        assertNull( mapper.map( null, "test", null ) );
+        assertNull( mapper.map( null, "test", EMPTY_DTO ) );
+        assertNotNull( mapper.map( null, "test", MINIMAL_DTO ) );
+    }
+
+    @Test
+    void check_createSupplier_and_createErrorSupplierPair() {
+        RateLimitingConfigMapper mapper = createMapper();
+
+        InternalLimiterFactoriesSupplier supplier = mapper.createSupplier( MINIMAL_DTO );
+        assertNotNull( supplier );
+        assertEquivalent( supplier, null, mapper.createErrorSupplierPair( MINIMAL_DTO ) );
+
+        try {
+            supplier = mapper.createSupplier( EMPTY_DTO );
+            fail( "Expected Exception, but got supplier: " + supplier );
+        }
+        catch ( Exception e ) {
+            assertEquivalent( InternalLimiterFactoriesSupplier.NOOP, e, mapper.createErrorSupplierPair( EMPTY_DTO ) );
+        }
+    }
+
+    private void assertEquivalent( InternalLimiterFactoriesSupplier supplier, Exception error, ErrorSupplierPair pair ) {
+        assertEquivalentStrings( "error", error, pair.getError(), Exception::getMessage );
+        assertEquivalentStrings( "supplier", supplier, pair.getSupplier(), InternalLimiterFactoriesSupplier::toString );
+    }
+
+    private <T> void assertEquivalentStrings( String what, T expected, T actual, Function<T, String> toString ) {
+        if ( expected != actual ) {
+            if ( expected == null ) {
+                fail( "Expected null, but actual " + what + " was: " + toString.apply( actual ) );
+            } else if ( actual == null ) {
+                fail( "Actual " + what + " was null, but expected: " + toString.apply( expected ) );
+            } else { // Neither 'null'
+                String expectedStr = toString.apply( expected );
+                String actualStr = toString.apply( actual );
+                assertEquals( expectedStr, actualStr, what + "s" );
+            }
+        }
+    }
+
+    @Test
+    void checkForHappyCases() {
+        RateLimitingConfigMapper mapper = createMapper( new CredentialIdTypeJWT( null ) );
+        assertSupplier( false, LoggingOption.DEFAULT, 1, mapper, MINIMAL_DTO );
+        assertSupplier( false, LoggingOption.AllCalls, 1, mapper,
+                        YamlConfigFileDTO.builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).loggingOption( "allCalls" ).build());
+        assertSupplier( true, LoggingOption.DEFAULT, 1, mapper,
+                        YamlConfigFileDTO.builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).credentialID( "JWT:claims" ).build());
+        assertSupplier( false, LoggingOption.DEFAULT, 2, mapper,
+                        YamlConfigFileDTO.builder().limiterMappings( List.of( LIMITER_MAP_All_all, LIMITER_MAP_AAA_other ) ).build());
+    }
+
+    private void assertSupplier( boolean hasCallerCredentialsIdSupplierDescription, LoggingOption loggingOption, int mappings,
+                                 RateLimitingConfigMapper mapper, YamlConfigFileDTO dto ) {
+        InternalLimiterFactoriesSupplier supplier = mapper.createSupplier( dto );
+        assertEquals( mappings, supplier.getLimiterMappings(), dto::toString );
+        assertEquals( loggingOption, supplier.getLoggingOption(), dto::toString );
+        String description = supplier.getCallerCredentialsIdSupplierDescription();
+        if (hasCallerCredentialsIdSupplierDescription) {
+            assertNotNull( description, dto::toString );
+        } else  {
+            assertEquals( "None", description, dto::toString );
+        }
+    }
+
 //    @Test
 //    void checkForHappyCaseLoggingOptionAllCalls()
 //            throws Exception {

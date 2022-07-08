@@ -44,7 +44,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
 
     @Override
     public String getCallerCredentialsIdSupplierDescription() {
-        return callerIdSupplierByTypeFactory.getCallerCredentialsIdSupplierDescription();
+        return (callerIdSupplierByTypeFactory == null) ? "Nope" : callerIdSupplierByTypeFactory.getCallerCredentialsIdSupplierDescription();
     }
 
     @Override
