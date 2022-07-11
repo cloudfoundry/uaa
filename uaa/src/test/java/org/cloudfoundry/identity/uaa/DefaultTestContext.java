@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
-@ActiveProfiles({"default", "servertest"})
+@ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         SpringServletTestConfig.class,

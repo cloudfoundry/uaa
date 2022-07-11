@@ -280,7 +280,7 @@ cargo {
 
         systemProperties {
             property("SECRETS_DIR", System.getProperty("SECRETS_DIR", file("scripts/cargo").getAbsolutePath()))
-            property("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+            property("spring.profiles.active", System.getProperty("spring.profiles.active", "default,nurego"))
             property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
             property("smtp.host", "localhost")
             property("smtp.port", 2525)
@@ -312,7 +312,7 @@ cargo {
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
-        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "default,nurego"))
         it.systemProperty("testId", System.getProperty("testId", ""))
     }
 }
