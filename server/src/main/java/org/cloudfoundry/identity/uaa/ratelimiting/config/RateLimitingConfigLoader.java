@@ -4,7 +4,6 @@ import java.io.IOException;
 import javax.annotation.PreDestroy;
 import javax.validation.constraints.NotNull;
 
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
@@ -28,7 +27,8 @@ public class RateLimitingConfigLoader implements Runnable {
     private final LimiterFactorySupplierUpdatable supplierUpdatable;
     private final MillisTimeSupplier currentTimeSupplier;
     private final BindYaml<YamlConfigFileDTO> bindYaml;
-    private final YamlMapper yamlMapper;
+    private RateLimitingFactoriesSupplierWithStatus current;
+    private String lastYAML = ""; // Cached Data to compare against next read!
     private volatile boolean wereDying = false;
     private Thread backgroundThread;
 
@@ -65,7 +65,7 @@ public class RateLimitingConfigLoader implements Runnable {
         this.supplierUpdatable = supplierUpdatable;
         this.currentTimeSupplier = MillisTimeSupplier.deNull( currentTimeSupplier );
         bindYaml = new BindYaml<>( YamlConfigFileDTO.class, dynamicUpdateURL );
-        yamlMapper = new YamlMapper( current );
+        this.current = current;
 
         if ( fetcher != null ) { // Rate Limiting active
             if ( !noBackgroundProcessor ) {
@@ -79,11 +79,28 @@ public class RateLimitingConfigLoader implements Runnable {
     }
 
     // package friendly for testing
+    String getLastYAML() {
+        return lastYAML;
+    }
+
+    // package friendly for testing
     boolean checkForUpdatedProperties() {
-        RateLimitingFactoriesSupplierWithStatus factorySupplier = yamlMapper.process();
-        if ( factorySupplier != null ) {
-            supplierUpdatable.update( factorySupplier );
-            logger.logUpdate( "Update: " + factorySupplier.getStatusJson() );
+        RateLimitingFactoriesSupplierWithStatus updated = null;
+        try {
+            String yamlString = loadYamlString();
+            if ( !lastYAML.equals( yamlString ) ) { // check for change
+                lastYAML = yamlString; // update last state to force wait for another change (minimize dup errors)
+                YamlConfigFileDTO dto = parseFile( yamlString );
+                updated = configMapper.map( current, dynamicUpdateURL, dto );
+            }
+        }
+        catch ( Exception e ) {
+            updated = current.updateError( e, currentTimeSupplier );
+        }
+        if ( updated != null ) {
+            current = updated;
+            supplierUpdatable.update( updated );
+            logger.logUpdate( "Update: " + updated.getStatusJson() );
             return true;
         }
         return false;
@@ -104,15 +121,12 @@ public class RateLimitingConfigLoader implements Runnable {
                 catch ( InterruptedException e ) {
                     // As it is a Daemon, ignore InterruptedException and check if "wereDying"!
                 }
-                catch ( RateLimitingConfigException e ) {
-                    logger.logError( e );
-                }
                 catch ( Exception e ) {
                     logger.logUnhandledError( e ); // Log everything else
                 }
             }
         }
-        catch ( Exception e ) {
+        catch ( Exception e ) { // shouldn't be possible!
             logger.logUnhandledError( e );
         }
         finally {
@@ -120,61 +134,30 @@ public class RateLimitingConfigLoader implements Runnable {
         }
     }
 
-    private class YamlMapper {
-        private RateLimitingFactoriesSupplierWithStatus current;
-        private String lastYAML = "";
-        private String yamlString;
-
-        public YamlMapper( RateLimitingFactoriesSupplierWithStatus current ) {
-            this.current = current;
+    // package friendly for testing
+    String loadYamlString() {
+        String origString;
+        try {
+            origString = fetcher.fetchYaml();
         }
-
-        public RateLimitingFactoriesSupplierWithStatus process() {
-            try {
-                loadYamlString();
-                if ( shouldUpdate() ) { // check for change
-                    YamlConfigFileDTO dto = parseFile( yamlString );
-                    current = configMapper.map( current, dynamicUpdateURL, dto );
-                    return current;
-                }
-            }
-            catch ( Exception e ) {
-                current = current.updateError( e, currentTimeSupplier );
-                return current;
-            }
-            return null; // No Update!
+        catch ( IOException e ) {
+            throw new YamlRateLimitingConfigException( null, YAML_FETCH_FAILED, e );
         }
-
-        private boolean shouldUpdate() {
-            if ( lastYAML.equals( yamlString ) ) {
-                return false;
-            }
-            lastYAML = yamlString; // update last state to force wait for another change (minimize dup errors)
-            return true;
+        if ( origString == null ) {
+            throw new YamlRateLimitingConfigException( null, YAML_NULL );
         }
-
-        private void loadYamlString() {
-            try {
-                yamlString = fetcher.fetchYaml();
-            }
-            catch ( IOException e ) {
-                throw new YamlRateLimitingConfigException( null, YAML_FETCH_FAILED, e );
-            }
-            if ( yamlString == null ) {
-                throw new YamlRateLimitingConfigException( null, YAML_NULL );
-            }
-            yamlString = yamlString.stripLeading();
-            if ( yamlString.isEmpty() ) {
-                throw new YamlRateLimitingConfigException( yamlString, YAML_EMPTY );
-            }
-            yamlString = BindYaml.removeLeadingEmptyDocuments( yamlString );
-            if ( yamlString.isEmpty() ) {
-                throw new YamlRateLimitingConfigException( yamlString, YAML_NO_DATA );
-            }
+        String yamlString = origString.stripLeading();
+        if ( yamlString.isEmpty() ) {
+            throw new YamlRateLimitingConfigException( origString, YAML_EMPTY );
         }
-
-        private YamlConfigFileDTO parseFile( String yamlString ) {
-            return bindYaml.bind( yamlString );
+        yamlString = BindYaml.removeLeadingEmptyDocuments( yamlString );
+        if ( yamlString.isEmpty() ) {
+            throw new YamlRateLimitingConfigException( origString, YAML_NO_DATA );
         }
+        return origString;
+    }
+
+    private YamlConfigFileDTO parseFile( String yamlString ) {
+        return bindYaml.bind( yamlString );
     }
 }

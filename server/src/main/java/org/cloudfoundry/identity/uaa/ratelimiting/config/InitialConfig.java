@@ -27,7 +27,7 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterSta
 public class InitialConfig {
     public static final String[] ENVIRONMENT_CONFIG_LOCAL_DIRS = {"CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir"};
     public static final String ENVIRONMENT_CONFIG_URL = "RateLimiterConfigUrl";
-    public static final String LOCAL_RESOURCE_CONFIG_FILE = "RateLimiterConfig.yml";
+    public static final String LOCAL_CONFIG_FILE = "RateLimiterConfig.yml";
 
     public static final Singleton<InitialConfig> SINGLETON =
             new Singleton<>( InitialConfig::create );
@@ -71,11 +71,11 @@ public class InitialConfig {
             if ( dir.startsWith( "/" ) ) {
                 InputStream is = getFileInputStream( dir );
                 if ( is != null ) {
-                    return loadFile( is, "config file(" + dir + "/" + LOCAL_RESOURCE_CONFIG_FILE + ")" );
+                    return loadFile( is, "configDir file(" + dir + "/" + LOCAL_CONFIG_FILE + ")" );
                 }
             }
         }
-        return loadFile( getFileInputStreamFromResources(), "resource file(/" + LOCAL_RESOURCE_CONFIG_FILE + ")" );
+        return loadFile( getFileInputStreamFromResources(), "resource file(/" + LOCAL_CONFIG_FILE + ")" );
     }
 
     static SourcedFile loadFile( InputStream is, String source ) {
@@ -160,12 +160,12 @@ public class InitialConfig {
     }
 
     private static InputStream getFileInputStreamFromResources() {
-        return InitialConfig.class.getClassLoader().getResourceAsStream( "/" + LOCAL_RESOURCE_CONFIG_FILE );
+        return InitialConfig.class.getClassLoader().getResourceAsStream( "/" + LOCAL_CONFIG_FILE );
     }
 
     private static InputStream getFileInputStream( String dir ) {
         try {
-            File file = FileSystems.getDefault().getPath( dir, LOCAL_RESOURCE_CONFIG_FILE ).toFile();
+            File file = FileSystems.getDefault().getPath( dir, LOCAL_CONFIG_FILE ).toFile();
             if ( file.isFile() ) {
                 return new FileInputStream( file );
             }

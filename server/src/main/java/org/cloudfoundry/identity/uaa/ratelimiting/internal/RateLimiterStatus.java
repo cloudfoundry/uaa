@@ -70,12 +70,12 @@ public class RateLimiterStatus {
 
         @JsonIgnore
         public Update incCheckCountOfStatus() {
-            return new Update( status, asOf, error, (checkCountOfStatus == null) ? 1 : (checkCountOfStatus + 1) );
+            return new Update( status, asOf, error, (checkCountOfStatus == null) ? 2 : (checkCountOfStatus + 1) );
         }
     }
 
     private final Current current;
-    private final Update update; // null on success, as data reflected in current -- UNLESS updating is Disabled!
+    private final Update update; // null on Completely Disabled, as data reflected in current -- w/ updating -> NOT null!
     private final String fromSource; // null on DISABLED -- local file or http/https url
 
     @Builder(toBuilder = true)
@@ -138,7 +138,8 @@ public class RateLimiterStatus {
         return json;
     }
 
-    private static String toISO8601ZtoSec( Long now ) {
+    // package friendly for Testing
+    static String toISO8601ZtoSec( Long now ) {
         return (now == null) ? null :
                Instant.ofEpochMilli( now ).truncatedTo( ChronoUnit.SECONDS ).toString();
     }

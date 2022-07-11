@@ -46,7 +46,7 @@ public abstract class AbstractRateLimiterConfigConfiguration {
             logger.logUnhandledError( initialError );
         }
 
-        RateLimitingConfigMapper configMapper = new RateLimitingConfigMapper( updatingEnabled, credentialIdTypes );
+        RateLimitingConfigMapper configMapper = new RateLimitingConfigMapperImpl( updatingEnabled, credentialIdTypes );
         if ( localConfigDTO != null ) {
             String source = "Local Config File";
             logger.logFetchingFrom( source );
