@@ -69,7 +69,8 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
             fieldWithPath("token_type").type(STRING).description("Will always be `bearer`"),
             fieldWithPath("scope").type(STRING).description("List of scopes present in the `scope` claim in the access token"),
             fieldWithPath("expires_in").type(NUMBER).description("Number of seconds before this token expires from the time of issuance"),
-            fieldWithPath("jti").type(STRING).description("The unique token ID")
+            fieldWithPath("jti").type(STRING).description("The unique token ID"),
+            fieldWithPath("refresh_token").type(STRING).description("Refresh token issued by this grant")
         );
 
         Snippet requestParameters = requestParameters(
