@@ -52,12 +52,12 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     }
 
     @Test
-    void checkForUpdatedPropertiesBadYaml()
+    void checkForUpdate_BadYaml()
             throws IOException {
         RateLimitingConfigLoader loader = createLoader();
 
         when( fetcher.fetchYaml() ).thenThrow( new IOException( "Whatever" ) );
-        assertTrue( loader.checkForUpdatedProperties() );
+        assertTrue( loader.checkForUpdate() );
         assertEquals( "", loader.getLastYAML() );
         assertEquals( YamlRateLimitingConfigException.MESSAGE_PREFIX + YAML_FETCH_FAILED,
                       supplierUpdatable.lfs.getStatus().getUpdate().getError(),
@@ -65,22 +65,22 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     }
 
     @Test
-    void checkForUpdatedPropertiesParseErrors()
+    void checkForUpdate_ParseErrors()
             throws IOException {
         RateLimitingConfigLoader loader = createLoader();
 
         when( fetcher.fetchYaml() ).thenReturn( "Fred: Wilma" );
-        assertTrue( loader.checkForUpdatedProperties() );
+        assertTrue( loader.checkForUpdate() );
         assertEquals( "Fred: Wilma", loader.getLastYAML() );
         assertStartsWith( YamlRateLimitingConfigException.MESSAGE_PREFIX + "Out-There: Cannot create property=Fred",
                           supplierUpdatable.lfs.getStatus().getUpdate().getError(),
                           supplierUpdatable.lfs::getStatusJson );
 
-        assertFalse( loader.checkForUpdatedProperties() ); // Same String == NO Update!
+        assertFalse( loader.checkForUpdate() ); // Same String == NO Update!
     }
 
     @Test
-    void checkForUpdatedPropertiesUpdatedNoError()
+    void checkForUpdate_UpdatedNoError()
             throws IOException {
         RateLimitingConfigLoader loader = createLoader();
 
@@ -95,7 +95,7 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
         String yaml = String.join( "\n", yamlLines );
 
         when( fetcher.fetchYaml() ).thenReturn( yaml );
-        assertTrue( loader.checkForUpdatedProperties() );
+        assertTrue( loader.checkForUpdate() );
         assertEquals( yaml, loader.getLastYAML() );
 
         String[] expectedLines = {

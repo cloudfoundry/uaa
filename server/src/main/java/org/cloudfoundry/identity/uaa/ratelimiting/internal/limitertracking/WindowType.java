@@ -13,7 +13,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 public interface WindowType {
     String windowType();
 
-    RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping properties );
+    RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping limiterMapping );
 
     String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier );
 
@@ -27,13 +27,13 @@ public interface WindowType {
     }
 
     default boolean addTo( Map<CompoundKey, InternalLimiterFactory> map,
-                           LimiterMapping properties, CallerIdSupplierByType callerIdSupplier ) {
-        if ( properties != null ) {
-            RequestsPerWindowSecs window = extractRequestsPerWindowFrom( properties );
+                           LimiterMapping limiterMapping, CallerIdSupplierByType callerIdSupplier ) {
+        if ( limiterMapping != null ) {
+            RequestsPerWindowSecs window = extractRequestsPerWindowFrom( limiterMapping );
             if ( window != null ) {
                 String callerId = extractCallerIdFrom( callerIdSupplier );
                 if ( callerId != null ) {
-                    String limiterName = properties.name();
+                    String limiterName = limiterMapping.name();
                     map.put( CompoundKey.from( limiterName, windowType(), callerId ),
                              InternalLimiterFactoryImpl.builder()
                                      .name( limiterName )
@@ -54,8 +54,8 @@ public interface WindowType {
         }
 
         @Override
-        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping properties ) {
-            return (properties == null) ? null : properties.global();
+        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping limiterMapping ) {
+            return (limiterMapping == null) ? null : limiterMapping.global();
         }
 
         @Override
@@ -100,8 +100,8 @@ public interface WindowType {
         }
 
         @Override
-        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping properties ) {
-            return windowMapper.apply( properties );
+        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping limiterMapping ) {
+            return windowMapper.apply( limiterMapping );
         }
 
         @Override
@@ -110,10 +110,10 @@ public interface WindowType {
         }
 
         public static void addBestTo( Map<CompoundKey, InternalLimiterFactory> map,
-                                      LimiterMapping properties, CallerIdSupplierByType callerIdSupplier ) {
-            if ( properties != null ) {
+                                      LimiterMapping limiterMapping, CallerIdSupplierByType callerIdSupplier ) {
+            if ( limiterMapping != null ) {
                 for ( NON_GLOBAL value : values() ) {
-                    if ( value.addTo( map, properties, callerIdSupplier ) ) {
+                    if ( value.addTo( map, limiterMapping, callerIdSupplier ) ) {
                         return;
                     }
                 }

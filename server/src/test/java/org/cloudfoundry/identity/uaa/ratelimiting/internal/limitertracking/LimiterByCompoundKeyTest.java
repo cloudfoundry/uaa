@@ -43,7 +43,7 @@ class LimiterByCompoundKeyTest {
 
     MockCompoundKeyExpirationAdder limiterCreationTracker = new MockCompoundKeyExpirationAdder();
 
-    RequestsPerWindowSecs requests = RequestsPerWindowSecs.from( "propertyName", "testData", REQUESTS_PER_WINDOW );
+    RequestsPerWindowSecs requests = RequestsPerWindowSecs.from( "theName", "testData", REQUESTS_PER_WINDOW );
 
     InternalLimiterFactoryImpl factory = InternalLimiterFactoryImpl.builder()
             .windowType( WINDOW_TYPE ).name( LIMITER_NAME ).requestsPerWindow( requests )

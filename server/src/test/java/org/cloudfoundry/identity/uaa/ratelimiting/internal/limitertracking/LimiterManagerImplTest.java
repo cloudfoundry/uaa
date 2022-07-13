@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LimiterManagerImplTest {
 
-    static final List<LimiterMapping> allAndPathBasedTypePropertiesList = List.of(
+    static final List<LimiterMapping> allAndPathBasedLimiterMappings = List.of(
             LimiterMapping.builder().name( "F1" ).pathSelector( "equals:/F1" ).withCallerCredentialsID( "2r/s" ).build(),
             LimiterMapping.builder().name( "F2" ).pathSelector( "equals:/F2" ).withCallerCredentialsID( "4r/2s" ).build(),
             LimiterMapping.builder().name( "F3" ).pathSelector( "equals:/F3" ).global( "8r/4s" ).build(),
@@ -51,12 +51,12 @@ class LimiterManagerImplTest {
 
     @Test
     void testInteractionOfAllAndPathBasedLimiter() {
-        runSet( allAndPathBasedTypePropertiesList,
+        runSet( allAndPathBasedLimiterMappings,
                 this::allAndPathBasedCalls,
                 this::allAndPathBasedCheckResults );
     }
 
-    static final List<LimiterMapping> interactionOfMultiPathBasedTypePropertiesList = List.of(
+    static final List<LimiterMapping> interactionOfMultiPathBasedLimiterMappings = List.of(
             LimiterMapping.builder().name( "FF" ).pathSelectors( "equals:/F1", "equals:/F2" ).withCallerCredentialsID( "4r/s" ).build(),
             LimiterMapping.builder().name( "GB" ).pathSelector( "All" ).global( "999r/8s" ).build() ); // So can ignore
 
@@ -79,14 +79,14 @@ class LimiterManagerImplTest {
 
     @Test
     void testInteractionOfMultiPathSelectorLimiter() {
-        runSet( interactionOfMultiPathBasedTypePropertiesList,
+        runSet( interactionOfMultiPathBasedLimiterMappings,
                 this::interactionOfMultiPathBasedCalls,
                 this::interactionOfMultiPathBasedCheckResults );
     }
 
-    void runSet( List<LimiterMapping> typePropertiesList, Runnable calls, Runnable checkResults ) {
+    void runSet( List<LimiterMapping> limiterMappings, Runnable calls, Runnable checkResults ) {
         lm.update( RateLimitingFactoriesSupplierWithStatus.builder()
-                           .supplier( new InternalLimiterFactoriesSupplierImpl( credentialIdExtractor, null, typePropertiesList ) )
+                           .supplier( new InternalLimiterFactoriesSupplierImpl( credentialIdExtractor, null, limiterMappings ) )
                            .build() );
         for ( int i = 0; i < 8; i++ ) {
             for ( int j = 0; j < 4; j++ ) {

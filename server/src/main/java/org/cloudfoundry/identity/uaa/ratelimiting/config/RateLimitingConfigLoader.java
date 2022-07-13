@@ -18,7 +18,6 @@ public class RateLimitingConfigLoader implements Runnable {
     public static final String YAML_NULL = "null";
     public static final String YAML_EMPTY = "empty";
     public static final String YAML_NO_DATA = "no data";
-    public static final String TYPE_PROPERTIES_PROBLEM = "unacceptable/incompatible TypeProperties: ";
 
     private final LoaderLogger logger;
     private final Fetcher fetcher;
@@ -71,7 +70,7 @@ public class RateLimitingConfigLoader implements Runnable {
             if ( !noBackgroundProcessor ) {
                 supplierUpdatable.startBackgroundProcessing();
                 backgroundThread = new Thread( this );
-                backgroundThread.setName( "TypesPropertiesLoaderProcess" );
+                backgroundThread.setName( "RateLimiterDynamicConfigurationLoaderProcess" );
                 backgroundThread.setDaemon( true );
                 backgroundThread.start();
             }
@@ -84,7 +83,7 @@ public class RateLimitingConfigLoader implements Runnable {
     }
 
     // package friendly for testing
-    boolean checkForUpdatedProperties() {
+    boolean checkForUpdate() {
         RateLimitingFactoriesSupplierWithStatus updated = null;
         try {
             String yamlString = loadYamlString();
@@ -115,7 +114,7 @@ public class RateLimitingConfigLoader implements Runnable {
                 try {
                     long nextRunTime = currentTimeSupplier.now() + 15000;
                     Thread.sleep( 2000 ); // check every 15 seconds (2 here & rest below)
-                    checkForUpdatedProperties();
+                    checkForUpdate();
                     Thread.sleep( nextRunTime - currentTimeSupplier.now() );
                 }
                 catch ( InterruptedException e ) {

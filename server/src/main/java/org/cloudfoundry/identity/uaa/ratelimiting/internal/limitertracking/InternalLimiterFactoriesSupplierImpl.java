@@ -25,11 +25,11 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFactoriesSupplier {
     static final String TO_STRING_INDENT = "   ";
 
-    private final Map<String, LimiterMapping> pathEqualsToProperties = new LinkedHashMap<>();
+    private final Map<String, LimiterMapping> pathEqualsToLimiterMappings = new LinkedHashMap<>();
     private final PathFragmentToLimiterMappings pathStartsWithLimiterMappings;
-    private final PathFragmentToLimiterMappings pathContainsProperties;
+    private final PathFragmentToLimiterMappings pathContainsLimiterMappings;
     private final LimiterMapping pathOtherLimiterMapping;
-    private final LimiterMapping allLimiterMappings;
+    private final LimiterMapping allLimiterMapping;
     private final int limiterMappings;
     private final LoggingOption loggingOption;
 
@@ -62,31 +62,31 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         return internalFactoryMapFor( callerIdSupplierByTypeFactory.from( info ), info.getServletPath() );
     }
 
-    public int typePropertiesPathOptionsCount() {
-        return cnt( pathEqualsToProperties ) + cnt( pathStartsWithLimiterMappings ) + cnt( pathContainsProperties ) + cnt( pathOtherLimiterMapping ) + cnt( allLimiterMappings );
+    public int pathsCount() {
+        return cnt( pathEqualsToLimiterMappings ) + cnt( pathStartsWithLimiterMappings ) + cnt( pathContainsLimiterMappings ) + cnt( pathOtherLimiterMapping ) + cnt( allLimiterMapping );
     }
 
     // package friendly for testing
     LinkedHashMap<CompoundKey, InternalLimiterFactory> internalFactoryMapFor( CallerIdSupplierByType callerIdSupplierByType, String servletPath ) {
         return mapFrom( callerIdSupplierByType,
-                        getPathBasedProperties( servletPath ), allLimiterMappings );
+                        getPathBasedLimiterMappings( servletPath ), allLimiterMapping );
     }
 
     // package friendly for testing
-    LimiterMapping getPathBasedProperties( String servletPath ) { // Method shows how the search algorithm works!
-        LimiterMapping pathProperties;
+    LimiterMapping getPathBasedLimiterMappings( String servletPath ) { // Method shows how the search algorithm works!
+        LimiterMapping pathLimiterMappings;
         if ( (servletPath == null) || servletPath.isEmpty() ) {
-            pathProperties = pathOtherLimiterMapping;
+            pathLimiterMappings = pathOtherLimiterMapping;
         } else {
-            if ( null == (pathProperties = pathEqualsToProperties.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals
-                if ( null == (pathProperties = pathStartsWithLimiterMappings.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
-                    if ( null == (pathProperties = pathContainsProperties.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains
-                        pathProperties = pathOtherLimiterMapping; // . . . . . . . . . . . . . . . . . . . 4th - Other
+            if ( null == (pathLimiterMappings = pathEqualsToLimiterMappings.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals
+                if ( null == (pathLimiterMappings = pathStartsWithLimiterMappings.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
+                    if ( null == (pathLimiterMappings = pathContainsLimiterMappings.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains
+                        pathLimiterMappings = pathOtherLimiterMapping; // . . . . . . . . . . . . . . . . . . . 4th - Other
                     }
                 }
             }
         }
-        return pathProperties;
+        return pathLimiterMappings;
     }
 
     /**
@@ -105,11 +105,11 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
 
     public String toString() {
         StringBuilder sb = new StringBuilder().append( "InternalLimiterFactoriesSupplier:" );
-        appendTo( sb, PathMatchType.Equals, pathEqualsToProperties );
+        appendTo( sb, PathMatchType.Equals, pathEqualsToLimiterMappings );
         appendTo( sb, PathMatchType.StartsWith, pathStartsWithLimiterMappings );
-        appendTo( sb, PathMatchType.Contains, pathContainsProperties );
+        appendTo( sb, PathMatchType.Contains, pathContainsLimiterMappings );
         appendTo( sb, PathMatchType.Other, pathOtherLimiterMapping );
-        appendTo( sb, PathMatchType.All, allLimiterMappings );
+        appendTo( sb, PathMatchType.All, allLimiterMapping );
         return sb.append( '\n' ).toString();
     }
 
@@ -118,7 +118,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
      *
      * @param credentialIdExtractor null defaults to Client (caller's) IP only
      * @param limiterMappings       if empty it throws an error
-     * @throws RateLimitingConfigException if any of the TypeProperties are bad or collide with another or basic filtering is not included!
+     * @throws RateLimitingConfigException if any of the TypeLimiterMappings are bad or collide with another or basic filtering is not included!
      */
     public InternalLimiterFactoriesSupplierImpl( AuthorizationCredentialIdExtractor credentialIdExtractor,
                                                  LoggingOption loggingOption, Collection<LimiterMapping> limiterMappings ) {
@@ -126,10 +126,10 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         this.loggingOption = LoggingOption.deNull( loggingOption );
         int countLimiterMappings = 0;
 
-        List<PathFragmentToTypeProperties> ptfStartsWiths = new ArrayList<>();
-        List<PathFragmentToTypeProperties> ptfContains = new ArrayList<>();
-        LimiterMapping pathOtherProperties = null;
-        LimiterMapping allProperties = null;
+        List<PathFragmentToLimiterMapping> ptfStartsWiths = new ArrayList<>();
+        List<PathFragmentToLimiterMapping> ptfContains = new ArrayList<>();
+        LimiterMapping pathOtherLimiterMapping = null;
+        LimiterMapping allLimiterMappings = null;
         for ( LimiterMapping limiterMapping : limiterMappings ) {
             if ( limiterMapping != null ) {
                 countLimiterMappings++;
@@ -139,19 +139,19 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
 
                     switch ( pmType ) {
                         case Equals:
-                            pathEqualsToProperties.put( selector.getPath(), limiterMapping );
+                            pathEqualsToLimiterMappings.put( selector.getPath(), limiterMapping );
                             break;
                         case StartsWith:
-                            ptfStartsWiths.add( new PathFragmentToTypeProperties( selector.getPath(), limiterMapping ) );
+                            ptfStartsWiths.add( new PathFragmentToLimiterMapping( selector.getPath(), limiterMapping ) );
                             break;
                         case Contains:
-                            ptfContains.add( new PathFragmentToTypeProperties( selector.getPath(), limiterMapping ) );
+                            ptfContains.add( new PathFragmentToLimiterMapping( selector.getPath(), limiterMapping ) );
                             break;
                         case Other:
-                            pathOtherProperties = limiterMapping;
+                            pathOtherLimiterMapping = limiterMapping;
                             break;
                         case All:
-                            allProperties = limiterMapping;
+                            allLimiterMappings = limiterMapping;
                             break;
                         default:
                             throw new RateLimitingConfigException( "Unexpected PathMatchType '" + pmType + "' on: " + limiterMapping.name() );
@@ -160,30 +160,30 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
             }
         }
         pathStartsWithLimiterMappings = new PathFragmentToLimiterMappings( String::startsWith, ptfStartsWiths );
-        pathContainsProperties = new PathFragmentToLimiterMappings( String::contains, ptfContains );
-        this.pathOtherLimiterMapping = pathOtherProperties;
-        this.allLimiterMappings = allProperties;
+        pathContainsLimiterMappings = new PathFragmentToLimiterMappings( String::contains, ptfContains );
+        this.pathOtherLimiterMapping = pathOtherLimiterMapping;
+        this.allLimiterMapping = allLimiterMappings;
         this.limiterMappings = countLimiterMappings;
     }
 
     @SuppressWarnings("SameParameterValue")
-    private static void appendTo( StringBuilder sb, PathMatchType type, Map<String, LimiterMapping> pathProperties ) {
-        appendPathMatchType( sb, type, !pathProperties.isEmpty() );
-        for ( String path : pathProperties.keySet() ) {
-            appendPropertiesWithPath( sb, path, pathProperties.get( path ) );
+    private static void appendTo( StringBuilder sb, PathMatchType type, Map<String, LimiterMapping> pathLimiterMappings ) {
+        appendPathMatchType( sb, type, !pathLimiterMappings.isEmpty() );
+        for ( String path : pathLimiterMappings.keySet() ) {
+            appendLimiterMappingsWithPath( sb, path, pathLimiterMappings.get( path ) );
         }
     }
 
-    private static void appendTo( StringBuilder sb, PathMatchType type, PathFragmentToLimiterMappings mapper ) {
-        appendPathMatchType( sb, type, !mapper.isEmpty() );
-        mapper.stream().forEach( t -> appendPropertiesWithPath( sb, t.getPathFragment(), t.getProperties() ) );
+    private static void appendTo( StringBuilder sb, PathMatchType type, PathFragmentToLimiterMappings mappings ) {
+        appendPathMatchType( sb, type, !mappings.isEmpty() );
+        mappings.stream().forEach( mapping -> appendLimiterMappingsWithPath( sb, mapping.getPathFragment(), mapping.getLimiterMapping() ) );
     }
 
     @SuppressWarnings("SameParameterValue")
-    private static void appendTo( StringBuilder sb, PathMatchType type, LimiterMapping properties ) {
-        if ( properties != null ) {
+    private static void appendTo( StringBuilder sb, PathMatchType type, LimiterMapping limiterMapping ) {
+        if ( limiterMapping != null ) {
             appendPathMatchType( sb, type, true );
-            appendPropertiesWithPath( sb, null, properties );
+            appendLimiterMappingsWithPath( sb, null, limiterMapping );
         }
     }
 
@@ -193,15 +193,15 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         }
     }
 
-    private static void appendPropertiesWithPath( StringBuilder sb, String path, LimiterMapping properties ) {
+    private static void appendLimiterMappingsWithPath( StringBuilder sb, String path, LimiterMapping limiterMapping ) {
         sb.append( '\n' ).append( TO_STRING_INDENT ).append( TO_STRING_INDENT );
         if ( path != null ) {
             sb.append( path ).append( " -> " );
         }
-        sb.append( properties.name() ).append( ":" );
-        boolean multiple = properties.limitsCount() > 1;
+        sb.append( limiterMapping.name() ).append( ":" );
+        boolean multiple = limiterMapping.limitsCount() > 1;
         for ( WindowType type : WindowType.ALL_WINDOW_TYPES ) {
-            appendLimits( sb, multiple, type.windowType(), type.extractRequestsPerWindowFrom( properties ) );
+            appendLimits( sb, multiple, type.windowType(), type.extractRequestsPerWindowFrom( limiterMapping ) );
         }
     }
 

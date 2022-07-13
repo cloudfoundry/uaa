@@ -10,21 +10,24 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 @AllArgsConstructor
 @ToString
 @Getter
-public class PathFragmentToTypeProperties implements Comparable<PathFragmentToTypeProperties> {
+public class PathFragmentToLimiterMapping implements Comparable<PathFragmentToLimiterMapping> {
     private final String pathFragment;
-    private final LimiterMapping properties;
+    private final LimiterMapping limiterMapping;
 
     /**
-     * This compareTo is used to order the PathFragmentToTypeProperties by decreasing pathFragment length, e.g. longer before shorter
+     * This compareTo is used to order the PathFragmentToLimiterMapping(s) by 1st decreasing pathFragment length, e.g. longer before shorter; then ascending Name
      *
      * @param them not null
      */
     @Override
-    public int compareTo( PathFragmentToTypeProperties them ) {
+    public int compareTo( PathFragmentToLimiterMapping them ) {
         int thisLen = this.pathFragment.length();
         int themLen = them.pathFragment.length();
-        // Note: the following trick only works when the subtraction of the ints can not overflow!
-        return themLen - thisLen;
+        if ( thisLen != themLen ) {
+            // Note: the following trick only works when the subtraction of the ints can not overflow!
+            return themLen - thisLen;
+        }
+        return this.limiterMapping.name().compareTo( them.limiterMapping.name() );
     }
 
     /**
@@ -33,7 +36,7 @@ public class PathFragmentToTypeProperties implements Comparable<PathFragmentToTy
      * @param them to check for equals against <code>this</code>
      * @return true IFF <code>them</code> not null and <code>pathFragments</code> are equal
      */
-    public boolean equals( PathFragmentToTypeProperties them ) {
+    public boolean equals( PathFragmentToLimiterMapping them ) {
         return (this == them) || ((them != null)
                                   && this.pathFragment.equals( them.pathFragment ));
     }
@@ -43,8 +46,8 @@ public class PathFragmentToTypeProperties implements Comparable<PathFragmentToTy
      */
     @Override
     public boolean equals( Object them ) {
-        return (this == them) || ((them instanceof PathFragmentToTypeProperties)
-                                  && equals( (PathFragmentToTypeProperties)them ));
+        return (this == them) || ((them instanceof PathFragmentToLimiterMapping)
+                                  && equals( (PathFragmentToLimiterMapping)them ));
     }
 
     /**

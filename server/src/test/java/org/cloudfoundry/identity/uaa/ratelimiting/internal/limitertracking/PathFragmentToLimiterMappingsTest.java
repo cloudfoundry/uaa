@@ -18,7 +18,7 @@ class PathFragmentToLimiterMappingsTest {
     private Selector selector;
 
     @Test
-    void noProperties() {
+    void noLimiterMappings() {
         mapper = new PathFragmentToLimiterMappings( String::contains );
 
         assertTrue( mapper.isEmpty() );
@@ -29,10 +29,10 @@ class PathFragmentToLimiterMappingsTest {
     }
 
     @Test
-    void fewProperties() {
-        PathFragmentToTypeProperties fred = pftp( "Fred" );
-        PathFragmentToTypeProperties pebbles = pftp( "Pebbles" );
-        PathFragmentToTypeProperties wilma = pftp( "Wilma" );
+    void fewLimiterMappings() {
+        PathFragmentToLimiterMapping fred = pftp( "Fred" );
+        PathFragmentToLimiterMapping pebbles = pftp( "Pebbles" );
+        PathFragmentToLimiterMapping wilma = pftp( "Wilma" );
 
         mapper = new PathFragmentToLimiterMappings( String::contains, fred, pebbles, wilma );
 
@@ -40,13 +40,13 @@ class PathFragmentToLimiterMappingsTest {
         assertEquals( 3, mapper.count() );
         assertEquals( List.of( pebbles, wilma, fred ), streamToPathFragments() );
 
-        assertEquals( wilma.getProperties(), mapper.get( "significantOther/Wilma/of/Fred" ) );
+        assertEquals( wilma.getLimiterMapping(), mapper.get( "significantOther/Wilma/of/Fred" ) );
     }
 
     @Test
     void getCompares() {
         selector = new Selector();
-        List<PathFragmentToTypeProperties> pftps = new ArrayList<>();
+        List<PathFragmentToLimiterMapping> pftps = new ArrayList<>();
         for ( int i = 1; i <= 50; i++ ) {
             addTo( pftps, makePath( 'A', i ) );
             addTo( pftps, makePath( 'B', i ) );
@@ -73,7 +73,7 @@ class PathFragmentToLimiterMappingsTest {
         return calls;
     }
 
-    private void addTo( List<PathFragmentToTypeProperties> collection, String pathFragmentAndName ) {
+    private void addTo( List<PathFragmentToLimiterMapping> collection, String pathFragmentAndName ) {
         collection.add( pftp( pathFragmentAndName ) );
     }
 
@@ -95,8 +95,8 @@ class PathFragmentToLimiterMappingsTest {
         }
     }
 
-    private static PathFragmentToTypeProperties pftp( String pathFragmentAndName ) {
-        return new PathFragmentToTypeProperties( pathFragmentAndName,
+    private static PathFragmentToLimiterMapping pftp( String pathFragmentAndName ) {
+        return new PathFragmentToLimiterMapping( pathFragmentAndName,
                                                  LimiterMapping.builder()
                                                          .name( pathFragmentAndName )
                                                          .pathSelector( "contains:" + pathFragmentAndName )
@@ -104,7 +104,7 @@ class PathFragmentToLimiterMappingsTest {
                                                          .build() );
     }
 
-    private List<PathFragmentToTypeProperties> streamToPathFragments() {
+    private List<PathFragmentToLimiterMapping> streamToPathFragments() {
         return mapper.stream().collect( Collectors.toList() );
     }
 }

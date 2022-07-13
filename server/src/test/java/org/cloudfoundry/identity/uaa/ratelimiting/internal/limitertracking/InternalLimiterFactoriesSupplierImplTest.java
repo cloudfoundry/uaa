@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -21,11 +20,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 @SuppressWarnings("SameParameterValue")
 public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionTestSupport {
     CallerIdSupplierByType callerIdSupplier = Mockito.mock( CallerIdSupplierByType.class );
-
-    @Test
-    public void factoriesSupplier_Empty_TypeProperties() {
-        expectException( "All paths not limited: ", Collections.emptyList() );
-    }
 
     @Test
     public void factoriesSupplier_toString() {
@@ -62,9 +56,9 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
         LimiterMapping n1 = LimiterMapping.builder().name( "N1" ).global( "2r/1s" ).pathSelectors( "equals:/F-22", "equals:/F-35A", "equals:/F-35B", "equals:/F-35C", "equals:/F-35I" ).build();
         LimiterMapping n2 = LimiterMapping.builder().name( "N2" ).global( "4r/2s" ).withoutCallerID( "1r/5s" ).pathSelectors( "startsWith:/F-35", "startsWith:/F-22" ).build();
         LimiterMapping all = LimiterMapping.builder().name( "All" ).global( "100r/3s" ).pathSelector( "all" ).build();
-        List<LimiterMapping> typePropertiesList = List.of( n1, n2, all );
+        List<LimiterMapping> limiterMappings = List.of( n1, n2, all );
 
-        InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, typePropertiesList );
+        InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, limiterMappings );
         checkFactoryCollections( fs, 8,
                                  "   Equals:",
                                  "      /F-22 -> N1:Global @ 2r/s",
@@ -73,10 +67,10 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
                                  "      /F-35C -> N1:Global @ 2r/s",
                                  "      /F-35I -> N1:Global @ 2r/s",
                                  "   StartsWith:",
-                                 "      /F-22 -> N2:",
+                                 "      /F-35 -> N2:",
                                  "         NoID @ 1r/5s",
                                  "         Global @ 4r/2s",
-                                 "      /F-35 -> N2:",
+                                 "      /F-22 -> N2:",
                                  "         NoID @ 1r/5s",
                                  "         Global @ 4r/2s",
                                  "   All:",
@@ -152,17 +146,13 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
 
     private void checkFactoryCollections( InternalLimiterFactoriesSupplierImpl fs, int expectedFactoryCount, String... lines ) {
         String lfsString = fs.toString();
-        assertEquals( expectedFactoryCount, fs.typePropertiesPathOptionsCount(), lfsString );
+        assertEquals( expectedFactoryCount, fs.pathsCount(), lfsString );
 
         StringBuilder sb = new StringBuilder().append( "InternalLimiterFactoriesSupplier:" );
         for ( String line : lines ) {
             sb.append( '\n' ).append( line );
         }
         assertEquals( sb.toString(), lfsString );
-    }
-
-    private void expectException( String expectedMessageOrPrefix, Collection<LimiterMapping> limiterMappings ) {
-        expectException( expectedMessageOrPrefix, null, limiterMappings );
     }
 
     private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<LimiterMapping> limiterMappings ) {

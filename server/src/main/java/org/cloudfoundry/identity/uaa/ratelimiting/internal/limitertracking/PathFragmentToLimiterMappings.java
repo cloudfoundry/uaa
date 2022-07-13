@@ -14,25 +14,25 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 
 public class PathFragmentToLimiterMappings {
     private final BiPredicate<String, String> selector;
-    private final PathFragmentToTypeProperties[] ordered;
+    private final PathFragmentToLimiterMapping[] ordered;
     private final IntPair[] lengthOrderedIndexes;
 
     /**
      * Constructor
      *
-     * @param selector                   matching selector
-     * @param pathFragmentWithProperties Collection of PathFragment and TypeProperties pair
+     * @param selector                        matching selector
+     * @param pathFragmentWithLimiterMappings Collection of PathFragment and LimiterMappings pair
      */
     public PathFragmentToLimiterMappings( BiPredicate<String, String> selector,
-                                          Collection<PathFragmentToTypeProperties> pathFragmentWithProperties ) {
+                                          Collection<PathFragmentToLimiterMapping> pathFragmentWithLimiterMappings ) {
         this.selector = selector;
-        List<PathFragmentToTypeProperties> mutable = new ArrayList<>( pathFragmentWithProperties );
+        List<PathFragmentToLimiterMapping> mutable = new ArrayList<>( pathFragmentWithLimiterMappings );
         Collections.sort( mutable );
-        ordered = mutable.toArray( new PathFragmentToTypeProperties[0] );
+        ordered = mutable.toArray( new PathFragmentToLimiterMapping[0] );
         List<IntPair> orderedIndexes = new ArrayList<>( mutable.size() );
         IntPair prev = null;
         for ( int i = 0; i < ordered.length; i++ ) {
-            PathFragmentToTypeProperties pftp = ordered[i];
+            PathFragmentToLimiterMapping pftp = ordered[i];
             IntPair ip = new IntPair( pftp.getPathFragment().length(), i );
             if ( !ip.equals( prev ) ) {
                 orderedIndexes.add( prev = ip );
@@ -43,8 +43,8 @@ public class PathFragmentToLimiterMappings {
 
     // package friendly for Testing
     PathFragmentToLimiterMappings( BiPredicate<String, String> selector,
-                                   PathFragmentToTypeProperties... pathFragmentWithProperties ) {
-        this( selector, Arrays.asList( pathFragmentWithProperties ) );
+                                   PathFragmentToLimiterMapping... pathFragmentWithLimiterMappings ) {
+        this( selector, Arrays.asList( pathFragmentWithLimiterMappings ) );
     }
 
     public boolean isEmpty() {
@@ -55,16 +55,16 @@ public class PathFragmentToLimiterMappings {
         return ordered.length;
     }
 
-    public Stream<PathFragmentToTypeProperties> stream() {
+    public Stream<PathFragmentToLimiterMapping> stream() {
         return Arrays.stream( ordered );
     }
 
     public LimiterMapping get( String servletPath ) {
         // Longest to Shortest pathFragments - finding the match that is longest!
         for ( int i = findStartingOrderIndex( servletPath ); i < ordered.length; i++ ) {
-            PathFragmentToTypeProperties pftp = ordered[i];
+            PathFragmentToLimiterMapping pftp = ordered[i];
             if ( selector.test( servletPath, pftp.getPathFragment() ) ) {
-                return pftp.getProperties();
+                return pftp.getLimiterMapping();
             }
         }
         return null;
