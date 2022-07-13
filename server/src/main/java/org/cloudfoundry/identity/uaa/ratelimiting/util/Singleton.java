@@ -6,8 +6,8 @@ public class Singleton<T> {
     private final Object[] INDIRECT_INSTANCE_REF = new Object[1];
     private final Supplier<T> constructor;
 
-    public Singleton( Supplier<T> pConstructor ) {
-        constructor = pConstructor;
+    public Singleton( Supplier<T> constructor ) {
+        this.constructor = constructor;
     }
 
     public T getInstance() {

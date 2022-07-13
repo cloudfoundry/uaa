@@ -29,7 +29,7 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
 
     @Test
     public void factoriesSupplier_toString() {
-        List<LimiterMapping> typePropertiesList = List.of(
+        List<LimiterMapping> limiterMappings = List.of(
                 LimiterMapping.builder().name( "N1" ).withCallerCredentialsID( "2r/1s" ).pathSelector( "startsWith:/F-35B" ).build(),
                 LimiterMapping.builder().name( "N2" ).withCallerRemoteAddressID( "4r/2s" ).pathSelectors( "contains:F-22", "equals:/F-35" ).build(),
                 LimiterMapping.builder().name( "N3" ).withCallerRemoteAddressID( "2r/1s" ).pathSelectors( "equals:/F-22", "contains:F-35B" ).build(),
@@ -37,7 +37,7 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
                 LimiterMapping.builder().name( "Others" ).global( "150r/5s" ).pathSelector( "other" ).build(),
                 LimiterMapping.builder().name( "All" ).global( "100r/3s" ).pathSelector( "All" ).build() );
 
-        InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, typePropertiesList );
+        InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, limiterMappings );
         checkFactoryCollections( fs, 8,
                                  "   Equals:",
                                  "      /F-35 -> N2:RemoteAddressID @ 4r/2s",
@@ -97,13 +97,13 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
     }
 
     static class Expected {
-        private final LimiterMapping props;
+        private final LimiterMapping limiterMapping;
         private String callerID;
         private String windowType;
         private RequestsPerWindowSecs requestsPerWindow;
 
-        static Expected from( LimiterMapping props ) {
-            return new Expected( props );
+        static Expected from( LimiterMapping limiterMapping ) {
+            return new Expected( limiterMapping );
         }
 
         Expected withGlobal() {
@@ -117,16 +117,16 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
         private Expected withCannedCallerID( WindowType windowType ) {
             callerID = windowType.cannedCallerID();
             this.windowType = windowType.windowType();
-            requestsPerWindow = windowType.extractRequestsPerWindowFrom( props );
+            requestsPerWindow = windowType.extractRequestsPerWindowFrom( limiterMapping );
             return this;
         }
 
-        private Expected( LimiterMapping props ) {
-            this.props = props;
+        private Expected( LimiterMapping limiterMapping ) {
+            this.limiterMapping = limiterMapping;
         }
 
         CompoundKey compoundKey() {
-            return CompoundKey.from( props.name(), windowType, callerID );
+            return CompoundKey.from( limiterMapping.name(), windowType, callerID );
         }
     }
 
@@ -142,7 +142,7 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
             InternalLimiterFactoryImpl factory = (InternalLimiterFactoryImpl)map.get( key );
             assertEquals( expected.compoundKey(), key, "key mismatch on expected[" + i + "]" );
             assertEquals( expected.requestsPerWindow, factory.getRequestsPerWindow(), "RequestsPerWindow mismatch on expected[" + i + "]" );
-            assertEquals( expected.props.name(), factory.getName(), "name mismatch on expected[" + i + "]" );
+            assertEquals( expected.limiterMapping.name(), factory.getName(), "name mismatch on expected[" + i + "]" );
             assertEquals( expected.windowType, factory.getWindowType(), "windowType mismatch on expected[" + i + "]" );
         }
         if ( keys.hasNext() ) {
@@ -161,12 +161,12 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
         assertEquals( sb.toString(), lfsString );
     }
 
-    private void expectException( String expectedMessageOrPrefix, Collection<LimiterMapping> tps ) {
-        expectException( expectedMessageOrPrefix, null, tps );
+    private void expectException( String expectedMessageOrPrefix, Collection<LimiterMapping> limiterMappings ) {
+        expectException( expectedMessageOrPrefix, null, limiterMappings );
     }
 
-    private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<LimiterMapping> tps ) {
+    private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<LimiterMapping> limiterMappings ) {
         expectException( expectedMessageOrPrefix, expectedExceptionCauseClass,
-                         () -> new InternalLimiterFactoriesSupplierImpl( null, null, tps ) );
+                         () -> new InternalLimiterFactoriesSupplierImpl( null, null, limiterMappings ) );
     }
 }

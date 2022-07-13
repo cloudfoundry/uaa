@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class InternalLimiterFactoryForTypePropertiesTest {
+public class InternalLimiterFactoryImplTest {
     private static final String Global = WindowType.GLOBAL.windowType();
     private static final String NotGlobal = "!" + Global;
     private static final String NAME = "Test";
@@ -18,7 +18,7 @@ public class InternalLimiterFactoryForTypePropertiesTest {
 
     @Test
     public void constructorOptionsTest() {
-        RequestsPerWindowSecs requests = RequestsPerWindowSecs.from( "propertyName", "testData", REQUESTS_PER_WINDOW );
+        RequestsPerWindowSecs requests = RequestsPerWindowSecs.from( "limiterName", "testData", REQUESTS_PER_WINDOW );
         InternalLimiterFactoryImpl factory = InternalLimiterFactoryImpl.builder()
                 .name( NAME ).windowType( Global ).requestsPerWindow( requests )
                 .build();

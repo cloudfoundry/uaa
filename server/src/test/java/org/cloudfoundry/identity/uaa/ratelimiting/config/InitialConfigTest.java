@@ -1,10 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -43,18 +42,27 @@ class InitialConfigTest {
     }
 
     @Test
-    void loadFile() {
-        assertNull( InitialConfig.loadFile( null, "test-0" ) );
-
-        assertNull( InitialConfig.loadFile( inputStringFrom( " \n" ), "test-1" ) );
-        assertNull( InitialConfig.loadFile( inputStringFrom( EMPTY_LEADING_DOCS ), "test-2" ) );
-
-        assertEquals( SAMPLE_RATE_LIMITER_CONFIG_FILE, InitialConfig.loadFile(
-                inputStringFrom( EMPTY_LEADING_DOCS + SAMPLE_RATE_LIMITER_CONFIG_FILE ) , "test-3").body );
+    void getLocalConfigDirs() {
+        String[] results = InitialConfig.getLocalConfigDirs( List.of("", "  Fred", "! ", "  "), s -> s.startsWith( "!" ) ? s.substring( 1 ) : s);
+        assertNotNull( results );
+        assertEquals( 1, results.length );
+        assertEquals( "Fred", results[0] );
     }
 
-    InputStream inputStringFrom( String fileContents ) {
-        return new ByteArrayInputStream( fileContents.getBytes( StandardCharsets.UTF_8 ) );
+    @Test
+    void clean() {
+        assertNull( InitialConfig.clean( null ) );
+        assertNull( InitialConfig.clean( new SourcedFile( EMPTY_LEADING_DOCS, "test-1" ) ) );
+        check( SAMPLE_RATE_LIMITER_CONFIG_FILE, "test-2", SAMPLE_RATE_LIMITER_CONFIG_FILE );
+        check( SAMPLE_RATE_LIMITER_CONFIG_FILE, "test-3", EMPTY_LEADING_DOCS + SAMPLE_RATE_LIMITER_CONFIG_FILE );
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private void check( String expectedBody, String source, String possiblyDirtyBody ) {
+        SourcedFile sourcedFile = InitialConfig.clean( new SourcedFile( possiblyDirtyBody, source ) );
+        assertNotNull( sourcedFile, source );
+        assertEquals( source, sourcedFile.getSource() );
+        assertEquals( expectedBody, sourcedFile.getBody(), source );
     }
 
     @Test

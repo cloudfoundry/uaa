@@ -32,7 +32,7 @@ public abstract class AbstractRateLimiterConfigConfiguration {
         InitialConfig initialConfig = InitialConfig.SINGLETON.getInstance();
         Exception initialError = initialConfig.getInitialError();
         String dynamicUpdateURL = initialConfig.getDynamicUpdateURL();
-        YamlConfigFileDTO localConfigDTO = initialConfig.getLocalResourceConfigFileDTO();
+        YamlConfigFileDTO localConfigDTO = initialConfig.getLocalConfigFileDTO();
         RateLimitingFactoriesSupplierWithStatus configurationWithStatus = initialConfig.getConfigurationWithStatus();
         boolean updatingEnabled = dynamicUpdateURL != null; // only !null if specified w/ http:// or https://
 

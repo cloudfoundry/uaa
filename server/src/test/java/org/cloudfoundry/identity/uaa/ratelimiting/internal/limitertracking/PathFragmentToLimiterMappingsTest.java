@@ -12,14 +12,14 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class PathFragmentToTypePropertiesMapperTest {
+class PathFragmentToLimiterMappingsTest {
 
-    private PathFragmentToTypePropertiesMapper mapper;
+    private PathFragmentToLimiterMappings mapper;
     private Selector selector;
 
     @Test
     void noProperties() {
-        mapper = new PathFragmentToTypePropertiesMapper( String::contains );
+        mapper = new PathFragmentToLimiterMappings( String::contains );
 
         assertTrue( mapper.isEmpty() );
         assertEquals( 0, mapper.count() );
@@ -34,7 +34,7 @@ class PathFragmentToTypePropertiesMapperTest {
         PathFragmentToTypeProperties pebbles = pftp( "Pebbles" );
         PathFragmentToTypeProperties wilma = pftp( "Wilma" );
 
-        mapper = new PathFragmentToTypePropertiesMapper( String::contains, fred, pebbles, wilma );
+        mapper = new PathFragmentToLimiterMappings( String::contains, fred, pebbles, wilma );
 
         assertFalse( mapper.isEmpty() );
         assertEquals( 3, mapper.count() );
@@ -51,7 +51,7 @@ class PathFragmentToTypePropertiesMapperTest {
             addTo( pftps, makePath( 'A', i ) );
             addTo( pftps, makePath( 'B', i ) );
         }
-        mapper = new PathFragmentToTypePropertiesMapper( selector, pftps );
+        mapper = new PathFragmentToLimiterMappings( selector, pftps );
 
         assertEquals( 2, check( false, "X" ) );
         assertEquals( 50, check( false, makePath( 'X', 25 ) ) );

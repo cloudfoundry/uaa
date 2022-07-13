@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
 import lombok.Builder;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 public class RateLimitingFactoriesSupplierWithStatus {
@@ -38,7 +37,24 @@ public class RateLimitingFactoriesSupplierWithStatus {
         return statusJson;
     }
 
-    public RateLimitingFactoriesSupplierWithStatus updateError( Exception e, MillisTimeSupplier currentTimeSupplier ) {
-        return (e == null) ? this : toBuilder().status( status.updateFailed( StringUtils.toErrorMsg( e ), currentTimeSupplier ) ).build();
+    public boolean hasStatusCurrentSection() {
+        return (status != null) && status.hasCurrentSection();
+    }
+
+    public RateLimitingFactoriesSupplierWithStatus updateError( Exception e, long asOf ) {
+        return (e == null) ? this : toBuilder().status( ensureStatus().updateFailed( StringUtils.toErrorMsg( e ), asOf ) ).build();
+    }
+
+    public RateLimitingFactoriesSupplierWithStatus update( String errorMsg, long asOf, String fromSource ) {
+        return toBuilder().status( ensureStatus().update( errorMsg, asOf, fromSource ) ).build();
+    }
+
+    public static RateLimitingFactoriesSupplierWithStatus create( InternalLimiterFactoriesSupplier supplier, String errorMsg,
+                                                                  long asOf, String fromSource, boolean updatingEnabled ) {
+        return builder().supplier( supplier ).status( RateLimiterStatus.create( supplier, errorMsg, asOf, fromSource, updatingEnabled ) ).build();
+    }
+
+    private RateLimiterStatus ensureStatus() {
+        return (status != null) ? status : RateLimiterStatus.NO_RATE_LIMITING;
     }
 }

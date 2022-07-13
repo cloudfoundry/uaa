@@ -11,12 +11,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 public class RateLimiterStatus {
+    public static final RateLimiterStatus NO_RATE_LIMITING = noRateLimiting( MillisTimeSupplier.SYSTEM.now() );
+
     public enum CurrentStatus {DISABLED, PENDING, ACTIVE}
 
     public enum UpdateStatus {DISABLED, PENDING, FAILED}
@@ -75,7 +78,7 @@ public class RateLimiterStatus {
     }
 
     private final Current current;
-    private final Update update; // null on Completely Disabled, as data reflected in current -- w/ updating -> NOT null!
+    private final Update update; // null on Completely Disabled, as data reflected in current -- w/ updating -> never null!
     private final String fromSource; // null on DISABLED -- local file or http/https url
 
     @Builder(toBuilder = true)
@@ -97,26 +100,36 @@ public class RateLimiterStatus {
         return fromSource;
     }
 
-    /**
-     * Calling this method 'assumes' that an 'update' block exists with the same 'status' and 'error'
-     */
     @JsonIgnore
-    public RateLimiterStatus incUpdateCountOfStatus() {
-        return new RateLimiterStatus( getCurrent(), getUpdate().incCheckCountOfStatus(), getFromSource() );
+    public boolean hasCurrentSection() {
+        return current != null;
     }
 
-    public RateLimiterStatus updateFailed( String error, MillisTimeSupplier currentTimeSupplier ) {
+    @JsonIgnore
+    public boolean hasUpdateSection() {
+        return update != null;
+    }
+
+    public RateLimiterStatus updateFailed( String error, long asOf ) {
         Update update = getUpdate();
         if ( (update != null) && update.isFailed( error ) ) {
             update = update.incCheckCountOfStatus();
         } else {
-            update = Update.builder()
-                    .status( UpdateStatus.FAILED )
-                    .asOf( MillisTimeSupplier.deNull( currentTimeSupplier ).now() )
-                    .error( error )
-                    .build();
+            update = Update.builder().status( UpdateStatus.FAILED ).asOf( asOf ).error( error ).build();
         }
         return new RateLimiterStatus( getCurrent(), update, getFromSource() );
+    }
+
+    public RateLimiterStatus update( String error, long asOf, String fromSource ) {
+        Update update = getUpdate();
+        if ( (update != null) && update.isFailed( error ) ) {
+            update = update.incCheckCountOfStatus();
+        } else {
+            update = Update.builder().asOf( asOf ).error( error )
+                    .status( (error != null) ? UpdateStatus.FAILED : UpdateStatus.PENDING )
+                    .build();
+        }
+        return toBuilder().update( update ).fromSource( fromSource ).build();
     }
 
     private transient String generatedJson;
@@ -138,14 +151,36 @@ public class RateLimiterStatus {
         return json;
     }
 
-    // package friendly for Testing
-    static String toISO8601ZtoSec( Long now ) {
+    public static RateLimiterStatus create( InternalLimiterFactoriesSupplier supplier, String error,
+                                            long asOf, String fromSource, boolean updatingEnabled ) {
+        Current.CurrentBuilder currentBuilder = Current.builder().error( error ).asOf( asOf );
+
+        if ( (supplier == null) || supplier.isSupplierNOOP() ) {
+            currentBuilder = currentBuilder.status( updatingEnabled ? CurrentStatus.PENDING : CurrentStatus.DISABLED );
+        } else {
+            currentBuilder = currentBuilder.status( CurrentStatus.ACTIVE )
+                    .loggingLevel( supplier.getLoggingOption().toString() )
+                    .credentialIdExtractor( supplier.getCallerCredentialsIdSupplierDescription() );
+            int count = supplier.getLimiterMappings();
+            if ( count > 0 ) {
+                currentBuilder = currentBuilder.limiterMappings( count );
+            }
+        }
+        return builder().current( currentBuilder.build() )
+                .update( Update.builder().status( updatingEnabled ? UpdateStatus.PENDING : UpdateStatus.DISABLED ).build() )
+                .fromSource( fromSource ).build();
+    }
+
+    // public for Testing
+    public static String toISO8601ZtoSec( Long now ) {
         return (now == null) ? null :
                Instant.ofEpochMilli( now ).truncatedTo( ChronoUnit.SECONDS ).toString();
     }
 
-    private static final ObjectMapper OM = new ObjectMapper();
+    // public for Testing
+    public static RateLimiterStatus noRateLimiting( long now ) {
+        return builder().current( Current.builder().status( CurrentStatus.DISABLED ).asOf( now ).build() ).build();
+    }
 
-    public static final RateLimiterStatus NO_RATE_LIMITING =
-            builder().current( Current.builder().status( CurrentStatus.DISABLED ).asOf( MillisTimeSupplier.SYSTEM.now() ).build() ).build();
+    private static final ObjectMapper OM = new ObjectMapper();
 }

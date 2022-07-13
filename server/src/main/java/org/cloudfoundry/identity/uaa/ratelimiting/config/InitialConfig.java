@@ -1,15 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Function;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -19,13 +13,14 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus.*;
 
 @Getter
 public class InitialConfig {
-    public static final String[] ENVIRONMENT_CONFIG_LOCAL_DIRS = {"CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir"};
+    public static final List<String> ENVIRONMENT_CONFIG_LOCAL_DIRS = List.of( "CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir" );
     public static final String ENVIRONMENT_CONFIG_URL = "RateLimiterConfigUrl";
     public static final String LOCAL_CONFIG_FILE = "RateLimiterConfig.yml";
 
@@ -36,16 +31,16 @@ public class InitialConfig {
 
     private final Exception initialError;
     private final String dynamicUpdateURL;
-    private final YamlConfigFileDTO localResourceConfigFileDTO;
+    private final YamlConfigFileDTO localConfigFileDTO;
     private final RateLimitingFactoriesSupplierWithStatus configurationWithStatus;
 
     // packageFriendly for Testing
     InitialConfig( Exception initialError, String dynamicUpdateURL,
-                   YamlConfigFileDTO localResourceConfigFileDTO,
+                   YamlConfigFileDTO localConfigFileDTO,
                    RateLimitingFactoriesSupplierWithStatus configurationWithStatus ) {
         this.initialError = initialError;
         this.dynamicUpdateURL = dynamicUpdateURL;
-        this.localResourceConfigFileDTO = localResourceConfigFileDTO;
+        this.localConfigFileDTO = localConfigFileDTO;
         this.configurationWithStatus = configurationWithStatus;
     }
 
@@ -58,43 +53,27 @@ public class InitialConfig {
         return create( PRIMARY_DYNAMIC_CONFIG_URL, locateAndLoadLocalConfigFile(), MillisTimeSupplier.SYSTEM );
     }
 
-    @AllArgsConstructor
-    static class SourcedFile {
-        String body;
-        String source;
+    private static SourcedFile locateAndLoadLocalConfigFile() {
+        return clean( SourcedFile.locateAndLoadLocalFile( LOCAL_CONFIG_FILE, getLocalConfigDirs( ENVIRONMENT_CONFIG_LOCAL_DIRS, System::getenv ) ) );
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    // packageFriendly for Testing
+    static String[] getLocalConfigDirs( List<String> dirProxies, Function<String, String> unProxyFunction ) {
+        return dirProxies.stream()
+                .map( StringUtils::normalizeToNull ).filter( Objects::nonNull )
+                .map( unProxyFunction )
+                .map( StringUtils::normalizeToNull ).filter( Objects::nonNull )
+                .toArray( String[]::new );
     }
 
     // packageFriendly for Testing
-    static SourcedFile locateAndLoadLocalConfigFile() {
-        for ( String envVarDir : ENVIRONMENT_CONFIG_LOCAL_DIRS ) {
-            String dir = StringUtils.normalizeToEmpty( System.getenv( envVarDir ) );
-            if ( dir.startsWith( "/" ) ) {
-                InputStream is = getFileInputStream( dir );
-                if ( is != null ) {
-                    return loadFile( is, "configDir file(" + dir + "/" + LOCAL_CONFIG_FILE + ")" );
-                }
-            }
-        }
-        return loadFile( getFileInputStreamFromResources(), "resource file(/" + LOCAL_CONFIG_FILE + ")" );
-    }
-
-    static SourcedFile loadFile( InputStream is, String source ) {
-        if ( is == null ) {
+    static SourcedFile clean( SourcedFile sourcedFile ) {
+        if ( sourcedFile == null ) {
             return null;
         }
-        StringBuilder sb = new StringBuilder();
-        try ( InputStreamReader streamReader = new InputStreamReader( is, StandardCharsets.UTF_8 );
-              BufferedReader reader = new BufferedReader( streamReader ) ) {
-
-            for ( String line; (line = reader.readLine()) != null; ) {
-                sb.append( line ).append( '\n' );
-            }
-        }
-        catch ( IOException e ) {
-            throw new IllegalStateException( "Unable to read " + source, e );
-        }
-        String str = BindYaml.removeLeadingEmptyDocuments( sb.toString() );
-        return str.isEmpty() ? null : new SourcedFile( str, source );
+        String str = BindYaml.removeLeadingEmptyDocuments( sourcedFile.getBody() );
+        return str.isEmpty() ? null : new SourcedFile( str, sourcedFile.getSource() );
     }
 
     @SuppressWarnings("SameParameterValue")
@@ -113,10 +92,10 @@ public class InitialConfig {
         UpdateStatus updateStatus = UpdateStatus.DISABLED;
         String sourcedFrom = "InitialConfig";
         if ( localConfigFile != null ) {
-            sourcedFrom = localConfigFile.source;
+            sourcedFrom = localConfigFile.getSource();
             BindYaml<ExtendedYamlConfigFileDTO> bindYaml = new BindYaml<>( ExtendedYamlConfigFileDTO.class, sourcedFrom );
             try {
-                dto = parseFile( bindYaml, localConfigFile.body );
+                dto = parseFile( bindYaml, localConfigFile.getBody() );
                 if ( url == null ) {
                     url = dto.getDynamicConfigUrl(); // secondary source of dynamic updates
                 }
@@ -157,23 +136,6 @@ public class InitialConfig {
     // packageFriendly for Testing
     static ExtendedYamlConfigFileDTO parseFile( BindYaml<ExtendedYamlConfigFileDTO> bindYaml, String fileText ) {
         return bindYaml.bind( fileText );
-    }
-
-    private static InputStream getFileInputStreamFromResources() {
-        return InitialConfig.class.getClassLoader().getResourceAsStream( "/" + LOCAL_CONFIG_FILE );
-    }
-
-    private static InputStream getFileInputStream( String dir ) {
-        try {
-            File file = FileSystems.getDefault().getPath( dir, LOCAL_CONFIG_FILE ).toFile();
-            if ( file.isFile() ) {
-                return new FileInputStream( file );
-            }
-        }
-        catch ( IOException ignore ) {
-            // ignore!
-        }
-        return null;
     }
 
     @Getter

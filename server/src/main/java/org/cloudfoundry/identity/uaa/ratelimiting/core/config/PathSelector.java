@@ -57,7 +57,7 @@ public class PathSelector {
         if ( type == null ) {
             error( offsetIndex, name, "type", typeStr, selectorStr, "must match one of: " + PathMatchType.options() );
         }
-        String error = type.pathAcceptable( path );
+        String error = type.pathUnacceptable( path );
         if ( error != null ) {
             error( offsetIndex, name, "path", path, selectorStr, error );
         }

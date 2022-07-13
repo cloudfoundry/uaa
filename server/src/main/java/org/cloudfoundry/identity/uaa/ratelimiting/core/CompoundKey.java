@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 
+/**
+ * The compound key must immutable and support the hashCode and equals methods as it is used the primary hash key for tracking internal limiters!
+ */
 @Getter
 @EqualsAndHashCode
 public final class CompoundKey {

@@ -10,6 +10,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.LazyEnumerationToList;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 public class RequestInfoImpl implements RequestInfo {
+    static final String NO_HTTP_SERVLET_REQUEST_TO_PROXY = "No HttpServletRequest to Proxy!";
+
     private final Map<String, LazyEnumerationToList<String>> headerLists = new HashMap<>();
     private final HttpServletRequest request;
     private final LazyEnumerationToList<String> headerNames;
@@ -135,7 +137,7 @@ public class RequestInfoImpl implements RequestInfo {
     private static class NullObjectRequestInfo implements RequestInfo {
         @Override
         public String getServletPath() {
-            return "No HttpServletRequest to Proxy!";
+            return NO_HTTP_SERVLET_REQUEST_TO_PROXY;
         }
 
         @Override

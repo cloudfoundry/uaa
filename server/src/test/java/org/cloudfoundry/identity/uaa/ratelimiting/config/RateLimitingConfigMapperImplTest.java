@@ -142,7 +142,7 @@ public class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSuppo
         YamlConfigFileDTO dto = dtoBuilder.build();
         ErrorSupplierPair pair = mapper.createErrorSupplierPair( dto );
         assertTrue( pair.hasError(), dto::toString );
-        assertTrue( pair.isSupplierNOOP(), dto::toString );
+        assertTrue( pair.getSupplier().isSupplierNOOP(), dto::toString );
         assertNotNull( pair.getError(), dto::toString );
         String msg = pair.getErrorMsg();
         assertNotNull( msg, dto::toString );

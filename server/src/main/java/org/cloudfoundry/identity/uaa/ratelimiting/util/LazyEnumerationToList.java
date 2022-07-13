@@ -5,6 +5,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.function.Supplier;
 
+// NOT Multi-Thread safe!
 public class LazyEnumerationToList<T> implements Supplier<List<T>> {
     private final Supplier<Enumeration<T>> supplier;
     private Enumeration<T> intermediateValue;

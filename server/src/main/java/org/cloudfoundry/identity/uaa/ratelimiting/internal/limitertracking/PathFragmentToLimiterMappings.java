@@ -12,7 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 
-public class PathFragmentToTypePropertiesMapper {
+public class PathFragmentToLimiterMappings {
     private final BiPredicate<String, String> selector;
     private final PathFragmentToTypeProperties[] ordered;
     private final IntPair[] lengthOrderedIndexes;
@@ -23,8 +23,8 @@ public class PathFragmentToTypePropertiesMapper {
      * @param selector                   matching selector
      * @param pathFragmentWithProperties Collection of PathFragment and TypeProperties pair
      */
-    public PathFragmentToTypePropertiesMapper( BiPredicate<String, String> selector,
-                                               Collection<PathFragmentToTypeProperties> pathFragmentWithProperties ) {
+    public PathFragmentToLimiterMappings( BiPredicate<String, String> selector,
+                                          Collection<PathFragmentToTypeProperties> pathFragmentWithProperties ) {
         this.selector = selector;
         List<PathFragmentToTypeProperties> mutable = new ArrayList<>( pathFragmentWithProperties );
         Collections.sort( mutable );
@@ -42,8 +42,8 @@ public class PathFragmentToTypePropertiesMapper {
     }
 
     // package friendly for Testing
-    PathFragmentToTypePropertiesMapper( BiPredicate<String, String> selector,
-                                        PathFragmentToTypeProperties... pathFragmentWithProperties ) {
+    PathFragmentToLimiterMappings( BiPredicate<String, String> selector,
+                                   PathFragmentToTypeProperties... pathFragmentWithProperties ) {
         this( selector, Arrays.asList( pathFragmentWithProperties ) );
     }
 

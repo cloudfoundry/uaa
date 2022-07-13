@@ -19,11 +19,11 @@ public enum PathMatchType {
         this.checker = checker;
     }
 
-    public String pathAcceptable( String path ) {
+    public String pathUnacceptable( String path ) {
         return checker.test( path ) ? null : ("must " + pathMust);
     }
 
     public static String options() {
-        return StringUtils.options( (Object[])values() );
+        return StringUtils.options( values() );
     }
 }

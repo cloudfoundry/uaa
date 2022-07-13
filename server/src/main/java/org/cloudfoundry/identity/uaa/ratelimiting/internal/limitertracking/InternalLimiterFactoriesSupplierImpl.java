@@ -5,8 +5,8 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import javax.validation.constraints.NotNull;
 
-import lombok.NonNull;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
@@ -26,10 +26,10 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     static final String TO_STRING_INDENT = "   ";
 
     private final Map<String, LimiterMapping> pathEqualsToProperties = new LinkedHashMap<>();
-    private final PathFragmentToTypePropertiesMapper pathStartsWithProperties;
-    private final PathFragmentToTypePropertiesMapper pathContainsProperties;
-    private final LimiterMapping pathOtherProperties;
-    private final LimiterMapping allProperties;
+    private final PathFragmentToLimiterMappings pathStartsWithLimiterMappings;
+    private final PathFragmentToLimiterMappings pathContainsProperties;
+    private final LimiterMapping pathOtherLimiterMapping;
+    private final LimiterMapping allLimiterMappings;
     private final int limiterMappings;
     private final LoggingOption loggingOption;
 
@@ -37,9 +37,14 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     public final CallerIdSupplierByTypeFactory callerIdSupplierByTypeFactory;
 
     @Override
-    @NonNull
+    @NotNull
     public LoggingOption getLoggingOption() {
         return loggingOption;
+    }
+
+    @Override
+    public boolean isSupplierNOOP() {
+        return false;
     }
 
     @Override
@@ -58,25 +63,25 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     }
 
     public int typePropertiesPathOptionsCount() {
-        return cnt( pathEqualsToProperties ) + cnt( pathStartsWithProperties ) + cnt( pathContainsProperties ) + cnt( pathOtherProperties ) + cnt( allProperties );
+        return cnt( pathEqualsToProperties ) + cnt( pathStartsWithLimiterMappings ) + cnt( pathContainsProperties ) + cnt( pathOtherLimiterMapping ) + cnt( allLimiterMappings );
     }
 
     // package friendly for testing
     LinkedHashMap<CompoundKey, InternalLimiterFactory> internalFactoryMapFor( CallerIdSupplierByType callerIdSupplierByType, String servletPath ) {
         return mapFrom( callerIdSupplierByType,
-                        getPathBasedProperties( servletPath ), allProperties );
+                        getPathBasedProperties( servletPath ), allLimiterMappings );
     }
 
     // package friendly for testing
     LimiterMapping getPathBasedProperties( String servletPath ) { // Method shows how the search algorithm works!
         LimiterMapping pathProperties;
         if ( (servletPath == null) || servletPath.isEmpty() ) {
-            pathProperties = pathOtherProperties;
+            pathProperties = pathOtherLimiterMapping;
         } else {
             if ( null == (pathProperties = pathEqualsToProperties.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals
-                if ( null == (pathProperties = pathStartsWithProperties.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
+                if ( null == (pathProperties = pathStartsWithLimiterMappings.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
                     if ( null == (pathProperties = pathContainsProperties.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains
-                        pathProperties = pathOtherProperties; // . . . . . . . . . . . . . . . . . . . 4th - Other
+                        pathProperties = pathOtherLimiterMapping; // . . . . . . . . . . . . . . . . . . . 4th - Other
                     }
                 }
             }
@@ -101,10 +106,10 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     public String toString() {
         StringBuilder sb = new StringBuilder().append( "InternalLimiterFactoriesSupplier:" );
         appendTo( sb, PathMatchType.Equals, pathEqualsToProperties );
-        appendTo( sb, PathMatchType.StartsWith, pathStartsWithProperties );
+        appendTo( sb, PathMatchType.StartsWith, pathStartsWithLimiterMappings );
         appendTo( sb, PathMatchType.Contains, pathContainsProperties );
-        appendTo( sb, PathMatchType.Other, pathOtherProperties );
-        appendTo( sb, PathMatchType.All, allProperties );
+        appendTo( sb, PathMatchType.Other, pathOtherLimiterMapping );
+        appendTo( sb, PathMatchType.All, allLimiterMappings );
         return sb.append( '\n' ).toString();
     }
 
@@ -154,10 +159,10 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
                 }
             }
         }
-        pathStartsWithProperties = new PathFragmentToTypePropertiesMapper( String::startsWith, ptfStartsWiths );
-        pathContainsProperties = new PathFragmentToTypePropertiesMapper( String::contains, ptfContains );
-        this.pathOtherProperties = pathOtherProperties;
-        this.allProperties = allProperties;
+        pathStartsWithLimiterMappings = new PathFragmentToLimiterMappings( String::startsWith, ptfStartsWiths );
+        pathContainsProperties = new PathFragmentToLimiterMappings( String::contains, ptfContains );
+        this.pathOtherLimiterMapping = pathOtherProperties;
+        this.allLimiterMappings = allProperties;
         this.limiterMappings = countLimiterMappings;
     }
 
@@ -169,7 +174,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         }
     }
 
-    private static void appendTo( StringBuilder sb, PathMatchType type, PathFragmentToTypePropertiesMapper mapper ) {
+    private static void appendTo( StringBuilder sb, PathMatchType type, PathFragmentToLimiterMappings mapper ) {
         appendPathMatchType( sb, type, !mapper.isEmpty() );
         mapper.stream().forEach( t -> appendPropertiesWithPath( sb, t.getPathFragment(), t.getProperties() ) );
     }
@@ -213,7 +218,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         return (o == null) ? 0 : 1;
     }
 
-    private static int cnt( PathFragmentToTypePropertiesMapper mapper ) {
+    private static int cnt( PathFragmentToLimiterMappings mapper ) {
         return mapper.count();
     }
 

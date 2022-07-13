@@ -2,7 +2,8 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
 import java.util.LinkedHashMap;
 
-import lombok.NonNull;
+import javax.validation.constraints.NotNull;
+
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
@@ -27,11 +28,14 @@ public interface InternalLimiterFactoriesSupplier {
      */
     LinkedHashMap<CompoundKey, InternalLimiterFactory> factoryMapFor( RequestInfo info );
 
-    @NonNull
+    @NotNull
     default LoggingOption getLoggingOption() {
         return LoggingOption.DEFAULT;
     }
 
+    default boolean isSupplierNOOP() {
+        return true;
+    }
     default String getCallerCredentialsIdSupplierDescription() {
         return "NOOP";
     }

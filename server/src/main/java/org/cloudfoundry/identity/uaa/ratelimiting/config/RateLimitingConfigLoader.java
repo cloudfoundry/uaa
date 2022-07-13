@@ -95,7 +95,7 @@ public class RateLimitingConfigLoader implements Runnable {
             }
         }
         catch ( Exception e ) {
-            updated = current.updateError( e, currentTimeSupplier );
+            updated = current.updateError( e, currentTimeSupplier.now() );
         }
         if ( updated != null ) {
             current = updated;

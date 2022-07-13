@@ -10,6 +10,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 @ToString
 @RequiredArgsConstructor
 public class YamlCredentialIdDefinition {
+    public static final String EMPTY_KEY_FROM_PREFIX = "Empty key from: ";
+
     private final String key;
     private final String postKeyConfig;
 
@@ -30,7 +32,7 @@ public class YamlCredentialIdDefinition {
             key = StringUtils.normalizeToNull( yamlCredentialID.substring( 0, at ) );
             postKeyConfig = StringUtils.normalizeToNull( yamlCredentialID.substring( at + 1 ) );
             if ( key == null ) {
-                throw new RateLimitingConfigException( "Empty key from: " + yamlCredentialID );
+                throw new RateLimitingConfigException( EMPTY_KEY_FROM_PREFIX + yamlCredentialID );
             }
         }
         return new YamlCredentialIdDefinition( key, postKeyConfig );
