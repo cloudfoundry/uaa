@@ -10,10 +10,11 @@ TOC:<p>
 &nbsp; &nbsp;          [Logging Option Definition](#DocLOD)<br>
 &nbsp; &nbsp;          [Credential ID Definition](#DocCID)<br>
 &nbsp; &nbsp; &nbsp;   [JWT *parameters*](#JWTparms)<br>
+&nbsp; &nbsp; &nbsp;   [JWTjsonField *parameters*](#JWTjsonFieldparms)<br>
 &nbsp; &nbsp;          [Request Limit(s) Definition(s)](#DocRLD)<br>
 &nbsp; &nbsp;          [Minimum and Multiple Request Limit Definition(s) rules & information](#RulesAndInfos)<br>
 &nbsp; &nbsp; &nbsp;   [Rule 1: No two *Limiter Map*s can contain an identical *pathSelector*](#Rule-1)<br>
-&nbsp; &nbsp; &nbsp;   [Rule 2: Every path must be covered by an *active* limiter](#Rule-2)<br>
+&nbsp; &nbsp; &nbsp;   [Rule 2: There must be at least one *Limiter Map*](#Rule-2)<br>
 &nbsp; &nbsp; &nbsp;   [Information 1: Selection of Single or Multiple *Limiter Map*(s)](#Information-1)<br>
 &nbsp; &nbsp; &nbsp;   [Information 2: Selection of Single or Multiple *Window Type*(s)](#Information-2)<br>
 &nbsp; &nbsp; &nbsp;   [Information 3: Order of *Window Type* limiter(s) from Multiple *Limiter Map*s](#Information-3)<br>
@@ -24,7 +25,11 @@ TOC:<p>
 
 Rate Limiting is enabled in two ways:
 1. by an environment variable "RateLimiterConfigUrl" (which acts as a source of dynamic configuration updates), that must start with either "http://" or "https://" (from an enablement perspective the rest of the URL does NOT matter).
-2. by a local file "RateLimiterConfig.yml", that must exist in the root of the applications "resource" directory.
+2. by a local file "RateLimiterConfig.yml", that exists in any of the following four 'directories', in checked in the following order:
+   1. Environment variable "CLOUDFOUNDRY_CONFIG_PATH" (Bosh based CFs),
+   2. Environment variable "UAA_CONFIG_PATH" (K8s based CFs),
+   3. Environment variable "RateLimiterConfigDir",
+   4. the root of the applications "resource" directory.
 
 You can see (and use) a URL example with:
 > export&nbsp;RateLimiterConfigUrl=https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml
@@ -46,11 +51,11 @@ contain one more field "dynamicConfigUrl", if present and the value starts with
 ## <a id="FileStruct"></a> Configuration file structure
 
 The file is basically a single Yaml Document (documents are delineated/separated by lines with three dashes "---");
-leading empty documents are ignored
-(note: the behaviour when more than one remaining document exists has not been tested).
+leading empty documents are ignored (a document with comment lines is NOT ignored).
 
-Line comments (lines starting with a Pound Sign "#") are allowed any place (and ignored)
-in the remaining single document.
+Note: the behaviour when more than one remaining document exists has not been tested.
+
+In the final remaining single document, comment lines (lines starting with a Pound Sign "#") are allowed any place (and ignored)!.
 
 <small>[back to TOC](#TOC)</small>
 
@@ -69,18 +74,18 @@ in the remaining single document.
 * withoutCallerID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
 * pathSelectors - (required non-empty) List of String(s) - (see [Path Selector](#pathSelector)) 
 
-#### <a id="RequiredRS"></a> Note - There must be at least ONE Window Type in a Limiter Map!
+#### <a id="RequiredRS"></a> Note - There must be at least ONE [Window Type](#WindowType) in a Limiter Map!
 
 ## <a id="DocLOD"></a> Logging Option Definition
 
-This Document consists of a single field, e.g.:
+The 'loggingOption' field looks like:
 > loggingOption: AllCalls
 
-The 'loggingOption' field has three logging options:
-1. OnlyLimited  (the default) - single line logs, only requests that are limited;
+And has three logging options:
+1. OnlyLimited  (the default) - single line log entries, only requests that are limited;
 lines start with "Rate Limited path" and include the Limiting Compound Key.
-2. AllCalls - single line logs, all requests; lines start with "path" (see [Note](#AllCalls))
-3. AllCallsWithDetails - multi-line logs, all requests; first line starts with
+2. AllCalls - single line log entries, all requests; lines start with "path" (see [Note](#AllCalls))
+3. AllCallsWithDetails - multi-line log entries, all requests; first line starts with
 "********************************** RateLimiter w/ path" (see [Note](#WithDetails))
 
 #### <a id="AllCalls"></a> Note - *AllCalls* includes the duration of the limiter overhead in nanoseconds:
@@ -89,65 +94,92 @@ lines start with "Rate Limited path" and include the Limiting Compound Key.
 
 #### <a id="WithDetails"></a> Note - reading the *AllCallsWithDetails* output should be strait forward:
 - Limited requests include which internal limiter(s) were called and which was the limiting internal limiter.
-- Non-Limited requests include the requests remaining for all the internal limiter(s) -
+- Non-Limited requests include which internal limiter(s) were called AND the requests remaining for each internal limiter -
 after the current request has consumed an entry.
 
 <small>[back to TOC](#TOC)</small>
 
 ## <a id="DocCID"></a> Credential ID Definition
 
-XXX
-
-This Document consists of a single field, e.g.:
+The value of the 'credentialID' field has a number of variations, here is an example that extracts an
+JSON based 'email' field via a 'regex' from the 'Claims' section:
 > credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
 
-All Credential ID Definition consist of a *key* ("JWT" in the above example) and an 
-optional *parameters* section
-(the text after the *key*-*parameters* separating colin ':';
-Note: if there are no *parameters*, the colin is optional).
+Note: since the above regex does not differentiate between a 'root' 'email' field and a nested 'email' field,
+if you want only a 'root' field, it is better to use the 'JWTjsonField' Credential ID Definition version; for
+an 'email' field it looks like:
+> credentialID: 'JWTjsonField:Claims:email'
 
-Currently, only one type of *credentialID* is currently supported,
+All Credential ID Definitions consist of a *key* ("JWT" or "JWTjsonField" in the above examples) and a
+(sometimes optional) *parameters* section
+(the text after the *key*-*parameters* separating colin ':')
+
+Note: if there are no *parameters*, the colin is optional.
+
+Currently, only two types of *credentialID*s are currently supported,
 specifically the "JWT" (shown in the above example).
 
 <small>[back to TOC](#TOC)</small>
 
 ### <a id="JWTparms"></a> JWT *parameters*
 
-The JWT *keyed* Credential ID Definition's (optional) *parameters* are:
-1. JWT section reference.  Sections can be referred to by their
-offset/index (0-2) (see [Note](#JWT-section))
-2. Regex value extractor - example above shows email value extractor
-to extract from the "claims" section (see [Note](#Regex-limits))
+> credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
+
+The "JWT" *keyed*, Credential ID Definition's *parameters* are **optional**; they are:
+1. *section reference* - Sections can be referred by their
+   offset/index (0, 1, or 2) or their names (see [Note](#JWT-section));
+   since the regex is optional, *section reference* can be any of the 3 standard sections!
+2. *Regex value extractor* - example above shows first 'email' value extractor
+   to extract from the "claims" section (see [Note](#Regex-limits))
 
 The plus sign ('+') is the separator between the *section reference* and
 the *Regex value extractor* (if there is no
 *Regex value extractor*, the plus sign separator is not needed).
+
+#### <a id="Regex-limits"></a> Note (when there is a *Regex value extractor*):
+- The referenced section is Base64 decoded before the *regex* is applied
+  (this makes the use of regex on the Signature effectively useless).
+- Both the *Header* and *Payload* sections are JSON Objects (which have
+  variable *white space*), so design your regex appropriately (example uses '\s*').
+- In the (light) validation of the JWT, the section selection/decoding,
+  and *Regex value extractor* processing; ANY error reports that there was not a valid Credential ID!
+
+So, a JWT *keyed* Credential ID Definition can successfully produce three kinds of (string) Credential ID:
+1. Just *key* - the whole JWT token (3/4 sections still Base64 encoded with '.' separators).
+2. *key*:*section* - the referenced, Base64 encoded section.
+3. *key*:*section*+*regex* - whatever the regex extracts from the referenced
+   Base64 decoded section. (implementation supports multiple capture groups and adds
+   vertical bars '|' around and between the capture groups)
+
+<small>[back to TOC](#TOC)</small>
+
+
+### <a id="JWTjsonFieldparms"></a> JWTjsonField *parameters*
+
+> credentialID: 'JWTjsonField:Claims:email'
+
+The "JWTjsonField" *keyed*, Credential ID Definition's *parameters* are **required**; they are:
+1. *section reference* - Sections can be referred by their
+   offset/index (0 or 1) or their names (see [Note](#JWT-section));
+   since the field name is not optional, section can only be the first or second sections!
+2. *Field name value extractor* - example above shows 'root' 'email' field2.
+
+The second colin (:) is the separator between the *section reference* and
+the field name.
+
+<small>[back to TOC](#TOC)</small>
 
 #### <a id="JWT-section"></a> Note: (certain JWTs actually have a 4th section - offset/index actually support 0-9), case-insensitive text forms for 0-2 are:
 0. *Header* or *Headers*
 1. *Payload* or *Claims*
 2. *Signature*
 
-#### <a id="Regex-limits"></a> Note (when there is a *Regex value extractor*):
-- The referenced section is Base64 decoded before the *regex* is applied
-(this makes the use of regex on the Signature effectively useless).
-- Both the *Header* and *Payload* sections are JSON Objects (which have
-variable *white space*), so design your regex appropriately (example uses '\s*').
-- In the (light) validation of the JWT, the section selection/decoding,
-and *Regex value extractor* processing; ANY error reports that there was not a valid Credential ID! 
-
-So, a JWT *keyed* Credential ID Definition can successfully produce three kinds of (string) Credential ID:
-1. Just *key* - the whole JWT token (3/4 sections still Base64 encoded with '.' separators).
-2. *key*:*section* - the referenced, Base64 encoded section.
-3. *key*:*section*+*regex* - whatever the regex extracts from the referenced
-Base64 decoded section. (implementation supports multiple capture groups and adds
-vertical bars '|' around and between the capture groups)
-
 <small>[back to TOC](#TOC)</small>
+XXX
 
-## <a id="DocRLD"></a> Request Limit(s) Definition(s) "Yaml Document"
+## <a id="DocRLD"></a> Request Limit(s) Definition(s) or '*Limiter Map*'
 
-These Document(s) (called a *Limiter Map*) consist of at
+The *Limiter Map*(s) are a YAML array under the *limiterMappings* field; each *Limiter Map* consist of at
 least three (3) and no more than six (6) fields, e.g.:
 > name: info<br>
 > withCallerCredentialsID: 50r/s<br>
@@ -164,17 +196,20 @@ The above example *Limiter Map* can be viewed as three subsections all of which 
 CompoundKey AND for error reporting.
 2. "pathSelectors" - every *Limiter Map* must have a *pathSelectors* field AND at least one
 *pathSelector* (see [Note](#pathSelector)).
-3. *Window Type*(s) - where each has *M* requests per *N* seconds (*M*r/*N*s) with *N* defaulting to 1,
+3. *Window Type*(s) - where each has *Max* requests per *N* seconds (*Max* **r/** *N* **s**) with *N* defaulting to 1,
 and with a maximum of 1800 (30 mins) (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)). 
 
 #### <a id="pathSelector"></a> Note - there are five types of *pathSelector*s (the first three require a path value be indicated after the colon):
 - *equals:*/... (the path, after the colin ':', MUST start with a slash '/').
 - *startsWith:*/... (the path, after the colin ':', MUST start with a slash '/').
 - *contains:*... (the path, after the colin ':', MUST not be empty).
-- *other*  (no path accepted AND is NOT allowed with any other *pathSelectors* in the same *Limiter Map*)
-- *all*  (no path accepted AND is NOT allowed with any other *pathSelectors* in the same *Limiter Map*)
+- *other*
+- *all*
 
-#### <a id="WindowType"></a> Note - there are four types of *Window Type*s (at least one MUST be present and all could be present).
+**Note: Since both the *other* and *all* *pathSelector*s are inherently going to handle multiple paths, the *Limiter Map* with
+either of these *pathSelector*s should not have any other *pathSelector*s -- ONLY either *other* or *all*!**
+
+#### <a id="WindowType"></a> Note 1 - there are four types of *Window Type*s (at least one MUST be present and all could be present).
 They fall into two groups:<p>
 - *global* - this one, if provided, will be active!<br>
 - non-global
@@ -194,14 +229,14 @@ However, if an endpoint MUST have a *Credential ID*, then the combination of the
 *withCallerCredentialsID* and a "**0r/s**" *withoutCallerID* will limit
 (short circuit) all calls without a *Credential ID*! 
 
-#### <a id="RequestsPerWindowSecs"></a> Notes - *Window Type*'s *M* requests per *N* seconds:
-- *M* requests can be zero '0' which means that ALL requests are blocked (in the example: "withoutCallerID: 0r/s").
-- A form of Burst request support can be achieved by increasing both the *M* and *N* proportionally, e.g. you
+#### <a id="RequestsPerWindowSecs"></a> Note 2 - *Window Type*'s *Max* requests per *N* seconds:
+- *Max* requests can be zero '0' which means that ALL requests are blocked (for example: "withoutCallerID: 0r/s").
+- A form of Burst request support can be achieved by increasing both the *Max* and *N* proportionally, e.g. you
 want the calls to an endpoint from the same server to average a max of "5r/s", but are ok with a burst of 15r/s,
 just change the "5r/s" to "15r/3s".
 - Because bursting would probably be limited to a small multiple (e.g. 3), it is hard to understand the value
-of much larger numbers for the *Window Secs*, except possibly to support (future feature) of an exponential
-delay (e.g. like a "tar pit"). 
+of much larger numbers for the *Window Secs*, except possibly to support (a future feature?) of an exponential
+delay (e.g. like a half implementation of the "tar pit" pattern). 
 
 <small>[back to TOC](#TOC)</small>
 
@@ -211,16 +246,14 @@ delay (e.g. like a "tar pit").
 
 ### <a id="Rule-1"></a> Rule 1: No two *Limiter Map*s can contain an identical *pathSelector*
 
-Because the *other* and the *all* must be alone - *Rule 1* means that there can be at most one of each!
+Because the *other* and the *all* are inherently singular - *Rule 1* means that there can be at most one of each!
 
 <small>[back to TOC](#TOC)</small>
 
-### <a id="Rule-2"></a> Rule 2: Every path must be covered by an *active* limiter (e.g. at least one *Window Type* within at least one *Limiter Map*)
+### <a id="Rule-2"></a> Rule 2: There must be at least one *Limiter Map*
 
-To ensure *Rule 2*, either an *other* OR an *all* must exists with a *global* *Window Type*.
-
-Note: if you really don't want any global limit, the *other*'s OR the *all*'s *global* *Window Type*
-can support *Integer.MAX* for the requests per second!
+If you really don't want any limits, but want to capture all calls (using *loggingOption: AllCalls*), the best approach is to add
+a *Limiter Map* with an "equals" path that is impossible to match on (note: equals is the first and fastest group to check)!
 
 <small>[back to TOC](#TOC)</small>
 
@@ -230,7 +263,8 @@ As mentioned [above](#pathSelector) there are five types of *pathSelector*s whic
 - *all*
 - non-all (path based)
 
-As both the *all* and the non-all *Limiter Map*(s) are checked, there could be **One** OR **Two** *Limiter Map*s selected:
+As both the *all* and the non-all *Limiter Map*(s) are checked, there will likely be **One** OR **Two** *Limiter Map*(s)
+selected (note: there could be ZERO -- see [Rule 2 above](#Rule-2)):
 1. from *all* (selected if there is one in the Configuration file)
 2. from non-all.
 
@@ -239,9 +273,6 @@ The "non-all" *Limiter Map* selection is the first match found in following orde
 2. *startsWith* (uses an ordered list to find the longest matching path, linear search).
 3. *contains*   (uses an ordered list to find the longest matching path, linear search).
 4. *other*      (obviously if there is no *other*, and none of the above matched, then there will be no "non-all")
-
-Remember that [Rule 2](#Rule-2) says that there will exist an *all* and/or *other* with a *global* *Window Type*,
-which means that there will always be at least one *Limiter Map* selected.
 
 <small>[back to TOC](#TOC)</small>
 
@@ -258,7 +289,7 @@ Note: The combination of a *Limiter Map* and a *Window Type* (and the caller gro
 Note: There is a Special Scenario - where no limiting occurs,
 because all *Limiter Map*(s) were ignored -- it is predicated on not having a *global* in an *all*!
 
-The result is (ignoring the Special Scenario) where there will be between 1 and 4
+Ignoring the Special Scenario, the result is, there will be between 1 and 4
 *Limiter Map* & *Window Type* combinations (or *InternalLimiter*s)!
 
 <small>[back to TOC](#TOC)</small>
@@ -272,10 +303,10 @@ are added for processing (mutual-exclusion locking) in the following order:
 3. *global* from the "non-all" if exists
 4. *global* from the *all* if exists
 
-The reason for the order is twofold:
+The reason for the order is two-fold:
 1. Since the processing of the *InternalLimiter*(s) stops as soon as one indicates that it is limiting,
 and it was assumed that the "non-global" and/or the "non-all" would have lower limits,
-they should be checked and limit sooner!
+they should be checked and (possibly) limit sooner!
 2. While "non-global" and/or the "non-all" would probably have lower limits,
 they would also individually participate less frequently in each request;
 as such they are expected to have the least mutual-exclusion contention

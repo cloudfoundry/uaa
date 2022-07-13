@@ -36,6 +36,7 @@ public interface InternalLimiterFactoriesSupplier {
     default boolean isSupplierNOOP() {
         return true;
     }
+
     default String getCallerCredentialsIdSupplierDescription() {
         return "NOOP";
     }

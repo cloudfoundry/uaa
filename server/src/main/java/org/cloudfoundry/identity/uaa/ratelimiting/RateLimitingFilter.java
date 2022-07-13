@@ -73,9 +73,10 @@ public class RateLimitingFilter extends HttpFilter {
         if ( !RateLimiter.STATUS_PATH.equals( request.getServletPath() ) ) {
             filterer.doFilter( request, response, filterChain );
         } else {
+            response.setStatus( 200 );
             PrintWriter writer = response.getWriter();
             writer.print( filterer.status() );
-            response.setStatus( 200 );
+            writer.close();
         }
     }
 

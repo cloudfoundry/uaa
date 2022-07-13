@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -67,10 +66,10 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
                                  "      /F-35C -> N1:Global @ 2r/s",
                                  "      /F-35I -> N1:Global @ 2r/s",
                                  "   StartsWith:",
-                                 "      /F-35 -> N2:",
+                                 "      /F-22 -> N2:",
                                  "         NoID @ 1r/5s",
                                  "         Global @ 4r/2s",
-                                 "      /F-22 -> N2:",
+                                 "      /F-35 -> N2:",
                                  "         NoID @ 1r/5s",
                                  "         Global @ 4r/2s",
                                  "   All:",
@@ -153,10 +152,5 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
             sb.append( '\n' ).append( line );
         }
         assertEquals( sb.toString(), lfsString );
-    }
-
-    private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<LimiterMapping> limiterMappings ) {
-        expectException( expectedMessageOrPrefix, expectedExceptionCauseClass,
-                         () -> new InternalLimiterFactoriesSupplierImpl( null, null, limiterMappings ) );
     }
 }

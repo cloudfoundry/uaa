@@ -81,7 +81,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
             if ( null == (pathLimiterMappings = pathEqualsToLimiterMappings.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals
                 if ( null == (pathLimiterMappings = pathStartsWithLimiterMappings.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
                     if ( null == (pathLimiterMappings = pathContainsLimiterMappings.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains
-                        pathLimiterMappings = pathOtherLimiterMapping; // . . . . . . . . . . . . . . . . . . . 4th - Other
+                        pathLimiterMappings = pathOtherLimiterMapping; //  . . . . . . . . . . . . . . . . . . . 4th - Other
                     }
                 }
             }

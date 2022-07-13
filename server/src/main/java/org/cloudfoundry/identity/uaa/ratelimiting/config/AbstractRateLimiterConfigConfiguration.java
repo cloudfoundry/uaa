@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.FileLoader;
@@ -48,7 +49,11 @@ public abstract class AbstractRateLimiterConfigConfiguration {
 
         RateLimitingConfigMapper configMapper = new RateLimitingConfigMapperImpl( updatingEnabled, credentialIdTypes );
         if ( localConfigDTO != null ) {
+            RateLimiterStatus status = configurationWithStatus.getStatus();
             String source = "Local Config File";
+            if ((status != null) && (status.getFromSource() != null) ) {
+                source = status.getFromSource();
+            }
             logger.logFetchingFrom( source );
             configurationWithStatus = configMapper.map( configurationWithStatus, source, localConfigDTO );
             limiterManager.update( configurationWithStatus );

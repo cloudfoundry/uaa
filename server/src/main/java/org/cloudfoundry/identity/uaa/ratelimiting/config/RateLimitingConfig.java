@@ -20,9 +20,5 @@ public interface RateLimitingConfig {
         void logFetchingFrom( String source );
 
         void logUpdate( String msg );
-
-        default void logUpdate( int newFactoryCount ) {
-            logUpdate( "RateLimitingConfig updated; new Factory count: " + newFactoryCount );
-        }
     }
 }

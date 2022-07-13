@@ -51,10 +51,6 @@ public class LimiterMapping {
         return this.name;
     }
 
-    public boolean hasGlobal() {
-        return global != null;
-    }
-
     public RequestsPerWindowSecs withCallerCredentialsID() {
         return this.withCallerCredentialsID;
     }

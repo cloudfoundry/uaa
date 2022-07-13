@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
-import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.junit.jupiter.api.Test;
@@ -19,6 +18,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class LimiterManagerImplTest {
 
@@ -47,6 +47,25 @@ class LimiterManagerImplTest {
         check( "NFFFLLLLNFFFLLLLNFFFLLLLNFFLLLLL", "F2", "K1" );
         check( "NFFFLLLLNFFFLLLLNFFFLLLLNFFLLLLL", "F2", "K2" );
         check( "NFFFFFFFLLLLLLLLNFFFFFFFLLLLLLLL", "F3", WindowType.GLOBAL.cannedCallerID() );
+    }
+
+    static final String[] INITIAL_STATUS = {
+            "{",
+            "  'current' : {",
+            "    'status' : 'DISABLED',",
+            "    'asOf' : '2000-01-01T00:00:00Z'",
+            "  },",
+            "  'update' : {",
+            "    'status' : 'DISABLED'",
+            "  }",
+            "}"
+    };
+
+    @Test
+    void testInitialState() {
+        servletPath = "/info";
+        assertFalse( lm.getLimiter( requestInfo ).shouldLimit() );
+        assertEquals( String.join( "\n", INITIAL_STATUS ).replace( '\'', '"' ), lm.rateLimitingStatus() );
     }
 
     @Test
@@ -107,7 +126,7 @@ class LimiterManagerImplTest {
     Map<CompoundKey, InternalLimiter> instanceTracking = new LinkedHashMap<>();
 
     private void record( List<InternalLimiter> iLimiters ) {
-        boolean limit = LimiterImpl.from( iLimiters, LoggingOption.DEFAULT ).shouldLimit();
+        boolean limit = lm.createLimiter( iLimiters, LoggingOption.DEFAULT ).shouldLimit();
         for ( InternalLimiter currentLimiter : iLimiters ) {
             CompoundKey compoundKey = currentLimiter.getCompoundKey();
             String resultsKey = resultsKey( compoundKey );
