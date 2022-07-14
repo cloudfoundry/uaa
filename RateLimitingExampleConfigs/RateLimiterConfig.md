@@ -18,25 +18,26 @@ TOC:<p>
 &nbsp; &nbsp; &nbsp;   [Information 1: Selection of Single or Multiple *Limiter Map*(s)](#Information-1)<br>
 &nbsp; &nbsp; &nbsp;   [Information 2: Selection of Single or Multiple *Window Type*(s)](#Information-2)<br>
 &nbsp; &nbsp; &nbsp;   [Information 3: Order of *Window Type* limiter(s) from Multiple *Limiter Map*s](#Information-3)<br>
+&nbsp; &nbsp; &nbsp;   [Information 4: Order of *Caller IP* extraction](#Information-4)<br>
 
 <br>
                                               
 ## <a id="Enablement"></a> Enablement
 
 Rate Limiting is enabled in two ways:
-1. by an environment variable "RateLimiterConfigUrl" (which acts as a source of dynamic configuration updates), that must start with either "http://" or "https://" (from an enablement perspective the rest of the URL does NOT matter).
-2. by a local file "RateLimiterConfig.yml", that exists in any of the following four 'directories', in checked in the following order:
+1. By an environment variable "RateLimiterConfigUrl" (which acts as a source of dynamic configuration updates), that must start with either "http://" or "https://" (from an enablement perspective the rest of the URL does NOT matter).
+2. By a local file "RateLimiterConfig.yml", that exists in any of the following four 'directories', checked in the following order:
    1. Environment variable "CLOUDFOUNDRY_CONFIG_PATH" (Bosh based CFs),
    2. Environment variable "UAA_CONFIG_PATH" (K8s based CFs),
    3. Environment variable "RateLimiterConfigDir",
-   4. the root of the applications "resource" directory.
+   4. The root of the applications "resource" directory.
 
 You can see (and use) a URL example with:
 > export&nbsp;RateLimiterConfigUrl=https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml
 
 Obviously the local file "RateLimiterConfig.yml", is read once on startup, and assuming there are no errors, will become the initial (and default) limits.
 If there is an error interpreting the local file "RateLimiterConfig.yml", the error is logged (and available at the "RateLimitingStatus" endpoint), and
-Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is activated, but with no initial (and default) limits!
+Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is activated, but with no initial (or default) limits!
 
 There is one difference between the local file "RateLimiterConfig.yml" and the environment
 variable "RateLimiterConfigUrl" based file; the local file "RateLimiterConfig.yml" can 
@@ -59,11 +60,11 @@ In the final remaining single document, comment lines (lines starting with a Pou
 
 <small>[back to TOC](#TOC)</small>
 
-## <a id="DocCommonFields"></a> Common Fields (from both the local file and the URL)
+## <a id="DocCommonFields"></a> Common Fields (from both the local file and the URL sourced file)
 
 * loggingOption - (optional) String (see [Details](#DocLOD))
 * credentialID - (optional) String (see [Details](#DocCID))
-* limiterMappings - List of [LimiterMap(s)](#DocLimiterMapFields)(s)
+* limiterMappings - List of [LimiterMap(s)](#DocLimiterMapFields)
 
 ## <a id="DocLimiterMapFields"></a> LimiterMap Fields
 
@@ -101,7 +102,7 @@ after the current request has consumed an entry.
 
 ## <a id="DocCID"></a> Credential ID Definition
 
-The value of the 'credentialID' field has a number of variations, here is an example that extracts an
+The value of the 'credentialID' field has a number of variations, here is an example that extracts a
 JSON based 'email' field via a 'regex' from the 'Claims' section:
 > credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
 
@@ -117,7 +118,7 @@ All Credential ID Definitions consist of a *key* ("JWT" or "JWTjsonField" in the
 Note: if there are no *parameters*, the colin is optional.
 
 Currently, only two types of *credentialID*s are currently supported,
-specifically the "JWT" (shown in the above example).
+specifically the "JWT" and the "JWTjsonField" (shown in the above examples).
 
 <small>[back to TOC](#TOC)</small>
 
@@ -126,7 +127,7 @@ specifically the "JWT" (shown in the above example).
 > credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
 
 The "JWT" *keyed*, Credential ID Definition's *parameters* are **optional**; they are:
-1. *section reference* - Sections can be referred by their
+1. *section reference* - Sections can be referenced by their
    offset/index (0, 1, or 2) or their names (see [Note](#JWT-section));
    since the regex is optional, *section reference* can be any of the 3 standard sections!
 2. *Regex value extractor* - example above shows first 'email' value extractor
@@ -159,7 +160,7 @@ So, a JWT *keyed* Credential ID Definition can successfully produce three kinds 
 > credentialID: 'JWTjsonField:Claims:email'
 
 The "JWTjsonField" *keyed*, Credential ID Definition's *parameters* are **required**; they are:
-1. *section reference* - Sections can be referred by their
+1. *section reference* - Sections can be referenced by their
    offset/index (0 or 1) or their names (see [Note](#JWT-section));
    since the field name is not optional, section can only be the first or second sections!
 2. *Field name value extractor* - example above shows 'root' 'email' field2.
@@ -169,13 +170,12 @@ the field name.
 
 <small>[back to TOC](#TOC)</small>
 
-#### <a id="JWT-section"></a> Note: (certain JWTs actually have a 4th section - offset/index actually support 0-9), case-insensitive text forms for 0-2 are:
+#### <a id="JWT-section"></a> Note: (certain JWTs actually have a 4th section - these are unselectable), case-insensitive text forms for 0-2 are:
 0. *Header* or *Headers*
 1. *Payload* or *Claims*
 2. *Signature*
 
 <small>[back to TOC](#TOC)</small>
-XXX
 
 ## <a id="DocRLD"></a> Request Limit(s) Definition(s) or '*Limiter Map*'
 
@@ -197,7 +197,7 @@ CompoundKey AND for error reporting.
 2. "pathSelectors" - every *Limiter Map* must have a *pathSelectors* field AND at least one
 *pathSelector* (see [Note](#pathSelector)).
 3. *Window Type*(s) - where each has *Max* requests per *N* seconds (*Max* **r/** *N* **s**) with *N* defaulting to 1,
-and with a maximum of 1800 (30 mins) (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)). 
+and with a maximum of 1800 (30 mins).  A *Window Type* is effectively equivalent to an *InternalLimiter*. (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)). 
 
 #### <a id="pathSelector"></a> Note - there are five types of *pathSelector*s (the first three require a path value be indicated after the colon):
 - *equals:*/... (the path, after the colin ':', MUST start with a slash '/').
@@ -211,14 +211,14 @@ either of these *pathSelector*s should not have any other *pathSelector*s -- ONL
 
 #### <a id="WindowType"></a> Note 1 - there are four types of *Window Type*s (at least one MUST be present and all could be present).
 They fall into two groups:<p>
-- *global* - this one, if provided, will be active!<br>
+- *global* - this one, if provided, will be active!  And, since *global* limiters ignore all caller identification, these limiters receive many more calls, and hence cause more mutual-exclusion (lock) contention.<br>
 - non-global
 
 non-global *Window Type*s are checked in the following order and first active STOPs the checking:
 1. *withCallerCredentialsID* - this one, if provided, will be active,
-IFF *Credential ID Definition* exists AND it can successfully extract the *Credential ID*
+IFF *Credential ID Definition* exists AND it can successfully extract the caller's *Credential ID*
 2. *withCallerRemoteAddressID* - this one, if provided, will be active,
-IFF a caller IP address can be found (developer has never seen this not exist)!
+IFF the caller's IP address can be extracted (developer has never seen this not exist -- see [note](#Information-4))!
 3. *withoutCallerID* - this one, if provided, will be active,
 IFF the other two options were not active!
 
@@ -241,8 +241,6 @@ delay (e.g. like a half implementation of the "tar pit" pattern).
 <small>[back to TOC](#TOC)</small>
 
 ## <a id="RulesAndInfos"></a> Minimum and Multiple Request Limit Definition(s) rules & information
-
-<small>[back to TOC](#TOC)</small>
 
 ### <a id="Rule-1"></a> Rule 1: No two *Limiter Map*s can contain an identical *pathSelector*
 
@@ -287,7 +285,7 @@ Note: The combination of a *Limiter Map* and a *Window Type* (and the caller gro
 *CompoundKey* and the parts are carried and processed as an *InternalLimiter*.
 
 Note: There is a Special Scenario - where no limiting occurs,
-because all *Limiter Map*(s) were ignored -- it is predicated on not having a *global* in an *all*!
+because all *Limiter Map*(s) were ignored -- it is predicated on not having a *Limiter Map* with a **global** *Window Type* and a **all** *pathSelector*!
 
 Ignoring the Special Scenario, the result is, there will be between 1 and 4
 *Limiter Map* & *Window Type* combinations (or *InternalLimiter*s)!
@@ -309,9 +307,19 @@ and it was assumed that the "non-global" and/or the "non-all" would have lower l
 they should be checked and (possibly) limit sooner!
 2. While "non-global" and/or the "non-all" would probably have lower limits,
 they would also individually participate less frequently in each request;
-as such they are expected to have the least mutual-exclusion contention
+as such they are expected to have the least mutual-exclusion (lock) contention
 (waiting for lock freeing) so they should be checked first
 and holding the lock a bit longer is not as detrimental as
 holding the lock longer on the others, especially *all*'s *global*!
+
+<small>[back to TOC](#TOC)</small>
+
+### <a id="Information-4"></a> Information 4: Order of *Caller IP* extraction
+
+The caller IP address is extracted from **HttpServletRequest** by checking the following headers and fields of the **HttpServletRequest** in the following order:
+1. Header: "X-Client-IP" (whole value)
+2. Header: "X-Real-IP" (whole value)
+3. Header: "X-Forwarded-For" (first value of comma separated IP addresses)
+4. Method: getRemoteAddr()
 
 <small>[back to TOC](#TOC)</small>
