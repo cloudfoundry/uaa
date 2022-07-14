@@ -351,7 +351,6 @@
     <import resource="spring/codestore-endpoints.xml" />
     <import resource="spring/authentication.xml" />
     <import resource="spring/identity-zones.xml" />
-    <import resource="spring/dynamic-log-conf.xml"/>
     <import resource="spring/nurego-conf.xml"/>
     <import resource="spring/nurego-noop-conf.xml"/>
 
