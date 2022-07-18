@@ -22,6 +22,8 @@ pipeline {
         booleanParam(name: 'PUSH_TO_BUILD_GE', defaultValue: false, description: 'Publish to build artifactory')
         string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
                         description: 'uaa-cf-release repo branch to use for testing/deployment')
+        booleanParam(name: 'TRIGGER_GESOS_IMAGE_BUILD', defaultValue: false,
+                                description: 'If enabled, triggers a GE SOS image build (needs corresponding branch in iam-container-config repo)')
     }
     stages {
         stage('Build and run Tests') {
@@ -442,6 +444,23 @@ pipeline {
     post {
         success {
             echo 'UAA pipeline was successful. Sending notification!'
+
+            // Trigger GE SOS build job for uaa image build
+            script {
+                if (params.TRIGGER_GESOS_IMAGE_BUILD && (BRANCH_NAME.matches('rc_*') || BRANCH_NAME.matches('release_*'))) {
+                    imageTag = BRANCH_NAME
+                    if (imageTag.matches('release_*')) {
+                        imageTag = imageTag.replaceAll('release_', '')
+                    }
+            	    build job: JOB_NAME.replaceAll('/Build n Test/', '/GE SOS Build/'),
+                    propagate: false,
+                    wait: false,
+                    parameters: [
+                        string(name: 'IAM_CONTAINER_CONFIG_BRANCH_NAME', value: BRANCH_NAME),
+                        string(name: 'IMAGE_TAG', value: imageTag)
+                    ]
+            	}
+            }
         }
         failure {
             echo "UAA pipeline failed. Sending notification!"

@@ -1,0 +1,151 @@
+#!/usr/bin/env groovy
+
+def repoStatusReportUrl
+def gitCommitStatusContext = 'GE SOS Image Build'
+
+pipeline {
+    agent {
+        docker {
+            image 'openjdk:8'
+            label 'dind'
+        }
+    }
+    parameters {
+        string(
+            name: 'IAM_CONTAINER_CONFIG_BRANCH_NAME',
+            defaultValue: BRANCH_NAME,
+            description: 'iam-container-config repo branch name to use for GE SOS image build'
+        )
+        string(
+            name: 'IMAGE_TAG',
+            defaultValue: 'BUILD_TAG_FROM_BRANCH_NAME',
+            description: 'Tag for docker image to push to ECR'
+        )
+    }
+    environment {
+        GESOS_API_KEY = credentials('GESOS_API_KEY')
+        GITHUB_CREDENTIALS = credentials('gesoftware-cf-uaa-creds')
+    }
+    stages {
+        stage('Github status configuration') {
+            steps {
+                script {
+                    commitSha = sh(script: "git rev-parse HEAD", returnStdout: true).trim()
+                    repoStatusReportUrl = sh(script: 'git config --get remote.origin.url', returnStdout: true).trim()
+                                                                                                              .replaceFirst('^https://([^/]+)/([^.]+)(\\.git)?$',
+                                                                                                                            'https://api.$1/repos/$2/statuses/' + commitSha)
+                }
+            }
+        }
+        stage('Trigger GE SOS build pipeline') {
+            steps {
+                script {
+                    setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'in progress', 'pending')
+                    imageTag = params.IMAGE_TAG
+                    if (imageTag == 'BUILD_TAG_FROM_BRANCH_NAME') {
+                        imageTag = BRANCH_NAME.replaceAll('_', '.')
+                    }
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} (IAM Container Config Branch Name: ${params.IAM_CONTAINER_CONFIG_BRANCH_NAME}, Image Tag: ${imageTag})"
+                    result = sh(
+                        script: """
+                                    curl -sSL -X POST -H 'x-api-key: ${GESOS_API_KEY}' \\
+                                        --data-raw '{ "container_os": "DEBIAN-BULLSEYE", \
+                                                      "github_org": "predix", \
+                                                      "github_repo": "iam-container-config", \
+                                                      "github_branch": "${params.IAM_CONTAINER_CONFIG_BRANCH_NAME}", \
+                                                      "docker_folder": "./uaa", \
+                                                      "pre_build_script":"pre-build.sh", \
+                                                      "image_name": "iam-uaa", \
+                                                      "contact_emails": "${API_BUILD_STATUS_EMAIL_RECIPIENTS}", \
+                                                      "releaseTag1": "${imageTag}", \
+                                                      "release": "True" \
+                                                    }' \\
+                                        '${GESOS_BUILD_REQUEST_URL}'
+                                """,
+                        returnStdout: true
+                    ).trim().replaceAll("\"", "")
+
+                    // Example request ID: 4e327e72c853402183b74ed79972b707
+                    if (!(result ==~ /[0-9a-fA-F]{32}/)) {
+                        error("Build request failure: ${result}")
+                    }
+                    echo "GE SOS build request ID: ${result}"
+
+                    // Sleep for 5 minutes to reduce number of status queries
+                    sleep(300)
+                    // Install jq for parsing JSON response
+                    sh("apt update; apt-get install -qq jq")
+                    retryCount = 0
+                    // Check status of GE SOS build request for up to 10 minutes
+                    while (retryCount < 60) {
+                        reqInfo = sh(
+                            script: """
+                                        curl -sSL -H 'x-api-key: ${GESOS_API_KEY}' ${GESOS_BUILD_REQUEST_URL}?id=${result}
+                                    """,
+                            returnStdout: true
+                        ).trim()
+                        /* Example response for GET request above (snipped):
+                            [
+                                {
+                                    <...snip...>
+                                    "status": "Created",
+                                    <...snip...>
+                                }
+                            ]
+                         */
+                        status = sh(script: "echo '${reqInfo}' | jq -r .[0].status", returnStdout: true).trim()
+                        if (status == 'Success') {
+                            echo "GE SOS build successful"
+                            return
+                        } else if (status == 'Failed') {
+                            error("GE SOS build failed")
+                        }
+                        sleep(10)
+                        retryCount++
+                        echo("Retrying " + retryCount + "/60")
+                    }
+                    error("GE SOS build exceeded time limit")
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'completed successfully', 'success')
+        }
+        failure {
+            setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'failed', 'failure')
+        }
+        aborted {
+            setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'aborted', 'failure')
+        }
+        unstable {
+            setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'completed with errors', 'error')
+        }
+        changed {
+            emailext subject: "${gitCommitStatusContext} ${currentBuild.currentResult}: ${JOB_NAME}",
+                     body: """
+                             <p>See <a href="${env.RUN_DISPLAY_URL}">${JOB_NAME} [${BUILD_DISPLAY_NAME}]</a> for details.</p>
+                         """.trim(),
+                     to: API_BUILD_STATUS_EMAIL_RECIPIENTS
+        }
+        cleanup {
+            deleteDir()
+        }
+    }
+}
+
+private void setBuildStatus(repoStatusReportUrl, context, description, state) {
+    result = sh(
+        script: """
+            curl -sSL \\
+                 -X POST \\
+                 -H 'Authorization: token ${GITHUB_CREDENTIALS_PSW}' \\
+                 -d '{ "state": "${state}", "target_url": "${env.RUN_DISPLAY_URL}", "description": "${description}", "context": "${context}" }' \\
+                 '${repoStatusReportUrl}'
+        """,
+        returnStdout: true
+    ).trim()
+    echo "Result of status change: ${result}"
+}
