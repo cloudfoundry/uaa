@@ -84,7 +84,8 @@ class JdbcUaaUserDatabaseTests {
                 timeService,
                 false,
                 mockIdentityZoneManager,
-                databaseUrlModifier);
+                databaseUrlModifier,
+                dbUtils);
 
         // TODO: Don't need these checks
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", JOE_ID);
@@ -193,8 +194,7 @@ class JdbcUaaUserDatabaseTests {
     void is_the_right_query_used() {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager,
-                databaseUrlModifier);
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager, dbUtils);
+                databaseUrlModifier, dbUtils);
 
         String username = new RandomValueStringGenerator().generate() + "@test.org";
 
@@ -204,9 +204,8 @@ class JdbcUaaUserDatabaseTests {
         verify(mockJdbcTemplate).query(eq(DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
 
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager,
-                databaseUrlModifier);
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager, dbUtils);
-
+                databaseUrlModifier, dbUtils)
+        ;
         jdbcUaaUserDatabase.retrieveUserByName(username, OriginKeys.UAA);
         verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
         jdbcUaaUserDatabase.retrieveUserByEmail(username, OriginKeys.UAA);
@@ -219,7 +218,7 @@ class JdbcUaaUserDatabaseTests {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
                 jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, caseInsensitive, mockIdentityZoneManager,
-                        databaseUrlModifier);
+                        databaseUrlModifier, dbUtils);
                 UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("JOE", OriginKeys.UAA);
                 validateJoe(joe);
                 joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
@@ -275,7 +274,7 @@ class JdbcUaaUserDatabaseTests {
         addAuthority("anotherOne", jdbcTemplate, "zone-the-first", JOE_ID);
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, false, mockIdentityZoneManager,
-                databaseUrlModifier);
+                databaseUrlModifier, dbUtils);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         verify(spiedJdbcTemplate, times(2)).queryForList(anyString(), ArgumentMatchers.<String>any());
         assertTrue(joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")),

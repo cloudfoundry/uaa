@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
-import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -47,8 +47,8 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final JdbcTemplate jdbcTemplate;
     private final boolean caseInsensitive;
     private final IdentityZoneManager identityZoneManager;
-    private final DbUtils dbUtils;
     private final DatabaseUrlModifier databaseUrlModifier;
+    private final DbUtils dbUtils;
 
     @Value("${database.maxParameters:-1}")
     private int maxSqlParameters;
@@ -72,8 +72,8 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
-        this.dbUtils = dbUtils;
         this.databaseUrlModifier = databaseUrlModifier;
+        this.dbUtils = dbUtils;
     }
 
     public int getMaxSqlParameters() {
@@ -267,7 +267,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             getAuthorities(authorities, newMemberIdList);
         }
 
-        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) {
+        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) throws SQLException {
             Vendor dbVendor = databaseUrlModifier.getDatabaseType();
             if (Vendor.postgresql.equals(dbVendor)) {
                 return executeAuthoritiesQueryPostgresql(memberList);
@@ -278,10 +278,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             }
         }
 
-        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) {
+        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) throws SQLException {
             List<Map<String,Object>> results = new ArrayList<>();
             while (!memberList.isEmpty()) {
-                StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
+                StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
+                        .append(dbUtils.getQuotedIdentifier("groups", jdbcTemplate))
+                        .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
                 int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
                 for (int i = 0; i < size - 1; i++) {
                     dynamicAuthoritiesQuery.append("?,");

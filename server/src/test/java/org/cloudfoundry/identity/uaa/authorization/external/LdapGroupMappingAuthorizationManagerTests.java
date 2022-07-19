@@ -21,6 +21,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -58,7 +59,7 @@ class LdapGroupMappingAuthorizationManagerTests {
     void initLdapGroupMappingAuthorizationManagerTests(
             @Autowired JdbcTemplate jdbcTemplate,
             @Autowired LimitSqlAdapter limitSqlAdapter
-    ) {
+    ) throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         DbUtils dbUtils = new DbUtils();
