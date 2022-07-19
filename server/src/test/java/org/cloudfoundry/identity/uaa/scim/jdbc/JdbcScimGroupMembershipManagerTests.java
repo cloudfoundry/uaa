@@ -634,7 +634,7 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
-    void testGroupsWithMemberAndMaxSqlParameter() {
+    void testGroupsWithMemberAndMaxSqlParameter() throws SQLException {
         int oldValue = jdbcScimGroupMembershipManager.getMaxSqlParameters();
         for (int l: List.of(-1, 10)) {
             jdbcScimGroupMembershipManager.setMaxSqlParameters(l);
