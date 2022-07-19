@@ -235,7 +235,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return new UaaUser(prototype.withAuthorities(authorities));
         }
 
-        private String getAuthorities(final String userId) {
+        private String getAuthorities(final String userId) throws SQLException {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Collections.singletonList(userId));
             authorities.addAll(identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().getDefaultGroups());
