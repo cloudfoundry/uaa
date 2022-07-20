@@ -115,7 +115,7 @@ libraries.zxing = "com.google.zxing:javase:3.5.0"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:8.23"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:3.0.0"
 libraries.orgJson = "org.json:json:20220320"
-libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.4.0.0"
+libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.0.0"
 
 // gradle plugins
 libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.3.1"
