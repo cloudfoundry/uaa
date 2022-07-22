@@ -76,7 +76,7 @@ pipeline {
                     // Install jq for parsing JSON response
                     sh("apt update; apt-get install -qq jq")
                     retryCount = 0
-                    // Check status of GE SOS build request for up to 10 minutes
+                    // Check status of GE SOS build request for up to 20 minutes
                     while (retryCount < 60) {
                         reqInfo = sh(
                             script: """
@@ -100,7 +100,7 @@ pipeline {
                         } else if (status == 'Failed') {
                             error("GE SOS build failed")
                         }
-                        sleep(10)
+                        sleep(20)
                         retryCount++
                         echo("Retrying " + retryCount + "/60")
                     }
