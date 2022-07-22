@@ -120,7 +120,7 @@
     "mime-db": "^1.22.0",
     "mime-types": "^2.1.10",
     "minimatch": "^3.0.0",
-    "minimist": "^1.2.0",
+    "minimist": "^1.2.6",
     "mkdirp": "^0.5.1",
     "ms": "^0.7.1",
     "multipipe": "^0.3.0",
