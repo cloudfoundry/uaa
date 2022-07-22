@@ -49,7 +49,8 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
                 " (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)";
         Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
 
-        List<String> groups = jdbcTemplate.queryForList("SELECT displayName FROM " + quotedGroupsIdentifier + " WHERE identity_zone_id = 'uaa'", String.class);
+        String selectQuery = String.format("SELECT displayName FROM %s WHERE identity_zone_id = 'uaa'",  quotedGroupsIdentifier);
+        List<String> groups = jdbcTemplate.queryForList(selectQuery, String.class);
         for (String zoneId : zones) {
             Map<String, String> groupNameToGroupId = new HashMap<>();
             zoneIdToGroupNameToGroupId.put(zoneId, groupNameToGroupId);
