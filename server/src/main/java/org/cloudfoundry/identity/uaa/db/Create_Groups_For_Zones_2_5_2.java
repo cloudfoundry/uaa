@@ -45,8 +45,7 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
         //duplicate all existing groups across zones
         List<String> zones = jdbcTemplate.queryForList("SELECT id FROM identity_zone WHERE id <> 'uaa'", String.class);
 
-        String groupCreateSQL = "INSERT INTO " + quotedGroupsIdentifier +
-                " (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)";
+        String groupCreateSQL = String.format("INSERT INTO %s (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)", quotedGroupsIdentifier);
         Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
 
         String selectQuery = String.format("SELECT displayName FROM %s WHERE identity_zone_id = 'uaa'",  quotedGroupsIdentifier);
@@ -72,8 +71,8 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
             }
         }
         //convert all user memberships from other zones
-        String userSQL = "SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, " +
-                quotedGroupsIdentifier + " g, users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'";
+        String userSQL = String.format("SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, %s g, "
+            + "users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'", quotedGroupsIdentifier);
         List<Map<String,Object>> userMembers = jdbcTemplate.queryForList(userSQL);
         for (Map<String, Object> userRow : userMembers) {
             String zoneId = (String) userRow.get("identity_zone_id");

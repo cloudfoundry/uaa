@@ -52,6 +52,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     private final String getGroupByNameSql;
     private final String queryForFilter;
     private final String deleteGroupSql;
+    private final String deleteGroupSqlByIdZoneVersion;
     private final String deleteGroupByZone;
     private final String deleteGroupMembershipByZone;
     private final String deleteExternalGroupByZone;
@@ -98,6 +99,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                 "delete from %s where id=? and identity_zone_id=?",
                 quotedGroupsTableName
         );
+
+        deleteGroupSqlByIdZoneVersion = String.format(
+            "delete from %s where id=? and identity_zone_id=? and version=?",
+            quotedGroupsTableName
+        );
+
         deleteGroupByZone = String.format(
                 "delete from %s where identity_zone_id=?",
                 quotedGroupsTableName
@@ -271,7 +278,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         jdbcScimGroupExternalMembershipManager.unmapAll(id, zoneId);
         int deleted;
         if (version > 0) {
-            deleted = jdbcTemplate.update(deleteGroupSql + " and version=?;", id, zoneId, version);
+            deleted = jdbcTemplate.update(deleteGroupSqlByIdZoneVersion, id, zoneId, version);
         } else {
             deleted = jdbcTemplate.update(deleteGroupSql, id, zoneId);
         }

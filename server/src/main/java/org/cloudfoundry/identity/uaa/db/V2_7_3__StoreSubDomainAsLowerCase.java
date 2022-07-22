@@ -83,8 +83,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
     }
 
     private IdentityZone updateIdentityZone(IdentityZone identityZone, JdbcTemplate jdbcTemplate) {
-        String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description".replace(",","=?,")+"=?";
-        String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set " + ID_ZONE_UPDATE_FIELDS + " where id=?";
+        String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set version=?,lastmodified=?,name=?,subdomain=?,description=? where id=?";
 
         try {
             jdbcTemplate.update(UPDATE_IDENTITY_ZONE_SQL, new PreparedStatementSetter() {
