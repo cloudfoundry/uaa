@@ -57,7 +57,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
         for (String s : duplicates) {
             logger.debug("Processing zone duplicates for subdomain:" + s);
             List<IdentityZone> dupZones = zones.get(s);
-            for (int i=1; dupZones.size()>1 && i<dupZones.size(); i++) {
+            for (int i=1; i<dupZones.size(); i++) {
                 IdentityZone dupZone = dupZones.get(i);
                 String newsubdomain = null;
                 while (newsubdomain==null) {

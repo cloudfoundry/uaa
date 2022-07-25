@@ -70,7 +70,10 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
                 groupNameToGroupId.put(displayName, id);
             }
         }
-        //convert all user memberships from other zones
+        convertAllUserMembershipsFromOtherZones(jdbcTemplate, quotedGroupsIdentifier, zoneIdToGroupNameToGroupId);
+    }
+
+    private void convertAllUserMembershipsFromOtherZones(JdbcTemplate jdbcTemplate, String quotedGroupsIdentifier, Map<String, Map<String, String>> zoneIdToGroupNameToGroupId) {
         String userSQL = String.format("SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, %s g, "
             + "users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'", quotedGroupsIdentifier);
         List<Map<String,Object>> userMembers = jdbcTemplate.queryForList(userSQL);
@@ -99,5 +102,5 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
             }
         }
         userMembers.clear();
-     }
+    }
 }
