@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
+import org.cloudfoundry.identity.uaa.error.UaaDBException;
 import org.hsqldb.persist.HsqlDatabaseProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,7 +50,7 @@ public class DbUtils {
                 case DbUtils.BACKTICK:
                     return BACKTICK;
                 default:
-                    throw new RuntimeException("Unexpected database identifier quote character: '" + character + "'");
+                    throw new UaaDBException("Unexpected database identifier quote character: '" + character + "'");
             }
         }
     }
@@ -66,7 +67,7 @@ public class DbUtils {
                 case NONE:
                     return identifier;
                 default:
-                    throw new RuntimeException("Unexpected enum value:" + cachedQuoteCharacter.get());
+                    throw new UaaDBException("Unexpected enum value:" + cachedQuoteCharacter.get());
             }
         } else {
             QuoteCharacter quoteCharacter = computeQuoteCharacter(jdbcTemplate);
@@ -83,7 +84,7 @@ public class DbUtils {
             );
         } catch (MetaDataAccessException ex) {
             s_logger.error("Failed to extract DatabaseMetaData, aborting");
-            throw new RuntimeException("Failed to extract DatabaseMetaData", ex);
+            throw new UaaDBException("Failed to extract DatabaseMetaData", ex);
         }
 
         if (HsqlDatabaseProperties.PRODUCT_NAME.equals(metaData.getDatabaseProductName())) {
@@ -98,7 +99,7 @@ public class DbUtils {
     private static char getIdentifierQuoteChar(DatabaseMetaData metaData) throws SQLException {
         final String identifierQuoteString = metaData.getIdentifierQuoteString();
         if (identifierQuoteString == null || identifierQuoteString.length() != 1) {
-            throw new RuntimeException("Unexpected database identifier quote string: '" + identifierQuoteString + "'");
+            throw new UaaDBException("Unexpected database identifier quote string: '" + identifierQuoteString + "'");
         }
         char quoteChar = identifierQuoteString.charAt(0);
 
@@ -106,7 +107,7 @@ public class DbUtils {
         if (quoteChar == MYSQL_IDENTIFIER_QUOTE || quoteChar == POSTGRES_IDENTIFIER_QUOTE) {
             return quoteChar;
         } else {
-            throw new RuntimeException("Unexpected database identifier quote character: '" + quoteChar + "'");
+            throw new UaaDBException("Unexpected database identifier quote character: '" + quoteChar + "'");
         }
     }
 
