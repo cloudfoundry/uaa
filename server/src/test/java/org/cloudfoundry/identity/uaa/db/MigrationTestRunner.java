@@ -29,7 +29,9 @@ public class MigrationTestRunner {
             public void handle(Event event, Context context) {
                 if (AFTER_EACH_MIGRATE == event) {
                     try {
-                        context.getConnection().commit();
+                        if (!context.getConnection().getAutoCommit()) {
+                            context.getConnection().commit();
+                        }
                     } catch (SQLException e) {
                         Assert.fail(e.getMessage());
                     }
