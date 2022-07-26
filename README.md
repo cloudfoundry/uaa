@@ -125,14 +125,22 @@ To run the unit tests with docker:
 
 ### To run a single test
 
+The default uaa unit tests (`./gradlew test`) use hsqldb. 
+
 Start by finding out which gradle project your test belongs to.
 You can find all project by running
 
     $ ./gradlew projects
 
-Then you can run
-
+To run a specific test class, you can specify the module and the test class. 
+    
     $ ./gradlew :<project name>:test --tests <TestClass>.<MethodName>
+
+In this example, it's running only the 
+JdbcScimGroupMembershipManagerTests tests in the cloudfoundry-identity-server module:
+
+    $ ./gradlew :cloudfoundry-identity-server:test \
+    --tests "org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManagerTests"
 
 or to run all tests in a Class
 

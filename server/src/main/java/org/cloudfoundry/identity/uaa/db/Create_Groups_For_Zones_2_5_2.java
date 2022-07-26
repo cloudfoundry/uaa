@@ -15,30 +15,41 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.util.StringUtils;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
+public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
 
     private static Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
 
+    protected abstract String getIdentifierQuoteChar();
+
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
-        String groupCreateSQL = "INSERT INTO groups (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)";
-        Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
+    public void migrate(Context context) throws SQLException {
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
+                context.getConnection(), true));
+        String quotedGroupsIdentifier = getIdentifierQuoteChar() + "groups" + getIdentifierQuoteChar();
 
         //duplicate all existing groups across zones
         List<String> zones = jdbcTemplate.queryForList("SELECT id FROM identity_zone WHERE id <> 'uaa'", String.class);
-        List<String> groups = jdbcTemplate.queryForList("SELECT displayName FROM groups WHERE identity_zone_id = 'uaa'", String.class);
+
+        String groupCreateSQL = String.format("INSERT INTO %s (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)", quotedGroupsIdentifier);
+        Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
+
+        String selectQuery = String.format("SELECT displayName FROM %s WHERE identity_zone_id = 'uaa'",  quotedGroupsIdentifier);
+        List<String> groups = jdbcTemplate.queryForList(selectQuery, String.class);
         for (String zoneId : zones) {
             Map<String, String> groupNameToGroupId = new HashMap<>();
             zoneIdToGroupNameToGroupId.put(zoneId, groupNameToGroupId);
@@ -59,8 +70,12 @@ public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
                 groupNameToGroupId.put(displayName, id);
             }
         }
-        //convert all user memberships from other zones
-        String userSQL = "SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, groups g, users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'";
+        convertAllUserMembershipsFromOtherZones(jdbcTemplate, quotedGroupsIdentifier, zoneIdToGroupNameToGroupId);
+    }
+
+    private void convertAllUserMembershipsFromOtherZones(JdbcTemplate jdbcTemplate, String quotedGroupsIdentifier, Map<String, Map<String, String>> zoneIdToGroupNameToGroupId) {
+        String userSQL = String.format("SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, %s g, "
+            + "users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'", quotedGroupsIdentifier);
         List<Map<String,Object>> userMembers = jdbcTemplate.queryForList(userSQL);
         for (Map<String, Object> userRow : userMembers) {
             String zoneId = (String) userRow.get("identity_zone_id");
@@ -87,5 +102,5 @@ public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
             }
         }
         userMembers.clear();
-     }
+    }
 }

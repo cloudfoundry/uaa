@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
@@ -31,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
@@ -38,7 +40,6 @@ import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DEN
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +60,7 @@ class ApprovalsAdminEndpointsTests {
     PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void initApprovalsAdminEndpointsTests() {
+    void initApprovalsAdminEndpointsTests() throws SQLException {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String id = UUID.randomUUID().toString();
         String userId = testAccounts.addUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());
@@ -73,7 +74,7 @@ class ApprovalsAdminEndpointsTests {
         when(databaseUrlModifier.getDatabaseType()).thenReturn(Vendor.unknown);
 
         UaaUserDatabase userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager,
-                databaseUrlModifier);
+                databaseUrlModifier, new DbUtils());
 
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);

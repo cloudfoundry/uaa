@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -54,6 +55,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UaaUserPrototype> minimalMapper = new UaaUserPrototypeRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
+    private String quotedGroupsIdentifier;
 
     RowMapper<UaaUser> getMapper() {
         return mapper;
@@ -64,12 +66,14 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             final TimeService timeService,
             @Qualifier("useCaseInsensitiveQueries") final boolean caseInsensitive,
             final IdentityZoneManager identityZoneManager,
-            final DatabaseUrlModifier databaseUrlModifier) {
+            final DatabaseUrlModifier databaseUrlModifier,
+            final DbUtils dbUtils) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
         this.timeService = timeService;
         this.caseInsensitive = caseInsensitive;
         this.identityZoneManager = identityZoneManager;
         this.databaseUrlModifier = databaseUrlModifier;
+        this.quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
     }
 
     public int getMaxSqlParameters() {
@@ -234,18 +238,20 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return new UaaUser(prototype.withAuthorities(authorities));
         }
 
-        private String getAuthorities(final String userId) {
+        private String getAuthorities(final String userId) throws SQLException {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Collections.singletonList(userId));
             authorities.addAll(identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().getDefaultGroups());
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
-        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList) {
+        protected void getAuthorities(Set<String> authorities, final List<String> memberIdList)
+                throws SQLException {
             List<Map<String, Object>> results;
             if (memberIdList.isEmpty()) {
                 return;
             }
+
             List<String> memberList = new ArrayList<>(memberIdList);
             results = executeAuthoritiesQuery(memberList);
 
@@ -261,7 +267,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             getAuthorities(authorities, newMemberIdList);
         }
 
-        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) {
+        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) throws SQLException {
             Vendor dbVendor = databaseUrlModifier.getDatabaseType();
             if (Vendor.postgresql.equals(dbVendor)) {
                 return executeAuthoritiesQueryPostgresql(memberList);
@@ -272,10 +278,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             }
         }
 
-        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) {
+        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) throws SQLException {
             List<Map<String,Object>> results = new ArrayList<>();
             while (!memberList.isEmpty()) {
-                StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
+                StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
+                        .append(quotedGroupsIdentifier)
+                        .append(" g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id in (");
                 int size = maxSqlParameters > 1 ? Math.min(maxSqlParameters - 1, memberList.size()) : memberList.size();
                 for (int i = 0; i < size - 1; i++) {
                     dynamicAuthoritiesQuery.append("?,");

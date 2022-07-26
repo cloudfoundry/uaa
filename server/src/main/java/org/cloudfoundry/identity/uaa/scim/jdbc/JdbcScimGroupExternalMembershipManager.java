@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
@@ -37,8 +38,6 @@ public class JdbcScimGroupExternalMembershipManager
 
     private static final String GROUP_TABLE = "groups";
 
-    private static final String JOIN_GROUP_TABLE = String.format("%s g, %s gm", GROUP_TABLE, EXTERNAL_GROUP_MAPPING_TABLE);
-
     private static final String JOIN_WHERE_ID = "g.id = gm.group_id and gm.origin = ?";
 
     private static final String ADD_EXTERNAL_GROUP_MAPPING_SQL =
@@ -47,32 +46,11 @@ public class JdbcScimGroupExternalMembershipManager
                     EXTERNAL_GROUP_MAPPING_FIELDS
             );
 
-    private static final String GET_EXTERNAL_GROUP_MAPPINGS_SQL =
-            String.format("select %s from %s where gm.identity_zone_id = ? and gm.group_id=? and %s",
-                    JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
-                    JOIN_GROUP_TABLE,
-                    JOIN_WHERE_ID
-            );
-
-    private static final String GET_EXTERNAL_GROUP_MAPPINGS_IN_ZONE_SQL =
-            String.format("select %s from %s where gm.identity_zone_id=? and g.id = gm.group_id ",
-                    JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
-                    JOIN_GROUP_TABLE
-            );
-
-    private static final String GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL =
-            String.format("select %s from %s where gm.identity_zone_id = ? and %s and lower(external_group)=lower(?)",
-                    JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
-                    JOIN_GROUP_TABLE,
-                    JOIN_WHERE_ID
-            );
-
-    private static final String GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL =
-            String.format("select %s from %s where gm.identity_zone_id = ? and g.id=? and %s and lower(external_group) like lower(?)",
-                    JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
-                    JOIN_GROUP_TABLE,
-                    JOIN_WHERE_ID
-            );
+    private final String joinGroupTable;
+    private final String getExternalGroupMappingsSql;
+    private final String getExternalGroupMappingsInZoneSql;
+    private final String getGroupsByExternalGroupMappingSql;
+    private final String getGroupsWithExternalGroupMappingsSql;
 
     private static final String DELETE_EXTERNAL_GROUP_MAPPING_SQL =
             String.format("delete from %s where group_id=? and lower(external_group)=lower(?) and origin=? and identity_zone_id = ?",
@@ -88,10 +66,32 @@ public class JdbcScimGroupExternalMembershipManager
 
     private ScimGroupProvisioning scimGroupProvisioning;
 
-    public JdbcScimGroupExternalMembershipManager(final JdbcTemplate jdbcTemplate) {
+    public JdbcScimGroupExternalMembershipManager(final JdbcTemplate jdbcTemplate, DbUtils dbUtils) throws SQLException {
         this.jdbcTemplate = jdbcTemplate;
 
         this.rowMapper = new ScimGroupExternalMemberRowMapper();
+
+        joinGroupTable = String.format("%s g, %s gm",
+                dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate), EXTERNAL_GROUP_MAPPING_TABLE);
+        getGroupsWithExternalGroupMappingsSql = String.format("select %s from %s where gm.identity_zone_id = ? and g.id=? and %s and lower(external_group) like lower(?)",
+                JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                joinGroupTable,
+                JOIN_WHERE_ID
+        );
+        getGroupsByExternalGroupMappingSql = String.format("select %s from %s where gm.identity_zone_id = ? and %s and lower(external_group)=lower(?)",
+                JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                joinGroupTable,
+                JOIN_WHERE_ID
+        );
+        getExternalGroupMappingsInZoneSql = String.format("select %s from %s where gm.identity_zone_id=? and g.id = gm.group_id ",
+                JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                joinGroupTable
+        );
+        getExternalGroupMappingsSql = String.format("select %s from %s where gm.identity_zone_id = ? and gm.group_id=? and %s",
+                JOIN_EXTERNAL_GROUP_MAPPING_FIELDS,
+                joinGroupTable,
+                JOIN_WHERE_ID
+        );
     }
 
     public void setScimGroupProvisioning(ScimGroupProvisioning scimGroupProvisioning) {
@@ -168,7 +168,7 @@ public class JdbcScimGroupExternalMembershipManager
 
     @Override
     public List<ScimGroupExternalMember> getExternalGroupMappings(String zoneId) throws ScimResourceNotFoundException {
-        return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_IN_ZONE_SQL, ps -> ps.setString(1, zoneId), rowMapper);
+        return jdbcTemplate.query(getExternalGroupMappingsInZoneSql, ps -> ps.setString(1, zoneId), rowMapper);
     }
 
     @Override
@@ -177,7 +177,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                                        final String zoneId)
             throws ScimResourceNotFoundException {
         scimGroupProvisioning.retrieve(groupId, zoneId);
-        return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, ps -> {
+        return jdbcTemplate.query(getExternalGroupMappingsSql, ps -> {
             ps.setString(1, zoneId);
             ps.setString(2, groupId);
             ps.setString(3, origin);
@@ -197,7 +197,7 @@ public class JdbcScimGroupExternalMembershipManager
             return null;
         }
 
-        return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, ps -> {
+        return jdbcTemplate.query(getExternalGroupMappingsSql, ps -> {
             ps.setString(1, zoneId);
             ps.setString(2, group.getId());
             ps.setString(3, origin);
@@ -223,7 +223,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                                              final String zoneId)
             throws ScimResourceNotFoundException {
 
-        return jdbcTemplate.query(GET_GROUPS_BY_EXTERNAL_GROUP_MAPPING_SQL, ps -> {
+        return jdbcTemplate.query(getGroupsByExternalGroupMappingSql, ps -> {
             ps.setString(1, zoneId);
             ps.setString(2, origin);
             ps.setString(3, externalGroup);
@@ -237,7 +237,7 @@ public class JdbcScimGroupExternalMembershipManager
                                                         final String zoneId)
             throws ScimResourceNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(GET_GROUPS_WITH_EXTERNAL_GROUP_MAPPINGS_SQL,
+            return jdbcTemplate.queryForObject(getGroupsWithExternalGroupMappingsSql,
                     rowMapper, zoneId, groupId, origin, externalGroup);
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("The mapping between groupId " + groupId + " and external group "

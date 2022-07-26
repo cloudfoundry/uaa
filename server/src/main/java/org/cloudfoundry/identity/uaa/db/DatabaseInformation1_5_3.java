@@ -37,7 +37,7 @@ public class DatabaseInformation1_5_3 {
 
                     ));
 
-    protected boolean processColumn(ColumnInfo column) {
+    public static boolean processColumn(ColumnInfo column) {
         return (!column.columnName.equals(column.columnName.toLowerCase())) &&
                         tableNames.contains(column.tableName.toLowerCase());
     }

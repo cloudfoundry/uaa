@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -41,6 +42,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -86,11 +88,13 @@ class ScimUserBootstrapTests {
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void init() {
+    void init() throws SQLException {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
         jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder));
-        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null);
+        DbUtils dbUtils = new DbUtils();
+        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
+        jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
+                jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
         scimUserEndpoints = new ScimUserEndpoints(
                 new IdentityZoneManagerImpl(),
@@ -108,13 +112,13 @@ class ScimUserBootstrapTests {
     }
 
     @AfterEach
-    void tearDown() {
+    void tearDown() throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 
     @AfterEach
-    void tearDown(@Autowired ApplicationContext applicationContext) {
+    void tearDown(@Autowired ApplicationContext applicationContext) throws SQLException {
         TestUtils.restoreToDefaults(applicationContext);
     }
 
