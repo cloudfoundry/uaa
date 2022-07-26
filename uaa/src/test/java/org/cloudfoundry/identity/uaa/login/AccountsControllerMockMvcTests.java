@@ -179,13 +179,13 @@ class AccountsControllerMockMvcTests {
     void testCreateAccountWithDisableSelfService() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
 
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-                .andExpect(model().attribute("error_message_code", "self_service_disabled"))
+                .andExpect(model().attribute("error_message_code", "self_service_create_account_disabled"))
                 .andExpect(view().name("error"))
                 .andExpect(status().isNotFound());
     }
@@ -194,7 +194,7 @@ class AccountsControllerMockMvcTests {
     void testDisableSelfServiceCreateAccountPost() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
 
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
@@ -206,7 +206,7 @@ class AccountsControllerMockMvcTests {
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
-                .andExpect(model().attribute("error_message_code", "self_service_disabled"))
+                .andExpect(model().attribute("error_message_code", "self_service_create_account_disabled"))
                 .andExpect(view().name("error"))
                 .andExpect(status().isNotFound());
     }
