@@ -27,6 +27,7 @@ dependencies {
     }
     implementation(libraries.springSecuritySaml) {
         exclude(module: "bcprov-ext-jdk15on")
+        exclude(module: "xalan")
     }
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
