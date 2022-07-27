@@ -6,7 +6,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 @Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
@@ -66,6 +69,11 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
                 }
             }
+
+            validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedUris(), "config.corsPolicy.xhrConfiguration.allowedUris");
+            validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedOrigins(), "config.corsPolicy.xhrConfiguration.allowedOrigins");
+            validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedUris(), "config.corsPolicy.defaultConfiguration.allowedUris");
+            validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins(), "config.corsPolicy.defaultConfiguration.allowedOrigins");
         }
 
         if (config.getBranding() != null && config.getBranding().getConsent() != null) {
@@ -81,6 +89,19 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         }
 
         return config;
+    }
+
+    @SuppressWarnings("javasecurity:S2631")
+    private void validateRegexStrings(List<String> uris, String fieldName) throws InvalidIdentityZoneConfigurationException {
+        if (uris != null) {
+            for (String uri : uris) {
+                try {
+                    Pattern.compile(uri);
+                } catch (PatternSyntaxException patternSyntaxException) {
+                    throw new InvalidIdentityZoneConfigurationException(String.format("Invalid value in %s: '%s'.", fieldName, uri), patternSyntaxException);
+                }
+            }
+        }
     }
 
     private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {
