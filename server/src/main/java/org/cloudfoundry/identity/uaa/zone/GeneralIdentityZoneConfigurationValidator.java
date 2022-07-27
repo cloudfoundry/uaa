@@ -91,6 +91,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         return config;
     }
 
+    @SuppressWarnings("javasecurity:S2631")
     private void validateRegexStrings(List<String> uris, String fieldName) throws InvalidIdentityZoneConfigurationException {
         if (uris != null) {
             for (String uri : uris) {
