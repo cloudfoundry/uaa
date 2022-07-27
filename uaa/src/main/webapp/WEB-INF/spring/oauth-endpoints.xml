@@ -499,6 +499,7 @@
         <property name="refreshTokenFormat"
                   value="${jwt.token.refresh.format:#{T(org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat).JWT.getStringValue()}}"/>
         <property name="refreshTokenUnique" value="${jwt.token.refresh.unique:false}"/>
+        <property name="refreshTokenRotate" value="${jwt.token.refresh.rotate:false}"/>
     </bean>
 
     <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean"
