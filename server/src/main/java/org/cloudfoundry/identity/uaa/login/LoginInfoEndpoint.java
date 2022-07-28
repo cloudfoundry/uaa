@@ -552,7 +552,7 @@ public class LoginInfoEndpoint {
         if (loginHintParam != null) {
             // parse login_hint in JSON format
             if (uaaLoginHint != null) {
-                logger.debug("Received login hint: " + loginHintParam);
+                logger.debug("Received login hint: {}", UaaStringUtils.getCleanedUserControlString(loginHintParam));
                 logger.debug("Received login hint with origin: " + uaaLoginHint.getOrigin());
                 if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
                     if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin())) {

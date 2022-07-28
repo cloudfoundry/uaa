@@ -22,7 +22,13 @@ import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -245,6 +251,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
         }
 
+
         protected void getAuthorities(Set<String> authorities, final List<String> memberIdList)
                 throws SQLException {
             List<Map<String, Object>> results;
@@ -267,7 +274,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             getAuthorities(authorities, newMemberIdList);
         }
 
-        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) throws SQLException {
+        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) {
             Vendor dbVendor = databaseUrlModifier.getDatabaseType();
             if (Vendor.postgresql.equals(dbVendor)) {
                 return executeAuthoritiesQueryPostgresql(memberList);
@@ -278,7 +285,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             }
         }
 
-        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) throws SQLException {
+        private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) {
             List<Map<String,Object>> results = new ArrayList<>();
             while (!memberList.isEmpty()) {
                 StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
