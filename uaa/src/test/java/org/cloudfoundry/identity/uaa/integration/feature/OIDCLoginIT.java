@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -34,6 +35,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -47,11 +49,17 @@ import org.openqa.selenium.WebDriver;
 import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
@@ -126,6 +134,7 @@ public class OIDCLoginIT {
     private String clientCredentialsToken;
     private BaseClientDetails zoneClient;
     private ScimGroup createdGroup;
+    private RestTemplate identityClient;
 
     @Before
     public void setUp() throws Exception {
@@ -135,7 +144,7 @@ public class OIDCLoginIT {
 
         subdomain = "oidcloginit";
         //identity client token
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+        identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
 
@@ -439,7 +448,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void successfulLoginWithOIDC_and_SAML_Provider() throws Exception {
+    public void successfulLoginWithOIDC_and_SAML_Provider_PlusRefreshRotation() throws Exception {
         SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
         saml.setLinkText("SAML Login");
         saml.setShowSamlLink(true);
@@ -508,6 +517,18 @@ public class OIDCLoginIT {
             List<String> clientIds = userAttributeMap.get("the_client_id");
             assertNotNull(clientIds);
             assertEquals("identity", clientIds.get(0));
+            setRefreshTokenRotate(false);
+            String refreshToken1 = getRefreshTokenResponse(serverRunning, authCodeTokenResponse.get("refresh_token"));
+            String refreshToken2 = getRefreshTokenResponse(serverRunning, refreshToken1);
+            assertEquals("New refresh token should be equal to the old one.",
+                refreshToken1,
+                refreshToken2);
+            setRefreshTokenRotate(true);
+            refreshToken1 = getRefreshTokenResponse(serverRunning, refreshToken2);
+            refreshToken2 = getRefreshTokenResponse(serverRunning, refreshToken1);
+            assertNotEquals("New access token should be different to the old one.",
+                refreshToken1,
+                refreshToken2);
         } finally {
             IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, OriginKeys.UAA, samlProvider.getOriginKey());
         }
@@ -532,6 +553,29 @@ public class OIDCLoginIT {
         assertThat(webDriver.getCurrentUrl(), containsString("error_description=Missing%20response_type%20in%20authorization%20request"));
     }
 
+    private String getRefreshTokenResponse(ServerRunning serverRunning, String refreshToken) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("client_id", zoneClient.getClientId());
+        formData.add("client_secret", zoneClient.getClientSecret());
+        formData.add("grant_type", "refresh_token");
+        formData.add("refresh_token", refreshToken);
+        serverRunning.setHostName(zone.getSubdomain() + ".localhost");
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.set("Cache-Control", "no-store");
+        ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertEquals("no-store", tokenResponse.getHeaders().getFirst("Cache-Control"));
+        return DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody()).getRefreshToken().getValue();
+    }
+
+    private void setRefreshTokenRotate(boolean isRotate) {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy policy = new TokenPolicy();
+        policy.setRefreshTokenRotate(isRotate);
+        policy.setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+        config.setTokenPolicy(policy);
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zone.getId(), zone.getSubdomain(), config);
+    }
 
     private OIDCIdentityProviderDefinition azureConfig() throws Exception {
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
