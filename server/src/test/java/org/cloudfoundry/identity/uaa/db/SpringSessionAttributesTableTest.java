@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @WithDatabaseContext
 @Transactional
-public class SpringSessionAttributesTableTest {
+class SpringSessionAttributesTableTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
     private String primaryId, sessionId;

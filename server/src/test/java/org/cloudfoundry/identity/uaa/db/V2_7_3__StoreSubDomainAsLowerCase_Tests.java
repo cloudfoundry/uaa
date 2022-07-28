@@ -26,7 +26,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
-public class V2_7_3__StoreSubDomainAsLowerCase_Tests {
+class V2_7_3__StoreSubDomainAsLowerCase_Tests {
 
     private IdentityZoneProvisioning provisioning;
     private V2_7_3__StoreSubDomainAsLowerCase migration;
