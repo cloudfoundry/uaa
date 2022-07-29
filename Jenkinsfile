@@ -447,9 +447,9 @@ pipeline {
 
             // Trigger GE SOS build job for uaa image build
             script {
-                if (params.TRIGGER_GESOS_IMAGE_BUILD && (BRANCH_NAME.matches('rc_*') || BRANCH_NAME.matches('release_*'))) {
+                if (params.TRIGGER_GESOS_IMAGE_BUILD && (BRANCH_NAME.matches('rc_[\\d.]+') || BRANCH_NAME.matches('release_[\\d.]+'))) {
                     imageTag = BRANCH_NAME
-                    if (imageTag.matches('release_*')) {
+                    if (imageTag.matches('release_[\\d.]+')) {
                         imageTag = imageTag.replaceAll('release_', '')
                     }
             	    build job: JOB_NAME.replaceAll('/Build n Test/', '/GE SOS Build/'),
