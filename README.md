@@ -1,5 +1,7 @@
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 
+[![slack.cloudfoundry.org](https://slack.cloudfoundry.org/badge.svg)](https://cloudfoundry.slack.com/archives/C03FXANBV)
+
 # CloudFoundry User Account and Authentication (UAA) Server
 
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
@@ -107,7 +109,15 @@ requesting system information:
 For complex requests it is more convenient to interact with UAA using
 `uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
 
-## Integration tests
+### Debugging local server
+
+To load JDWP agent for UAA jvm debugging, start the server as follows:
+```sh
+./gradlew run -Dxdebug=true
+```
+You can then attach your debugger to port 5005 of the jvm process.
+
+## Running tests
 
 You can run the integration tests with docker
 
@@ -205,6 +215,7 @@ Of course, you can always abandon the default values altogether and provide your
 
 Here are some ways for you to get involved in the community:
 
+* Join uaa channel on [![slack.cloudfoundry.org](https://slack.cloudfoundry.org/badge.svg)](https://cloudfoundry.slack.com/archives/C03FXANBV)
 * Create [github](https://github.com/cloudfoundry/uaa/issues) tickets for bugs and new features and comment and
   vote on the ones that you are interested in.
 * Github is for social coding: if you want to write code, we encourage
