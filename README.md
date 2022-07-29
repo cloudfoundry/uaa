@@ -109,7 +109,15 @@ requesting system information:
 For complex requests it is more convenient to interact with UAA using
 `uaac`, the [UAA Command Line Client](https://github.com/cloudfoundry/cf-uaac).
 
-## Integration tests
+### Debugging local server
+
+To load JDWP agent for UAA jvm debugging, start the server as follows:
+```sh
+./gradlew run -Dxdebug=true
+```
+You can then attach your debugger to port 5005 of the jvm process.
+
+## Running tests
 
 You can run the integration tests with docker
 
