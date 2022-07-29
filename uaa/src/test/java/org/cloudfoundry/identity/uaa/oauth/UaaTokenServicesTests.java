@@ -20,13 +20,11 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -68,8 +66,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -78,8 +74,6 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 @DefaultTestContext
 @TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
 class UaaTokenServicesTests {
-    @Autowired
-    private IdentityZoneManager indentityZonneManager;
     @Autowired
     private UaaTokenServices tokenServices;
 
@@ -309,38 +303,6 @@ class UaaTokenServicesTests {
 
             assertThat(refreshedToken, is(notNullValue()));
         }
-
-      @Test
-      void refreshRotation() {
-        assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
-        RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
-            GRANT_TYPE_AUTHORIZATION_CODE,
-            Sets.newHashSet("openid", "user_attributes"),
-            null,
-            "",
-            Sets.newHashSet(""),
-            "jku_test",
-            false,
-            new Date(),
-            null,
-            null
-        );
-        UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
-        AuthorizationRequest authorizationRequest = constructAuthorizationRequest("jku_test", GRANT_TYPE_PASSWORD, "openid");
-        OAuth2Authentication auth2Authentication = constructUserAuthenticationFromAuthzRequest(authorizationRequest, "admin", "uaa");
-        indentityZonneManager.getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
-        CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(auth2Authentication);
-        String refreshTokenValue = accessToken.getRefreshToken().getValue();
-        assertThat(refreshTokenValue, is(notNullValue()));
-        OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
-        assertThat(refreshedToken, is(notNullValue()));
-        assertEquals(refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-        indentityZonneManager.getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
-        refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
-        assertNotEquals(refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-        indentityZonneManager.getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(false);
-        indentityZonneManager.getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
-      }
 
         @Nested
         @DisplayName("when ACR claim is present")
