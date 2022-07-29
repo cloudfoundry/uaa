@@ -142,7 +142,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         repo.setSecure(isSecure);
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setProtocol(protocol);
+        request.setScheme(protocol);
         CsrfToken token = repo.generateToken(null);
         MockHttpServletResponse response = new MockHttpServletResponse();
         repo.saveToken(token, request, response);
