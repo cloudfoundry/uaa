@@ -5,6 +5,8 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -48,15 +50,20 @@ public class CorsFilterNonDefaultZoneTests {
     }
 
     // Xhr cors
-    @Test
-    void testRequestWithMaliciousOrigin() throws ServletException, IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
-        request.addHeader("Origin", "<script>alert('1ee7 h@x0r')</script>");
+    @ParameterizedTest
+    @CsvSource({
+            "GET, /uaa/userinfo, <script>alert('1ee7 h@x0r')</script>, Invalid origin",
+            "GET, /uaa/userinfo, bunnyoutlet.com, Illegal origin",
+            "GET, /uaa/login, example.com, Illegal request URI",
+    })
+    void testRequestWithInvalidOrigins(String method, String url, String origin, String message) throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest(method, url);
+        request.addHeader("Origin", origin);
         request.addHeader("X-Requested-With", "XMLHttpRequest");
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(FORBIDDEN.value(), response.getStatus());
-        assertEquals("Invalid origin", response.getErrorMessage());
+        assertEquals(message, response.getErrorMessage());
     }
 
     @Test
@@ -81,17 +88,6 @@ public class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void testRequestWithForbiddenOrigin() throws ServletException, IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
-        request.addHeader("Origin", "bunnyoutlet.com");
-        request.addHeader("X-Requested-With", "XMLHttpRequest");
-        corsFilter.doFilter(request, response, filterChain);
-
-        assertEquals(FORBIDDEN.value(), response.getStatus());
-        assertEquals("Illegal origin", response.getErrorMessage());
-    }
-
-    @Test
     void testRequestWithAllowedOriginPatterns() throws ServletException, IOException {
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().getAllowedOriginPatterns()
                 .add(Pattern.compile("bunnyoutlet-shop.com$"));
@@ -102,17 +98,6 @@ public class CorsFilterNonDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(OK.value(), response.getStatus());
-    }
-
-    @Test
-    void testRequestWithForbiddenUri() throws ServletException, IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/login");
-        request.addHeader("Origin", "example.com");
-        request.addHeader("X-Requested-With", "XMLHttpRequest");
-        corsFilter.doFilter(request, response, filterChain);
-
-        assertEquals(FORBIDDEN.value(), response.getStatus());
-        assertEquals("Illegal request URI", response.getErrorMessage());
     }
 
     @Test
@@ -236,14 +221,19 @@ public class CorsFilterNonDefaultZoneTests {
     }
 
     // default cors
-    @Test
-    void testDefaultCorsWithMaliciousOrigin() throws ServletException, IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
-        request.addHeader("Origin", "<script>alert('1ee7 h@x0r')</script>");
+    @ParameterizedTest
+    @CsvSource({
+            "GET, /uaa/userinfo, <script>alert('1ee7 h@x0r')</script>, Invalid origin",
+            "GET, /uaa/userinfo, bunnyoutlet.com, Illegal origin",
+            "GET, /uaa/login, example.com, Illegal request URI",
+    })
+    void testDefaultCorsWithInvalidOrigins(String method, String url, String origin, String message) throws ServletException, IOException {
+        MockHttpServletRequest request = new MockHttpServletRequest(method, url);
+        request.addHeader("Origin", origin);
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(FORBIDDEN.value(), response.getStatus());
-        assertEquals("Invalid origin", response.getErrorMessage());
+        assertEquals(message, response.getErrorMessage());
     }
 
     @Test
@@ -266,16 +256,6 @@ public class CorsFilterNonDefaultZoneTests {
     }
 
     @Test
-    void testDefaultCorsWithForbiddenOrigin() throws ServletException, IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
-        request.addHeader("Origin", "bunnyoutlet.com");
-        corsFilter.doFilter(request, response, filterChain);
-
-        assertEquals(FORBIDDEN.value(), response.getStatus());
-        assertEquals("Illegal origin", response.getErrorMessage());
-    }
-
-    @Test
     void testDefaultCorsWithAllowedOriginPatterns() throws ServletException, IOException {
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()
                 .add(Pattern.compile("bunnyoutlet.com$"));
@@ -285,16 +265,6 @@ public class CorsFilterNonDefaultZoneTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals(OK.value(), response.getStatus());
-    }
-
-    @Test
-    void testDefaultCorsWithForbiddenUri() throws ServletException, IOException {
-        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/login");
-        request.addHeader("Origin", "example.com");
-        corsFilter.doFilter(request, response, filterChain);
-
-        assertEquals(FORBIDDEN.value(), response.getStatus());
-        assertEquals("Illegal request URI", response.getErrorMessage());
     }
 
     @Test

@@ -93,10 +93,8 @@ public class CorsFilter extends OncePerRequestFilter {
     public CorsFilter(final IdentityZoneManager identityZoneManager,
                       @Value("${cors.enforceSystemZonePolicyInAllZones:false}") final boolean enforceSystemZoneSettings) {
         if (logger.isInfoEnabled()) {
-            logger.info("`cors.enforceSystemZonePolicyInAllZones` is set to `" +
-                    enforceSystemZoneSettings +
-                    "`. Per-zone CORS policy settings are to be "
-                    + (enforceSystemZoneSettings? "ignored." : "honored."));
+            logger.info("`cors.enforceSystemZonePolicyInAllZones` is set to `{}`. Per-zone CORS policy settings are to be {}.",
+                    enforceSystemZoneSettings, enforceSystemZoneSettings ? "ignored" : "honored");
         }
 
         //configure defaults for XHR vs non-XHR requests for default zone
