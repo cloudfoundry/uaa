@@ -24,8 +24,10 @@ import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.Optional;
 
 import static java.util.Arrays.asList;
+import static junit.framework.Assert.assertNotNull;
 import static junit.framework.TestCase.assertEquals;
 import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -133,6 +135,13 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         Cookie currentUserCookie = response.getCookie("Current-User");
         assertThat(currentUserCookie, notNullValue());
         assertThat(currentUserCookie.getValue(), containsString("user-id"));
+
+        Optional<String> actualCurrentUserCookieHeaderValue = response.getHeaders("Set-Cookie").stream()
+                .filter(headerValue -> headerValue.startsWith("Current-User"))
+                .findAny();
+        assertNotNull(actualCurrentUserCookieHeaderValue);
+        assertEquals("Current-User=%7B%22userId%22%3A%22user-id%22%7D; SameSite=Strict",
+                actualCurrentUserCookieHeaderValue.get());
     }
 
     @Test

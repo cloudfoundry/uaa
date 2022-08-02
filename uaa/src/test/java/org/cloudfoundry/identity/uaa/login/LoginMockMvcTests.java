@@ -106,6 +106,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneC
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
+import static org.cloudfoundry.identity.uaa.security.web.CorsFilter.X_REQUESTED_WITH;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
@@ -132,6 +133,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpHeaders.*;
+import static org.springframework.http.HttpMethod.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -2197,6 +2200,60 @@ public class LoginMockMvcTests {
         httpHeaders.add("Access-Control-Request-Method", "GET");
         httpHeaders.add("Origin", "fuzzybunnies.com");
         mockMvc.perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isForbidden());
+    }
+
+    /**
+     * When the zone-specific CORS policy of a non-default zone is null, fall back to enforcing
+     * the CORS policy of the default zone.
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
+     */
+    @Test
+    public void testXhrCorsPreflight_ForNonDefaultZone_WhenZoneSpecificCorsPolicyIsNull(@Autowired CorsFilter corsFilter) throws Exception {
+        // setting the default zone CORS policy
+        corsFilter.setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
+        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout.do$"));
+        corsFilter.initialize();
+
+        // set the non default zone CORS Xhr policy to null
+        identityZone.getConfig().getCorsPolicy().setXhrConfiguration(null);
+        MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
+
+        // sending a XHR preflight request to the non default zone
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "testzone1.localhost");
+        mockMvc.perform(options("/logout.do")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                .headers(httpHeaders))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * When the zone-specific CORS policy of a non-default zone exists, enforce it.
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
+     * The access control request method is POST, which is allowed by the zone specific CORS policy in this test case setup
+     */
+    @Test
+    public void testXhrCorsPreflight_ForNonDefaultZone_WhenZoneSpecificCorsPolicyExists(@Autowired CorsFilter corsFilter) throws Exception {
+         // setting the default zone CORS policy to not allow POST
+        corsFilter.setCorsXhrAllowedMethods(List.of(GET.toString(), OPTIONS.toString()));
+        corsFilter.initialize();
+
+        // set the non default zone CORS Xhr policy to allow POST
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedMethods(List.of(GET.toString(), OPTIONS.toString(), POST.toString()));
+        identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedHeaders(List.of(ACCEPT, AUTHORIZATION, CONTENT_TYPE, X_REQUESTED_WITH));
+        MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
+
+        // sending a XHR preflight request to the non default zone
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "POST");
+        httpHeaders.add("Origin", "testzone1.localhost");
+        mockMvc.perform(options("/logout.do")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                .headers(httpHeaders))
+                .andExpect(status().isOk());
     }
 
     @Test
