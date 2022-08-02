@@ -4,7 +4,6 @@ ext {
 }
 
 // Versions we're overriding from the Spring Boot Bom
-ext["mariadb.version"] = "2.7.4"
 ext["flyway.version"] = "7.15.0"
 
 // Versions shared between multiple dependencies
@@ -18,6 +17,10 @@ versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.tomcatCargoVersion = "9.0.65"
 versions.guavaVersion = "31.1-jre"
+
+ext {
+    tomcatCargoVersion = "${versions.tomcatCargoVersion}"
+}
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.4"
