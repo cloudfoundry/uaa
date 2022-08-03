@@ -46,6 +46,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     static final String DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "lower(email)");
     static final String DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "email");
     public static final String DEFAULT_UPDATE_USER_LAST_LOGON = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = ? and identity_zone_id=?";
+    public static final String DEFAULT_UPDATE_USER_LAST_LOGON_POSTGRES = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = (select id from users where id = ? and identity_zone_id = ? for update skip locked)";
 
     private static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users where id = ? and active=? and identity_zone_id=?";
 
@@ -184,6 +185,19 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     @Override
     public void updateLastLogonTime(String userId) {
+        Vendor dbVendor = databaseUrlModifier.getDatabaseType();
+        if (Vendor.postgresql.equals(dbVendor)) {
+            updateLastLogonTime_postgres(userId);
+        } else {
+            updateLastLogonTime_default(userId);
+        }
+    }
+
+    private void updateLastLogonTime_postgres(String userId) {
+        jdbcTemplate.update(DEFAULT_UPDATE_USER_LAST_LOGON_POSTGRES, timeService.getCurrentTimeMillis(), userId, identityZoneManager.getCurrentIdentityZoneId());
+    }
+
+    private void updateLastLogonTime_default(String userId) {
         jdbcTemplate.update(DEFAULT_UPDATE_USER_LAST_LOGON, timeService.getCurrentTimeMillis(), userId, identityZoneManager.getCurrentIdentityZoneId());
     }
 

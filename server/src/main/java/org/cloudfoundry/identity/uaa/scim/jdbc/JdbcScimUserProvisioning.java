@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
+import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,6 +92,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
 
     public static final String UPDATE_LAST_LOGON_TIME_SQL = JdbcUaaUserDatabase.DEFAULT_UPDATE_USER_LAST_LOGON;
+    public static final String UPDATE_LAST_LOGON_TIME_SQL_POSTGRES = JdbcUaaUserDatabase.DEFAULT_UPDATE_USER_LAST_LOGON_POSTGRES;
 
     public static final String READ_PASSWORD_CHANGE_REQUIRED_SQL = "select passwd_change_required from users where id=? and identity_zone_id=?";
 
@@ -122,6 +125,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
 
     private TimeService timeService = new TimeServiceImpl();
+
+    private DatabaseUrlModifier databaseUrlModifier;
 
     public JdbcScimUserProvisioning(
             JdbcTemplate jdbcTemplate,
@@ -520,6 +525,23 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public void updateLastLogonTime(String id, String zoneId) {
+        Vendor dbVendor = databaseUrlModifier != null ? databaseUrlModifier.getDatabaseType() : Vendor.unknown;
+        if (Vendor.postgresql.equals(dbVendor)) {
+            updateLastLogonTime_postgres(id, zoneId);
+        } else {
+            updateLastLogonTime_default(id, zoneId);
+        }
+    }
+
+    private void updateLastLogonTime_postgres(String id, String zoneId) {
+        jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL_POSTGRES, timeService.getCurrentTimeMillis(), id, zoneId);
+    }
+
+    private void updateLastLogonTime_default(String id, String zoneId) {
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
+    }
+
+    public void setDatabaseUrlModifier(DatabaseUrlModifier databaseUrlModifier) {
+        this.databaseUrlModifier = databaseUrlModifier;
     }
 }
