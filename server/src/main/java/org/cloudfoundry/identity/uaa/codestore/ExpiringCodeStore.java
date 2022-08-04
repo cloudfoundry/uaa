@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
 

@@ -27,8 +27,8 @@ public class AlphanumericRandomValueStringGenerator {
     }
 
     /**
-     * Convert these random bytes to a verifier string. The length of the byte array can be
-     * {@link #setLength(int) configured}. The default implementation mods the bytes to fit into the
+     * Convert these random bytes to a verifier string.
+     * The default implementation mods the bytes to fit into the
      * ASCII letters 1-9, A-Z, a-z.
      *
      * @param verifierBytes The bytes.
@@ -40,26 +40,5 @@ public class AlphanumericRandomValueStringGenerator {
             chars[i] = DEFAULT_CODEC[((verifierBytes[i] & 0xFF) % DEFAULT_CODEC.length)];
         }
         return new String(chars);
-    }
-
-    /**
-     * The random value generator used to create token secrets.
-     *
-     * @param random The random value generator used to create token secrets.
-     */
-    public void setRandom(Random random) {
-        this.random = random;
-    }
-
-    /**
-     * The length of string to generate.  A length less than or equal to 0 will result in an {@code IllegalArgumentException}.
-     *
-     * @param length the length to set
-     */
-    public void setLength(int length) {
-        if (length <= 0) {
-            throw new IllegalArgumentException("length must be greater than 0");
-        }
-        this.length = length;
     }
 }
