@@ -82,6 +82,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -280,6 +282,8 @@ public class SamlLoginWithLocalIdpIT {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
+        configuration.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(
+                List.of(GET.toString(), POST.toString()));
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
         String testZone1Url = baseUrl.replace("localhost", zoneId1 + ".localhost");
 
@@ -319,9 +323,11 @@ public class SamlLoginWithLocalIdpIT {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         IdentityZoneConfiguration configuration = new IdentityZoneConfiguration();
-        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
+        configuration.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(
+                List.of(GET.toString(), POST.toString()));
 
-        IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2, null);
+        IdentityZone zone1 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId1, zoneId1, configuration);
+        IdentityZone zone2 = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId2, zoneId2, configuration);
 
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpUser = new ScimUser(null, email, "IDPFirst", "IDPLast");
@@ -372,7 +378,9 @@ public class SamlLoginWithLocalIdpIT {
         RestTemplate identityClient = getIdentityClient();
         RestTemplate adminClient = getAdminClient();
 
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, null);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
+        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
 
@@ -679,7 +687,11 @@ public class SamlLoginWithLocalIdpIT {
 
         RestTemplate identityClient = getIdentityClient();
 
-        IdentityZone idpZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, null);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(
+                List.of(GET.toString(), POST.toString()));
+
+        IdentityZone idpZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, idpZoneId, idpZoneId, config);
         String idpZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser idpZoneAdminUser = IntegrationTestUtils.createUser(adminClient, baseUrl, idpZoneAdminEmail, "firstname", "lastname", idpZoneAdminEmail, true);
 
@@ -692,7 +704,6 @@ public class SamlLoginWithLocalIdpIT {
         String idpZoneUrl = baseUrl.replace("localhost", idpZoneId + ".localhost");
         ScimUser zoneUser = createZoneUser(idpZoneId, idpZoneAdminToken, idpZoneUserEmail, idpZoneUrl);
 
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         IdentityZone spZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, spZoneId, spZoneId, config);
 
         String spZoneAdminEmail = new RandomValueStringGenerator().generate() + "@samltesting.org";

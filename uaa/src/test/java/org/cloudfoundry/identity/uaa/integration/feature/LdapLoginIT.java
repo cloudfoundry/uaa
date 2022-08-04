@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.Matchers;
 import org.junit.*;
@@ -26,6 +27,7 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -33,6 +35,8 @@ import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtil
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -130,8 +134,9 @@ public class LdapLoginIT {
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
         //create the zone
-
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, subdomain, subdomain, null);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, subdomain, subdomain, config);
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@ldaptesting.org";
