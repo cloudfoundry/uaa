@@ -15,6 +15,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -78,7 +79,7 @@ public class ResetPasswordControllerMockMvcTests {
 
     @AfterEach
     void resetGenerator() {
-        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+        webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new AlphanumericRandomValueStringGenerator(24));
     }
 
     final @Value("${login.url}") String externalLoginUrl = "";
