@@ -89,7 +89,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
     private boolean dbCaseInsensitive = false;
-    private RandomValueStringGenerator randomStringGenerator;
+    private AlphanumericRandomValueStringGenerator randomStringGenerator;
 
     public SimpleSearchQueryConverter() {
         randomStringGenerator = new AlphanumericRandomValueStringGenerator();

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -44,7 +45,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(10);
 
     private JdbcTemplate jdbcTemplate;
 
@@ -153,7 +154,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public void setGenerator(RandomValueStringGenerator generator) {
+    public void setGenerator(AlphanumericRandomValueStringGenerator generator) {
         this.generator = generator;
     }
 

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
@@ -58,7 +59,7 @@ public interface ExpiringCodeStore {
      *
      * @param generator Code generator
      */
-    void setGenerator(RandomValueStringGenerator generator);
+    void setGenerator(AlphanumericRandomValueStringGenerator generator);
 
     /**
      * Remove all codes matching a given intent.
