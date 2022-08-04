@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -159,7 +160,7 @@ public class LoginMockMvcTests {
 
     private WebApplicationContext webApplicationContext;
 
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
 
     private IdentityZoneConfiguration identityZoneConfiguration;
     private IdentityZone identityZone;
@@ -177,7 +178,7 @@ public class LoginMockMvcTests {
             @Autowired IdentityZoneProvisioning identityZoneProvisioning,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     ) throws Exception {
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
         this.webApplicationContext = webApplicationContext;
         this.mockMvc = mockMvc;
         this.limitedModeUaaFilter = limitedModeUaaFilter;
@@ -187,7 +188,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
-        String subdomain = new RandomValueStringGenerator(24).generate().toLowerCase();
+        String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
         identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
         MfaProvider mfaProvider = constructGoogleMfaProvider();
@@ -213,7 +214,7 @@ public class LoginMockMvcTests {
             @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore,
             @Autowired LoginInfoEndpoint loginInfoEndpoint
     ) {
-        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new AlphanumericRandomValueStringGenerator(24));
     }
 
     @AfterEach
@@ -232,11 +233,11 @@ public class LoginMockMvcTests {
     private static MockHttpSession configure_UAA_for_idp_discovery(
             WebApplicationContext webApplicationContext,
             JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
-            RandomValueStringGenerator generator,
+            AlphanumericRandomValueStringGenerator generator,
             String originKey,
             IdentityZone zone, List<String> allowedProviders) {
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
                 .setIdpEntityAlias(originKey)
@@ -1344,7 +1345,7 @@ public class LoginMockMvcTests {
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
                 .setIdpEntityAlias(activeAlias)
@@ -1388,10 +1389,10 @@ public class LoginMockMvcTests {
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
                 .setIdpEntityAlias(alias)
@@ -1455,7 +1456,7 @@ public class LoginMockMvcTests {
         IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
                 .setIdpEntityAlias(alias)
@@ -1671,10 +1672,10 @@ public class LoginMockMvcTests {
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
                 .setIdpEntityAlias(alias)
@@ -1726,7 +1727,7 @@ public class LoginMockMvcTests {
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write", "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition3 = new SamlIdentityProviderDefinition()
@@ -1822,10 +1823,10 @@ public class LoginMockMvcTests {
         BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
 
-        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new AlphanumericRandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, IdentityZoneHolder.getCurrentZoneId());
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(metadata)
                 .setIdpEntityAlias(alias)
@@ -2870,10 +2871,10 @@ public class LoginMockMvcTests {
     private static MockHttpSession setUpClientAndProviderForIdpDiscovery(
             WebApplicationContext webApplicationContext,
             JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
-            RandomValueStringGenerator generator,
+            AlphanumericRandomValueStringGenerator generator,
             String originKey,
             IdentityZone zone) {
-        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
             .setMetaDataLocation(metadata)
             .setIdpEntityAlias(originKey)
@@ -2975,7 +2976,7 @@ public class LoginMockMvcTests {
             WebApplicationContext webApplicationContext,
             MockMvc mockMvc,
             IdentityZoneProvisioning identityZoneProvisioning,
-            RandomValueStringGenerator generator,
+            AlphanumericRandomValueStringGenerator generator,
             IdentityZoneConfiguration config) throws Exception {
         String zoneId = generator.generate().toLowerCase();
         IdentityZone zone = createOtherIdentityZone(zoneId, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
@@ -3031,7 +3032,7 @@ public class LoginMockMvcTests {
         };
     }
 
-    private static ScimUser createUser(ScimUserProvisioning scimUserProvisioning, RandomValueStringGenerator generator, String zoneId) {
+    private static ScimUser createUser(ScimUserProvisioning scimUserProvisioning, AlphanumericRandomValueStringGenerator generator, String zoneId) {
         String username = generator.generate() + "@testdomain.com";
         return createUser(scimUserProvisioning, username, zoneId);
     }
@@ -3045,7 +3046,7 @@ public class LoginMockMvcTests {
         return user;
     }
 
-    private static String createOIDCProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, RandomValueStringGenerator generator, IdentityZone zone, String responseType) throws Exception {
+    private static String createOIDCProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, AlphanumericRandomValueStringGenerator generator, IdentityZone zone, String responseType) throws Exception {
         String originKey = generator.generate();
         AbstractExternalOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setEmailDomain(singletonList("test.org"));
