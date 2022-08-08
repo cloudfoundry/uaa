@@ -23,7 +23,7 @@ ext {
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
-libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:1.0.3"
+libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.1"
 libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
