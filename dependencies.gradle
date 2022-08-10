@@ -4,7 +4,7 @@ ext {
 }
 
 // Versions we're overriding from the Spring Boot Bom
-ext["mariadb.version"] = "2.7.4"
+ext["mariadb.version"] = "2.7.6"
 ext["flyway.version"] = "7.15.0"
 
 // Versions shared between multiple dependencies
