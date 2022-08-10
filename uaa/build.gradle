@@ -55,7 +55,7 @@ dependencies {
     providedCompile(libraries.tomcatEmbed)
 
     implementation(libraries.springMeteringFilter) {
-        exclude(module: "javax.mail")
+        exclude(group: "javax.mail")
     }
     //implementation(libraries.dynamicLogConfigurer)
     runtimeOnly(libraries.nurego)
