@@ -973,10 +973,8 @@ public class LoginInfoEndpoint {
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig() != null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
 
-        boolean selfServiceResetPasswordEnabled = (zone.getConfig() != null) ? zone.getConfig().getLinks().getSelfService()
-                                                                                   .isSelfServiceResetPasswordEnabled() : true;
-        boolean selfServiceCreateAccountEnabled = (zone.getConfig() != null) ? zone.getConfig().getLinks().getSelfService()
-                                                                                   .isSelfServiceCreateAccountEnabled() : true;
+        boolean selfServiceLinksEnabled = (zone.getConfig() != null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
+
         final String defaultSignup = "";
         final String defaultPasswd = "/forgot_password";
         Links.SelfService service = zone.getConfig() != null ? zone.getConfig().getLinks().getSelfService() : null;
@@ -990,18 +988,16 @@ public class LoginInfoEndpoint {
                 globalLinks.getSelfService().getPasswd(),
                 defaultPasswd);
 
-        if (selfServiceResetPasswordEnabled && !disableInternalUserManagement) {
-            if (hasText(passwd)) {
-                passwd = UaaStringUtils.replaceZoneVariables(passwd, IdentityZoneHolder.get());
-                selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
-                selfServiceLinks.put("passwd", passwd);
-            }
-        }
-        if (selfServiceCreateAccountEnabled && !disableInternalUserManagement) {
+        if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             if (hasText(signup)) {
                 signup = UaaStringUtils.replaceZoneVariables(signup, IdentityZoneHolder.get());
                 selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
                 selfServiceLinks.put("register", signup);
+            }
+            if (hasText(passwd)) {
+                passwd = UaaStringUtils.replaceZoneVariables(passwd, IdentityZoneHolder.get());
+                selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
+                selfServiceLinks.put("passwd", passwd);
             }
         }
         return selfServiceLinks;

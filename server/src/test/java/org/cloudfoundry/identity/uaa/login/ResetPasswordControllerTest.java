@@ -106,7 +106,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     void testForgotPasswordWithSelfServiceDisabled() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
-        zone.getConfig().getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
 
         mockMvc.perform(get("/forgot_password")
@@ -114,7 +114,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                 .param("redirect_uri", "http://example.com"))
                 .andExpect(status().isNotFound())
                 .andExpect(view().name("error"))
-                .andExpect(model().attribute("error_message_code", "self_service_reset_password_disabled"));
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"));
     }
 
     @Test
@@ -209,7 +209,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     void forgotPasswordPostWithSelfServiceDisabled() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
-        zone.getConfig().getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
 
         mockMvc.perform(post("/forgot_password.do")
@@ -219,7 +219,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                 .param("redirect_uri", "redirect.example.com"))
                 .andExpect(status().isNotFound())
                 .andExpect(view().name("error"))
-                .andExpect(model().attribute("error_message_code", "self_service_reset_password_disabled"));
+                .andExpect(model().attribute("error_message_code", "self_service_disabled"));
     }
 
     private void forgotPasswordSuccessful(String url) throws Exception {

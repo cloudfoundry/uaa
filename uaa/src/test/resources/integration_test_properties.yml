@@ -61,8 +61,7 @@ login:
     KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
     RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
     -----END CERTIFICATE-----
-  selfServiceResetPasswordEnabled: true
-  selfServiceCreateAccountEnabled: true
+  selfServiceLinksEnabled: true
   url: http://localhost:8080/uaa
   entityBaseURL: http://localhost:8080/uaa
   entityID: cloudfoundry-saml-login

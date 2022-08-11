@@ -84,8 +84,7 @@ public class LoginPagePerformanceMockMvcTest {
 
     @AfterEach
     void tearDown(@Autowired IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws Exception {
-        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
-        MockMvcUtils.setSelfServiceResetPasswordEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
+        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
         identityZoneConfigurationBootstrap.afterPropertiesSet();
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();

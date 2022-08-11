@@ -82,8 +82,7 @@
         "whitelist": null
       },
       "selfService": {
-        "selfServiceResetPasswordEnabled": true,
-        "selfServiceCreateAccountEnabled": true,
+        "selfServiceLinksEnabled": true,
         "signup": null,
         "passwd": null
       }

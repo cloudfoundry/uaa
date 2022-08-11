@@ -198,21 +198,12 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
-    public void disable_self_service_create_account_links() throws Exception {
-        bootstrap.setSelfServiceCreateAccountEnabled(false);
+    public void disable_self_service_links() throws Exception {
+        bootstrap.setSelfServiceLinksEnabled(false);
         bootstrap.afterPropertiesSet();
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
-        assertFalse(zone.getConfig().getLinks().getSelfService().isSelfServiceCreateAccountEnabled());
-    }
-
-    @Test
-    public void disable_self_service_reset_password_links() throws Exception {
-        bootstrap.setSelfServiceResetPasswordEnabled(false);
-        bootstrap.afterPropertiesSet();
-
-        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
-        assertFalse(zone.getConfig().getLinks().getSelfService().isSelfServiceResetPasswordEnabled());
+        assertFalse(zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled());
     }
 
     @Test

@@ -75,8 +75,8 @@ class AccountsControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceCreateAccountEnabled();
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+        selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled();
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
     }
@@ -84,7 +84,7 @@ class AccountsControllerTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(selfServiceToReset);
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceToReset);
     }
 
     @Test
@@ -192,7 +192,7 @@ class AccountsControllerTest {
             .param("password_confirmation", "word")
             .param("client_id", "app");
 
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())

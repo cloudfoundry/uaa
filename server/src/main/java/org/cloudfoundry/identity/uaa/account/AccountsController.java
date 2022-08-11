@@ -46,10 +46,8 @@ public class AccountsController {
                                   @RequestParam(value = "client_id", required = false) String clientId,
                                   @RequestParam(value = "redirect_uri", required = false) String redirectUri,
                                   HttpServletResponse response) {
-        boolean isSelfServiceCreateAccountEnabled = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceCreateAccountEnabled();
-        if (!isSelfServiceCreateAccountEnabled) {
-            return handleSelfServiceDisabled(model, response, "error_message_code",
-                                             "self_service_create_account_disabled");
+        if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
@@ -71,10 +69,8 @@ public class AccountsController {
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
             return handleUnprocessableEntity(model, response, "error_message_code", "missing_consent");
         }
-        boolean isSelfServiceCreateAccountEnabled = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceCreateAccountEnabled();
-        if (!isSelfServiceCreateAccountEnabled) {
-            return handleSelfServiceDisabled(model, response, "error_message_code",
-                                             "self_service_create_account_disabled");
+        if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+            return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
         if (result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email");

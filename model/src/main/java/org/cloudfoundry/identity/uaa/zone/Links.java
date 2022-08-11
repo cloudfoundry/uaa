@@ -98,26 +98,16 @@ public class Links {
     }
 
     public static class SelfService {
-        private boolean selfServiceResetPasswordEnabled = true;
-        private boolean selfServiceCreateAccountEnabled = true;
+        private boolean selfServiceLinksEnabled = true;
         private String signup = null;
         private String passwd = null;
 
-        public boolean isSelfServiceResetPasswordEnabled() {
-            return selfServiceResetPasswordEnabled;
+        public boolean isSelfServiceLinksEnabled() {
+            return selfServiceLinksEnabled;
         }
 
-        public SelfService setSelfServiceResetPasswordEnabled(boolean selfServiceResetPasswordEnabled) {
-            this.selfServiceResetPasswordEnabled = selfServiceResetPasswordEnabled;
-            return this;
-        }
-
-        public boolean isSelfServiceCreateAccountEnabled() {
-            return selfServiceCreateAccountEnabled;
-        }
-
-        public SelfService setSelfServiceCreateAccountEnabled(boolean selfServiceCreateAccountEnabled) {
-            this.selfServiceCreateAccountEnabled = selfServiceCreateAccountEnabled;
+        public SelfService setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
+            this.selfServiceLinksEnabled = selfServiceLinksEnabled;
             return this;
         }
 
