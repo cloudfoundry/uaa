@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -74,6 +75,9 @@ class JdbcScimUserProvisioningTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private DatabaseUrlModifier databaseUrlModifier;
     private String joeEmail;
     private final String JOE_NAME = "joe";
 
@@ -96,6 +100,7 @@ class JdbcScimUserProvisioningTests {
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
+        jdbcScimUserProvisioning.setDatabaseUrlModifier(databaseUrlModifier);
 
         addUser(jdbcTemplate, joeId,
                 JOE_NAME, passwordEncoder.encode("joespassword"), joeEmail, "Joe", "User", "+1-222-1234567", currentIdentityZoneId);

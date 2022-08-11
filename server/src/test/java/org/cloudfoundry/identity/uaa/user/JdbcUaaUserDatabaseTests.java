@@ -56,13 +56,15 @@ class JdbcUaaUserDatabaseTests {
     private IdentityZoneManager mockIdentityZoneManager;
     private Set<SimpleGrantedAuthority> defaultAuthorities;
     private DbUtils dbUtils;
-    private DatabaseUrlModifier databaseUrlModifier;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private Environment environment;
+
+    @Autowired
+    private DatabaseUrlModifier databaseUrlModifier;
 
     @BeforeEach
     void setUp() throws SQLException {
@@ -72,8 +74,6 @@ class JdbcUaaUserDatabaseTests {
                 .collect(Collectors.toSet());
 
         timeService = mock(TimeService.class);
-
-        databaseUrlModifier = new DatabaseUrlModifier(Vendor.unknown, ""); //Do not mock, so it works for all databases in Unit tests
 
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         setUpIdentityZone(mockIdentityZoneManager);
