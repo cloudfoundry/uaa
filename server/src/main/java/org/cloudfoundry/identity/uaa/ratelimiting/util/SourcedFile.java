@@ -9,6 +9,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
@@ -23,7 +25,7 @@ public class SourcedFile {
             return null;
         }
         for ( String dir : dirs ) {
-            dir = StringUtils.normalizeToEmpty( dir );
+            dir = StringUtils.stripToEmpty( dir );
             if ( dir.startsWith( "/" ) ) {
                 InputStream is = getFileInputStream( dir, name );
                 if ( is != null ) {

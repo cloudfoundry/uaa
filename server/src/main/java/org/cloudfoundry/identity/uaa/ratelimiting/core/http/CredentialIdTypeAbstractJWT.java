@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 import org.springframework.security.jwt.codec.Codecs;
 
 public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
@@ -19,7 +19,7 @@ public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
         }
 
         static int sectionNumberFrom( String section, int max ) {
-            section = StringUtils.normalizeToEmpty( section );
+            section = StringUtils.stripToEmpty( section );
             if ( section.length() == 1 ) {
                 char c = section.charAt( 0 );
                 if ( ('0' <= c) && (c <= '9') ) {

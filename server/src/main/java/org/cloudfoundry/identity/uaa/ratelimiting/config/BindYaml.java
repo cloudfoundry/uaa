@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
 import lombok.RequiredArgsConstructor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -32,7 +32,7 @@ public class BindYaml<T> {
                 target = yamlParser.load( yaml );
             }
             catch ( RuntimeException e ) {
-                String message = StringUtils.toErrorMsg( e );
+                String message = StringUtilities.toErrorMsg( e );
                 String cleaned = message.replace( targetClass.getName(), targetClass.getSimpleName() );
                 throw new YamlRateLimitingConfigException( yaml, sourcedFrom + ": " + cleaned );
             }

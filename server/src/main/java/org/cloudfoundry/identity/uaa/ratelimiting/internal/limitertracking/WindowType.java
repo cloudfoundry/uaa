@@ -3,12 +3,12 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 import java.util.Map;
 import java.util.function.Function;
 
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByType;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactory;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 public interface WindowType {
     String windowType();
@@ -106,7 +106,7 @@ public interface WindowType {
 
         @Override
         public String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier ) {
-            return StringUtils.normalizeToNull( callerIdMapper.apply( callerIdSupplier ) );
+            return StringUtils.stripToNull( callerIdMapper.apply( callerIdSupplier ) );
         }
 
         public static void addBestTo( Map<CompoundKey, InternalLimiterFactory> map,

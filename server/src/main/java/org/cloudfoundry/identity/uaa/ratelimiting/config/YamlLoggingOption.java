@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 @Getter
 @ToString
@@ -17,7 +18,7 @@ public class YamlLoggingOption {
      * @return null if <code>yamlCredentialID</code> is null or blank.
      */
     public static YamlLoggingOption from( String yamlLoggingOption ) {
-        yamlLoggingOption = StringUtils.normalizeToNull( yamlLoggingOption );
+        yamlLoggingOption = StringUtils.stripToNull( yamlLoggingOption );
         return (yamlLoggingOption == null) ? null : new YamlLoggingOption( yamlLoggingOption );
     }
 }

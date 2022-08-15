@@ -3,10 +3,11 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.config;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
+
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 @EqualsAndHashCode
 @Getter
@@ -42,7 +43,7 @@ public class PathSelector {
 
     // package friendly for testing
     static PathSelector parse( String selectorStr, int offsetIndex, String name ) {
-        selectorStr = StringUtils.normalizeToNull( selectorStr );
+        selectorStr = StringUtils.stripToNull( selectorStr );
         if ( selectorStr == null ) {
             return null;
         }

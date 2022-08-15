@@ -2,9 +2,8 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 import java.util.function.Consumer;
-
-import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 
 public enum LoggingOption {
     OnlyLimited() { // Default - see below //NOSONAR
@@ -67,7 +66,7 @@ public enum LoggingOption {
     public static final LoggingOption DEFAULT = LoggingOption.OnlyLimited;
 
     public static LoggingOption deNull( LoggingOption option ) {
-        return Null.defaultOn( option, DEFAULT );
+        return Optional.ofNullable(option).orElse(DEFAULT);
     }
 
     // packageFriendly for testing

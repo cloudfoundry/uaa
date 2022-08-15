@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.config;
 
 import java.util.function.Predicate;
 
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 
 public enum PathMatchType {
     Equals( "start with a slash ('/')", path -> path.startsWith( "/" ) ), //NOSONAR Keep Camelcase, as those are exposed to the yml configuration file
@@ -24,6 +24,6 @@ public enum PathMatchType {
     }
 
     public static String options() {
-        return StringUtils.options( values() );
+        return StringUtilities.options( values() );
     }
 }

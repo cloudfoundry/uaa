@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
 import lombok.Builder;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 
 public class RateLimitingFactoriesSupplierWithStatus {
     public static final RateLimitingFactoriesSupplierWithStatus NO_RATE_LIMITING =
@@ -42,7 +42,7 @@ public class RateLimitingFactoriesSupplierWithStatus {
     }
 
     public RateLimitingFactoriesSupplierWithStatus updateError( Exception e, long asOf ) {
-        return (e == null) ? this : toBuilder().status( ensureStatus().updateFailed( StringUtils.toErrorMsg( e ), asOf ) ).build();
+        return (e == null) ? this : toBuilder().status( ensureStatus().updateFailed( StringUtilities.toErrorMsg( e ), asOf ) ).build();
     }
 
     public RateLimitingFactoriesSupplierWithStatus update( String errorMsg, long asOf, String fromSource ) {

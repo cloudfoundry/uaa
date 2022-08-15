@@ -2,13 +2,14 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
@@ -16,7 +17,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFa
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus.*;
 
@@ -29,7 +30,7 @@ public class InitialConfig {
     public static final Singleton<InitialConfig> SINGLETON =
             new Singleton<>( InitialConfig::create );
 
-    private static final String PRIMARY_DYNAMIC_CONFIG_URL = StringUtils.normalizeToNull( System.getenv( ENVIRONMENT_CONFIG_URL ) );
+    private static final String PRIMARY_DYNAMIC_CONFIG_URL = StringUtils.stripToNull(System.getenv(ENVIRONMENT_CONFIG_URL));
 
     private final Exception initialError;
     private final String dynamicUpdateURL;
@@ -63,9 +64,9 @@ public class InitialConfig {
     // packageFriendly for Testing
     static String[] getLocalConfigDirs( List<String> dirProxies, UnaryOperator<String> unProxyFunction ) {
         return dirProxies.stream()
-                .map( StringUtils::normalizeToNull ).filter( Objects::nonNull )
+                .map( StringUtils::stripToNull ).filter( Objects::nonNull )
                 .map( unProxyFunction )
-                .map( StringUtils::normalizeToNull ).filter( Objects::nonNull )
+                .map( StringUtils::stripToNull ).filter( Objects::nonNull )
                 .toArray( String[]::new );
     }
 
@@ -109,7 +110,7 @@ public class InitialConfig {
             }
         }
         if ( url != null ) {
-            url = StringUtils.normalizeToEmpty( url );
+            url = StringUtils.stripToEmpty( url );
             if ( UrlPrefix.isAcceptable( url ) ) {
                 dynamicUpdateURL = url;
                 currentStatus = CurrentStatus.PENDING;

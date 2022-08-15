@@ -4,10 +4,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import lombok.ToString;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+
+import lombok.ToString;
 
 @ToString
 public class LimiterMapping {
@@ -21,7 +22,7 @@ public class LimiterMapping {
     public LimiterMapping( String name,
                            String withCallerCredentialsID, String withCallerRemoteAddressID, String withoutCallerID,
                            String global, List<String> pathSelectors ) {
-        this.name = StringUtils.normalizeToNull( name );
+        this.name = StringUtils.stripToNull( name );
         this.global = RequestsPerWindowSecs.from( name, "global", global ); // ...from() can throw Exceptions
         this.withCallerCredentialsID = RequestsPerWindowSecs.from( name, "withCallerCredentialsID", withCallerCredentialsID );
         this.withCallerRemoteAddressID = RequestsPerWindowSecs.from( name, "withCallerRemoteAddressID", withCallerRemoteAddressID );
@@ -72,7 +73,7 @@ public class LimiterMapping {
     }
 
     public int limitsCount() {
-        return Null.countNonNull( withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global );
+        return ObjectUtils.countNonNull( withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global );
     }
 
     public static Builder builder() {

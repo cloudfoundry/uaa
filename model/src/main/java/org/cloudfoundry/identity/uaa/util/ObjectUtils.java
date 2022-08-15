@@ -19,6 +19,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 
 public class ObjectUtils {
+
+    private ObjectUtils(){};
+
     public static <T> T castInstance(Object o, Class<T> clazz) {
         try {
             return clazz.cast(o);
@@ -38,5 +41,17 @@ public class ObjectUtils {
         factory.setNamespaceAware(true);
         factory.setExpandEntityReferences(false);
         return factory.newDocumentBuilder();
+    }
+
+    public static int countNonNull( Object... objects ) {
+        int count = 0;
+        if ( objects != null ) {
+            for ( Object o : objects ) {
+                if ( o != null ) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }

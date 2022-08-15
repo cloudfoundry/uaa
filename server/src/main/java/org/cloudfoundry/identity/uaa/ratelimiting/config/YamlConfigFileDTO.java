@@ -12,7 +12,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+
+import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 @Getter
@@ -38,13 +39,13 @@ public class YamlConfigFileDTO {
         private List<String> pathSelectors = new ArrayList<>();
 
         public boolean normalizeAndCheckEmpty() {
-            name = StringUtils.normalizeToNull( name );
-            global = StringUtils.normalizeToNull( global );
-            withCallerCredentialsID = StringUtils.normalizeToNull( withCallerCredentialsID );
-            withCallerRemoteAddressID = StringUtils.normalizeToNull( withCallerRemoteAddressID );
-            withoutCallerID = StringUtils.normalizeToNull( withoutCallerID );
+            name = StringUtils.stripToNull( name );
+            global = StringUtils.stripToNull( global );
+            withCallerCredentialsID = StringUtils.stripToNull( withCallerCredentialsID );
+            withCallerRemoteAddressID = StringUtils.stripToNull( withCallerRemoteAddressID );
+            withoutCallerID = StringUtils.stripToNull( withoutCallerID );
             pathSelectors = (pathSelectors == null) ? List.of() : pathSelectors.stream()
-                    .map( StringUtils::normalizeToNull ).filter( Objects::nonNull )
+                    .map( StringUtils::stripToNull ).filter( Objects::nonNull )
                     .collect( Collectors.toList() );
             return (name == null) && (global == null)
                    && (withCallerCredentialsID == null) && (withCallerRemoteAddressID == null) && (withoutCallerID == null)

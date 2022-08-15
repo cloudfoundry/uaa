@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
@@ -10,7 +11,6 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFa
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.FileLoader;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.FileLoaderRestTemplate;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.Fetcher;
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.LoaderLogger;
@@ -28,7 +28,7 @@ public abstract class AbstractRateLimiterConfigConfiguration {
         if ( !rateLimiting ) {
             return null;
         }
-        LoaderLogger logger = Null.defaultOn( loaderLogger(), DEFAULT_LOGGER );
+        LoaderLogger logger = Optional.ofNullable(loaderLogger()).orElse(DEFAULT_LOGGER);
 
         InitialConfig initialConfig = InitialConfig.SINGLETON.getInstance();
         Exception initialError = initialConfig.getInitialError();
@@ -62,8 +62,8 @@ public abstract class AbstractRateLimiterConfigConfiguration {
 
         Fetcher fetcher = null;
         if ( updatingEnabled ) {
-            FileLoader loader = Null.errorOn( "fileLoader", fileLoader( dynamicUpdateURL ) );
-            fetcher = Null.errorOn( "fetcher", fetcher( loader, logger, dynamicUpdateURL ) );
+            FileLoader loader = Optional.ofNullable(fileLoader( dynamicUpdateURL )).orElseThrow(() -> new Error("No 'fileLoader' provided -- coding error"));
+            fetcher = Optional.ofNullable(fetcher( loader, logger, dynamicUpdateURL )).orElseThrow(() -> new Error("No 'fetcher' provided -- coding error"));
         }
         return new RateLimitingConfigLoader( logger, fetcher, dynamicUpdateURL, configMapper, configurationWithStatus );
     }

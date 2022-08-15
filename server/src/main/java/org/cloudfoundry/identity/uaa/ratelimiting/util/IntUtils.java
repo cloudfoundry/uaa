@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class IntUtils {
 
     private IntUtils() {}
@@ -9,12 +11,12 @@ public class IntUtils {
             return parse( source, defaultOnEmpty );
         }
         catch ( NumberFormatException e ) {
-            return null;
+            return defaultOnEmpty;
         }
     }
 
     public static Integer parse( String source, Integer defaultOnEmpty ) {
-        source = StringUtils.normalizeToEmpty( source );
+        source = StringUtils.stripToEmpty( source );
         return source.isEmpty() ? defaultOnEmpty : Integer.valueOf( Integer.parseInt( source ) );
     }
 }

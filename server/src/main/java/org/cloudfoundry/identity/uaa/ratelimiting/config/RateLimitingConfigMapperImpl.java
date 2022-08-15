@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.PathSelector;
@@ -15,7 +16,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.InternalLimiterFactoriesSupplierImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.YamlConfigFileDTO.LimiterMap;
 
@@ -98,8 +99,7 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
             CredentialIdType type = credentialIdTypesByKey.get( definition.getKey() );
             if ( type == null ) {
                 throw new RateLimitingConfigException( CREDENTIAL_ID_NOT_FOUND_PREFIX + definition + "'; " +
-                                                       StringUtils.options( "registered type",
-                                                                            credentialIdTypesByKey.keySet().toArray() ) );
+                        StringUtilities.options( "registered type", credentialIdTypesByKey.keySet().toArray() ) );
             }
             return type.factory( definition.getPostKeyConfig() );
         }
@@ -107,13 +107,12 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
     }
 
     private LoggingOption parseLoggingOption( String loggingOptionDefinition ) {
-        loggingOptionDefinition = StringUtils.normalizeToNull( loggingOptionDefinition );
+        loggingOptionDefinition = StringUtils.stripToNull( loggingOptionDefinition );
         if ( loggingOptionDefinition != null ) {
             LoggingOption loggingOption = LoggingOption.valueFor( loggingOptionDefinition );
             if ( loggingOption == null ) {
                 throw new RateLimitingConfigException( LOGGING_OPTION_NOT_FOUND_PREFIX + loggingOptionDefinition + "'; " +
-                                                       StringUtils.options( "valid option",
-                                                                            LoggingOption.values() ) );
+                        StringUtilities.options( "valid option", LoggingOption.values() ) );
             }
             return loggingOption;
         }

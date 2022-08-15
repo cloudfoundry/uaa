@@ -2,11 +2,13 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import lombok.RequiredArgsConstructor;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 @RequiredArgsConstructor
 public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
@@ -20,7 +22,7 @@ public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
     @Override
     public AuthorizationCredentialIdExtractor factory( String keyTypeParameters ) {
         // 'JWT:Claims:email'
-        String[] sectionAndField = StringUtils.normalizeToEmpty( keyTypeParameters ).split( ":" );
+        String[] sectionAndField = StringUtils.stripToEmpty( keyTypeParameters ).split( ":" );
         String errorMsg;
         if ( sectionAndField.length != 2 ) {
             errorMsg = sectionAndField.length + " values";

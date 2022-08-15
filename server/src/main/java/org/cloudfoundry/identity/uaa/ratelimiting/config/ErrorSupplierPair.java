@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 import lombok.Getter;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 
 @Getter
 public class ErrorSupplierPair {
@@ -14,7 +14,7 @@ public class ErrorSupplierPair {
     private ErrorSupplierPair( InternalLimiterFactoriesSupplier supplier, Exception error ) {
         this.supplier = InternalLimiterFactoriesSupplier.deNull( supplier );
         this.error = error;
-        this.errorMsg = StringUtils.toErrorMsg( error );
+        this.errorMsg = StringUtilities.toErrorMsg( error );
     }
 
     public boolean hasError() {

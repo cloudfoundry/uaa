@@ -1,13 +1,14 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
+import javax.servlet.http.HttpServletRequest;
+
 import java.security.Principal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.LazyEnumerationToList;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 public class RequestInfoImpl implements RequestInfo {
     static final String NO_HTTP_SERVLET_REQUEST_TO_PROXY = "No HttpServletRequest to Proxy!";
@@ -46,11 +47,11 @@ public class RequestInfoImpl implements RequestInfo {
             if ( value != null ) {
                 int at = value.indexOf( ',' );
                 if ( at != -1 ) {
-                    value = StringUtils.normalizeToNull( value.substring( 0, at ) );
+                    value = StringUtils.stripToNull( value.substring( 0, at ) );
                 }
             }
         }
-        return (value != null) ? value : StringUtils.normalizeToNull( getRemoteAddr() );
+        return (value != null) ? value : StringUtils.stripToNull( getRemoteAddr() );
     }
 
     public boolean hasHeaderNames() {
@@ -119,7 +120,7 @@ public class RequestInfoImpl implements RequestInfo {
     }
 
     private String header( String name ) {
-        return StringUtils.normalizeToNull( getHeader( name ) );
+        return StringUtils.stripToNull( getHeader( name ) );
     }
 
     private LazyEnumerationToList<String> headersFor( String name ) {

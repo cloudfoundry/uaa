@@ -1,13 +1,14 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
-import lombok.RequiredArgsConstructor;
+import static org.apache.commons.lang3.StringUtils.stripToNull;
+import static org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities.SupplierWithCaching;
+
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByType;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByTypeFactory;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
 
-import static org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils.SupplierWithCaching;
-import static org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils.normalizeToNull;
+import lombok.RequiredArgsConstructor;
 
 public class CallerIdSupplierByTypeFactoryFactory {
 
@@ -48,7 +49,7 @@ public class CallerIdSupplierByTypeFactoryFactory {
 
         protected NoCredentialIdExtractor( RequestInfo info ) {
             supplier = new SupplierWithCaching(
-                    () -> normalizeToNull( info.getClientIP() ) );
+                    () -> stripToNull( info.getClientIP() ) );
         }
 
         @Override
@@ -63,7 +64,7 @@ public class CallerIdSupplierByTypeFactoryFactory {
         public WithCredentialIdExtractor( RequestInfo info, AuthorizationCredentialIdExtractor credentialIdExtractor ) {
             super( info );
             supplier = new SupplierWithCaching(
-                    () -> normalizeToNull( credentialIdExtractor.mapAuthorizationToCredentialsID( info ) ) );
+                    () -> stripToNull( credentialIdExtractor.mapAuthorizationToCredentialsID( info ) ) );
         }
 
         @Override

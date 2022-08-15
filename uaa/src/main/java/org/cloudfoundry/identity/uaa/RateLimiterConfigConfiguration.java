@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
@@ -10,7 +11,6 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimi
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractorErrorLogger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -65,8 +65,8 @@ public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigCon
             private String messageWith( String typePLus, Exception e ) {
                 StringBuilder sb = new StringBuilder();
                 sb.append( RateLimiterConfigConfiguration.class.getSimpleName() ).append( typePLus ).append( ": " );
-                String eMessage = (e == null) ? "-No Exception-" : Null.defaultOn( e.getMessage(), "-No Message-" );
-                String reference = Null.defaultOn( sourceReference.get(), "-No sourceReference-" );
+                String eMessage = (e == null) ? "-No Exception-" : Optional.ofNullable(e.getMessage()).orElse("-No Message-");
+                String reference = Optional.ofNullable(sourceReference.get()).orElse("-No sourceReference-" );
                 if ( !eMessage.contains( reference ) ) {
                     sb.append( reference ).append( " | " );
                 }

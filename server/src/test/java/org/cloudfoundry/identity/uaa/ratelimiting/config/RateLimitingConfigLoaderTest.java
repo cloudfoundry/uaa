@@ -1,10 +1,24 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.Fetcher;
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.LoaderLogger;
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader.YAML_EMPTY;
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader.YAML_FETCH_FAILED;
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader.YAML_NO_DATA;
+import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader.YAML_NULL;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.Mockito.when;
+
+import javax.annotation.Nonnull;
+
 import java.io.IOException;
 import java.time.Instant;
 import java.util.function.Supplier;
-import javax.annotation.Nonnull;
 
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.AbstractExceptionTestSupport;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
@@ -12,15 +26,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-
-import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.Fetcher;
-import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.LoaderLogger;
-import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.when;
 
 @SuppressWarnings("SameParameterValue")
 public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
@@ -157,7 +164,7 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
             fail( "'actual' null" );
         }
         if ( !actual.startsWith( expected ) ) {
-            String suffix = StringUtils.normalizeToEmpty( (messageSupplier == null) ? "" : messageSupplier.get() );
+            String suffix = StringUtils.stripToEmpty( (messageSupplier == null) ? "" : messageSupplier.get() );
             fail( "actual did NOT start with expected:"
                   + "\n  expected '" + expected + "'"
                   + "\n    actual '" + actual + "'"

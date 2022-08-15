@@ -3,8 +3,9 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
 import lombok.RequiredArgsConstructor;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 @RequiredArgsConstructor
 public class CredentialIdTypeJWT extends CredentialIdTypeAbstractJWT {
@@ -17,7 +18,7 @@ public class CredentialIdTypeJWT extends CredentialIdTypeAbstractJWT {
 
     @Override
     public AuthorizationCredentialIdExtractor factory( String keyTypeParameters ) {
-        keyTypeParameters = StringUtils.normalizeToEmpty( keyTypeParameters );
+        keyTypeParameters = StringUtils.stripToEmpty( keyTypeParameters );
         if ( keyTypeParameters.isEmpty() ) {
             return new AllJWT();
         }
@@ -27,7 +28,7 @@ public class CredentialIdTypeJWT extends CredentialIdTypeAbstractJWT {
         int at = keyTypeParameters.indexOf( '+' ); // section reference and regex separator
         if ( at != -1 ) {
             sectionRef = keyTypeParameters.substring( 0, at );
-            regex = StringUtils.normalizeToNull( keyTypeParameters.substring( at + 1 ) );
+            regex = StringUtils.stripToNull( keyTypeParameters.substring( at + 1 ) );
         }
         int section = Section.sectionNumberFrom( sectionRef, 2 );
         if ( regex == null ) {
@@ -68,7 +69,7 @@ public class CredentialIdTypeJWT extends CredentialIdTypeAbstractJWT {
                 }
                 StringBuilder sb = new StringBuilder();
                 for ( int i = 1; i <= groups; i++ ) {
-                    String group = StringUtils.normalizeToNull( m.group( i ) );
+                    String group = StringUtils.stripToNull( m.group( i ) );
                     if ( group != null ) {
                         sb.append( '|' ).append( group );
                     }

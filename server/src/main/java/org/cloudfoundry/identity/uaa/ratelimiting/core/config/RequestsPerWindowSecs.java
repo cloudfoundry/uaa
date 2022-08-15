@@ -1,12 +1,13 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core.config;
 
+import static org.cloudfoundry.identity.uaa.ratelimiting.util.IntUtils.parseNoException;
+
 import java.time.Duration;
 
-import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
-import static org.cloudfoundry.identity.uaa.ratelimiting.util.IntUtils.parseNoException;
+import lombok.RequiredArgsConstructor;
 
 public class RequestsPerWindowSecs {
     public static final int MAX_WINDOW_SECONDS = (int)Duration.ofMinutes( 30 ).toSeconds();
@@ -39,7 +40,7 @@ public class RequestsPerWindowSecs {
     }
 
     public static RequestsPerWindowSecs from( String name, String what, String data ) {
-        data = StringUtils.normalizeToEmpty( data ).toLowerCase();
+        data = StringUtils.stripToEmpty( data ).toLowerCase();
         return data.isEmpty() ? null : new Parser( name, what, data ).parse();
     }
 

@@ -1,33 +1,21 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
+import static org.apache.commons.lang3.StringUtils.stripToNull;
+
 import java.util.function.Supplier;
 
 import lombok.RequiredArgsConstructor;
 
-public class StringUtils {
+public class StringUtilities {
 
-    private StringUtils(){}
+    private StringUtilities(){}
 
     public static String toErrorMsg( Exception e ) {
         if ( e == null ) {
             return null;
         }
-        String msg = normalizeToNull( e.getMessage() );
+        String msg = stripToNull( e.getMessage() );
         return (msg != null) ? msg : e.getClass().getSimpleName();
-    }
-
-    public static String normalizeToNull( String value ) {
-        if ( value != null ) {
-            value = value.trim();
-            if ( value.isEmpty() ) {
-                value = null;
-            }
-        }
-        return value;
-    }
-
-    public static String normalizeToEmpty( String value ) {
-        return (value == null) ? "" : value.trim();
     }
 
     public static String options( String labelSingularButPluralWithAnS, Object[] validOptions ) {
