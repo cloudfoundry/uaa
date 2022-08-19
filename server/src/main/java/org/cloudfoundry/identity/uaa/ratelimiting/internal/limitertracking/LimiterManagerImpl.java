@@ -133,9 +133,6 @@ public class LimiterManagerImpl implements LimiterManager,
                                                    .status( RateLimiterStatus.CurrentStatus.DISABLED )
                                                    .asOf( currentTimeSupplier.now() )
                                                    .build() )
-                                 .update( RateLimiterStatus.Update.builder()
-                                                  .status( RateLimiterStatus.UpdateStatus.DISABLED )
-                                                  .build() )
                                  .build() )
                 .build();
     }

@@ -1,12 +1,16 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.time.Instant;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 class RateLimitingFactoriesSupplierWithStatusTest {
     private static final long now15_123456 = Instant.parse( "2011-01-15T12:34:56Z" ).toEpochMilli();
@@ -29,32 +33,26 @@ class RateLimitingFactoriesSupplierWithStatusTest {
     @Test
     void create_updateError_update() {
         RateLimitingFactoriesSupplierWithStatus fsNs = RateLimitingFactoriesSupplierWithStatus
-                .create( null, null, now15_123456, "test", false );
+                .create( null, null, now15_123456, "test" );
         assertFalse( fsNs.isRateLimitingEnabled() );
         assertNotNull( fsNs.getStatus() ); // Tested else where!
         assertNotNull( fsNs.getStatusJson() ); // Tested else where!
         assertTrue( fsNs.getStatus().hasCurrentSection() ); // content Tested else where!
-        assertTrue( fsNs.getStatus().hasUpdateSection() ); // content Tested else where!
         assertNull( fsNs.getStatus().getCurrent().getError() );
-        assertNull( fsNs.getStatus().getUpdate().getError() );
         assertEquals( "test", fsNs.getStatus().getFromSource() );
 
-        fsNs = fsNs.updateError( new RateLimitingConfigException( "testy" ), now16_012345 );
+        fsNs = fsNs.updateError(new RateLimitingConfigException( "testy" ));
         assertNotNull( fsNs.getStatus() ); // Tested else where!
         assertNotNull( fsNs.getStatusJson() ); // Tested else where!
         assertTrue( fsNs.getStatus().hasCurrentSection() ); // content Tested else where!
-        assertTrue( fsNs.getStatus().hasUpdateSection() ); // content Tested else where!
         assertNull( fsNs.getStatus().getCurrent().getError() );
-        assertEquals( "testy", fsNs.getStatus().getUpdate().getError() );
         assertEquals( "test", fsNs.getStatus().getFromSource() );
 
-        fsNs = fsNs.update( null, now16_013000, "testUpdate" );
+        fsNs = fsNs.update();
         assertNotNull( fsNs.getStatus() ); // Tested else where!
         assertNotNull( fsNs.getStatusJson() ); // Tested else where!
         assertTrue( fsNs.getStatus().hasCurrentSection() ); // content Tested else where!
-        assertTrue( fsNs.getStatus().hasUpdateSection() ); // content Tested else where!
         assertNull( fsNs.getStatus().getCurrent().getError() );
-        assertNull( fsNs.getStatus().getUpdate().getError() );
-        assertEquals( "testUpdate", fsNs.getStatus().getFromSource() );
+        assertEquals( "test", fsNs.getStatus().getFromSource() );
     }
 }

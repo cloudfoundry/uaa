@@ -5,16 +5,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.ratelimiting.config.AbstractRateLimiterConfigConfiguration;
-import org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoader;
+import org.cloudfoundry.identity.uaa.ratelimiting.config.LoaderLogger;
+import org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigInitializer;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractorErrorLogger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-
-import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfig.LoaderLogger;
 
 /**
  * Spring based configuration to configure the RateLimitingConfigLoader
@@ -25,16 +24,42 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConf
  * <a href="https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml">https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml</a> (url)
  */
 @Configuration
-public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigConfiguration {
+public class RateLimiterConfigConfiguration {
     private final Log logger = LogFactory.getLog( RateLimiterConfigConfiguration.class );
 
+    protected final boolean rateLimiting;
+
+    protected RateLimiterConfigConfiguration() {
+        rateLimiting = RateLimiter.isEnabled();
+    }
+
+    private static final LoaderLogger DEFAULT_LOGGER = new LoaderLogger() {
+        @Override
+        public void logFetchingFrom( String source ) {
+            //Fallback instance, no logging implemented
+        }
+
+        @Override
+        public void logError( RateLimitingConfigException e ) {
+            //Fallback instance, no logging implemented
+        }
+
+        @Override
+        public void logUnhandledError( Exception e ) {
+            //Fallback instance, no logging implemented
+        }
+
+        @Override
+        public void logUpdate( String msg ) {
+            //Fallback instance, no logging implemented
+        }
+    };
+
     @Bean
-    public RateLimitingConfigLoader loader() {
+    public RateLimitingConfigInitializer loader() {
         AuthorizationCredentialIdExtractorErrorLogger errLogger =
                 e -> logger.error( "AuthorizationCredentialIdExtractor", e );
-        return createLoader(
-                new CredentialIdTypeJWT( errLogger ),
-                new CredentialIdTypeJWTjsonField( errLogger ) );
+        return new RateLimitingConfigInitializer(rateLimiting, Optional.ofNullable(loaderLogger()).orElse(DEFAULT_LOGGER), new CredentialIdTypeJWT( errLogger ), new CredentialIdTypeJWTjsonField( errLogger ));
     }
 
     protected LoaderLogger loaderLogger() {

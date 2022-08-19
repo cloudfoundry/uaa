@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
-import lombok.Getter;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
+
+import lombok.Getter;
 
 @Getter
 public class ErrorSupplierPair {
@@ -29,10 +30,10 @@ public class ErrorSupplierPair {
         return new ErrorSupplierPair( null, error );
     }
 
-    public RateLimitingFactoriesSupplierWithStatus map( RateLimitingFactoriesSupplierWithStatus existing, String fromSource, boolean updatingEnabled, long asOf ) {
-        if ( (existing == null) || !existing.hasStatusCurrentSection() || !updatingEnabled || !supplier.isSupplierNOOP() ) {
-            return RateLimitingFactoriesSupplierWithStatus.create( supplier, errorMsg, asOf, fromSource, updatingEnabled );
+    public RateLimitingFactoriesSupplierWithStatus map( RateLimitingFactoriesSupplierWithStatus existing, String fromSource, long asOf ) {
+        if ( (existing == null) || !existing.hasStatusCurrentSection() || !supplier.isSupplierNOOP() ) {
+            return RateLimitingFactoriesSupplierWithStatus.create( supplier, errorMsg, asOf, fromSource );
         }
-        return existing.update( errorMsg, asOf, fromSource );
+        return existing.update();
     }
 }

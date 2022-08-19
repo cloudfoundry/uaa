@@ -136,10 +136,10 @@ public class RateLimitingFilter extends HttpFilter {
             limiter.log( request.getRequestURI(), log::info, startTime );
             return limiter;
         }
-    }
 
-    private static void limitRequest( HttpServletResponse response )
-            throws IOException {
-        response.sendError( 429, "Too Many Requests" );
+        private static void limitRequest( HttpServletResponse response )
+                throws IOException {
+            response.sendError( 429, "Too Many Requests" );
+        }
     }
 }

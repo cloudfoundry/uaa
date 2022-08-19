@@ -24,28 +24,16 @@ TOC:<p>
                                               
 ## <a id="Enablement"></a> Enablement
 
-Rate Limiting is enabled in two ways:
-1. By an environment variable "RateLimiterConfigUrl" (which acts as a source of dynamic configuration updates), that must start with either "http://" or "https://" (from an enablement perspective the rest of the URL does NOT matter).
-2. By a local file "RateLimiterConfig.yml", that exists in any of the following four 'directories', checked in the following order:
+Rate Limiting is enabled by the following configuration:
+1. By a local file "RateLimiterConfig.yml", that exists in any of the following four 'directories', checked in the following order:
    1. Environment variable "CLOUDFOUNDRY_CONFIG_PATH" (Bosh based CFs),
    2. Environment variable "UAA_CONFIG_PATH" (K8s based CFs),
    3. Environment variable "RateLimiterConfigDir",
    4. The root of the applications "resource" directory.
 
-You can see (and use) a URL example with:
-> export&nbsp;RateLimiterConfigUrl=https://raw.githubusercontent.com/litesoft/RateLimiterExampleConfig/main/RateLimiters.yaml
-
 Obviously the local file "RateLimiterConfig.yml", is read once on startup, and assuming there are no errors, will become the initial (and default) limits.
 If there is an error interpreting the local file "RateLimiterConfig.yml", the error is logged (and available at the "RateLimitingStatus" endpoint), and
 Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is activated, but with no initial (or default) limits!
-
-There is one difference between the local file "RateLimiterConfig.yml" and the environment
-variable "RateLimiterConfigUrl" based file; the local file "RateLimiterConfig.yml" can 
-contain one more field "dynamicConfigUrl", if present and the value starts with
-"http://" or "https://", then it becomes the default source of dynamic configuration updates
-(if the environment variable "RateLimiterConfigUrl" exists it supersedes the
-"dynamicConfigUrl" field in the local file "RateLimiterConfig.yml").
-
 
 <small>[back to TOC](#TOC)</small>
 

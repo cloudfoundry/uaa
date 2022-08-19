@@ -41,17 +41,17 @@ public class RateLimitingFactoriesSupplierWithStatus {
         return (status != null) && status.hasCurrentSection();
     }
 
-    public RateLimitingFactoriesSupplierWithStatus updateError( Exception e, long asOf ) {
-        return (e == null) ? this : toBuilder().status( ensureStatus().updateFailed( StringUtilities.toErrorMsg( e ), asOf ) ).build();
+    public RateLimitingFactoriesSupplierWithStatus updateError( Exception e) {
+        return (e == null) ? this : toBuilder().status( ensureStatus() ).build();
     }
 
-    public RateLimitingFactoriesSupplierWithStatus update( String errorMsg, long asOf, String fromSource ) {
-        return toBuilder().status( ensureStatus().update( errorMsg, asOf, fromSource ) ).build();
+    public RateLimitingFactoriesSupplierWithStatus update() {
+        return toBuilder().status( ensureStatus() ).build();
     }
 
     public static RateLimitingFactoriesSupplierWithStatus create( InternalLimiterFactoriesSupplier supplier, String errorMsg,
-                                                                  long asOf, String fromSource, boolean updatingEnabled ) {
-        return builder().supplier( supplier ).status( RateLimiterStatus.create( supplier, errorMsg, asOf, fromSource, updatingEnabled ) ).build();
+                                                                  long asOf, String fromSource ) {
+        return builder().supplier( supplier ).status( RateLimiterStatus.create( supplier, errorMsg, asOf, fromSource ) ).build();
     }
 
     private RateLimiterStatus ensureStatus() {

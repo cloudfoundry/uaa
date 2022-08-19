@@ -27,14 +27,14 @@ public class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSuppo
     MillisTimeSupplier currentTimeSupplier = new MillisTimeSupplier.Mock();
 
     private RateLimitingConfigMapperImpl createMapper( CredentialIdType... credentialIdTypes ) {
-        return new RateLimitingConfigMapperImpl( true, currentTimeSupplier, credentialIdTypes );
+        return new RateLimitingConfigMapperImpl( currentTimeSupplier, credentialIdTypes );
     }
 
     @Test
     void checkForCredentialIdTypes() {
-        assertEquals( 0, new RateLimitingConfigMapperImpl( true ).getCredentialIdTypeCount() );
-        assertEquals( 1, new RateLimitingConfigMapperImpl( true, new CredentialIdTypeJWT( null ) ).getCredentialIdTypeCount() );
-        assertEquals( 2, new RateLimitingConfigMapperImpl( true, new CredentialIdTypeJWT( null ), new CredentialIdTypeJWTjsonField( null ) ).getCredentialIdTypeCount() );
+        assertEquals( 0, new RateLimitingConfigMapperImpl().getCredentialIdTypeCount() );
+        assertEquals( 1, new RateLimitingConfigMapperImpl( new CredentialIdTypeJWT( null ) ).getCredentialIdTypeCount() );
+        assertEquals( 2, new RateLimitingConfigMapperImpl( new CredentialIdTypeJWT( null ), new CredentialIdTypeJWTjsonField( null ) ).getCredentialIdTypeCount() );
     }
 
     @Test

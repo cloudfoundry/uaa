@@ -29,7 +29,6 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
     static final String DUPLICATE_PATH_SELECTOR_PREFIX = "Duplicate PathSelector (";
     static final String DUPLICATE_NAME_PREFIX = "Duplicate Name (";
 
-    private final boolean updatingEnabled;
     private final MillisTimeSupplier currentTimeSupplier;
     private final Map<String, CredentialIdType> credentialIdTypesByKey = new HashMap<>();
     // package friendly for testing
@@ -40,13 +39,12 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
      *
      * @param credentialIdTypes nullable/empty, and if null/empty only Client IP can be used...
      */
-    public RateLimitingConfigMapperImpl( boolean updatingEnabled, CredentialIdType... credentialIdTypes ) {
-        this( updatingEnabled, null, credentialIdTypes );
+    public RateLimitingConfigMapperImpl( CredentialIdType... credentialIdTypes ) {
+        this( null, credentialIdTypes );
     }
 
     // package friendly and more params for Testing
-    RateLimitingConfigMapperImpl( boolean updatingEnabled, MillisTimeSupplier currentTimeSupplier, CredentialIdType... credentialIdTypes ) {
-        this.updatingEnabled = updatingEnabled;
+    RateLimitingConfigMapperImpl( MillisTimeSupplier currentTimeSupplier, CredentialIdType... credentialIdTypes ) {
         this.currentTimeSupplier = MillisTimeSupplier.deNull( currentTimeSupplier );
         populateCredentialIdTypes( credentialIdTypes );
     }
@@ -59,7 +57,7 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
 
     @Override
     public RateLimitingFactoriesSupplierWithStatus map( RateLimitingFactoriesSupplierWithStatus current, String fromSource, YamlConfigFileDTO dto ) {
-        return checkNoChange( dto ) ? null : createErrorSupplierPair( dto ).map( current, fromSource, updatingEnabled, currentTimeSupplier.now() );
+        return checkNoChange( dto ) ? null : createErrorSupplierPair( dto ).map( current, fromSource, currentTimeSupplier.now() );
     }
 
     // package friendly for testing

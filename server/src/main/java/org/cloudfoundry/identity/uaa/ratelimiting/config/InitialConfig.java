@@ -24,25 +24,19 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterSta
 @Getter
 public class InitialConfig {
     public static final List<String> ENVIRONMENT_CONFIG_LOCAL_DIRS = List.of( "CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir" );
-    public static final String ENVIRONMENT_CONFIG_URL = "RateLimiterConfigUrl";
     public static final String LOCAL_CONFIG_FILE = "RateLimiterConfig.yml";
 
     public static final Singleton<InitialConfig> SINGLETON =
             new Singleton<>( InitialConfig::create );
 
-    private static final String PRIMARY_DYNAMIC_CONFIG_URL = StringUtils.stripToNull(System.getenv(ENVIRONMENT_CONFIG_URL));
-
     private final Exception initialError;
-    private final String dynamicUpdateURL;
     private final YamlConfigFileDTO localConfigFileDTO;
     private final RateLimitingFactoriesSupplierWithStatus configurationWithStatus;
 
     // packageFriendly for Testing
-    InitialConfig( Exception initialError, String dynamicUpdateURL,
-                   YamlConfigFileDTO localConfigFileDTO,
+    InitialConfig( Exception initialError, YamlConfigFileDTO localConfigFileDTO,
                    RateLimitingFactoriesSupplierWithStatus configurationWithStatus ) {
         this.initialError = initialError;
-        this.dynamicUpdateURL = dynamicUpdateURL;
         this.localConfigFileDTO = localConfigFileDTO;
         this.configurationWithStatus = configurationWithStatus;
     }
@@ -53,7 +47,7 @@ public class InitialConfig {
 
     // packageFriendly for Testing
     static InitialConfig create() {
-        return create( PRIMARY_DYNAMIC_CONFIG_URL, locateAndLoadLocalConfigFile(), MillisTimeSupplier.SYSTEM );
+        return create( locateAndLoadLocalConfigFile(), MillisTimeSupplier.SYSTEM );
     }
 
     private static SourcedFile locateAndLoadLocalConfigFile() {
@@ -81,59 +75,40 @@ public class InitialConfig {
 
     @SuppressWarnings("SameParameterValue")
     // packageFriendly for Testing
-    static InitialConfig create( String url, // primary source of dynamic updates
-                                 SourcedFile localConfigFile, MillisTimeSupplier currentTimeSupplier ) {
-        if ( (url == null) && (localConfigFile == null) ) { // Leave everything disabled!
-            return new InitialConfig( null, null, null,
-                                      RateLimitingFactoriesSupplierWithStatus.NO_RATE_LIMITING );
+    static InitialConfig create( SourcedFile localConfigFile, MillisTimeSupplier currentTimeSupplier ) {
+        if (localConfigFile == null) { // Leave everything disabled!
+            return new InitialConfig( null, null, RateLimitingFactoriesSupplierWithStatus.NO_RATE_LIMITING );
         }
         String errorMsg = null;
-        String dynamicUpdateURL = null;
         Exception error = null;
         ExtendedYamlConfigFileDTO dto = null;
         CurrentStatus currentStatus = CurrentStatus.DISABLED;
-        UpdateStatus updateStatus = UpdateStatus.DISABLED;
-        String sourcedFrom = "InitialConfig";
-        if ( localConfigFile != null ) {
-            sourcedFrom = localConfigFile.getSource();
-            BindYaml<ExtendedYamlConfigFileDTO> bindYaml = new BindYaml<>( ExtendedYamlConfigFileDTO.class, sourcedFrom );
-            try {
-                dto = parseFile( bindYaml, localConfigFile.getBody() );
-                if ( url == null ) {
-                    url = dto.getDynamicConfigUrl(); // secondary source of dynamic updates
-                }
-                currentStatus = CurrentStatus.PENDING;
-            }
-            catch ( YamlRateLimitingConfigException e ) {
-                error = e;
-                errorMsg = e.getMessage();
-            }
+
+        String sourcedFrom = localConfigFile.getSource();
+        BindYaml<ExtendedYamlConfigFileDTO> bindYaml = new BindYaml<>( ExtendedYamlConfigFileDTO.class, sourcedFrom );
+        try {
+            dto = parseFile( bindYaml, localConfigFile.getBody() );
+            currentStatus = CurrentStatus.PENDING;
         }
-        if ( url != null ) {
-            url = StringUtils.stripToEmpty( url );
-            if ( UrlPrefix.isAcceptable( url ) ) {
-                dynamicUpdateURL = url;
-                currentStatus = CurrentStatus.PENDING;
-                updateStatus = UpdateStatus.PENDING;
-            }
+        catch ( YamlRateLimitingConfigException e ) {
+            error = e;
+            errorMsg = e.getMessage();
         }
 
         long now = MillisTimeSupplier.deNull( currentTimeSupplier ).now();
 
         Current current = Current.builder().status( currentStatus ).asOf( now ).error( errorMsg ).build();
-        Update update = Update.builder().status( updateStatus ).asOf( now ).build();
 
         RateLimitingFactoriesSupplierWithStatus configurationWithStatus =
                 RateLimitingFactoriesSupplierWithStatus.builder()
                         .supplier( InternalLimiterFactoriesSupplier.NOOP )
                         .status( RateLimiterStatus.builder()
                                          .current( current )
-                                         .update( update )
                                          .fromSource( sourcedFrom )
                                          .build() )
                         .build();
 
-        return new InitialConfig( error, dynamicUpdateURL, dto, configurationWithStatus );
+        return new InitialConfig( error, dto, configurationWithStatus );
     }
 
     // packageFriendly for Testing
@@ -147,24 +122,5 @@ public class InitialConfig {
     @EqualsAndHashCode
     public static class ExtendedYamlConfigFileDTO extends YamlConfigFileDTO {
         private String dynamicConfigUrl;
-    }
-
-    enum UrlPrefix {
-        HTTPS, HTTP;
-
-        public String asPrefix() {
-            return name().toLowerCase() + "://";
-        }
-
-        public static boolean isAcceptable( String url ) {
-            if ( url != null ) {
-                for ( UrlPrefix up : UrlPrefix.values() ) {
-                    if ( url.startsWith( up.asPrefix() ) ) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
     }
 }

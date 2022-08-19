@@ -21,37 +21,30 @@ class ErrorSupplierPairTest {
     @Test
     void map_create() {
         ErrorSupplierPair pair = ErrorSupplierPair.with( new RateLimitingConfigException( "testy" ) );
-        RateLimitingFactoriesSupplierWithStatus fsNs = pair.map( null, "map_create", false, now15_123456 );
+        RateLimitingFactoriesSupplierWithStatus fsNs = pair.map( null, "map_create", now15_123456 );
         assertTrue( fsNs.isRateLimitingEnabled() );
         assertTrue( fsNs.getSupplier().isSupplierNOOP() );
         assertNotNull( fsNs.getStatus() ); // Tested else where!
         assertNotNull( fsNs.getStatusJson() ); // Tested else where!
         assertTrue( fsNs.getStatus().hasCurrentSection() ); // content Tested else where!
-        assertTrue( fsNs.getStatus().hasUpdateSection() ); // content Tested else where!
         assertEquals( "testy", fsNs.getStatus().getCurrent().getError() );
-        assertNull( fsNs.getStatus().getUpdate().getError() );
         assertEquals( RateLimiterStatus.toISO8601ZtoSec( now15_123456 ), fsNs.getStatus().getCurrent().getAsOf() );
-        assertNull( fsNs.getStatus().getUpdate().getAsOf() );
         assertEquals( "map_create", fsNs.getStatus().getFromSource() );
     }
 
     @Test
     void map_update() {
-        RateLimitingFactoriesSupplierWithStatus existing = new RateLimitingFactoriesSupplierWithStatus( InternalLimiterFactoriesSupplier.NOOP,
-                                                                                                        RateLimiterStatus.noRateLimiting( now15_123456 ) );
+        RateLimitingFactoriesSupplierWithStatus existing = new RateLimitingFactoriesSupplierWithStatus( InternalLimiterFactoriesSupplier.NOOP, RateLimiterStatus.noRateLimiting( now15_123456 ) );
         ErrorSupplierPair pair = ErrorSupplierPair.with( InternalLimiterFactoriesSupplier.NOOP );
-        RateLimitingFactoriesSupplierWithStatus fsNs = pair.map( existing, "map_update", true, now16_012345 );
+        RateLimitingFactoriesSupplierWithStatus fsNs = pair.map( existing, "map_update", now16_012345 );
 
         assertTrue( fsNs.isRateLimitingEnabled() );
         assertTrue( fsNs.getSupplier().isSupplierNOOP() );
         assertNotNull( fsNs.getStatus() ); // Tested else where!
         assertNotNull( fsNs.getStatusJson() ); // Tested else where!
         assertTrue( fsNs.getStatus().hasCurrentSection() ); // content Tested else where!
-        assertTrue( fsNs.getStatus().hasUpdateSection() ); // content Tested else where!
         assertNull( fsNs.getStatus().getCurrent().getError() );
-        assertNull( fsNs.getStatus().getUpdate().getError() );
         assertEquals( RateLimiterStatus.toISO8601ZtoSec( now15_123456 ), fsNs.getStatus().getCurrent().getAsOf() );
-        assertEquals( RateLimiterStatus.toISO8601ZtoSec( now16_012345 ), fsNs.getStatus().getUpdate().getAsOf() );
-        assertEquals( "map_update", fsNs.getStatus().getFromSource() );
+        assertNull( fsNs.getStatus().getFromSource() ); //TODO Check
     }
 }

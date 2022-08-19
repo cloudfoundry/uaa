@@ -22,8 +22,6 @@ public class RateLimiterStatus {
 
     public enum CurrentStatus {DISABLED, PENDING, ACTIVE}
 
-    public enum UpdateStatus {DISABLED, PENDING, FAILED}
-
     @Getter
     @ToString
     @JsonInclude(Include.NON_NULL)
@@ -46,54 +44,17 @@ public class RateLimiterStatus {
         }
     }
 
-    @Getter
-    @ToString
-    @JsonInclude(Include.NON_NULL)
-    public static class Update {
-        private final UpdateStatus status;
-        private final String asOf; // UTC ISO8601 time to the Second
-        private final String error;
-        private final Integer checkCountOfStatus;
-
-        private Update( UpdateStatus status, String asOf, String error, Integer checkCountOfStatus ) {
-            this.status = status;
-            this.asOf = asOf;
-            this.error = error;
-            this.checkCountOfStatus = checkCountOfStatus;
-        }
-
-        @Builder
-        public Update( UpdateStatus status, Long asOf, String error, Integer checkCountOfStatus ) {
-            this( status, toISO8601ZtoSec( asOf ), error, checkCountOfStatus );
-        }
-
-        public boolean isFailed( String withError ) {
-            return UpdateStatus.FAILED.equals( status ) && Objects.equals( error, withError );
-        }
-
-        @JsonIgnore
-        public Update incCheckCountOfStatus() {
-            return new Update( status, asOf, error, (checkCountOfStatus == null) ? 2 : (checkCountOfStatus + 1) );
-        }
-    }
-
     private final Current current;
-    private final Update update; // null on Completely Disabled, as data reflected in current -- w/ updating -> never null!
     private final String fromSource; // null on DISABLED -- local file or http/https url
 
     @Builder(toBuilder = true)
-    public RateLimiterStatus( Current current, Update update, String fromSource ) {
+    public RateLimiterStatus( Current current, String fromSource ) {
         this.current = current;
-        this.update = update;
         this.fromSource = fromSource;
     }
 
     public Current getCurrent() {
         return current;
-    }
-
-    public Update getUpdate() {
-        return update;
     }
 
     public String getFromSource() {
@@ -103,33 +64,6 @@ public class RateLimiterStatus {
     @JsonIgnore
     public boolean hasCurrentSection() {
         return current != null;
-    }
-
-    @JsonIgnore
-    public boolean hasUpdateSection() {
-        return update != null;
-    }
-
-    public RateLimiterStatus updateFailed( String error, long asOf ) {
-        Update updateInternal = getUpdate();
-        if ( (updateInternal != null) && updateInternal.isFailed( error ) ) {
-            updateInternal = updateInternal.incCheckCountOfStatus();
-        } else {
-            updateInternal = Update.builder().status( UpdateStatus.FAILED ).asOf( asOf ).error( error ).build();
-        }
-        return new RateLimiterStatus( getCurrent(), updateInternal, getFromSource() );
-    }
-
-    public RateLimiterStatus update( String error, long asOf, String fromSource ) {
-        Update updateInternal = getUpdate();
-        if ( (updateInternal != null) && updateInternal.isFailed( error ) ) {
-            updateInternal = updateInternal.incCheckCountOfStatus();
-        } else {
-            updateInternal = Update.builder().asOf( asOf ).error( error )
-                    .status( (error != null) ? UpdateStatus.FAILED : UpdateStatus.PENDING )
-                    .build();
-        }
-        return toBuilder().update( updateInternal ).fromSource( fromSource ).build();
     }
 
     private String generatedJson;
@@ -143,7 +77,6 @@ public class RateLimiterStatus {
             catch ( JsonProcessingException e ) {
                 json = "JsonProcessingException (" + e.getMessage() + "): "
                        + "current: " + current
-                       + "update: " + update
                        + "fromSource: " + fromSource;
             }
             generatedJson = json;
@@ -152,11 +85,11 @@ public class RateLimiterStatus {
     }
 
     public static RateLimiterStatus create( InternalLimiterFactoriesSupplier supplier, String error,
-                                            long asOf, String fromSource, boolean updatingEnabled ) {
+                                            long asOf, String fromSource ) {
         Current.CurrentBuilder currentBuilder = Current.builder().error( error ).asOf( asOf );
 
         if ( (supplier == null) || supplier.isSupplierNOOP() ) {
-            currentBuilder = currentBuilder.status( updatingEnabled ? CurrentStatus.PENDING : CurrentStatus.DISABLED );
+            currentBuilder = currentBuilder.status( CurrentStatus.DISABLED );
         } else {
             currentBuilder = currentBuilder.status( CurrentStatus.ACTIVE )
                     .loggingLevel( supplier.getLoggingOption().toString() )
@@ -167,7 +100,6 @@ public class RateLimiterStatus {
             }
         }
         return builder().current( currentBuilder.build() )
-                .update( Update.builder().status( updatingEnabled ? UpdateStatus.PENDING : UpdateStatus.DISABLED ).build() )
                 .fromSource( fromSource ).build();
     }
 

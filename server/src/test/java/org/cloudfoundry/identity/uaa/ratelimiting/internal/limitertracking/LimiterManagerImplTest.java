@@ -54,9 +54,6 @@ class LimiterManagerImplTest {
             "  'current' : {",
             "    'status' : 'DISABLED',",
             "    'asOf' : '2000-01-01T00:00:00Z'",
-            "  },",
-            "  'update' : {",
-            "    'status' : 'DISABLED'",
             "  }",
             "}"
     };
