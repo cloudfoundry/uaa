@@ -33,7 +33,9 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -385,6 +387,18 @@ class JdbcUaaUserDatabaseTests {
         }
 
         jdbcUaaUserDatabase.setMaxSqlParameters(oldValue);
+    }
+
+    @Test
+    void testSkipLockedQuery() {
+        boolean oldValue = jdbcUaaUserDatabase.isUseSkipLocked();
+        jdbcUaaUserDatabase.setUseSkipLocked(true);
+        jdbcUaaUserDatabase.init();
+        assertThat(DEFAULT_UPDATE_USER_LAST_LOGON, containsString("skip locked"));
+        jdbcUaaUserDatabase.setUseSkipLocked(false);
+        jdbcUaaUserDatabase.init();
+        assertThat(DEFAULT_UPDATE_USER_LAST_LOGON, not(containsString("skip locked")));
+        jdbcUaaUserDatabase.setUseSkipLocked(oldValue);
     }
 
     private void validateBob(int numberAuths, UaaUser bob, int prefix) {
