@@ -599,7 +599,7 @@ class LegacyRedirectResolverTest {
 
         @Test
         void subdomainMatchingRejectsDomainRedirectOnAntPathVariableSubdomain() {
-            String clientRedirectUri = "http://{foo:.*}.domain.com/";
+            String clientRedirectUri = "http://foo.*.domain.com/";
             assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
         }
     }
