@@ -10,7 +10,7 @@ ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drop
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.71"
+versions.bouncyCastleVersion = "1.71.1"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.7.3"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
