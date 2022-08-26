@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.ratelimiting.config.InitialConfig;
 import org.cloudfoundry.identity.uaa.ratelimiting.config.LoaderLogger;
 import org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigInitializer;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
@@ -12,6 +13,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimi
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractorErrorLogger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -34,10 +36,6 @@ public class RateLimiterConfigConfiguration {
     }
 
     private static final LoaderLogger DEFAULT_LOGGER = new LoaderLogger() {
-        @Override
-        public void logFetchingFrom( String source ) {
-            //Fallback instance, no logging implemented
-        }
 
         @Override
         public void logError( RateLimitingConfigException e ) {
@@ -59,18 +57,13 @@ public class RateLimiterConfigConfiguration {
     public RateLimitingConfigInitializer loader() {
         AuthorizationCredentialIdExtractorErrorLogger errLogger =
                 e -> logger.error( "AuthorizationCredentialIdExtractor", e );
-        return new RateLimitingConfigInitializer(rateLimiting, Optional.ofNullable(loaderLogger()).orElse(DEFAULT_LOGGER), new CredentialIdTypeJWT( errLogger ), new CredentialIdTypeJWTjsonField( errLogger ));
+        return new RateLimitingConfigInitializer(rateLimiting, Optional.ofNullable(loaderLogger()).orElse(DEFAULT_LOGGER), InitialConfig.SINGLETON.getInstance(), LimiterManagerImpl.SINGLETON.getInstance(), new CredentialIdTypeJWT( errLogger ), new CredentialIdTypeJWTjsonField( errLogger ));
     }
 
     protected LoaderLogger loaderLogger() {
         AtomicReference<String> sourceReference = new AtomicReference<>();
         logger.info( "RateLimiting initializing (wd: " + System.getProperty( "user.dir" ) );
         return new LoaderLogger() {
-            @Override
-            public void logFetchingFrom( String source ) {
-                sourceReference.set( source );
-                logger.info( "RateLimitingConfig fetching from: " + source );
-            }
 
             @Override
             public void logError( RateLimitingConfigException e ) {
