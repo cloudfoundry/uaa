@@ -3,10 +3,16 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class InitialConfigTest {
     public static final String SAMPLE_RATE_LIMITER_CONFIG_FILE =
@@ -79,6 +85,30 @@ class InitialConfigTest {
             String msg = expected.getMessage();
             assertTrue( msg.contains( "BadFielddynamicConfigUrl" ), () -> "msg was: " + msg );
         }
+    }
+
+    @Test
+    void create_noFileSourced() {
+        MillisTimeSupplier timeSupplier = mock(MillisTimeSupplier.class);
+
+        InitialConfig initialConfig = InitialConfig.create(null, timeSupplier);
+
+        assertEquals(RateLimitingFactoriesSupplierWithStatus.NO_RATE_LIMITING, initialConfig.getConfigurationWithStatus());
+    }
+
+    @Test
+    void create_withConfig() {
+        MillisTimeSupplier timeSupplier = mock(MillisTimeSupplier.class);
+        when(timeSupplier.now()).thenReturn(4711L);
+        SourcedFile localConfigFile = mock(SourcedFile.class);
+        when(localConfigFile.getBody()).thenReturn(SAMPLE_RATE_LIMITER_CONFIG_FILE);
+
+        InitialConfig initialConfig = InitialConfig.create(localConfigFile, timeSupplier);
+
+        assertNull(initialConfig.getInitialError());
+        assertNotNull(initialConfig.getLocalConfigFileDTO());
+        assertNotNull(initialConfig.getConfigurationWithStatus());
+        assertThat(initialConfig.getConfigurationWithStatus().getStatusJson(), containsString("\"status\" : \"PENDING\""));
     }
 
     private static final String SAMPLE_RATE_LIMITER_CONFIG_FILE_ROUND_TRIPPED_THRU_SNAKE_YAML =
