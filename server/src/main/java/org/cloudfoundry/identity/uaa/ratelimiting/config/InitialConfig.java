@@ -51,7 +51,7 @@ public class InitialConfig {
     }
 
     private static SourcedFile locateAndLoadLocalConfigFile() {
-        return clean( SourcedFile.locateAndLoadLocalFile( LOCAL_CONFIG_FILE, getLocalConfigDirs( ENVIRONMENT_CONFIG_LOCAL_DIRS, System::getenv ) ) );
+        return clean( SourcedFile.locateAndLoadLocalFile( LOCAL_CONFIG_FILE, getLocalConfigDirs( ENVIRONMENT_CONFIG_LOCAL_DIRS, System::getProperty ) ) );
     }
 
     @SuppressWarnings("SameParameterValue")
