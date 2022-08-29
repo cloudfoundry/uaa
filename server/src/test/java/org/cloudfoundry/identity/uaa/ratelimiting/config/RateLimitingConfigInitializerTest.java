@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class RateLimitingConfigInitializerTest {
 
         verify(limiterManager).update(any(RateLimitingFactoriesSupplierWithStatus.class));
         verify(logger).logUpdate(anyString());
+        verify(limiterManager).startBackgroundProcessing();
     }
 
     @Test
@@ -75,5 +77,25 @@ class RateLimitingConfigInitializerTest {
         verify(logger).logUnhandledError(exception);
         verify(limiterManager).update(any(RateLimitingFactoriesSupplierWithStatus.class));
         verify(logger).logUpdate(anyString());
+    }
+
+    @Test
+    void checkPredestroyStopsBackgroundProcessing() {
+        LimiterFactorySupplierUpdatable limiterManager = mock(LimiterFactorySupplierUpdatable.class);
+        LoaderLogger logger = mock(LoaderLogger.class);
+        InitialConfig initialConfig = mock(InitialConfig.class);
+        RateLimitingFactoriesSupplierWithStatus configWithStatus = mock(RateLimitingFactoriesSupplierWithStatus.class);
+        when(initialConfig.getConfigurationWithStatus()).thenReturn(configWithStatus);
+        RateLimiterStatus status = mock(RateLimiterStatus.class);
+        when(configWithStatus.getStatus()).thenReturn(status);
+
+        RateLimitingConfigInitializer configInitializer = new RateLimitingConfigInitializer(true, logger, initialConfig, limiterManager);
+
+        verify(limiterManager).startBackgroundProcessing();
+        verify(limiterManager, times(0)).shutdownBackgroundProcessing();
+
+        configInitializer.predestroy();
+
+        verify(limiterManager).shutdownBackgroundProcessing();
     }
 }

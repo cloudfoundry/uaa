@@ -1,13 +1,16 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
+import javax.annotation.PreDestroy;
+
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 
 public class RateLimitingConfigInitializer {
+
+    LimiterFactorySupplierUpdatable limiterManager;
 
     public RateLimitingConfigInitializer(boolean rateLimiting, LoaderLogger logger, InitialConfig initialConfig, LimiterFactorySupplierUpdatable limiterManager, CredentialIdType... credentialIdTypes) {
         if ( !rateLimiting ) {
@@ -24,6 +27,9 @@ public class RateLimitingConfigInitializer {
             logger.logUnhandledError( initialError );
         }
 
+        this.limiterManager = limiterManager;
+        this.limiterManager.startBackgroundProcessing();
+
         RateLimitingConfigMapper configMapper = new RateLimitingConfigMapperImpl( credentialIdTypes );
         if ( localConfigDTO != null ) {
             RateLimiterStatus status = configurationWithStatus.getStatus();
@@ -34,6 +40,14 @@ public class RateLimitingConfigInitializer {
             configurationWithStatus = configMapper.map( configurationWithStatus, source, localConfigDTO );
             limiterManager.update( configurationWithStatus );
             logger.logUpdate( configurationWithStatus.getStatusJson() );
+        }
+    }
+
+
+    @PreDestroy
+    void predestroy() {
+        if (this.limiterManager != null) {
+            limiterManager.shutdownBackgroundProcessing();
         }
     }
 }

@@ -49,7 +49,7 @@ public class RateLimitingIT {
     }
 
     @Test
-    public void infoEndpointRateLimited() {
+    public void infoEndpointRateLimited() throws InterruptedException {
         RestOperations restTemplate = serverRunning.getRestTemplate();
         //One Request should pass
         ResponseEntity<String> response = restTemplate.getForEntity(baseUrl + "/info", String.class);
@@ -67,6 +67,10 @@ public class RateLimitingIT {
             }
         }
         assertTrue(rateLimited);
+        //After 1s, New Limit should be available
+        Thread.sleep(1000);
+        response = restTemplate.getForEntity(baseUrl + "/info", String.class);
+        assertNotEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
     }
 
     @Test
