@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRate
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
+import org.yaml.snakeyaml.representer.Representer;
 
 @RequiredArgsConstructor
 public class BindYaml<T> {
@@ -27,7 +28,9 @@ public class BindYaml<T> {
     public T bind( String yaml ) {
         T target = null;
         if ( yaml != null ) {
-            Yaml yamlParser = new Yaml( new Constructor( targetClass ) );
+            Representer representer = new Representer();
+            representer.getPropertyUtils().setSkipMissingProperties(true);
+            Yaml yamlParser = new Yaml( new Constructor( targetClass ), representer );
             try {
                 target = yamlParser.load( yaml );
             }

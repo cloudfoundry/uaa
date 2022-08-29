@@ -16,24 +16,25 @@ import static org.mockito.Mockito.when;
 
 class InitialConfigTest {
     public static final String SAMPLE_RATE_LIMITER_CONFIG_FILE =
-            "dynamicConfigUrl: urlGoesHere\n" +
+            "ratelimit:\n" +
+            "  dynamicConfigUrl: urlGoesHere\n" +
             "\n" +
-            "loggingOption: AllCallsWithDetails\n" +
-            "# loggingOption: AllCalls\n" +
-            "# loggingOption: OnlyLimited\n" +
-            "# OnlyLimited is the default\n" +
+            "  loggingOption: AllCallsWithDetails\n" +
+            "  # loggingOption: AllCalls\n" +
+            "  # loggingOption: OnlyLimited\n" +
+            "  # OnlyLimited is the default\n" +
             "\n" +
-            "credentialID: 'JWTjsonField:Claims:email'\n" +
+            "  credentialID: 'JWTjsonField:Claims:email'\n" +
             "\n" +
-            "limiterMappings:\n" +
-            "  - name: Info\n" +
-            "    withCallerRemoteAddressID: 1r/s\n" +
-            "    pathSelectors:\n" +
-            "      - 'equals:/info'\n" +
-            "  - name: Authenticate\n" +
-            "    withCallerRemoteAddressID: 5r/s\n" +
-            "    pathSelectors:\n" +
-            "      - 'equals:/authenticate'\n" +
+            "  limiterMappings:\n" +
+            "    - name: Info\n" +
+            "      withCallerRemoteAddressID: 1r/s\n" +
+            "      pathSelectors:\n" +
+            "        - 'equals:/info'\n" +
+            "    - name: Authenticate\n" +
+            "      withCallerRemoteAddressID: 5r/s\n" +
+            "      pathSelectors:\n" +
+            "        - 'equals:/authenticate'\n" +
             "";
 
     private static final String EMPTY_LEADING_DOCS = "\n" +
@@ -72,22 +73,6 @@ class InitialConfigTest {
     }
 
     @Test
-    void parseFile() {
-        BindYaml<InitialConfig.ExtendedYamlConfigFileDTO> bindYaml = new BindYaml<>( InitialConfig.ExtendedYamlConfigFileDTO.class, "test" );
-        InitialConfig.ExtendedYamlConfigFileDTO dto = InitialConfig.parseFile( bindYaml, SAMPLE_RATE_LIMITER_CONFIG_FILE );
-        assertEquals( SAMPLE_RATE_LIMITER_CONFIG_FILE_ROUND_TRIPPED_THRU_SNAKE_YAML, dto.toString() );
-
-        try {
-            dto = InitialConfig.parseFile( bindYaml, "BadField" + SAMPLE_RATE_LIMITER_CONFIG_FILE );
-            fail( "expected Exception, but got dto: " + dto );
-        }
-        catch ( YamlRateLimitingConfigException expected ) {
-            String msg = expected.getMessage();
-            assertTrue( msg.contains( "BadFielddynamicConfigUrl" ), () -> "msg was: " + msg );
-        }
-    }
-
-    @Test
     void create_noFileSourced() {
         MillisTimeSupplier timeSupplier = mock(MillisTimeSupplier.class);
 
@@ -112,21 +97,22 @@ class InitialConfigTest {
     }
 
     private static final String SAMPLE_RATE_LIMITER_CONFIG_FILE_ROUND_TRIPPED_THRU_SNAKE_YAML =
-            "!!org.cloudfoundry.identity.uaa.ratelimiting.config.InitialConfig$ExtendedYamlConfigFileDTO\n"
-            + "credentialID: JWTjsonField:Claims:email\n"
-            + "dynamicConfigUrl: urlGoesHere\n"
-            + "limiterMappings:\n"
-            + "- global: null\n"
-            + "  name: Info\n"
-            + "  pathSelectors: ['equals:/info']\n"
-            + "  withCallerCredentialsID: null\n"
-            + "  withCallerRemoteAddressID: 1r/s\n"
-            + "  withoutCallerID: null\n"
-            + "- global: null\n"
-            + "  name: Authenticate\n"
-            + "  pathSelectors: ['equals:/authenticate']\n"
-            + "  withCallerCredentialsID: null\n"
-            + "  withCallerRemoteAddressID: 5r/s\n"
-            + "  withoutCallerID: null\n"
-            + "loggingOption: AllCallsWithDetails\n";
+            "!!org.cloudfoundry.identity.uaa.ratelimiting.config.InitialConfig$UaaYamlConfigFileDTO\n"
+            + "ratelimit:\n"
+            + "  credentialID: JWTjsonField:Claims:email\n"
+            + "  dynamicConfigUrl: urlGoesHere\n"
+            + "  limiterMappings:\n"
+            + "  - global: null\n"
+            + "    name: Info\n"
+            + "    pathSelectors: ['equals:/info']\n"
+            + "    withCallerCredentialsID: null\n"
+            + "    withCallerRemoteAddressID: 1r/s\n"
+            + "    withoutCallerID: null\n"
+            + "  - global: null\n"
+            + "    name: Authenticate\n"
+            + "    pathSelectors: ['equals:/authenticate']\n"
+            + "    withCallerCredentialsID: null\n"
+            + "    withCallerRemoteAddressID: 5r/s\n"
+            + "    withoutCallerID: null\n"
+            + "  loggingOption: AllCallsWithDetails\n";
 }

@@ -24,15 +24,13 @@ TOC:<p>
                                               
 ## <a id="Enablement"></a> Enablement
 
-Rate Limiting is enabled by the following configuration:
-1. By a local file "RateLimiterConfig.yml", that exists in any of the following four 'directories', checked in the following order:
+Rate Limiting is enabled by adding a section "ratelimit" to the uaa.yml file of your UAA instance. The file is checked at the following locations:
    1. Environment variable "CLOUDFOUNDRY_CONFIG_PATH" (Bosh based CFs),
    2. Environment variable "UAA_CONFIG_PATH" (K8s based CFs),
-   3. Environment variable "RateLimiterConfigDir",
-   4. The root of the applications "resource" directory.
+   3. The root of the applications "resource" directory.
 
-Obviously the local file "RateLimiterConfig.yml", is read once on startup, and assuming there are no errors, will become the initial (and default) limits.
-If there is an error interpreting the local file "RateLimiterConfig.yml", the error is logged (and available at the "RateLimitingStatus" endpoint), and
+The "uaa.yml", is read once on startup, and assuming there are no errors, will become the initial (and default) limits.
+If there is an error interpreting the section "ratelimit" in the "uaa.yml", the error is logged (and available at the "RateLimitingStatus" endpoint), and
 Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is activated, but with no initial (or default) limits!
 
 <small>[back to TOC](#TOC)</small>

@@ -17,14 +17,14 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFa
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
-
+import org.yaml.snakeyaml.Yaml;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus.*;
 
 @Getter
 public class InitialConfig {
     public static final List<String> ENVIRONMENT_CONFIG_LOCAL_DIRS = List.of( "CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir" );
-    public static final String LOCAL_CONFIG_FILE = "RateLimiterConfig.yml";
+    public static final String LOCAL_CONFIG_FILE = "uaa.yml";
 
     public static final Singleton<InitialConfig> SINGLETON =
             new Singleton<>( InitialConfig::create );
@@ -81,11 +81,11 @@ public class InitialConfig {
         }
         String errorMsg = null;
         Exception error = null;
-        ExtendedYamlConfigFileDTO dto = null;
+        UaaYamlConfigFileDTO dto = null;
         CurrentStatus currentStatus = CurrentStatus.DISABLED;
 
         String sourcedFrom = localConfigFile.getSource();
-        BindYaml<ExtendedYamlConfigFileDTO> bindYaml = new BindYaml<>( ExtendedYamlConfigFileDTO.class, sourcedFrom );
+        BindYaml<UaaYamlConfigFileDTO> bindYaml = new BindYaml<>( UaaYamlConfigFileDTO.class, sourcedFrom );
         try {
             dto = parseFile( bindYaml, localConfigFile.getBody() );
             currentStatus = CurrentStatus.PENDING;
@@ -107,12 +107,13 @@ public class InitialConfig {
                                          .fromSource( sourcedFrom )
                                          .build() )
                         .build();
+        ExtendedYamlConfigFileDTO yaml = dto == null ? null : dto.getRatelimit();
 
-        return new InitialConfig( error, dto, configurationWithStatus );
+        return new InitialConfig( error, yaml, configurationWithStatus );
     }
 
     // packageFriendly for Testing
-    static ExtendedYamlConfigFileDTO parseFile( BindYaml<ExtendedYamlConfigFileDTO> bindYaml, String fileText ) {
+    static UaaYamlConfigFileDTO parseFile( BindYaml<UaaYamlConfigFileDTO> bindYaml, String fileText ) {
         return bindYaml.bind( fileText );
     }
 
@@ -122,5 +123,18 @@ public class InitialConfig {
     @EqualsAndHashCode
     public static class ExtendedYamlConfigFileDTO extends YamlConfigFileDTO {
         private String dynamicConfigUrl;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @EqualsAndHashCode
+    public static class UaaYamlConfigFileDTO {
+        private ExtendedYamlConfigFileDTO ratelimit;
+
+        @Override
+        public String toString() {
+            return new Yaml().dump( this );
+        }
     }
 }
