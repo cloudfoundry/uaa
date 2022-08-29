@@ -20,15 +20,12 @@ import org.yaml.snakeyaml.Yaml;
 @Setter
 @Builder
 @NoArgsConstructor
-@EqualsAndHashCode
 @AllArgsConstructor
 public class YamlConfigFileDTO {
     @Getter
     @Setter
     @Builder
-    @ToString
     @NoArgsConstructor
-    @EqualsAndHashCode
     @AllArgsConstructor
     public static class LimiterMap {
         private String name;
@@ -50,6 +47,11 @@ public class YamlConfigFileDTO {
             return (name == null) && (global == null)
                    && (withCallerCredentialsID == null) && (withCallerRemoteAddressID == null) && (withoutCallerID == null)
                    && pathSelectors.isEmpty();
+        }
+
+        @Override
+        public String toString() {
+            return new Yaml().dump( this );
         }
     }
 

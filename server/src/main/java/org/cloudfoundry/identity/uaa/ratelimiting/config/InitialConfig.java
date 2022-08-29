@@ -120,7 +120,6 @@ public class InitialConfig {
     @Getter
     @Setter
     @NoArgsConstructor
-    @EqualsAndHashCode
     public static class ExtendedYamlConfigFileDTO extends YamlConfigFileDTO {
         private String dynamicConfigUrl;
     }
@@ -128,7 +127,6 @@ public class InitialConfig {
     @Getter
     @Setter
     @NoArgsConstructor
-    @EqualsAndHashCode
     public static class UaaYamlConfigFileDTO {
         private ExtendedYamlConfigFileDTO ratelimit;
 
