@@ -10,7 +10,7 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 
 class ContentSecurityPolicyFilterTest {
@@ -32,8 +32,49 @@ class ContentSecurityPolicyFilterTest {
     void verifyRequestHasHeader() throws ServletException, IOException {
         filter.doFilter(request, response, chain);
 
-        assertEquals("script-src 'self' 'unsafe-inline'",
+        assertEquals("script-src 'self'",
                 response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldNotAddHeader_WhenRespondingTo_SamlAuthRequests() throws ServletException, IOException {
+        request.setServletPath("/saml/some-path");
+        filter.doFilter(request, response, chain);
+
+        assertNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldAddHeader_ForSamlSomeOtherThing() throws ServletException, IOException {
+        request.setServletPath("/samlSomeOtherThing");
+        filter.doFilter(request, response, chain);
+
+        assertNotNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldAddHeader_ForSamlInMiddleOfPath() throws ServletException, IOException {
+        request.setServletPath("/other/saml/");
+        filter.doFilter(request, response, chain);
+
+        assertNotNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldNotAddHeader_WhenRespondingTo_MfaRequests() throws ServletException, IOException {
+        request.setServletPath("/login/mfa/some-path");
+        request.setPathInfo(null);
+        filter.doFilter(request, response, chain);
+
+        assertNull(response.getHeader("Content-Security-Policy"));
+    }
+
+    @Test
+    void shouldNotAddHeader_WhenRespondingTo_LoginImplicitPageRequests() throws ServletException, IOException {
+        request.setServletPath("/login_implicit");
+        filter.doFilter(request, response, chain);
+
+        assertNull(response.getHeader("Content-Security-Policy"));
     }
 
     @Test
