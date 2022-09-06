@@ -393,6 +393,7 @@ class LoginInfoEndpointTests {
         validateSelfServiceLinks(null, "http://custom_passwd_link", endpoint.getSelfServiceLinks());
 
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("");
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), null);
         validateSelfServiceLinks("http://custom_signup_link", null, extendedModelMap);
@@ -568,7 +569,8 @@ class LoginInfoEndpointTests {
     void no_self_service_links_if_self_service_disabled() {
         IdentityZone zone = MultitenancyFixture.identityZone("zone", "zone");
         zone.setConfig(new IdentityZoneConfiguration());
-        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint(zone);
         endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));

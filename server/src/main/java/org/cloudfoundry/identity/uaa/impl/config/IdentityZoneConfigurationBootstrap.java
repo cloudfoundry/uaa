@@ -41,7 +41,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private ClientSecretPolicy clientSecretPolicy;
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
-    private boolean selfServiceLinksEnabled = true;
+    private boolean selfServiceCreateAccountEnabled = true;
+    private boolean selfServiceResetPasswordEnabled = true;
     private String homeRedirect = null;
     private Map<String,Object> selfServiceLinks;
     private boolean mfaEnabled;
@@ -84,7 +85,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.setClientSecretPolicy(clientSecretPolicy);
-        definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
+        definition.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(selfServiceCreateAccountEnabled);
+        definition.getLinks().getSelfService().setSelfServiceResetPasswordEnabled(selfServiceResetPasswordEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
         definition.getSamlConfig().setCertificate(samlSpCertificate);
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
@@ -176,8 +178,12 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         this.tokenPolicy = tokenPolicy;
     }
 
-    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
-        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
+    public void setSelfServiceCreateAccountEnabled(boolean selfServiceCreateAccountEnabled) {
+        this.selfServiceCreateAccountEnabled = selfServiceCreateAccountEnabled;
+    }
+
+    public void setSelfServiceResetPasswordEnabled(boolean selfServiceResetPasswordEnabled) {
+        this.selfServiceResetPasswordEnabled = selfServiceResetPasswordEnabled;
     }
 
     public void setHomeRedirect(String homeRedirect) {

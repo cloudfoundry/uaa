@@ -131,7 +131,10 @@ class AccountsControllerMockMvcTests {
     @Test
     void testCreateActivationEmailPageWithinZone() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext,
+                                                                 IdentityZoneHolder.getCurrentZoneId());
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+        MockMvcUtils.updateZone(mockMvc, zone);
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -179,13 +182,13 @@ class AccountsControllerMockMvcTests {
     void testCreateAccountWithDisableSelfService() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
 
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-                .andExpect(model().attribute("error_message_code", "self_service_disabled"))
+                .andExpect(model().attribute("error_message_code", "self_service_create_account_disabled"))
                 .andExpect(view().name("error"))
                 .andExpect(status().isNotFound());
     }
@@ -194,7 +197,7 @@ class AccountsControllerMockMvcTests {
     void testDisableSelfServiceCreateAccountPost() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
 
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
@@ -206,7 +209,7 @@ class AccountsControllerMockMvcTests {
                 .param("email", userEmail)
                 .param("password", "secr3T")
                 .param("password_confirmation", "secr3T"))
-                .andExpect(model().attribute("error_message_code", "self_service_disabled"))
+                .andExpect(model().attribute("error_message_code", "self_service_create_account_disabled"))
                 .andExpect(view().name("error"))
                 .andExpect(status().isNotFound());
     }
@@ -360,6 +363,8 @@ class AccountsControllerMockMvcTests {
                 .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
+        identityZone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+        MockMvcUtils.updateZone(mockMvc, identityZone);
         MockHttpSession session = getCreateAccountForm();
 
         mockMvc.perform(post("/create_account.do")
@@ -409,8 +414,10 @@ class AccountsControllerMockMvcTests {
         identityZone.setName(subdomain);
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
-
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext,
+                                                          getBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+        MockMvcUtils.updateZone(mockMvc, zone);
         MockHttpSession session = getCreateAccountForm();
 
         mockMvc.perform(post("/create_account.do")
@@ -518,6 +525,8 @@ class AccountsControllerMockMvcTests {
         zone.getConfig().getBranding().setConsent(new Consent());
         zone.getConfig().getBranding().getConsent().setText(consentText);
         zone.getConfig().getBranding().getConsent().setLink(consentLink);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+
         MockMvcUtils.updateZone(mockMvc, zone);
 
         mockMvc.perform(get("/create_account")
@@ -533,6 +542,7 @@ class AccountsControllerMockMvcTests {
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(
                 randomZoneSubdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
         zone.getConfig().setBranding(new BrandingInformation());
         zone.getConfig().getBranding().setConsent(new Consent());
         zone.getConfig().getBranding().getConsent().setText(consentText);

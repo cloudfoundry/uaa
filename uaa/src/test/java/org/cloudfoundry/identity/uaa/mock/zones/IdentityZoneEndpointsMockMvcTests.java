@@ -679,6 +679,7 @@ class IdentityZoneEndpointsMockMvcTests {
         created.setDescription("updated description");
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(new TokenPolicy(3600, 7200));
         definition.getSamlConfig().setSignatureAlgorithm(globalDefaultSamlSignatureAlgorithm);
+        definition.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
         created.setConfig(definition);
 
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
@@ -982,6 +983,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         identityZone.setConfig(definition.setSamlConfig(samlConfig));
+        definition.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
 
         mockMvc.perform(
                 post(url)

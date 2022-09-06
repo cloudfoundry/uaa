@@ -12,6 +12,8 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -59,6 +61,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class AccountsControllerTest {
 
+    public static final String CLIENT_ID = "client_id";
+    public static final String CLIENT_ID_VALUE = "app";
+    public static final String REDIRECT_URI = "redirect_uri";
+    public static final String REDIRECT_URI_VALUE = "http://example.com/redirect";
+
     @Autowired
     WebApplicationContext webApplicationContext;
 
@@ -75,8 +82,7 @@ class AccountsControllerTest {
     @BeforeEach
     void setUp() {
         SecurityContextHolder.clearContext();
-        selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled();
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
+        selfServiceToReset = IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceCreateAccountEnabled();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
     }
@@ -84,18 +90,29 @@ class AccountsControllerTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceToReset);
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(selfServiceToReset);
     }
 
     @Test
     void newAccountPage() throws Exception {
-        mockMvc.perform(get("/create_account").param("client_id", "client-id").param("redirect_uri", "http://example.com/redirect"))
+        mockMvc.perform(get("/create_account").param(CLIENT_ID, CLIENT_ID_VALUE).param(REDIRECT_URI, REDIRECT_URI_VALUE))
                 .andExpect(status().isOk())
-                .andExpect(model().attribute("client_id", "client-id"))
-                .andExpect(model().attribute("redirect_uri", "http://example.com/redirect"))
+                .andExpect(model().attribute(CLIENT_ID, CLIENT_ID_VALUE))
+                .andExpect(model().attribute(REDIRECT_URI, REDIRECT_URI_VALUE))
                 .andExpect(view().name("accounts/new_activation_email"))
-                .andExpect(xpath("//*[@type='hidden' and @value='client-id']").exists())
-                .andExpect(xpath("//*[@type='hidden' and @value='http://example.com/redirect']").exists());
+                .andExpect(xpath("//*[@type='hidden' and @value='"+CLIENT_ID_VALUE+"']").exists())
+                .andExpect(xpath("//*[@type='hidden' and @value='"+REDIRECT_URI_VALUE+"']").exists());
+    }
+
+    @Test
+    void testCreateAccountWithSelfServiceDisabled() throws Exception {
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
+        mockMvc.perform(get("/create_account")
+                            .param(CLIENT_ID, CLIENT_ID_VALUE)
+                            .param(REDIRECT_URI, REDIRECT_URI_VALUE))
+               .andExpect(status().isNotFound())
+               .andExpect(view().name("error"))
+               .andExpect(model().attribute("error_message_code", "self_service_create_account_disabled"));
     }
 
     @Test
@@ -104,14 +121,14 @@ class AccountsControllerTest {
             .param("email", "user1@example.com")
             .param("password", "password")
             .param("password_confirmation", "password")
-            .param("client_id", "app")
-            .param("redirect_uri", "http://example.com/redirect");
+            .param(CLIENT_ID, CLIENT_ID_VALUE)
+            .param(REDIRECT_URI, REDIRECT_URI_VALUE);
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("accounts/email_sent"));
 
-        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
+        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", CLIENT_ID_VALUE, REDIRECT_URI_VALUE);
     }
 
     @Test
@@ -122,8 +139,8 @@ class AccountsControllerTest {
             .param("email", "user1@example.com")
             .param("password", "password")
             .param("password_confirmation", "password")
-            .param("client_id", "app")
-            .param("redirect_uri", "http://example.com/redirect");
+            .param(CLIENT_ID, CLIENT_ID_VALUE)
+            .param(REDIRECT_URI, REDIRECT_URI_VALUE);
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
         oidcProvider.getConfig().setAuthUrl(new URL("http://localhost:8080/uaa/idp_login"));
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
@@ -133,36 +150,36 @@ class AccountsControllerTest {
             .andExpect(view().name("accounts/new_activation_email"))
             .andExpect(model().attribute("error_message_code", "other_idp"));
 
-        Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
+        Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", CLIENT_ID_VALUE, REDIRECT_URI_VALUE);
     }
 
     @Test
     void sendActivationEmailWithUserNameConflict() throws Exception {
-        doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
+        doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1" + "@example.com", "password", CLIENT_ID_VALUE, null);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
             .param("email", "user1@example.com")
             .param("password", "password")
             .param("password_confirmation", "password")
-            .param("client_id", "app");
+            .param(CLIENT_ID, CLIENT_ID_VALUE);
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("accounts/new_activation_email"))
             .andExpect(model().attribute("error_message_code", "username_exists"));
 
-        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
+        Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", CLIENT_ID_VALUE, null);
     }
 
     @Test
     void invalidPassword() throws Exception {
-        doThrow(new InvalidPasswordException(Arrays.asList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
+        doThrow(new InvalidPasswordException(Arrays.asList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", CLIENT_ID_VALUE, null);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
                 .param("email", "user1@example.com")
                 .param("password", "password")
                 .param("password_confirmation", "password")
-                .param("client_id", "app");
+                .param(CLIENT_ID, CLIENT_ID_VALUE);
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
@@ -176,7 +193,7 @@ class AccountsControllerTest {
             .param("email", "wrong")
             .param("password", "password")
             .param("password_confirmation", "password")
-            .param("client_id", "app");
+            .param(CLIENT_ID, CLIENT_ID_VALUE);
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
@@ -190,9 +207,9 @@ class AccountsControllerTest {
             .param("email", "user1@example.com")
             .param("password", "pass")
             .param("password_confirmation", "word")
-            .param("client_id", "app");
+            .param(CLIENT_ID, CLIENT_ID_VALUE);
 
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())

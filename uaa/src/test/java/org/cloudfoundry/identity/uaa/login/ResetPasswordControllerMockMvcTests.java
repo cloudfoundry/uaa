@@ -18,8 +18,10 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,12 +31,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
+
+import java.util.Collections;
 
 import javax.servlet.http.Cookie;
 import java.sql.Timestamp;
@@ -63,6 +68,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @DefaultTestContext
 public class ResetPasswordControllerMockMvcTests {
@@ -81,6 +88,43 @@ public class ResetPasswordControllerMockMvcTests {
     void resetGenerator() {
         webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
+
+    @Test
+    void testResetPasswordWithDisableSelfService() throws Exception {
+        String subdomain = new RandomValueStringGenerator().generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
+
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
+
+        mockMvc.perform(get("/forgot_password")
+                            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+               .andExpect(model().attribute("error_message_code", "self_service_reset_password_disabled"))
+               .andExpect(view().name("error"))
+               .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDisableSelfServiceResetPasswordPost() throws Exception {
+        String subdomain = new RandomValueStringGenerator().generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
+
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
+
+        MockHttpSession session = getCreateAccountForm();
+
+        mockMvc.perform(post("/forgot_password.do")
+                            .with(csrf(session))
+                            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                            .param("username", "user@example.com")
+                            .param("client_id", "example")
+                            .param("redirect_uri", "redirect.example.com"))
+               .andExpect(view().name("error"))
+               .andExpect(model().attribute("error_message_code", "self_service_reset_password_disabled"))
+               .andExpect(status().isNotFound());
+    }
+
 
     @Test
     void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
@@ -410,4 +454,20 @@ public class ResetPasswordControllerMockMvcTests {
             .param("password_confirmation", passwordConfirmation);
         return post;
     }
+
+    private BaseClientDetails getBaseClientDetails() {
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("myzoneclient");
+        clientDetails.setClientSecret("myzoneclientsecret");
+        clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
+        clientDetails.setRegisteredRedirectUri(Collections.singleton("http://myzoneclient.example.com"));
+        return clientDetails;
+    }
+
+    private MockHttpSession getCreateAccountForm() {
+        MockHttpSession session = new MockHttpSession();
+        MockMvcUtils.getCreateAccountForm(mockMvc, session);
+        return session;
+    }
+
 }

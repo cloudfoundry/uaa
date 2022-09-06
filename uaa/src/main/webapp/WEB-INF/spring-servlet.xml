@@ -467,7 +467,8 @@
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
-        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
+        <property name="selfServiceResetPasswordEnabled" value="${login.selfServiceResetPasswordEnabled:true}"/>
+        <property name="selfServiceCreateAccountEnabled" value="${login.selfServiceCreateAccountEnabled:true}"/>
         <property name="selfServiceLinks" ref="links"/>
         <property name="homeRedirect" value="${links.homeRedirect:${login.homeRedirect:#{null}}}"/>
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}"/>

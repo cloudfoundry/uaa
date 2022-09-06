@@ -228,7 +228,8 @@ public class LoginMockMvcTests {
 
     @AfterEach
     void tearDown(@Autowired IdentityZoneConfigurationBootstrap identityZoneConfigurationBootstrap) throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
+        MockMvcUtils.setSelfServiceResetPasswordEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
         resetUaaZoneConfigToDefault(identityZoneConfigurationBootstrap);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -412,7 +413,7 @@ public class LoginMockMvcTests {
             @Autowired LoginInfoEndpoint loginInfoEndpoint
     ) throws Exception {
         IdentityZone zone = createZoneLinksZone();
-
+        zone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true).setSignup("/signup?subdomain={zone.subdomain}");
         mockMvc.perform(
                 get("/login")
                         .header("Host", zone.getSubdomain() + ".localhost")
@@ -424,11 +425,11 @@ public class LoginMockMvcTests {
                 .andExpect(content().string(not(containsString("/create_account"))));
 
         ReflectionTestUtils.setField(loginInfoEndpoint, "globalLinks", new Links().setSelfService(
-                new Links.SelfService()
+                new Links.SelfService().setSelfServiceCreateAccountEnabled(true)
                         .setPasswd("/passwd?id={zone.id}")
                         .setSignup("/signup?subdomain={zone.subdomain}")
         ));
-
+        MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
         mockMvc.perform(
                 get("/login")
                         .header("Host", zone.getSubdomain() + ".localhost")
@@ -456,7 +457,6 @@ public class LoginMockMvcTests {
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/local_signup?subdomain=" + zone.getSubdomain())))
                 .andExpect(content().string(containsString("/local_passwd?id=" + zone.getId())))
                 .andExpect(content().string(containsString("/local_signup?subdomain=" + zone.getSubdomain())));
-
     }
 
     @Test
@@ -1208,8 +1208,8 @@ public class LoginMockMvcTests {
 
     @Test
     void testSignupsAndResetPasswordEnabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
-
+        MockMvcUtils.setSelfServiceResetPasswordEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), true);
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").exists())
                 .andExpect(xpath("//a[text()='Reset password']").exists());
@@ -1217,8 +1217,8 @@ public class LoginMockMvcTests {
 
     @Test
     void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
-
+        MockMvcUtils.setSelfServiceResetPasswordEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").doesNotExist())
                 .andExpect(xpath("//a[text()='Reset password']").doesNotExist());
@@ -1228,7 +1228,8 @@ public class LoginMockMvcTests {
     void testSignupsAndResetPasswordDisabledWithSomeLinksConfigured() throws Exception {
         identityZoneConfiguration.getLinks().getSelfService().setSignup("http://example.com/signup");
         identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
-        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(false);
+        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
+        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -1239,7 +1240,8 @@ public class LoginMockMvcTests {
     void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
         identityZoneConfiguration.getLinks().getSelfService().setSignup("http://example.com/signup");
         identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
-        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(true);
+        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true);
+        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceResetPasswordEnabled(true);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))
                 .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
@@ -1358,7 +1360,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testLocalSignupDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -1366,7 +1368,7 @@ public class LoginMockMvcTests {
 
     @Test
     void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
         mockMvc.perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -2665,10 +2667,12 @@ public class LoginMockMvcTests {
     ) throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
-        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(false)));
+        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceCreateAccountEnabled(false)));
+        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceResetPasswordEnabled(false)));
         IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
         mockMvc.perform(MockMvcRequestBuilders.get("/login")
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
@@ -2887,7 +2891,8 @@ public class LoginMockMvcTests {
 
     @Test
     void passwordPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceLinksEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        MockMvcUtils.setSelfServiceResetPasswordEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
 
         MockHttpSession session = new MockHttpSession();
         getLoginForm(mockMvc, session);
