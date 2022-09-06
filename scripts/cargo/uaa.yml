@@ -56,3 +56,17 @@ login:
     KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
     RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
     -----END CERTIFICATE-----
+
+database:
+ driverClassName: org.mariadb.jdbc.Driver
+ url: "jdbc:mysql://inc-182992150-database-instance-1.cogyn1af60qp.us-west-1.rds.amazonaws.com/uaa?autoReconnect=true&tcpKeepAlive=true&usePipelineAuth=false&useBatchMultiSend=false"
+ username: admin
+ password: incincinc
+ maxactive: 100
+ maxidle: 10
+ minidle: 3
+ removeabandoned: false
+ logabandoned: true
+ abandonedtimeout: 300
+ evictionintervalms: 15000
+ caseinsensitive: false
