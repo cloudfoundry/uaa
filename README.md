@@ -2,8 +2,6 @@
 
 [![slack.cloudfoundry.org](https://slack.cloudfoundry.org/badge.svg)](https://cloudfoundry.slack.com/archives/C03FXANBV)
 
-> **_Warning_**: _Google Analytics feature is currently deprecated and will be removed in the next UAA version._
-
 # CloudFoundry User Account and Authentication (UAA) Server
 
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
