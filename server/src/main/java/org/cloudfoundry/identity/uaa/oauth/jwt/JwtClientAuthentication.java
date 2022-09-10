@@ -24,7 +24,7 @@ public class JwtClientAuthentication {
     this.keyInfoService = keyInfoService;
   }
 
-  public String getClientAssetion(OIDCIdentityProviderDefinition config) {
+  public String getClientAssertion(OIDCIdentityProviderDefinition config) {
     HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
     String issuer = Optional.ofNullable(jwtClientConfiguration.get("iss")).orElse(config.getRelyingPartyId());
     String audience = Optional.ofNullable(jwtClientConfiguration.get("aud")).orElse(config.getTokenUrl().toString());
@@ -46,7 +46,7 @@ public class JwtClientAuthentication {
       params.add("client_id", config.getRelyingPartyId());
     }
     params.add("client_assertion_type", GRANT_TYPE);
-    params.add("client_assertion", getClientAssetion(config));
+    params.add("client_assertion", getClientAssertion(config));
     return params;
   }
 
