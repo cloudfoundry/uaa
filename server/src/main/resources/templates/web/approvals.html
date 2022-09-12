@@ -5,20 +5,7 @@
       layout:decorate="~{layouts/main}">
 <head>
     <th:block layout:insert="~{nav :: head}"></th:block>
-    <script type="text/javascript">
-        $(document).ready(function() {
-            $('.revoke-link').click(function(e) {
-                e.preventDefault();
-                var clientId = $(this).attr('data-client-id');
-                $('#'+clientId+'-scrim').show();
-            });
-
-            $('.revocation-cancel').click(function(e) {
-                e.preventDefault();
-                $(this).parents('.revocation-scrim').hide();
-            });
-        });
-    </script>
+    <script type="text/javascript" src="/resources/javascripts/approvals/click_actions.js" th:src="@{'/resources/javascripts/approvals/click_actions.js'}"></script>
 </head>
 <div layout:fragment="page-nav">
     <th:block layout:replace="~{nav :: nav}"></th:block>

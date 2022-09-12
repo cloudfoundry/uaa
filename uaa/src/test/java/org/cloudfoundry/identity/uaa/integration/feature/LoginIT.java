@@ -18,11 +18,11 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 
 import com.dumbster.smtp.SimpleSmtpServer;
@@ -63,6 +63,8 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -101,7 +103,7 @@ public class LoginIT {
     }
 
     @Test
-    public void check_JSESSIONID_defaults() {
+    public void check_JSESSIONID_and_Current_User_Cookies_defaults() {
         RestTemplate template = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
         List<String> cookies;
@@ -140,6 +142,9 @@ public class LoginIT {
                 assertTrue(cookie.contains("HttpOnly"));
                 assertTrue(cookie.contains("SameSite=None"));
                 assertTrue(cookie.contains("Secure"));
+            }
+            if (cookie.contains("Current-User")) {
+                assertTrue(cookie.contains("SameSite=Strict"));
             }
         }
         assertTrue("Did not find JSESSIONID", jsessionIdValidated);
@@ -216,6 +221,8 @@ public class LoginIT {
         attemptLogin(newUserEmail, USER_PASSWORD);
 
         assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
+        String lastLoginDate = webDriver.findElement(By.cssSelector("#last_login_time")).getAttribute("innerHTML");
+        assertFalse(lastLoginDate.isEmpty());
 
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
     }
@@ -480,6 +487,8 @@ public class LoginIT {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         config.setAccountChooserEnabled(true);
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(
+                List.of(GET.toString(), POST.toString()));
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, testzone3, testzone3, config);
         String res = baseUrl.replace("localhost", testzone3 +".localhost");
         webDriver.get(res + "/logout.do");

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -12,7 +13,7 @@ import java.util.concurrent.ConcurrentMap;
 
 public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(6);
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(6);
 
     private ConcurrentMap<String, ExpiringCode> store = new ConcurrentHashMap<String, ExpiringCode>();
 
@@ -79,7 +80,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     }
 
     @Override
-    public void setGenerator(RandomValueStringGenerator generator) {
+    public void setGenerator(AlphanumericRandomValueStringGenerator generator) {
         this.generator = generator;
     }
 

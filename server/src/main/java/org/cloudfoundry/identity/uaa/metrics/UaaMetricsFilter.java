@@ -47,8 +47,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private final IdleTimer inflight;
     private final Map<String, MetricsQueue> perUriMetrics;
     private final LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
-    private final boolean enabled;
-    private final boolean perRequestMetrics;
+    private boolean enabled = true;
+    private boolean perRequestMetrics = false;
 
     private NotificationPublisher notificationPublisher;
 
@@ -97,6 +97,14 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         } else {
             filterChain.doFilter(request, response);
         }
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     protected MetricsQueue getMetricsQueue(String uri) {
@@ -176,5 +184,13 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     @Override
     public void setNotificationPublisher(final @NonNull NotificationPublisher notificationPublisher) {
         this.notificationPublisher = notificationPublisher;
+    }
+
+    public boolean isPerRequestMetrics() {
+        return perRequestMetrics;
+    }
+
+    public void setPerRequestMetrics(boolean perRequestMetrics) {
+        this.perRequestMetrics = perRequestMetrics;
     }
 }

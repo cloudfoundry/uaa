@@ -4,22 +4,25 @@ ext {
 }
 
 // Versions we're overriding from the Spring Boot Bom
-ext["mariadb.version"] = "2.7.4"
-ext["flyway.version"] = "7.15.0"
-ext["snakeyaml.version"] = "1.31"
+ext["mariadb.version"] = "2.7.6" // Bumping to v3 breaks some pipeline jobs, so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
+ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
+ext["snakeyaml.version"] = "1.31" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.71"
+versions.bouncyCastleVersion = "1.71.1"
 versions.hamcrestVersion = "2.2"
-versions.springBootVersion = "2.7.2"
+versions.springBootVersion = "2.7.3"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.springVersion = "5.3.22"
 versions.tomcatCargoVersion = "9.0.65"
 versions.guavaVersion = "31.1-jre"
+
+ext {
+    tomcatCargoVersion = "${versions.tomcatCargoVersion}"
+}
 
 // Dependencies (some rely on shared versions, some are shared between projects)
 libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.4"
@@ -34,9 +37,9 @@ libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk18on:${versions.bouncyC
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk18on:${versions.bouncyCastleVersion}"
 libraries.commonsIo = "commons-io:commons-io:2.11.0"
 libraries.dumbster = "dumbster:dumbster:1.6"
-libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:6.2.0.202206071550-r"
+libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:6.3.0.202209071007-r"
 libraries.flywayCore = "org.flywaydb:flyway-core"
-libraries.greenmail = "com.icegreen:greenmail:1.6.9"
+libraries.greenmail = "com.icegreen:greenmail:1.6.10"
 libraries.googleAuth = "com.warrenstrange:googleauth:1.5.0"
 libraries.guava = "com.google.guava:guava:${versions.guavaVersion}"
 libraries.guavaTestLib = "com.google.guava:guava-testlib:${versions.guavaVersion}"
@@ -65,13 +68,12 @@ libraries.mariaJdbcDriver = "org.mariadb.jdbc:mariadb-java-client"
 libraries.mockito = "org.mockito:mockito-core"
 libraries.mockitoJunit5 = "org.mockito:mockito-junit-jupiter"
 libraries.passay = "org.passay:passay:1.6.1"
-libraries.postgresql = "org.postgresql:postgresql"
+libraries.postgresql = "org.postgresql:postgresql:42.5.0"
 libraries.selenium = "org.seleniumhq.selenium:selenium-java"
 libraries.slf4jApi = "org.slf4j:slf4j-api"
 libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl"
 libraries.snakeyaml = "org.yaml:snakeyaml"
 libraries.springBeans = "org.springframework:spring-beans"
-libraries.springBom = "org.springframework:spring-framework-bom:${versions.springVersion}"
 libraries.springBootBom = "org.springframework.boot:spring-boot-dependencies:${versions.springBootVersion}"
 libraries.springBootStarter = "org.springframework.boot:spring-boot-starter"
 libraries.springBootStarterLog4j2 = "org.springframework.boot:spring-boot-starter-log4j2"

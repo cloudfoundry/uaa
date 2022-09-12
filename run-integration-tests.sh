@@ -48,5 +48,7 @@ docker run --privileged -t -i --shm-size=1G \
   -v "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   -v "${GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
+  --env RUN_TESTS="${RUN_TESTS:-true}" \
+  --publish 8081:8080 \
   "${DOCKER_IMAGE}" \
   /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"

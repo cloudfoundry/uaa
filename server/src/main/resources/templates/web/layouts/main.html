@@ -28,6 +28,7 @@
             background-image: url(/resources/oss/images/product-logo.png);
         }
     </style>
+    <script type="text/javascript" src="/resources/javascripts/last_login_time.js" th:src="@{'/resources/javascripts/last_login_time.js'}"></script>
 </head>
 <body>
 <div class="content">
@@ -48,10 +49,7 @@
          <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
         <div th:if="${#authentication instanceof T(org.cloudfoundry.identity.uaa.authentication.UaaAuthentication)} ">
             <div th:if="${#authentication.lastLoginSuccessTime} != null">
-                Last login <span id="last_login_time"></span>
-                <script type="text/javascript">
-                    document.getElementById("last_login_time").innerHTML = new Date([[${#authentication.lastLoginSuccessTime}]]).toLocaleString();
-                </script>
+                Last login <span id="last_login_time" th:attr="last-login-success-time=${#authentication.lastLoginSuccessTime}"></span>
             </div>
         </div>
     </div>
