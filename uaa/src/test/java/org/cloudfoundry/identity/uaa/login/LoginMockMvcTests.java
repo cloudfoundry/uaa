@@ -1108,18 +1108,6 @@ public class LoginMockMvcTests {
                 .andExpect(emptyCurrentUserCookie());
     }
 
-    @Nested
-    @DefaultTestContext
-    @TestPropertySource(properties = {"analytics.code=secret_code", "analytics.domain=example.com"})
-    class LoginWithAnalytics {
-        @Test
-        void testLoginWithAnalytics(@Autowired MockMvc mockMvc) throws Exception {
-            mockMvc.perform(get("/login").accept(TEXT_HTML))
-                    .andExpect(status().isOk())
-                    .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
-        }
-    }
-
     @Test
     void testDefaultBranding() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/login"))

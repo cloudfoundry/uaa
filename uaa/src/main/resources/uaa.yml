@@ -553,11 +553,6 @@ uaa:
         - HEAD
         - OPTIONS
 
-# Google Analytics
-#analytics:
-#  code: secret_code
-#  domain: example.com
-
 #smtp:
 #  host: localhost
 #  port: 2525
