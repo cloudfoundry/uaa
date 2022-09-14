@@ -1,4 +1,6 @@
+// Versions we're overriding from the Spring Boot Bom
 ext["flyway.version"] = "7.15.0" // flyway 8+ drops support for mysql 5.7
+ext["mariadb.version"] = "2.7.6" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 
 def versions = [:]
 
