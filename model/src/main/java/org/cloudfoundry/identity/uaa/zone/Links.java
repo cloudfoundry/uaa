@@ -134,6 +134,9 @@ public class Links {
         }
 
         public SelfService setSelfServiceResetPasswordEnabled(boolean selfServiceResetPasswordEnabled) {
+            if (selfServiceResetPasswordEnabled && !StringUtils.hasText(this.passwd)){
+                this.passwd = "/forgot_password";
+            }
             this.selfServiceResetPasswordEnabled = selfServiceResetPasswordEnabled;
             return this;
         }

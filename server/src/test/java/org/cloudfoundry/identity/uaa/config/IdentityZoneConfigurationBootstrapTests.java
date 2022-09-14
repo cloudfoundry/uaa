@@ -232,7 +232,7 @@ public class IdentityZoneConfigurationBootstrapTests {
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertEquals("/configured_signup", zone.getConfig().getLinks().getSelfService().getSignup());
-        assertNull(zone.getConfig().getLinks().getSelfService().getPasswd());
+        assertEquals("/forgot_password", zone.getConfig().getLinks().getSelfService().getPasswd());
     }
 
     @Test
