@@ -2,6 +2,8 @@
 
 [![slack.cloudfoundry.org](https://slack.cloudfoundry.org/badge.svg)](https://cloudfoundry.slack.com/archives/C03FXANBV)
 
+> **_Warning_**: _MFA feature in UAA is currently deprecated and will be removed in a future UAA version._
+
 # CloudFoundry User Account and Authentication (UAA) Server
 
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
