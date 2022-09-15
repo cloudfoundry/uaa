@@ -105,18 +105,14 @@ public class Links {
         private String signup = null;
         private String passwd = null;
 
-        public boolean isSelfServiceLinksEnabled() {
-            return selfServiceLinksEnabled;
-        }
-
-        public SelfService setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
+        public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
             this.selfServiceLinksEnabled = selfServiceLinksEnabled;
             if (!selfServiceLinksEnabled) {
                 this.selfServiceCreateAccountEnabled = false;
                 this.selfServiceResetPasswordEnabled = false;
             }
-            return this;
         }
+
         public SelfService setSelfServiceCreateAccountEnabled(boolean selfServiceCreateAccountEnabled) {
             if (selfServiceCreateAccountEnabled && !StringUtils.hasText(this.signup)){
                 this.signup = "/create_account";
