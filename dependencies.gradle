@@ -6,7 +6,7 @@ ext {
 // Versions we're overriding from the Spring Boot Bom
 ext["mariadb.version"] = "2.7.6" // Bumping to v3 breaks some pipeline jobs, so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
-ext["snakeyaml.version"] = "1.31" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
+ext["snakeyaml.version"] = "1.32" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
