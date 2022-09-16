@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 
-public class BaseLdapSocketFactory extends SSLSocketFactory {
+public abstract class BaseLdapSocketFactory extends SSLSocketFactory {
     private static SocketFactory instance;
     protected SSLSocketFactory delegate;
 
