@@ -2662,21 +2662,56 @@ public class LoginMockMvcTests {
     }
 
     @Test
-    void emailPageIdpDiscoveryEnabled_SelfServiceLinksDisabled(
-            @Autowired IdentityZoneProvisioning identityZoneProvisioning
+    void emailPageIdpDiscoveryEnabled_SelfServiceCreateAccountLinkDisabled(
+            @Autowired IdentityZoneProvisioning identityZoneProvisioning,
+            @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
     ) throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
-        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceCreateAccountEnabled(false)));
-        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceResetPasswordEnabled(false)));
+        config.setAccountChooserEnabled(true);
+        config.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
         IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
-        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+        String originKey =  generator.generate();
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, zone);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/login")
-                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-                .andExpect(xpath("//div[@class='action']//a").doesNotExist());
+        mockMvc.perform(get("/login")
+                            .session(session)
+                            .header("Accept", TEXT_HTML)
+                            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+               .andExpect(status().isOk())
+               .andExpect(view().name("idp_discovery/email"))
+               .andExpect(content().string(containsString("Sign in")))
+               .andExpect(xpath("//input[@name='email']").exists())
+               .andExpect(xpath("//input[@type='submit']/@value").string("Next"))
+               .andExpect(xpath("//div[@class='action']//a").doesNotExist());
+    }
+
+    @Test
+    void emailPageIdpDiscoveryEnabled_SelfServiceCreateAccountLinkEnabled(
+        @Autowired IdentityZoneProvisioning identityZoneProvisioning,
+        @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setAccountChooserEnabled(true);
+        config.getLinks().getSelfService().setSelfServiceCreateAccountEnabled(true).setSignup("/create_account");
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        String originKey =  generator.generate();
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, zone);
+
+        mockMvc.perform(get("/login")
+                            .session(session)
+                            .header("Accept", TEXT_HTML)
+                            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+               .andExpect(status().isOk())
+               .andExpect(view().name("idp_discovery/email"))
+               .andExpect(content().string(containsString("Sign in")))
+               .andExpect(xpath("//input[@name='email']").exists())
+               .andExpect(xpath("//input[@type='submit']/@value").string("Next"))
+               .andExpect(content().string(containsString("Create account")))
+               .andExpect(xpath("//div[@class='action']//a").exists());
     }
 
     @Test
@@ -2890,11 +2925,19 @@ public class LoginMockMvcTests {
     }
 
     @Test
-    void passwordPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
-        MockMvcUtils.setSelfServiceCreateAccountEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
-        MockMvcUtils.setSelfServiceResetPasswordEnabled(webApplicationContext, IdentityZone.getUaaZoneId(), false);
+    void passwordPageIdpDiscoveryEnabled_SelfServiceResetPasswordLinkDisabled(
+        @Autowired IdentityZoneProvisioning identityZoneProvisioning,
+        @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setAccountChooserEnabled(true);
+        config.getLinks().getSelfService().setSelfServiceResetPasswordEnabled(false);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        MockHttpSession session = new MockHttpSession();
+        String originKey =  generator.generate();
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, zone);
+
         getLoginForm(mockMvc, session);
         mockMvc.perform(post("/login/idp_discovery")
                 .with(csrf(session))
@@ -2904,9 +2947,43 @@ public class LoginMockMvcTests {
                 .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40koala.org"));
 
         mockMvc.perform(get("/login?discoveryPerformed=true&email=marissa%40koala.org")
-                .header("Accept", TEXT_HTML))
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
                 .andExpect(xpath("//div[@class='action pull-right']//a").doesNotExist());
+    }
+
+    @Test
+    void passwordPageIdpDiscoveryEnabled_SelfServiceResetPasswordLinkEnabled(
+        @Autowired IdentityZoneProvisioning identityZoneProvisioning,
+        @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning
+    ) throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setAccountChooserEnabled(true);
+        config.getLinks().getSelfService().setSelfServiceResetPasswordEnabled(true);
+        IdentityZone zone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
+
+        String originKey =  generator.generate();
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(webApplicationContext, jdbcIdentityProviderProvisioning, generator, originKey, zone);
+
+        getLoginForm(mockMvc, session);
+        mockMvc.perform(post("/login/idp_discovery")
+                .with(csrf(session))
+                .header("Accept", TEXT_HTML)
+                .param("email", "marissa@koala.org"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?discoveryPerformed=true&email=marissa%40koala.org"));
+
+        mockMvc.perform(get("/login?discoveryPerformed=true&email=marissa%40koala.org")
+                .session(session)
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Back")))
+                .andExpect(content().string(containsString("Reset password")))
+                .andExpect(xpath("//div[@class='action pull-right']//a").exists());
     }
 
     @Test
