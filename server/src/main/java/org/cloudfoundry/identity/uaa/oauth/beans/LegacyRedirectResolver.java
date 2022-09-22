@@ -101,9 +101,10 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         // when the standard Spring library class disagrees (i.e. when it acts more strictly).
         registeredRedirectUris.stream()
                 .filter(registeredRedirectUri ->
-                        requestedRedirect != null &&
+                                registeredRedirectUri.contains(":*") ||
+                                (requestedRedirect != null &&
                                 this.redirectMatches(requestedRedirect, registeredRedirectUri) &&
-                                !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri)
+                                !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri))
                 )
                 .forEach(registeredRedirectUri ->
                         logger.warn(String.format(MSG_TEMPLATE, clientId,
@@ -194,7 +195,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
 
         private static final int URI_EXTRACTOR_AUTHORITY_GROUP = 4; // "Authority" means "user:password@example.com"
         private static final String WILDCARD_PORT = "99999";
-        private static final String WILDCARD_PORT_PATTERN = ":" + WILDCARD_PORT;
+        public static final String WILDCARD_PORT_PATTERN = ":" + WILDCARD_PORT;
 
         private Matcher redirectMatcher;
         private boolean isValidRedirect = true;
