@@ -77,7 +77,7 @@ public abstract class UaaUrlUtils {
                     "(([a-zA-Z0-9\\-\\*\\_]+\\.){0,255}" + //subdomains (RFC1035) limited, regex backtracking disabled
                     "[a-zA-Z0-9\\-\\_]+\\.)?" +      //hostname
                     "[a-zA-Z0-9\\-]+" +              //tld
-                    "(:[0-9\\*]+)?(/.*|$)"              //port and path
+                    "((:[0-9]+)|(:\\*))?(/.*|$)"              //port and path
     );
 
     public static boolean isValidRegisteredRedirectUrl(String url) {
