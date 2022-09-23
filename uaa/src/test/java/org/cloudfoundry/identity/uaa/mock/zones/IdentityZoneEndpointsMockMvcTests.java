@@ -74,6 +74,7 @@ import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -2077,6 +2078,7 @@ class IdentityZoneEndpointsMockMvcTests {
     void updateZoneWithValidMfaConfigWithoutIdInBody_Succeeds() throws Exception {
         IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = createGoogleMfaProvider(identityZone.getId());
+        assert mfaProvider.getName() != null;
         identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName(mfaProvider.getName()));
         String id = identityZone.getId();
         identityZone.setId(null);
@@ -2303,17 +2305,23 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     private MfaProvider<GoogleMfaProviderConfig> createGoogleMfaProvider(String zoneId) throws Exception {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider().setName(new RandomValueStringGenerator(5).generate());
+        String providerName = new RandomValueStringGenerator(5).generate();
+        final MfaProvider<GoogleMfaProviderConfig> wantedMfaConfig =
+            new MfaProvider().setName(providerName);
         MockHttpServletRequestBuilder createMfaRequest = post("/mfa-providers")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(mfaProvider));
+                .content(JsonUtils.writeValueAsString(wantedMfaConfig));
         if (hasText(zoneId)) {
             createMfaRequest.header("X-Identity-Zone-Id", zoneId);
         }
-        MockHttpServletResponse mfaProviderResponse = mockMvc.perform(createMfaRequest).andReturn().getResponse();
-        mfaProvider = JsonUtils.readValue(mfaProviderResponse.getContentAsString(), MfaProvider.class);
-        return mfaProvider;
+        MockHttpServletResponse mfaProviderResponse = mockMvc.perform(createMfaRequest)
+                .andDo(print())
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse();
+        final MfaProvider<GoogleMfaProviderConfig> createdMfaConfig = JsonUtils.readValue(mfaProviderResponse.getContentAsString(), MfaProvider.class);
+        return createdMfaConfig;
     }
 
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {
@@ -2367,6 +2375,7 @@ class IdentityZoneEndpointsMockMvcTests {
                         .header("Authorization", "Bearer " + token)
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(identityZone)))
+                .andDo(print())
                 .andExpect(status().is(expect.value()))
                 .andExpect(content().string(containsString(expectedContent)))
                 .andReturn();

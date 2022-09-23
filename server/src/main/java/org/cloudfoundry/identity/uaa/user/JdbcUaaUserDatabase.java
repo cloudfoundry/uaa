@@ -20,6 +20,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.StringUtils;
 
+import javax.annotation.PostConstruct;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -45,7 +46,9 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private static final String PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users where %s=? and active=? and origin=? and identity_zone_id=?";
     static final String DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "lower(email)");
     static final String DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "email");
-    public static final String DEFAULT_UPDATE_USER_LAST_LOGON = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = ? and identity_zone_id=?";
+    private static final String DEFAULT_UPDATE_USER_LAST_LOGON_PLAIN = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = ? and identity_zone_id=?";
+    private static final String DEFAULT_UPDATE_USER_LAST_LOGON_SKIP_LOCKED = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = (select id from users where id = ? and identity_zone_id = ? for update skip locked)";
+    public static String DEFAULT_UPDATE_USER_LAST_LOGON = DEFAULT_UPDATE_USER_LAST_LOGON_PLAIN;
 
     private static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users where id = ? and active=? and identity_zone_id=?";
 
@@ -55,9 +58,10 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final IdentityZoneManager identityZoneManager;
     private final DatabaseUrlModifier databaseUrlModifier;
 
+    @Value("${database.useSkipLocked:false}")
+    private boolean useSkipLocked;
     @Value("${database.maxParameters:-1}")
     private int maxSqlParameters;
-
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UaaUserPrototype> minimalMapper = new UaaUserPrototypeRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
@@ -82,12 +86,25 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         this.quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
     }
 
+    @PostConstruct
+    public void init() {
+        DEFAULT_UPDATE_USER_LAST_LOGON = this.useSkipLocked ? DEFAULT_UPDATE_USER_LAST_LOGON_SKIP_LOCKED : DEFAULT_UPDATE_USER_LAST_LOGON_PLAIN;
+    }
+
     public int getMaxSqlParameters() {
         return maxSqlParameters;
     }
 
     public void setMaxSqlParameters(int maxSqlParameters) {
         this.maxSqlParameters = maxSqlParameters;
+    }
+
+    boolean isUseSkipLocked() {
+        return this.useSkipLocked;
+    }
+
+    void setUseSkipLocked(final boolean useSkipLocked) {
+        this.useSkipLocked = useSkipLocked;
     }
 
     @Override

@@ -28,6 +28,7 @@
             background-image: url(/resources/oss/images/product-logo.png);
         }
     </style>
+    <script type="text/javascript" src="/resources/javascripts/last_login_time.js" th:src="@{'/resources/javascripts/last_login_time.js'}"></script>
 </head>
 <body>
 <div class="content">
@@ -48,35 +49,11 @@
          <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
         <div th:if="${#authentication instanceof T(org.cloudfoundry.identity.uaa.authentication.UaaAuthentication)} ">
             <div th:if="${#authentication.lastLoginSuccessTime} != null">
-                Last login <span id="last_login_time"></span>
-                <script type="text/javascript">
-                    document.getElementById("last_login_time").innerHTML = new Date([[${#authentication.lastLoginSuccessTime}]]).toLocaleString();
-                </script>
+                Last login <span id="last_login_time" th:attr="last-login-success-time=${#authentication.lastLoginSuccessTime}"></span>
             </div>
         </div>
     </div>
 </div>
 
-<th:block th:with="code=${@environment.getProperty('analytics.code')},domain=${@environment.getProperty('analytics.domain')}">
-    <th:block th:if="${code} and ${domain}">
-        <script>
-            (function(i, s, o, g, r, a, m) {
-                i['GoogleAnalyticsObject'] = r;
-                i[r] = i[r] || function() {
-                    (i[r].q = i[r].q || []).push(arguments)
-                }, i[r].l = 1 * new Date();
-                a = s.createElement(o), m = s.getElementsByTagName(o)[0];
-                a.async = 1;
-                a.src = g;
-                m.parentNode.insertBefore(a, m)
-            })(window, document, 'script',
-                    '//www.google-analytics.com/analytics.js', 'ga');
-        </script>
-        <script th:utext="|ga('create', '${code}','${domain}');|"></script>
-        <script>
-            ga('send', 'pageview');
-        </script>
-    </th:block>
-</th:block>
 </body>
 </html>

@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -48,7 +49,7 @@ public class LoginPagePerformanceMockMvcTest {
 
     private WebApplicationContext webApplicationContext;
 
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
 
     private MockMvc mockMvc;
 
@@ -65,7 +66,7 @@ public class LoginPagePerformanceMockMvcTest {
             @Autowired MockMvc mockMvc,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
     )  {
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
         this.webApplicationContext = webApplicationContext;
         this.mockMvc = mockMvc;
         SecurityContextHolder.clearContext();
@@ -79,7 +80,7 @@ public class LoginPagePerformanceMockMvcTest {
     void resetGenerator(
             @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore
     ) {
-        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new AlphanumericRandomValueStringGenerator(24));
     }
 
     @AfterEach
@@ -136,7 +137,7 @@ public class LoginPagePerformanceMockMvcTest {
     }
 
 
-    private static String createOIDCProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, RandomValueStringGenerator generator, IdentityZone zone, String responseType, String domain) throws Exception {
+    private static String createOIDCProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, AlphanumericRandomValueStringGenerator generator, IdentityZone zone, String responseType, String domain) throws Exception {
         String originKey = generator.generate();
         AbstractExternalOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("http://myauthurl.com"));

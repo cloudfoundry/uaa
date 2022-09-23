@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.tomcat.util.http.Rfc6265CookieProcessor;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -31,8 +32,10 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+    private final Rfc6265CookieProcessor rfc6265CookieProcessor;
     private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
     private CurrentUserCookieFactory currentUserCookieFactory;
     private Logger logger = LoggerFactory.getLogger(AccountSavingAuthenticationSuccessHandler.class);
@@ -41,6 +44,9 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
     public AccountSavingAuthenticationSuccessHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler, CurrentUserCookieFactory currentUserCookieFactory) {
         this.redirectingHandler = redirectingHandler;
         this.currentUserCookieFactory = currentUserCookieFactory;
+
+        rfc6265CookieProcessor = new Rfc6265CookieProcessor();
+        rfc6265CookieProcessor.setSameSiteCookies("Strict");
     }
 
     @Override
@@ -78,7 +84,8 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
         } catch (CurrentUserCookieFactory.CurrentUserCookieEncodingException e) {
             logger.error(String.format("There was an error while creating the Current-Account cookie for user %s", uaaPrincipal.getId()), e);
         }
-        response.addCookie(currentUserCookie);
+        String headerValue = rfc6265CookieProcessor.generateHeader(currentUserCookie);
+        response.addHeader(SET_COOKIE, headerValue);
     }
 
     public static String encodeCookieValue(String inValue) throws IllegalArgumentException {

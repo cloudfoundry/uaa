@@ -14,11 +14,11 @@
 
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
-import org.apache.directory.api.util.DummySSLSocketFactory;
 import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.DefaultTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExternalTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.security.LdapSocketFactory;
+import org.cloudfoundry.identity.uaa.security.SkipSslLdapSocketFactory;
 import org.springframework.ldap.core.support.AbstractTlsDirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.DirContextAuthenticationStrategy;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
@@ -37,7 +37,7 @@ public class ProcessLdapProperties {
 
     public static final String LDAP_SOCKET_FACTORY = "java.naming.ldap.factory.socket";
     public static final String LDAP_SSL_SOCKET_FACTORY = "org.cloudfoundry.identity.ldap.ssl.factory.socket";
-    public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = DummySSLSocketFactory.class.getName();
+    public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = SkipSslLdapSocketFactory.class.getName();
     public static final String EXPIRY_CHECKING_SOCKET_FACTORY = LdapSocketFactory.class.getName();
 
     private boolean disableSslVerification;
