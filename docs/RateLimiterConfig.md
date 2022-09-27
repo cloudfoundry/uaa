@@ -2,9 +2,8 @@
 
 TOC:<p>
 &nbsp; &nbsp;          [Enablement](#Enablement)<br>
-&nbsp; &nbsp;          [Configuration file structure](#FileStruct)<br>
 
-&nbsp; &nbsp;          [Common Root Fields (from both the local file and the URL)](#DocCommonFields)<br>
+&nbsp; &nbsp;          [Common Root Fields (from both the local file and the URL)](#DocFields)<br>
 &nbsp; &nbsp;          [LimiterMap Fields](#DocLimiterMapFields)<br>
 
 &nbsp; &nbsp;          [Logging Option Definition](#DocLOD)<br>
@@ -21,7 +20,7 @@ TOC:<p>
 &nbsp; &nbsp; &nbsp;   [Information 4: Order of *Caller IP* extraction](#Information-4)<br>
 
 <br>
-                                              
+
 ## <a id="Enablement"></a> Enablement
 
 Rate Limiting is enabled by adding a section "ratelimit" to the uaa.yml file of your UAA instance. The file is checked at the following locations:
@@ -35,18 +34,7 @@ Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is acti
 
 <small>[back to TOC](#TOC)</small>
 
-## <a id="FileStruct"></a> Configuration file structure
-
-The file is basically a single Yaml Document (documents are delineated/separated by lines with three dashes "---");
-leading empty documents are ignored (a document with comment lines is NOT ignored).
-
-Note: the behaviour when more than one remaining document exists has not been tested.
-
-In the final remaining single document, comment lines (lines starting with a Pound Sign "#") are allowed any place (and ignored)!.
-
-<small>[back to TOC](#TOC)</small>
-
-## <a id="DocCommonFields"></a> Common Fields (from both the local file and the URL sourced file)
+## <a id="DocFields"></a> Fields of the ratelimit configuration in uaa.yml
 
 * loggingOption - (optional) String (see [Details](#DocLOD))
 * credentialID - (optional) String (see [Details](#DocCID))
@@ -59,7 +47,7 @@ In the final remaining single document, comment lines (lines starting with a Pou
 * withCallerCredentialsID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
 * withCallerRemoteAddressID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
 * withoutCallerID - ([optional but](#RequiredRS)) String - (see [Window Type](#WindowType))
-* pathSelectors - (required non-empty) List of String(s) - (see [Path Selector](#pathSelector)) 
+* pathSelectors - (required non-empty) List of String(s) - (see [Path Selector](#pathSelector))
 
 #### <a id="RequiredRS"></a> Note - There must be at least ONE [Window Type](#WindowType) in a Limiter Map!
 
@@ -76,8 +64,8 @@ lines start with "Rate Limited path" and include the Limiting Compound Key.
 "********************************** RateLimiter w/ path" (see [Note](#WithDetails))
 
 #### <a id="AllCalls"></a> Note - *AllCalls* includes the duration of the limiter overhead in nanoseconds:
-- Limited requests include "-- LIMITED by" text AND the Limiting Compound Key. 
-- Non-Limited requests include "-- NOT limited" text. 
+- Limited requests include "-- LIMITED by" text AND the Limiting Compound Key.
+- Non-Limited requests include "-- NOT limited" text.
 
 #### <a id="WithDetails"></a> Note - reading the *AllCallsWithDetails* output should be strait forward:
 - Limited requests include which internal limiter(s) were called and which was the limiting internal limiter.
@@ -183,7 +171,7 @@ CompoundKey AND for error reporting.
 2. "pathSelectors" - every *Limiter Map* must have a *pathSelectors* field AND at least one
 *pathSelector* (see [Note](#pathSelector)).
 3. *Window Type*(s) - where each has *Max* requests per *N* seconds (*Max* **r/** *N* **s**) with *N* defaulting to 1,
-and with a maximum of 1800 (30 mins).  A *Window Type* is effectively equivalent to an *InternalLimiter*. (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)). 
+and with a maximum of 1800 (30 mins).  A *Window Type* is effectively equivalent to an *InternalLimiter*. (see [Note 1](#WindowType) and [Note 2](#RequestsPerWindowSecs)).
 
 #### <a id="pathSelector"></a> Note - there are five types of *pathSelector*s (the first three require a path value be indicated after the colon):
 - *equals:*/... (the path, after the colin ':', MUST start with a slash '/').
@@ -213,7 +201,7 @@ it suggests that there is no apparent reason to also have a *withoutCallerID*.
 
 However, if an endpoint MUST have a *Credential ID*, then the combination of the
 *withCallerCredentialsID* and a "**0r/s**" *withoutCallerID* will limit
-(short circuit) all calls without a *Credential ID*! 
+(short circuit) all calls without a *Credential ID*!
 
 #### <a id="RequestsPerWindowSecs"></a> Note 2 - *Window Type*'s *Max* requests per *N* seconds:
 - *Max* requests can be zero '0' which means that ALL requests are blocked (for example: "withoutCallerID: 0r/s").
@@ -222,7 +210,7 @@ want the calls to an endpoint from the same server to average a max of "5r/s", b
 just change the "5r/s" to "15r/3s".
 - Because bursting would probably be limited to a small multiple (e.g. 3), it is hard to understand the value
 of much larger numbers for the *Window Secs*, except possibly to support (a future feature?) of an exponential
-delay (e.g. like a half implementation of the "tar pit" pattern). 
+delay (e.g. like a half implementation of the "tar pit" pattern).
 
 <small>[back to TOC](#TOC)</small>
 
