@@ -647,6 +647,15 @@ class UaaUrlUtilsTest {
         assertEquals(expected, UaaUrlUtils.getRequestPath(request));
     }
 
+    @Test
+    void testLegacyUriWithPortWildCard() {
+        assertTrue(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:*/callback"));
+
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl(Strings.EMPTY_STRING));
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:80*/callback"));
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:*8/callback"));
+    }
+
     private static void validateRedirectUri(List<String> urls, boolean result) {
         Map<String, String> failed = getUnsuccessfulUrls(urls, result);
         if (!failed.isEmpty()) {
