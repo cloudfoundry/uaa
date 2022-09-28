@@ -32,6 +32,9 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver {
     private static final Logger logger = LoggerFactory.getLogger(LegacyRedirectResolver.class);
+
+    public static final String LEGACY_PORT_WILDCAR = ":*";
+
     static final String MSG_TEMPLATE = "OAuth client %s is configured with a redirect_uri which performs implicit or " +
             "wildcard matching in legacy redirect uri matching mode. In this instance, the requested uri %s matches the " +
             "configured uri %s. Please consider configuring your requested redirect uri to exactly match the " +
@@ -101,9 +104,10 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         // when the standard Spring library class disagrees (i.e. when it acts more strictly).
         registeredRedirectUris.stream()
                 .filter(registeredRedirectUri ->
-                        requestedRedirect != null &&
+                                registeredRedirectUri.contains(LEGACY_PORT_WILDCAR) ||
+                                (requestedRedirect != null &&
                                 this.redirectMatches(requestedRedirect, registeredRedirectUri) &&
-                                !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri)
+                                !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri))
                 )
                 .forEach(registeredRedirectUri ->
                         logger.warn(String.format(MSG_TEMPLATE, clientId,
@@ -113,8 +117,8 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
     }
 
     private static String normalizeWildcardUri(String uriClient) {
-        boolean hasWildcarPort = uriClient.contains(":*");
-        String uri = hasWildcarPort ? uriClient.replace(":*", StringUtils.EMPTY) : uriClient;
+        boolean hasWildcarPort = uriClient.contains(LEGACY_PORT_WILDCAR);
+        String uri = hasWildcarPort ? uriClient.replace(LEGACY_PORT_WILDCAR, StringUtils.EMPTY) : uriClient;
         UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromUriString(uri);
         UriComponents nonNormalizedUri = uriComponentsBuilder.build();
 
@@ -132,7 +136,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             throw new IllegalArgumentException("URI host and scheme must not be null");
         }
 
-        return uriComponentsBuilder.build().toString().replace(":99999", ":*");
+        return uriComponentsBuilder.build().toString().replace(":99999", LEGACY_PORT_WILDCAR);
     }
 
     private static String redactSensitiveInformation(String uri) {

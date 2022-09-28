@@ -158,6 +158,18 @@ class LegacyRedirectResolverTest {
         }
 
         @Test
+        void warnsOnPortWildCard() {
+            final String configuredRedirectUri = "https://example.com:*/*";
+            final String requestedRedirectUri = "https://example.com:443/callback";
+            ClientDetails client = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThat(logEvents, hasItem(
+                warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
+            );
+        }
+
+        @Test
         void warnsOnImplicitPathExpansion() {
             final String configuredRedirectUri = "https://example.com/";
             final String requestedRedirectUri = "https://example.com/path";
