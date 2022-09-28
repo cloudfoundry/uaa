@@ -90,7 +90,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.openid.IdToken.ACR_VALUES_KEY;
@@ -124,7 +123,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_AUTHORITIES;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
@@ -235,16 +233,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
         Claims claims;
-        boolean isRefreshTokenRotate = getActiveTokenPolicy().isRefreshTokenRotate();
-        String oldRefreshId = null;
-        String newRefreshToken;
+        String refreshTokenString;
         try {
-            if (isRefreshTokenRotate) {
-                oldRefreshId = (String) refreshTokenClaims.get(JTI);
-                refreshTokenClaims.replace(JTI, UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
-            }
-            newRefreshToken = JsonUtils.writeValueAsString(refreshTokenClaims);
-            claims = JsonUtils.readValue(newRefreshToken, Claims.class);
+            refreshTokenString = refreshTokenCreator.getRefreshedTokenString(refreshTokenClaims);
+            claims = JsonUtils.readValue(refreshTokenString, Claims.class);
         } catch (JsonUtils.JsonUtilException e) {
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
@@ -325,11 +317,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String accessTokenId = generateUniqueTokenId();
-        if (isRefreshTokenRotate) {
-            refreshTokenValue = JwtHelper.encode(newRefreshToken, getActiveKeyInfo()).getEncoded();
-        } else {
-            refreshTokenValue = tokenValidation.getJwt().getEncoded();
-        }
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, refreshTokenString);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
@@ -350,8 +338,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue, new Date(refreshTokenExpireMillis), refreshTokenId
         );
 
-        if (isRefreshTokenRotate && isRevocable && nonNull(oldRefreshId)) {
-            tokenProvisioning.delete(oldRefreshId, -1, IdentityZoneHolder.getCurrentZoneId());
+        if (isRevocable && refreshTokenCreator.isRefreshTokenRotate()) {
+            tokenProvisioning.delete((String) tokenValidation.getClaims().get(JTI), -1, IdentityZoneHolder.getCurrentZoneId());
         }
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), isOpaque, isRevocable);
     }
