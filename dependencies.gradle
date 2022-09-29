@@ -11,7 +11,7 @@ ext["snakeyaml.version"] = "1.32" // manual update, see because of missing in sp
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.71.1"
+versions.bouncyCastleVersion = "1.72"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.7.4"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
