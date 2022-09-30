@@ -62,6 +62,7 @@ public class RateLimitingIT {
         }
         for (ResponseEntity entity : responses) {
             if (HttpStatus.TOO_MANY_REQUESTS.equals(entity.getStatusCode())) {
+                assertThat((String) entity.getBody(), containsString("InfoLimit"));
                 rateLimited = true;
                 break;
             }

@@ -77,7 +77,7 @@ ratelimit:
       withCallerRemoteAddressID: 50r/s
       pathSelectors:
         - "equals:/login.do"
-    - name: info
+    - name: InfoLimit
       withCallerRemoteAddressID: 10r/s
       pathSelectors:
         - "equals:/info"

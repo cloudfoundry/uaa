@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.home;
 
 import static java.util.Objects.nonNull;
+import static org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter.RATE_LIMIT_ERROR_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 
 import javax.servlet.RequestDispatcher;
@@ -33,14 +34,16 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.Getter;
 
 @SuppressWarnings("SpringMVCViewInspection")
@@ -137,15 +140,31 @@ public class HomeController {
         return ERROR;
     }
 
-    @RequestMapping(path = "/error429", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method= RequestMethod.GET)
+    @GetMapping(path = "/error429", produces = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
-    public String error429Json() {
-        return "{\"error\": \"Too Many Requests\"}";
+    public JsonError error429Json(HttpServletRequest request) {
+        return return429JsonError(request);
     }
 
-    @RequestMapping(path="/error429", method=RequestMethod.GET)
-    public String error429() {
+    @PostMapping(path = "/error429", produces = MediaType.APPLICATION_JSON_VALUE)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    @ResponseBody
+    public JsonError error429JsonPost(HttpServletRequest request) {
+        return return429JsonError(request);
+    }
+
+    private JsonError return429JsonError(HttpServletRequest request) {
+        if (request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE) instanceof String) {
+            return new JsonError((String) request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
+        } else {
+            return new JsonError("Too Many Requests");
+        }
+    }
+
+    @GetMapping(path="/error429")
+    public String error429(Model model, HttpServletRequest request) {
+        model.addAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
         return "error429";
     }
 
@@ -201,5 +220,11 @@ public class HomeController {
         private final String appLaunchUrl;
         private final String appIcon;
         private final String clientName;
+    }
+
+    @Data
+    @AllArgsConstructor
+    private static class JsonError {
+        private final String error;
     }
 }

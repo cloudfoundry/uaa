@@ -18,6 +18,10 @@ public final class CompoundKey {
         return limiterName + "|" + windowType + "|" + callerID;
     }
 
+    public String errorString() {
+        return "Name: " + limiterName + " Type: " + windowType;
+    }
+
     private final String limiterName;
     private final String windowType;
     private final String callerID;

@@ -23,6 +23,8 @@ import org.slf4j.LoggerFactory;
 public class RateLimitingFilter extends HttpFilter {
     private static final Logger log = LoggerFactory.getLogger( RateLimitingFilter.class );
 
+    public static final String RATE_LIMIT_ERROR_ATTRIBUTE = "RATE_LIMIT_ERROR";
+
     @SuppressWarnings("unused")
     // Not really unused, called by container to create Filter
     public RateLimitingFilter() // default and production constructor
@@ -116,7 +118,7 @@ public class RateLimitingFilter extends HttpFilter {
                                   getLimiterWithLogging( request ) :
                                   getLimiterNoLogging( request );
                 if ( limiter.shouldLimit() ) {
-                    limitRequest( response );
+                    limitRequest( request, response, "429 - Too Many Request - Request limited by Rate Limiter configuration: " + limiter.getLimitingKey().errorString() );
                     return;
                 }
             }
@@ -137,9 +139,9 @@ public class RateLimitingFilter extends HttpFilter {
             return limiter;
         }
 
-        private static void limitRequest( HttpServletResponse response )
-                throws IOException {
-            response.sendError( 429, "Too Many Requests" );
+        private static void limitRequest( HttpServletRequest request, HttpServletResponse response, String error ) throws IOException {
+            request.setAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, error);
+            response.sendError( 429, error );
         }
     }
 }

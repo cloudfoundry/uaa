@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting;
 
+import static org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter.RATE_LIMIT_ERROR_ATTRIBUTE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -16,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.Limiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,13 +65,17 @@ class RateLimitingFilterTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
         Limiter limiterInstance = mock(Limiter.class);
+        CompoundKey compoundKey = mock(CompoundKey.class);
+        when(compoundKey.errorString()).thenReturn("LIMITED");
+        when(limiterInstance.getLimitingKey()).thenReturn(compoundKey);
         when(limiterInstance.shouldLimit()).thenReturn(true);
         when(limiter.checkRequest(request)).thenReturn(limiterInstance);
 
         instance.doFilter(request, response, chain);
 
         verify(limiterInstance).shouldLimit();
-        verify(response).sendError(eq(429), anyString());
+        verify(request).setAttribute(eq(RATE_LIMIT_ERROR_ATTRIBUTE), contains("LIMITED"));
+        verify(response).sendError(eq(429), contains("LIMITED"));
     }
 
     @Test
