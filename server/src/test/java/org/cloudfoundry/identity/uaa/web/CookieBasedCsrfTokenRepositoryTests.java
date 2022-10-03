@@ -34,7 +34,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.*;
 
-public class CookieBasedCsrfTokenRepositoryTests {
+class CookieBasedCsrfTokenRepositoryTests {
 
     @Test
     public void testGetHeader_and_Parameter_Name() {
@@ -62,7 +62,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
 
     @ParameterizedTest
     @ValueSource(strings = {"", "/uaa"})
-    public void testSave_and_Load_Token(String contextPath) {
+    void testSave_and_Load_Token(String contextPath) {
         String expectedCookiePath = contextPath + "/";
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -89,7 +89,7 @@ public class CookieBasedCsrfTokenRepositoryTests {
     }
 
     @Test
-    public void testLoad_Token_During_Get() {
+    void testLoad_Token_During_Get() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod(HttpMethod.GET.name());
         request.setCookies(new Cookie(DEFAULT_CSRF_COOKIE_NAME, "should-be-removed"));
@@ -101,27 +101,27 @@ public class CookieBasedCsrfTokenRepositoryTests {
     }
 
     @Test
-    public void saveToken_sameSiteIsLax() {
+    void saveToken_sameSiteIsLax() {
         HttpServletResponse response = saveTokenAndReturnResponse(false, "http");
         assertThat(response.getHeader("Set-Cookie"), containsString("SameSite=Lax"));
     }
 
     @Test
-    public void saveToken_alwaysHttpOnly() {
+    void saveToken_alwaysHttpOnly() {
         Cookie cookie = saveTokenAndReturnCookie(false, "http");
         assertTrue(cookie.isHttpOnly());
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void saveToken_usesSecureAttributeForNonTls(boolean secure) {
+    void saveToken_usesSecureAttributeForNonTls(boolean secure) {
         Cookie cookie = saveTokenAndReturnCookie(secure, "http");
         assertEquals(secure, cookie.getSecure());
     }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
-    public void saveToken_SecureIfRequestIsOverHttps(boolean secure) {
+    void saveToken_SecureIfRequestIsOverHttps(boolean secure) {
         Cookie cookie = saveTokenAndReturnCookie(secure, "https");
         assertTrue(cookie.getSecure());
     }

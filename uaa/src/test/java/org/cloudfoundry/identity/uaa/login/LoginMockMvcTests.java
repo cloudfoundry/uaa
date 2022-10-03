@@ -2197,7 +2197,7 @@ public class LoginMockMvcTests {
      * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
      */
     @Test
-    public void testXhrCorsPreflight_ForNonDefaultZone_WhenZoneSpecificCorsPolicyIsNull(@Autowired CorsFilter corsFilter) throws Exception {
+    void testXhrCorsPreflight_ForNonDefaultZone_WhenZoneSpecificCorsPolicyIsNull(@Autowired CorsFilter corsFilter) throws Exception {
         // setting the default zone CORS policy
         corsFilter.setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
         corsFilter.setCorsXhrAllowedUris(singletonList("^/logout.do$"));
@@ -2224,7 +2224,7 @@ public class LoginMockMvcTests {
      * The access control request method is POST, which is allowed by the zone specific CORS policy in this test case setup
      */
     @Test
-    public void testXhrCorsPreflight_ForNonDefaultZone_WhenZoneSpecificCorsPolicyExists(@Autowired CorsFilter corsFilter) throws Exception {
+    void testXhrCorsPreflight_ForNonDefaultZone_WhenZoneSpecificCorsPolicyExists(@Autowired CorsFilter corsFilter) throws Exception {
          // setting the default zone CORS policy to not allow POST
         corsFilter.setCorsXhrAllowedMethods(List.of(GET.toString(), OPTIONS.toString()));
         corsFilter.initialize();
