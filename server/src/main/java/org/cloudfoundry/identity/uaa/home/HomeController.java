@@ -140,21 +140,10 @@ public class HomeController {
         return ERROR;
     }
 
-    @GetMapping(path = "/error429", produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(path = "/error429")
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
     public JsonError error429Json(HttpServletRequest request) {
-        return return429JsonError(request);
-    }
-
-    @PostMapping(path = "/error429", produces = MediaType.APPLICATION_JSON_VALUE)
-    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
-    @ResponseBody
-    public JsonError error429JsonPost(HttpServletRequest request) {
-        return return429JsonError(request);
-    }
-
-    private JsonError return429JsonError(HttpServletRequest request) {
         if (request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE) instanceof String) {
             return new JsonError((String) request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
         } else {
@@ -162,7 +151,7 @@ public class HomeController {
         }
     }
 
-    @GetMapping(path="/error429")
+    @RequestMapping(path="/error429", produces = MediaType.TEXT_HTML_VALUE)
     public String error429(Model model, HttpServletRequest request) {
         model.addAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
         return "error429";
