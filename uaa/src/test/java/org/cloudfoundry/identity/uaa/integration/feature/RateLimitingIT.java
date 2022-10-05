@@ -69,7 +69,7 @@ public class RateLimitingIT {
         }
         assertTrue(rateLimited);
         //After 1s, New Limit should be available
-        Thread.sleep(1000);
+        Thread.sleep(1000); //NOSONAR
         response = restTemplate.getForEntity(baseUrl + "/info", String.class);
         assertNotEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
     }

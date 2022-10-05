@@ -128,7 +128,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
 
         List<PathFragmentToLimiterMapping> ptfStartsWiths = new ArrayList<>();
         List<PathFragmentToLimiterMapping> ptfContains = new ArrayList<>();
-        LimiterMapping pathOtherLimiterMapping = null;
+        LimiterMapping pathOtherLimiterMappingInternal = null;
         LimiterMapping allLimiterMappings = null;
         for ( LimiterMapping limiterMapping : limiterMappings ) {
             if ( limiterMapping != null ) {
@@ -148,7 +148,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
                             ptfContains.add( new PathFragmentToLimiterMapping( selector.getPath(), limiterMapping ) );
                             break;
                         case Other:
-                            pathOtherLimiterMapping = limiterMapping;
+                            pathOtherLimiterMappingInternal = limiterMapping;
                             break;
                         case All:
                             allLimiterMappings = limiterMapping;
@@ -161,7 +161,7 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         }
         pathStartsWithLimiterMappings = new PathFragmentToLimiterMappings( String::startsWith, ptfStartsWiths );
         pathContainsLimiterMappings = new PathFragmentToLimiterMappings( String::contains, ptfContains );
-        this.pathOtherLimiterMapping = pathOtherLimiterMapping;
+        this.pathOtherLimiterMapping = pathOtherLimiterMappingInternal;
         this.allLimiterMapping = allLimiterMappings;
         this.limiterMappings = countLimiterMappings;
     }

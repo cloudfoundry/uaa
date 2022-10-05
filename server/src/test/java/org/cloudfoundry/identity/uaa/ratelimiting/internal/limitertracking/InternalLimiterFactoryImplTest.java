@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class InternalLimiterFactoryImplTest {
+class InternalLimiterFactoryImplTest {
     private static final String Global = WindowType.GLOBAL.windowType();
     private static final String NotGlobal = "!" + Global;
     private static final String NAME = "Test";
@@ -17,7 +17,7 @@ public class InternalLimiterFactoryImplTest {
     private final MillisTimeSupplier.Mock mockCurrentTimeSupplier = new MillisTimeSupplier.Mock();
 
     @Test
-    public void constructorOptionsTest() {
+    void constructorOptionsTest() {
         RequestsPerWindowSecs requests = RequestsPerWindowSecs.from( "limiterName", "testData", REQUESTS_PER_WINDOW );
         InternalLimiterFactoryImpl factory = InternalLimiterFactoryImpl.builder()
                 .name( NAME ).windowType( Global ).requestsPerWindow( requests )

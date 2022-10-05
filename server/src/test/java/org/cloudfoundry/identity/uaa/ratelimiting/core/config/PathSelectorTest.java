@@ -7,11 +7,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class PathSelectorTest {
+class PathSelectorTest {
     private static final String NAME = "login";
 
     @Test
-    public void pathMatchType() {
+    void pathMatchType() {
         assertNull( PathSelector.pathMatchType( "" ), "empty" );
         assertNull( PathSelector.pathMatchType( "FRED" ), "FRED" );
         for ( PathMatchType value : PathMatchType.values() ) {
@@ -22,7 +22,7 @@ public class PathSelectorTest {
     }
 
     @Test
-    public void parse() {
+    void parse() {
         checkNull( null );
         checkNull( "" );
         checkNull( "   " );
@@ -88,7 +88,7 @@ public class PathSelectorTest {
     }
 
     @Test
-    public void listFrom() {
+    void listFrom() {
         checkException( null );
         checkException( List.of() );
         checkException( List.of( "", "  " ) );

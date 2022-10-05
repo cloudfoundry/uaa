@@ -17,11 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 @SuppressWarnings("SameParameterValue")
-public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionTestSupport {
+class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionTestSupport {
     CallerIdSupplierByType callerIdSupplier = Mockito.mock( CallerIdSupplierByType.class );
 
     @Test
-    public void factoriesSupplier_toString() {
+    void factoriesSupplier_toString() {
         List<LimiterMapping> limiterMappings = List.of(
                 LimiterMapping.builder().name( "N1" ).withCallerCredentialsID( "2r/1s" ).pathSelector( "startsWith:/F-35B" ).build(),
                 LimiterMapping.builder().name( "N2" ).withCallerRemoteAddressID( "4r/2s" ).pathSelectors( "contains:F-22", "equals:/F-35" ).build(),
@@ -51,7 +51,7 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
     }
 
     @Test
-    public void factoriesSupplier_validate_Ordered_Map() {
+    void factoriesSupplier_validate_Ordered_Map() {
         LimiterMapping n1 = LimiterMapping.builder().name( "N1" ).global( "2r/1s" ).pathSelectors( "equals:/F-22", "equals:/F-35A", "equals:/F-35B", "equals:/F-35C", "equals:/F-35I" ).build();
         LimiterMapping n2 = LimiterMapping.builder().name( "N2" ).global( "4r/2s" ).withoutCallerID( "1r/5s" ).pathSelectors( "startsWith:/F-35", "startsWith:/F-22" ).build();
         LimiterMapping all = LimiterMapping.builder().name( "All" ).global( "100r/3s" ).pathSelector( "all" ).build();

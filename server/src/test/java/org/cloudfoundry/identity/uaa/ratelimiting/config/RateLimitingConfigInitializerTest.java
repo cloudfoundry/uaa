@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 class RateLimitingConfigInitializerTest {
@@ -21,6 +22,7 @@ class RateLimitingConfigInitializerTest {
     void noRateLimit() {
         //Check rateLImiting false does not require any parameters
         RateLimitingConfigInitializer rateLimitingConfigInitializer = new RateLimitingConfigInitializer(false, null, null, null);
+        Assertions.assertNotNull(rateLimitingConfigInitializer);
     }
 
     @Test

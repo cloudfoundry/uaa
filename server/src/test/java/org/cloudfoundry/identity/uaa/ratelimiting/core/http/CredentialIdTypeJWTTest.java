@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
-public class CredentialIdTypeJWTTest extends CredentialIdTypeAbstractTestJWT<CredentialIdTypeJWT> {
+class CredentialIdTypeJWTTest extends CredentialIdTypeAbstractTestJWT<CredentialIdTypeJWT> {
     public static final String EMAIL_FROM_CLAIMS = "Claims+\"email\"\\s*:\\s*\"(.*?)\"";
 
     public CredentialIdTypeJWTTest() {
@@ -15,12 +15,12 @@ public class CredentialIdTypeJWTTest extends CredentialIdTypeAbstractTestJWT<Cre
     }
 
     @Test
-    public void key() {
+    void key() {
         assertEquals( "JWT", credentialIdType.key() );
     }
 
     @Test
-    public void factoryFlavors() {
+    void factoryFlavors() {
         checkFlavor( null, AllJWT.class, JWT );
         checkFlavor( "", AllJWT.class, JWT );
         checkFlavor( " ", AllJWT.class, JWT );

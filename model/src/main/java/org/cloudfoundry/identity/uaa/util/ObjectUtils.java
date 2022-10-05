@@ -20,7 +20,7 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class ObjectUtils {
 
-    private ObjectUtils(){};
+    private ObjectUtils(){}
 
     public static <T> T castInstance(Object o, Class<T> clazz) {
         try {

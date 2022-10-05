@@ -16,7 +16,7 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConf
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.YamlConfigFileDTO.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-public class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSupport {
+class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSupport {
     public static final LimiterMap LIMITER_MAP_All_all = LimiterMap.builder().name( "All" ).global( "1r/s" ).pathSelectors( List.of( "all" ) ).build();
     public static final LimiterMap LIMITER_MAP_AAA_all = LimiterMap.builder().name( "AAA" ).withCallerCredentialsID( "1r/s" ).pathSelectors( List.of( "all" ) ).build();
     public static final LimiterMap LIMITER_MAP_AAA_other = LimiterMap.builder().name( "AAA" ).withCallerRemoteAddressID( "1r/s" ).pathSelectors( List.of( "other" ) ).build();

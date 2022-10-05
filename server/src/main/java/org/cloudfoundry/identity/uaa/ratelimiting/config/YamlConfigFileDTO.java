@@ -5,16 +5,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+import org.yaml.snakeyaml.Yaml;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import lombok.ToString;
-
-import org.apache.commons.lang3.StringUtils;
-import org.yaml.snakeyaml.Yaml;
 
 @Getter
 @Setter

@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;
 
-public class CredentialIdTypeJWTjsonFieldTest extends CredentialIdTypeAbstractTestJWT<CredentialIdTypeJWTjsonField> {
+class CredentialIdTypeJWTjsonFieldTest extends CredentialIdTypeAbstractTestJWT<CredentialIdTypeJWTjsonField> {
     public static final String EMAIL_FROM_CLAIMS = "claims:email";
 
     public CredentialIdTypeJWTjsonFieldTest() {
@@ -15,12 +15,12 @@ public class CredentialIdTypeJWTjsonFieldTest extends CredentialIdTypeAbstractTe
     }
 
     @Test
-    public void key() {
+    void key() {
         assertEquals( "JWTjsonField", credentialIdType.key() );
     }
 
     @Test
-    public void factoryFlavors() {
+    void factoryFlavors() {
         checkFlavor( EMAIL_FROM_CLAIMS, SectionFieldJWT.class, "|" + EMAIL_DEVIN + "|" );
 
         AuthorizationCredentialIdExtractor factory = credentialIdType.factory( EMAIL_FROM_CLAIMS );
