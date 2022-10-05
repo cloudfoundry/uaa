@@ -144,7 +144,7 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
             throw new IllegalStateException(e);
         }
         for (SamlIdentityProviderDefinition definition : configurator.getIdentityProviderDefinitions()) {
-            log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
+            log.debug("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
             try {
                 ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
                 initializeProvider(delegate);
