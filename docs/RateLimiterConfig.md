@@ -18,6 +18,8 @@ TOC:<p>
 &nbsp; &nbsp; &nbsp;   [Information 2: Selection of Single or Multiple *Window Type*(s)](#Information-2)<br>
 &nbsp; &nbsp; &nbsp;   [Information 3: Order of *Window Type* limiter(s) from Multiple *Limiter Map*s](#Information-3)<br>
 &nbsp; &nbsp; &nbsp;   [Information 4: Order of *Caller IP* extraction](#Information-4)<br>
+&nbsp; &nbsp;          [Endpoint /RateLimitingStatus](#status)<br>
+&nbsp; &nbsp;          [Error Messages](#errors)<br>
 
 <br>
 
@@ -53,6 +55,8 @@ Rate Limiting is semi-active -- meaning the Rate Limiting infrastructure is acti
 
 ## <a id="DocLOD"></a> Logging Option Definition
 
+This configuration is used to determine the logging behavior of the rate limiting. If left out only the limited requests will be logged.
+
 The 'loggingOption' field looks like:
 > loggingOption: AllCalls
 
@@ -76,8 +80,17 @@ after the current request has consumed an entry.
 
 ## <a id="DocCID"></a> Credential ID Definition
 
-The value of the 'credentialID' field has a number of variations, here is an example that extracts a
-JSON based 'email' field via a 'regex' from the 'Claims' section:
+This field configures the Credential ID that will be used by all Limiters that use "withCallerCredentialsID". 
+If it is left out those Limiters will no longer work as expected. If there is no such Limiter this definition can also be left out.
+
+All Credential ID Definitions consist of a *key* ("JWT" or "JWTjsonField" in the below examples) and a
+*parameters* section, divided by a colon (":"). The format of the parameters section depends on the used type.
+The parameters may be empty for specific types and in that case the colon may be left out. But currently no such type exists.
+
+Currently there are two different supported *key* types of Credential ID Definition: "JWT" and "JWTjsonField" - which are explained below.
+
+Both types can be used to extract the Credential ID from a provided JWT. 
+Here is an example that extracts a JSON based 'email' field via a 'regex' from the 'Claims' section:
 > credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
 
 Note: since the above regex does not differentiate between a 'root' 'email' field and a nested 'email' field,
@@ -85,14 +98,11 @@ if you want only a 'root' field, it is better to use the 'JWTjsonField' Credenti
 an 'email' field it looks like:
 > credentialID: 'JWTjsonField:Claims:email'
 
-All Credential ID Definitions consist of a *key* ("JWT" or "JWTjsonField" in the above examples) and a
-(sometimes optional) *parameters* section
-(the text after the *key*-*parameters* separating colin ':')
+Note that applying a Limiter using a JWT-based Credential ID to an endpoint that does not use JWT (e.g. Token endpoint,
+or public endpoints like /info) will have no effect.
 
-Note: if there are no *parameters*, the colin is optional.
+Also note that an invalid configuration for the Credential ID may affect the complete Rate Limiting, as the configuration itself is identified as invalid.
 
-Currently, only two types of *credentialID*s are currently supported,
-specifically the "JWT" and the "JWTjsonField" (shown in the above examples).
 
 <small>[back to TOC](#TOC)</small>
 
@@ -295,5 +305,33 @@ The caller IP address is extracted from **HttpServletRequest** by checking the f
 2. Header: "X-Real-IP" (whole value)
 3. Header: "X-Forwarded-For" (first value of comma separated IP addresses)
 4. Method: getRemoteAddr()
+
+<small>[back to TOC](#TOC)</small>
+
+## <a id="status"></a> Endpoint /RateLimitingStatus
+
+The current status of the Rate limiting is published via the endpoint /RateLimitingStatus.
+This endpoint is not part of any Rate limit and cannot be configured with such. 
+
+The status is returning a JSON body, containing i.a. the following information:
+- current.status: status of the Rate limiting. Either of the following values:
+   - DISABLED: No configuration given, rate limiting is off
+   - ACTIVE: Configuration successfully parsed and active
+   - PENDING: indicates the file could not be read successfully
+- current.credentialIdExtractor: Credential ID configuration that is currently used
+- current.loggingLevel: loggingOption that is currently used
+- current.limiterMapping: Number of Limiters from the configuration (= size of limiterMappings from config file)
+- fromSource: Location of the config file that is currently applied
+
+<small>[back to TOC](#TOC)</small>
+
+## <a id="errors"></a> Error Messages
+
+A request that is limited by the ratelimiting is always responded with a "429 - Too Many Requests" Http Status Code.
+In addition an error message is returned. Depending on whether the request Accepts HTML or JSON as a response, the error message is either embedded in an HTML Page or in a JSON Object as "error" claim.
+
+Besides the static error message: `429 - Too Many Request - Request limited by Rate Limiter configuration:`
+the error also contains information about the Limiter that limited this request. 
+This includes the name of the limiter as well as the Window Type of this Limiter. Given this information the user can see whether they hit a "global" rate limit or if the limit was only applied to their Credential ID or IP.
 
 <small>[back to TOC](#TOC)</small>
