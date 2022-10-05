@@ -38,6 +38,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -140,7 +141,7 @@ public class HomeController {
         return ERROR;
     }
 
-    @RequestMapping(path = "/error429")
+    @RequestMapping(path = "/error429", method = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH }) //NOSONAR
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
     public JsonError error429Json(HttpServletRequest request) {
@@ -151,7 +152,7 @@ public class HomeController {
         }
     }
 
-    @RequestMapping(path="/error429", produces = MediaType.TEXT_HTML_VALUE)
+    @RequestMapping(path="/error429", produces = MediaType.TEXT_HTML_VALUE, method = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH }) //NOSONAR
     public String error429(Model model, HttpServletRequest request) {
         model.addAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
         return "error429";
