@@ -1,13 +1,11 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
+import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus.Current;
+import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus.CurrentStatus;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.function.UnaryOperator;
-
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
@@ -19,7 +17,9 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
 import org.yaml.snakeyaml.Yaml;
 
-import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
 public class InitialConfig {
@@ -51,7 +51,16 @@ public class InitialConfig {
     }
 
     private static SourcedFile locateAndLoadLocalConfigFile() {
-        return clean( SourcedFile.locateAndLoadLocalFile( LOCAL_CONFIG_FILE, getLocalConfigDirs( ENVIRONMENT_CONFIG_LOCAL_DIRS, System::getProperty ) ) );
+        return clean( SourcedFile.locateAndLoadLocalFile( LOCAL_CONFIG_FILE, getLocalConfigDirs( ENVIRONMENT_CONFIG_LOCAL_DIRS, InitialConfig::getEnvOrProperty) ) );
+    }
+
+    private static String getEnvOrProperty(String key) {
+        String retVal = System.getenv(key);
+        if (retVal != null) {
+            return retVal;
+        } else {
+            return System.getProperty(key);
+        }
     }
 
     @SuppressWarnings("SameParameterValue")
