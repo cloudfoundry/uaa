@@ -117,7 +117,21 @@ To load JDWP agent for UAA jvm debugging, start the server as follows:
 ```sh
 ./gradlew run -Dxdebug=true
 ```
+or
+```sh
+./gradlew -Dspring.profiles.active=default,hsqldb,debug run
+```
 You can then attach your debugger to port 5005 of the jvm process.
+
+To suspend the server start-up until the debugger is attached (useful for
+debugging start-up code), start the server as follows:
+```sh
+./gradlew run -Dxdebugs=true
+```
+or
+```sh
+./gradlew -Dspring.profiles.active=default,hsqldb,debugs run
+```
 
 ## Running tests
 
