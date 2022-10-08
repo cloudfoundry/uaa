@@ -1,18 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.AbstractOAuth2AccessTokenMatchers;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -20,7 +16,6 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -41,28 +36,15 @@ import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 
 public class RefreshRotationTest {
-
-  @Rule
-  public ExpectedException expectedException = ExpectedException.none();
-
-  private TestTokenEnhancer tokenEnhancer;
-
   private CompositeToken persistToken;
   private Date expiration;
-
   private TokenTestSupport tokenSupport;
-  private RevocableTokenProvisioning tokenProvisioning;
-
-  private Calendar expiresAt = Calendar.getInstance();
-  private Calendar updatedAt = Calendar.getInstance();
-  private Set<String> acrValue = Sets.newHashSet("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
-
   private UaaTokenServices tokenServices;
   private KeyInfoService keyInfoService;
 
-  @Before
-  public void setUp() throws Exception {
-    tokenSupport = new TokenTestSupport(tokenEnhancer);
+  @BeforeEach
+  void setUp() throws Exception {
+    tokenSupport = new TokenTestSupport(null);
     keyInfoService = new KeyInfoService("https://uaa.url");
     Set<String> thousandScopes = new HashSet<>();
     for (int i = 0; i < 1000; i++) {
@@ -75,19 +57,18 @@ public class RefreshRotationTest {
 
     tokenServices = tokenSupport.getUaaTokenServices();
     tokenServices.setKeyInfoService(keyInfoService);
-    tokenProvisioning = tokenSupport.getTokenProvisioning();
     when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(1000L);
   }
 
-  @After
-  public void teardown() {
+  @AfterEach
+  void teardown() {
     AbstractOAuth2AccessTokenMatchers.revocableTokens.remove();
     IdentityZoneHolder.clear();
     tokenSupport.clear();
   }
 
   @Test
-  public void refreshRotation() {
+  void refreshRotation() {
     BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
