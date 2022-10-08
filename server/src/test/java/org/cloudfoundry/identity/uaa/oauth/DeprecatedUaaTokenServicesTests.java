@@ -1910,37 +1910,6 @@ public class DeprecatedUaaTokenServicesTests {
         tokenServices.refreshAccessToken(getOAuth2AccessToken().getValue(), getRefreshTokenRequest());
     }
 
-    //@Test
-    /*
-    public void refreshRotation() {
-        BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
-        clientDetails.setAutoApproveScopes(singleton("true"));
-        tokenSupport.clientDetailsService.setClientDetailsStore(
-            IdentityZoneHolder.get().getId(),
-            Collections.singletonMap(CLIENT_ID, clientDetails)
-        );
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
-        authorizationRequest.setRequestParameters(azParameters);
-        Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
-
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
-        CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
-        String refreshTokenValue = accessToken.getRefreshToken().getValue();
-        assertThat(refreshTokenValue, is(notNullValue()));
-        OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
-        assertThat(refreshedToken, is(notNullValue()));
-        assertEquals(refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
-        refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
-        assertNotEquals(refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(false);
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
-    }*/
-
     private void readAccessToken(Set<String> excludedClaims) {
         tokenServices.setExcludedClaims(excludedClaims);
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
