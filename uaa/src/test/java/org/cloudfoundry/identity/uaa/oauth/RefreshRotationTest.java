@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -35,7 +36,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.mockito.Mockito.when;
 
-public class RefreshRotationTest {
+class RefreshRotationTest {
   private CompositeToken persistToken;
   private Date expiration;
   private TokenTestSupport tokenSupport;
@@ -68,6 +69,7 @@ public class RefreshRotationTest {
   }
 
   @Test
+  @DisplayName("Refresh Token with rotation")
   void refreshRotation() {
     BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
