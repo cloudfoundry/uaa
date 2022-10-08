@@ -526,7 +526,7 @@ public class OIDCLoginIT {
             setRefreshTokenRotate(true);
             refreshToken1 = getRefreshTokenResponse(serverRunning, refreshToken2);
             refreshToken2 = getRefreshTokenResponse(serverRunning, refreshToken1);
-            assertNotEquals("New access token should be different to the old one.",
+            assertNotEquals("New access token should be different from the old one.",
                 refreshToken1,
                 refreshToken2);
         } finally {

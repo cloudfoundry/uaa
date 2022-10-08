@@ -20,11 +20,13 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -68,6 +70,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 @DisplayName("Uaa Token Services Tests")
@@ -278,6 +282,43 @@ class UaaTokenServicesTests {
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
             assertThat(refreshedToken, is(notNullValue()));
+
+            OAuth2AccessToken newleyRefreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(newleyRefreshedToken, is(notNullValue()));
+
+            assertEquals(newleyRefreshedToken.getRefreshToken(), refreshedToken.getRefreshToken(), "New refresh token should be equal to the old one.");
+        }
+
+        @Test
+        void happyWithRotation() {
+            assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
+            RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
+                GRANT_TYPE_AUTHORIZATION_CODE,
+                Sets.newHashSet("openid", "user_attributes"),
+                null,
+                "",
+                Sets.newHashSet(""),
+                "jku_test",
+                false,
+                new Date(),
+                null,
+                null
+            );
+            new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
+            UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
+            refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
+            assertThat(refreshToken, is(notNullValue()));
+            OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(refreshedToken, is(notNullValue()));
+            new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
+
+            OAuth2AccessToken newleyRefreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
+
+            assertThat(newleyRefreshedToken, is(notNullValue()));
+
+            assertNotEquals(newleyRefreshedToken.getRefreshToken(), refreshedToken.getRefreshToken(), "New access token should be different from the old one.");
         }
 
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")

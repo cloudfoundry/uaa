@@ -171,13 +171,13 @@ public class RefreshTokenCreator {
         this.timeService = timeService;
     }
 
-    public boolean isRefreshTokenRotate() {
+    public boolean shouldRotateRefreshTokens() {
         return getActiveTokenPolicy().isRefreshTokenRotate();
     }
 
     public String getRefreshedTokenString(Map<String, Object> refreshTokenClaims) {
         String newRefreshToken;
-        if (isRefreshTokenRotate()) {
+        if (shouldRotateRefreshTokens()) {
             refreshTokenClaims.replace(JTI, UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
         }
         newRefreshToken = JsonUtils.writeValueAsString(refreshTokenClaims);
@@ -186,7 +186,7 @@ public class RefreshTokenCreator {
 
     public String createRefreshTokenValue(TokenValidation tokenValidation, String refreshTokenString) {
         String refreshTokenValue;
-        if (isRefreshTokenRotate()) {
+        if (shouldRotateRefreshTokens()) {
             refreshTokenValue = JwtHelper.encode(refreshTokenString, getActiveKeyInfo()).getEncoded();
         } else {
             refreshTokenValue = tokenValidation.getJwt().getEncoded();
