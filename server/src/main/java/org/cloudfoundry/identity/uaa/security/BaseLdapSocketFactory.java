@@ -29,6 +29,11 @@ public abstract class BaseLdapSocketFactory extends SSLSocketFactory {
     }
 
     @Override
+    public Socket createSocket() throws IOException {
+        return delegate.createSocket();
+    }
+
+    @Override
     public Socket createSocket(Socket socket, String s, int i, boolean b) throws IOException {
         return delegate.createSocket(socket, s, i, b);
     }
