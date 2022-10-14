@@ -25,7 +25,7 @@ ext {
 }
 
 // Dependencies (some rely on shared versions, some are shared between projects)
-libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.4"
+libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.5"
 libraries.apacheCommonsRngSimple = "org.apache.commons:commons-rng-simple:1.4"
 libraries.apacheCommonsText = "org.apache.commons:commons-text:1.10.0"
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
