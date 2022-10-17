@@ -2,13 +2,11 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,6 +15,9 @@ import static java.util.Optional.ofNullable;
 
 @Configuration
 public class LdapIntegrationConfig {
+  public static final String CONNECT_TIMEOUT_MILLIS_KEY =
+          "com.sun.jndi.ldap.connect.timeout";
+  public static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofMinutes(30);
 
   @Bean
   public ProcessLdapProperties ldapPropertyProcessor(Environment environment) {
@@ -30,6 +31,8 @@ public class LdapIntegrationConfig {
   public Map ldapProperties(Environment environment) {
     Map initialLdapProperties = new HashMap();
     initialLdapProperties.put("com.sun.jndi.ldap.connect.pool", false);
+    initialLdapProperties.put(CONNECT_TIMEOUT_MILLIS_KEY,
+            String.valueOf(DEFAULT_CONNECT_TIMEOUT.toMillis()));
     initialLdapProperties.put("java.naming.referral", ofNullable(environment.getProperty("ldap.base.referral")).orElse("follow"));
     return ldapPropertyProcessor(environment).process(initialLdapProperties);
   }
