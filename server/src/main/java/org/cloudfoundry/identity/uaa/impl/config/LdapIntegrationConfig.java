@@ -19,16 +19,6 @@ public class LdapIntegrationConfig {
           "com.sun.jndi.ldap.connect.timeout";
   public static final Duration DEFAULT_CONNECT_TIMEOUT = Duration.ofMinutes(30);
 
-  private final long connectTimeoutMillis;
-
-  public LdapIntegrationConfig() {
-    this(DEFAULT_CONNECT_TIMEOUT);
-  }
-
-  public LdapIntegrationConfig(Duration connectTimeout) {
-    this.connectTimeoutMillis = connectTimeout.toMillis();
-  }
-
   @Bean
   public ProcessLdapProperties ldapPropertyProcessor(Environment environment) {
     boolean skipSslVerification = parseBoolean(environment.getProperty("ldap.ssl.skipverification"));
@@ -41,8 +31,8 @@ public class LdapIntegrationConfig {
   public Map ldapProperties(Environment environment) {
     Map initialLdapProperties = new HashMap();
     initialLdapProperties.put("com.sun.jndi.ldap.connect.pool", false);
-    initialLdapProperties.put(
-            CONNECT_TIMEOUT_MILLIS_KEY, String.valueOf(connectTimeoutMillis));
+    initialLdapProperties.put(CONNECT_TIMEOUT_MILLIS_KEY,
+            String.valueOf(DEFAULT_CONNECT_TIMEOUT.toMillis()));
     initialLdapProperties.put("java.naming.referral", ofNullable(environment.getProperty("ldap.base.referral")).orElse("follow"));
     return ldapPropertyProcessor(environment).process(initialLdapProperties);
   }
