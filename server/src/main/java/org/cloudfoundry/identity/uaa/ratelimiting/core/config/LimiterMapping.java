@@ -81,7 +81,9 @@ public class LimiterMapping {
 
     public static class Builder {
         private String name;
-        private String withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID;
+        private String withCallerCredentialsID;
+        private String withCallerRemoteAddressID;
+        private String withoutCallerID;
         private String global;
         private final List<String> pathSelectors = new ArrayList<>();
 

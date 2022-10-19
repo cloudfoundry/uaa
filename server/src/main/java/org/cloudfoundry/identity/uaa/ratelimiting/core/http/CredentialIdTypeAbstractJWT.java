@@ -6,11 +6,11 @@ import org.springframework.security.jwt.codec.Codecs;
 
 public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
     protected enum Section {
-        Header( 0 ),
-        Headers( 0 ),
-        Payload( 1 ),
-        Claims( 1 ),
-        Signature( 2 );
+        Header( 0 ), //NOSONAR
+        Headers( 0 ), //NOSONAR
+        Payload( 1 ), //NOSONAR
+        Claims( 1 ), //NOSONAR
+        Signature( 2 ); //NOSONAR
 
         private final int sectionNumber;
 

@@ -22,7 +22,7 @@ public abstract class AbstractRateLimiterConfigConfiguration {
         rateLimiting = RateLimiter.isEnabled();
     }
 
-    abstract protected LoaderLogger loaderLogger();
+    protected abstract LoaderLogger loaderLogger();
 
     protected RateLimitingConfigLoader createLoader( CredentialIdType... credentialIdTypes ) {
         if ( !rateLimiting ) {
@@ -87,18 +87,22 @@ public abstract class AbstractRateLimiterConfigConfiguration {
     private static final LoaderLogger DEFAULT_LOGGER = new LoaderLogger() {
         @Override
         public void logFetchingFrom( String source ) {
+            //Fallback instance, no logging implemented
         }
 
         @Override
         public void logError( RateLimitingConfigException e ) {
+            //Fallback instance, no logging implemented
         }
 
         @Override
         public void logUnhandledError( Exception e ) {
+            //Fallback instance, no logging implemented
         }
 
         @Override
         public void logUpdate( String msg ) {
+            //Fallback instance, no logging implemented
         }
     };
 }

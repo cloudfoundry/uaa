@@ -28,7 +28,7 @@ public class LimiterManagerImpl implements LimiterManager,
 
     private final LimiterByCompoundKey limiterByCompoundKey; // dynamically managed!
     private final ExpirationBuckets expirationBuckets;
-    private volatile RateLimitingFactoriesSupplierWithStatus supplierAndStatus;
+    private volatile RateLimitingFactoriesSupplierWithStatus supplierAndStatus; //NOSONAR - RateLimitingFactoriesSupplierWithStatus is immutable, so sync on the field is sufficient
     private Thread backgroundThread;
 
     // package friendly for testing
@@ -77,11 +77,11 @@ public class LimiterManagerImpl implements LimiterManager,
     List<InternalLimiter> generateLimiterList( RequestInfo info, InternalLimiterFactoriesSupplier supplier ) {
         Map<CompoundKey, InternalLimiterFactory> factoryMap = supplier.factoryMapFor( info );
         if ( (factoryMap == null) || factoryMap.isEmpty() ) { // null (NOOP version); empty (special scenario)
-            return null;
+            return null; //NOSONAR
         }
         List<InternalLimiter> limiters = new ArrayList<>( factoryMap.size() );
-        for ( CompoundKey compoundKey : factoryMap.keySet() ) { // Priority/Lock order!
-            limiters.add( limiterByCompoundKey.get( compoundKey, factoryMap.get( compoundKey ), expirationBuckets ) );
+        for ( Map.Entry<CompoundKey, InternalLimiterFactory> entry : factoryMap.entrySet() ) { // Priority/Lock order!
+            limiters.add( limiterByCompoundKey.get( entry.getKey(), entry.getValue(), expirationBuckets ) );
         }
         return limiters;
     }

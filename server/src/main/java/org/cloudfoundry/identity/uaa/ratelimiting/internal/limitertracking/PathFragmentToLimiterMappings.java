@@ -83,6 +83,7 @@ public class PathFragmentToLimiterMappings {
     @RequiredArgsConstructor
     @EqualsAndHashCode
     private static class IntPair {
-        public final int length, index;
+        public final int length;
+        public final int index;
     }
 }

@@ -39,6 +39,7 @@ public class FileLoaderRestTemplate implements FileLoader {
 
         @Override
         public void handleError( ClientHttpResponse response ) {
+            //ignore error
         }
     }
 }

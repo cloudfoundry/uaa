@@ -14,8 +14,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 
 public class LimiterImpl implements Limiter {
     private static final String NOT_LIMITED = "forward   "; // these three constant values should be the same length
-    private static final String LIMITED____ = "--LIMIT-- ";
-    private static final String NOT_CALLED_ = "noCheck   ";
+    private static final String LIMITED     = "--LIMIT-- ";
+    private static final String NOT_CALLED  = "noCheck   ";
 
     private final LoggingOption loggingOption;
     private final List<CompoundKey> orderedLimiterKeys;
@@ -57,18 +57,18 @@ public class LimiterImpl implements Limiter {
     public String toString() {
         StringBuilder sb = new StringBuilder().append( "Limiter: " );
         if ( limiting ) {
-            sb.append( LIMITED____ );
+            sb.append(LIMITED);
         }
         for ( int i = 0; i < orderedLimiterKeys.size(); i++ ) {
             CompoundKey compoundKey = orderedLimiterKeys.get( i );
             Boolean limited = calledAndLimited[i];
             sb.append( '\n' );
             if ( limited == null ) {
-                sb.append( NOT_CALLED_ );
+                sb.append(NOT_CALLED);
             } else if ( !limited ) {
                 sb.append( NOT_LIMITED );
             } else {
-                sb.append( LIMITED____ );
+                sb.append(LIMITED);
             }
             sb.append( compoundKey );
             if ( !limiting ) {
@@ -89,6 +89,7 @@ public class LimiterImpl implements Limiter {
         loggingOption.log( requestPath, logger, startTime, this, endTime );
     }
 
+    @Override
     public CompoundKey getLimitingKey() {
         return orderedLimiterKeys.get( indexOfLimiting );
     }

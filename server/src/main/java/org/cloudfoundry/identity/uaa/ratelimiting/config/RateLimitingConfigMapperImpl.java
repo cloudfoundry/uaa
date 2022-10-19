@@ -187,10 +187,8 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
     private void populateCredentialIdTypes( CredentialIdType[] credentialIdTypes ) {
         if ( credentialIdTypes != null ) {
             for ( CredentialIdType type : credentialIdTypes ) {
-                if ( type != null ) {
-                    if ( null != credentialIdTypesByKey.put( type.key(), type ) ) {
-                        throw new Error( "CredentialIdType key '" + type.key() + "' -- Coding error!" );
-                    }
+                if ( type != null && null != credentialIdTypesByKey.put( type.key(), type )) {
+                    throw new Error( "CredentialIdType key '" + type.key() + "' -- Coding error!" );
                 }
             }
         }

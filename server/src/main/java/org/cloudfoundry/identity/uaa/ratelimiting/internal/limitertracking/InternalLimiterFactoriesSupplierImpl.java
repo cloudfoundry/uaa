@@ -78,9 +78,9 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
         if ( (servletPath == null) || servletPath.isEmpty() ) {
             pathLimiterMappings = pathOtherLimiterMapping;
         } else {
-            if ( null == (pathLimiterMappings = pathEqualsToLimiterMappings.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals
-                if ( null == (pathLimiterMappings = pathStartsWithLimiterMappings.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith
-                    if ( null == (pathLimiterMappings = pathContainsLimiterMappings.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains
+            if ( null == (pathLimiterMappings = pathEqualsToLimiterMappings.get( servletPath )) ) { // . . . . . 1st - Direct look up for Equals //NOSONAR keep extended for readability
+                if ( null == (pathLimiterMappings = pathStartsWithLimiterMappings.get( servletPath )) ) { // . . 2nd - Longest PathFragment that StartsWith //NOSONAR
+                    if ( null == (pathLimiterMappings = pathContainsLimiterMappings.get( servletPath )) ) { // . 3rd - Longest PathFragment that Contains //NOSONAR
                         pathLimiterMappings = pathOtherLimiterMapping; //  . . . . . . . . . . . . . . . . . . . 4th - Other
                     }
                 }
@@ -169,8 +169,8 @@ public class InternalLimiterFactoriesSupplierImpl implements InternalLimiterFact
     @SuppressWarnings("SameParameterValue")
     private static void appendTo( StringBuilder sb, PathMatchType type, Map<String, LimiterMapping> pathLimiterMappings ) {
         appendPathMatchType( sb, type, !pathLimiterMappings.isEmpty() );
-        for ( String path : pathLimiterMappings.keySet() ) {
-            appendLimiterMappingsWithPath( sb, path, pathLimiterMappings.get( path ) );
+        for ( Map.Entry<String, LimiterMapping> entry : pathLimiterMappings.entrySet() ) {
+            appendLimiterMappingsWithPath( sb, entry.getKey(), entry.getValue() );
         }
     }
 

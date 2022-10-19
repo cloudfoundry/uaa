@@ -66,14 +66,12 @@ public class RateLimitingConfigLoader implements Runnable {
         bindYaml = new BindYaml<>( YamlConfigFileDTO.class, dynamicUpdateURL );
         this.current = current;
 
-        if ( fetcher != null ) { // Rate Limiting active
-            if ( !noBackgroundProcessor ) {
-                supplierUpdatable.startBackgroundProcessing();
-                backgroundThread = new Thread( this );
-                backgroundThread.setName( "RateLimiterDynamicConfigurationLoaderProcess" );
-                backgroundThread.setDaemon( true );
-                backgroundThread.start();
-            }
+        if ( fetcher != null && !noBackgroundProcessor ) { // Rate Limiting active
+            supplierUpdatable.startBackgroundProcessing();
+            backgroundThread = new Thread( this );
+            backgroundThread.setName( "RateLimiterDynamicConfigurationLoaderProcess" );
+            backgroundThread.setDaemon( true );
+            backgroundThread.start();
         }
     }
 
@@ -111,18 +109,7 @@ public class RateLimitingConfigLoader implements Runnable {
         logger.logUpdate( "Polling Background thread started" );
         try {
             while ( !wereDying ) {
-                try {
-                    long nextRunTime = currentTimeSupplier.now() + 15000;
-                    Thread.sleep( 2000 ); // check every 15 seconds (2 here & rest below)
-                    checkForUpdate();
-                    Thread.sleep( nextRunTime - currentTimeSupplier.now() );
-                }
-                catch ( InterruptedException e ) {
-                    // As it is a Daemon, ignore InterruptedException and check if "wereDying"!
-                }
-                catch ( Exception e ) {
-                    logger.logUnhandledError( e ); // Log everything else
-                }
+                checkUpdateAndSleep();
             }
         }
         catch ( Exception e ) { // shouldn't be possible!
@@ -130,6 +117,21 @@ public class RateLimitingConfigLoader implements Runnable {
         }
         finally {
             logger.logUpdate( "Polling Background thread stopping" );
+        }
+    }
+
+    private void checkUpdateAndSleep() {
+        try {
+            long nextRunTime = currentTimeSupplier.now() + 15000;
+            Thread.sleep( 2000 ); // check every 15 seconds (2 here & rest below)
+            checkForUpdate();
+            Thread.sleep( nextRunTime - currentTimeSupplier.now() );
+        }
+        catch ( InterruptedException e ) { //NOSONAR
+            // As it is a Daemon, ignore InterruptedException and check if "wereDying"!
+        }
+        catch ( Exception e ) {
+            logger.logUnhandledError( e ); // Log everything else
         }
     }
 

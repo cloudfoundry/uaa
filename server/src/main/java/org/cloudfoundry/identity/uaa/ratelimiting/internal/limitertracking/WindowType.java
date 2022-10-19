@@ -71,9 +71,9 @@ public interface WindowType {
 
     enum NON_GLOBAL implements WindowType {
         // Priority order for checking AND Locking
-        CredentialsID( LimiterMapping::withCallerCredentialsID, CallerIdSupplierByType::getCallerCredentialsID ),
-        RemoteAddressID( LimiterMapping::withCallerRemoteAddressID, CallerIdSupplierByType::getCallerRemoteAddressID ),
-        NoID( LimiterMapping::withoutCallerID, null ) {
+        CredentialsID( LimiterMapping::withCallerCredentialsID, CallerIdSupplierByType::getCallerCredentialsID ), //NOSONAR
+        RemoteAddressID( LimiterMapping::withCallerRemoteAddressID, CallerIdSupplierByType::getCallerRemoteAddressID ), //NOSONAR
+        NoID( LimiterMapping::withoutCallerID, null ) { //NOSONAR
             @Override
             public String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier ) {
                 return cannedCallerID();

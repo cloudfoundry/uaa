@@ -35,6 +35,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -136,14 +137,14 @@ public class HomeController {
         return ERROR;
     }
 
-    @RequestMapping(path = "/error429", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @RequestMapping(path = "/error429", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE, method= RequestMethod.GET)
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
     public String error429Json() {
         return "{\"error\": \"Too Many Requests\"}";
     }
 
-    @RequestMapping("/error429")
+    @RequestMapping(path="/error429", method=RequestMethod.GET)
     public String error429() {
         return "error429";
     }

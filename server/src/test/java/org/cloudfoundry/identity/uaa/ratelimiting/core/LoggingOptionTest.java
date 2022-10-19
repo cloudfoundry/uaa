@@ -39,7 +39,7 @@ class LoggingOptionTest {
         }
         assertNull( LoggingOption.valueFor( null ) );
         assertNull( LoggingOption.valueFor( "" ) );
-        assertNull( LoggingOption.valueFor( " " + LoggingOption.AllCalls ) );
+        assertNull( LoggingOption.valueFor( " " + LoggingOption.AllCalls) );
     }
 
     private void check( LoggingOption value, Function<String, String> nameMutator ) {
@@ -60,7 +60,7 @@ class LoggingOptionTest {
         check( limiter.execute( LoggingOption.AllCalls, 1 ),
                extract( LoggingOption.AllCalls, "PREFIX" ),
                path,
-               extract( LoggingOption.AllCalls, "SUFFIX_CallsNotLimited" ),
+               extract( LoggingOption.AllCalls, "SUFFIX_CALLS_NOT_LIMITED" ),
                null );
         check( limiter.execute( LoggingOption.AllCallsWithDetails, 1 ),
                extract( LoggingOption.AllCallsWithDetails, "PREFIX" ),
@@ -82,7 +82,7 @@ class LoggingOptionTest {
         check( limiter.execute( LoggingOption.AllCalls, 1 ),
                extract( LoggingOption.AllCalls, "PREFIX" ),
                path,
-               extract( LoggingOption.AllCalls, "SUFFIX_CallsLimited" ),
+               extract( LoggingOption.AllCalls, "SUFFIX_CALLS_LIMITED" ),
                TCK.toString() );
         check( limiter.execute( LoggingOption.AllCallsWithDetails, 1 ),
                extract( LoggingOption.AllCallsWithDetails, "PREFIX" ),

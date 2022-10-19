@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
 public class IntUtils {
+
+    private IntUtils() {}
+
     public static Integer parseNoException( String source, Integer defaultOnEmpty ) {
         try {
             return parse( source, defaultOnEmpty );

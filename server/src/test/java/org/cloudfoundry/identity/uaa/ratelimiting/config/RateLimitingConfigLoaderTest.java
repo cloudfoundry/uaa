@@ -139,9 +139,10 @@ public class RateLimitingConfigLoaderTest extends AbstractExceptionTestSupport {
     }
 
     private void expectExceptionLoadYamlString( RateLimitingConfigLoader loader, String yamlErrorText ) {
+        String className = YamlRateLimitingConfigException.class.getSimpleName();
         try {
             String result = loader.loadYamlString();
-            fail( "expected Exception (" + YamlRateLimitingConfigException.class.getSimpleName() + "), but got result of: " + result );
+            fail( "expected Exception (" + className + "), but got result of: " + result );
         }
         catch ( YamlRateLimitingConfigException expected ) {
             assertEquals( YamlRateLimitingConfigException.MESSAGE_PREFIX + yamlErrorText, expected.getMessage() );

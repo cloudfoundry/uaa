@@ -48,7 +48,7 @@ class LimiterImplTest {
     }
 
     private void check( String callID, List<InternalLimiter> iLimiters, boolean shouldLimitExpected, String... toStringLines ) {
-        LimiterImpl limiter = LimiterImpl.from( iLimiters, LoggingOption.AllCallsWithDetails );
+        LimiterImpl limiter = LimiterImpl.from( iLimiters, LoggingOption.AllCallsWithDetails);
         assertEquals( shouldLimitExpected, limiter.shouldLimit(), callID );
         String expected = String.join( "\n", toStringLines );
         assertEquals( expected, limiter.toString(), callID );

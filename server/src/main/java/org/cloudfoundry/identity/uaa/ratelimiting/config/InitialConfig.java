@@ -3,7 +3,9 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -59,7 +61,7 @@ public class InitialConfig {
 
     @SuppressWarnings("SameParameterValue")
     // packageFriendly for Testing
-    static String[] getLocalConfigDirs( List<String> dirProxies, Function<String, String> unProxyFunction ) {
+    static String[] getLocalConfigDirs( List<String> dirProxies, UnaryOperator<String> unProxyFunction ) {
         return dirProxies.stream()
                 .map( StringUtils::normalizeToNull ).filter( Objects::nonNull )
                 .map( unProxyFunction )
@@ -141,15 +143,16 @@ public class InitialConfig {
     @Getter
     @Setter
     @NoArgsConstructor
+    @EqualsAndHashCode
     public static class ExtendedYamlConfigFileDTO extends YamlConfigFileDTO {
         private String dynamicConfigUrl;
     }
 
     enum UrlPrefix {
-        https, http;
+        HTTPS, HTTP;
 
         public String asPrefix() {
-            return name() + "://";
+            return name().toLowerCase() + "://";
         }
 
         public static boolean isAcceptable( String url ) {

@@ -13,7 +13,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 @Getter
 public class InternalLimiterFactoryImpl implements InternalLimiterFactory {
     private final RequestsPerWindowSecs requestsPerWindow;
-    private final String name, windowType;
+    private final String name;
+    private final String windowType;
 
     public boolean isGlobal() {
         return WindowType.GLOBAL.windowType().equals( windowType );

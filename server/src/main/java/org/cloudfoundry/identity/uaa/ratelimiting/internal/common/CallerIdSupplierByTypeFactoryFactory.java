@@ -10,6 +10,9 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils.Suppli
 import static org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils.normalizeToNull;
 
 public class CallerIdSupplierByTypeFactoryFactory {
+
+    private CallerIdSupplierByTypeFactoryFactory(){}
+
     public static CallerIdSupplierByTypeFactory from( AuthorizationCredentialIdExtractor credentialIdExtractor ) {
         return (credentialIdExtractor == null) ?
                new FactoryNoCredentialIdExtractor() :

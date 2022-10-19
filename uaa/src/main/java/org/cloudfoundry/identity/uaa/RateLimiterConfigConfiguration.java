@@ -26,12 +26,12 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConf
  */
 @Configuration
 public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigConfiguration {
-    private final Log logger = LogFactory.getLog( RateLimitingConfigLoader.class );
+    private final Log logger = LogFactory.getLog( RateLimiterConfigConfiguration.class );
 
     @Bean
     public RateLimitingConfigLoader loader() {
         AuthorizationCredentialIdExtractorErrorLogger errLogger =
-                ( e ) -> logger.error( "AuthorizationCredentialIdExtractor", e );
+                e -> logger.error( "AuthorizationCredentialIdExtractor", e );
         return createLoader(
                 new CredentialIdTypeJWT( errLogger ),
                 new CredentialIdTypeJWTjsonField( errLogger ) );

@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
 public class Null {
+
+    private Null(){}
+
     public static <T> T errorOn( String what, T value ) {
         if ( value != null ) {
             return value;

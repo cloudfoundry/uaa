@@ -126,12 +126,7 @@ public class RequestInfoImpl implements RequestInfo {
         if ( name != null ) {
             name = name.toLowerCase();
         }
-        LazyEnumerationToList<String> le2l = headerLists.get( name );
-        if ( le2l == null ) {
-            le2l = new LazyEnumerationToList<>( request.getHeaders( name ) );
-            headerLists.put( name, le2l );
-        }
-        return le2l;
+        return headerLists.computeIfAbsent( name, key ->  new LazyEnumerationToList<>( request.getHeaders( key ) ));
     }
 
     private static class NullObjectRequestInfo implements RequestInfo {

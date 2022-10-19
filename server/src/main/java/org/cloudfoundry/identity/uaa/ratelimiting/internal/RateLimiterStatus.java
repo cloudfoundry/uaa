@@ -111,28 +111,28 @@ public class RateLimiterStatus {
     }
 
     public RateLimiterStatus updateFailed( String error, long asOf ) {
-        Update update = getUpdate();
-        if ( (update != null) && update.isFailed( error ) ) {
-            update = update.incCheckCountOfStatus();
+        Update updateInternal = getUpdate();
+        if ( (updateInternal != null) && updateInternal.isFailed( error ) ) {
+            updateInternal = updateInternal.incCheckCountOfStatus();
         } else {
-            update = Update.builder().status( UpdateStatus.FAILED ).asOf( asOf ).error( error ).build();
+            updateInternal = Update.builder().status( UpdateStatus.FAILED ).asOf( asOf ).error( error ).build();
         }
-        return new RateLimiterStatus( getCurrent(), update, getFromSource() );
+        return new RateLimiterStatus( getCurrent(), updateInternal, getFromSource() );
     }
 
     public RateLimiterStatus update( String error, long asOf, String fromSource ) {
-        Update update = getUpdate();
-        if ( (update != null) && update.isFailed( error ) ) {
-            update = update.incCheckCountOfStatus();
+        Update updateInternal = getUpdate();
+        if ( (updateInternal != null) && updateInternal.isFailed( error ) ) {
+            updateInternal = updateInternal.incCheckCountOfStatus();
         } else {
-            update = Update.builder().asOf( asOf ).error( error )
+            updateInternal = Update.builder().asOf( asOf ).error( error )
                     .status( (error != null) ? UpdateStatus.FAILED : UpdateStatus.PENDING )
                     .build();
         }
-        return toBuilder().update( update ).fromSource( fromSource ).build();
+        return toBuilder().update( updateInternal ).fromSource( fromSource ).build();
     }
 
-    private transient String generatedJson;
+    private String generatedJson;
 
     public String toString() {
         String json = generatedJson;

@@ -46,10 +46,8 @@ public class InternalLimiter {
                 return true; // Limit - don't decrement
             }
             // Not Limiting, so check on next Recursively
-            if ( orderedInternalLimiters.hasNext() ) { // still in range - so recurse
-                if ( orderedInternalLimiters.next().shouldLimit( orderedInternalLimiters, limiter ) ) {
-                    return true; // Limit - subsequent InternalLimiter says limit - so don't decrement
-                }
+            if ( orderedInternalLimiters.hasNext() && orderedInternalLimiters.next().shouldLimit( orderedInternalLimiters, limiter ) ) { // still in range - so recurse
+                return true; // Limit - subsequent InternalLimiter says limit - so don't decrement
             }
             // all InternalLimiter(s) in the Iterator indicated have remaining requests, so decrement each as we unwind
             limiter.recordRemaining( decrementRequestsRemaining() );

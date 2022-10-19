@@ -7,7 +7,7 @@ import java.util.function.Consumer;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 
 public enum LoggingOption {
-    OnlyLimited() { // Default - see below
+    OnlyLimited() { // Default - see below //NOSONAR
         public static final String PREFIX = "Rate Limited path"; // public for reflection in tests
         public static final String SUFFIX = "->";
 
@@ -20,24 +20,24 @@ public enum LoggingOption {
             }
         }
     },
-    AllCalls() {
+    AllCalls() { //NOSONAR
         public static final String PREFIX = "path";
-        public static final String SUFFIX_CallsLimited = "-- LIMITED by ->";
-        public static final String SUFFIX_CallsNotLimited = "-- NOT limited";
+        public static final String SUFFIX_CALLS_LIMITED = "-- LIMITED by ->";
+        public static final String SUFFIX_CALLS_NOT_LIMITED = "-- NOT limited";
 
         @Override
         public void log( String requestPath, Consumer<String> logger, Instant startTime, Limiter limiter, Instant endTime ) {
             StringBuilder sb = prefixAndPath( PREFIX, requestPath );
             addDuration( sb, startTime, endTime );
             if ( limiter.shouldLimit() ) {
-                sb.append( SUFFIX_CallsLimited ).append( ' ' ).append( limiter.getLimitingKey() );
+                sb.append(SUFFIX_CALLS_LIMITED).append( ' ' ).append( limiter.getLimitingKey() );
             } else {
-                sb.append( SUFFIX_CallsNotLimited );
+                sb.append(SUFFIX_CALLS_NOT_LIMITED);
             }
             logger.accept( sb.toString() );
         }
     },
-    AllCallsWithDetails() {
+    AllCallsWithDetails() { //NOSONAR
         public static final String PREFIX = "********************************** RateLimiter w/ path";
         public static final String SUFFIX = "->";
 
@@ -49,7 +49,7 @@ public enum LoggingOption {
         }
     };
 
-    abstract public void log( String requestPath, Consumer<String> logger, Instant startTime, Limiter limiter, Instant endTime );
+    public abstract void log( String requestPath, Consumer<String> logger, Instant startTime, Limiter limiter, Instant endTime );
 
     protected StringBuilder prefixAndPath( String prefix, String requestPath ) {
         return new StringBuilder().append( prefix ).append( " '" ).append( requestPath ).append( "' " );
@@ -64,7 +64,7 @@ public enum LoggingOption {
         return null;
     }
 
-    public static LoggingOption DEFAULT = LoggingOption.OnlyLimited;
+    public static final LoggingOption DEFAULT = LoggingOption.OnlyLimited;
 
     public static LoggingOption deNull( LoggingOption option ) {
         return Null.defaultOn( option, DEFAULT );

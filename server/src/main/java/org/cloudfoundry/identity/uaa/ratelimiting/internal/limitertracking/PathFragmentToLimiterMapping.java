@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 
 import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
@@ -8,6 +9,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 @AllArgsConstructor
 @ToString
 @Getter
+@EqualsAndHashCode
 public class PathFragmentToLimiterMapping implements Comparable<PathFragmentToLimiterMapping> {
     private final String pathFragment;
     private final LimiterMapping limiterMapping;

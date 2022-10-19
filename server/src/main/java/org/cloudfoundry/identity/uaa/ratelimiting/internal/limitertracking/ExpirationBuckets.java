@@ -7,11 +7,16 @@ import java.util.List;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
+
+import org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExpirationBuckets implements CompoundKeyExpirationAdder,
                                           Runnable {
+    private static final Logger log = LoggerFactory.getLogger( ExpirationBuckets.class );
     private final MillisTimeSupplier currentTimeSupplier;
     private final CompoundKeyPurger compoundKeyPurger;
     private final int wrapAroundMask;
@@ -24,11 +29,11 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
                               int minimumBuckets ) {
         this.currentTimeSupplier = currentTimeSupplier;
         this.compoundKeyPurger = compoundKeyPurger;
-        int buckets = powerOf2atLeast( minimumBuckets + 2 ); // need extra two (seconds)
-        this.buckets = buckets; // long version for efficient bounds checking
-        wrapAroundMask = buckets - 1;
+        int bucketsInternal = powerOf2atLeast( minimumBuckets + 2 ); // need extra two (seconds)
+        this.buckets = bucketsInternal; // long version for efficient bounds checking
+        wrapAroundMask = bucketsInternal - 1;
         //noinspection unchecked
-        expirationsBucketRing = new List[buckets];
+        expirationsBucketRing = new List[bucketsInternal];
         for ( int i = 0; i < expirationsBucketRing.length; i++ ) {
             expirationsBucketRing[i] = Collections.synchronizedList( new LinkedList<>() ); // Cheap adding!
         }
@@ -63,11 +68,11 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
                 Thread.sleep( 300 ); // check at least 3 times per second
                 processExpirations();
             }
-            catch ( InterruptedException e ) {
+            catch ( InterruptedException e ) { //NOSONAR
                 // As it is a Daemon, ignore InterruptedException
             }
             catch ( RuntimeException e ) {
-                e.printStackTrace(); // Log everything else
+                log.error(e.getMessage(), e); // Log everything else
             }
         }
     }

@@ -37,7 +37,7 @@ public class RateLimitingFilter extends HttpFilter {
                 throws ServletException, IOException;
     }
 
-    private final Filterer filterer;
+    private final transient Filterer filterer;
 
     RateLimitingFilter( RateLimiter rateLimiter ) // flexible (real-actual and testing) constructor
             throws ServletException {

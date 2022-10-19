@@ -94,7 +94,7 @@ public class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSuppo
         RateLimitingConfigMapperImpl mapper = createMapper( new CredentialIdTypeJWT( null ) );
         assertSupplier( false, LoggingOption.DEFAULT, 1, mapper, MINIMAL_DTO );
         assertSupplier( false, LoggingOption.AllCalls, 1, mapper,
-                        builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).loggingOption( "allCalls" ).build() );
+                        builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).loggingOption( "AllCalls" ).build() );
         assertSupplier( true, LoggingOption.DEFAULT, 1, mapper,
                         builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).credentialID( "JWT:claims" ).build() );
         assertSupplier( false, LoggingOption.DEFAULT, 2, mapper,

@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.util;
 import java.util.function.Supplier;
 
 public class Singleton<T> {
-    private final Object[] INDIRECT_INSTANCE_REF = new Object[1];
+    private final Object[] indirectInstanceRef = new Object[1];
     private final Supplier<T> constructor;
 
     public Singleton( Supplier<T> constructor ) {
@@ -11,11 +11,11 @@ public class Singleton<T> {
     }
 
     public T getInstance() {
-        synchronized ( INDIRECT_INSTANCE_REF ) {
+        synchronized (indirectInstanceRef) {
             T instance = getArrayEntry();
             if ( instance == null ) {
                 instance = constructor.get();
-                INDIRECT_INSTANCE_REF[0] = instance;
+                indirectInstanceRef[0] = instance;
             }
             return instance;
         }
@@ -23,6 +23,6 @@ public class Singleton<T> {
 
     @SuppressWarnings("unchecked")
     private T getArrayEntry() {
-        return (T)INDIRECT_INSTANCE_REF[0];
+        return (T) indirectInstanceRef[0];
     }
 }

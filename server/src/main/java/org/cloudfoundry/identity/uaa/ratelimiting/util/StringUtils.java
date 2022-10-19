@@ -5,6 +5,9 @@ import java.util.function.Supplier;
 import lombok.RequiredArgsConstructor;
 
 public class StringUtils {
+
+    private StringUtils(){}
+
     public static String toErrorMsg( Exception e ) {
         if ( e == null ) {
             return null;
