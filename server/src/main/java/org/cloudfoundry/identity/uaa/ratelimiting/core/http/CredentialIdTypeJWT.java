@@ -83,9 +83,7 @@ public class CredentialIdTypeJWT extends CredentialIdTypeAbstractJWT {
 
         @Override
         public String toString() {
-            return "SectionRegexJWT{section=" + section +
-                   ", regex='" + regex + '\'' + ", pattern=" + pattern +
-                   '}';
+            return "JWT[" + section + "]:regex='" + regex + "'";
         }
     }
 }

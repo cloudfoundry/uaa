@@ -1,8 +1,5 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
-import java.util.List;
-
-import org.assertj.core.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

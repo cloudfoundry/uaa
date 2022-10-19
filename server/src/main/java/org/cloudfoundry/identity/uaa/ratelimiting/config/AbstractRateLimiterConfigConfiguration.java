@@ -5,8 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.FileLoader;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.FileLoaderFileSystem;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.FileLoaderRestTemplate;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 
@@ -15,11 +16,9 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConf
 
 public abstract class AbstractRateLimiterConfigConfiguration {
     protected final boolean rateLimiting;
-    protected final String sourceReference;
 
     protected AbstractRateLimiterConfigConfiguration() {
         rateLimiting = RateLimiter.isEnabled();
-        sourceReference = rateLimiting ? RateLimiter.configUrl() : null;
     }
 
     abstract protected LoaderLogger loaderLogger();
@@ -28,26 +27,53 @@ public abstract class AbstractRateLimiterConfigConfiguration {
         if ( !rateLimiting ) {
             return null;
         }
-        FileLoader loader = Null.errorOn( "fileLoader", fileLoader() );
         LoaderLogger logger = Null.defaultOn( loaderLogger(), DEFAULT_LOGGER );
-        Fetcher fetcher = Null.errorOn( "fetcher", fetcher( loader, logger ) );
-        return new RateLimitingConfigLoader( logger, fetcher, credentialIdTypes );
+
+        InitialConfig initialConfig = InitialConfig.SINGLETON.getInstance();
+        Exception initialError = initialConfig.getInitialError();
+        String dynamicUpdateURL = initialConfig.getDynamicUpdateURL();
+        YamlConfigFileDTO localConfigDTO = initialConfig.getLocalResourceConfigFileDTO();
+        RateLimitingFactoriesSupplierWithStatus configurationWithStatus = initialConfig.getConfigurationWithStatus();
+        boolean updatingEnabled = dynamicUpdateURL != null; // only !null if specified w/ http:// or https://
+
+        LimiterManagerImpl limiterManager = LimiterManagerImpl.SINGLETON.getInstance();
+
+        limiterManager.update( configurationWithStatus );
+
+        if ( initialError instanceof RateLimitingConfigException ) {
+            logger.logError( (RateLimitingConfigException)initialError );
+        } else if ( initialError != null ) {
+            logger.logUnhandledError( initialError );
+        }
+
+        RateLimitingConfigMapper configMapper = new RateLimitingConfigMapper( updatingEnabled, credentialIdTypes );
+        if ( localConfigDTO != null ) {
+            String source = "Local Config File";
+            logger.logFetchingFrom( source );
+            configurationWithStatus = configMapper.map( configurationWithStatus, source, localConfigDTO );
+            limiterManager.update( configurationWithStatus );
+            logger.logUpdate( configurationWithStatus.getStatusJson() );
+        }
+
+        Fetcher fetcher = null;
+        if ( updatingEnabled ) {
+            FileLoader loader = Null.errorOn( "fileLoader", fileLoader( dynamicUpdateURL ) );
+            fetcher = Null.errorOn( "fetcher", fetcher( loader, logger, dynamicUpdateURL ) );
+        }
+        return new RateLimitingConfigLoader( logger, fetcher, dynamicUpdateURL, configMapper, configurationWithStatus );
     }
 
-    protected FileLoader fileLoader() {
-        String filePrefix = RateLimiter.UrlPrefix.file.asPrefix(); // sourceReference must start with 'file://' or either 'https://' or 'http://'
-        return sourceReference.startsWith( filePrefix ) ?
-               new FileLoaderFileSystem( sourceReference ) :
-               new FileLoaderRestTemplate( sourceReference );
+    protected FileLoader fileLoader( String dynamicUpdateURL ) {
+        return new FileLoaderRestTemplate( dynamicUpdateURL );
     }
 
-    protected Fetcher fetcher( FileLoader fileLoader, LoaderLogger logger ) {
+    protected Fetcher fetcher( FileLoader fileLoader, LoaderLogger logger, String dynamicUpdateURL ) {
         AtomicInteger loggingLimiter = new AtomicInteger( 0 );
         return () -> {
             int currentCallIndex = loggingLimiter.getAndIncrement(); // Called every 15 secs
             String yaml = fileLoader.load();
             if ( 0 == (currentCallIndex & 3) ) { // first call AND every 4th call (once a minute)
-                logger.logFetchingFrom( sourceReference );
+                logger.logFetchingFrom( dynamicUpdateURL );
             }
             return yaml;
         };

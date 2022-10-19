@@ -58,23 +58,21 @@ public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
             String valueFound = null;
             try {
                 String json = decodeSection( section, this );
-                Map<?,?> map = mapper.readValue( json, Map.class );
-                Object value = map.get(field);
-                if (value != null) {
+                Map<?, ?> map = mapper.readValue( json, Map.class );
+                Object value = map.get( field );
+                if ( value != null ) {
                     valueFound = value.toString();
                 }
             }
             catch ( JsonProcessingException | RuntimeException e ) {
                 errorLogger.log( e );
             }
-            return (valueFound == null) ? null : ( "|" + valueFound + "|" );
+            return (valueFound == null) ? null : ("|" + valueFound + "|");
         }
 
         @Override
         public String toString() {
-            return "SectionFieldJWT{section=" + section +
-                   ", field='" + field + '\'' +
-                   '}';
+            return "JWT[" + section + "]:field='" + field + "'";
         }
     }
 }

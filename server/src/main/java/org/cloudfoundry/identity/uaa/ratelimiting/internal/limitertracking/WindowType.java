@@ -4,8 +4,8 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByType;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactory;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
@@ -13,7 +13,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 public interface WindowType {
     String windowType();
 
-    RequestsPerWindowSecs extractRequestsPerWindowFrom( TypeProperties properties );
+    RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping properties );
 
     String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier );
 
@@ -27,7 +27,7 @@ public interface WindowType {
     }
 
     default boolean addTo( Map<CompoundKey, InternalLimiterFactory> map,
-                           TypeProperties properties, CallerIdSupplierByType callerIdSupplier ) {
+                           LimiterMapping properties, CallerIdSupplierByType callerIdSupplier ) {
         if ( properties != null ) {
             RequestsPerWindowSecs window = extractRequestsPerWindowFrom( properties );
             if ( window != null ) {
@@ -54,7 +54,7 @@ public interface WindowType {
         }
 
         @Override
-        public RequestsPerWindowSecs extractRequestsPerWindowFrom( TypeProperties properties ) {
+        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping properties ) {
             return (properties == null) ? null : properties.global();
         }
 
@@ -71,9 +71,9 @@ public interface WindowType {
 
     enum NON_GLOBAL implements WindowType {
         // Priority order for checking AND Locking
-        CredentialsID( TypeProperties::withCallerCredentialsID, CallerIdSupplierByType::getCallerCredentialsID ),
-        RemoteAddressID( TypeProperties::withCallerRemoteAddressID, CallerIdSupplierByType::getCallerRemoteAddressID ),
-        NoID( TypeProperties::withoutCallerID, null ) {
+        CredentialsID( LimiterMapping::withCallerCredentialsID, CallerIdSupplierByType::getCallerCredentialsID ),
+        RemoteAddressID( LimiterMapping::withCallerRemoteAddressID, CallerIdSupplierByType::getCallerRemoteAddressID ),
+        NoID( LimiterMapping::withoutCallerID, null ) {
             @Override
             public String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier ) {
                 return cannedCallerID();
@@ -85,10 +85,10 @@ public interface WindowType {
             }
         };
 
-        private final Function<TypeProperties, RequestsPerWindowSecs> windowMapper;
+        private final Function<LimiterMapping, RequestsPerWindowSecs> windowMapper;
         private final Function<CallerIdSupplierByType, String> callerIdMapper;
 
-        NON_GLOBAL( Function<TypeProperties, RequestsPerWindowSecs> windowMapper,
+        NON_GLOBAL( Function<LimiterMapping, RequestsPerWindowSecs> windowMapper,
                     Function<CallerIdSupplierByType, String> callerIdMapper ) {
             this.windowMapper = windowMapper;
             this.callerIdMapper = callerIdMapper;
@@ -100,7 +100,7 @@ public interface WindowType {
         }
 
         @Override
-        public RequestsPerWindowSecs extractRequestsPerWindowFrom( TypeProperties properties ) {
+        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping properties ) {
             return windowMapper.apply( properties );
         }
 
@@ -110,7 +110,7 @@ public interface WindowType {
         }
 
         public static void addBestTo( Map<CompoundKey, InternalLimiterFactory> map,
-                                      TypeProperties properties, CallerIdSupplierByType callerIdSupplier ) {
+                                      LimiterMapping properties, CallerIdSupplierByType callerIdSupplier ) {
             if ( properties != null ) {
                 for ( NON_GLOBAL value : values() ) {
                     if ( value.addTo( map, properties, callerIdSupplier ) ) {

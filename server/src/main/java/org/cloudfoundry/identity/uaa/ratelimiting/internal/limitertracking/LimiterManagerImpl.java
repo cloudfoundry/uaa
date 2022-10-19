@@ -11,45 +11,46 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.LimiterManager;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactory;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterImpl;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 
 public class LimiterManagerImpl implements LimiterManager,
                                            LimiterFactorySupplierUpdatable {
-    public static class Singleton {
-        private static final LimiterManagerImpl[] INDIRECT_INSTANCE_REF = new LimiterManagerImpl[1];
-
-        public static LimiterManagerImpl getInstance() { //
-            synchronized ( INDIRECT_INSTANCE_REF ) {
-                LimiterManagerImpl manager = INDIRECT_INSTANCE_REF[0];
-                if ( manager == null ) { // create an Instance with Rate Limiting disabled
-                    manager = new LimiterManagerImpl( null );
-                    INDIRECT_INSTANCE_REF[0] = manager;
-                }
-                return manager;
-            }
-        }
-    }
+    public static final Singleton<LimiterManagerImpl> SINGLETON =
+            new Singleton<>( () -> new LimiterManagerImpl( null ) );
 
     private final LimiterByCompoundKey limiterByCompoundKey; // dynamically managed!
     private final ExpirationBuckets expirationBuckets;
-    private volatile InternalLimiterFactoriesSupplier limiterFactorySupplier = InternalLimiterFactoriesSupplier.NOOP; // !null
+    private volatile RateLimitingFactoriesSupplierWithStatus supplierAndStatus;
     private Thread backgroundThread;
 
     // package friendly for testing
     InternalLimiterFactoriesSupplier getFactorySupplier() {
-        return limiterFactorySupplier;
+        return supplierAndStatus.getSupplier();
+    }
+
+    @Override
+    public String rateLimitingStatus() {
+        return supplierAndStatus.getStatusJson();
     }
 
     @Override
     public Limiter getLimiter( RequestInfo info ) {
         // Due to the volatile nature of limiterFactorySupplier - all work should occur from a single reference to it!
-        InternalLimiterFactoriesSupplier supplier = limiterFactorySupplier;
+        InternalLimiterFactoriesSupplier supplier = getFactorySupplier();
         return createLimiter( generateLimiterList( info, supplier ), supplier.getLoggingOption() );
+    }
+
+    @Override
+    public void update( @NonNull RateLimitingFactoriesSupplierWithStatus supplierAndStatus ) {
+        this.supplierAndStatus = supplierAndStatus;
     }
 
     /**
@@ -101,13 +102,6 @@ public class LimiterManagerImpl implements LimiterManager,
     }
 
     @Override
-    public void update( InternalLimiterFactoriesSupplier factoryByTypeSupplier ) {
-        if ( factoryByTypeSupplier != null ) {
-            this.limiterFactorySupplier = factoryByTypeSupplier;
-        }
-    }
-
-    @Override
     public synchronized void startBackgroundProcessing() {
         if ( backgroundThread == null ) {
             backgroundThread = new Thread( expirationBuckets );
@@ -132,6 +126,18 @@ public class LimiterManagerImpl implements LimiterManager,
         limiterByCompoundKey = new LimiterByCompoundKey( currentTimeSupplier );
         expirationBuckets = new ExpirationBuckets( currentTimeSupplier, limiterByCompoundKey,
                                                    RequestsPerWindowSecs.MAX_WINDOW_SECONDS );
+        supplierAndStatus = RateLimitingFactoriesSupplierWithStatus.builder()
+                .supplier( InternalLimiterFactoriesSupplier.NOOP )
+                .status( RateLimiterStatus.builder()
+                                 .current( RateLimiterStatus.Current.builder()
+                                                   .status( RateLimiterStatus.CurrentStatus.DISABLED )
+                                                   .asOf( currentTimeSupplier.now() )
+                                                   .build() )
+                                 .update( RateLimiterStatus.Update.builder()
+                                                  .status( RateLimiterStatus.UpdateStatus.DISABLED )
+                                                  .build() )
+                                 .build() )
+                .build();
     }
 
     // package protected for testing

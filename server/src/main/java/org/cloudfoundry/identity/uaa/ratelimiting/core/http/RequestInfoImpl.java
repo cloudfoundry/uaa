@@ -40,7 +40,7 @@ public class RequestInfoImpl implements RequestInfo {
             value = header( "X-Real-IP" );
         }
         if ( value == null ) {
-            value = header( "X-Forwarded-For" );
+            value = header( "X-Forwarded-For" ); // Added by the GoRouter
             if ( value != null ) {
                 int at = value.indexOf( ',' );
                 if ( at != -1 ) {

@@ -54,11 +54,26 @@ public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
         protected String from( JWTparts jp ) {
             return (section < jp.parts.length) ? jp.parts[section] : null;
         }
+
+        @Override
+        public String toString() {
+            return "JWT[" + section + "] (section base64 encoded)";
+        }
     }
 
     protected static class AllJWT implements AuthorizationCredentialIdExtractor {
         protected String from( JWTparts jp ) {
             return jp.token;
+        }
+
+        @Override
+        public final String getDescription() {
+            return toString();
+        }
+
+        @Override
+        public String toString() {
+            return "JWT (all)";
         }
 
         @Override

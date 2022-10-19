@@ -10,12 +10,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtils;
 
 @ToString
-public class TypeProperties {
-    public static final List<TypeProperties> DEFAULT_LIST = List.of(
-            TypeProperties.builder()
-                    .name( "Default" ).global( "50r/s" ).pathSelectors( List.of( "all" ) )
-                    .build() );
-
+public class LimiterMapping {
     private final String name;
     private final RequestsPerWindowSecs withCallerCredentialsID;
     private final RequestsPerWindowSecs withCallerRemoteAddressID;
@@ -23,7 +18,7 @@ public class TypeProperties {
     private final RequestsPerWindowSecs global;
     private final List<PathSelector> pathSelectors;
 
-    public TypeProperties( String name,
+    public LimiterMapping( String name,
                            String withCallerCredentialsID, String withCallerRemoteAddressID, String withoutCallerID,
                            String global, List<String> pathSelectors ) {
         this.name = StringUtils.normalizeToNull( name );
@@ -133,8 +128,8 @@ public class TypeProperties {
             return this;
         }
 
-        public TypeProperties build() {
-            return new TypeProperties( name, withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global,
+        public LimiterMapping build() {
+            return new LimiterMapping( name, withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global,
                                        pathSelectors );
         }
     }

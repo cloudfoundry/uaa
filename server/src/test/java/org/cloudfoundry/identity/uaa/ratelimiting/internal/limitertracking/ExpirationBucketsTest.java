@@ -10,7 +10,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.junit.jupiter.api.Test;
 
-import static org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.ExpirationBuckets.*;
+import static org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.ExpirationBuckets.BucketRingBoundsException;
+import static org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.ExpirationBuckets.ExpirationBucketMapping;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 

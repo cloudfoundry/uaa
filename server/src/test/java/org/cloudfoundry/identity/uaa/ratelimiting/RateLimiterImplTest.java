@@ -14,6 +14,11 @@ class RateLimiterImplTest {
         public Integer maxRequestsRemaining;
 
         @Override
+        public String rateLimitingStatus() {
+            return "Mocked";
+        }
+
+        @Override
         public Limiter getLimiter( RequestInfo info ) {
             return () -> {
                 if ( maxRequestsRemaining == null ) {

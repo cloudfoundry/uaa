@@ -32,5 +32,17 @@ public interface InternalLimiterFactoriesSupplier {
         return LoggingOption.DEFAULT;
     }
 
+    default String getCallerCredentialsIdSupplierDescription() {
+        return "NOOP";
+    }
+
+    default int getLimiterMappings() {
+        return 0;
+    }
+
     InternalLimiterFactoriesSupplier NOOP = info -> null;
+
+    static InternalLimiterFactoriesSupplier deNull( InternalLimiterFactoriesSupplier supplier ) {
+        return (supplier != null) ? supplier : NOOP;
+    }
 }

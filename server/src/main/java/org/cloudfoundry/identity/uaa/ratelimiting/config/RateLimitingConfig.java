@@ -10,12 +10,14 @@ public interface RateLimitingConfig {
                 throws IOException;
     }
 
-    interface LoaderLogger {
-        void logFetchingFrom( String source );
-
+    interface ConfigLogger {
         void logError( RateLimitingConfigException e );
 
         void logUnhandledError( Exception e );
+    }
+
+    interface LoaderLogger extends ConfigLogger {
+        void logFetchingFrom( String source );
 
         void logUpdate( String msg );
 

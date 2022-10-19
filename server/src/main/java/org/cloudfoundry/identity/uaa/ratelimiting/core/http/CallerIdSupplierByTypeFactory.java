@@ -3,6 +3,10 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 public interface CallerIdSupplierByTypeFactory {
     CallerIdSupplierByType from( RequestInfo request );
 
+    default String getCallerCredentialsIdSupplierDescription() {
+        return "None";
+    }
+
     class NoCallerDetails implements CallerIdSupplierByType {
         @Override
         public String getCallerCredentialsID() {

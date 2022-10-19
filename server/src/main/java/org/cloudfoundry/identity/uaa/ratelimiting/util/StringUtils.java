@@ -1,11 +1,18 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
-import java.util.Collection;
 import java.util.function.Supplier;
 
 import lombok.RequiredArgsConstructor;
 
 public class StringUtils {
+    public static String toErrorMsg( Exception e ) {
+        if ( e == null ) {
+            return null;
+        }
+        String msg = normalizeToNull( e.getMessage() );
+        return (msg != null) ? msg : e.getClass().getSimpleName();
+    }
+
     public static String normalizeToNull( String value ) {
         if ( value != null ) {
             value = value.trim();

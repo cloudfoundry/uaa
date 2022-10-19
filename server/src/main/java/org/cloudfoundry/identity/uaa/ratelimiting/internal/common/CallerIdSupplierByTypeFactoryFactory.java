@@ -33,6 +33,11 @@ public class CallerIdSupplierByTypeFactoryFactory {
         public CallerIdSupplierByType from( RequestInfo request ) {
             return (request == null) ? NULL_REQUEST_INFO : new WithCredentialIdExtractor( request, credentialIdExtractor );
         }
+
+        @Override
+        public String getCallerCredentialsIdSupplierDescription() {
+            return credentialIdExtractor.getDescription();
+        }
     }
 
     protected static class NoCredentialIdExtractor extends CallerIdSupplierByTypeFactory.NoCallerDetails implements CallerIdSupplierByType {

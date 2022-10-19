@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
 import org.junit.jupiter.api.Test;
 
-import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField.*;
+import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField.SectionFieldJWT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.when;

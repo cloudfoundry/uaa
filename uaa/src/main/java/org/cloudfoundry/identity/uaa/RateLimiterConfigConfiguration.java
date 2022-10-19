@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ratelimiting.config.AbstractRateLimiterConfigConfiguration;
@@ -7,6 +9,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigLoade
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractorErrorLogger;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Null;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,14 +33,18 @@ public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigCon
     public RateLimitingConfigLoader loader() {
         AuthorizationCredentialIdExtractorErrorLogger errLogger =
                 ( e ) -> logger.error( "AuthorizationCredentialIdExtractor", e );
-        return createLoader( new CredentialIdTypeJWT( errLogger ) );
+        return createLoader(
+                new CredentialIdTypeJWT( errLogger ),
+                new CredentialIdTypeJWTjsonField( errLogger ) );
     }
 
     protected LoaderLogger loaderLogger() {
+        AtomicReference<String> sourceReference = new AtomicReference<>();
         logger.info( "RateLimiting initializing (wd: " + System.getProperty( "user.dir" ) );
         return new LoaderLogger() {
             @Override
             public void logFetchingFrom( String source ) {
+                sourceReference.set( source );
                 logger.info( "RateLimitingConfig fetching from: " + source );
             }
 
@@ -60,7 +67,7 @@ public class RateLimiterConfigConfiguration extends AbstractRateLimiterConfigCon
                 StringBuilder sb = new StringBuilder();
                 sb.append( RateLimiterConfigConfiguration.class.getSimpleName() ).append( typePLus ).append( ": " );
                 String eMessage = (e == null) ? "-No Exception-" : Null.defaultOn( e.getMessage(), "-No Message-" );
-                String reference = Null.defaultOn( sourceReference, "-No sourceReference-" );
+                String reference = Null.defaultOn( sourceReference.get(), "-No sourceReference-" );
                 if ( !eMessage.contains( reference ) ) {
                     sb.append( reference ).append( " | " );
                 }

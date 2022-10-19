@@ -8,7 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.security.jwt.codec.Codecs;
 
-import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT.*;
+import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT.JWTparts;
+import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT.decodeSection;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
@@ -46,7 +47,7 @@ public abstract class CredentialIdTypeAbstractTestJWT<CitJWT extends CredentialI
     protected final CitJWT credentialIdType;
 
     public CredentialIdTypeAbstractTestJWT( String emailFromClaims,
-            Function<AuthorizationCredentialIdExtractorErrorLogger, CitJWT> function ) {
+                                            Function<AuthorizationCredentialIdExtractorErrorLogger, CitJWT> function ) {
         this.emailFromClaims = emailFromClaims;
         credentialIdType = function.apply( exceptionCollector::add );
     }
@@ -103,7 +104,7 @@ public abstract class CredentialIdTypeAbstractTestJWT<CitJWT extends CredentialI
         String id = factory.mapAuthorizationToCredentialsID( requestInfo );
         assertEquals( "|" + "marissa@test.org" + "|", id, "Id mis-match from sample" );
 
-        when( requestInfo.getAuthorizationHeader() ).thenReturn(AUTH_HEADER_VALUE_PREFIX_LC + JWT4);
+        when( requestInfo.getAuthorizationHeader() ).thenReturn( AUTH_HEADER_VALUE_PREFIX_LC + JWT4 );
         id = factory.mapAuthorizationToCredentialsID( requestInfo );
         assertEquals( "|" + EMAIL_DEVIN + "|", id, "Id mis-match from default 3 dot JWT" );
 

@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.stream.Collectors;
 
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,7 +62,7 @@ class PathFragmentToTypePropertiesMapperTest {
     private int check( boolean expectedFound, String servletPath ) {
         selector.calls = 0;
         Instant start = Instant.now();
-        TypeProperties found = mapper.get( servletPath );
+        LimiterMapping found = mapper.get( servletPath );
         int calls = selector.calls;
         System.out.println( Duration.between( start, Instant.now() ).toNanos() + "ns: " + calls + " -> " + servletPath );
         if ( expectedFound ) {
@@ -97,7 +97,7 @@ class PathFragmentToTypePropertiesMapperTest {
 
     private static PathFragmentToTypeProperties pftp( String pathFragmentAndName ) {
         return new PathFragmentToTypeProperties( pathFragmentAndName,
-                                                 TypeProperties.builder()
+                                                 LimiterMapping.builder()
                                                          .name( pathFragmentAndName )
                                                          .pathSelector( "contains:" + pathFragmentAndName )
                                                          .global( "1r/s" )

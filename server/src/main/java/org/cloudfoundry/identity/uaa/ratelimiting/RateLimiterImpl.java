@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfoImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.LimiterManagerImpl;
 
 public class RateLimiterImpl implements RateLimiter {
-
     private final LimiterManager manager;
 
     public RateLimiterImpl( LimiterManager manager ) {
@@ -18,7 +17,12 @@ public class RateLimiterImpl implements RateLimiter {
     }
 
     public RateLimiterImpl() {
-        this( LimiterManagerImpl.Singleton.getInstance() );
+        this( LimiterManagerImpl.SINGLETON.getInstance() );
+    }
+
+    @Override
+    public String status() {
+        return manager.rateLimitingStatus();
     }
 
     @Override

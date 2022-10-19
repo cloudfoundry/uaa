@@ -7,11 +7,12 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredentialIdExtractor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterImpl;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.LinkedMultiValueMap;
@@ -21,11 +22,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class LimiterManagerImplTest {
 
-    static final List<TypeProperties> allAndPathBasedTypePropertiesList = List.of(
-            TypeProperties.builder().name( "F1" ).pathSelector( "equals:/F1" ).withCallerCredentialsID( "2r/s" ).build(),
-            TypeProperties.builder().name( "F2" ).pathSelector( "equals:/F2" ).withCallerCredentialsID( "4r/2s" ).build(),
-            TypeProperties.builder().name( "F3" ).pathSelector( "equals:/F3" ).global( "8r/4s" ).build(),
-            TypeProperties.builder().name( "GB" ).pathSelector( "All" ).global( "74r/8s" ).build() );
+    static final List<LimiterMapping> allAndPathBasedTypePropertiesList = List.of(
+            LimiterMapping.builder().name( "F1" ).pathSelector( "equals:/F1" ).withCallerCredentialsID( "2r/s" ).build(),
+            LimiterMapping.builder().name( "F2" ).pathSelector( "equals:/F2" ).withCallerCredentialsID( "4r/2s" ).build(),
+            LimiterMapping.builder().name( "F3" ).pathSelector( "equals:/F3" ).global( "8r/4s" ).build(),
+            LimiterMapping.builder().name( "GB" ).pathSelector( "All" ).global( "74r/8s" ).build() );
 
     private void allAndPathBasedCalls() {
         call( "/F1", "K1" );
@@ -55,9 +56,9 @@ class LimiterManagerImplTest {
                 this::allAndPathBasedCheckResults );
     }
 
-    static final List<TypeProperties> interactionOfMultiPathBasedTypePropertiesList = List.of(
-            TypeProperties.builder().name( "FF" ).pathSelectors( "equals:/F1", "equals:/F2" ).withCallerCredentialsID( "4r/s" ).build(),
-            TypeProperties.builder().name( "GB" ).pathSelector( "All" ).global( "999r/8s" ).build() ); // So can ignore
+    static final List<LimiterMapping> interactionOfMultiPathBasedTypePropertiesList = List.of(
+            LimiterMapping.builder().name( "FF" ).pathSelectors( "equals:/F1", "equals:/F2" ).withCallerCredentialsID( "4r/s" ).build(),
+            LimiterMapping.builder().name( "GB" ).pathSelector( "All" ).global( "999r/8s" ).build() ); // So can ignore
 
     private void interactionOfMultiPathBasedCalls() {
         call( "/F1", "K1" ); // first two calls should count against the same Limiter/CallerID (FF & K1)
@@ -83,8 +84,10 @@ class LimiterManagerImplTest {
                 this::interactionOfMultiPathBasedCheckResults );
     }
 
-    void runSet( List<TypeProperties> typePropertiesList, Runnable calls, Runnable checkResults ) {
-        lm.update( new InternalLimiterFactoriesSupplierImpl( credentialIdExtractor, null, typePropertiesList ) );
+    void runSet( List<LimiterMapping> typePropertiesList, Runnable calls, Runnable checkResults ) {
+        lm.update( RateLimitingFactoriesSupplierWithStatus.builder()
+                           .supplier( new InternalLimiterFactoriesSupplierImpl( credentialIdExtractor, null, typePropertiesList ) )
+                           .build() );
         for ( int i = 0; i < 8; i++ ) {
             for ( int j = 0; j < 4; j++ ) {
                 calls.run();

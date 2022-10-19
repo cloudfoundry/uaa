@@ -5,14 +5,14 @@ import java.util.Objects;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.ToString;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 
 @AllArgsConstructor
 @ToString
 @Getter
 public class PathFragmentToTypeProperties implements Comparable<PathFragmentToTypeProperties> {
     private final String pathFragment;
-    private final TypeProperties properties;
+    private final LimiterMapping properties;
 
     /**
      * This compareTo is used to order the PathFragmentToTypeProperties by decreasing pathFragment length, e.g. longer before shorter

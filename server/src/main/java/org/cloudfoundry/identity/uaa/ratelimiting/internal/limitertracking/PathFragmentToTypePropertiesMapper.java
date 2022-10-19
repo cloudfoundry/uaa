@@ -10,7 +10,7 @@ import java.util.stream.Stream;
 
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 
 public class PathFragmentToTypePropertiesMapper {
     private final BiPredicate<String, String> selector;
@@ -29,7 +29,7 @@ public class PathFragmentToTypePropertiesMapper {
         List<PathFragmentToTypeProperties> mutable = new ArrayList<>( pathFragmentWithProperties );
         Collections.sort( mutable );
         ordered = mutable.toArray( new PathFragmentToTypeProperties[0] );
-        List<IntPair> orderedIndexes = new ArrayList<>(mutable.size());
+        List<IntPair> orderedIndexes = new ArrayList<>( mutable.size() );
         IntPair prev = null;
         for ( int i = 0; i < ordered.length; i++ ) {
             PathFragmentToTypeProperties pftp = ordered[i];
@@ -38,7 +38,7 @@ public class PathFragmentToTypePropertiesMapper {
                 orderedIndexes.add( prev = ip );
             }
         }
-        lengthOrderedIndexes = orderedIndexes.toArray(new IntPair[0]);
+        lengthOrderedIndexes = orderedIndexes.toArray( new IntPair[0] );
     }
 
     // package friendly for Testing
@@ -59,7 +59,7 @@ public class PathFragmentToTypePropertiesMapper {
         return Arrays.stream( ordered );
     }
 
-    public TypeProperties get( String servletPath ) {
+    public LimiterMapping get( String servletPath ) {
         // Longest to Shortest pathFragments - finding the match that is longest!
         for ( int i = findStartingOrderIndex( servletPath ); i < ordered.length; i++ ) {
             PathFragmentToTypeProperties pftp = ordered[i];

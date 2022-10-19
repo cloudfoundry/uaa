@@ -14,11 +14,11 @@ class LoggingOptionTest {
 
     @Test
     void addDuration() {
-        check( "0ns", 0,0,0 );
-        check( "7ns", 0,0,7 );
-        check( "72ns", 0,0,72 );
-        check( "2089ns", 0,2,89 );
-        check( "1003645ns", 1,3,645 );
+        check( "0ns", 0, 0, 0 );
+        check( "7ns", 0, 0, 7 );
+        check( "72ns", 0, 0, 72 );
+        check( "2089ns", 0, 2, 89 );
+        check( "1003645ns", 1, 3, 645 );
     }
 
     private void check( String expectedDuration, int secs, int ms, int ns ) {

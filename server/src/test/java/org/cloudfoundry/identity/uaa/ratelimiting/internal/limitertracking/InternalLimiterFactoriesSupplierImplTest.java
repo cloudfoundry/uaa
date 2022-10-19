@@ -8,8 +8,8 @@ import java.util.List;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.AbstractExceptionTestSupport;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.TypeProperties;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CallerIdSupplierByType;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactory;
 import org.junit.jupiter.api.Test;
@@ -29,13 +29,13 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
 
     @Test
     public void factoriesSupplier_toString() {
-        List<TypeProperties> typePropertiesList = List.of(
-                TypeProperties.builder().name( "N1" ).withCallerCredentialsID( "2r/1s" ).pathSelector( "startsWith:/F-35B" ).build(),
-                TypeProperties.builder().name( "N2" ).withCallerRemoteAddressID( "4r/2s" ).pathSelectors( "contains:F-22", "equals:/F-35" ).build(),
-                TypeProperties.builder().name( "N3" ).withCallerRemoteAddressID( "2r/1s" ).pathSelectors( "equals:/F-22", "contains:F-35B" ).build(),
-                TypeProperties.builder().name( "N4" ).withoutCallerID( "4r/2s" ).global( "50r/s" ).pathSelector( "startsWith:/F-22" ).build(),
-                TypeProperties.builder().name( "Others" ).global( "150r/5s" ).pathSelector( "other" ).build(),
-                TypeProperties.builder().name( "All" ).global( "100r/3s" ).pathSelector( "All" ).build() );
+        List<LimiterMapping> typePropertiesList = List.of(
+                LimiterMapping.builder().name( "N1" ).withCallerCredentialsID( "2r/1s" ).pathSelector( "startsWith:/F-35B" ).build(),
+                LimiterMapping.builder().name( "N2" ).withCallerRemoteAddressID( "4r/2s" ).pathSelectors( "contains:F-22", "equals:/F-35" ).build(),
+                LimiterMapping.builder().name( "N3" ).withCallerRemoteAddressID( "2r/1s" ).pathSelectors( "equals:/F-22", "contains:F-35B" ).build(),
+                LimiterMapping.builder().name( "N4" ).withoutCallerID( "4r/2s" ).global( "50r/s" ).pathSelector( "startsWith:/F-22" ).build(),
+                LimiterMapping.builder().name( "Others" ).global( "150r/5s" ).pathSelector( "other" ).build(),
+                LimiterMapping.builder().name( "All" ).global( "100r/3s" ).pathSelector( "All" ).build() );
 
         InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, typePropertiesList );
         checkFactoryCollections( fs, 8,
@@ -59,10 +59,10 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
 
     @Test
     public void factoriesSupplier_validate_Ordered_Map() {
-        TypeProperties n1 = TypeProperties.builder().name( "N1" ).global( "2r/1s" ).pathSelectors( "equals:/F-22", "equals:/F-35A", "equals:/F-35B", "equals:/F-35C", "equals:/F-35I" ).build();
-        TypeProperties n2 = TypeProperties.builder().name( "N2" ).global( "4r/2s" ).withoutCallerID( "1r/5s" ).pathSelectors( "startsWith:/F-35", "startsWith:/F-22" ).build();
-        TypeProperties all = TypeProperties.builder().name( "All" ).global( "100r/3s" ).pathSelector( "all" ).build();
-        List<TypeProperties> typePropertiesList = List.of( n1, n2, all );
+        LimiterMapping n1 = LimiterMapping.builder().name( "N1" ).global( "2r/1s" ).pathSelectors( "equals:/F-22", "equals:/F-35A", "equals:/F-35B", "equals:/F-35C", "equals:/F-35I" ).build();
+        LimiterMapping n2 = LimiterMapping.builder().name( "N2" ).global( "4r/2s" ).withoutCallerID( "1r/5s" ).pathSelectors( "startsWith:/F-35", "startsWith:/F-22" ).build();
+        LimiterMapping all = LimiterMapping.builder().name( "All" ).global( "100r/3s" ).pathSelector( "all" ).build();
+        List<LimiterMapping> typePropertiesList = List.of( n1, n2, all );
 
         InternalLimiterFactoriesSupplierImpl fs = new InternalLimiterFactoriesSupplierImpl( null, null, typePropertiesList );
         checkFactoryCollections( fs, 8,
@@ -97,12 +97,12 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
     }
 
     static class Expected {
-        private final TypeProperties props;
+        private final LimiterMapping props;
         private String callerID;
         private String windowType;
         private RequestsPerWindowSecs requestsPerWindow;
 
-        static Expected from( TypeProperties props ) {
+        static Expected from( LimiterMapping props ) {
             return new Expected( props );
         }
 
@@ -121,7 +121,7 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
             return this;
         }
 
-        private Expected( TypeProperties props ) {
+        private Expected( LimiterMapping props ) {
             this.props = props;
         }
 
@@ -161,11 +161,11 @@ public class InternalLimiterFactoriesSupplierImplTest extends AbstractExceptionT
         assertEquals( sb.toString(), lfsString );
     }
 
-    private void expectException( String expectedMessageOrPrefix, Collection<TypeProperties> tps ) {
+    private void expectException( String expectedMessageOrPrefix, Collection<LimiterMapping> tps ) {
         expectException( expectedMessageOrPrefix, null, tps );
     }
 
-    private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<TypeProperties> tps ) {
+    private void expectException( String expectedMessageOrPrefix, Class<?> expectedExceptionCauseClass, Collection<LimiterMapping> tps ) {
         expectException( expectedMessageOrPrefix, expectedExceptionCauseClass,
                          () -> new InternalLimiterFactoriesSupplierImpl( null, null, tps ) );
     }
