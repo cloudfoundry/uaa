@@ -32,6 +32,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
@@ -40,6 +41,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.util.ResourceUtils;
 
 import java.time.*;
 import java.util.ArrayList;
@@ -135,7 +137,7 @@ class UaaTokenServicesTests {
             private AbstractAppender appender;
 
             @BeforeEach
-            void addLoggerAppender() {
+            void addLoggerAppender() throws Exception {
                 appender = new AbstractAppender("", null, null) {
                     @Override
                     public void append(LogEvent event) {
@@ -145,6 +147,8 @@ class UaaTokenServicesTests {
                 appender.start();
 
                 LoggerContext context = (LoggerContext) LogManager.getContext(false);
+                context.setConfigLocation(ResourceUtils.toURI(
+                        new ClassPathResource("log4j2-test.properties").getFile().getAbsolutePath()));
                 context.getRootLogger().addAppender(appender);
             }
 
