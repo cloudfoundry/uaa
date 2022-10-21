@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        Set<String> audience = Set.copyOf(claims.getAud());
         Long authTime = claims.getAuthTime();
 
         // default request scopes to what is in the refresh token
@@ -318,7 +317,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     AuthTimeDateConverter.authTimeToDate(authTime),
                     getClientPermissions(client),
                     claims.getCid(),
-                    audience,
+                    Set.copyOf(claims.getAud()),
                     refreshTokenValue,
                     claims.getAzAttr(),
                     additionalRootClaims,
