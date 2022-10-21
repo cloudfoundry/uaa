@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        String clientId = claims.getCid();
         Boolean revocableClaim = claims.isRevocable();
         String refreshGrantType = claims.getGrantType();
         String nonce = claims.getNonce();
@@ -257,15 +256,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String requestedTokenFormat = requestParams.get(REQUEST_TOKEN_FORMAT);
         String requestedClientId = request.getClientId();
 
-        if (clientId == null || !clientId.equals(requestedClientId)) {
-            throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
+        if (claims.getCid() == null || !claims.getCid().equals(requestedClientId)) {
+            throw new InvalidGrantException("Wrong client for this refresh token: " + claims.getCid());
         }
         boolean isOpaque = OPAQUE.getStringValue().equals(requestedTokenFormat);
 
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
 
         long refreshTokenExpireMillis = claims.getExp().longValue() * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
@@ -322,7 +321,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     user,
                     AuthTimeDateConverter.authTimeToDate(authTime),
                     getClientPermissions(client),
-                    clientId,
+                    claims.getCid(),
                     audience,
                     refreshTokenValue,
                     additionalAuthorizationInfo,
@@ -336,7 +335,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue, new Date(refreshTokenExpireMillis), claims.getJti()
         );
 
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), isOpaque, isRevocable);
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
     }
 
     private void throwIfInvalidRevocationHashSignature(String revocableHashSignature, UaaUser user, ClientDetails client) {
