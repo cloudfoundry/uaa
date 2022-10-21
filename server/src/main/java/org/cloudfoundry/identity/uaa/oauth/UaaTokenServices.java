@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        String userId = claims.getUserId();
         String refreshTokenId = claims.getJti();
         Long refreshTokenExpirySeconds = claims.getExp();
         String clientId = claims.getCid();
@@ -267,7 +266,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
 
-        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(userId));
+        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
@@ -286,7 +285,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
         approvalService.ensureRequiredApprovals(
-                userId,
+                claims.getUserId(),
                 requestedScopes,
                 refreshGrantType,
                 client);
@@ -310,8 +309,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authenticationMethodsAsSet(refreshTokenClaims),
                 getAcrAsSet(refreshTokenClaims),
                 requestedScopes,
-                rolesAsSet(userId),
-                getUserAttributes(userId),
+                rolesAsSet(claims.getUserId()),
+                getUserAttributes(claims.getUserId()),
                 nonce,
                 refreshGrantType,
                 generateUniqueTokenId()
