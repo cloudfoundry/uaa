@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        String refreshTokenId = claims.getJti();
         Long refreshTokenExpirySeconds = claims.getExp();
         String clientId = claims.getCid();
         Boolean revocableClaim = claims.isRevocable();
@@ -335,7 +334,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             );
 
         CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
-                refreshTokenValue, new Date(refreshTokenExpireMillis), refreshTokenId
+                refreshTokenValue, new Date(refreshTokenExpireMillis), claims.getJti()
         );
 
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), isOpaque, isRevocable);
