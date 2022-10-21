@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        Long refreshTokenExpirySeconds = claims.getExp();
         String clientId = claims.getCid();
         Boolean revocableClaim = claims.isRevocable();
         String refreshGrantType = claims.getGrantType();
@@ -268,7 +267,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-        long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
+        long refreshTokenExpireMillis = claims.getExp().longValue() * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireMillis));
         }
