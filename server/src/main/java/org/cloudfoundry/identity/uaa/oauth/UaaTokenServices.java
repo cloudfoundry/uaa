@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        String nonce = claims.getNonce();
         String revocableHashSignature = claims.getRevSig();
         Map<String, String> additionalAuthorizationInfo = claims.getAzAttr();
         Set<String> audience = Set.copyOf(claims.getAud());
@@ -307,7 +306,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 requestedScopes,
                 rolesAsSet(claims.getUserId()),
                 getUserAttributes(claims.getUserId()),
-                nonce,
+                claims.getNonce(),
                 claims.getGrantType(),
                 generateUniqueTokenId()
         );
