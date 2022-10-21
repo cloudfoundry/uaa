@@ -253,9 +253,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidGrantException("Wrong client for this refresh token: " + claims.getCid());
         }
         boolean isOpaque = OPAQUE.getStringValue().equals(requestedTokenFormat);
-
-        // TODO: simplify by removing the null check, after adding condition coverage in the test
-        boolean isRevocable = isOpaque || ((Boolean) claims.isRevocable() == null ? false : claims.isRevocable());
+        boolean isRevocable = isRevocable(claims, isOpaque);
 
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
@@ -330,6 +328,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+    }
+
+    static boolean isRevocable(Claims claims, boolean isOpaque) {
+        return isOpaque || claims.isRevocable();
     }
 
     private void throwIfInvalidRevocationHashSignature(String revocableHashSignature, UaaUser user, ClientDetails client) {
