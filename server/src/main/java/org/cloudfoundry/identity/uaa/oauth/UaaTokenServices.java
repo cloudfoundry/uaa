@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        Long authTime = claims.getAuthTime();
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
@@ -297,7 +296,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(
-                AuthTimeDateConverter.authTimeToDate(authTime),
+                AuthTimeDateConverter.authTimeToDate(claims.getAuthTime()),
                 authenticationMethodsAsSet(refreshTokenClaims),
                 getAcrAsSet(refreshTokenClaims),
                 requestedScopes,
@@ -314,7 +313,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             createCompositeToken(
                     accessTokenId,
                     user,
-                    AuthTimeDateConverter.authTimeToDate(authTime),
+                    AuthTimeDateConverter.authTimeToDate(claims.getAuthTime()),
                     getClientPermissions(client),
                     claims.getCid(),
                     Set.copyOf(claims.getAud()),
