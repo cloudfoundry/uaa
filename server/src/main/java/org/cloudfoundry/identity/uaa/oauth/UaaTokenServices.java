@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        String revocableHashSignature = claims.getRevSig();
         Map<String, String> additionalAuthorizationInfo = claims.getAzAttr();
         Set<String> audience = Set.copyOf(claims.getAud());
         Long authTime = claims.getAuthTime();
@@ -285,7 +284,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 claims.getGrantType(),
                 client);
 
-        throwIfInvalidRevocationHashSignature(revocableHashSignature, user, client);
+        throwIfInvalidRevocationHashSignature(claims.getRevSig(), user, client);
 
         Map<String, Object> additionalRootClaims = new HashMap<>();
         if (uaaTokenEnhancer != null) {
@@ -324,7 +323,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     refreshTokenValue,
                     additionalAuthorizationInfo,
                     additionalRootClaims,
-                    revocableHashSignature,
+                    claims.getRevSig(),
                     isRevocable,
                     authenticationData
             );
