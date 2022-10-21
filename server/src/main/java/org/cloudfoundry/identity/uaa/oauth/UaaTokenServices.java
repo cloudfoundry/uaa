@@ -242,7 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
         }
-        Boolean revocableClaim = claims.isRevocable();
         String refreshGrantType = claims.getGrantType();
         String nonce = claims.getNonce();
         String revocableHashSignature = claims.getRevSig();
@@ -261,7 +260,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         boolean isOpaque = OPAQUE.getStringValue().equals(requestedTokenFormat);
 
-        boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
+        // TODO: simplify by removing the null check, after adding condition coverage in the test
+        boolean isRevocable = isOpaque || ((Boolean) claims.isRevocable() == null ? false : claims.isRevocable());
 
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
