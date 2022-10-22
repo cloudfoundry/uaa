@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
-import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -12,6 +11,7 @@ import org.mockito.InOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -49,7 +49,7 @@ class CodeStoreEndpointsTests {
     }
 
     private String createDummyIdentityZone(@Autowired JdbcTemplate jdbcTemplate) {
-        final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
+        final RandomValueStringGenerator generator = new RandomValueStringGenerator();
         final String currentIdentityZoneId = "identityZoneId-" + generator.generate();
 
         final IdentityZone identityZoneToCreate = IdentityZone.getUaa();
@@ -124,7 +124,7 @@ class CodeStoreEndpointsTests {
 
     @Test
     void generateCodeWithDuplicateCode() {
-        AlphanumericRandomValueStringGenerator generator = mock(AlphanumericRandomValueStringGenerator.class);
+        RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         when(generator.generate()).thenReturn("duplicate");
         spiedExpiringCodeStore.setGenerator(generator);
 
