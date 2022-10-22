@@ -214,7 +214,7 @@ public class LoginMockMvcTests {
             @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore,
             @Autowired LoginInfoEndpoint loginInfoEndpoint
     ) {
-        jdbcExpiringCodeStore.setGenerator(new AlphanumericRandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
     }
 
     @AfterEach
