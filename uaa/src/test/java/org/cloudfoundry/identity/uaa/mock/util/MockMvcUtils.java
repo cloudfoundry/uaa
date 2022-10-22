@@ -86,6 +86,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
@@ -1437,7 +1438,7 @@ public final class MockMvcUtils {
         }
     }
 
-    public static class PredictableGenerator extends AlphanumericRandomValueStringGenerator {
+    public static class PredictableGenerator extends RandomValueStringGenerator {
         public AtomicInteger counter = new AtomicInteger(1);
 
         @Override
@@ -1445,7 +1446,6 @@ public final class MockMvcUtils {
             return "test" + counter.incrementAndGet();
         }
     }
-
 
     public static MfaProvider<GoogleMfaProviderConfig> constructGoogleMfaProvider() {
         MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
