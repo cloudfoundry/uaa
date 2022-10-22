@@ -232,14 +232,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
-        Claims claims;
-        try {
-            String s = JsonUtils.writeValueAsString(refreshTokenClaims);
-            claims = JsonUtils.readValue(s, Claims.class);
-        } catch (JsonUtils.JsonUtilException e) {
-            logger.error("Cannot read token claims", e);
-            throw new InvalidTokenException("Cannot read token claims", e);
-        }
+        Claims claims = getClaims(refreshTokenClaims);
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
@@ -316,6 +309,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+    }
+
+    Claims getClaims(Map<String, Object> refreshTokenClaims) {
+        try {
+            String s = JsonUtils.writeValueAsString(refreshTokenClaims);
+            return JsonUtils.readValue(s, Claims.class);
+        } catch (JsonUtils.JsonUtilException e) {
+            logger.error("Cannot read token claims", e);
+            throw new InvalidTokenException("Cannot read token claims", e);
+        }
     }
 
     private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
