@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenRequestData;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
-import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthUserAuthority;
@@ -49,7 +48,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -281,17 +279,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         throwIfInvalidRevocationHashSignature(claims.getRevSig(), user, client);
 
-        Map<String, Object> additionalRootClaims = new HashMap<>();
-        if (uaaTokenEnhancer != null) {
-            refreshTokenClaims.entrySet()
-                    .stream()
-                    .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
-                    .forEach(
-                            entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
-                    );
-            // `granted_scopes` claim should not be present in an access token
-            refreshTokenClaims.remove(GRANTED_SCOPES);
-        }
+        Map<String, Object> additionalRootClaims = getAdditionalRootClaims(refreshTokenClaims);
 
         UserAuthenticationData authenticationData = new UserAuthenticationData(
                 AuthTimeDateConverter.authTimeToDate(claims.getAuthTime()),
@@ -328,6 +316,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+    }
+
+    private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
+        Map<String, Object> additionalRootClaims = new HashMap<>();
+        if (uaaTokenEnhancer != null) {
+            refreshTokenClaims.entrySet()
+                    .stream()
+                    .filter(entry -> !NON_ADDITIONAL_ROOT_CLAIMS.contains(entry.getKey()))
+                    .forEach(
+                            entry -> additionalRootClaims.put(entry.getKey(), entry.getValue())
+                    );
+            // `granted_scopes` claim should not be present in an access token
+            refreshTokenClaims.remove(GRANTED_SCOPES);
+        }
+        return additionalRootClaims;
     }
 
     static boolean isRevocable(Claims claims, boolean isOpaque) {
