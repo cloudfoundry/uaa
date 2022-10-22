@@ -1908,6 +1908,36 @@ public class DeprecatedUaaTokenServicesTests {
         tokenServices.refreshAccessToken(getOAuth2AccessToken().getValue(), getRefreshTokenRequest());
     }
 
+    @Test
+    public void isRevocableTrueIfOpaque() {
+        Claims claims = new Claims();
+        claims.setRevocable(false);
+
+        boolean revocable = tokenServices.isRevocable(new Claims(), true);
+
+        assertTrue(revocable);
+    }
+
+    @Test
+    public void isRevocableTrueIfRevocableAndNotOpaque() {
+        Claims claims = new Claims();
+        claims.setRevocable(true);
+
+        boolean revocable = tokenServices.isRevocable(new Claims(), true);
+
+        assertTrue(revocable);
+    }
+
+    @Test
+    public void isRevocableFalseIfRevocableAndNotOpaque() {
+        Claims claims = new Claims();
+        claims.setRevocable(false);
+
+        boolean revocable = tokenServices.isRevocable(new Claims(), false);
+
+        assertFalse(revocable);
+    }
+
     private void readAccessToken(Set<String> excludedClaims) {
         tokenServices.setExcludedClaims(excludedClaims);
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
