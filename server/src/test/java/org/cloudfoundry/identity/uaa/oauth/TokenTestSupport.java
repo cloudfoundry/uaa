@@ -181,7 +181,7 @@ public class TokenTestSupport {
         AbstractOAuth2AccessTokenMatchers.revocableTokens.remove();
     }
 
-    public TokenTestSupport(UaaTokenEnhancer tokenEnhancer) throws Exception {
+    public TokenTestSupport(UaaTokenEnhancer tokenEnhancer, KeyInfoService keyInfo) throws Exception {
         tokens.clear();
         publisher = TestApplicationEventPublisher.forEventClass(TokenIssuedEvent.class);
         IdentityZoneHolder.clear();
@@ -278,7 +278,7 @@ public class TokenTestSupport {
         approvalService = new ApprovalService(timeService, approvalStore);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
-        keyInfoService = new KeyInfoService(DEFAULT_ISSUER);
+        keyInfoService = keyInfo != null ? keyInfo : new KeyInfoService(DEFAULT_ISSUER);
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService, mockIdentityZoneManager), 12345, timeService);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, mockIdentityZoneManager), 1234, timeService);
@@ -342,7 +342,7 @@ public class TokenTestSupport {
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
         SignatureVerifier verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
-        assertNotNull(tokenJwt);
+        assertNotNull("Token must not be null", tokenJwt);
 
         Jwt idToken = JwtHelper.decode(accessToken.getIdTokenValue());
         idToken.verifySignature(verifier);

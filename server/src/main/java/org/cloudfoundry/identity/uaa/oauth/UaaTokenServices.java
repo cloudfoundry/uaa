@@ -73,7 +73,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -136,32 +135,32 @@ import static org.springframework.util.StringUtils.hasText;
  *
  */
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices, ApplicationEventPublisherAware {
-    private static final String CODE = "code";
-    private static final String OPENID = "openid";
-    private static final List<String> NON_ADDITIONAL_ROOT_CLAIMS = Arrays.asList(
+
+    private static final Set<String> NON_ADDITIONAL_ROOT_CLAIMS = Set.of(
             JTI, SUB, AUTHORITIES, OAuth2AccessToken.SCOPE,
             CLIENT_ID, CID, AZP, REVOCABLE,
             GRANT_TYPE, USER_ID, ORIGIN, USER_NAME,
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
             EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
     );
+    private static final long ONE_SECOND = 1000L;
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
     private UaaUserDatabase userDatabase;
     private MultitenantClientServices clientDetailsService;
-    private ApprovalService approvalService;
+    private final ApprovalService approvalService;
     private ApplicationEventPublisher applicationEventPublisher;
-    private TokenPolicy tokenPolicy;
-    private RevocableTokenProvisioning tokenProvisioning;
+    private final TokenPolicy tokenPolicy;
+    private final RevocableTokenProvisioning tokenProvisioning;
     private Set<String> excludedClaims;
-    private UaaTokenEnhancer uaaTokenEnhancer = null;
-    private IdTokenCreator idTokenCreator;
-    private RefreshTokenCreator refreshTokenCreator;
+    private UaaTokenEnhancer uaaTokenEnhancer;
+    private final IdTokenCreator idTokenCreator;
+    private final RefreshTokenCreator refreshTokenCreator;
     private TokenEndpointBuilder tokenEndpointBuilder;
     private TimeService timeService;
-    private TokenValidityResolver accessTokenValidityResolver;
-    private TokenValidationService tokenValidationService;
-    private KeyInfoService keyInfoService;
-    private IdTokenGranter idTokenGranter;
+    private final TokenValidityResolver accessTokenValidityResolver;
+    private final TokenValidationService tokenValidationService;
+    private final KeyInfoService keyInfoService;
+    private final IdTokenGranter idTokenGranter;
 
     public UaaTokenServices(IdTokenCreator idTokenCreator,
                             TokenEndpointBuilder tokenEndpointBuilder,
@@ -187,7 +186,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.accessTokenValidityResolver = accessTokenValidityResolver;
         this.userDatabase = userDatabase;
         this.approvalService = approvalService;
-        this.excludedClaims = excludedClaims;
+        this.excludedClaims = new HashSet<>(excludedClaims);
         this.tokenPolicy = globalTokenPolicy;
         this.idTokenGranter = idTokenGranter;
         this.keyInfoService = keyInfoService;
@@ -199,14 +198,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setExcludedClaims(Set<String> excludedClaims) {
         this.excludedClaims = excludedClaims;
-    }
-
-    public RevocableTokenProvisioning getTokenProvisioning() {
-        return tokenProvisioning;
-    }
-
-    public void setTokenProvisioning(RevocableTokenProvisioning tokenProvisioning) {
-        this.tokenProvisioning = tokenProvisioning;
     }
 
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
@@ -249,7 +240,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
 
-        long refreshTokenExpireMillis = claims.getExp().longValue() * 1000L;
+        long refreshTokenExpireMillis = claims.getExp().longValue() * ONE_SECOND;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireMillis));
         }
@@ -520,7 +511,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 claims.put(EMAIL, userEmail);
             }
             if (userAuthenticationTime!=null) {
-                claims.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
+                claims.put(AUTH_TIME, userAuthenticationTime.getTime() / ONE_SECOND);
             }
             claims.put(SUB, user.getId());
         }
@@ -529,8 +520,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
-        claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-        claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / 1000);
+        claims.put(IAT, timeService.getCurrentTimeMillis() / ONE_SECOND);
+        claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / ONE_SECOND);
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
             claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
@@ -780,11 +771,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // Check token expiry
         Long expiration = Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString());
-        if (new Date(expiration * 1000L).before(timeService.getCurrentDate())) {
-            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * 1000L));
+        if (new Date(expiration * ONE_SECOND).before(timeService.getCurrentDate())) {
+            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * ONE_SECOND));
         }
 
-        @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest((String) claims.get(CLIENT_ID),
@@ -852,9 +842,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Expiry is verified by check_token
         CompositeToken token = new CompositeToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * 1000L));
+        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * ONE_SECOND));
 
-        @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
         if (null != scopes && scopes.size() > 0) {
             token.setScope(new HashSet<>(scopes));
@@ -864,7 +853,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         // Only check user access tokens
         if (null != userId) {
-            @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             approvalService.ensureRequiredApprovals(userId, tokenScopes, (String) claims.get(GRANT_TYPE), client);
         }
@@ -891,10 +879,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    public void setTokenPolicy(TokenPolicy tokenPolicy) {
-        this.tokenPolicy = tokenPolicy;
-    }
-
     public TokenPolicy getTokenPolicy() {
         return tokenPolicy;
     }
@@ -905,9 +889,5 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
-    }
-
-    public void setKeyInfoService(KeyInfoService keyInfoService) {
-        this.keyInfoService = keyInfoService;
     }
 }
