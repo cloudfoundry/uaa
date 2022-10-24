@@ -72,7 +72,7 @@ class CodeStoreEndpointsTests {
         assertNotNull(result);
 
         assertNotNull(result.getCode());
-        assertEquals(10, result.getCode().trim().length());
+        assertEquals(32, result.getCode().trim().length());
 
         assertEquals(expiresAt, result.getExpiresAt());
 
