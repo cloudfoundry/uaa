@@ -75,8 +75,7 @@ dependencies {
     implementation(libraries.log4jCore)
 
     implementation(libraries.javaxXmlBindApi)
-    implementation(libraries.javaxXmlBindCore)
-    implementation(libraries.javaxXmlBindImpl)
+    implementation(libraries.glassfishJaxb)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
