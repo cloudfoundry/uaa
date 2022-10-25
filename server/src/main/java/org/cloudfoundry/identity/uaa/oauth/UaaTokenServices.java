@@ -232,26 +232,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
 
-        Claims claims;
-        String refreshTokenString;
-        try {
-            refreshTokenString = refreshTokenCreator.getRefreshedTokenString(refreshTokenClaims);
-            claims = JsonUtils.readValue(refreshTokenString, Claims.class);
-        } catch (JsonUtils.JsonUtilException e) {
-            logger.error("Cannot read token claims", e);
-            throw new InvalidTokenException("Cannot read token claims", e);
-        }
-        String userId = claims.getUserId();
-        String refreshTokenId = claims.getJti();
-        Long refreshTokenExpirySeconds = claims.getExp();
-        String clientId = claims.getCid();
-        Boolean revocableClaim = claims.isRevocable();
-        String refreshGrantType = claims.getGrantType();
-        String nonce = claims.getNonce();
-        String revocableHashSignature = claims.getRevSig();
-        Map<String, String> additionalAuthorizationInfo = claims.getAzAttr();
-        Set<String> audience = Set.copyOf(claims.getAud());
-        Long authTime = claims.getAuthTime();
+        Claims claims = getClaims(refreshTokenClaims);
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope().isEmpty() ? Sets.newHashSet(tokenScopes) : request.getScope();
@@ -259,17 +240,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String requestedTokenFormat = requestParams.get(REQUEST_TOKEN_FORMAT);
         String requestedClientId = request.getClientId();
 
-        if (clientId == null || !clientId.equals(requestedClientId)) {
-            throw new InvalidGrantException("Wrong client for this refresh token: " + clientId);
+        if (claims.getCid() == null || !claims.getCid().equals(requestedClientId)) {
+            throw new InvalidGrantException("Wrong client for this refresh token: " + claims.getCid());
         }
         boolean isOpaque = OPAQUE.getStringValue().equals(requestedTokenFormat);
+        boolean isRevocable = isRevocable(claims, isOpaque);
 
-        boolean isRevocable = isOpaque || (revocableClaim == null ? false : revocableClaim);
+        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
+        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
 
-        UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(userId));
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
-
-        long refreshTokenExpireMillis = refreshTokenExpirySeconds.longValue() * 1000L;
+        long refreshTokenExpireMillis = claims.getExp().longValue() * 1000L;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireMillis));
         }
@@ -285,13 +265,63 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // ensure all requested scopes are approved: either automatically or
         // explicitly by the user
         approvalService.ensureRequiredApprovals(
-                userId,
+                claims.getUserId(),
                 requestedScopes,
-                refreshGrantType,
+                claims.getGrantType(),
                 client);
 
-        throwIfInvalidRevocationHashSignature(revocableHashSignature, user, client);
+        throwIfInvalidRevocationHashSignature(claims.getRevSig(), user, client);
 
+        Map<String, Object> additionalRootClaims = getAdditionalRootClaims(refreshTokenClaims);
+
+        UserAuthenticationData authenticationData = new UserAuthenticationData(
+                AuthTimeDateConverter.authTimeToDate(claims.getAuthTime()),
+                authenticationMethodsAsSet(refreshTokenClaims),
+                getAcrAsSet(refreshTokenClaims),
+                requestedScopes,
+                rolesAsSet(claims.getUserId()),
+                getUserAttributes(claims.getUserId()),
+                claims.getNonce(),
+                claims.getGrantType(),
+                generateUniqueTokenId()
+        );
+
+        String accessTokenId = generateUniqueTokenId();
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, refreshTokenString);
+        CompositeToken compositeToken =
+            createCompositeToken(
+                    accessTokenId,
+                    user,
+                    AuthTimeDateConverter.authTimeToDate(claims.getAuthTime()),
+                    getClientPermissions(client),
+                    claims.getCid(),
+                    Set.copyOf(claims.getAud()),
+                    refreshTokenValue,
+                    claims.getAzAttr(),
+                    additionalRootClaims,
+                    claims.getRevSig(),
+                    isRevocable,
+                    authenticationData
+            );
+
+        CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
+                refreshTokenValue, new Date(refreshTokenExpireMillis), claims.getJti()
+        );
+
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+    }
+
+    Claims getClaims(Map<String, Object> refreshTokenClaims) {
+        try {
+            String s = JsonUtils.writeValueAsString(refreshTokenClaims);
+            return JsonUtils.readValue(s, Claims.class);
+        } catch (JsonUtils.JsonUtilException e) {
+            logger.error("Cannot read token claims", e);
+            throw new InvalidTokenException("Cannot read token claims", e);
+        }
+    }
+
+    private Map<String, Object> getAdditionalRootClaims(Map<String, Object> refreshTokenClaims) {
         Map<String, Object> additionalRootClaims = new HashMap<>();
         if (uaaTokenEnhancer != null) {
             refreshTokenClaims.entrySet()
@@ -303,45 +333,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             // `granted_scopes` claim should not be present in an access token
             refreshTokenClaims.remove(GRANTED_SCOPES);
         }
+        return additionalRootClaims;
+    }
 
-        UserAuthenticationData authenticationData = new UserAuthenticationData(
-                AuthTimeDateConverter.authTimeToDate(authTime),
-                authenticationMethodsAsSet(refreshTokenClaims),
-                getAcrAsSet(refreshTokenClaims),
-                requestedScopes,
-                rolesAsSet(userId),
-                getUserAttributes(userId),
-                nonce,
-                refreshGrantType,
-                generateUniqueTokenId()
-        );
-
-        String accessTokenId = generateUniqueTokenId();
-        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, refreshTokenString);
-        CompositeToken compositeToken =
-            createCompositeToken(
-                    accessTokenId,
-                    user,
-                    AuthTimeDateConverter.authTimeToDate(authTime),
-                    getClientPermissions(client),
-                    clientId,
-                    audience,
-                    refreshTokenValue,
-                    additionalAuthorizationInfo,
-                    additionalRootClaims,
-                    revocableHashSignature,
-                    isRevocable,
-                    authenticationData
-            );
-
-        CompositeExpiringOAuth2RefreshToken expiringRefreshToken = new CompositeExpiringOAuth2RefreshToken(
-                refreshTokenValue, new Date(refreshTokenExpireMillis), refreshTokenId
-        );
-
-        String tokenIdToBeDeleted = null;
-        if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens()) {
-            tokenIdToBeDeleted = (String) tokenValidation.getClaims().get(JTI);
-        }
+    static boolean isRevocable(Claims claims, boolean isOpaque) {
+        return isOpaque || claims.isRevocable();
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 

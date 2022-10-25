@@ -13,11 +13,11 @@ versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
 versions.bouncyCastleVersion = "1.72"
 versions.hamcrestVersion = "2.2"
-versions.springBootVersion = "2.7.4"
+versions.springBootVersion = "2.7.5"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.tomcatCargoVersion = "9.0.67"
+versions.tomcatCargoVersion = "9.0.68"
 versions.guavaVersion = "31.1-jre"
 
 ext {
@@ -25,8 +25,8 @@ ext {
 }
 
 // Dependencies (some rely on shared versions, some are shared between projects)
-libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.4"
-libraries.apacheCommonsRngSimple = "org.apache.commons:commons-rng-simple:1.4"
+libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.5"
+libraries.apacheCommonsRngSimple = "org.apache.commons:commons-rng-simple:1.5"
 libraries.apacheCommonsText = "org.apache.commons:commons-text:1.10.0"
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
 libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.2"

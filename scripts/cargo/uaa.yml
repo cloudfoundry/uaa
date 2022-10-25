@@ -56,3 +56,37 @@ login:
     KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
     RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
     -----END CERTIFICATE-----
+
+ratelimit:
+  loggingOption: AllCalls
+  credentialID: 'JWT:Claims+"sub"\s*:\s*"(.*?)"'
+  limiterMappings:
+    - name: AuthToken
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/oauth/token"
+    - name: AuthAuthorize
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/oauth/authorize"
+    - name: LoginPage
+      withCallerRemoteAddressID: 50r/1s
+      pathSelectors:
+        - "equals:/login"
+    - name: LoginDo
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/login.do"
+    - name: InfoLimit
+      withCallerRemoteAddressID: 10r/s
+      pathSelectors:
+        - "equals:/info"
+    - name: SCIM
+      withCallerCredentialsID: 200r/s
+      pathSelectors:
+        - "startsWith:/Users"
+        - "startsWith:/Groups"
+    - name: EverythingElse
+      global: 200r/s
+      pathSelectors:
+        - "other"

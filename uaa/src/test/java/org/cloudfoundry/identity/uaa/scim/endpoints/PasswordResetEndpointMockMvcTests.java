@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -70,7 +71,7 @@ class PasswordResetEndpointMockMvcTests {
 
     @AfterEach
     void resetGenerator() {
-        jdbcExpiringCodeStore.setGenerator(new AlphanumericRandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
     }
 
     @Test
