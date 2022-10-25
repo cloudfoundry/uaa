@@ -41,12 +41,10 @@ class RefreshRotationTest {
   private Date expiration;
   private TokenTestSupport tokenSupport;
   private UaaTokenServices tokenServices;
-  private KeyInfoService keyInfoService;
 
   @BeforeEach
   void setUp() throws Exception {
     tokenSupport = new TokenTestSupport(null);
-    keyInfoService = new KeyInfoService("https://uaa.url");
     Set<String> thousandScopes = new HashSet<>();
     for (int i = 0; i < 1000; i++) {
       thousandScopes.add(String.valueOf(i));
@@ -57,7 +55,6 @@ class RefreshRotationTest {
     persistToken.setExpiration(expiration);
 
     tokenServices = tokenSupport.getUaaTokenServices();
-    tokenServices.setKeyInfoService(keyInfoService);
     when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(1000L);
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
   }
