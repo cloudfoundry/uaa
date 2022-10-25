@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import org.cloudfoundry.identity.uaa.oauth.*;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -175,15 +176,15 @@ public class RefreshTokenCreator {
         return getActiveTokenPolicy().isRefreshTokenRotate();
     }
 
-    private String getRefreshedTokenString(Map<String, Object> refreshTokenClaims) {
-        refreshTokenClaims.replace(JTI, UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
-        return JsonUtils.writeValueAsString(refreshTokenClaims);
+    private String getRefreshedTokenString(Claims claims) {
+        claims.setJti(UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
+        return JsonUtils.writeValueAsString(claims);
     }
 
-    public String createRefreshTokenValue(TokenValidation tokenValidation, Map<String, Object> refreshTokenClaims) {
+    public String createRefreshTokenValue(TokenValidation tokenValidation, Claims claims) {
         String refreshTokenValue;
         if (shouldRotateRefreshTokens()) {
-            String refreshTokenString = getRefreshedTokenString(refreshTokenClaims);
+            String refreshTokenString = getRefreshedTokenString(claims);
             refreshTokenValue = JwtHelper.encode(refreshTokenString, getActiveKeyInfo()).getEncoded();
         } else {
             refreshTokenValue = tokenValidation.getJwt().getEncoded();

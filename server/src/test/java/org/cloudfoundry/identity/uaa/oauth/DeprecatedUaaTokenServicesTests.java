@@ -253,7 +253,6 @@ public class DeprecatedUaaTokenServicesTests {
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         RefreshTokenCreator refreshTokenCreator = mock(RefreshTokenCreator.class);
-        when(refreshTokenCreator.getRefreshedTokenString(any())).thenCallRealMethod();
         ApprovalService approvalService = mock(ApprovalService.class);
         UaaTokenServices uaaTokenServices = new UaaTokenServices(
           idTokenCreator,

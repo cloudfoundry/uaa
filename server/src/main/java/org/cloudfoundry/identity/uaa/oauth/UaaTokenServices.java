@@ -287,7 +287,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String accessTokenId = generateUniqueTokenId();
-        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, refreshTokenClaims);
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, claims);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
