@@ -269,6 +269,13 @@ public class LoginIT {
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Temporary Authentication Code"));
+
+        // Verify that the CopyToClipboard function can be executed
+        String passcode = webDriver.findElement(By.id("passcode")).getText();
+        ((JavascriptExecutor)webDriver).executeScript("CopyToClipboard",
+                passcode);
+        // Verify that the copybutton can be clicked
+        webDriver.findElement(By.id("copybutton")).click();
     }
 
     @Test

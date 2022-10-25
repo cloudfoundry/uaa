@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.http.HttpMethod.*;
 import static org.springframework.http.HttpStatus.*;
 
-public class CorsFilterNonDefaultZoneTests {
+class CorsFilterNonDefaultZoneTests {
     private IdentityZoneManager mockIdentityZoneManager;
     private IdentityZone identityZone;
     private FilterChain filterChain;

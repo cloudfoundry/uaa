@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
-import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -82,7 +81,7 @@ abstract class ExpiringCodeStoreTests {
 
     @Test
     void generateCodeWithDuplicateCode() {
-        AlphanumericRandomValueStringGenerator generator = mock(AlphanumericRandomValueStringGenerator.class);
+        RandomValueStringGenerator generator = mock(RandomValueStringGenerator.class);
         Mockito.when(generator.generate()).thenReturn("duplicate");
         expiringCodeStore.setGenerator(generator);
 

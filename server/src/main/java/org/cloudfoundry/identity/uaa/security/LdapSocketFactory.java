@@ -13,14 +13,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.security;
 
-import javax.net.SocketFactory;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
 import java.security.SecureRandom;
 
 public class LdapSocketFactory extends BaseLdapSocketFactory {

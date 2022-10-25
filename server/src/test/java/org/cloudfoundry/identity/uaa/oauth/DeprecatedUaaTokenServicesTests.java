@@ -1909,6 +1909,36 @@ public class DeprecatedUaaTokenServicesTests {
     }
 
     @Test
+    public void isRevocableTrueIfOpaque() {
+        Claims claims = new Claims();
+        claims.setRevocable(false);
+
+        boolean revocable = tokenServices.isRevocable(new Claims(), true);
+
+        assertTrue(revocable);
+    }
+
+    @Test
+    public void isRevocableTrueIfRevocableAndNotOpaque() {
+        Claims claims = new Claims();
+        claims.setRevocable(true);
+
+        boolean revocable = tokenServices.isRevocable(new Claims(), true);
+
+        assertTrue(revocable);
+    }
+
+    @Test
+    public void isRevocableFalseIfRevocableAndNotOpaque() {
+        Claims claims = new Claims();
+        claims.setRevocable(false);
+
+        boolean revocable = tokenServices.isRevocable(new Claims(), false);
+
+        assertFalse(revocable);
+    }
+
+    @Test
     public void refreshRotation() {
         BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));

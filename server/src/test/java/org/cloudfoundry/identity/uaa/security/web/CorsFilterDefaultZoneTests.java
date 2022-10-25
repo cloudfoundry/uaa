@@ -40,7 +40,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.*;
 
-public class CorsFilterDefaultZoneTests {
+class CorsFilterDefaultZoneTests {
     private List<String> logEvents = new ArrayList<>();
     private AbstractAppender appender;
     IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);

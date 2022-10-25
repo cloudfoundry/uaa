@@ -117,7 +117,40 @@ To load JDWP agent for UAA jvm debugging, start the server as follows:
 ```sh
 ./gradlew run -Dxdebug=true
 ```
+or
+```sh
+./gradlew -Dspring.profiles.active=default,hsqldb,debug run
+```
 You can then attach your debugger to port 5005 of the jvm process.
+
+To suspend the server start-up until the debugger is attached (useful for
+debugging start-up code), start the server as follows:
+```sh
+./gradlew run -Dxdebugs=true
+```
+or
+```sh
+./gradlew -Dspring.profiles.active=default,hsqldb,debugs run
+```
+
+## Running local UAA server with different databases
+`./gradlew run` runs the UAA server with hsqldb database by default.
+
+### MySql
+1. Start the mysql server (e.g. a mysql docker container)
+```sh
+% docker run --name mysql1 -e MYSQL_ROOT_PASSWORD=changeme -d -p3306:3306 mysql
+```
+2. Create the `uaa` database (e.g. in mysql interactive session)
+```sh
+% mysql -h 127.0.0.1 -u root -p
+...
+mysql> create database uaa;
+```
+3. Run the UAA server with the mysql profile
+```sh
+% ./gradlew -Dspring.profiles.active=mysql,default run
+```
 
 ## Running tests
 

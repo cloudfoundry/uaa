@@ -80,7 +80,7 @@ public class LoginPagePerformanceMockMvcTest {
     void resetGenerator(
             @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore
     ) {
-        jdbcExpiringCodeStore.setGenerator(new AlphanumericRandomValueStringGenerator(24));
+        jdbcExpiringCodeStore.setGenerator(new RandomValueStringGenerator(24));
     }
 
     @AfterEach

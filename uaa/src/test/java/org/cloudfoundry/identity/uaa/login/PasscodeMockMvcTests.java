@@ -337,6 +337,32 @@ class PasscodeMockMvcTests {
         assertThat(content, Matchers.containsString("Passcode information is missing."));
     }
 
+    @Test
+    void testPasscodeReturnSpecialCharaters() throws Exception {
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(), details);
+
+        MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
+
+        SecurityContextHolder.setContext(mockSecurityContext);
+        MockHttpSession session = new MockHttpSession();
+
+        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, mockSecurityContext);
+        int MAX_TRAILS = 30;
+        String passcode = "";
+        for(int i = 0; i < MAX_TRAILS; i++) {
+            MockHttpServletRequestBuilder get = get("/passcode").accept(APPLICATION_JSON).session(session);
+
+            passcode = JsonUtils.readValue(mockMvc.perform(get).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),
+                String.class);
+            if (passcode.contains("-") || passcode.contains("_")) {
+                return;
+            }
+        }
+        assertThat("Passcode information is missing - or _", passcode,
+            Matchers.containsString("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"));
+    }
+
     public static class MockSecurityContext implements SecurityContext {
 
         private static final long serialVersionUID = -1386535243513362694L;

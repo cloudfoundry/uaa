@@ -1,0 +1,46 @@
+ratelimit:
+  #loggingOption: AllCallsWithDetails
+  loggingOption: AllCalls
+  #loggingOption: OnlyLimited
+  # OnlyLimited is the default
+
+  credentialID: 'JWT:Claims+"email"\s*:\s*"(.*?)"'
+
+  limiterMappings:
+    - name: Info
+      withCallerRemoteAddressID: 1r/s
+      pathSelectors:
+        - "equals:/info"
+    - name: Authenticate
+      withCallerRemoteAddressID: 5r/s
+      pathSelectors:
+        - "equals:/authenticate"
+    - name: AuthToken
+      withCallerRemoteAddressID: 2r/s
+      pathSelectors:
+        - "equals:/oauth/token"
+    - name: AuthAuthorize
+      withCallerRemoteAddressID: 1r/s
+      pathSelectors:
+        - "equals:/oauth/authorize"
+    - name: LoginPage
+      withCallerRemoteAddressID: 3r/3s
+      global: 25r/s
+      pathSelectors:
+        - "equals:/login"
+    - name: LoginResource
+      withCallerRemoteAddressID: 12r/3s
+      pathSelectors:
+        - "startsWith:/resources/"
+        - "startsWith:/vendor/"
+    - name: LoginDo
+      withCallerRemoteAddressID: 2r/s
+      global: 50r/s
+      pathSelectors:
+        - "equals:/login.do"
+    - name: EverythingElse
+      withCallerCredentialsID: 50r/s
+      withCallerRemoteAddressID: 50r/s
+      global: 250r/s
+      pathSelectors:
+        - "other"

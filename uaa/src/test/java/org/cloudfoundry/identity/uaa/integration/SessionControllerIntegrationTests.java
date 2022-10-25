@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @ExtendWith(SpringExtension.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class SessionControllerIntegrationTests {
+class SessionControllerIntegrationTests {
     @Autowired
     TestClient testClient;
     @Autowired
@@ -41,7 +41,7 @@ public class SessionControllerIntegrationTests {
     }
 
     @Test
-    public void sessionPageHasTheFunction() {
+    void sessionPageHasTheFunction() {
         webDriver.get(baseUrl +
                 "/session?clientId=admin&messageOrigin=http://localhost:8080");
 
@@ -51,7 +51,7 @@ public class SessionControllerIntegrationTests {
     }
 
     @Test
-    public void sessionManagementPageHasVariablesSet() {
+    void sessionManagementPageHasVariablesSet() {
         webDriver.get(baseUrl +
                 "/session_management?clientId=admin&messageOrigin=http://localhost:8080");
 
