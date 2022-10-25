@@ -71,6 +71,8 @@ import org.springframework.security.oauth2.provider.token.ResourceServerTokenSer
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.util.ObjectUtils;
+
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -145,7 +147,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     );
     private static final long ONE_SECOND = 1000L;
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
-    private UaaUserDatabase userDatabase;
+    private final UaaUserDatabase userDatabase;
     private MultitenantClientServices clientDetailsService;
     private final ApprovalService approvalService;
     private ApplicationEventPublisher applicationEventPublisher;
@@ -193,11 +195,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     public Set<String> getExcludedClaims() {
-        return excludedClaims;
+        return new HashSet<>(excludedClaims);
     }
 
     public void setExcludedClaims(Set<String> excludedClaims) {
-        this.excludedClaims = excludedClaims;
+        this.excludedClaims = new HashSet<>(excludedClaims);
     }
 
     public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
@@ -761,10 +763,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return UUID.randomUUID().toString().replace("-", "");
     }
 
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
-        this.userDatabase = userDatabase;
-    }
-
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
         if (StringUtils.isEmpty(accessToken)) {
@@ -855,7 +853,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * ONE_SECOND));
 
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
-        if (null != scopes && scopes.size() > 0) {
+        if (!ObjectUtils.isEmpty(scopes)) {
             token.setScope(new HashSet<>(scopes));
         }
         String clientId = (String)claims.get(CID);
@@ -879,7 +877,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return null;
     }
 
-    public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
+    protected void setClientDetailsService(MultitenantClientServices clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
@@ -893,7 +891,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return tokenPolicy;
     }
 
-    public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
+    protected void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
         this.tokenEndpointBuilder = tokenEndpointBuilder;
     }
 
