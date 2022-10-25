@@ -175,18 +175,15 @@ public class RefreshTokenCreator {
         return getActiveTokenPolicy().isRefreshTokenRotate();
     }
 
-    public String getRefreshedTokenString(Map<String, Object> refreshTokenClaims) {
-        String newRefreshToken;
-        if (shouldRotateRefreshTokens()) {
-            refreshTokenClaims.replace(JTI, UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
-        }
-        newRefreshToken = JsonUtils.writeValueAsString(refreshTokenClaims);
-        return newRefreshToken;
+    private String getRefreshedTokenString(Map<String, Object> refreshTokenClaims) {
+        refreshTokenClaims.replace(JTI, UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
+        return JsonUtils.writeValueAsString(refreshTokenClaims);
     }
 
-    public String createRefreshTokenValue(TokenValidation tokenValidation, String refreshTokenString) {
+    public String createRefreshTokenValue(TokenValidation tokenValidation, Map<String, Object> refreshTokenClaims) {
         String refreshTokenValue;
         if (shouldRotateRefreshTokens()) {
+            String refreshTokenString = getRefreshedTokenString(refreshTokenClaims);
             refreshTokenValue = JwtHelper.encode(refreshTokenString, getActiveKeyInfo()).getEncoded();
         } else {
             refreshTokenValue = tokenValidation.getJwt().getEncoded();

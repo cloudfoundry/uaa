@@ -287,7 +287,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String accessTokenId = generateUniqueTokenId();
-        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, refreshTokenString);
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, refreshTokenClaims);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
@@ -308,7 +308,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue, new Date(refreshTokenExpireMillis), claims.getJti()
         );
 
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+        String tokenIdToBeDeleted = null;
+        if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            tokenIdToBeDeleted = (String) tokenValidation.getClaims().get(JTI);
+        }
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
@@ -338,7 +342,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     static boolean isRevocable(Claims claims, boolean isOpaque) {
         return isOpaque || claims.isRevocable();
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, clientId, user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
     private void throwIfInvalidRevocationHashSignature(String revocableHashSignature, UaaUser user, ClientDetails client) {
