@@ -4,10 +4,13 @@ import com.google.common.collect.Maps;
 import org.cloudfoundry.identity.uaa.oauth.*;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 
@@ -167,5 +170,29 @@ public class RefreshTokenCreator {
 
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+    }
+
+    public boolean shouldRotateRefreshTokens() {
+        return getActiveTokenPolicy().isRefreshTokenRotate();
+    }
+
+    private String getRefreshedTokenString(Claims claims) {
+        claims.setJti(UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
+        return JsonUtils.writeValueAsString(claims);
+    }
+
+    public String createRefreshTokenValue(TokenValidation tokenValidation, Claims claims) {
+        String refreshTokenValue;
+        if (shouldRotateRefreshTokens()) {
+            String refreshTokenString = getRefreshedTokenString(claims);
+            refreshTokenValue = JwtHelper.encode(refreshTokenString, getActiveKeyInfo()).getEncoded();
+        } else {
+            refreshTokenValue = tokenValidation.getJwt().getEncoded();
+        }
+        return refreshTokenValue;
+    }
+
+    private TokenPolicy getActiveTokenPolicy() {
+        return IdentityZoneHolder.get().getConfig().getTokenPolicy();
     }
 }

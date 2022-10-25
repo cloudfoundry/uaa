@@ -149,7 +149,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           true,
-          true);
+          true, null);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
@@ -175,7 +175,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           true,
-          true);
+          true, null);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
@@ -193,7 +193,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           true,
-          true);
+          true, null);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
         verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
@@ -252,6 +252,7 @@ public class DeprecatedUaaTokenServicesTests {
         TimeService timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
+        RefreshTokenCreator refreshTokenCreator = mock(RefreshTokenCreator.class);
         ApprovalService approvalService = mock(ApprovalService.class);
         UaaTokenServices uaaTokenServices = new UaaTokenServices(
           idTokenCreator,
@@ -259,7 +260,7 @@ public class DeprecatedUaaTokenServicesTests {
           mockMultitenantClientServices,
           mock(RevocableTokenProvisioning.class),
           tokenValidationService,
-          mock(RefreshTokenCreator.class),
+          refreshTokenCreator,
           timeService,
           tokenValidityResolver,
           userDatabase,
@@ -299,7 +300,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           false,
-          false);
+          false, null);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, never()).create(rt.capture(), anyString());
@@ -316,7 +317,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           false,
-          false);
+          false, null);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());
@@ -1936,36 +1937,6 @@ public class DeprecatedUaaTokenServicesTests {
         boolean revocable = tokenServices.isRevocable(new Claims(), false);
 
         assertFalse(revocable);
-    }
-
-    @Test
-    public void refreshRotation() {
-        BaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
-        clientDetails.setAutoApproveScopes(singleton("true"));
-        tokenSupport.clientDetailsService.setClientDetailsStore(
-            IdentityZoneHolder.get().getId(),
-            Collections.singletonMap(CLIENT_ID, clientDetails)
-        );
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
-        authorizationRequest.setResourceIds(new HashSet<>(tokenSupport.resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
-        authorizationRequest.setRequestParameters(azParameters);
-        Authentication userAuthentication = tokenSupport.defaultUserAuthentication;
-
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
-        CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
-        String refreshTokenValue = accessToken.getRefreshToken().getValue();
-        assertThat(refreshTokenValue, is(notNullValue()));
-        OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
-        assertThat(refreshedToken, is(notNullValue()));
-        assertEquals(refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
-        refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
-        assertNotEquals(refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(false);
-        new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
     }
 
     private void readAccessToken(Set<String> excludedClaims) {

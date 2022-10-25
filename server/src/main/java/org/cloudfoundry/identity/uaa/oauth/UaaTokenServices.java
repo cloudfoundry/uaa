@@ -90,7 +90,6 @@ import java.util.concurrent.ConcurrentMap;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.openid.IdToken.ACR_VALUES_KEY;
@@ -124,7 +123,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_AUTHORITIES;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
@@ -289,11 +287,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String accessTokenId = generateUniqueTokenId();
-        if (isRefreshTokenRotate) {
-            refreshTokenValue = JwtHelper.encode(newRefreshToken, getActiveKeyInfo()).getEncoded();
-        } else {
-            refreshTokenValue = tokenValidation.getJwt().getEncoded();
-        }
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, claims);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
@@ -314,7 +308,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue, new Date(refreshTokenExpireMillis), claims.getJti()
         );
 
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+        String tokenIdToBeDeleted = null;
+        if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            tokenIdToBeDeleted = (String) tokenValidation.getClaims().get(JTI);
+        }
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
@@ -661,7 +659,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         isAccessTokenRevocable,
                         authenticationData);
 
-        return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable);
+        return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable, null);
     }
 
     private TokenPolicy getActiveTokenPolicy() {
@@ -690,7 +688,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String clientId,
                                                 String userId,
                                                 boolean isOpaque,
-                                                boolean isRevocable) {
+                                                boolean isRevocable,
+                                                String tokenIdToBeDeleted) {
 
         String scope = token.getScope().toString();
         long now = timeService.getCurrentTimeMillis();
@@ -728,6 +727,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
             }
             tokenProvisioning.createIfNotExists(revocableRefreshToken, IdentityZoneHolder.get().getId());
+            if (tokenIdToBeDeleted != null) {
+                tokenProvisioning.delete(tokenIdToBeDeleted, -1, IdentityZoneHolder.getCurrentZoneId());
+            }
         }
 
         CompositeToken result = new CompositeToken(isOpaque ? tokenId : token.getValue());
