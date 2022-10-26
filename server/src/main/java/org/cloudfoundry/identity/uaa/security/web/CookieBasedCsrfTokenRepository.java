@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
+import org.apache.tomcat.util.http.Rfc6265CookieProcessor;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -26,12 +27,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import static java.util.Optional.ofNullable;
+import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
 public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
 
     public static final String DEFAULT_CSRF_HEADER_NAME = "X-CSRF-TOKEN";
     public static final String DEFAULT_CSRF_COOKIE_NAME = "X-Uaa-Csrf";
     public static final int DEFAULT_COOKIE_MAX_AGE = 60 * 60 * 24;
+    private final Rfc6265CookieProcessor rfc6265CookieProcessor = new Rfc6265CookieProcessor();
 
     // 22 characters of the 62-ary codec gives about 131 bits of entropy, 62 ^ 22 ~ 2^ 130.9923
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(22);
@@ -39,6 +42,10 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
     private String headerName = DEFAULT_CSRF_HEADER_NAME;
     private int cookieMaxAge = DEFAULT_COOKIE_MAX_AGE;
     private boolean secure;
+
+    public CookieBasedCsrfTokenRepository() {
+        rfc6265CookieProcessor.setSameSiteCookies("Lax");
+    }
 
     public int getCookieMaxAge() {
         return cookieMaxAge;
@@ -94,7 +101,8 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
         } else {
             csrfCookie.setMaxAge(getCookieMaxAge());
         }
-        response.addCookie(csrfCookie);
+        String headerValue = rfc6265CookieProcessor.generateHeader(csrfCookie);
+        response.addHeader(SET_COOKIE, headerValue);
     }
 
     @Override

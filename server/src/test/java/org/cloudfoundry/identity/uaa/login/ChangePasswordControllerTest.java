@@ -99,7 +99,7 @@ class ChangePasswordControllerTest {
                 .andExpect(view().name("change_password"))
                 .andExpect(model().attribute("message_code", "form_error"));
 
-        verifyZeroInteractions(changePasswordService);
+        verifyNoInteractions(changePasswordService);
     }
 
     @Test

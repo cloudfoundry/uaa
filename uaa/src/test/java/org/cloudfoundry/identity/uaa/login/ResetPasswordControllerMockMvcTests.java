@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -79,6 +80,8 @@ public class ResetPasswordControllerMockMvcTests {
     void resetGenerator() {
         webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
+
+    final @Value("${login.url}") String externalLoginUrl = "";
 
     @Test
     void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {
@@ -187,6 +190,7 @@ public class ResetPasswordControllerMockMvcTests {
         ScimUser user = getScimUser();
         FakeJavaMailSender sender = webApplicationContext.getBean(FakeJavaMailSender.class);
         sender.clearMessage();
+        String expectedRedirect = externalLoginUrl + "/reset_password?code=";
         mockMvc.perform(
             post("/forgot_password.do")
                 .header("Host", "localhost")
@@ -194,7 +198,7 @@ public class ResetPasswordControllerMockMvcTests {
                 .param("username", user.getUserName())
         )
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
-        assertThat(sender.getSentMessages().get(0).getContentString(), containsString("http://localhost/reset_password?code="));
+        assertThat(sender.getSentMessages().get(0).getContentString(), containsString(expectedRedirect));
         assertThat(sender.getSentMessages().get(0).getContentString(), not(containsString("other.host.com")));
     }
 

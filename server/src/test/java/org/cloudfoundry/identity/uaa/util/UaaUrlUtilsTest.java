@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -7,10 +8,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -19,6 +24,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class UaaUrlUtilsTest {
@@ -121,8 +127,18 @@ class UaaUrlUtilsTest {
     }
 
     @Test
+    void getParameterMapFromInvalidQueryString() {
+        String url = "http://localhost:8080/uaa/oauth/authorize?client_id&response_type=code&redirect_uri=&=value";
+        Map<String, String[]> map = UaaUrlUtils.getParameterMap(url);
+        assertNotNull(map);
+        assertEquals("code", map.get("response_type")[0]);
+        assertEquals("", map.get("redirect_uri")[0]);
+        assertEquals(Strings.EMPTY_STRING_ARRAY, map.get("client_id"));
+    }
+
+    @Test
     void getUaaUrl() {
-        assertEquals("http://localhost", UaaUrlUtils.getUaaUrl("", IdentityZone.getUaa()));
+        assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, IdentityZone.getUaa()));
     }
 
     @Test
@@ -169,7 +185,7 @@ class UaaUrlUtilsTest {
     void zoneAwareUaaUrl() {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl("", zone));
-        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl("", true, zone));
+        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, true, zone));
     }
 
     @Test
@@ -189,7 +205,7 @@ class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        assertEquals("http://zone1.localhost", UaaUrlUtils.getUaaUrl("", zone));
+        assertEquals("http://zone1.localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, zone));
     }
 
     @Test
@@ -337,6 +353,84 @@ class UaaUrlUtilsTest {
         assertThat(matchingRedirectUri5, equalTo(fallback));
     }
 
+    @ParameterizedTest
+    @CsvSource({
+            "http://example.com/*, http://example.com/?param=value",
+            "http://example.com/*, http://example.com/page#1",
+            "http://example.com/**/mypage*, http://example.com/a/b/mypage?a=b",
+            "http://abc?.example.com, http://abcd.example.com",
+            "http://www.*.example.com, http://www.tv.example.com",
+            "a/**, a/b/c",
+            "a/b/*, a/b/c",
+            "ab?/*, abc/def",
+            "/abc/*, /abc/ab",
+            "/abc/*, /abc/ab@c",
+            "http://foo.bar.com:8080, http://foo.bar.com:8080",
+            "http://foo.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
+            "http://*.bar.com:8080/**, http://foo.bar.com:8080/app/foo",
+            "http://*.bar.com*, http://foo.bar.com:80",
+            "https://*.bar.com*, https://foo.bar.com:443",
+            "myapp://callback, myapp://callback",
+            "myapp://callback*, myapp://callback#token=xyz123",
+            "https://*.example.com:*, https://john.doe@www.example.com:123",
+            "http://*.example.com, http://AAA@foo.example.com",
+            "http://*.some.server.com, http://username:password@foo.some.server.com",
+            "http://*some.server.com, http://username:password@some.server.com",
+    })
+    void findMatchingRedirectUri_urlParametersShouldResolveInIncomingUrl(
+            String allowedRedirectUrl,
+            String incomingRedirectUrl) {
+        final String fallbackRedirectUrl = "http://fallback.to/this";
+        Set<String> allowedRedirectUrlGlobPatterns = Collections.singleton(allowedRedirectUrl);
+
+        assertEquals(incomingRedirectUrl, UaaUrlUtils.findMatchingRedirectUri(
+                allowedRedirectUrlGlobPatterns,
+                incomingRedirectUrl,
+                fallbackRedirectUrl
+        ));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "http://*.example.com, http://attacker.com?.example.com",
+            "http://*.example.com, http://attacker.com\\.example.com",
+            "http://*.example.com, http://attacker.com/.example.com",
+            "http://*.example.com, http://attacker.com#.example.com",
+            "http://example.com, http://tv.example.com",
+            "http://www.*.example.com, http://www.attacker.com?.example.com",
+            "a/**/c, a/b/c/d",
+            "a/b/*, a/b/c/d",
+            "ab?/*, abcd/ef",
+            "a/*, ",
+            "/abc/*, a/abc/ab",
+            "http://*.bar.com:8080, http://attacker.com?.bar.com:8080",
+            "http://*.bar.com:8080/**, http://attacker.com#foo.bar.com:8080/app/foo",
+            "https://*.bar.com:8080/**, https://attacker.com#foo.bar.com:8443/app/foo",
+            "myapp://callback, myapp://badcallback",
+            "myapp://callback*, myapp://badcallback#token=123xyz",
+            "http://*.example.com, http://AAA@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@@@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@@@@attacker.com?.example.com",
+            "http://*.example.com, http://AAA@attacker.com#.example.com",
+            "http://*.example.com, http://AAA@@attacker.com#.example.com",
+            "http://*some.server.com, http://username:password@attacker.com#some.server.com",
+            "http://*.server.com, http://username:password@attacker.com?some.server.com",
+            "http://*.some.server.com, http://username:password@attacker.com?.some.server.com",
+    })
+    void findMatchingRedirectUri_badRedirectUrlShouldResolveInFallbackUrl(
+            String allowedRedirectUrl,
+            String incomingMaliciousRedirectUrl) {
+        final String fallbackRedirectUrl = "http://fallback.to/this";
+        Set<String> allowedRedirectUrlGlobPatterns = Collections.singleton(allowedRedirectUrl);
+
+        assertEquals(fallbackRedirectUrl, UaaUrlUtils.findMatchingRedirectUri(
+                allowedRedirectUrlGlobPatterns,
+                incomingMaliciousRedirectUrl,
+                fallbackRedirectUrl
+        ));
+    }
+
     @Test
     void addQueryParameter() {
         String url = "http://sub.domain.com";
@@ -390,13 +484,13 @@ class UaaUrlUtilsTest {
 
     @Test
     void addSubdomainToUrl_handlesEmptySubdomain() {
-        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "");
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", Strings.EMPTY_STRING);
         assertEquals("http://localhost:8080", url);
     }
 
     @Test
     void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
-        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", "");
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", Strings.EMPTY_STRING);
         assertEquals("http://localhost:8080", url);
     }
 
@@ -442,13 +536,13 @@ class UaaUrlUtilsTest {
     void getHostForURI() {
         assertThat(UaaUrlUtils.getHostForURI("http://google.com"), is("google.com"));
         assertThat(UaaUrlUtils.getHostForURI("http://subdomain.uaa.com/nowhere"), is("subdomain.uaa.com"));
-        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.getHostForURI(""));
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.getHostForURI(Strings.EMPTY_STRING));
     }
     
     @Test
     void getSubdomain() {
         assertThat(UaaUrlUtils.getSubdomain(null), is(nullValue()));
-        assertThat(UaaUrlUtils.getSubdomain(""), is(""));
+        assertThat(UaaUrlUtils.getSubdomain(Strings.EMPTY_STRING), is(Strings.EMPTY_STRING));
         assertThat(UaaUrlUtils.getSubdomain("     "), is("     "));
         assertThat(UaaUrlUtils.getSubdomain("a"), is("a."));
         assertThat(UaaUrlUtils.getSubdomain("    z     "), is("z."));
@@ -463,6 +557,103 @@ class UaaUrlUtilsTest {
     @Test
     void validateInvalidSubdomains() {
         invalidSubdomains.forEach(testString -> assertFalse(UaaUrlUtils.isValidSubdomain(testString)));
+    }
+
+    @ParameterizedTest(name = "\"{0}\" should be normalized to \"/test1\"")
+    @ValueSource(strings = {
+            "/test1/.",
+            "/test1/%2e",
+            "/test1/%2E",
+            "/test1/%252e",
+            "/test1/%252E",
+            "/test2/../test1",
+            "/test2/%2e./test1",
+            "/test2/%2E./test1",
+            "/test2/%252e./test1",
+            "/test2/%2525252E./test1",
+            "/test2/%2525252e./test1",
+            "/test2/%2525252E./test1",
+            "/test2/%2525252e.%2ftest1",
+            "/test2/%2525252e.%2Ftest1",
+            "/test2/%2525252e.%2f%2e%2ftest1",
+            "/test2/%2525252e.%2F%252e%2ftest1",
+    })
+    void validateUriPathDecoding(String uriPath) {
+        assertEquals("https://example.com/test1", UaaUrlUtils.normalizeUri("https://example.com" + uriPath));
+    }
+
+    @Test
+    void validateUriPathDecodingDoesNotAffectQueryParams() {
+        final String uriWithEncodedQueryParams = "https://example.com/test1?q1=%2e&q2=%2e%2e";
+        assertEquals(uriWithEncodedQueryParams, UaaUrlUtils.normalizeUri(uriWithEncodedQueryParams));
+    }
+
+    @Test
+    void validateUriPathDecodingDoesNotAffectFragments() {
+        final String uriWithEncodedQueryParams = "https://example.com/test1#%2e%2e";
+        assertEquals(uriWithEncodedQueryParams, UaaUrlUtils.normalizeUri(uriWithEncodedQueryParams));
+    }
+
+    @Test
+    void validateUriPathDecodingLimit() {
+        // URI path encoded more than MAX_URI_DECODES times
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.normalizeUri("https://example.com/test1/%25252525252e"));
+    }
+
+    @Test
+    void validateNormalizeUriIfNull() {
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.normalizeUri("nohost"));
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.normalizeUri(" ://host/path"));
+    }
+
+    @Test
+    void validateMatchHostExceptionEndsInFalse() {
+        assertFalse(UaaUrlUtils.matchHost(" ", " ", null));
+    }
+
+    @Test
+    void testisUrl() {
+        assertFalse(UaaUrlUtils.isUrl(Strings.EMPTY_STRING));
+        assertFalse(UaaUrlUtils.isUrl(" "));
+        assertTrue(UaaUrlUtils.isUrl("http://localhost"));
+    }
+
+    @Test
+    void extractPathVariableFromUrl() {
+        assertEquals("id", UaaUrlUtils.extractPathVariableFromUrl(1, "/Users/id"));
+        assertNull(UaaUrlUtils.extractPathVariableFromUrl(3, "/Users/id"));
+    }
+
+    @Test
+    void getRequestPath() {
+        assertEquals(Strings.EMPTY_STRING, UaaUrlUtils.getRequestPath(mock(HttpServletRequest.class)));
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "/servlet, /pathInfo, /servlet/pathInfo",
+            "/servlet, , /servlet",
+            ",         /pathInfo, /pathInfo",
+            ",         ,          ''"
+
+    })
+    void getRequestPathCombinesServletPathAndPathInfo(
+            String servletPath, String pathInfo, String expected
+    ) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setServletPath(servletPath);
+        request.setPathInfo(pathInfo);
+
+        assertEquals(expected, UaaUrlUtils.getRequestPath(request));
+    }
+
+    @Test
+    void testLegacyUriWithPortWildCard() {
+        assertTrue(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:*/callback"));
+
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl(Strings.EMPTY_STRING));
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:80*/callback"));
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:*8/callback"));
     }
 
     private static void validateRedirectUri(List<String> urls, boolean result) {

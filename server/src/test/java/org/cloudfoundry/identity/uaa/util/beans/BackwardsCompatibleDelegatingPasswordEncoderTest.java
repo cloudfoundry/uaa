@@ -11,7 +11,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class BackwardsCompatibleDelegatingPasswordEncoderTest {
@@ -68,7 +68,7 @@ class BackwardsCompatibleDelegatingPasswordEncoderTest {
                     () -> encoder.matches("password", "{otherprefix}encodedPassword"),
                     is("Password encoding {otherprefix} is not supported"));
 
-            verifyZeroInteractions(mockPasswordEncoder);
+            verifyNoInteractions(mockPasswordEncoder);
         }
 
         @Test

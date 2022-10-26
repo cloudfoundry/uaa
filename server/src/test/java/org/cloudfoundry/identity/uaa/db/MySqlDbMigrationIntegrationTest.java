@@ -7,6 +7,7 @@ import java.util.List;
 
 import static java.lang.String.format;
 import static junit.framework.TestCase.fail;
+import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
@@ -161,7 +162,8 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
                   jdbcTemplate.getDataSource().getConnection().getCatalog(),
                   "validation_code"
                 );
-                assertThat(validationColumnType, is("int(11)"));
+                // 'int(11)' in mysql5 and 'int' in mysql8
+                assertThat(validationColumnType, anyOf(is("int(11)"), is("int")));
 
             }
         };

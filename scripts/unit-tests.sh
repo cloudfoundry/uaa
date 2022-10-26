@@ -33,6 +33,7 @@ pushd $(dirname $SCRIPT_DIR)
       -f ./uaa/src/test/resources/ldap_init.ldif
 
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
+            "-Djava.security.egd=file:/dev/./urandom" \
             assemble \
             --max-workers=4 \
             --no-daemon \
@@ -41,6 +42,7 @@ pushd $(dirname $SCRIPT_DIR)
             --exclude-task ':cloudfoundry-identity-samples:assemble'
 
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
+            "-Djava.security.egd=file:/dev/./urandom" \
             test \
             --no-daemon \
             --stacktrace \

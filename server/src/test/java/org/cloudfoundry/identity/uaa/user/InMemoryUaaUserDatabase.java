@@ -56,6 +56,11 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
     }
 
     @Override
+    public UaaUserPrototype retrieveUserPrototypeByName(String username, String origin) throws UsernameNotFoundException {
+        return new UaaUserPrototype(retrieveUserByName(username, origin));
+    }
+
+    @Override
     public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
         UaaUser u = ids.get(id);
         if (u == null) {
@@ -65,8 +70,18 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
     }
 
     @Override
+    public UaaUserPrototype retrieveUserPrototypeById(String id) throws UsernameNotFoundException {
+        return new UaaUserPrototype(retrieveUserById(id));
+    }
+
+    @Override
     public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
         return users.values().stream().filter(u -> origin.equalsIgnoreCase(u.getOrigin()) && email.equalsIgnoreCase(u.getEmail())).findAny().orElse(null);
+    }
+
+    @Override
+    public UaaUserPrototype retrieveUserPrototypeByEmail(String email, String origin) throws UsernameNotFoundException {
+        return new UaaUserPrototype(retrieveUserByEmail(email, origin));
     }
 
     @Override

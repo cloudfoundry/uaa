@@ -14,16 +14,14 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 
 /**
  * Created by fhanik on 7/15/15.
  */
-public class MigrateGroupZones_2_4_2 implements SpringJdbcMigration {
+public class MigrateGroupZones_2_4_2 extends BaseJavaMigration {
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
-
-    }
+    public void migrate(Context context) {}
 }

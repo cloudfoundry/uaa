@@ -103,18 +103,17 @@ public class RestAuthenticationManager implements AuthenticationManager {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         String username = authentication.getName();
-        String password = (String) authentication.getCredentials();
 
         HttpHeaders headers = getHeaders();
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = restTemplate.exchange(remoteUrl, HttpMethod.POST,
-                        new HttpEntity<Object>(getParameters(username, password), headers), Map.class);
+                        new HttpEntity<Object>(getParameters(username, (String) authentication.getCredentials()), headers), Map.class);
 
         if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
             if (evaluateResponse(authentication,response)) {
                 logger.info("Successful authentication request for " + authentication.getName());
-                return new UsernamePasswordAuthenticationToken(username, nullPassword?null:"", UaaAuthority.USER_AUTHORITIES);
+                return new UsernamePasswordAuthenticationToken(username, nullPassword ? null : "", UaaAuthority.USER_AUTHORITIES);
             }
         } else if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
             logger.info("Failed authentication request");

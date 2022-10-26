@@ -1,7 +1,10 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
@@ -10,13 +13,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -45,14 +51,22 @@ class UaaClientAuthenticationProviderTest {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
-        ClientDetailsUserDetailsService clientDetailsService = new ClientDetailsUserDetailsService(jdbcClientDetailsService);
+        UaaClientDetailsUserDetailsService clientDetailsService = new UaaClientDetailsUserDetailsService(jdbcClientDetailsService);
+        clientDetailsService.setPasswordEncoder(passwordEncoder);
         client = createClient();
         authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder);
     }
 
     public BaseClientDetails createClient() {
+        return createClient(null, null);
+    }
+
+    public BaseClientDetails createClient(String addtionalKey, Object value) {
         BaseClientDetails details = new BaseClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
         details.setClientSecret(SECRET);
+        if (addtionalKey != null) {
+            details.addAdditionalInformation(addtionalKey, value);
+        }
         jdbcClientDetailsService.addClientDetails(details);
         return details;
     }
@@ -67,10 +81,67 @@ class UaaClientAuthenticationProviderTest {
         assertTrue(authentication.isAuthenticated());
     }
 
+    private UsernamePasswordAuthenticationToken getAuthenticationToken(String grant_type) {
+        UsernamePasswordAuthenticationToken a = mock(UsernamePasswordAuthenticationToken.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(a.getDetails()).thenReturn(uaaAuthenticationDetails);
+        Map<String, String[]> requestParameters = new HashMap<>();
+        requestParameters.put("code_verifier", new String[] { "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM" });
+        requestParameters.put("code", new String[] { "1234567890" });
+        requestParameters.put("client_id", new String[] { "id" });
+        requestParameters.put("redirect_uri", new String[] { "http://localhost:8080/uaa" });
+        requestParameters.put("grant_type", new String[] { grant_type });
+        when(uaaAuthenticationDetails.getParameterMap()).thenReturn(requestParameters);
+        return a;
+    }
+
     @Test
     void provider_authenticate_client_with_one_password() {
         Authentication a = getToken(client.getClientId(), SECRET);
         testClientAuthentication(a);
+    }
+
+    @Test
+    void provider_authenticate_client_without_password_public_string() {
+        client = createClient(ClientConstants.ALLOW_PUBLIC, "true");
+        UsernamePasswordAuthenticationToken a = getAuthenticationToken("authorization_code");
+        authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation()), a);
+        assertNotNull(a);
+    }
+
+    @Test
+    void provider_authenticate_client_without_password_public_boolean() {
+        client = createClient(ClientConstants.ALLOW_PUBLIC, true);
+        UsernamePasswordAuthenticationToken a = getAuthenticationToken("authorization_code");
+        authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation()), a);
+        assertNotNull(a);
+    }
+
+    @Test
+    void provider_authenticate_client_without_password_public_wrong_grant_type() {
+        client = createClient(ClientConstants.ALLOW_PUBLIC, true);
+        UsernamePasswordAuthenticationToken a = getAuthenticationToken("client_credentials");
+        assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation()), a));
+    }
+
+    @Test
+    void provider_authenticate_client_without_password_public_missing_code() {
+        client = createClient(ClientConstants.ALLOW_PUBLIC, true);
+        UsernamePasswordAuthenticationToken a = mock(UsernamePasswordAuthenticationToken.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(a.getDetails()).thenReturn(uaaAuthenticationDetails);
+        Map<String, String[]> requestParameters = new HashMap<>();
+        when(uaaAuthenticationDetails.getParameterMap()).thenReturn(requestParameters);
+        assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation()), a));
+    }
+
+    @Test
+    void provider_authenticate_client_without_password_public_false() {
+        client = createClient(ClientConstants.ALLOW_PUBLIC, false);
+        UsernamePasswordAuthenticationToken a = mock(UsernamePasswordAuthenticationToken.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(a.getDetails()).thenReturn(uaaAuthenticationDetails);
+        assertThrows(BadCredentialsException.class, () ->testClientAuthentication(a));
     }
 
     @Test

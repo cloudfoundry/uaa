@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.audit;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
-public class AuditEventTypeTests {
+class AuditEventTypeTests {
     
     @Test
-    public void testAuditEventType() {
+    void testAuditEventType() {
         int count = 0;
         for (AuditEventType type : AuditEventType.values()) {
             assertEquals(count, type.getCode());

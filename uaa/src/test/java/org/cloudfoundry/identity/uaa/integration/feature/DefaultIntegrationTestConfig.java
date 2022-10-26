@@ -35,9 +35,9 @@ import java.util.logging.Level;
 
 @PropertySource("classpath:integration.test.properties")
 public class DefaultIntegrationTestConfig {
-    static final int IMPLICIT_WAIT_TIME = 15;
-    static final int PAGE_LOAD_TIMEOUT = 20;
-    static final int SCRIPT_TIMEOUT = 15;
+    static final int IMPLICIT_WAIT_TIME = 30;
+    static final int PAGE_LOAD_TIMEOUT = 40;
+    static final int SCRIPT_TIMEOUT = 30;
 
     private final int timeoutMultiplier;
 

@@ -32,6 +32,7 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
         assertArrayEquals(new String[]{"RS256", "HS256"}, defaultConfig.getTokenEndpointAuthSigningValues());
         assertEquals("/uaa/userinfo", defaultConfig.getUserInfoUrl());
         assertEquals("/uaa/token_keys", defaultConfig.getJwksUri());
+        assertEquals("/uaa/logout.do", defaultConfig.getLogoutEndpoint());
         assertArrayEquals(new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"}, defaultConfig.getScopes());
         assertArrayEquals(new String[]{"code", "code id_token", "id_token", "token id_token"}, defaultConfig.getResponseTypes());
         assertArrayEquals(new String[]{"public"}, defaultConfig.getSubjectTypesSupported());
@@ -49,6 +50,7 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
         assertFalse(defaultConfig.isClaimsParameterSupported());
         assertEquals("http://docs.cloudfoundry.org/api/uaa/", defaultConfig.getServiceDocumentation());
         assertArrayEquals(new String[]{"en-US"}, defaultConfig.getUiLocalesSupported());
+        assertArrayEquals(new String[]{"S256", "plain"}, defaultConfig.getCodeChallengeMethodsSupported());
     }
 
     @Test

@@ -100,7 +100,7 @@ public abstract class TokenValidation {
             throw new InvalidTokenException("kid claim not found in JWT token header");
         }
 
-        KeyInfo signingKey = keyInfoService.getKey(kid);
+        KeyInfo signingKey = keyInfoService.getKey(kid, tokenJwt.getHeader().getAlg());
         if (signingKey == null) {
             throw new InvalidTokenException(String.format(
                     "Token header claim [kid] references unknown signing key : [%s]", kid

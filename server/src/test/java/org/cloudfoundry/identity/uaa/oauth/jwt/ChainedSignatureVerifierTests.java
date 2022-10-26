@@ -193,7 +193,7 @@ public class ChainedSignatureVerifierTests {
         delegates.add(macSigner);
         ReflectionTestUtils.setField(verifier, "delegates", delegates);
         signedValidContent.verifySignature(verifier);
-        Mockito.verifyZeroInteractions(macSigner);
+        Mockito.verifyNoInteractions(macSigner);
     }
 
 }

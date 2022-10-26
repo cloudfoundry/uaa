@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
@@ -86,7 +87,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     public boolean refreshApproval(final Approval approval, final String zoneId) {
-        logger.debug(String.format("refreshing approval: [%s]", approval));
+        logger.debug("refreshing approval: [{}]", UaaStringUtils.getCleanedUserControlString(approval.toString()));
         int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, ps -> {
             ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
             ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
@@ -104,7 +105,7 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public boolean addApproval(final Approval approval, final String zoneId) {
-        logger.debug(String.format("adding approval: [%s]", approval));
+        logger.debug("adding approval: [{}]", UaaStringUtils.getCleanedUserControlString(approval.toString()));
         try {
             refreshApproval(approval, zoneId); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the

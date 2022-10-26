@@ -33,6 +33,7 @@ import javax.naming.NamingException;
 import javax.naming.directory.Attribute;
 import javax.naming.directory.Attributes;
 import java.util.Arrays;
+import java.util.function.Supplier;
 
 /**
  * Unfortunately the Spring PasswordComparisonAuthenticator is final, so we
@@ -56,7 +57,7 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
     public DirContextOperations authenticate(Authentication authentication) {
         DirContextOperations user = null;
         String username = authentication.getName();
-        String password = (String) authentication.getCredentials();
+        Supplier<String> passProvider = () -> (String) authentication.getCredentials();
 
         SpringSecurityLdapTemplate ldapTemplate = new SpringSecurityLdapTemplate(getContextSource());
 
@@ -84,9 +85,9 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
         }
 
         if (isLocalCompare()) {
-            localCompareAuthenticate(user, password);
+            localCompareAuthenticate(user, passProvider.get());
         } else {
-            String encodedPassword = passwordEncoder.encode(password);
+            String encodedPassword = passwordEncoder.encode(passProvider.get());
             byte[] passwordBytes = Utf8.encode(encodedPassword);
             searchAuthenticate(user, passwordBytes, ldapTemplate);
         }

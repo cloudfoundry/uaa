@@ -241,10 +241,10 @@ public class ScimGroupEndpointsIntegrationTests {
 
         // check that the group was not created
         @SuppressWarnings("unchecked")
-        Map<String, String> g2 = client.getForObject(
+        Map<String, Object> g2 = client.getForObject(
                 serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, CFID);
         assertTrue(g2.containsKey("totalResults"));
-        assertEquals(0, g2.get("totalResults"));
+        assertEquals(Integer.valueOf(0), (Integer) g2.get("totalResults"));
     }
 
     @Test

@@ -8,7 +8,10 @@ buildscript {
 
     repositories {
         mavenCentral()
-        jcenter()
+        gradlePluginPortal()
+        maven {
+            url("https://plugins.gradle.org/m2/")
+        }
         maven {
             url("https://repo.spring.io/plugins-release")
         }
@@ -16,10 +19,12 @@ buildscript {
 
     dependencies {
         classpath(libraries.cargoGradlePlugin)
-        classpath(libraries.prodepsGradlePlugin)
         classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
+        classpath(libraries.testRetryPlugin)
+        classpath(libraries.gradleJcocoPlugin)
+        classpath(libraries.sonarqubePlugin)
     }
 }
 
@@ -28,20 +33,19 @@ apply(from: "dependencies.gradle")
 def applicationPort = project.hasProperty('port') ? project.getProperty('port').toInteger() : 8080
 
 apply(plugin: "com.bmuschko.cargo")
+apply(plugin: "war")
 
 allprojects {
-    apply(plugin: "propdeps")
-    apply(plugin: "propdeps-maven")
     apply(plugin: "io.spring.dependency-management")
+    apply(plugin: "org.gradle.test-retry")
+    apply(plugin: "org.barfuin.gradle.jacocolog")
+    apply(plugin: "org.sonarqube")
 
     dependencyManagement {
         imports {
-            mavenBom(libraries.springBom)
             mavenBom(libraries.springBootBom)
         }
     }
-
-    configurations.provided.transitive = false
 
     repositories {
         mavenCentral()
@@ -88,6 +92,12 @@ subprojects {
         maxParallelForks = 6
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
+
+        retry {
+            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "false"));
+            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
+            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
+        }
 
         testLogging {
             events("skipped", "failed", "passed")
@@ -170,14 +180,18 @@ cargo {
 
     local {
         configHomeDir = file(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
-        startStopTimeout = 540000
+        startStopTimeout = Integer.parseInt(System.getProperty("startStopTimeout", "540000"))
         rmiPort = applicationPort + 10
 
         jvmArgs = ""
-        jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH=%s", jvmArgs, file("scripts/cargo").getAbsolutePath())
-        jvmArgs = String.format("%s -Dlog4j.configurationFile=%s", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
+        jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH='%s'", jvmArgs, file("scripts/cargo").getAbsolutePath())
+        jvmArgs = String.format("%s -Dlogging.config='%s'", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
         jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
-        if (System.getProperty("spring.profiles.active", "").split(',').contains("debug")) {
+        String activeSpringProfiles = System.getProperty("spring.profiles.active", "").split(',');
+        if (activeSpringProfiles.contains("debugs") || Boolean.valueOf(System.getProperty("xdebugs"))) {
+            jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005", jvmArgs)
+        }
+        else if (activeSpringProfiles.contains("debug") || Boolean.valueOf(System.getProperty("xdebug"))) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
 
@@ -193,6 +207,7 @@ cargo {
             property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
             property("smtp.host", "localhost")
             property("smtp.port", 2525)
+            property("java.security.egd", "file:/dev/./urandom")
         }
 
         containerProperties {
@@ -200,10 +215,20 @@ cargo {
         }
 
         installer {
-            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + versions.tomcatCargoVersion + "/tomcat-" + versions.tomcatCargoVersion + ".tar.gz"
+            installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + tomcatCargoVersion + "/tomcat-" + tomcatCargoVersion + ".tar.gz"
             downloadDir = file("$buildDir/download")
             extractDir = file("$buildDir/extract")
         }
+    }
+}
+
+sonarqube {
+    properties {
+        property "sonar.projectKey", "cloudfoundry-identity-parent"
+        property "sonar.organization", "cloudfoundry-1"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.exclusions", "samples/**/*.*,**/*Test.java,**/*Tests.java,**/*IT.java"
+        property "sonar.java.source", JavaVersion.current()
     }
 }
 

@@ -15,6 +15,11 @@ package org.cloudfoundry.identity.uaa.oauth;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,6 +34,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -101,6 +107,16 @@ public class RemoteTokenServicesTests {
         OAuth2Authentication result = services.loadAuthentication("FOO");
         assertNotNull(result);
         assertEquals("[uaa.user]", result.getUserAuthentication().getAuthorities().toString());
+    }
+
+    @Test
+    public void testNoBodyReceived() {
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+        when(restTemplate.exchange(anyString(), (HttpMethod)any(), (HttpEntity<MultiValueMap<String, String>>)any(), (Class)any())).thenReturn(responseEntity);
+        when(responseEntity.getBody()).thenReturn(null);
+        services.setRestTemplate(restTemplate);
+        assertThrows(IllegalStateException.class, () -> services.loadAuthentication("FOO"));
     }
 
     @Test

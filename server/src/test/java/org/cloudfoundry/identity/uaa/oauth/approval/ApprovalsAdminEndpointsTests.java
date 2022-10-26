@@ -8,6 +8,8 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
+import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -16,6 +18,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
@@ -29,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.sql.SQLException;
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
@@ -56,7 +60,7 @@ class ApprovalsAdminEndpointsTests {
     PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void initApprovalsAdminEndpointsTests() {
+    void initApprovalsAdminEndpointsTests() throws SQLException {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String id = UUID.randomUUID().toString();
         String userId = testAccounts.addUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());
@@ -66,8 +70,11 @@ class ApprovalsAdminEndpointsTests {
         IdentityZone mockIdentityZone = mock(IdentityZone.class);
         when(mockIdentityZoneManager.getCurrentIdentityZone()).thenReturn(mockIdentityZone);
         when(mockIdentityZone.getConfig()).thenReturn(IdentityZone.getUaa().getConfig());
+        DatabaseUrlModifier databaseUrlModifier = mock(DatabaseUrlModifier.class);
+        when(databaseUrlModifier.getDatabaseType()).thenReturn(Vendor.unknown);
 
-        UaaUserDatabase userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager);
+        UaaUserDatabase userDao = new JdbcUaaUserDatabase(jdbcTemplate, new TimeServiceImpl(), false, mockIdentityZoneManager,
+                databaseUrlModifier, new DbUtils());
 
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);

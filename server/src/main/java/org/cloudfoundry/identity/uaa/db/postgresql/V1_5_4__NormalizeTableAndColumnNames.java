@@ -14,18 +14,20 @@ package org.cloudfoundry.identity.uaa.db.postgresql;
 
 import java.util.List;
 
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
+import static org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3.*;
 
 
 /**
  * Created by fhanik on 3/5/14.
  */
-public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5_3 implements SpringJdbcMigration {
+public class V1_5_4__NormalizeTableAndColumnNames extends BaseJavaMigration {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -45,8 +47,10 @@ public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5
                     "ORDER BY 1,2";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
+    public void migrate(Context context) {
         logger.info("[V1_5_4] Running SQL: " + colQuery);
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
+                context.getConnection(), true));
         List<ColumnInfo> columns = jdbcTemplate.query(colQuery, new ColumnMapper());
         for (ColumnInfo column : columns) {
             if (processColumn(column)) {

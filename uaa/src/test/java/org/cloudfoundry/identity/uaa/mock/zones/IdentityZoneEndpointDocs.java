@@ -90,7 +90,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String PROMPTS_TYPE_DESC = "What kind of field this is (e.g. text or password)";
     private static final String PROMPTS_TEXT_DESC = "Actual text displayed on prompt for field";
     private static final String IDP_DISCOVERY_ENABLED_FLAG = "IDP Discovery should be set to true if you have configured more than one identity provider for UAA. The discovery relies on email domain being set for each additional provider";
-    private static final String ACCOUNT_CHOOSER_ENABLED_FLAG = "This flag is required to enable account choosing functionality for IDP discovery page.";
+    private static final String ACCOUNT_CHOOSER_ENABLED_FLAG = "This flag enables the account choosing functionality. If idpDiscoveryEnabled is set to true in the config the IDP is chosen by discovery. Otherwise, the user can enter the IDP by providing the origin.";
     private static final String BRANDING_COMPANY_NAME_DESC = "This name is used on the UAA Pages and in account management related communication in UAA";
     private static final String BRANDING_PRODUCT_LOGO_DESC = "This is a base64Url encoded PNG image which will be used as the logo on all UAA pages like Login, Sign Up etc.";
     private static final String BRANDING_SQUARE_LOGO_DESC = "This is a base64 encoded PNG image which will be used as the favicon for the UAA pages";

@@ -41,7 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ClientAdminEndpointDocs extends AdminClientCreator {
     private String clientAdminToken;
 
-    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client. To support secret rotation this can be space delimited string of two secrets.");
+    private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client.");
+    private static final FieldDescriptor secondaryClientSecretField = fieldWithPath("secondary_client_secret").optional(null).type(STRING).description("An optional, secondary secret string used for authenticating as this client to support secret rotation.");
     private static final FieldDescriptor actionField = fieldWithPath("action").constrained("Always required.").description("Set to `secret` to change client secret, `delete` to delete the client or `add` to add the client");
     private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a zone_id.");
@@ -58,6 +59,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
         fieldWithPath("autoapprove").optional(Collections.emptySet()).type(Arrays.asList(BOOLEAN, ARRAY)).description("Scopes that do not require user approval"),
+        fieldWithPath("allowpublic").optional(false).type(BOOLEAN).description("If true, allow to omit client_secret for authorization_code flow in combination with PKCE"),
         fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
         fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
         fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
@@ -87,7 +89,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
     void createClient() throws Exception {
         Snippet requestFields = requestFields(
             (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
-                new FieldDescriptor[]{clientSecretField}
+                new FieldDescriptor[]{clientSecretField, secondaryClientSecretField}
             ));
 
         Snippet responseFields = responseFields(

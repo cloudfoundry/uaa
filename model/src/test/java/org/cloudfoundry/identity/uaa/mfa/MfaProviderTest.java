@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.cloudfoundry.identity.uaa.mfa.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Rule;

@@ -18,8 +18,8 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation.PasswordConfirmationException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -40,28 +40,25 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class ResetPasswordAuthenticationEntryPointTests {
+class ResetPasswordAuthenticationEntryPointTests {
 
-    ResetPasswordAuthenticationEntryPoint entryPoint;
+    private ResetPasswordAuthenticationEntryPoint entryPoint;
     private String email;
-    private String code;
-    private String password;
-    private String passwordConfirmation;
     private String messageCode;
     private HttpServletRequest request;
     private HttpServletResponse response;
     private RequestDispatcher requestDispatcher;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         request = mock(HttpServletRequest.class);
         response = mock(HttpServletResponse.class);
         requestDispatcher = mock(RequestDispatcher.class);
 
         email = "test@test.org";
-        code = "12345";
-        password = "mypassword";
-        passwordConfirmation = "mypassword";
+        var code = "12345";
+        var password = "mypassword";
+        var passwordConfirmation = "mypassword";
         messageCode = "form_error";
 
         when(request.getParameter("email")).thenReturn(email);
@@ -74,7 +71,7 @@ public class ResetPasswordAuthenticationEntryPointTests {
     }
 
     @Test
-    public void test_invalid_password_match() throws Exception {
+    void test_invalid_password_match() throws Exception {
         PasswordConfirmationException pe = new PasswordConfirmationException(messageCode, email);
         BadCredentialsException be = new BadCredentialsException("", pe);
 
@@ -87,9 +84,8 @@ public class ResetPasswordAuthenticationEntryPointTests {
         verify(response, times(1)).setStatus(eq(HttpStatus.UNPROCESSABLE_ENTITY.value()));
     }
 
-
     @Test
-    public void test_when_uaa_exception() throws Exception {
+    void test_when_uaa_exception() throws Exception {
         UaaException e = new UaaException(messageCode);
         InternalAuthenticationServiceException be = new InternalAuthenticationServiceException("", e);
 
@@ -102,7 +98,7 @@ public class ResetPasswordAuthenticationEntryPointTests {
     }
 
     @Test
-    public void test_when_invalid_password_exception() throws Exception {
+    void test_when_invalid_password_exception() throws Exception {
         InvalidPasswordException pe = new InvalidPasswordException(Arrays.asList("one","two"));
         BadCredentialsException be = new BadCredentialsException("", pe);
 

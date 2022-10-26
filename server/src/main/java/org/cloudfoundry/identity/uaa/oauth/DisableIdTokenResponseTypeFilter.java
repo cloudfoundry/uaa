@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.AntPathMatcher;
@@ -78,11 +79,17 @@ public class DisableIdTokenResponseTypeFilter extends OncePerRequestFilter {
         logger.debug("Processing id_token disable filter");
 
         HttpServletRequest requestWrapper = request;
-        logger.debug(String.format("pre id_token disable:%s pathinfo:%s request_uri:%s response_type:%s",isIdTokenDisabled(), requestWrapper.getPathInfo(), request.getRequestURI() ,requestWrapper.getParameter(RESPONSE_TYPE)));
+        logger.debug("pre id_token disable:{} pathinfo:{} request_uri:{} response_type:{}",isIdTokenDisabled(),
+            UaaStringUtils.getCleanedUserControlString(requestWrapper.getPathInfo()),
+            UaaStringUtils.getCleanedUserControlString(request.getRequestURI()),
+            UaaStringUtils.getCleanedUserControlString(requestWrapper.getParameter(RESPONSE_TYPE)));
         if (isIdTokenDisabled() && (applyPath(request.getPathInfo()) || applyPath(request.getRequestURI()))) {
             requestWrapper = new RemoveIdTokenParameterValueWrapper(request);
         }
-        logger.debug(String.format("post id_token disable:%s pathinfo:%s request_uri:%s response_type:%s",isIdTokenDisabled(), requestWrapper.getPathInfo(), request.getRequestURI() ,requestWrapper.getParameter(RESPONSE_TYPE)));
+        logger.debug("post id_token disable:{} pathinfo:{} request_uri:{} response_type:{}",isIdTokenDisabled(),
+            UaaStringUtils.getCleanedUserControlString(requestWrapper.getPathInfo()),
+            UaaStringUtils.getCleanedUserControlString(request.getRequestURI()),
+            UaaStringUtils.getCleanedUserControlString(requestWrapper.getParameter(RESPONSE_TYPE)));
         filterChain.doFilter(requestWrapper, response);
     }
 

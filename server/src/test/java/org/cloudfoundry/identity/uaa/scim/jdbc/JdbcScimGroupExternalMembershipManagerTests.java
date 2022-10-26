@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -18,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.SQLException;
 import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,11 +36,13 @@ class JdbcScimGroupExternalMembershipManagerTests {
 
     private JdbcScimGroupExternalMembershipManager edao;
 
-    private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
+    private static final String addGroupSqlFormat = "insert into %s (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
     private String origin = OriginKeys.LDAP;
 
     private IdentityZone otherZone;
+
+    private DbUtils dbUtils;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -50,7 +54,7 @@ class JdbcScimGroupExternalMembershipManagerTests {
     private LimitSqlAdapter limitSqlAdapter;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws SQLException {
 
         org.cloudfoundry.identity.uaa.test.TestUtils.cleanAndSeedDb(jdbcTemplate);
 
@@ -59,19 +63,22 @@ class JdbcScimGroupExternalMembershipManagerTests {
         otherZone = new JdbcIdentityZoneProvisioning(jdbcTemplate).create(otherZone);
 
         JdbcTemplate template = new JdbcTemplate(dataSource);
+        dbUtils = new DbUtils();
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gdao = new JdbcScimGroupProvisioning(template, pagingListFactory);
+        gdao = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
 
-        JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), null, null);
+        JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
+                jdbcTemplate, new TimeServiceImpl(), null, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(gdao);
         gdao.setJdbcScimGroupMembershipManager(jdbcScimGroupMembershipManager);
 
-        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager =
+                new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(gdao);
         gdao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
 
-        edao = new JdbcScimGroupExternalMembershipManager(template);
+        edao = new JdbcScimGroupExternalMembershipManager(template, dbUtils);
         edao.setScimGroupProvisioning(gdao);
 
         for (String zoneId : Arrays.asList(IdentityZone.getUaaZoneId(), otherZone.getId())) {
@@ -86,9 +93,10 @@ class JdbcScimGroupExternalMembershipManagerTests {
     private void addGroup(
             final String id,
             final String name,
-            final String zoneId) {
+            final String zoneId) throws SQLException {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name, zoneId));
+        String quotedGroupsIdentifier = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
+        jdbcTemplate.execute(String.format(addGroupSqlFormat, quotedGroupsIdentifier, id, name, zoneId));
     }
 
     private void validateCount(int expected) {

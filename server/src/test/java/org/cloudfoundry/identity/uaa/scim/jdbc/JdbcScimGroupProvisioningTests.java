@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -26,6 +27,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.security.SecureRandom;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -71,7 +73,7 @@ class JdbcScimGroupProvisioningTests {
     private String group3Description;
 
     @BeforeEach
-    void initJdbcScimGroupProvisioningTests() {
+    void initJdbcScimGroupProvisioningTests() throws SQLException {
         generator = new RandomValueStringGenerator();
         SecureRandom random = new SecureRandom();
         random.setSeed(System.nanoTime());
@@ -86,15 +88,20 @@ class JdbcScimGroupProvisioningTests {
 
         validateGroupCountInZone(0, zoneId);
 
-        dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter)));
+        DbUtils dbUtils = new DbUtils();
+        dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate,
+                new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
+                dbUtils));
 
         users = mock(ScimUserProvisioning.class);
 
-        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate, new TimeServiceImpl(), users, null);
+        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate,
+                new TimeServiceImpl(), users, null, dbUtils);
         memberships.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupMembershipManager(memberships);
 
-        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager =
+                new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
 
@@ -465,7 +472,7 @@ class JdbcScimGroupProvisioningTests {
 
     private ScimGroup addGroup(String id, String name, String zoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
-        jdbcTemplate.update(JdbcScimGroupProvisioning.ADD_GROUP_SQL,
+        jdbcTemplate.update(dao.addGroupSql,
                 id,
                 name,
                 name + "-description",

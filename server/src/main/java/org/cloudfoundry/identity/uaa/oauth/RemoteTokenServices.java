@@ -29,6 +29,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -226,10 +227,12 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         }
         @SuppressWarnings("rawtypes")
-        Map map = restTemplate.exchange(path, HttpMethod.POST,
-                        new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class).getBody();
+        ResponseEntity<Map> response = restTemplate.exchange(path, HttpMethod.POST,
+            new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class);
+        @SuppressWarnings("rawtypes")
+        Map map = response != null && response.getBody() != null ? response.getBody() : Collections.emptyMap();
         @SuppressWarnings("unchecked")
-        Map<String, Object> result = map;
+        Map<String, Object> result = map != null ? map : Collections.emptyMap();
         return result;
     }
 

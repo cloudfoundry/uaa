@@ -31,6 +31,7 @@ public class JwtAlgorithms {
         sigAlgs.put("HS384" , "HMACSHA384");
         sigAlgs.put("HS512" , "HMACSHA512");
         sigAlgs.put("RS256" , "SHA256withRSA");
+        sigAlgs.put("RS384" , "SHA384withRSA");
         sigAlgs.put("RS512" , "SHA512withRSA");
 
         keyAlgs.put("RSA1_5" , "RSA/ECB/PKCS1Padding");
@@ -42,6 +43,16 @@ public class JwtAlgorithms {
             javaToKeyAlgs.put(e.getValue(), e.getKey());
         }
 
+    }
+
+    public static String sigAlgJava(String sigAlg){
+        String alg = sigAlgs.get(sigAlg);
+
+        if (alg == null) {
+            throw new IllegalArgumentException("Invalid or unsupported signature algorithm: " + sigAlg);
+        }
+
+        return alg;
     }
 
     public static String sigAlg(String javaName){

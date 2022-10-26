@@ -46,7 +46,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 public class SessionResetFilterTests {
@@ -143,8 +143,8 @@ public class SessionResetFilterTests {
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(request, response);
-        verifyZeroInteractions(request);
-        verifyZeroInteractions(response);
+        verifyNoInteractions(request);
+        verifyNoInteractions(response);
     }
 
     @Test
@@ -163,7 +163,7 @@ public class SessionResetFilterTests {
         filter.doFilterInternal(request, response, chain);
 
         //user is not forwarded, and error response is generated right away
-        Mockito.verifyZeroInteractions(chain);
+        Mockito.verifyNoInteractions(chain);
         //user redirect
         verify(response, times(1)).sendRedirect(any());
         //session was requested
@@ -177,7 +177,7 @@ public class SessionResetFilterTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(request, response);
-        verifyZeroInteractions(response);
+        verifyNoInteractions(response);
     }
 
     @Test
@@ -186,8 +186,8 @@ public class SessionResetFilterTests {
         setFieldValue("origin", OriginKeys.LDAP, authentication.getPrincipal());
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(request, response);
-        verifyZeroInteractions(request);
-        verifyZeroInteractions(response);
+        verifyNoInteractions(request);
+        verifyNoInteractions(response);
     }
 
     @Test
@@ -197,7 +197,7 @@ public class SessionResetFilterTests {
         filter.doFilterInternal(request, response, chain);
 
         //user is not forwarded, and error response is generated right away
-        Mockito.verifyZeroInteractions(chain);
+        Mockito.verifyNoInteractions(chain);
         //user redirect
         verify(response, times(1)).sendRedirect(any());
         //session was requested

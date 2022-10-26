@@ -131,7 +131,7 @@ class OidcMetadataFetcherTest {
             assertThat(definition.getUserInfoUrl().toString(), is("http://userinfo.not.updated"));
             assertThat(definition.getIssuer(), is("issuer-not-changed"));
 
-            verifyZeroInteractions(urlContentCache);
+            verifyNoInteractions(urlContentCache);
         }
 
     }

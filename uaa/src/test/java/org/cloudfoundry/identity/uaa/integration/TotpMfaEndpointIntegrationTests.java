@@ -7,6 +7,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -51,6 +52,8 @@ import org.springframework.web.client.RestTemplate;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.springframework.http.HttpMethod.GET;
+import static org.springframework.http.HttpMethod.POST;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -390,6 +393,8 @@ public class TotpMfaEndpointIntegrationTests {
     private MfaProvider enableMfaInZone(String zoneAdminToken) {
         MfaProvider provider = IntegrationTestUtils.createGoogleMfaProvider(baseUrl, zoneAdminToken, MockMvcUtils.constructGoogleMfaProvider(), mfaZone.getId());
         mfaZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(provider.getName());
+        mfaZone.getConfig().getCorsPolicy().getDefaultConfiguration().
+                setAllowedMethods(List.of(GET.toString(), POST.toString()));
         mfaZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(adminClient, baseUrl, "testzone1", mfaZone.getSubdomain() , mfaZone.getConfig());
         return provider;
     }

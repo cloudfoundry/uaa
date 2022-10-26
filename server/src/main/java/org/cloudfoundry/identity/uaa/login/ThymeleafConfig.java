@@ -14,7 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.login;
 
-import nz.net.ultraq.thymeleaf.LayoutDialect;
+import nz.net.ultraq.thymeleaf.layoutdialect.LayoutDialect;
 import org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;

@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
@@ -195,7 +196,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     protected Authentication attemptTokenAuthentication(HttpServletRequest request, HttpServletResponse response) {
         String grantType = request.getParameter("grant_type");
-        logger.debug("Processing token user authentication for grant:"+grantType);
+        logger.debug("Processing token user authentication for grant:{}",UaaStringUtils.getCleanedUserControlString(grantType));
         Authentication authResult = null;
         if (GRANT_TYPE_PASSWORD.equals(grantType)) {
             Authentication credentials = extractCredentials(request);

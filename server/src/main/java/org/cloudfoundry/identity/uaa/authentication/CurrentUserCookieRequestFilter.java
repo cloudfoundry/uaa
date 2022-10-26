@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.apache.tomcat.util.http.Rfc6265CookieProcessor;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -18,17 +19,22 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import static org.springframework.security.core.context.SecurityContextHolder.getContext;
 
 public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
 
     public static final String CURRENT_USER_COOKIE_ERROR = "current_user_cookie_error";
+    private final Rfc6265CookieProcessor rfc6265CookieProcessor;
     private Logger logger = LoggerFactory.getLogger(CurrentUserCookieRequestFilter.class);
 
     private CurrentUserCookieFactory currentUserCookieFactory;
 
     public CurrentUserCookieRequestFilter(CurrentUserCookieFactory currentUserCookieFactory) {
         this.currentUserCookieFactory = currentUserCookieFactory;
+
+        rfc6265CookieProcessor = new Rfc6265CookieProcessor();
+        rfc6265CookieProcessor.setSameSiteCookies("Strict");
     }
 
     @Override
@@ -37,7 +43,8 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
             UaaPrincipal principal = (UaaPrincipal) getContext().getAuthentication().getPrincipal();
             try {
                 Cookie currentUserCookie = currentUserCookieFactory.getCookie(principal);
-                response.addCookie(currentUserCookie);
+                String headerValue = rfc6265CookieProcessor.generateHeader(currentUserCookie);
+                response.addHeader(SET_COOKIE, headerValue);
             } catch (CurrentUserCookieFactory.CurrentUserCookieEncodingException e) {
                 logger.error(errorMessage(principal), e);
                 handleError(response, principal);

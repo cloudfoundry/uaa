@@ -59,7 +59,7 @@ public class ExternalOAuthIdentityProviderConfigValidatorTest {
         validator.validate(definition);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void configWithNullRelyingPartySecret_ThrowsException() {
         definition.setRelyingPartySecret(null);
         validator = new ExternalOAuthIdentityProviderConfigValidator();

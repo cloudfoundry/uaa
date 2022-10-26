@@ -48,7 +48,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -244,7 +244,7 @@ class MfaUiRequiredFilterTests {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(NOT_AUTHENTICATED);
         spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
-        verifyZeroInteractions(requestCache);
+        verifyNoInteractions(requestCache);
     }
 
     @Test
@@ -252,7 +252,7 @@ class MfaUiRequiredFilterTests {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_IN_PROGRESS);
         spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
-        verifyZeroInteractions(requestCache);
+        verifyNoInteractions(requestCache);
     }
 
     @Test
@@ -260,7 +260,7 @@ class MfaUiRequiredFilterTests {
         when(spyFilter.getNextStep(any(HttpServletRequest.class))).thenReturn(MFA_OK);
         spyFilter.doFilter(request, response, chain);
         verify(chain, times(1)).doFilter(same(request), same(response));
-        verifyZeroInteractions(requestCache);
+        verifyNoInteractions(requestCache);
     }
 
     @Test

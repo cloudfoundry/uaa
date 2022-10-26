@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,14 +38,15 @@ class ScimExternalGroupBootstrapTests {
     void setUp(
             @Autowired JdbcTemplate jdbcTemplate,
             @Autowired LimitSqlAdapter limitSqlAdapter
-    ) {
+    ) throws SQLException {
         IdentityZone zone = new IdentityZone();
         zone.setId(RandomStringUtils.randomAlphabetic(10));
         IdentityZoneHolder.set(zone);
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        JdbcScimGroupProvisioning gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        DbUtils dbUtils = new DbUtils();
+        JdbcScimGroupProvisioning gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
 

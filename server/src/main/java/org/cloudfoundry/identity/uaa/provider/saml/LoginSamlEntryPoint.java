@@ -23,6 +23,7 @@ import org.springframework.security.saml.SAMLEntryPoint;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
+import org.springframework.security.web.WebAttributes;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -61,6 +62,7 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
             }
         } catch (SamlBindingNotSupportedException e1) {
             request.setAttribute("error_message_code", "error.sso.supported.binding");
+            request.getSession(true).setAttribute(WebAttributes.AUTHENTICATION_EXCEPTION, e1);
             response.setStatus(400);
             request.getRequestDispatcher("/saml_error").include(request, response);
         } catch (SAMLException | MessageEncodingException | MetadataProviderException e1) {

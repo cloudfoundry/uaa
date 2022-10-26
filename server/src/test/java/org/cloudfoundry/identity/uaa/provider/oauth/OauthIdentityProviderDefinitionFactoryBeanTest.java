@@ -20,10 +20,15 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 public class OauthIdentityProviderDefinitionFactoryBeanTest {
 
@@ -42,6 +47,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("tokenKey", "key");
         idpDefinitionMap.put("tokenUrl", "http://token.url");
         idpDefinitionMap.put("tokenKeyUrl", "http://token-key.url");
+        idpDefinitionMap.put("logoutUrl", "http://logout.url");
         idpDefinitionMap.put("clientAuthInBody", false);
     }
 
@@ -78,4 +84,32 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         assertFalse(providerDefinition.isStoreCustomAttributes());
     }
 
+    @Test
+    public void logout_url_in_body() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertEquals("http://logout.url", providerDefinition.getLogoutUrl().toString());
+    }
+
+    @Test
+    public void external_group_mapping_in_body() {
+        Map<String, Object> externalGroupMapping = map(
+            entry(GROUP_ATTRIBUTE_NAME, "roles")
+        );
+        idpDefinitionMap.put("groupMappingMode", "AS_SCOPES");
+        idpDefinitionMap.put("attributeMappings", externalGroupMapping);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertEquals(externalGroupMapping, providerDefinition.getAttributeMappings());
+        assertEquals("AS_SCOPES", providerDefinition.getGroupMappingMode().toString());
+    }
+
+    @Test
+    public void external_group_mapping_default_in_body() {
+        Map<String, Object> externalGroupMapping = map(
+            entry(GROUP_ATTRIBUTE_NAME, "roles")
+        );
+        idpDefinitionMap.put("attributeMappings", externalGroupMapping);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertEquals(externalGroupMapping, providerDefinition.getAttributeMappings());
+        assertEquals(null, providerDefinition.getGroupMappingMode());
+    }
 }

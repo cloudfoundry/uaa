@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -63,6 +64,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
+    private static final String ID_SUBDOMAIN_LOGGING = "[{}] subdomain [{}]";
 
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
@@ -191,9 +193,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone - creating id[" + body.getId() + "] subdomain[" + body.getSubdomain() + "]");
+            logger.debug("Zone - creating id[{}] subdomain[{}]",
+                UaaStringUtils.getCleanedUserControlString(body.getId()),
+                UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
+            );
             IdentityZone created = zoneDao.create(body);
-            logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
+            logger.debug("Zone - created id " + ID_SUBDOMAIN_LOGGING, created.getId(), created.getSubdomain());
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
             defaultIdp.setName(OriginKeys.UAA);
@@ -204,7 +209,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             idpDefinition.setPasswordPolicy(null);
             defaultIdp.setConfig(idpDefinition);
             idpDao.create(defaultIdp, created.getId());
-            logger.debug("Created default IDP in zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
+            logger.debug("Created default IDP in zone - created id " + ID_SUBDOMAIN_LOGGING, created.getId(), created.getSubdomain());
             createUserGroups(created);
             return new ResponseEntity<>(removeKeys(created), CREATED);
         } finally {
@@ -262,10 +267,13 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
 
-            logger.debug("Zone - updating id[" + id + "] subdomain[" + body.getSubdomain() + "]");
+            logger.debug("Zone - updating id[{}] subdomain[{}]",
+                UaaStringUtils.getCleanedUserControlString(id),
+                UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
+            );
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated);
-            logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
+            logger.debug("Zone - updated id " + ID_SUBDOMAIN_LOGGING, updated.getId(), updated.getSubdomain());
             createUserGroups(updated);
             return new ResponseEntity<>(removeKeys(updated), OK);
         } catch (InvalidIdentityZoneDetailsException ex) {

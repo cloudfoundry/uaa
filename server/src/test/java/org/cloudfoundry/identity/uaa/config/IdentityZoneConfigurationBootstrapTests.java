@@ -28,6 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.security.Security;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,7 +71,7 @@ public class IdentityZoneConfigurationBootstrapTests {
     private GeneralIdentityZoneValidator validator;
 
     @BeforeEach
-    public void configureProvisioning(@Autowired JdbcTemplate jdbcTemplate) {
+    public void configureProvisioning(@Autowired JdbcTemplate jdbcTemplate) throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);

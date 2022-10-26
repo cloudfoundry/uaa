@@ -14,12 +14,12 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
@@ -113,9 +113,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             return false;
         }
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setExpandEntityReferences(false);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = ObjectUtils.getDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException | SAXException | IOException e) {
             return false;

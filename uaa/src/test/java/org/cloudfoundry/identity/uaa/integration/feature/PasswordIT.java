@@ -66,7 +66,7 @@ public class PasswordIT {
             "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
         ResponseEntity<Void> responseEntity = restTemplate.exchange(requestEntity, Void.class);
 
-        assertEquals(responseEntity.getStatusCodeValue(), 200);
+        assertEquals("Status 200 expected", 200, responseEntity.getStatusCodeValue());
     }
 
     @Test
@@ -79,7 +79,8 @@ public class PasswordIT {
         try {
             restTemplate.exchange(requestEntity, Void.class);
         } catch( HttpClientErrorException ex) {
-            assertTrue(ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0).contains("error_description=\"Bad credentials\""));
+            assertEquals("Status 401 expected, but received: " + ex.getStatusCode().value()
+                + " with description " + ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0), 401, ex.getStatusCode().value());
             return;
         }
         fail("not expected");

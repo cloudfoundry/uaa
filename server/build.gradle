@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply(plugin: "war")
 
 description = "CloudFoundry Identity Server JAR"
 
@@ -7,7 +7,7 @@ dependencies {
     implementation(project(":cloudfoundry-identity-model"))
 
     implementation(libraries.tomcatJdbc)
-    provided(libraries.tomcatEmbed)
+    providedCompile(libraries.tomcatEmbed)
     implementation(libraries.javaxMail)
 
     implementation(libraries.jacksonDatabind)
@@ -24,9 +24,14 @@ dependencies {
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityJwt)
     implementation(libraries.springSecurityWeb)
+    implementation(libraries.spingSamlEsapiDependencyVersion) {
+        transitive = false
+    }
     implementation(libraries.springSecuritySaml) {
         exclude(module: "bcprov-ext-jdk15on")
+        exclude(module: "xalan")
     }
+    implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
     implementation(libraries.springSecurityOauth) {
@@ -43,15 +48,25 @@ dependencies {
     implementation(libraries.aspectJRt)
     implementation(libraries.aspectJWeaver)
 
-    implementation(libraries.thymeleafSpring5)
-    implementation(libraries.thymeleafDialect)
-    implementation(libraries.thymeleafExtrasSpringSecurity5)
+    implementation(libraries.thymeLeaf) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafSpring5) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafDialect) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafExtrasSpringSecurity5) {
+        exclude(module: "ognl")
+    }
 
     implementation(libraries.unboundIdScimSdk) {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
+        exclude(module: "json")
     }
 
     implementation(libraries.hibernateValidator)
@@ -66,11 +81,13 @@ dependencies {
     implementation(libraries.springLdapCoreTiger)
     implementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
+        exclude(module: "mina-core")
     }
 
     implementation(libraries.passay)
     implementation(libraries.beanutils)
     implementation(libraries.velocity)
+    implementation(libraries.xerces)
 
     implementation(libraries.googleAuth)
 
@@ -78,8 +95,10 @@ dependencies {
     implementation(libraries.log4jCore)
 
     implementation(libraries.javaxXmlBindApi)
-    implementation(libraries.javaxXmlBindCore)
-    implementation(libraries.javaxXmlBindImpl)
+    implementation(libraries.glassfishJaxb)
+
+    implementation(libraries.nimbusJwt)
+    implementation(libraries.orgJson)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
@@ -97,11 +116,14 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
+    testImplementation(libraries.guavaTestLib)
 }
 
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
 }
 
 jar {

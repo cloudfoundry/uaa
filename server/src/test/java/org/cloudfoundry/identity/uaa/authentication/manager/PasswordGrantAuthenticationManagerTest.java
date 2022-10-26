@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -15,9 +16,8 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +31,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -47,19 +48,9 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -820,5 +811,23 @@ class PasswordGrantAuthenticationManagerTest {
         } catch (ProviderConfigurationException e) {
             assertEquals("Client is not authorized for specified user's identity provider.", e.getMessage());
         }
+    }
+
+    @Test
+    void oidcPasswordGrant_credentialsMustNotBeNull() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", null);
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+                .setRelyingPartyId("client-id")
+                .setRelyingPartySecret("client-secret");
+        assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, config));
+    }
+
+    @Test
+    void oidcPasswordGrant_credentialsMustBeString() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", new Object());
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+                .setRelyingPartyId("client-id")
+                .setRelyingPartySecret("client-secret");
+        assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, config));
     }
 }

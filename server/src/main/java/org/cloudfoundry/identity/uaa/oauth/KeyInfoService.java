@@ -31,11 +31,19 @@ public class KeyInfoService {
         this.uaaBaseURL = uaaBaseURL;
     }
 
+    public KeyInfo getKey(String keyId, String sigAlg) {
+        return getKeys(sigAlg).get(keyId);
+    }
+
     public KeyInfo getKey(String keyId) {
         return getKeys().get(keyId);
     }
 
     public Map<String, KeyInfo> getKeys() {
+        return getKeys(null);
+    }
+
+    public Map<String, KeyInfo> getKeys(String sigAlg) {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
             config = IdentityZoneHolder.getUaaZone().getConfig();
@@ -43,7 +51,7 @@ public class KeyInfoService {
 
         Map<String, KeyInfo> keys = new HashMap<>();
         for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
-            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()));
+            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()), sigAlg);
             keys.put(entry.getKey(), keyInfo);
         }
 

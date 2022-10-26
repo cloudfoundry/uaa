@@ -64,6 +64,7 @@ smtp:
   password: ~
   starttls: ~
   from_address: ~
+  sslprotocols: ~
 
 admin:
   client_secret: ~

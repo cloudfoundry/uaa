@@ -26,6 +26,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import static java.util.Optional.ofNullable;
 
@@ -52,10 +53,10 @@ public final class SamlKeyManagerFactory {
             keystore.load(null);
             Map<String, String> aliasPasswordMap = new HashMap<>();
             for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
-                String password = ofNullable(entry.getValue().getPassphrase()).orElse("");
+                Supplier<String> passProvider = () -> ofNullable(entry.getValue().getPassphrase()).orElse("");
                 KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
                         new KeyWithCert(entry.getValue().getCertificate()) :
-                        new KeyWithCert(entry.getValue().getKey(), password, entry.getValue().getCertificate());
+                        new KeyWithCert(entry.getValue().getKey(), passProvider.get(), entry.getValue().getCertificate());
 
                 X509Certificate certificate = keyWithCert.getCertificate();
 
@@ -64,8 +65,8 @@ public final class SamlKeyManagerFactory {
 
                 PrivateKey privateKey = keyWithCert.getPrivateKey();
                 if (privateKey != null) {
-                    keystore.setKeyEntry(alias, privateKey, password.toCharArray(), new Certificate[]{certificate});
-                    aliasPasswordMap.put(alias, password);
+                    keystore.setKeyEntry(alias, privateKey, passProvider.get().toCharArray(), new Certificate[]{certificate});
+                    aliasPasswordMap.put(alias, passProvider.get());
                 }
             }
 

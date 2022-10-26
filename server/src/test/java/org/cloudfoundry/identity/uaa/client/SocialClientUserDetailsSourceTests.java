@@ -25,6 +25,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -75,7 +76,7 @@ public class SocialClientUserDetailsSourceTests{
         map.put(USER_NAME, USER_NAME);
         map.put(LOGIN, LOGIN);
         map.put(SCREEN_NAME, SCREEN_NAME);
-        when(restTemplate.getForObject(anyString(), ArgumentMatchers.any())).thenReturn(map);
+        when(restTemplate.getForObject(anyString(), any())).thenReturn(map);
     }
 
     @Test
@@ -116,6 +117,8 @@ public class SocialClientUserDetailsSourceTests{
         assertEquals(FIRST_NAME + " " + LAST_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
         map.remove(FIRST_NAME);
         map.remove(LAST_NAME);
+        assertNull(((SocialClientUserDetails)source.getPrincipal()).getFullName());
+        when(restTemplate.getForObject(anyString(), any())).thenReturn(null);
         assertNull(((SocialClientUserDetails)source.getPrincipal()).getFullName());
     }
 

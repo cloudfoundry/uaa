@@ -14,12 +14,44 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
 public class ObjectUtils {
+
+    private ObjectUtils(){}
+
     public static <T> T castInstance(Object o, Class<T> clazz) {
         try {
             return clazz.cast(o);
         } catch(ClassCastException e) {
             throw new IllegalArgumentException(e);
         }
+    }
+
+    public static DocumentBuilder getDocumentBuilder() throws ParserConfigurationException {
+        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://javax.xml.XMLConstants/feature/secure-processing", true);
+        factory.setFeature("http://xml.org/sax/features/validation", false);
+        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+        factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setValidating(false);
+        factory.setNamespaceAware(true);
+        factory.setExpandEntityReferences(false);
+        return factory.newDocumentBuilder();
+    }
+
+    public static int countNonNull( Object... objects ) {
+        int count = 0;
+        if ( objects != null ) {
+            for ( Object o : objects ) {
+                if ( o != null ) {
+                    count++;
+                }
+            }
+        }
+        return count;
     }
 }

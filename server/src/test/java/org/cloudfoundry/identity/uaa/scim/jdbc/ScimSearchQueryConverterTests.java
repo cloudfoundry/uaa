@@ -5,45 +5,27 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.Process
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
 
 class ScimSearchQueryConverterTests {
 
     private SimpleSearchQueryConverter filterProcessor;
     private final String zoneId = "fake-zone-id";
     private boolean expectCaseInsensitiveDbBehavior;
-    RandomValueStringGenerator randomStringGenerator = mock(RandomValueStringGenerator.class);
 
     @BeforeEach
     void setUp() {
-        Mockito.when(randomStringGenerator.generate()).thenAnswer(new Answer() {
-            private int count = 0;
-
-            public Object answer(InvocationOnMock invocation) {
-                if (count++ == 1)
-                    return "look-at-all-these-dashes";
-
-                return "nodashesinthisone";
-            }
-        });
-
         expectCaseInsensitiveDbBehavior = false;
         Map<String, String> replaceWith = new HashMap<>();
         replaceWith.put("emails\\.value", "email");
         replaceWith.put("groups\\.display", "authorities");
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
-        filterProcessor = new SimpleSearchQueryConverter(randomStringGenerator);
+        filterProcessor = new SimpleSearchQueryConverter();
         filterProcessor.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
     }
 

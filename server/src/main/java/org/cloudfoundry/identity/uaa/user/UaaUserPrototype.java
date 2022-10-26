@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.cloudfoundry.identity.uaa.authentication.NonStringPassword;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Date;
@@ -23,7 +24,7 @@ public final class UaaUserPrototype {
 
     private String username;
 
-    private String password;
+    private NonStringPassword password = new NonStringPassword(null);
 
     private String email;
 
@@ -106,11 +107,19 @@ public final class UaaUserPrototype {
     }
 
     public String getPassword() {
+        return password.getPassword();
+    }
+
+    NonStringPassword getNonStringPassword() {
         return password;
     }
 
-    public UaaUserPrototype withPassword(String password) {
+    UaaUserPrototype withPassword(NonStringPassword password) {
         this.password = password;
+        return this;
+    }
+    public UaaUserPrototype withPassword(String password) {
+        this.password = new NonStringPassword(password);
         return this;
     }
 

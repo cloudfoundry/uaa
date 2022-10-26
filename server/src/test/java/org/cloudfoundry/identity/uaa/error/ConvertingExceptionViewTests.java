@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.StringHttpMessageConverter;
@@ -47,7 +48,7 @@ public class ConvertingExceptionViewTests {
         RuntimeException e = new RuntimeException("Unexpected error");
         view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
                         HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
-        assertEquals("*/*", view.getContentType());
+        assertEquals(MediaType.APPLICATION_JSON_UTF8_VALUE, view.getContentType());
     }
 
     @Test

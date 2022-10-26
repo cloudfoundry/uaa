@@ -17,6 +17,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.sql.SQLException;
+
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -33,7 +35,7 @@ class CheckIdpEnabledAuthenticationManagerTest {
     private UsernamePasswordAuthenticationToken token;
 
     @BeforeEach
-    void setupAuthManager(@Autowired JdbcTemplate jdbcTemplate) {
+    void setupAuthManager(@Autowired JdbcTemplate jdbcTemplate) throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         identityProviderProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         MockUaaUserDatabase userDatabase = new MockUaaUserDatabase(u -> u.withId("id").withUsername("marissa").withEmail("test@test.org").withVerified(true).withPassword("koala"));

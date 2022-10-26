@@ -5,9 +5,12 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProvide
 import org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
 @Component("identityProviderConfigValidator")
@@ -16,6 +19,7 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
     private final IdentityProviderConfigValidator externalOAuthIdentityProviderConfigValidator;
     private final IdentityProviderConfigValidator uaaIdentityProviderConfigValidator;
     private final IdentityProviderConfigValidator ldapIdentityProviderConfigValidator;
+    private final Set<String> reservedOriginKeys = Set.of(UAA, LDAP);
 
     public IdentityProviderConfigValidationDelegator(
             final ExternalOAuthIdentityProviderConfigValidator externalOAuthIdentityProviderConfigValidator,
@@ -27,6 +31,13 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
         this.ldapIdentityProviderConfigValidator = ldapIdentityProviderConfigValidator;
     }
 
+    private void checkReservedOriginKeys(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
+        if(provider.getOriginKey() != null && reservedOriginKeys.contains(provider.getOriginKey())) {
+            throw new IllegalArgumentException(
+                    "Origin \"" + provider.getOriginKey() + "\" not allowed for type \"" + provider.getType() + "\"");
+        }
+    }
+
     @Override
     public void validate(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
         if (provider == null) {
@@ -36,6 +47,7 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
         switch (type) {
             case OAUTH20:
             case OIDC10:
+                checkReservedOriginKeys(provider);
                 this.externalOAuthIdentityProviderConfigValidator.validate(provider);
                 break;
             case UAA:
@@ -43,6 +55,9 @@ public class IdentityProviderConfigValidationDelegator implements IdentityProvid
                 break;
             case LDAP:
                 this.ldapIdentityProviderConfigValidator.validate(provider);
+                break;
+            case SAML:
+                checkReservedOriginKeys(provider);
                 break;
         }
     }

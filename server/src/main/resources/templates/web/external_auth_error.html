@@ -24,9 +24,9 @@
         </div>
         <img src="/resources/images/sad_cloud.png" th:src="@{/resources/images/sad_cloud.png}" role="presentation" />
     </div>
-    <h2 th:text="${saml_error}">
+    <h2 th:if="${saml_error}" th:text="${saml_error}">
     </h2>
-    <h2 th:if="${param.error}" th:text="${param.error[0]}">Error Message
+    <h2 th:if="${oauth_error}" th:text="${oauth_error}">
     </h2>
 </div>
 </body>

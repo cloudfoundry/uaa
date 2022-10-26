@@ -27,20 +27,29 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class UaaStringUtils {
+public final class UaaStringUtils {
 
     public static final String ZONE_VAR_ID = "{zone.id}";
     public static final String ZONE_VAR_SUBDOMAIN = "{zone.subdomain}";
 
     public static final String ISO_8859_1 = "ISO-8859-1";
     public static final String UTF_8 = "UTF-8";
+
+    private static final Pattern CAML_PATTERN = Pattern.compile("([a-z])([A-Z])");
+    private static final Pattern CTRL_PATTERN = Pattern.compile("[\n\r\t]");
+
+    public static final String EMPTY_STRING = "";
+
+    private UaaStringUtils() {
+    }
 
     public static String replaceZoneVariables(String s, IdentityZone zone) {
         return s.replace(ZONE_VAR_ID, zone.getId()).replace(ZONE_VAR_SUBDOMAIN, zone.getSubdomain());
@@ -66,10 +75,11 @@ public class UaaStringUtils {
      * @return the same value with camels comverted to underscores
      */
     public static String camelToUnderscore(String value) {
+
         String result = value.replace(" ", "_");
-        result = result.replaceAll("([a-z])([A-Z])", "$1_$2");
+        result = CAML_PATTERN.matcher(result).replaceAll("$1_$2");
         result = result.replace(".", "_");
-        result = result.toLowerCase();
+        result = result.toLowerCase(Locale.US);
         return result;
     }
 
@@ -91,8 +101,9 @@ public class UaaStringUtils {
      */
     public static Map<String, ?> hidePasswords(Map<String, ?> map) {
         Map<String, Object> result = new LinkedHashMap<>(map);
-        for (String key : map.keySet()) {
-            Object value = map.get(key);
+        for (Map.Entry<String, ?> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Object value = entry.getValue();
             if (value instanceof String) {
                 if (isPassword(key)) {
                     result.put(key, "#");
@@ -182,7 +193,7 @@ public class UaaStringUtils {
         return constructWildcards(wildcardStrings, UaaStringUtils::constructSimpleWildcardPattern);
     }
 
-    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings, Function<String, String> replace) {
+    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings, UnaryOperator<String> replace) {
         Set<Pattern> wildcards = new HashSet<>();
         for (String wildcard : wildcardStrings) {
             String pattern = replace.apply(wildcard);
@@ -191,7 +202,7 @@ public class UaaStringUtils {
         return wildcards;
     }
 
-    public static boolean matches(Set<Pattern> wildcards, String scope) {
+    public static boolean matches(Iterable<Pattern> wildcards, String scope) {
         for (Pattern wildcard : wildcards) {
             if (wildcard.matcher(scope).matches()) {
                 return true;
@@ -209,7 +220,7 @@ public class UaaStringUtils {
      * @return a map of String values
      */
     public static Map<String, ?> getMapFromProperties(Properties properties, String prefix) {
-        Map<String, Object> result = new HashMap<String, Object>();
+        Map<String, Object> result = new HashMap<>();
         for (String key : properties.stringPropertyNames()) {
             if (key.startsWith(prefix)) {
                 String name = key.substring(prefix.length());
@@ -230,7 +241,7 @@ public class UaaStringUtils {
     }
 
     private static boolean isPassword(String key) {
-        key = key.toLowerCase();
+        key = key.toLowerCase(Locale.US);
         return
             key.endsWith("password") ||
             key.endsWith("secret") ||
@@ -241,7 +252,7 @@ public class UaaStringUtils {
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {
         if (authorities==null) {
-            return Collections.EMPTY_SET;
+            return Collections.emptySet();
         }
         Set<String> result = new HashSet<>();
         for (GrantedAuthority authority : authorities) {
@@ -252,7 +263,7 @@ public class UaaStringUtils {
 
     public static List<? extends GrantedAuthority> getAuthoritiesFromStrings(Collection<String> authorities) {
         if (authorities==null) {
-            return Collections.EMPTY_LIST;
+            return Collections.emptyList();
         }
 
         List<GrantedAuthority> result = new LinkedList<>();
@@ -262,7 +273,7 @@ public class UaaStringUtils {
         return result;
     }
 
-    public static boolean containsIgnoreCase(List<String> list, String findMe) {
+    public static boolean containsIgnoreCase(Iterable<String> list, String findMe) {
         for (String s : list) {
             if (findMe.equalsIgnoreCase(s)) {
                 return true;
@@ -287,4 +298,10 @@ public class UaaStringUtils {
         return result.substring(1, result.length()-1);
     }
 
+    public static String getCleanedUserControlString(String input) {
+        if (input == null) {
+            return null;
+        }
+        return CTRL_PATTERN.matcher(input).replaceAll("_");
+    }
 }

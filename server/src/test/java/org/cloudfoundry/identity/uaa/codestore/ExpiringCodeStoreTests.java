@@ -93,6 +93,19 @@ abstract class ExpiringCodeStoreTests {
     }
 
     @Test
+    void peekCode() {
+        String data = "{}";
+        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);
+        String zoneId = IdentityZone.getUaaZoneId();
+
+        ExpiringCode generatedCode = expiringCodeStore.generateCode(data, expiresAt, null, zoneId);
+
+        assertEquals(generatedCode, expiringCodeStore.peekCode(generatedCode.getCode(), zoneId));
+        assertEquals(generatedCode, expiringCodeStore.peekCode(generatedCode.getCode(), zoneId));
+        assertEquals(generatedCode, expiringCodeStore.peekCode(generatedCode.getCode(), zoneId));
+    }
+
+    @Test
     void retrieveCode() {
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 60000);

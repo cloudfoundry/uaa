@@ -12,7 +12,9 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.junit.Assert;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -297,6 +299,49 @@ class JdbcRevocableTokenProvisioningTest {
     @Test
     void deleteByOrigin() {
         //no op - doesn't affect tokens
+    }
+
+    @Test
+    void testCreateIfNotExistsWithoutExisting() {
+        try {
+            jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa");
+            fail("Revocable token should not exist.");
+        } catch (EmptyResultDataAccessException e) {
+            Assertions.assertNotNull(e);
+        }
+        jdbcRevocableTokenProvisioning.createIfNotExists(revocableToken, "uaa");
+        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa"));
+    }
+
+    @Test
+    public void testCreateIfNotExistsWithExisting() {
+        jdbcRevocableTokenProvisioning.create(revocableToken, "uaa");
+        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa"));
+        jdbcRevocableTokenProvisioning.createIfNotExists(revocableToken, "uaa");
+        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa"));
+    }
+
+    @Test
+    public void testUpsertWithExisting() {
+        jdbcRevocableTokenProvisioning.create(revocableToken, "uaa");
+        RevocableToken token = jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa");
+        assertEquals("test-token-id", token.getTokenId());
+        revocableToken.setTokenId("test");
+        jdbcRevocableTokenProvisioning.upsert(revocableToken.getTokenId(), revocableToken, "uaa");
+        token = jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa");
+        assertEquals("test", token.getTokenId());
+    }
+
+    @Test
+    public void testUpsertWithoutExisting() {
+    	try {
+            jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa");
+            fail("Revocable token should not exist.");
+        } catch (EmptyResultDataAccessException e) {
+            Assertions.assertNotNull(e);
+        }
+        jdbcRevocableTokenProvisioning.upsert(revocableToken.getTokenId(), revocableToken, "uaa");
+        assertNotNull(jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa"));
     }
 
     private static String buildRandomTokenValue(Random random) {

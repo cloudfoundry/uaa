@@ -2,13 +2,13 @@ package org.cloudfoundry.identity.uaa.mock.mfa_provider;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -102,7 +102,7 @@ public class MfaProviderEndpointsMockMvcTests {
     @Test
     void testCreateMfaProvider() throws Exception {
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider();
-        String name = new RandomValueStringGenerator(5).generate();
+        String name = new AlphanumericRandomValueStringGenerator(5).generate();
         mfaProvider.setName(name);
         MvcResult mfaResponse = mockMvc.perform(
                 post("/mfa-providers")
@@ -122,7 +122,7 @@ public class MfaProviderEndpointsMockMvcTests {
         GoogleMfaProviderConfig config = new GoogleMfaProviderConfig();
         config.setIssuer("invalid:issuer");
         MfaProvider<GoogleMfaProviderConfig> mfaProvider = constructGoogleMfaProvider().setConfig(config);
-        String name = new RandomValueStringGenerator(5).generate();
+        String name = new AlphanumericRandomValueStringGenerator(5).generate();
         mfaProvider.setName(name);
         MvcResult mfaResponse = mockMvc.perform(
                 post("/mfa-providers")
@@ -325,7 +325,7 @@ public class MfaProviderEndpointsMockMvcTests {
 
     private MfaProvider<GoogleMfaProviderConfig> constructGoogleProvider() {
         return new MfaProvider<GoogleMfaProviderConfig>()
-                .setName(new RandomValueStringGenerator(10).generate())
+                .setName(new AlphanumericRandomValueStringGenerator(10).generate())
                 .setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR)
                 .setIdentityZoneId(IdentityZoneHolder.get().getId())
                 .setConfig(constructGoogleProviderConfiguration());

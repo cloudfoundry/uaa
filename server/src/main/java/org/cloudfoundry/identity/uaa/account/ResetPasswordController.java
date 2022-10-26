@@ -15,6 +15,7 @@ import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -45,18 +47,22 @@ public class ResetPasswordController {
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
 
+    private final String externalLoginUrl;
+
     public ResetPasswordController(
             final ResetPasswordService resetPasswordService,
             final MessageService messageService,
             final @Qualifier("mailTemplateEngine") TemplateEngine templateEngine,
             final ExpiringCodeStore codeStore,
-            final UaaUserDatabase userDatabase
+            final UaaUserDatabase userDatabase,
+            final @Value("${login.url}") String externalLoginUrl
     ) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
+        this.externalLoginUrl = externalLoginUrl;
     }
 
     @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
@@ -115,7 +121,12 @@ public class ResetPasswordController {
     }
 
     private String getCodeSentEmailHtml(String code) {
-        String resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", IdentityZoneHolder.get());
+        String resetUrl;
+        if (UaaUrlUtils.isUrl(externalLoginUrl)) {
+            resetUrl = UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password").build().toUriString();
+        } else {
+            resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", IdentityZoneHolder.get());
+        }
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());

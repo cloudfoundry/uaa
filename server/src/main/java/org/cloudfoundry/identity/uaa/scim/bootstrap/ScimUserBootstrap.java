@@ -208,7 +208,9 @@ public class ScimUserBootstrap implements
             if (!OriginKeys.UAA.equals(uaaUser.getOrigin())) {
                 uaaUser.setVerified(false);
             }
-            updateUser(user, uaaUser, false);
+            if (user != null) {
+                updateUser(user, uaaUser, false);
+            }
             return;
         }
         if (event instanceof ExternalGroupAuthorizationEvent) {
@@ -234,7 +236,9 @@ public class ScimUserBootstrap implements
             if (event.isUserModified()) {
                 //update the user itself
                 ScimUser user = getScimUser(uaaUser);
-                updateUser(user, uaaUser, false);
+                if (user != null) {
+                    updateUser(user, uaaUser, false);
+                }
             }
             return;
         }

@@ -4,7 +4,11 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 public class KeyInfoBuilder {
+
     public static KeyInfo build(String keyId, String signingKey, String uaaUrl) {
+        return build(keyId, signingKey, uaaUrl, null);
+    }
+    public static KeyInfo build(String keyId, String signingKey, String uaaUrl, String sigAlg) {
         if (StringUtils.isEmpty(signingKey)) {
             throw new IllegalArgumentException("Signing key cannot be empty");
         }
@@ -13,9 +17,9 @@ public class KeyInfoBuilder {
         signingKey = signingKey.trim();
 
         if (isAssymetricKey(signingKey)) {
-            return new RsaKeyInfo(keyId, signingKey, uaaUrl);
+            return new RsaKeyInfo(keyId, signingKey, uaaUrl, sigAlg);
         }
-        return new HmacKeyInfo(keyId, signingKey, uaaUrl);
+        return new HmacKeyInfo(keyId, signingKey, uaaUrl, sigAlg);
     }
 
     /**

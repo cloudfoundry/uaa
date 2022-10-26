@@ -36,7 +36,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class PasswordChangeRequiredFilterTests {
     private PasswordChangeRequiredFilter filter;
@@ -77,14 +77,14 @@ public class PasswordChangeRequiredFilterTests {
     public void password_change_required() throws Exception {
         SessionUtils.setPasswordChangeRequired(session, true);
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(chain);
+        verifyNoInteractions(chain);
         verify(entryPoint, times(1)).commence(same(request), same(response), any(InteractionRequiredException.class));
     }
 
     @Test
     public void password_change_not_required() throws Exception {
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(entryPoint);
+        verifyNoInteractions(entryPoint);
         verify(chain, times(1)).doFilter(same(request), same(response));
     }
 
@@ -92,7 +92,7 @@ public class PasswordChangeRequiredFilterTests {
     public void no_authentication() throws Exception {
         SecurityContextHolder.clearContext();
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(entryPoint);
+        verifyNoInteractions(entryPoint);
         verify(chain, times(1)).doFilter(same(request), same(response));
     }
 }

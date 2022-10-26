@@ -3,7 +3,12 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.pkce.PkceVerifier;
+import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
+import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -49,6 +54,7 @@ public class UaaAuthorizationEndpointTest {
     private AuthorizationCodeServices authorizationCodeServices;
     private Set<String> responseTypes;
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
+    private PkceValidationService pkceValidationService;
 
     private HashMap<String, Object> model = new HashMap<>();
     private SimpleSessionStatus sessionStatus = new SimpleSessionStatus();
@@ -59,6 +65,14 @@ public class UaaAuthorizationEndpointTest {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
         authorizationCodeServices = mock(AuthorizationCodeServices.class);
         openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
+
+        PlainPkceVerifier plainPkceVerifier = new PlainPkceVerifier();
+        S256PkceVerifier s256PkceVerifier = new S256PkceVerifier();
+        Map<String,PkceVerifier> pkceVerifiers = new HashMap<String,PkceVerifier>();
+        pkceVerifiers.put(plainPkceVerifier.getCodeChallengeMethod(), plainPkceVerifier);
+        pkceVerifiers.put(s256PkceVerifier.getCodeChallengeMethod(), s256PkceVerifier);
+        pkceValidationService = new PkceValidationService(pkceVerifiers);
+
         uaaAuthorizationEndpoint = new UaaAuthorizationEndpoint(
                 null,
                 new DefaultUserApprovalHandler(),
@@ -68,7 +82,8 @@ public class UaaAuthorizationEndpointTest {
                 openIdSessionStateCalculator,
                 oAuth2RequestFactory,
                 null,
-                null);
+                null,
+                pkceValidationService);
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");
@@ -315,6 +330,35 @@ public class UaaAuthorizationEndpointTest {
 
         assertThat(view, instanceOf(RedirectView.class));
         assertThat(((RedirectView) view).getUrl(), containsString("error=invalid_scope"));
+    }
+
+    @Test(expected = InvalidRequestException.class)
+    public void testShortCodeChallengeParameter() throws Exception {
+    	Map<String, String> parameters = new HashMap<String, String>();
+    	parameters.put(PkceValidationService.CODE_CHALLENGE, "ShortCodeChallenge");
+    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+    }
+    
+    @Test(expected = InvalidRequestException.class)
+    public void testLongCodeChallengeParameter() throws Exception {
+    	Map<String, String> parameters = new HashMap<String, String>();
+    	parameters.put(PkceValidationService.CODE_CHALLENGE, "LongCodeChallenge12346574382823193700987654321326352173528351287635126532123452534234254323254325325325432342532532254325432532532");
+    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+    }
+    
+    @Test(expected = InvalidRequestException.class)
+    public void testForbiddenCodeChallengeParameter() throws Exception {
+    	Map<String, String> parameters = new HashMap<String, String>();
+    	parameters.put(PkceValidationService.CODE_CHALLENGE, "#ForbiddenCodeChallenge098765445647544743211234657438282319370#");
+    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+    }
+    
+    @Test(expected = InvalidRequestException.class)
+    public void testUnsupportedCodeChallengeMethodParameter() throws Exception {
+    	Map<String, String> parameters = new HashMap<String, String>();
+    	parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
+    	parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
+    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
     }
 
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,

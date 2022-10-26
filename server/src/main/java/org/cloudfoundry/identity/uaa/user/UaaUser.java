@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.cloudfoundry.identity.uaa.authentication.NonStringPassword;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -71,7 +73,7 @@ public class UaaUser {
 
     private final String username;
 
-    private final String password;
+    private final NonStringPassword password;
 
     private final String email;
 
@@ -151,7 +153,7 @@ public class UaaUser {
 
         this.id = prototype.getId();
         this.username = prototype.getUsername();
-        this.password = prototype.getPassword();
+        this.password = prototype.getNonStringPassword();
         this.email = prototype.getEmail();
         this.familyName = prototype.getFamilyName();
         this.givenName = prototype.getGivenName();
@@ -180,7 +182,7 @@ public class UaaUser {
     }
 
     public String getPassword() {
-        return password;
+        return password.getPassword();
     }
 
     public String getEmail() {
@@ -208,14 +210,14 @@ public class UaaUser {
     }
 
     public List<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
+        return Optional.ofNullable(authorities).orElseThrow();
     }
 
     public UaaUser id(String id) {
         if (!"NaN".equals(this.id)) {
             throw new IllegalStateException("Id already set");
         }
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(id, username, getPassword(), email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     public UaaUser authorities(Collection<? extends GrantedAuthority> authorities) {
@@ -227,7 +229,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        return new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(id, username, getPassword(), email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     @Override

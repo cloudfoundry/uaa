@@ -19,6 +19,7 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -40,6 +41,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.HttpStatus.FOUND;
 import static org.springframework.http.HttpStatus.OK;
 
@@ -121,8 +123,20 @@ public class FormLoginIntegrationTests {
         location = response.getFirstHeader("Location").getValue();
         response.close();
 
-        httpget = new HttpGet(location);
-        response = httpclient.execute(httpget);
+        // This implementation of httpclient would not send the `JSESSIONID` cookie that has `Secure` attribute
+        // to the locally-run server via HTTP; the other integration tests use webdriver to simulate web flows, which would make
+        // an exception for HTTP on localhost (which is the standard [browser behavior](https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies))
+        // As a workaround, manually attach the `JSESSIONID` cookie (obtained via login) to this request.
+        Cookie jsessionidCookie = cookieStore.getCookies().stream()
+                .filter(cookie -> "JSESSIONID".equals(cookie.getName()))
+                .findAny().orElse(null);
+        assertNotNull(jsessionidCookie);
+        HttpUriRequest getRequestAfterLogin = RequestBuilder.get()
+                .setUri(location)
+                .addHeader("Cookie", "JSESSIONID=" + jsessionidCookie.getValue())
+                .build();
+
+        response = httpclient.execute(getRequestAfterLogin);
         assertEquals(OK.value(), response.getStatusLine().getStatusCode());
 
         body = EntityUtils.toString(response.getEntity());

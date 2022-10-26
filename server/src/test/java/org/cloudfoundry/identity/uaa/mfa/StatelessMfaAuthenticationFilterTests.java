@@ -15,8 +15,6 @@
 package org.cloudfoundry.identity.uaa.mfa;
 
 import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -80,7 +78,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
@@ -187,9 +185,9 @@ public class StatelessMfaAuthenticationFilterTests {
     public void non_password_grants_ignored() throws Exception {
         request.setParameter(GRANT_TYPE, "other-than-password");
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(googleAuthenticator);
+        verifyNoInteractions(googleAuthenticator);
         verify(chain).doFilter(same(request), same(response));
-        verifyZeroInteractions(publisher);
+        verifyNoInteractions(publisher);
     }
 
     @Test
@@ -204,8 +202,8 @@ public class StatelessMfaAuthenticationFilterTests {
         try {
             filter.checkMfaCode(request);
         } catch (Exception e) {
-            verifyZeroInteractions(chain);
-            verifyZeroInteractions(googleAuthenticator);
+            verifyNoInteractions(chain);
+            verifyNoInteractions(googleAuthenticator);
             throw e;
         }
     }
@@ -282,7 +280,7 @@ public class StatelessMfaAuthenticationFilterTests {
         try {
             filter.checkMfaCode(request);
         } catch (Exception x) {
-            verifyZeroInteractions(chain);
+            verifyNoInteractions(chain);
             throw x;
         }
     }
@@ -313,10 +311,10 @@ public class StatelessMfaAuthenticationFilterTests {
     public void no_mfa_configured() throws Exception {
         zone.getConfig().getMfaConfig().setEnabled(false);
         filter.doFilterInternal(request, response, chain);
-        verifyZeroInteractions(googleAuthenticator);
-        verifyZeroInteractions(mfaProvider);
+        verifyNoInteractions(googleAuthenticator);
+        verifyNoInteractions(mfaProvider);
         verify(chain).doFilter(same(request), same(response));
-        verifyZeroInteractions(publisher);
+        verifyNoInteractions(publisher);
     }
 
 

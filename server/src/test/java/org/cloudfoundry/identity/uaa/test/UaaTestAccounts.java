@@ -33,6 +33,8 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,6 +57,12 @@ public class UaaTestAccounts implements TestAccounts {
 
     public static final String DEFAULT_PASSWORD = "koala";
     public static final String DEFAULT_USERNAME = "marissa";
+    
+    public static final String CODE_CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+    
+    public static final String CODE_CHALLENGE_METHOD_S256 = "S256";
+    
+    public static final String CODE_VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 
     private Environment environment = TestProfileEnvironment.getEnvironment();
     private UrlHelper server;
@@ -89,10 +97,9 @@ public class UaaTestAccounts implements TestAccounts {
 
     public UaaUser getUserWithRandomID() {
         String id = UUID.randomUUID().toString();
-        UaaUser user = new UaaUser(id, getUserName(), "<N/A>", getEmail(),
+        UaaUser user = new UaaUser(id, getUserName(), getPassword(), getEmail(),
                         UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), OriginKeys.UAA, "externalId", true,
             IdentityZoneHolder.get().getId(), id, new Date());
-        ReflectionTestUtils.setField(user, "password", getPassword());
         return user;
     }
 
@@ -122,8 +129,17 @@ public class UaaTestAccounts implements TestAccounts {
         return getAuthorizationHeader(username, password);
     }
 
+    /**
+     * Test method, preparing authorization header.
+     * Same steps to spring security 5.5.x and newer, e.g.
+     * https://github.com/spring-projects/spring-security/commit/e6c268add00bef40cc6f47d8963176f43b8a1de1
+     * @param username client_id
+     * @param password client_secret
+     * @return OAuth2 encoded client_id and client_secret, e.g. https://datatracker.ietf.org/doc/html/rfc2617#section-2
+     */
     public String getAuthorizationHeader(String username, String password) {
-        String credentials = String.format("%s:%s", username, password);
+        String credentials =
+            String.format("%s:%s", URLEncoder.encode(username, StandardCharsets.UTF_8), URLEncoder.encode(password, StandardCharsets.UTF_8));
         return String.format("Basic %s", new String(Base64.encode(credentials.getBytes())));
     }
 

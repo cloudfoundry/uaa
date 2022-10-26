@@ -78,6 +78,14 @@ public class UaaUserEditorTests {
     }
 
     @Test
+    public void testOrigin() {
+        UaaUserEditor editor = new UaaUserEditor();
+        editor.setAsText("marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.admin|origin");
+        UaaUser user = (UaaUser) editor.getValue();
+        assertEquals("origin", user.getOrigin());
+    }
+
+    @Test
     public void usernameOnly() {
         UaaUserEditor editor = new UaaUserEditor();
         editor.setAsText("marissa");

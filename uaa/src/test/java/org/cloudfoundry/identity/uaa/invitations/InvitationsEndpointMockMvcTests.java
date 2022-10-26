@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -12,6 +11,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.zone.*;
@@ -64,7 +64,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class InvitationsEndpointMockMvcTests {
 
     private String scimInviteToken;
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
     private String clientId;
     private String clientSecret;
     private ClientDetails clientDetails;
@@ -88,7 +88,7 @@ class InvitationsEndpointMockMvcTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin uaa.admin", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
@@ -489,7 +489,7 @@ class InvitationsEndpointMockMvcTests {
             MockMvc mockMvc,
             String clientId,
             String clientSecret,
-            RandomValueStringGenerator generator,
+            AlphanumericRandomValueStringGenerator generator,
             String domain,
             IdentityZone zone,
             String adminClientId,

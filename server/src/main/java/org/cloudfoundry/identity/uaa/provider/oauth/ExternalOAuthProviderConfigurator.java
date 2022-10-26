@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -73,6 +74,17 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
                 .queryParam("redirect_uri", callbackUrl)
                 .queryParam("state", state);
 
+        // no client-secret, switch to PKCE and treat client as public, same logic is implemented in spring security
+        // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
+        if (definition.getRelyingPartySecret() == null) {
+            var pkceVerifier = new S256PkceVerifier();
+            var codeVerifier = generateCodeVerifier();
+            var codeChallenge = pkceVerifier.compute(codeVerifier);
+            SessionUtils.setStateParam(request.getSession(), SessionUtils.codeVerifierParameterAttributeKeyForIdp(idpOriginKey), codeVerifier);
+            uriBuilder.queryParam("code_challenge", codeChallenge);
+            uriBuilder.queryParam("code_challenge_method", pkceVerifier.getCodeChallengeMethod());
+        }
+
         if (!CollectionUtils.isEmpty(definition.getScopes())) {
             uriBuilder.queryParam("scope", URLEncoder.encode(String.join(" ", definition.getScopes()), StandardCharsets.UTF_8));
         }
@@ -87,6 +99,10 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
     private String generateStateParam() {
         return uaaRandomStringUtil.getSecureRandom(10);
+    }
+
+    private String generateCodeVerifier() {
+        return uaaRandomStringUtil.getSecureRandom(128);
     }
 
     private String getCallbackUrlForIdp(String idpOriginKey, String uaaBaseUrl) {

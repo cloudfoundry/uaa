@@ -97,7 +97,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @DefaultTestContext
@@ -662,7 +662,7 @@ class ScimUserEndpointsTests {
     @Test
     void findUsersGroupsNotSyncedIfNotIncluded() {
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
-        verifyZeroInteractions(spiedScimGroupMembershipManager);
+        verifyNoInteractions(spiedScimGroupMembershipManager);
     }
 
     @Test
@@ -680,7 +680,7 @@ class ScimUserEndpointsTests {
     @Test
     void findUsersApprovalsNotSyncedIfNotIncluded() {
         scimUserEndpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
-        verifyZeroInteractions(mockApprovalStore);
+        verifyNoInteractions(mockApprovalStore);
     }
 
     @Test

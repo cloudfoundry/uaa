@@ -2198,7 +2198,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull(tokenResponse.get(ACCESS_TOKEN));
         assertNotNull(tokenResponse.get(REFRESH_TOKEN));
         assertNotNull(tokenResponse.get("id_token"));
-        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), authorizeRedirectQueryParams.get("id_token"));
+        if (authorizeRedirectQueryParams.get("id_token") != null) {
+            assertNotEquals(tokenResponse.get(ACCESS_TOKEN), authorizeRedirectQueryParams.get("id_token").get(0));
+        }
         validateOpenIdConnectToken(tokenResponse.get("id_token"), developer.getId(), clientId);
         Map<String, Object> claims = getClaimsForToken(tokenResponse.get("id_token"));
         //nonce must be in id_token if was in auth request, see http://openid.net/specs/openid-connect-core-1_0.html#IDToken
@@ -2253,7 +2255,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(tokenResponse.get(ACCESS_TOKEN));
-        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), hashFragmentParams.get(ACCESS_TOKEN));
+        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), hashFragmentParams.get(ACCESS_TOKEN).get(0));
         assertNotNull(tokenResponse.get(REFRESH_TOKEN));
         assertNotNull(tokenResponse.get("id_token"));
         assertNotEquals(tokenResponse.get(ACCESS_TOKEN), tokenResponse.get("id_token"));
@@ -2309,7 +2311,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(tokenResponse.get(ACCESS_TOKEN));
-        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), hashFragmentParams.get(ACCESS_TOKEN));
+        if (hashFragmentParams.get(ACCESS_TOKEN) != null) {
+            assertNotEquals(tokenResponse.get(ACCESS_TOKEN), hashFragmentParams.get(ACCESS_TOKEN).get(0));
+        }
         assertNotNull(tokenResponse.get(REFRESH_TOKEN));
         assertNotNull(tokenResponse.get("id_token"));
         assertNotEquals(tokenResponse.get(ACCESS_TOKEN), tokenResponse.get("id_token"));
@@ -2364,7 +2368,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(tokenResponse.get(ACCESS_TOKEN));
-        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), hashFragmentParams.get(ACCESS_TOKEN));
+        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), hashFragmentParams.get(ACCESS_TOKEN).get(0));
         assertNotNull(tokenResponse.get(REFRESH_TOKEN));
         assertNotNull(tokenResponse.get("id_token"));
         assertNotEquals(tokenResponse.get(ACCESS_TOKEN), tokenResponse.get("id_token"));
@@ -2415,7 +2419,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(tokenResponse.get(ACCESS_TOKEN));
-        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), queryParams.get(ACCESS_TOKEN));
+        if (queryParams.get(ACCESS_TOKEN) != null) {
+            assertNotEquals(tokenResponse.get(ACCESS_TOKEN), queryParams.get(ACCESS_TOKEN).get(0));
+        }
         assertNotNull(tokenResponse.get(REFRESH_TOKEN));
         // Successful OIDC token response should include ID Token even when scope=openid is not present.
         // http://openid.net/specs/openid-connect-core-1_0.html#TokenResponse
@@ -2468,7 +2474,9 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Map<String, String> tokenResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(tokenResponse.get(ACCESS_TOKEN));
-        assertNotEquals(tokenResponse.get(ACCESS_TOKEN), queryParams.get(ACCESS_TOKEN));
+        if (queryParams.get(ACCESS_TOKEN) != null) {
+            assertNotEquals(tokenResponse.get(ACCESS_TOKEN), queryParams.get(ACCESS_TOKEN).get(0));
+        }
         assertEquals("not-openid", ((ArrayList<String>) getClaimsForToken(tokenResponse.get(ACCESS_TOKEN)).get("scope")).get(0));
         assertNotNull(tokenResponse.get(REFRESH_TOKEN));
 

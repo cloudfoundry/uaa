@@ -14,7 +14,8 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.cloudfoundry.identity.uaa.cache.ExpiringUrlCache;
+import com.google.common.testing.FakeTicker;
+import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
@@ -76,7 +77,7 @@ public class SamlServiceProviderConfiguratorTest {
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(
                 restTemplateConfig.trustingRestTemplate(),
                 restTemplateConfig.nonTrustingRestTemplate(),
-                new ExpiringUrlCache(Duration.ofMinutes(10), mockTimeService, 2)
+                new StaleUrlCache(Duration.ofMinutes(10), mockTimeService, 2, new FakeTicker())
         );
 
         conf.setFixedHttpMetaDataProvider(fixedHttpMetaDataProvider);
@@ -170,6 +171,7 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Test
     public void testGetEntityId() throws Exception {
+        IdentityZoneHolder.set(withId("uaa"));
         conf.validateSamlServiceProvider(mockSamlServiceProviderForZone("uaa"));
         for (SamlServiceProviderHolder holder : conf.getSamlServiceProviders()) {
             SamlServiceProvider provider = holder.getSamlServiceProvider();

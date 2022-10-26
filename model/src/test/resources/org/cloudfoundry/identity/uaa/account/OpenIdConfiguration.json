@@ -12,6 +12,7 @@
   ],
   "userinfo_endpoint": "<context path>/userinfo",
   "jwks_uri": "<context path>/token_keys",
+  "end_session_endpoint": "<context path>/logout.do",
   "scopes_supported": [
     "openid",
     "profile",
@@ -68,5 +69,9 @@
   "service_documentation": "http://docs.cloudfoundry.org/api/uaa/",
   "ui_locales_supported": [
     "en-US"
+  ],
+  "code_challenge_methods_supported": [
+    "S256",
+    "plain"
   ]
 }

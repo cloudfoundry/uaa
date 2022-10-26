@@ -24,6 +24,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.security.Security;
+import java.util.List;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.junit.Assert.assertNull;
@@ -315,6 +316,46 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid MFA Config");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_invalid_corsPolicy_xhrConfiguration_allowedUris() throws InvalidIdentityZoneConfigurationException {
+        List<String> invalidAllowedUris = List.of("https://google.com", "https://*.example.com", "^/uaa/userinfo(", "^/uaa/logout.do$");
+        zone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedUris(invalidAllowedUris);
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid value in config.corsPolicy.xhrConfiguration.allowedUris: '^/uaa/userinfo('");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_invalid_corsPolicy_xhrConfiguration_allowedOrigins() throws InvalidIdentityZoneConfigurationException {
+        List<String> invalidOrigins = List.of("https://google.com", "https://*.example.com", "^/uaa/userinfo(", "^/uaa/logout.do$");
+        zone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedOrigins(invalidOrigins);
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid value in config.corsPolicy.xhrConfiguration.allowedOrigins: '^/uaa/userinfo('");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_invalid_corsPolicy_defaultConfiguration_allowedUris() throws InvalidIdentityZoneConfigurationException {
+        List<String> invalidAllowedUris = List.of("https://google.com", "https://*.example.com", "^/uaa/userinfo(", "^/uaa/logout.do$");
+        zone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedUris(invalidAllowedUris);
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid value in config.corsPolicy.defaultConfiguration.allowedUris: '^/uaa/userinfo('");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_invalid_corsPolicy_defaultConfiguration_allowedOrigins() throws InvalidIdentityZoneConfigurationException {
+        List<String> invalidOrigins = List.of("https://google.com", "https://*.example.com", "^/uaa/userinfo(", "^/uaa/logout.do$");
+        zone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedOrigins(invalidOrigins);
+
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("Invalid value in config.corsPolicy.defaultConfiguration.allowedOrigins: '^/uaa/userinfo('");
         validator.validate(zone, mode);
     }
 }

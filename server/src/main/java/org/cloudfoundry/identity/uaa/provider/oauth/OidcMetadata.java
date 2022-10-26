@@ -19,6 +19,9 @@ public class OidcMetadata {
     @JsonProperty("jwks_uri")
     private URL jsonWebKeysUri;
 
+    @JsonProperty("end_session_endpoint")
+    private URL logoutEndpoint;
+
     private String issuer;
 
     public URL getAuthorizationEndpoint() {
@@ -60,4 +63,8 @@ public class OidcMetadata {
     public void setIssuer(String issuer) {
         this.issuer = issuer;
     }
+
+    public URL getLogoutEndpoint() { return this.logoutEndpoint;   }
+
+    public void setLogoutEndpoint(URL logoutEndpoint) { this.logoutEndpoint = logoutEndpoint; }
 }

@@ -553,8 +553,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             synchronized (errorCounts) {
                 value = errorCounts.get(series);
                 if (value == null) {
-                    value = new AtomicInteger();
-                    errorCounts.put(series, value);
+                    errorCounts.computeIfAbsent(series, k -> new AtomicInteger(1));
+                    return;
                 }
             }
         }
@@ -575,6 +575,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     }
 
     private void addETagHeader(HttpServletResponse httpServletResponse, ScimUser scimUser) {
+        if (scimUser == null) {
+            throw new ScimException("Missing SCIM User", HttpStatus.BAD_REQUEST);
+        }
         httpServletResponse.setHeader(E_TAG, "\"" + scimUser.getVersion() + "\"");
     }
 

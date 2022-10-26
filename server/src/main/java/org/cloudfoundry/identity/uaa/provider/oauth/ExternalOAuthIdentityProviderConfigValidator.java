@@ -46,10 +46,6 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
             errors.add("Relying Party Id must be the client-id for the UAA that is registered with the external IDP");
         }
 
-        if (!hasText(def.getRelyingPartySecret()) && !def.getResponseType().contains("token")) {
-            errors.add("Relying Party Secret must be the client-secret for the UAA that is registered with the external IDP");
-        }
-
         if (def.isShowLinkText() && !hasText(def.getLinkText())) {
             errors.add("Link Text must be specified because showLinkText is true");
         }

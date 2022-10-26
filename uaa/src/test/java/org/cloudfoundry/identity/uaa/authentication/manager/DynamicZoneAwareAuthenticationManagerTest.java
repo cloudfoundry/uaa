@@ -28,7 +28,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -90,7 +90,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager();
         Authentication result = manager.authenticate(null);
         assertNull(result);
-        verifyZeroInteractions(uaaAuthenticationMgr);
+        verifyNoInteractions(uaaAuthenticationMgr);
     }
 
     @Test
@@ -104,7 +104,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         when(mockManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
         Authentication result = manager.authenticate(success);
         assertSame(success, result);
-        verifyZeroInteractions(uaaAuthenticationMgr);
+        verifyNoInteractions(uaaAuthenticationMgr);
     }
 
     @Test
@@ -176,7 +176,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         when(mockManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
         Authentication result = manager.authenticate(success);
         assertSame(success, result);
-        verifyZeroInteractions(uaaAuthenticationMgr);
+        verifyNoInteractions(uaaAuthenticationMgr);
     }
 
     @Test
@@ -194,8 +194,8 @@ class DynamicZoneAwareAuthenticationManagerTest {
         } catch (ProviderNotFoundException x) {
             //expected
         }
-        verifyZeroInteractions(uaaAuthenticationMgr);
-        verifyZeroInteractions(mockManager);
+        verifyNoInteractions(uaaAuthenticationMgr);
+        verifyNoInteractions(mockManager);
     }
 
     @Test

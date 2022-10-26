@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -136,7 +137,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         } catch (AuthenticationException e) {
             throw new BadCredentialsException(e.getMessage(), e);
         } catch (Exception e) {
-            logger.debug("Unable to authenticate client: " + clientId, e);
+            logger.debug("Unable to authenticate client: " + UaaStringUtils.getCleanedUserControlString(clientId), e);
             throw new BadCredentialsException(e.getMessage(), e);
         }
     }

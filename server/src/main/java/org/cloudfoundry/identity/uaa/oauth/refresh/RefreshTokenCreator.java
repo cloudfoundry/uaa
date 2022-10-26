@@ -148,7 +148,8 @@ public class RefreshTokenCreator {
                 GRANT_TYPE_PASSWORD.equals(grantType) ||
                 GRANT_TYPE_USER_TOKEN.equals(grantType) ||
                 GRANT_TYPE_REFRESH_TOKEN.equals(grantType) ||
-                GRANT_TYPE_SAML2_BEARER.equals(grantType);
+                GRANT_TYPE_SAML2_BEARER.equals(grantType) ||
+                GRANT_TYPE_JWT_BEARER.equals(grantType);
         } else {
             return scope.contains(UAA_REFRESH_TOKEN);
         }

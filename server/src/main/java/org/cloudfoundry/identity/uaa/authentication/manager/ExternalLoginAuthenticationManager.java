@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.user.VerifiableUser;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +115,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-        logger.debug("Starting external authentication for:"+request);
+        logger.debug("Starting external authentication for:{}", UaaStringUtils.getCleanedUserControlString(request.toString()));
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
         UaaUser userFromRequest = getUser(request, authenticationData);
         if (userFromRequest == null) {
@@ -222,8 +223,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             userDetails = (UserDetails) request.getPrincipal();
         } else if (request instanceof UsernamePasswordAuthenticationToken) {
             String username = request.getPrincipal().toString();
-            String password = request.getCredentials() != null ? request.getCredentials().toString() : "";
-            userDetails = new User(username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
+            Object credentials = request.getCredentials();
+            userDetails = new User(username, (credentials != null) ? credentials.toString() : "",
+                                   true, true, true, true, UaaAuthority.USER_AUTHORITIES);
         } else if (request.getPrincipal() == null) {
             logger.debug(this.getClass().getName() + "[" + name + "] cannot process null principal");
             return null;

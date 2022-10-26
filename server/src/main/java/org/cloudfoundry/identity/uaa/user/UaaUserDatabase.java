@@ -20,9 +20,15 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 public interface UaaUserDatabase {
     UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException;
 
+    UaaUserPrototype retrieveUserPrototypeByName(String username, String origin) throws UsernameNotFoundException;
+
     UaaUser retrieveUserById(String id) throws UsernameNotFoundException;
 
+    UaaUserPrototype retrieveUserPrototypeById(String id) throws UsernameNotFoundException;
+
     UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException;
+
+    UaaUserPrototype retrieveUserPrototypeByEmail(String email, String origin) throws UsernameNotFoundException;
 
     UserInfo getUserInfo(String id);
 

@@ -12,10 +12,10 @@
 --
 
 ALTER TABLE group_membership ADD COLUMN identity_zone_id VARCHAR(36) NULL;
-UPDATE group_membership SET identity_zone_id = (SELECT identity_zone_id from groups WHERE group_membership.group_id = groups.id);
+UPDATE group_membership SET identity_zone_id = (SELECT identity_zone_id from `groups` WHERE group_membership.group_id = `groups`.id);
 
 ALTER TABLE external_group_mapping ADD COLUMN identity_zone_id VARCHAR(36) NULL;
-UPDATE external_group_mapping SET identity_zone_id = (SELECT identity_zone_id from groups WHERE external_group_mapping.group_id = groups.id);
+UPDATE external_group_mapping SET identity_zone_id = (SELECT identity_zone_id from `groups` WHERE external_group_mapping.group_id = `groups`.id);
 
 ALTER TABLE oauth_code ADD COLUMN identity_zone_id VARCHAR(36) NULL;
 UPDATE oauth_code SET identity_zone_id = (SELECT identity_zone_id from users WHERE oauth_code.user_id = users.id);

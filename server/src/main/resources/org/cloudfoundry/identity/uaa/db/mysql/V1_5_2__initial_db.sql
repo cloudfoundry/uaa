@@ -73,7 +73,7 @@ CREATE TABLE authz_approvals (
   primary key (userName, clientId, scope)
 ) ;
 
-CREATE TABLE groups (
+CREATE TABLE `groups` (
   id VARCHAR(36) not null primary key,
   displayName VARCHAR(255) not null,
   created TIMESTAMP default current_timestamp not null,

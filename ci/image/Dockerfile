@@ -14,7 +14,7 @@ ENV JAVA_HOME /usr/lib/jvm/java-bellsoft-amd64
 ENV PATH "${JAVA_HOME}/bin:${PATH}"
 RUN JAVA_MAJOR_VERSION="11" \
     && JDK_METADATA="jdk-metadata.json" \
-    && curl -sLo "${JDK_METADATA}" "https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&os=linux&release-type=lts&bitness=64&package-type=tar.gz&bundle-type=jdk&arch=x86" \
+    && curl -sLo "${JDK_METADATA}" "https://api.bell-sw.com/v1/liberica/releases?version-modifier=latest&os=linux&release-type=lts&bitness=64&package-type=tar.gz&bundle-type=jdk&arch=x86&version-feature=${JAVA_MAJOR_VERSION}" \
     && JDK_VERSION="$(jq -r ".[] | select(.featureVersion | contains("${JAVA_MAJOR_VERSION}")).version" "${JDK_METADATA}")" \
     && JDK_ARCHIVE_URL="$(jq -r ".[] | select(.featureVersion | contains("${JAVA_MAJOR_VERSION}")).downloadUrl" "${JDK_METADATA}")" \
     && JDK_ARCHIVE="$(basename "${JDK_ARCHIVE_URL}")" \

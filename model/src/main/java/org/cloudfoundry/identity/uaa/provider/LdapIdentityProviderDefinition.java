@@ -117,7 +117,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String userDNPatternDelimiter;
 
     private String bindUserDn;
-    private String bindPassword;
+    private Object bindPassword;
     private String userSearchBase;
     private String userSearchFilter;
 
@@ -194,7 +194,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getBindPassword() {
-        return bindPassword;
+        return (String) bindPassword;
     }
 
     public String getBindUserDn() {

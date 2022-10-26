@@ -62,7 +62,7 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     //This is used when UAA acts as a SAML IdP
     @JsonIgnore
-    private SAMLMessageContext samlMessageContext;
+    private transient SAMLMessageContext samlMessageContext;
 
     /**
      * Creates a token with the supplied array of authorities.

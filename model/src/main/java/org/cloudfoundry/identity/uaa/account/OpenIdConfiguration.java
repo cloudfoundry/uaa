@@ -29,6 +29,9 @@ public class OpenIdConfiguration {
     @JsonProperty("jwks_uri")
     private String jwksUri;
 
+    @JsonProperty("end_session_endpoint")
+    private String logoutEndpoint;
+
     @JsonProperty("scopes_supported")
     private String[] scopes = new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"};
 
@@ -60,11 +63,15 @@ public class OpenIdConfiguration {
     @JsonProperty("ui_locales_supported")
     private String[] uiLocalesSupported = new String[]{"en-US"};
 
+    @JsonProperty("code_challenge_methods_supported")
+    private String[] codeChallengeMethodsSupported = new String[]{"S256", "plain"};
+
     public OpenIdConfiguration(final String contextPath, final String issuer) {
         this.issuer = issuer;
         this.authUrl = contextPath + "/oauth/authorize";
         this.tokenUrl = contextPath + "/oauth/token";
         this.userInfoUrl = contextPath + "/userinfo";
         this.jwksUri = contextPath + "/token_keys";
+        this.logoutEndpoint = contextPath + "/logout.do";
     }
 }

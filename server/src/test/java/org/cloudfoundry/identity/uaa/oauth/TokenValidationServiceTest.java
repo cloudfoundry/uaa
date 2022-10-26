@@ -47,7 +47,7 @@ public class TokenValidationServiceTest {
     @Before
     public void setup() {
         header = map(
-                entry("alg", "RSA"),
+                entry("alg", "RS256"),
                 entry("kid", "key1"),
                 entry("typ", "JWT")
         );

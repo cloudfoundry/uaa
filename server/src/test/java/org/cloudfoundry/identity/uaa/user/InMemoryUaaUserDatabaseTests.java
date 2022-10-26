@@ -28,6 +28,11 @@ public class InMemoryUaaUserDatabaseTests {
         assertSame(user, db.retrieveUserByName(user.getUsername(), user.getOrigin()));
     }
 
+    @Test
+    public void testRetrieveUserPrototypeByName() {
+        assertSame(user.getUsername(), db.retrieveUserPrototypeByName(user.getUsername(), user.getOrigin()).getUsername());
+    }
+
     @Test(expected = UsernameNotFoundException.class)
     public void testRetrieveUserByNameInvalidOrigin() {
         db.retrieveUserByName(user.getUsername(), OriginKeys.LDAP);
@@ -43,6 +48,11 @@ public class InMemoryUaaUserDatabaseTests {
         assertSame(user, db.retrieveUserById(user.getId()));
     }
 
+    @Test
+    public void testRetrieveUserPrototypeById() {
+        assertSame(user.getId(), db.retrieveUserById(user.getId()).getId());
+    }
+
     @Test(expected = UsernameNotFoundException.class)
     public void testRetrieveUserByInvalidId() {
         db.retrieveUserById(user.getId() + "1");
@@ -51,6 +61,11 @@ public class InMemoryUaaUserDatabaseTests {
     @Test
     public void retrieveUserByEmail() {
         assertSame(user, db.retrieveUserByEmail(user.getEmail(), OriginKeys.UAA));
+    }
+
+    @Test
+    public void retrieveUserPrototypeByEmail() {
+        assertSame(user.getEmail(), db.retrieveUserPrototypeByEmail(user.getEmail(), OriginKeys.UAA).getEmail());
     }
 
     @Test
