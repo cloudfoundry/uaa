@@ -40,6 +40,7 @@ public class TokenPolicy {
     private int refreshTokenValidity;
     private boolean jwtRevocable = false;
     private boolean refreshTokenUnique = false;
+    private boolean refreshTokenRotate = false;
     private String refreshTokenFormat = JWT.getStringValue();
 
     @JsonGetter("keys")
@@ -114,6 +115,14 @@ public class TokenPolicy {
 
     public void setRefreshTokenUnique(boolean refreshTokenUnique) {
         this.refreshTokenUnique = refreshTokenUnique;
+    }
+
+    public boolean isRefreshTokenRotate() {
+        return refreshTokenRotate;
+    }
+
+    public void setRefreshTokenRotate(boolean refreshTokenRotate) {
+        this.refreshTokenRotate = refreshTokenRotate;
     }
 
     public String getRefreshTokenFormat() {
