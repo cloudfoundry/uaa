@@ -145,7 +145,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             EMAIL, AUTH_TIME, REVOCATION_SIGNATURE, IAT,
             EXPIRY_IN_SECONDS, ISS, ZONE_ID, AUD
     );
-    private static final long ONE_SECOND = 1000L;
+    private static final long MILLIS_PER_SECOND = 1000L;
     private final Logger logger = LoggerFactory.getLogger(UaaTokenServices.class);
     private final UaaUserDatabase userDatabase;
     private MultitenantClientServices clientDetailsService;
@@ -242,7 +242,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
         BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
 
-        long refreshTokenExpireMillis = claims.getExp().longValue() * ONE_SECOND;
+        long refreshTokenExpireMillis = claims.getExp().longValue() * MILLIS_PER_SECOND;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
             throw new InvalidTokenException("Invalid refresh token expired at " + new Date(refreshTokenExpireMillis));
         }
@@ -501,8 +501,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
-        claims.put(IAT, timeService.getCurrentTimeMillis() / ONE_SECOND);
-        claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / ONE_SECOND);
+        claims.put(IAT, timeService.getCurrentTimeMillis() / MILLIS_PER_SECOND);
+        claims.put(EXPIRY_IN_SECONDS, token.getExpiration().getTime() / MILLIS_PER_SECOND);
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()) != null) {
             claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
@@ -538,7 +538,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 claims.put(EMAIL, userEmail);
             }
             if (userAuthenticationTime !=null) {
-                claims.put(AUTH_TIME, userAuthenticationTime.getTime() / ONE_SECOND);
+                claims.put(AUTH_TIME, userAuthenticationTime.getTime() / MILLIS_PER_SECOND);
             }
             claims.put(SUB, user.getId());
         }
@@ -779,8 +779,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // Check token expiry
         Long expiration = Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString());
-        if (new Date(expiration * ONE_SECOND).before(timeService.getCurrentDate())) {
-            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * ONE_SECOND));
+        if (new Date(expiration * MILLIS_PER_SECOND).before(timeService.getCurrentDate())) {
+            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * MILLIS_PER_SECOND));
         }
 
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
@@ -850,7 +850,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Expiry is verified by check_token
         CompositeToken token = new CompositeToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * ONE_SECOND));
+        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * MILLIS_PER_SECOND));
 
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
         if (!ObjectUtils.isEmpty(scopes)) {
