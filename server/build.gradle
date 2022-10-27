@@ -11,7 +11,9 @@ dependencies {
     implementation(libraries.javaxMail)
 
     implementation(libraries.jacksonDatabind)
-    implementation(libraries.jsonPath)
+    implementation(libraries.jsonPath) {
+        exclude(module: "json-smart")
+    }
     implementation(libraries.zxing)
     implementation(libraries.springBeans)
     implementation(libraries.springContext)
