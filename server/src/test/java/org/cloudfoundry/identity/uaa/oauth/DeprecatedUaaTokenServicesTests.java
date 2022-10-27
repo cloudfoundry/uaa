@@ -147,7 +147,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           true,
-          true);
+          true, null);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
@@ -173,7 +173,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           true,
-          true);
+          true, null);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).deleteRefreshTokensForClientAndUserId("clientId", "userId", IdentityZoneHolder.get().getId());
         verify(tokenProvisioning, times(1)).upsert(anyString(), rt.capture(), anyString());
@@ -191,7 +191,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           true,
-          true);
+          true, null);
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         String currentZoneId = IdentityZoneHolder.get().getId();
         verify(tokenProvisioning, times(0)).deleteRefreshTokensForClientAndUserId(anyString(), anyString(), eq(currentZoneId));
@@ -250,6 +250,7 @@ public class DeprecatedUaaTokenServicesTests {
         TimeService timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
+        RefreshTokenCreator refreshTokenCreator = mock(RefreshTokenCreator.class);
         ApprovalService approvalService = mock(ApprovalService.class);
         UaaTokenServices uaaTokenServices = new UaaTokenServices(
           idTokenCreator,
@@ -257,7 +258,7 @@ public class DeprecatedUaaTokenServicesTests {
           mockMultitenantClientServices,
           mock(RevocableTokenProvisioning.class),
           tokenValidationService,
-          mock(RefreshTokenCreator.class),
+          refreshTokenCreator,
           timeService,
           tokenValidityResolver,
           userDatabase,
@@ -297,7 +298,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           false,
-          false);
+          false, null);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, never()).create(rt.capture(), anyString());
@@ -314,7 +315,7 @@ public class DeprecatedUaaTokenServicesTests {
           "clientId",
           "userId",
           false,
-          false);
+          false, null);
 
         ArgumentCaptor<RevocableToken> rt = ArgumentCaptor.forClass(RevocableToken.class);
         verify(tokenProvisioning, times(1)).createIfNotExists(rt.capture(), anyString());

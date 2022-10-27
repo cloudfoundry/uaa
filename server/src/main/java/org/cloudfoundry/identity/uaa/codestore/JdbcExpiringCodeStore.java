@@ -44,7 +44,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
 
     private JdbcTemplate jdbcTemplate;
 
@@ -170,7 +170,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
         if ((now - lastCheck) > expirationInterval && lastExpired.compareAndSet(lastCheck, now)) {
             int count = jdbcTemplate.update(deleteExpired, now);
-            logger.debug("Expiring code sweeper complete, deleted " + count + " entries.");
+            logger.debug("Expiring code sweeper complete, deleted {} entries.", count);
             return count;
         }
 

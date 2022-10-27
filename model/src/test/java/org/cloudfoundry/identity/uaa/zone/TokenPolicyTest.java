@@ -11,6 +11,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
 
 public class TokenPolicyTest {
@@ -42,6 +43,20 @@ public class TokenPolicyTest {
         TokenPolicy policy = new TokenPolicy();
         assertFalse(policy.isRefreshTokenUnique());
         assertFalse(policy.isJwtRevocable());
+        assertFalse(policy.isRefreshTokenRotate());
+        assertEquals(TokenConstants.TokenFormat.JWT.getStringValue(), policy.getRefreshTokenFormat());
+    }
+
+    @Test
+    public void test_set_values() {
+        TokenPolicy policy = new TokenPolicy();
+        policy.setRefreshTokenUnique(true);
+        policy.setJwtRevocable(true);
+        policy.setRefreshTokenRotate(true);
+        policy.setRefreshTokenFormat(TokenConstants.TokenFormat.JWT.getStringValue());
+        assertTrue(policy.isRefreshTokenUnique());
+        assertTrue(policy.isJwtRevocable());
+        assertTrue(policy.isRefreshTokenRotate());
         assertEquals(TokenConstants.TokenFormat.JWT.getStringValue(), policy.getRefreshTokenFormat());
     }
 

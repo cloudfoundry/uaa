@@ -953,6 +953,7 @@ class IdentityZoneEndpointsMockMvcTests {
         TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
         tokenPolicy.setRefreshTokenFormat(OPAQUE.getStringValue().toUpperCase());
         tokenPolicy.setRefreshTokenUnique(true);
+        tokenPolicy.setRefreshTokenRotate(true);
 
         mockMvc.perform(
                 post("/identity-zones")
@@ -961,12 +962,14 @@ class IdentityZoneEndpointsMockMvcTests {
                         .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenUnique").value(true))
+                .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenRotate").value(true))
                 .andExpect(jsonPath("$.config.tokenPolicy.refreshTokenFormat").value(OPAQUE.getStringValue()));
 
 
         IdentityZone createdZone = provisioning.retrieve(id);
         assertEquals(OPAQUE.getStringValue(), createdZone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         assertTrue(createdZone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertTrue(createdZone.getConfig().getTokenPolicy().isRefreshTokenRotate());
     }
 
     @Test
@@ -2253,6 +2256,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals(id, zone.getId());
         assertEquals(id.toLowerCase(), zone.getSubdomain());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
+        assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenRotate());
         assertEquals(JWT.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
 

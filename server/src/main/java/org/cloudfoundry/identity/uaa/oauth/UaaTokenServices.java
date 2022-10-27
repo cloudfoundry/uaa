@@ -280,7 +280,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String accessTokenId = generateUniqueTokenId();
-        refreshTokenValue = tokenValidation.getJwt().getEncoded();
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, claims);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
@@ -301,7 +301,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue, new Date(refreshTokenExpireMillis), claims.getJti()
         );
 
-        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getCid(), user.getId(), isOpaque, isRevocable);
+        String tokenIdToBeDeleted = null;
+        if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            tokenIdToBeDeleted = (String) tokenValidation.getClaims().get(JTI);
+        }
+        return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
@@ -650,7 +654,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                         isAccessTokenRevocable,
                         authenticationData);
 
-        return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable);
+        return persistRevocableToken(tokenId, accessToken, refreshToken, clientId, userId, isOpaque, isAccessTokenRevocable, null);
     }
 
     private static String getClientSecretForHash(String clientSecret) {
@@ -687,7 +691,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String clientId,
                                                 String userId,
                                                 boolean isOpaque,
-                                                boolean isRevocable) {
+                                                boolean isRevocable,
+                                                String tokenIdToBeDeleted) {
 
         String scope = token.getScope().toString();
         long now = timeService.getCurrentTimeMillis();
@@ -725,6 +730,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 tokenProvisioning.deleteRefreshTokensForClientAndUserId(clientId, userId, IdentityZoneHolder.get().getId());
             }
             tokenProvisioning.createIfNotExists(revocableRefreshToken, IdentityZoneHolder.get().getId());
+            if (tokenIdToBeDeleted != null) {
+                tokenProvisioning.delete(tokenIdToBeDeleted, -1, IdentityZoneHolder.getCurrentZoneId());
+            }
         }
 
         CompositeToken result = new CompositeToken(isOpaque ? tokenId : token.getValue());
