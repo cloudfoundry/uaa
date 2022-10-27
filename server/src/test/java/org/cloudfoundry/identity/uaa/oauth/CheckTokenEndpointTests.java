@@ -690,7 +690,23 @@ public class CheckTokenEndpointTests {
                             "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                             "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
+            KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
+            ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
+            tokenServices = new UaaTokenServices(
+                mock(IdTokenCreator.class),
+                tokenEndpointBuilder,
+                clientDetailsService,
+                tokenProvisioning,
+                tokenValidationService,
+                null,
+                timeService,
+                new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, mockIdentityZoneManager), Integer.MAX_VALUE, timeService),
+                userDatabase,
+                Sets.newHashSet(),
+                zone.getConfig().getTokenPolicy(),
+                keyInfoService,
+                new IdTokenGranter(approvalService),
+                approvalService);
             endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         } finally {
             IdentityZoneHolder.clear();

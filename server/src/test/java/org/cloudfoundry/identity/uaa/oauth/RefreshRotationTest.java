@@ -44,7 +44,7 @@ class RefreshRotationTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    tokenSupport = new TokenTestSupport(null);
+    tokenSupport = new TokenTestSupport(null, null);
     Set<String> thousandScopes = new HashSet<>();
     for (int i = 0; i < 1000; i++) {
       thousandScopes.add(String.valueOf(i));

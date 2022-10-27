@@ -160,7 +160,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
     @Test
     public void attempt_jwt_token_authentication() throws Exception {
-        support = new TokenTestSupport(null);
+        support = new TokenTestSupport(null, null);
         String idToken = support.getIdTokenAsString(Collections.singletonList(OPENID));
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         request.addParameter("assertion", idToken);
