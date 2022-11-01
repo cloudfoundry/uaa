@@ -132,7 +132,8 @@ class UaaPasswordPolicyValidatorTests {
                 fail("Didn't expect InvalidPasswordException, but messages were " + e.getErrorMessages());
             }
             for (String expectedError : expectedErrors) {
-                assertTrue("Errors should contain:" + expectedError, e.getErrorMessages().contains(expectedError));
+                assertTrue("Errors should contain:" + expectedError + "\nactual: " + e.getErrorMessages(),
+                        e.getErrorMessages().contains(expectedError));
             }
         }
     }
