@@ -152,6 +152,60 @@ mysql> create database uaa;
 % ./gradlew -Dspring.profiles.active=mysql,default run
 ```
 
+### PostgreSQL
+1. Start the postgresql server (e.g. a postgres docker container)
+```sh
+docker run --name postgres1 -p 5432:5432 -e POSTGRES_PASSWORD=mysecretpassword -d postgres
+```
+2. Create the `uaa` database (e.g. in psql interactive session)
+```sh
+% psql -h 127.0.0.1 -U postgres
+```
+```postgresql
+create database uaa;
+create user root with superuser password 'changeme';
+```
+3. Run the UAA server with the postgresql profile
+```sh
+% ./gradlew -Dspring.profiles.active=postgresql,default run
+```
+4. Once the UAA server started, you can see the tables created in the uaa database (e.g. in psql interactive session)
+```postgresql
+\c uaa
+psql (14.5 (Homebrew), server 15.0 (Debian 15.0-1.pgdg110+1))
+WARNING: psql major version 14, server major version 15.
+         Some psql features might not work.
+You are now connected to database "uaa" as user "postgres".
+\d
+List of relations
+ Schema |             Name              |   Type   | Owner
+--------+-------------------------------+----------+-------
+ public | authz_approvals               | table    | root
+ public | expiring_code_store           | table    | root
+ public | external_group_mapping        | table    | root
+ public | external_group_mapping_id_seq | sequence | root
+ public | group_membership              | table    | root
+ public | group_membership_id_seq       | sequence | root
+ public | groups                        | table    | root
+ public | identity_provider             | table    | root
+ public | identity_zone                 | table    | root
+ public | mfa_providers                 | table    | root
+ public | oauth_client_details          | table    | root
+ public | oauth_code                    | table    | root
+ public | oauth_code_id_seq             | sequence | root
+ public | revocable_tokens              | table    | root
+ public | schema_version                | table    | root
+ public | sec_audit                     | table    | root
+ public | sec_audit_id_seq              | sequence | root
+ public | service_provider              | table    | root
+ public | spring_session                | table    | root
+ public | spring_session_attributes     | table    | root
+ public | user_google_mfa_credentials   | table    | root
+ public | user_info                     | table    | root
+ public | users                         | table    | root
+(23 rows)
+```
+
 ## Running tests
 
 You can run the integration tests with docker
