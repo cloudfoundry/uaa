@@ -2,10 +2,17 @@
 set +x
 
 #ldapsearch -x -L -H ldap://localhost:389/ -b dc=test,dc=com
-ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com
+#ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com
+ldapsearch -vvv -x -L -H ldap://localhost -b dc=example,dc=org
 echo ===============================================================================
 #ldapsearch -x -L -H ldap://localhost:389/ -b dc=test,dc=com -D "cn=admin,dc=test,dc=com" -w password
-ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=admin,dc=test,dc=com" -w password
-ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=confadmin,dc=test,dc=com" -w configpassword
+
+
+#ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=admin,dc=example,dc=org" -w password
+ldapsearch -vvv -x -L -H ldap://localhost -b dc=example,dc=org -D "cn=admin,dc=example,dc=org" -w password
+
+
+
+#ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=confadmin,dc=test,dc=com" -w configpassword
 #ldapsearch -x -L -H ldap://localhost -b dc=test,dc=com -D "dc=test,dc=com" -w password
 #ldapsearch -x -L -H ldap://localhost -b dc=test,dc=com -D "test.com" -w password

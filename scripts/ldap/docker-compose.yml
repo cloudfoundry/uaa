@@ -8,21 +8,21 @@ services:
       - '636:1636'
     environment:
 #      - LDAP_PORT_NUMBER=1389
-      - LDAP_ROOT=dc=test,dc=com
+#      - LDAP_ROOT=dc=test,dc=com
 #      - LDAP_BASE='dc=test,dc=com'
 #      - LDAP_BASE_DN=dc=test,dc=com
 #      - LDAP_ALLOW_ANON_BINDING=no
 #      - LDAP_BIND_DN='cn=admin,dc=test,dc=com'
 #      - LDAP_BIND_PASSWORD='password'
-      - LDAP_DOMAIN=test.com
-      - LDAP_ORGANISATION=uaaTest
+#      - LDAP_DOMAIN=test.com
+#      - LDAP_ORGANISATION=uaaTest
 #      - LDAP_LOG_LEVEL=256
-      - LDAP_CONFIG_ADMIN_ENABLED=yes
-      - LDAP_CONFIG_ADMIN_USERNAME=confadmin
-      - LDAP_CONFIG_ADMIN_PASSWORD=configpassword
+#      - LDAP_CONFIG_ADMIN_ENABLED=yes
+#      - LDAP_CONFIG_ADMIN_USERNAME=confadmin
+#      - LDAP_CONFIG_ADMIN_PASSWORD=configpassword
       - LDAP_ADMIN_USERNAME=admin
       - LDAP_ADMIN_PASSWORD=password
-      - LDAP_USER_DC=users
+#      - LDAP_USER_DC=users
       - LDAP_USERS=user01,user02
       - LDAP_PASSWORDS=password1,password2
     volumes:
