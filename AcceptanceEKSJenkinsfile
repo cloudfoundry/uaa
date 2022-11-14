@@ -1,0 +1,78 @@
+#!/usr/bin/env groovy
+def buildGeArtServer = Artifactory.server('build.ge')
+
+library "security-ci-commons-shared-lib"
+def NODE = nodeDetails("uaa-upgrade")
+
+pipeline {
+    agent none
+    environment {
+        COMPLIANCEENABLED = true
+    }
+    options {
+        timestamps()
+        skipDefaultCheckout()
+        buildDiscarder(logRotator(artifactNumToKeepStr: '30', numToKeepStr: '30'))
+    }
+    parameters  {
+        choice(
+            name: 'DEPLOYMENT_ENVIRONMENT',
+            description: 'This specifies which EKS environment to test',
+            choices: 'dev\nint'
+        )
+        string(
+            name: 'UAA_K8S_DEPLOY_BRANCH',
+            defaultValue: 'master',
+            description: 'uaa-k8s-deploy repo branch to use for testing'
+        )
+    }
+    stages {
+        stage('Run acceptance tests in eks') {
+            agent{
+                docker {
+                    image "${NODE['IMAGE']}"
+                    label "${NODE['LABEL']}"
+                    args "${NODE['ARGS']}"
+                }
+            }
+            steps {
+                script {
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} (env: ${params.DEPLOYMENT_ENVIRONMENT})"
+                }
+
+                dir('uaa') {
+                    checkout scm
+                }
+
+                dir('uaa-k8s-deploy') {
+                    git changelog: false, credentialsId: 'github.devtools.predix.io', poll: false,
+                        url: 'https://github.devtools.predix.io/predix-security/uaa-k8s-deploy.git',
+                        branch: params.UAA_K8S_DEPLOY_BRANCH
+                }
+
+                sh '''#!/bin/bash -ex
+                    echo 'Installing yq'
+                    wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+                    chmod a+x /usr/local/bin/yq
+                    yq --version
+
+                    pushd uaa-k8s-deploy
+                        ./scripts/uaa-acceptance-tests.sh $DEPLOYMENT_ENVIRONMENT with_propel_proxy
+                    popd
+                '''
+            }
+            post{
+                always {
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'uaa/uaa/build/reports/tests/acceptanceTest',
+                        reportFiles: 'index.html',
+                        reportName: 'Acceptance Test Results'
+                    ]
+                }
+            }
+        }
+    }
+}
