@@ -74,16 +74,9 @@ public class SamlLoginAT {
     
     protected final static Logger logger = LoggerFactory.getLogger(SamlLoginAT.class);
 
+    @Value("${ACCEPTANCE_ZONE_URL:}")
+    String baseUrl;
 
-    @Value("${PUBLISHED_HOST:predix-uaa-integration}")
-    String publishedHost;
-    
-    @Value("${CF_DOMAIN:run.aws-usw02-dev.ice.predix.io}")
-    String cfDomain;
-    
-    @Value("${ACCEPTANCE_SUBDOMAIN:uaa-acceptance-zone}")
-    String zoneSubdomain;
-    
     @Value("${ACCEPTANCE_ZONE_ID:uaa-acceptance-zone}")
     String acceptanceZoneId;
     
@@ -93,25 +86,11 @@ public class SamlLoginAT {
     @Value("${SAML_IDP_USER_PW}")
     String GESSOPassword;
 
-    @Value("${RUN_AGAINST_LOCAL_UAA:false}")
-    boolean runAgainstLocalUaa;
-
-    @Value("${UAA_HOST:}")
-    String uaaHost;
-
-    @Value("${UAA_PORT:}")
-    String uaaPort;
-
-    @Value("${UAA_PATH:}")
-    String uaaPath;
-
     @Autowired
     TestAccounts testAccounts;
 
     @Autowired
     TestClient testClient;
-    
-    String baseUrl;
     
     String zoneAdminToken;
 
@@ -133,13 +112,6 @@ public class SamlLoginAT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
-        if (this.runAgainstLocalUaa) {
-            String path = StringUtils.isEmpty(this.uaaPath) ? "" : "/" + this.uaaPath;
-            this.baseUrl = "http://" + this.zoneSubdomain + "." + this.uaaHost + ":" + this.uaaPort + path;
-        }
-        else {
-            this.baseUrl = "https://" + this.zoneSubdomain + "."  + this.publishedHost + "." + this.cfDomain;
-        }
         this.zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(this.baseUrl, "admin", "acceptance-test");
         this.screenShootRule.setWebDriver(this.webDriver);
     }
