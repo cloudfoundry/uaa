@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.http.Header;
 import org.apache.http.HttpHeaders;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -64,7 +65,7 @@ public class FormLoginIntegrationTests {
     @Before
     public void createHttpClient() {
         httpclient = HttpClients.custom()
-            .setDefaultRequestConfig(RequestConfig.DEFAULT)
+            .setDefaultRequestConfig(RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build())
             .setDefaultHeaders(headers)
             .setDefaultCookieStore(cookieStore)
             .build();
