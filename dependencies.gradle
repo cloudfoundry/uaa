@@ -13,12 +13,12 @@ versions.springBootVersion = "2.7.5"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE" // this lib has reached EOL in 2021, must be replaced (https://spring.io/projects/spring-security-saml#support)
-versions.tomcatCargoVersion = "9.0.69"
+versions.tomcatVersion = "9.0.69"
 versions.statsdClientVersion = "3.1.0" // statsd is not included in spring-boot 2.2 and later, so we need to specify the dependency explicitly
 versions.junitVersion = "4.13.2" // Needed to support junit 4 with spring-boot 2.4
 
 ext {
-    tomcatCargoVersion = "${versions.tomcatCargoVersion}"
+    tomcatVersion = "${versions.tomcatVersion}"
     libraries = [:]
 }
 
@@ -102,9 +102,11 @@ libraries.statsdClient = "com.timgroup:java-statsd-client:${versions.statsdClien
 libraries.thymeleafDialect = "nz.net.ultraq.thymeleaf:thymeleaf-layout-dialect"
 libraries.thymeleafExtrasSpringSecurity5 = "org.thymeleaf.extras:thymeleaf-extras-springsecurity5"
 libraries.thymeleafSpring5 = "org.thymeleaf:thymeleaf-spring5"
-libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core"
-libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core"
-libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc"
+libraries.tomcatElApi = "org.apache.tomcat:tomcat-el-api:${versions.tomcatVersion}"
+libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
+libraries.tomcatEmbed = "org.apache.tomcat.embed:tomcat-embed-core:${versions.tomcatVersion}"
+libraries.tomcatJasperEl = "org.apache.tomcat:tomcat-jasper-el:${versions.tomcatVersion}"
+libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatVersion}"
 libraries.unboundIdLdapSdk = "com.unboundid:unboundid-ldapsdk"
 libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.26"
 libraries.zxing = "com.google.zxing:javase:3.5.1"

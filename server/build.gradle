@@ -89,6 +89,8 @@ dependencies {
 
     testImplementation(libraries.postgresql)
 
+    testImplementation(libraries.tomcatElApi)
+    testImplementation(libraries.tomcatJasperEl)
     testImplementation(libraries.tomcatJdbc)
 
     testImplementation(libraries.jsonPathAssert)
