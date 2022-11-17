@@ -22,6 +22,8 @@ public interface IdentityZoneProvisioning {
 
     IdentityZone retrieve(String id);
 
+    IdentityZone retrieveByName(String name);
+
     IdentityZone retrieveBySubdomain(String subdomain);
 
     List<IdentityZone> retrieveAll();
