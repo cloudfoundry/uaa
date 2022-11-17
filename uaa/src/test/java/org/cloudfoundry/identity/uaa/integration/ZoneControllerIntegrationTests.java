@@ -1,0 +1,169 @@
+package org.cloudfoundry.identity.uaa.integration;
+
+import static org.cloudfoundry.identity.uaa.zone.ZoneService.X_IDENTITY_ZONE_ID;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.UUID;
+
+import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.model.ZoneResponse;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
+import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
+import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.web.client.RestTemplate;
+
+@OAuth2ContextConfiguration(ZoneControllerIntegrationTests.ZoneClient.class)
+public class ZoneControllerIntegrationTests {
+
+    @Rule
+    public ServerRunning serverRunning = ServerRunning.isRunning();
+
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+
+    @Rule
+    public OAuth2ContextSetup context = OAuth2ContextSetup.standard(serverRunning);
+
+    @Rule
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+
+    private RestTemplate client;
+
+    @Before
+    public void createRestTemplate() {
+        client = (OAuth2RestTemplate) serverRunning.getRestTemplate();
+        client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
+            // Pass errors through in response entity for status code analysis
+            @Override
+            public boolean hasError(ClientHttpResponse response) {
+                return false;
+            }
+
+            @Override
+            public void handleError(ClientHttpResponse response) {
+            }
+        });
+    }
+
+    @Test
+    public void testGetZone() {
+        //TODO: delete once the orchestrator create API implemented
+        IdentityZone identityZone = createZone();
+        assertNotNull(identityZone);
+        ResponseEntity<ZoneResponse> response = client.getForEntity(
+            serverRunning.getUrl("/zones") + "?name=" + identityZone.getName(),
+            ZoneResponse.class);
+        if (response.getStatusCode().is2xxSuccessful()) {
+            ZoneResponse zoneResponse = response.getBody();
+            assertNotNull(zoneResponse);
+            assertNotNull(identityZone);
+            assertNotNull(zoneResponse.getParameters());
+            assertEquals(identityZone.getSubdomain(), zoneResponse.getParameters().getSubdomain());
+            assertEquals(identityZone.getSubdomain(), zoneResponse.getConnectionDetails().getSubdomain());
+            String uri = "http://" + identityZone.getSubdomain() + ".localhost:8080/uaa";
+            assertEquals(uri, zoneResponse.getConnectionDetails().getUri());
+            assertEquals("http://localhost:8080/dashboard", zoneResponse.getConnectionDetails().getDashboardUri());
+            assertEquals(uri + "/oauth/token", zoneResponse.getConnectionDetails().getIssuerId());
+            assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
+            assertEquals(identityZone.getId(), zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
+        } else {
+            fail("Server not returning expected status code");
+        }
+    }
+
+    @Test
+    public void testGetZone_Notfound() {
+        ResponseEntity<String> response = client.getForEntity(
+            serverRunning.getUrl("/zones") + "?name=random-name",
+            String.class);
+        if (response.getStatusCode().is4xxClientError()) {
+            assertEquals(response.getStatusCode(), HttpStatus.NOT_FOUND);
+            assertNotNull(response.getBody());
+            assertEquals("{\"message\", \"Zone[random-name] not found.\" }", response.getBody().toString());
+        } else {
+            fail("Server not returning expected status code");
+        }
+    }
+
+    @Test
+    public void testGetZone_EmptyError() {
+        ResponseEntity<String> response = client.getForEntity(
+            serverRunning.getUrl("/zones"),
+            String.class);
+        if (response.getStatusCode().is4xxClientError()) {
+            assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
+            assertNotNull(response.getBody());
+            assertEquals(
+                "{\"message\", \"Required request parameter 'name' for method parameter type String is not present\" }",
+                response.getBody().toString());
+        } else {
+            fail("Server not returning expected status code");
+        }
+    }
+
+    @Test
+    public void testGetZone_NameRequiredError() {
+        ResponseEntity<String> response = client.getForEntity(
+            serverRunning.getUrl("/zones") + "?name=",
+            String.class);
+        if (response.getStatusCode().is4xxClientError()) {
+            assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
+            assertNotNull(response.getBody());
+            assertEquals("{\"message\", \"getZone.name: must not be empty\" }", response.getBody().toString());
+        } else {
+            fail("Server not returning expected status code");
+        }
+    }
+
+    //TODO: delete once the orchestrator create API implemented
+    private IdentityZone createZone() {
+        String zoneId = UUID.randomUUID().toString();
+        String requestBody =
+            "{\"id\":\"" + zoneId + "\", \"subdomain\":\"" + zoneId + "\", \"name\":\"testCreateZone() " + zoneId +
+            "\"}";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+
+        ResponseEntity<IdentityZone> response = client.exchange(
+            serverRunning.getUrl("/identity-zones"),
+            HttpMethod.POST,
+            new HttpEntity<>(requestBody, headers),
+            new ParameterizedTypeReference<IdentityZone>() { });
+        if (response.getStatusCode().is2xxSuccessful()) {
+            return response.getBody();
+        }
+        return null;
+    }
+
+    static class ZoneClient extends ClientCredentialsResourceDetails {
+
+        public ZoneClient(Object target) {
+            ZoneControllerIntegrationTests test = (ZoneControllerIntegrationTests) target;
+            ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
+                new String[] { "zones.write" }, "identity", "identitysecret");
+            setClientId(resource.getClientId());
+            setClientSecret(resource.getClientSecret());
+            setId(getClientId());
+            setAccessTokenUri(test.serverRunning.getAccessTokenUri());
+        }
+    }
+}
