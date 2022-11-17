@@ -23,7 +23,7 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return true;
         }
 
-        if (encodedPassword == null) {
+        if (rawPassword == null || encodedPassword == null) {
             return false;
         }
 

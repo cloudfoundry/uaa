@@ -562,7 +562,7 @@ class ClientAdminBootstrapTests {
         );
     }
 
-    private static ClientDetails doSimpleTest(
+    static ClientDetails doSimpleTest(
             final Map<String, Object> map,
             final ClientAdminBootstrap clientAdminBootstrap,
             final MultitenantJdbcClientDetailsService clientRegistrationService,
@@ -605,7 +605,7 @@ class ClientAdminBootstrapTests {
         return created;
     }
 
-    private static void assertSet(
+    static void assertSet(
             final String expectedValue,
             final Collection defaultValueIfNull,
             final Collection actualValue,
@@ -631,7 +631,7 @@ class ClientAdminBootstrapTests {
         assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
     }
 
-    private static Map<String, Object> createClientMap(final String clientId) {
+    static Map<String, Object> createClientMap(final String clientId) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", clientId);
         map.put("secret", "bar");
