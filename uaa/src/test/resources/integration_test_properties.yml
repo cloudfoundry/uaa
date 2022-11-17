@@ -168,6 +168,8 @@ NUREGO_API_URL: https://am-staging.nurego.com
 uaa:
   # The hostname of the UAA that this login server will connect to
   url: http://localhost:8080/uaa
+  dashboard:
+    uri: http://localhost:8080/dashboard
   token:
     url: http://localhost:8080/uaa/oauth/token
   approvals:
