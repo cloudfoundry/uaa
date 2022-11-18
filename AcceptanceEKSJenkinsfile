@@ -35,6 +35,10 @@ pipeline {
                     args "${NODE['ARGS']}"
                 }
             }
+            environment {
+                ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_EKS_${DEPLOYMENT_ENVIRONMENT.toUpperCase()}")
+                FUNCTIONAL_USER = credentials("FUNCTIONAL_USER")
+            }
             steps {
                 script {
                     currentBuild.displayName = "#${env.BUILD_NUMBER} (env: ${params.DEPLOYMENT_ENVIRONMENT})"
@@ -55,6 +59,11 @@ pipeline {
                     wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
                     chmod a+x /usr/local/bin/yq
                     yq --version
+
+                    export ARTIFACTORY_READER=$FUNCTIONAL_USER_USR
+                    export ARTIFACTORY_READER_PW=$FUNCTIONAL_USER_PSW
+                    export SAML_IDP_USER=$FUNCTIONAL_USER_USR
+                    export SAML_IDP_USER_PW=$FUNCTIONAL_USER_PSW
 
                     pushd uaa-k8s-deploy
                         ./scripts/uaa-acceptance-tests.sh $DEPLOYMENT_ENVIRONMENT with_propel_proxy
