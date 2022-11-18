@@ -1,18 +1,13 @@
 #query to run to confirm docker openldap is up and running with correct configuration
-set +x
 
-#ldapsearch -x -L -H ldap://localhost:389/ -b dc=test,dc=com
-#ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com
-ldapsearch -vvv -x -L -H ldap://localhost -b dc=example,dc=org
-echo ===============================================================================
-#ldapsearch -x -L -H ldap://localhost:389/ -b dc=test,dc=com -D "cn=admin,dc=test,dc=com" -w password
+set -e
 
+echo ==================================GET all userApplication attributes using anonymous bind=============================================
 
-#ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=admin,dc=example,dc=org" -w password
-ldapsearch -vvv -x -L -H ldap://localhost -b dc=example,dc=org -D "cn=admin,dc=example,dc=org" -w password
+ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com
 
+echo =====================================Bind with Admin and Seach for user01==========================================
 
+ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=admin,dc=test,dc=com" -w password "(cn=user01)"
 
-#ldapsearch -vvv -x -L -H ldap://localhost -b dc=test,dc=com -D "cn=confadmin,dc=test,dc=com" -w configpassword
-#ldapsearch -x -L -H ldap://localhost -b dc=test,dc=com -D "dc=test,dc=com" -w password
-#ldapsearch -x -L -H ldap://localhost -b dc=test,dc=com -D "test.com" -w password
+echo -e "\n*********** SUCCESS"

@@ -5,7 +5,6 @@
 #spring_profiles: mysql,default,ldap
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
-spring_profiles: ldap,default,hsqldb
 #spring_profiles: ldap
 #spring_profiles: saml
 #spring_profiles: keystone,default,hsqldb
@@ -567,50 +566,11 @@ uaa:
 #  password:
 
 ldap:
-  override: true
-  ldapdebug: Ldap configured through UAA
   profile:
     file: ldap/ldap-search-and-bind.xml
-  ssl:
-    skipverification: false
-    tls:
-      none
   base:
     url: 'ldap://localhost:389/'
-    mailAttributeName: mail
-    mailSubstitute: ''
-    mailSubstituteOverridesLdap: false
-    referral: follow
-    userDn: 'cn=admin,dc=example,dc=org'
+    userDn: 'cn=admin,dc=test,dc=com'
     password: 'password'
-    searchBase: 'ou=users,dc=example,dc=org'
+    searchBase: 'dc=test,dc=com'
     searchFilter: 'cn={0}'
-#    passwordAttributeName: userPassword
-  addShadowUserOnLogin: true
-  emailDomain: []
-  storeCustomAttributes: true
-  externalGroupsWhitelist:
-    - "*"
-  groups:
-    file: 'ldap/ldap-groups-map-to-scopes.xml'
-    searchBase: 'dc=example,dc=org'
-    groupRoleAttribute: spring.security.ldap.dn
-    groupSearchFilter: member={0}
-    searchSubtree: 'true'
-    maxSearchDepth: '1'
-#    searchSubtree: true
-#    maxSearchDepth: 10
-#    autoAdd: true
-#    ignorePartialResultException: true
-
-
-#ldap:
-#    referral: follow
-#  groups:
-#      file: 'ldap/ldap-groups-map-to-scopes.xml'
-#      searchBase: 'dc=test,dc=com'
-#      groupSearchFilter: 'member={0}'
-#      searchSubtree: true
-#      maxSearchDepth: 10
-#      autoAdd: true
-#      ignorePartialResultException: true
