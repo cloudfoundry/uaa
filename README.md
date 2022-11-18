@@ -167,4 +167,19 @@ In CloudFoundry terms
 * `app` is a webapp that needs single sign on and access to the `api`
   service on behalf of users.
 
+## Connecting UAA to local LDAP Server
 
+Requirements:
+* [Docker](https://docs.docker.com/engine/reference/commandline/cli/)
+* [Docker Compose](https://docs.docker.com/compose/reference/)
+
+To debug UAA and LDAP integrations, we use an OpenLdap docker image from [VMWare's Bitnami project](https://github.com/bitnami/bitnami-docker-openldap)
+
+1. Modify file `uaa/src/main/resources/uaa.yml` and enable LDAP by uncommenting line 7, `spring_profiles: ldap,default,hsqldb`
+1. run `docker-compose up` from directory `scripts/ldap`
+2. From `scripts/ldap` verify connectivity to running OpenLdap container by running `docker-confirm-ldapquery.sh`
+3. Start UAA with `./gradlew run`
+4. Navigate to [`/uaa`](http://localhost:8080/uaa) and log in with LDAP user `user01` and password `password1`
+
+Use below command to clean-up container and volume:
+- `docker-compose down --volumes`
