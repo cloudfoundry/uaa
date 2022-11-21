@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import lombok.NonNull;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
@@ -18,7 +19,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterFactorySupplierUpdatable;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.LimiterImpl;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 
 public class LimiterManagerImpl implements LimiterManager,
@@ -121,8 +122,8 @@ public class LimiterManagerImpl implements LimiterManager,
     }
 
     // package protected for testing
-    LimiterManagerImpl( MillisTimeSupplier currentTimeSupplier ) {
-        currentTimeSupplier = MillisTimeSupplier.deNull( currentTimeSupplier );
+    LimiterManagerImpl( NanoTimeSupplier currentTimeSupplier ) {
+        currentTimeSupplier = NanoTimeSupplier.deNull( currentTimeSupplier );
         limiterByCompoundKey = new LimiterByCompoundKey( currentTimeSupplier );
         expirationBuckets = new ExpirationBuckets( currentTimeSupplier, limiterByCompoundKey,
                                                    RequestsPerWindowSecs.MAX_WINDOW_SECONDS );
@@ -131,7 +132,7 @@ public class LimiterManagerImpl implements LimiterManager,
                 .status( RateLimiterStatus.builder()
                                  .current( RateLimiterStatus.Current.builder()
                                                    .status( RateLimiterStatus.CurrentStatus.DISABLED )
-                                                   .asOf( currentTimeSupplier.now() )
+                                                   .asOf( TimeUnit.NANOSECONDS.toMillis(currentTimeSupplier.now()))
                                                    .build() )
                                  .build() )
                 .build();

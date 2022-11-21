@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -14,7 +14,7 @@ class InternalLimiterFactoryImplTest {
     private static final String NAME = "Test";
     private static final String REQUESTS_PER_WINDOW = "5r/2s";
 
-    private final MillisTimeSupplier.Mock mockCurrentTimeSupplier = new MillisTimeSupplier.Mock();
+    private final NanoTimeSupplier.Mock mockCurrentTimeSupplier = new NanoTimeSupplier.Mock();
 
     @Test
     void constructorOptionsTest() {
@@ -45,7 +45,7 @@ class InternalLimiterFactoryImplTest {
         assertEquals( compoundKey, limiter.getCompoundKey() );
         assertEquals( factory.getInitialRequestsRemaining(), limiter.getRequestsRemaining() );
 
-        mockCurrentTimeSupplier.add( windowSecs * 1000L ); // Millis
+        mockCurrentTimeSupplier.add( windowSecs * 1000000000L ); // Nanos
 
         assertEquals( mockCurrentTimeSupplier.nowAsInstant(), limiter.getWindowEndExclusive() );
     }
