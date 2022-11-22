@@ -17,8 +17,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -31,7 +31,7 @@ implements Cloneable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private HashMap<String, String> jwtclientAuthentication;
+    private Map<String, String> jwtclientAuthentication;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -66,12 +66,12 @@ implements Cloneable {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public HashMap<String, String> getJwtclientAuthentication() {
+    public Map<String, String> getJwtclientAuthentication() {
         return this.jwtclientAuthentication;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public void setJwtclientAuthentication(final HashMap<String, String> jwtclientAuthentication) {
+    public void setJwtclientAuthentication(final Map<String, String> jwtclientAuthentication) {
         this.jwtclientAuthentication = jwtclientAuthentication;
     }
 

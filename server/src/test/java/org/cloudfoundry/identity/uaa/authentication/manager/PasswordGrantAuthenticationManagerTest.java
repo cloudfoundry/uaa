@@ -9,7 +9,10 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -28,6 +31,7 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -39,7 +43,9 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -354,7 +360,46 @@ class PasswordGrantAuthenticationManagerTest {
             instance.authenticate(auth);
             fail();
         } catch (ProviderConfigurationException e) {
-            assertEquals("External OpenID Connect provider configuration is missing relyingPartyId or relyingPartySecret.", e.getMessage());
+            assertEquals("External OpenID Connect provider configuration is missing relyingPartyId.", e.getMessage());
+        }
+    }
+
+    @Test
+    void testOIDCPasswordGrantProviderJwtClientCredentials() throws MalformedURLException {
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
+        when(localIdp.getConfig()).thenReturn(idpConfig);
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(idpConfig.getRelyingPartyId()).thenReturn("clientId");
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
+        when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost"));
+
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
+        when(externalOAuthProviderConfigurator.retrieveByOrigin("oidcprovider", "uaa")).thenReturn(localIdp);
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        KeyInfoService keyInfoService = mock(KeyInfoService.class);
+        KeyInfo keyInfo = mock(KeyInfo.class);
+        Signer signer = mock(Signer.class);
+        when(externalOAuthAuthenticationManager.getKeyInfoService()).thenReturn(keyInfoService);
+        when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
+        when(keyInfo.algorithm()).thenReturn("HS256");
+        when(keyInfo.getSigner()).thenReturn(signer);
+        when(signer.sign(any())).thenReturn("xxxx".getBytes());
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
+        RestTemplate rt = mock(RestTemplate.class);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+        when(rt.exchange(any(), any(HttpMethod.class), any(), any(ParameterizedTypeReference.class), any(Object.class))).thenThrow(new HttpClientErrorException(
+            HttpStatus.CONFLICT, "", "jwt client error".getBytes(), Charset.defaultCharset()));
+        try {
+            instance.authenticate(auth);
+            fail();
+        } catch (BadCredentialsException e) {
+            assertEquals("jwt client error", e.getMessage());
         }
     }
 
