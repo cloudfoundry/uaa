@@ -61,6 +61,16 @@ public class OauthIDPWrapperFactoryBean {
                         oidcIdentityProviderDefinition.setPasswordGrantEnabled(idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
                         oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
                         oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
+                        if (idpDefinitionMap.get("jwtclientAuthentication") != null) {
+                            if (idpDefinitionMap.get("jwtclientAuthentication") instanceof Boolean) {
+                                Boolean jwtClientAuthentication = (Boolean) idpDefinitionMap.get("jwtclientAuthentication");
+                                if (jwtClientAuthentication == true) {
+                                    oidcIdentityProviderDefinition.setJwtclientAuthentication(new HashMap<>());
+                                }
+                            } else if (idpDefinitionMap.get("jwtclientAuthentication") instanceof HashMap) {
+                                oidcIdentityProviderDefinition.setJwtclientAuthentication((HashMap<String, String>) idpDefinitionMap.get("jwtclientAuthentication"));
+                            }
+                        }
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
                         rawDef = oidcIdentityProviderDefinition;
                         provider.setType(OriginKeys.OIDC10);
