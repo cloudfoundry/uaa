@@ -320,3 +320,20 @@ Here are some ways for you to get involved in the community:
   in [Github Actions](https://github.com/cloudfoundry/uaa/actions) and on [Sonar](https://sonarcloud.io/project/pull_requests_list?id=cloudfoundry-identity-parent). 
   The goal for new code should be close to 100% tested and clean code: 
   [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=cloudfoundry-identity-parent&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=cloudfoundry-identity-parent)
+
+# Connecting UAA to local LDAP Server
+
+Requirements:
+* [Docker](https://docs.docker.com/engine/reference/commandline/cli/)
+* [Docker Compose](https://docs.docker.com/compose/reference/)
+
+To debug UAA and LDAP integrations, we use an OpenLdap docker image from [VMWare's Bitnami project](https://github.com/bitnami/bitnami-docker-openldap)
+
+1. Modify file `uaa/src/main/resources/uaa.yml` and enable LDAP by uncommenting line 7, `spring_profiles: ldap,default,hsqldb`
+1. run `docker-compose up` from directory `scripts/ldap`
+2. From `scripts/ldap` verify connectivity to running OpenLdap container by running `docker-confirm-ldapquery.sh`
+3. Start UAA with `./gradlew run`
+4. Navigate to [`/uaa`](http://localhost:8080/uaa) and log in with LDAP user `user01` and password `password1`
+
+Use below command to clean-up container and volume:
+- `docker-compose down --volumes`
