@@ -64,7 +64,7 @@ public class OauthIDPWrapperFactoryBean {
                         if (idpDefinitionMap.get("jwtclientAuthentication") != null) {
                             if (idpDefinitionMap.get("jwtclientAuthentication") instanceof Boolean) {
                                 Boolean jwtClientAuthentication = (Boolean) idpDefinitionMap.get("jwtclientAuthentication");
-                                if (jwtClientAuthentication == true) {
+                                if (jwtClientAuthentication) {
                                     oidcIdentityProviderDefinition.setJwtclientAuthentication(new HashMap<>());
                                 }
                             } else if (idpDefinitionMap.get("jwtclientAuthentication") instanceof HashMap) {
