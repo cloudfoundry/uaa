@@ -34,6 +34,8 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY = IDENTITY_ZONES_QUERY + "where id=?";
 
+    public static final String IDENTITY_ZONE_BY_NAME_QUERY = IDENTITY_ZONES_QUERY + "where name=? and active = ?";
+
     public static final String IDENTITY_ZONE_BY_ID_QUERY_ACTIVE = IDENTITY_ZONE_BY_ID_QUERY + " and active = ?";
 
     public static final String IDENTITY_ZONE_BY_SUBDOMAIN_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where subdomain=? and active = ?";
@@ -54,6 +56,15 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone[" + id + "] not found.", x);
+        }
+    }
+
+    @Override
+    public IdentityZone retrieveByName(String name) {
+        try {
+            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_NAME_QUERY, mapper, name, true);
+        } catch (EmptyResultDataAccessException x) {
+            throw new ZoneDoesNotExistsException("Zone[" + name + "] not found.", x);
         }
     }
 

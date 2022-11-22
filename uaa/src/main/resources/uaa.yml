@@ -508,6 +508,8 @@ uaa:
     url: http://localhost:8080/uaa/approvals
   login:
     url: http://localhost:8080/uaa/authenticate
+  dashboard:
+    uri: http://localhost:8080/dashboard
   limitedFunctionality:
     enabled: false
     whitelist:
