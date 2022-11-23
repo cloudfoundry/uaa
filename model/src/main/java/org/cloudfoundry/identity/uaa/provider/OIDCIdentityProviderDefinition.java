@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 
@@ -31,7 +30,7 @@ implements Cloneable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Map<String, String> jwtClientAuthentication;
+    private Object jwtClientAuthentication;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -66,12 +65,12 @@ implements Cloneable {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Map<String, String> getJwtClientAuthentication() {
+    public Object getJwtClientAuthentication() {
         return this.jwtClientAuthentication;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public void setJwtClientAuthentication(final Map<String, String> jwtClientAuthentication) {
+    public void setJwtClientAuthentication(final Object jwtClientAuthentication) {
         this.jwtClientAuthentication = jwtClientAuthentication;
     }
 

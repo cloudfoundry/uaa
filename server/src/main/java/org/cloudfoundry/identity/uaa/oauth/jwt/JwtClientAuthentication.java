@@ -8,6 +8,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,8 +25,9 @@ public class JwtClientAuthentication {
   }
 
   public String getClientAssetion(OIDCIdentityProviderDefinition config) {
-    String issuer = Optional.ofNullable(config.getJwtClientAuthentication().get("iss")).orElse(config.getRelyingPartyId());
-    String audience = Optional.ofNullable(config.getJwtClientAuthentication().get("aud")).orElse(config.getTokenUrl().toString());
+    HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
+    String issuer = Optional.ofNullable(jwtClientConfiguration.get("iss")).orElse(config.getRelyingPartyId());
+    String audience = Optional.ofNullable(jwtClientConfiguration.get("aud")).orElse(config.getTokenUrl().toString());
     Claims claims = new Claims();
     claims.setAud(Arrays.asList(audience));
     claims.setSub(config.getRelyingPartyId());
@@ -46,5 +48,15 @@ public class JwtClientAuthentication {
     params.add("client_assertion_type", GRANT_TYPE);
     params.add("client_assertion", getClientAssetion(config));
     return params;
+  }
+
+  private static HashMap<String, String> getJwtClientConfigurationElements(Object jwtClientAuthentication) {
+    HashMap<String, String> jwtClientConfiguration = null;
+    if (jwtClientAuthentication instanceof Boolean && ((boolean) jwtClientAuthentication)) {
+      jwtClientConfiguration = new HashMap<>();
+    } else if (jwtClientAuthentication instanceof HashMap) {
+      jwtClientConfiguration = (HashMap<String, String>) jwtClientAuthentication;
+    }
+    return jwtClientConfiguration;
   }
 }

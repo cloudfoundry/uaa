@@ -163,6 +163,6 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
         assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
-        assertEquals("issuer", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication().get("iss"));
+        assertEquals("issuer", (((Map<String, String>)((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")));
     }
 }

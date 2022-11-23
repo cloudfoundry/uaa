@@ -373,6 +373,7 @@ class PasswordGrantAuthenticationManagerTest {
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idpConfig.getRelyingPartyId()).thenReturn("clientId");
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
+        when(idpConfig.getJwtClientAuthentication()).thenReturn(true);
         when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost"));
 
         when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
