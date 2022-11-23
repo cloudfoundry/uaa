@@ -194,7 +194,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
         assertFalse(definition.getTokenPolicy().isRefreshTokenUnique());
         assertEquals(JWT.getStringValue(), definition.getTokenPolicy().getRefreshTokenFormat());
-        assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID));
+        assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID).getSigningKey());
     }
 
     @Test

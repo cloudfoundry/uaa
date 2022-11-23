@@ -33,6 +33,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -76,6 +78,25 @@ class TokenKeyEndpointTests {
       "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
       "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
       "-----END RSA PRIVATE KEY-----";
+
+    public static final String CERTIFICATE_1 = "-----BEGIN CERTIFICATE-----\n" +
+        "MIIC6TCCAlICCQDN85uMN+4K5jANBgkqhkiG9w0BAQsFADCBuDELMAkGA1UEBhMC\n" +
+        "VVMxCzAJBgNVBAgMAkNBMRYwFAYDVQQHDA1TYW4gRnJhbmNpc2NvMR0wGwYDVQQK\n" +
+        "DBRQaXZvdGFsIFNvZnR3YXJlIEluYzEeMBwGA1UECwwVQ2xvdWRmb3VuZHJ5IElk\n" +
+        "ZW50aXR5MRswGQYDVQQDDBJ1YWEucnVuLnBpdm90YWwuaW8xKDAmBgkqhkiG9w0B\n" +
+        "CQEWGXZjYXAtZGV2QGNsb3VkZm91bmRyeS5vcmcwHhcNMTUwMzAyMTQyMDQ4WhcN\n" +
+        "MjUwMjI3MTQyMDQ4WjCBuDELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAkNBMRYwFAYD\n" +
+        "VQQHDA1TYW4gRnJhbmNpc2NvMR0wGwYDVQQKDBRQaXZvdGFsIFNvZnR3YXJlIElu\n" +
+        "YzEeMBwGA1UECwwVQ2xvdWRmb3VuZHJ5IElkZW50aXR5MRswGQYDVQQDDBJ1YWEu\n" +
+        "cnVuLnBpdm90YWwuaW8xKDAmBgkqhkiG9w0BCQEWGXZjYXAtZGV2QGNsb3VkZm91\n" +
+        "bmRyeS5vcmcwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAN0u5J4BJUDgRv6I\n" +
+        "h5/r7rZjSrFVLL7bl71CzBIaVk1BQPYfBC8gggGAWmYYxJV0Kz+2Vx0Z96OnXhJk\n" +
+        "gG46Zo2KMDudEeSdXou+dSBNISDv4VpLKUGnVU4n/L0khbI+jX51aS80ub8vThca\n" +
+        "bkdY5x4Ir8G3QCQvCGKgU2emfFe7AgMBAAEwDQYJKoZIhvcNAQELBQADgYEAXghg\n" +
+        "PwMhO0+dASJ83e2Bu63pKO808BrVjD51sSEMb0qwFc5IV6RzK/mkJgO0fphhoqOm\n" +
+        "ZLzGcSYwCmj0Vc0GO5NgnFVZg4N9CyYCpDMeQynumlrNhRgnZRzlqXtQgL2bQDiu\n" +
+        "coxNL/KY05iVlE1bmq/fzNEmEi2zf3dQV8CNSYs=\n" +
+        "-----END CERTIFICATE-----";
 
     @BeforeEach
     void setUp() {
@@ -123,7 +144,7 @@ class TokenKeyEndpointTests {
 
     @Test
     void keyIsReturnedForZone() {
-        createAndSetTestZoneWithKeys(Collections.singletonMap("key1", SIGNING_KEY_1));
+        createAndSetTestZoneWithKeys(Collections.singletonMap("key1", SIGNING_KEY_1), CERTIFICATE_1);
 
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(mock(Principal.class));
         Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
@@ -136,6 +157,7 @@ class TokenKeyEndpointTests {
         assertEquals("key1", response.getId());
         assertEquals("RSA", response.getType());
         assertEquals("sig", response.getUse().name());
+        assertEquals("ijN2hCBB85pSpHSUQGBLK2xGurY", response.getX5t());
     }
 
     @Test
@@ -251,10 +273,20 @@ class TokenKeyEndpointTests {
     }
 
     private IdentityZone createAndSetTestZoneWithKeys(Map<String, String> keys) {
+        return createAndSetTestZoneWithKeys(keys, null);
+    }
+    private IdentityZone createAndSetTestZoneWithKeys(Map<String, String> keys, String cert ) {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         TokenPolicy tokenPolicy = new TokenPolicy();
-        tokenPolicy.setKeys(keys);
+        Map<String, TokenPolicy.KeyInformation> keyInformationMap = Optional.ofNullable(keys).filter(Objects::nonNull).orElse(new HashMap<>())
+            .entrySet().stream().filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, e -> {
+            TokenPolicy.KeyInformation keyInfo = new TokenPolicy.KeyInformation();
+            keyInfo.setSigningKey(e.getValue());
+            keyInfo.setSigningCert(cert);
+            return keyInfo;
+        }));
+        tokenPolicy.setKeyInformation(keyInformationMap);
         config.setTokenPolicy(tokenPolicy);
         zone.setConfig(config);
         IdentityZoneHolder.set(zone);

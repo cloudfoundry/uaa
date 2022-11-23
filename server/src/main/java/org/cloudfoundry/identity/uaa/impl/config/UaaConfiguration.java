@@ -153,6 +153,8 @@ public class UaaConfiguration {
             @NotNull(message = "'token:' requires 'signing-key'")
             public String signingKey;
             public String verificationKey;
+            public String signingCert;
+            public String signingAlg;
             public Claims claims;
             public Policy policy;
             public static class Claims {
@@ -266,6 +268,8 @@ public class UaaConfiguration {
             addPropertyAlias("password-policy", UaaConfiguration.class, "passwordPolicy");
             addPropertyAlias("required-score", PasswordPolicy.class, "requiredScore");
             addPropertyAlias("signing-key", Jwt.Token.class, "signingKey");
+            addPropertyAlias("signing-alg", Jwt.Token.class, "signingAlg");
+            addPropertyAlias("signing-cert", Jwt.Token.class, "signingCert");
             addPropertyAlias("verification-key", Jwt.Token.class, "verificationKey");
             addPropertyAlias("exclude", Jwt.Token.Claims.class, "exclusions");
             addPropertyAlias("authorized-grant-types", OAuthClient.class, "grantTypes");

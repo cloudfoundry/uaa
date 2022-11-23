@@ -56,6 +56,16 @@ public class VerificationKeyResponse extends JsonWebKey{
     }
 
     @JsonIgnore
+    public String[] getCertX5c() {
+        return getX5c();
+    }
+
+    @JsonIgnore
+    public String getCertX5t() {
+        return getX5t();
+    }
+
+    @JsonIgnore
     public String getModulus() {
         return (String) getKeyProperties().get("n");
     }

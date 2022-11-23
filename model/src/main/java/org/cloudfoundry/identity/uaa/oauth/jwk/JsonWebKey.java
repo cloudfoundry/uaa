@@ -71,6 +71,9 @@ public class JsonWebKey {
     public static String KTY = "kty";
     public static String ALG = "alg";
 
+    public static String X5C = "x5c";
+    public static String X5T = "x5t";
+
     private final Map<String, Object> json;
 
     public JsonWebKey(Map<String, Object> json) {
@@ -95,6 +98,24 @@ public class JsonWebKey {
 
     public JsonWebKey setKid(String kid) {
         this.json.put(KID, kid);
+        return this;
+    }
+
+    public String[] getX5c() {
+        return (String[]) getKeyProperties().get(X5C);
+    }
+
+    public JsonWebKey setX5c(String[] x5c) {
+        this.json.put(X5C, x5c);
+        return this;
+    }
+
+    public String getX5t() {
+        return (String) getKeyProperties().get(X5T);
+    }
+
+    public JsonWebKey setX5c(String x5t) {
+        this.json.put(X5T, x5t);
         return this;
     }
 
