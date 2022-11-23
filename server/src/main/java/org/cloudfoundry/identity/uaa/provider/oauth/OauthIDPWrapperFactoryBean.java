@@ -68,7 +68,7 @@ public class OauthIDPWrapperFactoryBean {
                                     oidcIdentityProviderDefinition.setJwtClientAuthentication(new HashMap<>());
                                 }
                             } else if (idpDefinitionMap.get("jwtclientAuthentication") instanceof HashMap) {
-                                oidcIdentityProviderDefinition.setJwtClientAuthentication((HashMap<String, String>) idpDefinitionMap.get("jwtclientAuthentication"));
+                                oidcIdentityProviderDefinition.setJwtClientAuthentication(idpDefinitionMap.get("jwtclientAuthentication"));
                             }
                         }
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
