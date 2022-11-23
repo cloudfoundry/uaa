@@ -24,20 +24,20 @@ public class JwtClientAuthentication {
   }
 
   public String getClientAssetion(OIDCIdentityProviderDefinition config) {
-    String issuer = Optional.ofNullable(config.getJwtclientAuthentication().get("iss")).orElse(config.getRelyingPartyId());
-    String audience = Optional.ofNullable(config.getJwtclientAuthentication().get("aud")).orElse(config.getTokenUrl().toString());
+    String issuer = Optional.ofNullable(config.getJwtClientAuthentication().get("iss")).orElse(config.getRelyingPartyId());
+    String audience = Optional.ofNullable(config.getJwtClientAuthentication().get("aud")).orElse(config.getTokenUrl().toString());
     Claims claims = new Claims();
     claims.setAud(Arrays.asList(audience));
     claims.setSub(config.getRelyingPartyId());
     claims.setIss(issuer);
     claims.setJti(UUID.randomUUID().toString().replace("-", ""));
     claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
-    claims.setExp(Instant.now().plusSeconds(420).getEpochSecond());
+    claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
     return JwtHelper.encode(JsonUtils.writeValueAsString(claims), keyInfoService.getActiveKey()).getEncoded();
   }
 
   public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {
-    if (Objects.isNull(config) || Objects.isNull(config.getJwtclientAuthentication())) {
+    if (Objects.isNull(config) || Objects.isNull(config.getJwtClientAuthentication())) {
       return params;
     }
     if (!params.containsKey("client_id")) {

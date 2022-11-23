@@ -689,7 +689,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             // if session is expired or other issues in retrieven code_verifier, then flow fails with 401, which is expected
             body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
             // no secret but jwtClientAuthentication
-            if (config instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) config).getJwtclientAuthentication() != null) {
+            if (config instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) config).getJwtClientAuthentication() != null) {
                 body = new JwtClientAuthentication(keyInfoService)
                     .getClientAuthenticationParameters(body, (OIDCIdentityProviderDefinition) config);
             }

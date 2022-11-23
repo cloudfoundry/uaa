@@ -31,7 +31,7 @@ implements Cloneable {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Map<String, String> jwtclientAuthentication;
+    private Map<String, String> jwtClientAuthentication;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -66,13 +66,13 @@ implements Cloneable {
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public Map<String, String> getJwtclientAuthentication() {
-        return this.jwtclientAuthentication;
+    public Map<String, String> getJwtClientAuthentication() {
+        return this.jwtClientAuthentication;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    public void setJwtclientAuthentication(final Map<String, String> jwtclientAuthentication) {
-        this.jwtclientAuthentication = jwtclientAuthentication;
+    public void setJwtClientAuthentication(final Map<String, String> jwtClientAuthentication) {
+        this.jwtClientAuthentication = jwtClientAuthentication;
     }
 
     @Override
@@ -90,6 +90,7 @@ implements Cloneable {
 
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         if (this.setForwardHeader != that.setForwardHeader) return false;
+        if (this.jwtClientAuthentication != that.jwtClientAuthentication) return false;
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
@@ -100,6 +101,7 @@ implements Cloneable {
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         result = 31 * result + (setForwardHeader ? 1 : 0);
+        result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
         return result;
     }
 }

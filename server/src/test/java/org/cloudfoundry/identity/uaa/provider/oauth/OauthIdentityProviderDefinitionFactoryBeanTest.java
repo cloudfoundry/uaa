@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,15 +23,15 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 
 public class OauthIdentityProviderDefinitionFactoryBeanTest {
 
@@ -118,13 +119,36 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     @Test
     public void jwtClientAuthenticationTrue() {
         Map<String, Map> definitions = new HashMap<>();
-        idpDefinitionMap.put("jwtclientAuthentication", true);
-        idpDefinitionMap.put("type", OIDC10);
+        idpDefinitionMap.put("jwtclientAuthentication", new Boolean(true));
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
-        assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtclientAuthentication());
+        assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
+    }
+
+    @Test
+    public void jwtClientAuthenticationNull() {
+        Map<String, Map> definitions = new HashMap<>();
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
+    }
+
+    @Test
+    public void jwtClientAuthenticationInvalidType() {
+        Map<String, Map> definitions = new HashMap<>();
+        idpDefinitionMap.put("jwtclientAuthentication", new Integer(1));
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
     }
 
     @Test
@@ -133,12 +157,12 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         Map<String, String> settings = new HashMap<>();
         settings.put("iss", "issuer");
         idpDefinitionMap.put("jwtclientAuthentication", settings);
-        idpDefinitionMap.put("type", OIDC10);
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
-        assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtclientAuthentication());
-        assertEquals("issuer", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtclientAuthentication().get("iss"));
+        assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
+        assertEquals("issuer", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication().get("iss"));
     }
 }

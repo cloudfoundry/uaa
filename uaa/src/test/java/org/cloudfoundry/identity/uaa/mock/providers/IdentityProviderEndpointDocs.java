@@ -559,7 +559,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective, if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
-                fieldWithPath("config.jwtclientAuthentication").optional(false).type(BOOLEAN).description("Only effective, if relyingPartySecret is not set or null. Uses private_key_jwt from OIDC, but allows OAuth2 (RFC 7523) variant if you define sub elements iss and aud."),
+                fieldWithPath("config.jwtClientAuthentication").optional(false).type(BOOLEAN).description("Only effective, if relyingPartySecret is not set or null. Uses private_key_jwt from OIDC or from OAuth2 (RFC 7523). Use OIDC if you set true and OAuth2 if you define sub elements iss and aud."),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
                 fieldWithPath("config.prompts[]").optional(null).type(ARRAY).description("List of fields that users are prompted on to the OIDC provider through the password grant flow. Defaults to username, password, and passcode. Any additional prompts beyond username, password, and passcode will be forwarded on to the OIDC provider."),
                 fieldWithPath("config.prompts[].name").optional(null).type(STRING).description("Name of field"),

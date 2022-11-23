@@ -63,12 +63,12 @@ public class OauthIDPWrapperFactoryBean {
                         oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
                         if (idpDefinitionMap.get("jwtclientAuthentication") != null) {
                             if (idpDefinitionMap.get("jwtclientAuthentication") instanceof Boolean) {
-                                Boolean jwtClientAuthentication = (Boolean) idpDefinitionMap.get("jwtclientAuthentication");
+                                boolean jwtClientAuthentication = (Boolean) idpDefinitionMap.get("jwtclientAuthentication");
                                 if (jwtClientAuthentication) {
-                                    oidcIdentityProviderDefinition.setJwtclientAuthentication(new HashMap<>());
+                                    oidcIdentityProviderDefinition.setJwtClientAuthentication(new HashMap<>());
                                 }
                             } else if (idpDefinitionMap.get("jwtclientAuthentication") instanceof HashMap) {
-                                oidcIdentityProviderDefinition.setJwtclientAuthentication((HashMap<String, String>) idpDefinitionMap.get("jwtclientAuthentication"));
+                                oidcIdentityProviderDefinition.setJwtClientAuthentication((HashMap<String, String>) idpDefinitionMap.get("jwtclientAuthentication"));
                             }
                         }
                         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);

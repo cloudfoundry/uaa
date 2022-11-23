@@ -22,7 +22,9 @@ import org.junit.Test;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -55,5 +57,17 @@ public class OIDCIdentityProviderDefinitionTests {
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertEquals(prompts, def.getPrompts());
+    }
+
+    @Test
+    public void serialize_jwtClientAuthentication() {
+        OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
+        assertNull(def.getPrompts());
+        Map<String, String> settings = new HashMap<>();
+        settings.put("iss", "issuer");
+        def.setJwtClientAuthentication(settings);
+        String json = JsonUtils.writeValueAsString(def);
+        def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
+        assertEquals(settings, def.getJwtClientAuthentication());
     }
 }
