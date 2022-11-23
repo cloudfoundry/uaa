@@ -85,7 +85,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     }
 
     long currentSecondNow() {
-        return TimeUnit.NANOSECONDS.toSeconds(currentTimeSupplier.now()); // Drop msecs
+        return TimeUnit.NANOSECONDS.toSeconds(currentTimeSupplier.now()); // Drop nano
     }
 
     synchronized ExpirationBucketMapping getExpirationBucketMapping() {
