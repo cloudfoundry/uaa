@@ -89,9 +89,7 @@ class RateLimitingFilterTest {
 
         instance.doFilter(request, response, chain);
 
-        verify(chain, times(0)).doFilter(any(), any());
-        verify(writer).close();
-        verify(response).setStatus(200);
+        verify(chain, times(1)).doFilter(any(), any());
     }
 
     @Test
@@ -105,8 +103,6 @@ class RateLimitingFilterTest {
 
         instanceNoConfig.doFilter(request, response, chain);
 
-        verify(chain, times(0)).doFilter(any(), any());
-        verify(writer).close();
-        verify(response).setStatus(200);
+        verify(chain, times(1)).doFilter(any(), any());
     }
 }
