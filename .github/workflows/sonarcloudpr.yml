@@ -29,8 +29,6 @@
 name: SonarCloud analysis
 
 on:
-  push:
-    branches: [ "develop", 74.5.x, ci-passed, gh-pages, master ]
   pull_request:
     branches: [ "develop" ]
   workflow_dispatch:
