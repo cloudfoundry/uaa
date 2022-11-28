@@ -3,21 +3,22 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.ToString;
 
-import org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ExpirationBuckets implements CompoundKeyExpirationAdder,
                                           Runnable {
     private static final Logger log = LoggerFactory.getLogger( ExpirationBuckets.class );
-    private final MillisTimeSupplier currentTimeSupplier;
+    private static final long EXPIRATION_WAIT = 300000000L;
+    private final NanoTimeSupplier currentTimeSupplier;
     private final CompoundKeyPurger compoundKeyPurger;
     private final int wrapAroundMask;
     private final long buckets; // need long version for efficient bounds checking
@@ -25,7 +26,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     private ExpirationBucketMapping ebm;
     private volatile boolean wereDying = false;
 
-    public ExpirationBuckets( MillisTimeSupplier currentTimeSupplier, CompoundKeyPurger compoundKeyPurger,
+    public ExpirationBuckets( NanoTimeSupplier currentTimeSupplier, CompoundKeyPurger compoundKeyPurger,
                               int minimumBuckets ) {
         this.currentTimeSupplier = currentTimeSupplier;
         this.compoundKeyPurger = compoundKeyPurger;
@@ -65,7 +66,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     public void run() {
         while ( !wereDying ) {
             try {
-                Thread.sleep( 300 ); // check at least 3 times per second
+                TimeUnit.NANOSECONDS.sleep(EXPIRATION_WAIT);
                 processExpirations();
             }
             catch ( InterruptedException e ) { //NOSONAR
@@ -84,7 +85,7 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     }
 
     long currentSecondNow() {
-        return currentTimeSupplier.now() / 1000L; // Drop msecs
+        return TimeUnit.NANOSECONDS.toSeconds(currentTimeSupplier.now()); // Drop nano
     }
 
     synchronized ExpirationBucketMapping getExpirationBucketMapping() {

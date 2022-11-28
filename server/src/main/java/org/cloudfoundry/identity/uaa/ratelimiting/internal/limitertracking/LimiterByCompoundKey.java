@@ -7,13 +7,13 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactory;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 
 public class LimiterByCompoundKey implements CompoundKeyPurger {
     private final Map<CompoundKey, InternalLimiter> map = new HashMap<>();
-    private final MillisTimeSupplier currentTimeSupplier;
+    private final NanoTimeSupplier currentTimeSupplier;
 
-    public LimiterByCompoundKey( MillisTimeSupplier currentTimeSupplier ) {
+    public LimiterByCompoundKey( NanoTimeSupplier currentTimeSupplier ) {
         this.currentTimeSupplier = currentTimeSupplier;
     }
 
