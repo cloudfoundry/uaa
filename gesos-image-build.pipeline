@@ -18,7 +18,7 @@ pipeline {
         )
         string(
             name: 'IMAGE_TAG',
-            defaultValue: 'BUILD_TAG_FROM_BRANCH_NAME',
+            defaultValue: BRANCH_NAME,
             description: 'Tag for docker image to push to ECR'
         )
     }
@@ -41,11 +41,7 @@ pipeline {
             steps {
                 script {
                     setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'in progress', 'pending')
-                    imageTag = params.IMAGE_TAG
-                    if (imageTag == 'BUILD_TAG_FROM_BRANCH_NAME') {
-                        imageTag = BRANCH_NAME.replaceAll('_', '.')
-                    }
-                    currentBuild.displayName = "#${env.BUILD_NUMBER} (IAM Container Config Branch Name: ${params.IAM_CONTAINER_CONFIG_BRANCH_NAME}, Image Tag: ${imageTag})"
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} (IAM Container Config Branch Name: ${params.IAM_CONTAINER_CONFIG_BRANCH_NAME}, Image Tag: ${params.IMAGE_TAG})"
                     result = sh(
                         script: """
                                     curl -sSL -X POST -H 'x-api-key: ${GESOS_API_KEY}' \\
@@ -57,7 +53,7 @@ pipeline {
                                                       "pre_build_script":"pre-build.sh", \
                                                       "image_name": "iam-uaa", \
                                                       "contact_emails": "${API_BUILD_STATUS_EMAIL_RECIPIENTS}", \
-                                                      "releaseTag1": "${imageTag}", \
+                                                      "releaseTag1": "${params.IMAGE_TAG}", \
                                                       "release": "True" \
                                                     }' \\
                                         '${GESOS_BUILD_REQUEST_URL}'
