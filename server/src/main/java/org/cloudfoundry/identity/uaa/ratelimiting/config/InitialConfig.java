@@ -5,6 +5,7 @@ import static org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterSta
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 
 import org.apache.commons.lang3.StringUtils;
@@ -12,7 +13,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRate
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
 import org.yaml.snakeyaml.Yaml;
@@ -47,7 +48,7 @@ public class InitialConfig {
 
     // packageFriendly for Testing
     static InitialConfig create() {
-        return create( locateAndLoadLocalConfigFile(), MillisTimeSupplier.SYSTEM );
+        return create( locateAndLoadLocalConfigFile(), NanoTimeSupplier.SYSTEM );
     }
 
     private static SourcedFile locateAndLoadLocalConfigFile() {
@@ -84,7 +85,7 @@ public class InitialConfig {
 
     @SuppressWarnings("SameParameterValue")
     // packageFriendly for Testing
-    static InitialConfig create( SourcedFile localConfigFile, MillisTimeSupplier currentTimeSupplier ) {
+    static InitialConfig create( SourcedFile localConfigFile, NanoTimeSupplier currentTimeSupplier ) {
         if (localConfigFile == null) { // Leave everything disabled!
             return new InitialConfig( null, null, RateLimitingFactoriesSupplierWithStatus.NO_RATE_LIMITING );
         }
@@ -104,7 +105,7 @@ public class InitialConfig {
             errorMsg = e.getMessage();
         }
 
-        long now = MillisTimeSupplier.deNull( currentTimeSupplier ).now();
+        long now = TimeUnit.NANOSECONDS.toMillis(NanoTimeSupplier.deNull( currentTimeSupplier ).now());
 
         Current current = Current.builder().status( currentStatus ).asOf( now ).error( errorMsg ).build();
 

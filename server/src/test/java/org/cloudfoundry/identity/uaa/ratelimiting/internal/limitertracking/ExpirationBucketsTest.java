@@ -5,9 +5,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.junit.jupiter.api.Test;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.ExpirationBuckets.BucketRingBoundsException;
@@ -16,8 +17,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 class ExpirationBucketsTest {
-    MillisTimeSupplier.Mock mockCurrentTimeSupplier = new MillisTimeSupplier.Mock();
-    long CURRENT_SECOND = Instant.ofEpochMilli( mockCurrentTimeSupplier.now() ).getEpochSecond();
+    NanoTimeSupplier.Mock mockCurrentTimeSupplier = new NanoTimeSupplier.Mock();
+    long CURRENT_SECOND = Instant.ofEpochMilli( TimeUnit.NANOSECONDS.toMillis(mockCurrentTimeSupplier.now()) ).getEpochSecond();
 
     static class MockCompoundKeyPurger implements CompoundKeyPurger {
         Long expirationSecond;
@@ -124,7 +125,7 @@ class ExpirationBucketsTest {
 
     private void processExpectedExpirationsAndAdvanceClock1Sec( String... expectedKeys ) {
         buckets.processExpirations();
-        long expirationSecond = Instant.ofEpochMilli( mockCurrentTimeSupplier.now() ).getEpochSecond() - 2;
+        long expirationSecond = Instant.ofEpochMilli( TimeUnit.NANOSECONDS.toMillis(mockCurrentTimeSupplier.now()) ).getEpochSecond() - 2;
         compareCompoundKeys( expirationSecond, removedKeyTracker.getCompoundKeys( expirationSecond ), expectedKeys );
         removedKeyTracker.clear();
         mockCurrentTimeSupplier.add( Duration.ofSeconds( 1 ) );

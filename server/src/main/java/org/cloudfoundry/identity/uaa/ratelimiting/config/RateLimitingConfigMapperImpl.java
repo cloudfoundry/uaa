@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
@@ -15,7 +16,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.InternalLimiterFactoriesSupplierImpl;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.YamlConfigFileDTO.LimiterMap;
@@ -29,7 +30,7 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
     static final String DUPLICATE_PATH_SELECTOR_PREFIX = "Duplicate PathSelector (";
     static final String DUPLICATE_NAME_PREFIX = "Duplicate Name (";
 
-    private final MillisTimeSupplier currentTimeSupplier;
+    private final NanoTimeSupplier currentTimeSupplier;
     private final Map<String, CredentialIdType> credentialIdTypesByKey = new HashMap<>();
     // package friendly for testing
     YamlConfigFileDTO dtoPrevious; // Cached data
@@ -44,8 +45,8 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
     }
 
     // package friendly and more params for Testing
-    RateLimitingConfigMapperImpl( MillisTimeSupplier currentTimeSupplier, CredentialIdType... credentialIdTypes ) {
-        this.currentTimeSupplier = MillisTimeSupplier.deNull( currentTimeSupplier );
+    RateLimitingConfigMapperImpl( NanoTimeSupplier currentTimeSupplier, CredentialIdType... credentialIdTypes ) {
+        this.currentTimeSupplier = NanoTimeSupplier.deNull( currentTimeSupplier );
         populateCredentialIdTypes( credentialIdTypes );
     }
 
@@ -57,7 +58,7 @@ public class RateLimitingConfigMapperImpl implements RateLimitingConfigMapper {
 
     @Override
     public RateLimitingFactoriesSupplierWithStatus map( RateLimitingFactoriesSupplierWithStatus current, String fromSource, YamlConfigFileDTO dto ) {
-        return checkNoChange( dto ) ? null : createErrorSupplierPair( dto ).map( current, fromSource, currentTimeSupplier.now() );
+        return checkNoChange( dto ) ? null : createErrorSupplierPair( dto ).map( current, fromSource, TimeUnit.NANOSECONDS.toMillis(currentTimeSupplier.now()));
     }
 
     // package friendly for testing

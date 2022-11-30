@@ -12,7 +12,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.http.AuthorizationCredent
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -107,16 +107,16 @@ class LimiterManagerImplTest {
         for ( int i = 0; i < 8; i++ ) {
             for ( int j = 0; j < 4; j++ ) {
                 calls.run();
-                mTS.add( 250 );
+                mTS.add( 250000000 ); // 250ms
                 lm.processExpirations();
             }
         }
         checkResults.run();
     }
 
-    MillisTimeSupplier.Mock mTS = new MillisTimeSupplier.Mock( Instant.parse( "2000-01-01T00:00:00Z" ) );
+    NanoTimeSupplier.Mock mTS = new NanoTimeSupplier.Mock( Instant.parse( "2000-01-01T00:00:00Z" ) );
 
-    LimiterManagerImpl lm = new LimiterManagerImpl( mTS );
+    LimiterManagerImpl lm = new LimiterManagerImpl(mTS);
 
     MultiValueMap<String, Character> results = new LinkedMultiValueMap<>();
 
