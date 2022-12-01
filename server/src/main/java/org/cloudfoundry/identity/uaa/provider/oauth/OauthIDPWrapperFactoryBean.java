@@ -55,25 +55,7 @@ public class OauthIDPWrapperFactoryBean {
                         provider.setType(OriginKeys.OAUTH20);
                     }
                     else if(OIDC10.equalsIgnoreCase(type)) {
-                        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
-                        setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
-                        oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
-                        oidcIdentityProviderDefinition.setPasswordGrantEnabled(idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
-                        oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
-                        oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
-                        if (idpDefinitionMap.get("jwtclientAuthentication") != null) {
-                            if (idpDefinitionMap.get("jwtclientAuthentication") instanceof Boolean) {
-                                boolean jwtClientAuthentication = (Boolean) idpDefinitionMap.get("jwtclientAuthentication");
-                                if (jwtClientAuthentication) {
-                                    oidcIdentityProviderDefinition.setJwtClientAuthentication(new HashMap<>());
-                                }
-                            } else if (idpDefinitionMap.get("jwtclientAuthentication") instanceof HashMap) {
-                                oidcIdentityProviderDefinition.setJwtClientAuthentication(idpDefinitionMap.get("jwtclientAuthentication"));
-                            }
-                        }
-                        oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
-                        rawDef = oidcIdentityProviderDefinition;
-                        provider.setType(OriginKeys.OIDC10);
+                        rawDef = getExternalOIDCIdentityProviderDefinition(alias, idpDefinitionMap, provider);
                     } else {
                         throw new IllegalArgumentException("Unknown type for provider. Type must be oauth2.0 or oidc1.0. (Was " + type + ")");
                     }
@@ -92,6 +74,36 @@ public class OauthIDPWrapperFactoryBean {
 
 
 
+        }
+    }
+
+    private AbstractExternalOAuthIdentityProviderDefinition getExternalOIDCIdentityProviderDefinition(String alias,
+        Map<String, Object> idpDefinitionMap, IdentityProvider provider) throws MalformedURLException {
+        AbstractExternalOAuthIdentityProviderDefinition rawDef;
+        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
+        setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
+        oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
+        oidcIdentityProviderDefinition.setPasswordGrantEnabled(
+            idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
+        oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
+        oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
+        setJwtClientAuthentication("jwtclientAuthentication", idpDefinitionMap, oidcIdentityProviderDefinition);
+        oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
+        rawDef = oidcIdentityProviderDefinition;
+        provider.setType(OriginKeys.OIDC10);
+        return rawDef;
+    }
+
+    private static void setJwtClientAuthentication(String entry, Map<String, Object> map, OIDCIdentityProviderDefinition definition) {
+        if (map.get(entry) != null) {
+            if (map.get(entry) instanceof Boolean) {
+                boolean jwtClientAuthentication = (Boolean) map.get(entry);
+                if (jwtClientAuthentication) {
+                    definition.setJwtClientAuthentication(new HashMap<>());
+                }
+            } else if (map.get(entry) instanceof HashMap) {
+                definition.setJwtClientAuthentication(map.get(entry));
+            }
         }
     }
 
