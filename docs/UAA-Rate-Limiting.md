@@ -76,7 +76,7 @@ this rate limit is applied to requests with JWTs (SCIM management endpoints requ
 | all                  | "all"                 | MUST only be used alone within the same `pathSelectors`, aka MUST NOT be used if the current `pathSelectors` contains any other pathSelector types. | The rate limit will apply to all requests.                                                                                                        |
 
 ## `/RateLimitingStatus` endpoint
-The current status of the Rate limiting is published via the public endpoint `/RateLimitingStatus`. 
+The current status of the Rate limiting is published via the endpoint `/RateLimitingStatus`. 
 This endpoint cannot be configured with a rate limit. This endpoint displays the following information:
 - `current.status`: Overall status of UAA rate limiting, with one of the following values:
     - `DISABLED`: No configuration given, rate limiting is off.

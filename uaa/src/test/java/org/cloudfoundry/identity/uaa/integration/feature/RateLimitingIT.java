@@ -2,10 +2,13 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -14,11 +17,23 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestOperations;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.IntStream;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -29,6 +44,12 @@ public class RateLimitingIT {
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
+
+    @Autowired
+    RestOperations restOperations;
+
+    @Autowired
+    TestAccounts testAccounts;
 
     @Autowired
     WebDriver webDriver;
@@ -55,30 +76,42 @@ public class RateLimitingIT {
         ResponseEntity<String> response = restTemplate.getForEntity(baseUrl + "/info", String.class);
         assertNotEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
         boolean rateLimited = false;
-        ResponseEntity[] responses = new ResponseEntity[50];
+        int INFO_LIMIT = 20;
+        int REQUEST_COUNT = 50;
+        //Limit on /info is set to 20
+        List<ResponseEntity> responses = new ArrayList<>(REQUEST_COUNT);
         //Many Requests should hit the RL
-        for (int i = 0; i <50 ; i++) {
-            responses[i] = restTemplate.getForEntity(baseUrl + "/info", String.class);
+        IntStream.range(0,REQUEST_COUNT).forEach(x -> responses.add(restTemplate.getForEntity(baseUrl + "/info", String.class)));
+        //Check numbers
+        long limits = responses.stream().filter(s -> HttpStatus.TOO_MANY_REQUESTS.equals(s.getStatusCode())).count();
+        long oKs = responses.stream().filter(s -> HttpStatus.OK.equals(s.getStatusCode())).count();
+        assertEquals(REQUEST_COUNT, limits + oKs);
+        //Expect limited count around expected ones, more limited then with OK and check with tolerance of 2 that only expected limits are done
+        if (limits > oKs && limits > (INFO_LIMIT - 2) && limits < (REQUEST_COUNT - INFO_LIMIT + 2)) {
+            rateLimited = true;
         }
-        for (ResponseEntity entity : responses) {
-            if (HttpStatus.TOO_MANY_REQUESTS.equals(entity.getStatusCode())) {
-                assertThat((String) entity.getBody(), containsString("InfoLimit"));
-                rateLimited = true;
-                break;
-            }
-        }
-        assertTrue(rateLimited);
+        assertTrue(
+            "Rate limit counters are not as expected. Request: " + REQUEST_COUNT + ", Limit: " + INFO_LIMIT + ", blocked: " + limits
+                + ", allowed: " + oKs, rateLimited);
         //After 1s, New Limit should be available
-        Thread.sleep(1000); //NOSONAR
+        TimeUnit.SECONDS.sleep(1);
         response = restTemplate.getForEntity(baseUrl + "/info", String.class);
         assertNotEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
     }
 
     @Test
     public void rateLimitingStatusActive() {
-        webDriver.get(baseUrl + "/RateLimitingStatus");
-        String pageSource = webDriver.getPageSource();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader(testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret()));
 
-        assertThat(pageSource, containsString("\"status\" : \"ACTIVE\""));
+        ResponseEntity<String> responseEntity = restOperations.exchange(baseUrl + "/RateLimitingStatus",
+            HttpMethod.GET,
+            new HttpEntity<>(new LinkedMultiValueMap<>(), headers),
+            String.class);
+
+        assertNotNull(responseEntity);
+        assertThat(responseEntity.getBody(), containsString("\"status\" : \"ACTIVE\""));
     }
 }

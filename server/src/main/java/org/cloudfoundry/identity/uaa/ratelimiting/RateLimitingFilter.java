@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -75,10 +74,7 @@ public class RateLimitingFilter extends HttpFilter {
         if ( !RateLimiter.STATUS_PATH.equals( request.getServletPath() ) ) {
             filterer.doFilter( request, response, filterChain );
         } else {
-            response.setStatus( 200 );
-            PrintWriter writer = response.getWriter();
-            writer.print( filterer.status() );
-            writer.close();
+            filterChain.doFilter( request, response );
         }
     }
 

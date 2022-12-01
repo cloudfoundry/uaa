@@ -78,7 +78,7 @@ ratelimit:
       pathSelectors:
         - "equals:/login.do"
     - name: InfoLimit
-      withCallerRemoteAddressID: 10r/s
+      withCallerRemoteAddressID: 20r/s
       pathSelectors:
         - "equals:/info"
     - name: SCIM
