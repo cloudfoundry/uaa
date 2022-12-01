@@ -49,9 +49,19 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionUsingBooleanConfig() throws ParseException {
+  void testGetClientAssertionUsingTrueBooleanConfig() throws ParseException {
     // Given
     config.setJwtClientAuthentication(true);
+    // When
+    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
+    // Then
+    validateClientAssertionOidcComplaint(clientAssertion);
+  }
+
+  @Test
+  void testGetClientAssertionUsingFalseBooleanConfig() throws ParseException {
+    // Given
+    config.setJwtClientAuthentication(false);
     // When
     String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
     // Then
