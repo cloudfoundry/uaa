@@ -14,8 +14,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -39,15 +41,50 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void getClientAssertion() throws ParseException {
+  void testGetClientAssertion() throws ParseException {
     // When
     String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
     // Then
-    validateClientAssertion(clientAssertion);
+    validateClientAssertionOidcComplaint(clientAssertion);
   }
 
   @Test
-  void getClientAuthenticationParameters() throws ParseException {
+  void testGetClientAssertionUsingBooleanConfig() throws ParseException {
+    // Given
+    config.setJwtClientAuthentication(true);
+    // When
+    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
+    // Then
+    validateClientAssertionOidcComplaint(clientAssertion);
+  }
+
+  @Test
+  void testGetClientAssertionUsingCustomConfig() throws ParseException {
+    // Given
+    HashMap customClaims = new HashMap<>();
+    customClaims.put("iss", "identity");
+    config.setJwtClientAuthentication(customClaims);
+    // When
+    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
+    // Then
+    validateClientAssertionOidcComplaint(clientAssertion);
+  }
+
+  @Test
+  void testGetClientAssertionRfc7523Complaint() throws ParseException {
+    // Given
+    HashMap customClaims = new HashMap<>();
+    customClaims.put("iss", "anotherIssuer");
+    customClaims.put("aud", "ReceiverEndpoint");
+    config.setJwtClientAuthentication(customClaims);
+    // When
+    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
+    // Then
+    validateClientAssertionRfc7523Complaint(clientAssertion, "anotherIssuer", "ReceiverEndpoint");
+  }
+
+  @Test
+  void testGetClientAuthenticationParameters() throws ParseException {
     // Given
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
     // When
@@ -57,7 +94,22 @@ class JwtClientAuthenticationTest {
     assertTrue(params.containsKey("client_assertion_type"));
     assertEquals(Collections.singletonList(JwtClientAuthentication.GRANT_TYPE), params.get("client_assertion_type"));
     assertNotNull(params.get("client_assertion").get(0));
-    validateClientAssertion((String) params.get("client_assertion").get(0));
+    validateClientAssertionOidcComplaint((String) params.get("client_assertion").get(0));
+  }
+
+  @Test
+  void testGetClientAuthenticationParametersNullParameter() {
+    // When
+    assertNull(jwtClientAuthentication.getClientAuthenticationParameters(null, null));
+  }
+
+  @Test
+  void testGetClientAuthenticationParametersNullJwtClientConfiguration() {
+    // Given
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    config.setJwtClientAuthentication(null);
+    // When
+    assertEquals(params, jwtClientAuthentication.getClientAuthenticationParameters(params, config));
   }
 
   private void mockKeyInfoService() {
@@ -69,10 +121,17 @@ class JwtClientAuthenticationTest {
     when(signer.sign(any())).thenReturn("dummy".getBytes());
   }
 
-  private static void validateClientAssertion(String clientAssertion) throws ParseException {
+  private static void validateClientAssertionOidcComplaint(String clientAssertion) throws ParseException {
     JWTClaimsSet jwtClaimsSet = JWTParser.parse(clientAssertion).getJWTClaimsSet();
     assertEquals(Collections.singletonList("http://localhost:8080/uaa/oauth/token"), jwtClaimsSet.getAudience());
     assertEquals("identity", jwtClaimsSet.getSubject());
     assertEquals("identity", jwtClaimsSet.getIssuer());
+  }
+
+  private static void validateClientAssertionRfc7523Complaint(String clientAssertion, String iss, String aud) throws ParseException {
+    JWTClaimsSet jwtClaimsSet = JWTParser.parse(clientAssertion).getJWTClaimsSet();
+    assertEquals(Collections.singletonList(aud), jwtClaimsSet.getAudience());
+    assertEquals(iss, jwtClaimsSet.getIssuer());
+    assertEquals("identity", jwtClaimsSet.getSubject());
   }
 }
