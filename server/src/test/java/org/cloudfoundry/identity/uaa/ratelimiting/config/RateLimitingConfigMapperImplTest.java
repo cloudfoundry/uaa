@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWTjsonField;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.junit.jupiter.api.Test;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.config.RateLimitingConfigMapperImpl.*;
@@ -24,7 +24,7 @@ class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSupport {
     static final YamlConfigFileDTO MINIMAL_DTO = builder().limiterMappings( MINIMAL_LIMITER_MAPPINGS ).build();
     static final YamlConfigFileDTO EMPTY_DTO = new YamlConfigFileDTO();
 
-    MillisTimeSupplier currentTimeSupplier = new MillisTimeSupplier.Mock();
+    NanoTimeSupplier currentTimeSupplier = new NanoTimeSupplier.Mock();
 
     private RateLimitingConfigMapperImpl createMapper( CredentialIdType... credentialIdTypes ) {
         return new RateLimitingConfigMapperImpl( currentTimeSupplier, credentialIdTypes );

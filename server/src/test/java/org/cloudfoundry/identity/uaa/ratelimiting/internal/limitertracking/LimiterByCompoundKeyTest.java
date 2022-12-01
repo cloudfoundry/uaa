@@ -8,7 +8,7 @@ import java.util.Objects;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.RequestsPerWindowSecs;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiter;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -20,7 +20,7 @@ class LimiterByCompoundKeyTest {
     private static final String LIMITER_NAME = "Test";
     private static final String REQUESTS_PER_WINDOW = "5r/2s";
 
-    MillisTimeSupplier.Mock mockCurrentTimeSupplier = new MillisTimeSupplier.Mock();
+    NanoTimeSupplier.Mock mockCurrentTimeSupplier = new NanoTimeSupplier.Mock();
 
     static class MockCompoundKeyExpirationAdder implements CompoundKeyExpirationAdder {
         MultiValueMap<CompoundKey, String> calls = new LinkedMultiValueMap<>();

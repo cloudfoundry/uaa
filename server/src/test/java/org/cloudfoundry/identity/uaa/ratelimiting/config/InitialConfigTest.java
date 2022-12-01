@@ -2,9 +2,8 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFactoriesSupplierWithStatus;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
 import org.junit.jupiter.api.Test;
 
@@ -74,7 +73,7 @@ class InitialConfigTest {
 
     @Test
     void create_noFileSourced() {
-        MillisTimeSupplier timeSupplier = mock(MillisTimeSupplier.class);
+        NanoTimeSupplier timeSupplier = mock(NanoTimeSupplier.class);
 
         InitialConfig initialConfig = InitialConfig.create(null, timeSupplier);
 
@@ -83,7 +82,7 @@ class InitialConfigTest {
 
     @Test
     void create_withConfig() {
-        MillisTimeSupplier timeSupplier = mock(MillisTimeSupplier.class);
+        NanoTimeSupplier timeSupplier = mock(NanoTimeSupplier.class);
         when(timeSupplier.now()).thenReturn(4711L);
         SourcedFile localConfigFile = mock(SourcedFile.class);
         when(localConfigFile.getBody()).thenReturn(SAMPLE_RATE_LIMITER_CONFIG_FILE);
