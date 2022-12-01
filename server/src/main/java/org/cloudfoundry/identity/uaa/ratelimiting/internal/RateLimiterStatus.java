@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -12,13 +12,13 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.ToString;
 import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimiterFactoriesSupplier;
-import org.cloudfoundry.identity.uaa.ratelimiting.util.MillisTimeSupplier;
+import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 public class RateLimiterStatus {
-    public static final RateLimiterStatus NO_RATE_LIMITING = noRateLimiting( MillisTimeSupplier.SYSTEM.now() );
+    public static final RateLimiterStatus NO_RATE_LIMITING = noRateLimiting( TimeUnit.NANOSECONDS.toMillis(NanoTimeSupplier.SYSTEM.now()) );
 
     public enum CurrentStatus {DISABLED, PENDING, ACTIVE}
 
