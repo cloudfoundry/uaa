@@ -48,8 +48,8 @@ public class TokenPolicy {
     @JsonGetter("keys")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Map<String, KeyInformation> getKeysLegacy() {
-        Map<String, KeyInformation> keys = getKeys();
-        return (keys == null || keys.isEmpty()) ? null : keys.entrySet().stream().collect(outputCollector);
+        Map<String, KeyInformation> keyInformationMap = getKeys();
+        return (keyInformationMap == null || keyInformationMap.isEmpty()) ? null : keyInformationMap.entrySet().stream().collect(outputCollector);
     }
 
     @JsonSetter("keys")

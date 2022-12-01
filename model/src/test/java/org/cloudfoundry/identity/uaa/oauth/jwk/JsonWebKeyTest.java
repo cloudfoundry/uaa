@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class JsonWebKeyTest {
 
@@ -61,6 +62,10 @@ public class JsonWebKeyTest {
       assertNotNull(key);
       assertNotNull(JsonWebKey.getRsaPublicKey(key));
       assertNotNull(key.getX5t());
+      key.setX5c(null);
+      key.setX5t(null);
+      assertNull(key.getX5t());
+      assertNull(key.getX5c());
     }
   }
 }
