@@ -24,7 +24,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
 import java.security.Security;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
 import static org.junit.Assert.assertNull;
@@ -356,6 +358,20 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
 
         expection.expect(InvalidIdentityZoneConfigurationException.class);
         expection.expectMessage("Invalid value in config.corsPolicy.defaultConfiguration.allowedOrigins: '^/uaa/userinfo('");
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_with_token_key_active() throws InvalidIdentityZoneConfigurationException {
+        Map<String, TokenPolicy.KeyInformation> keyInformationMap = new HashMap<>();
+        TokenPolicy.KeyInformation keyInformation = new TokenPolicy.KeyInformation();
+        keyInformation.setSigningKey(legacyKey);
+        keyInformation.setSigningCert(legacyCertificate);
+        keyInformation.setSigningAlg("RS256");
+        keyInformationMap.put("id-1", keyInformation);
+        zone.getConfig().getTokenPolicy().setKeyInformation(keyInformationMap);
+        zone.getConfig().getTokenPolicy().setActiveKeyId("id-1");
+
         validator.validate(zone, mode);
     }
 }
