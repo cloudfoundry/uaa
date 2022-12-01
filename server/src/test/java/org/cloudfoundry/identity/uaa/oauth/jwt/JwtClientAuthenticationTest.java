@@ -16,6 +16,7 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -36,7 +37,7 @@ class JwtClientAuthenticationTest {
     config = new OIDCIdentityProviderDefinition();
     config.setTokenUrl(new URL("http://localhost:8080/uaa/oauth/token"));
     config.setRelyingPartyId("identity");
-    config.setJwtClientAuthentication(jwtClientAuthentication);
+    config.setJwtClientAuthentication(true);
     mockKeyInfoService();
   }
 
@@ -52,20 +53,25 @@ class JwtClientAuthenticationTest {
   void testGetClientAssertionUsingTrueBooleanConfig() throws ParseException {
     // Given
     config.setJwtClientAuthentication(true);
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
     // When
-    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
+    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
     // Then
-    validateClientAssertionOidcComplaint(clientAssertion);
+    assertTrue(params.containsKey("client_assertion"));
+    assertTrue(params.containsKey("client_assertion_type"));
+    validateClientAssertionOidcComplaint((String) params.get("client_assertion").get(0));
   }
 
   @Test
   void testGetClientAssertionUsingFalseBooleanConfig() throws ParseException {
     // Given
     config.setJwtClientAuthentication(false);
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
     // When
-    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
+    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
     // Then
-    validateClientAssertionOidcComplaint(clientAssertion);
+    assertFalse(params.containsKey("client_assertion"));
+    assertFalse(params.containsKey("client_assertion_type"));
   }
 
   @Test

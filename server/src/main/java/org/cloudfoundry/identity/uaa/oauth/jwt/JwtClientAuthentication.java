@@ -39,7 +39,7 @@ public class JwtClientAuthentication {
   }
 
   public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {
-    if (Objects.isNull(config) || Objects.isNull(config.getJwtClientAuthentication())) {
+    if (Objects.isNull(config) || Objects.isNull(getJwtClientConfigurationElements(config.getJwtClientAuthentication()))) {
       return params;
     }
     if (!params.containsKey("client_id")) {
