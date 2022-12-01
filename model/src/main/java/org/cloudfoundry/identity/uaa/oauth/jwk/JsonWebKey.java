@@ -71,8 +71,8 @@ public class JsonWebKey {
     public static String KTY = "kty";
     public static String ALG = "alg";
 
-    public static String X5C = "x5c";
-    public static String X5T = "x5t";
+    public static final String X5C = "x5c";
+    public static final String X5T = "x5t";
 
     private final Map<String, Object> json;
 
@@ -114,7 +114,7 @@ public class JsonWebKey {
         return (String) getKeyProperties().get(X5T);
     }
 
-    public JsonWebKey setX5c(String x5t) {
+    public JsonWebKey setX5t(String x5t) {
         this.json.put(X5T, x5t);
         return this;
     }

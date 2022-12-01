@@ -36,7 +36,7 @@ public class TokenPolicy {
         return keyInformation;
     });
     private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, KeyInformation>> inputCollector
-        = Collectors.toMap(Map.Entry::getKey, e -> e.getValue());
+        = Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue);
 
     private int accessTokenValidity;
     private int refreshTokenValidity;
@@ -53,8 +53,8 @@ public class TokenPolicy {
     }
 
     @JsonSetter("keys")
-    private void setKeysLegacy(Map<String, KeyInformation> keys) {
-        setKeyInformation(keys == null ? null : keys.entrySet().stream().collect(inputCollector));
+    private void setKeysLegacy(Map<String, KeyInformation> keyInformationMap) {
+        setKeyInformation(keyInformationMap == null ? null : keyInformationMap.entrySet().stream().collect(inputCollector));
     }
 
     private Map<String, KeyInformation> keys;
