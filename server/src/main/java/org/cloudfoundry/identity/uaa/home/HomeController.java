@@ -8,12 +8,15 @@ import javax.servlet.RequestDispatcher;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
@@ -34,8 +37,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -56,6 +57,9 @@ public class HomeController {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final JdbcClientMetadataProvisioning clientMetadataProvisioning;
     private final Links globalLinks;
+
+    private final Set<String> allowedHttpMethods = Set.of(RequestMethod.GET.name(), RequestMethod.POST.name(),
+        RequestMethod.HEAD.name(), RequestMethod.DELETE.name(), RequestMethod.PUT.name(), RequestMethod.PATCH.name(), RequestMethod.OPTIONS.name());
 
     /**
      * @param buildInfo This is required for Thymeleaf templates
@@ -133,7 +137,7 @@ public class HomeController {
             (genericException.getCause() instanceof SAMLException || genericException.getCause() instanceof MetadataProviderException)) {
             Exception samlException = (Exception) genericException.getCause();
             model.addAttribute("saml_error", samlException.getMessage());
-            response.setStatus(400);
+            response.setStatus(HttpStatus.BAD_REQUEST.value());
             return EXTERNAL_AUTH_ERROR;
         }
 
@@ -159,9 +163,17 @@ public class HomeController {
     }
 
     @RequestMapping({"/error", "/error**"})
-    public String errorGeneric(Model model) {
-        populateBuildAndLinkInfo(model);
-        return ERROR;
+    public String errorGeneric(Model model, HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (!allowedHttpMethods.contains(Optional.ofNullable(request.getMethod()).orElse(""))) {
+                response.reset();
+                response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
+                response.getWriter().flush();
+                response.getWriter().close();
+            return null;
+        } else {
+            populateBuildAndLinkInfo(model);
+            return ERROR;
+        }
     }
 
     @RequestMapping("/saml_error")
