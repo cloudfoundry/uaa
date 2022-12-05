@@ -11,6 +11,8 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.model.Zone;
+import org.cloudfoundry.identity.uaa.zone.model.ZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.ZoneResponse;
 import org.junit.Before;
 import org.junit.Rule;
@@ -96,7 +98,7 @@ public class ZoneControllerIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.NOT_FOUND);
             assertNotNull(response.getBody());
-            assertEquals("{\"message\", \"Zone[random-name] not found.\" }", response.getBody().toString());
+            assertEquals("{\"message\", \"Zone[random-name] not found.\" }", response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -112,7 +114,7 @@ public class ZoneControllerIntegrationTests {
             assertNotNull(response.getBody());
             assertEquals(
                 "{\"message\", \"Required request parameter 'name' for method parameter type String is not present\" }",
-                response.getBody().toString());
+                response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -126,10 +128,50 @@ public class ZoneControllerIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
             assertNotNull(response.getBody());
-            assertEquals("{\"message\", \"getZone.name: must not be empty\" }", response.getBody().toString());
+            assertEquals("{\"message\", \"getZone.name: must not be empty\" }", response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
+    }
+
+    @Test
+    public void testDeleteZone() {
+        //TODO: delete once the orchestrator create API implemented
+        IdentityZone identityZone = createZone();
+        assertNotNull(identityZone);
+        ResponseEntity<String> response =
+            client.exchange(serverRunning.getUrl("/orchestrator/zones") + "?name=" + identityZone.getName(),
+                            HttpMethod.DELETE, null, String.class);
+        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+        ResponseEntity<String> getResponse = client.getForEntity(
+            serverRunning.getUrl("/orchestrator/zones") + "?name=" + identityZone.getName(),
+            String.class);
+        assertEquals(getResponse.getStatusCode(), HttpStatus.NOT_FOUND);
+        assertNotNull(getResponse.getBody());
+        assertEquals("{\"message\", \"Zone["+identityZone.getName()+"] not found.\" }", getResponse.getBody());
+    }
+
+    @Test
+    public void testDeleteZone_NotFound() {
+        ResponseEntity<String> response =
+            client.exchange(serverRunning.getUrl("/orchestrator/zones") + "?name=random-name",
+                            HttpMethod.DELETE, null, String.class);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("{\"message\", \"Zone[random-name] not found.\" }", response.getBody());
+    }
+
+    @Test
+    public void testUpdateZone() {
+        ZoneRequest zoneRequest = new ZoneRequest();
+        zoneRequest.setName("test name");
+        zoneRequest.setParameters(new Zone());
+        ResponseEntity<String> getResponse = client.exchange(
+            serverRunning.getUrl("/orchestrator/zones"), HttpMethod.PUT, new HttpEntity<>(zoneRequest),
+            String.class);
+        assertEquals(getResponse.getStatusCode(), HttpStatus.METHOD_NOT_ALLOWED);
+        assertNotNull(getResponse.getBody());
+        assertEquals("{\"message\", \"Put Operation not Supported\" }", getResponse.getBody());
     }
 
     //TODO: delete once the orchestrator create API implemented

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -53,6 +55,32 @@ public class ZoneServiceTests {
         when(zoneProvisioning.retrieveByName(any())).thenThrow(new ZoneDoesNotExistsException("Zone not available."));
         ZoneDoesNotExistsException exception =
             Assertions.assertThrows(ZoneDoesNotExistsException.class, () -> zoneService.getZoneDetails("random-string"),
+                                    "Not found exception not thrown");
+        assertTrue(exception.getMessage().contains("Zone not available."));
+    }
+
+    @Test
+    public void testDeleteZone() {
+        IdentityZone identityZone = buildIdentityZone();
+        when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
+        ResponseEntity<?> response = zoneService.deleteZone(identityZone.getName());
+        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+    }
+
+    @Test
+    public void testDeleteZone_InternalError() {
+        zoneService.setApplicationEventPublisher(null);
+        IdentityZone identityZone = buildIdentityZone();
+        when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
+        ResponseEntity<?> response = zoneService.deleteZone(identityZone.getName());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+    }
+
+    @Test
+    public void testDeleteZone_NotFound() {
+        when(zoneProvisioning.retrieveByName(any())).thenThrow(new ZoneDoesNotExistsException("Zone not available."));
+        ZoneDoesNotExistsException exception =
+            Assertions.assertThrows(ZoneDoesNotExistsException.class, () -> zoneService.deleteZone("random-name"),
                                     "Not found exception not thrown");
         assertTrue(exception.getMessage().contains("Zone not available."));
     }
