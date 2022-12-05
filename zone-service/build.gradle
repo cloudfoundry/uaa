@@ -3,7 +3,6 @@ plugins {
 }
 
 group 'org.cloudfoundry.identity'
-version '75.18.1'
 
 repositories {
     mavenCentral()
@@ -14,6 +13,7 @@ dependencies {
     implementation(libraries.springBootStarterWeb){
         exclude(group: "org.glassfish", module: "jakarta.el")
     }
+    implementation(libraries.springSecurityWeb)
     implementation(project(":cloudfoundry-identity-server"))
     implementation(project(":cloudfoundry-identity-model"))
     implementation(libraries.hibernateValidator)
