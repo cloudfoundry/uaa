@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class ZoneHeader {
+public class OrchestratorZoneHeader {
 
     private String httpHeaderName;
     private String httpHeaderValue;

@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class ZoneResponse {
+public class OrchestratorZoneResponse {
 
     private String name;
-    private Zone parameters;
+    private OrchestratorZone parameters;
     private ConnectionDetails connectionDetails;
 
 }

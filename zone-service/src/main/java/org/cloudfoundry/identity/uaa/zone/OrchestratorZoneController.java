@@ -9,8 +9,8 @@ import javax.naming.OperationNotSupportedException;
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotBlank;
 
-import org.cloudfoundry.identity.uaa.zone.model.ZoneRequest;
-import org.cloudfoundry.identity.uaa.zone.model.ZoneResponse;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -31,19 +31,19 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 @RestController("zoneEndpoints")
 @RequestMapping("/orchestrator/zones")
-public class ZoneController {
+public class OrchestratorZoneController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ZoneController.class);
-    private final ZoneService zoneService;
+    private static final Logger logger = LoggerFactory.getLogger(OrchestratorZoneController.class);
+    private final OrchestratorZoneService zoneService;
 
     public static final String MANDATORY_VALIDATION_MESSAGE = "must not be empty";
 
-    public ZoneController(ZoneService zoneService) {
+    public OrchestratorZoneController(OrchestratorZoneService zoneService) {
         this.zoneService = zoneService;
     }
 
     @GetMapping
-    public ResponseEntity<ZoneResponse> getZone(@NotBlank(message = MANDATORY_VALIDATION_MESSAGE) @RequestParam String name) {
+    public ResponseEntity<OrchestratorZoneResponse> getZone(@NotBlank(message = MANDATORY_VALIDATION_MESSAGE) @RequestParam String name) {
         return new ResponseEntity<>(zoneService.getZoneDetails(name), HttpStatus.OK);
     }
 
@@ -53,7 +53,7 @@ public class ZoneController {
     }
 
     @PutMapping
-    public ResponseEntity<?> updateZone(@RequestBody ZoneRequest zoneRequest) throws OperationNotSupportedException {
+    public ResponseEntity<?> updateZone(@RequestBody OrchestratorZoneRequest zoneRequest) throws OperationNotSupportedException {
         throw new OperationNotSupportedException("Put Operation not Supported");
     }
 

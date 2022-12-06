@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.zone.model;
 import lombok.Data;
 
 @Data
-public class ZoneRequest {
+public class OrchestratorZoneRequest {
     private String name;
-    private Zone parameters;
+    private OrchestratorZone parameters;
 }

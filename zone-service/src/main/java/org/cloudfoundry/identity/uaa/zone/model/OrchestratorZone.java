@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonInclude(Include.NON_NULL)
-public class Zone {
+public class OrchestratorZone {
     private String adminSecret;
     private String subdomain;
 }

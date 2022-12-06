@@ -8,5 +8,5 @@ public class ConnectionDetails {
     private String dashboardUri;
     private String issuerId;
     private String subdomain;
-    private ZoneHeader zone;
+    private OrchestratorZoneHeader zone;
 }

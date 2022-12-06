@@ -7,9 +7,9 @@ import java.net.URI;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
-import org.cloudfoundry.identity.uaa.zone.model.Zone;
-import org.cloudfoundry.identity.uaa.zone.model.ZoneHeader;
-import org.cloudfoundry.identity.uaa.zone.model.ZoneResponse;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,7 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-public class ZoneService implements ApplicationEventPublisherAware {
+public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     public static final String X_IDENTITY_ZONE_ID = "X-Identity-Zone-Id";
     public static final String CLIENT_ID = "admin";
@@ -35,21 +35,21 @@ public class ZoneService implements ApplicationEventPublisherAware {
    private final String uaaDashboardUri;
     private ApplicationEventPublisher publisher;
 
-    private static final Logger logger = LoggerFactory.getLogger(ZoneService.class);
+    private static final Logger logger = LoggerFactory.getLogger(OrchestratorZoneService.class);
 
-    public ZoneService(IdentityZoneProvisioning zoneProvisioning,
-                       String uaaDashboardUri) {
+    public OrchestratorZoneService(IdentityZoneProvisioning zoneProvisioning,
+                                   String uaaDashboardUri) {
         this.zoneProvisioning = zoneProvisioning;
         this.uaaDashboardUri = uaaDashboardUri;
     }
 
-    public ZoneResponse getZoneDetails(String zoneName) {
+    public OrchestratorZoneResponse getZoneDetails(String zoneName) {
         IdentityZone identityZone = zoneProvisioning.retrieveByName(zoneName);
-        Zone zone = new Zone(null, identityZone.getSubdomain());
+        OrchestratorZone zone = new OrchestratorZone(null, identityZone.getSubdomain());
         String uaaUri = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
         String zoneUri = getZoneUri(identityZone.getSubdomain(), uaaUri);
         ConnectionDetails connectionDetails = buildConnectionDetails(zoneName, identityZone, zoneUri);
-        return new ZoneResponse(zoneName, zone, connectionDetails);
+        return new OrchestratorZoneResponse(zoneName, zone, connectionDetails);
     }
 
     public ResponseEntity<?> deleteZone(String zoneName) {
@@ -77,7 +77,7 @@ public class ZoneService implements ApplicationEventPublisherAware {
         connectionDetails.setIssuerId(zoneUri + "/oauth/token");
         connectionDetails.setSubdomain(identityZone.getSubdomain());
         connectionDetails.setDashboardUri(uaaDashboardUri);
-        ZoneHeader zoneHeader = new ZoneHeader(X_IDENTITY_ZONE_ID, identityZone.getId());
+        OrchestratorZoneHeader zoneHeader = new OrchestratorZoneHeader(X_IDENTITY_ZONE_ID, identityZone.getId());
         connectionDetails.setZone(zoneHeader);
         return connectionDetails;
     }

@@ -6,13 +6,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class ZoneConfiguration {
+public class OrchestratorZoneConfiguration {
 
     @Bean
     @ConditionalOnProperty({ "uaa.dashboard.uri" })
-    public ZoneService zoneService(IdentityZoneProvisioning zoneProvisioning,
-                                   @Value("${uaa.dashboard.uri}") String uaaDashboardUri) {
-        return new ZoneService(zoneProvisioning, uaaDashboardUri);
+    public OrchestratorZoneService zoneService(IdentityZoneProvisioning zoneProvisioning,
+                                               @Value("${uaa.dashboard.uri}") String uaaDashboardUri) {
+        return new OrchestratorZoneService(zoneProvisioning, uaaDashboardUri);
     }
 
 }
