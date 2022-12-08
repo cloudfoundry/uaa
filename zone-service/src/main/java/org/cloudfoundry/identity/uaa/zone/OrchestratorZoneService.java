@@ -22,8 +22,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     public static final String X_IDENTITY_ZONE_ID = "X-Identity-Zone-Id";
     public static final String CLIENT_ID = "admin";
-    public static final String ZONE_AUTHORITIES = "clients.admin,clients.read,clients.write,clients.secret,idps.read,idps.write,sps" +
-                                                  ".read,sps.write,scim.read,scim.write,uaa.resource";
+    public static final String ZONE_AUTHORITIES =
+        "clients.admin,clients.read,clients.write,clients.secret,idps.read,idps.write,sps" +
+        ".read,sps.write,scim.read,scim.write,uaa.resource";
     public static final String GRANT_TYPES = "client_credentials";
     public static final String RESOURCE_IDS = "none";
     public static final String SCOPES = "uaa.none";
@@ -32,7 +33,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes());
 
     private final IdentityZoneProvisioning zoneProvisioning;
-   private final String uaaDashboardUri;
+    private final String uaaDashboardUri;
     private ApplicationEventPublisher publisher;
 
     private static final Logger logger = LoggerFactory.getLogger(OrchestratorZoneService.class);
@@ -59,7 +60,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             IdentityZone zone = zoneProvisioning.retrieveByName(zoneName);
             IdentityZoneHolder.set(zone);
             if (publisher != null && zone != null) {
-                publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
+                publisher.publishEvent(
+                    new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(),
+                                             IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(ACCEPTED);
             } else {
@@ -71,7 +74,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     }
 
     private ConnectionDetails buildConnectionDetails(String zoneName, IdentityZone identityZone,
-                                                            String zoneUri) {
+                                                     String zoneUri) {
         ConnectionDetails connectionDetails = new ConnectionDetails();
         connectionDetails.setUri(zoneUri);
         connectionDetails.setIssuerId(zoneUri + "/oauth/token");
