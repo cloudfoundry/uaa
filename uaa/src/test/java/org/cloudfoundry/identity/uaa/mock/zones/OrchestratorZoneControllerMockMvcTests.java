@@ -54,7 +54,8 @@ import org.springframework.util.StringUtils;
 public class OrchestratorZoneControllerMockMvcTests {
 
     private MockMvc mockMvc;
-    private String identityClientZonesReadToken = null;
+    private String orchestratorClientZonesReadToken = null;
+    private String orchestratorClientZonesWriteToken = null;
     private String uaaAdminClientToken;
     private TestApplicationEventListener<AbstractUaaEvent> uaaEventListener;
     private TestApplicationEventListener<IdentityZoneModifiedEvent> zoneModifiedEventListener;
@@ -102,11 +103,13 @@ public class OrchestratorZoneControllerMockMvcTests {
 
     @BeforeEach
     void setUp(@Autowired MockMvc mockMvc,
-               @Autowired TestClient testClient, @Autowired ClientRegistrationService clientRegistrationService, @Autowired
+               @Autowired TestClient testClient, @Autowired ClientRegistrationService clientRegistrationService,
+               @Autowired
                ConfigurableApplicationContext configurableApplicationContext)
         throws Exception {
         this.mockMvc = mockMvc;
-        zoneModifiedEventListener = MockMvcUtils.addEventListener(configurableApplicationContext, IdentityZoneModifiedEvent.class);
+        zoneModifiedEventListener =
+            MockMvcUtils.addEventListener(configurableApplicationContext, IdentityZoneModifiedEvent.class);
         uaaEventListener = MockMvcUtils.addEventListener(configurableApplicationContext, AbstractUaaEvent.class);
         BaseClientDetails uaaAdminClient = new BaseClientDetails("uaa-admin-" + RandomString.make(5).toLowerCase(),
                                                                  null,
@@ -115,10 +118,14 @@ public class OrchestratorZoneControllerMockMvcTests {
                                                                  "uaa.admin");
         uaaAdminClient.setClientSecret("secret");
         clientRegistrationService.addClientDetails(uaaAdminClient);
-        identityClientZonesReadToken = testClient.getClientCredentialsOAuthAccessToken(
+        orchestratorClientZonesReadToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
             "zones.read");
+        orchestratorClientZonesWriteToken = testClient.getClientCredentialsOAuthAccessToken(
+            "identity",
+            "identitysecret",
+            "zones.write");
         uaaAdminClientToken = testClient.getClientCredentialsOAuthAccessToken(
             uaaAdminClient.getClientId(),
             "secret",
@@ -136,14 +143,16 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ArgumentsSource(NameRequiredArgumentsSource.class)
     void testGetZone_nameRequiredError(String url) throws Exception {
         performMockMvcCallAndAssertError(get(url), status().isBadRequest(),
-                                         "{\"message\", \"Required request parameter 'name' for method parameter type String is not present\" }");
+                                         "{\"message\", \"Required request parameter 'name' for method parameter type String is not present\" }",
+                                         orchestratorClientZonesReadToken);
     }
 
     @ParameterizedTest
     @ArgumentsSource(NameNotEmptyArgumentsSource.class)
     void testGetZone_nameEmptyError(String url) throws Exception {
         performMockMvcCallAndAssertError(get(url), status().isBadRequest(),
-                                         "{\"message\", \"getZone.name: must not be empty\" }");
+                                         "{\"message\", \"getZone.name: must not be empty\" }",
+                                         orchestratorClientZonesReadToken);
     }
 
     @Test
@@ -152,7 +161,7 @@ public class OrchestratorZoneControllerMockMvcTests {
         IdentityZone identityZone = createIdentityZone();
         assertNotNull(identityZone);
         OrchestratorZoneResponse zoneResponse =
-            processZoneAPI(get("/orchestrator/zones"), "test-name", status().isOk());
+            processZoneAPI(get("/orchestrator/zones"), "test-name", status().isOk(), orchestratorClientZonesReadToken);
         assertNotNull(zoneResponse);
         assertNotNull(zoneResponse.getParameters());
         assertEquals(identityZone.getSubdomain(), zoneResponse.getParameters().getSubdomain());
@@ -164,15 +173,18 @@ public class OrchestratorZoneControllerMockMvcTests {
         assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
         assertEquals(identityZone.getId(), zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
         // deleting after create and get to avoid multiple value in the database
-        processZoneAPI(delete("/orchestrator/zones"), identityZone.getName(), status().isAccepted());
+        processZoneAPI(delete("/orchestrator/zones"), identityZone.getName(), status().isAccepted(),
+                       orchestratorClientZonesWriteToken);
     }
 
-    private OrchestratorZoneResponse processZoneAPI(MockHttpServletRequestBuilder mockRequestBuilder, String nameParameter,
-                                                    ResultMatcher expectedStatus)
+    private OrchestratorZoneResponse processZoneAPI(MockHttpServletRequestBuilder mockRequestBuilder,
+                                                    String nameParameter,
+                                                    ResultMatcher expectedStatus, String token)
         throws Exception {
         MvcResult result = mockMvc.perform(
                                       mockRequestBuilder.param("name", nameParameter)
-                                                        .header("Authorization", "Bearer " + identityClientZonesReadToken))
+                                                        .header("Authorization", "Bearer " +
+                                                                                 token))
                                   .andExpect(expectedStatus).andReturn();
         if (StringUtils.hasLength(result.getResponse().getContentAsString()) &&
             result.getResponse().getStatus() == 200) {
@@ -182,10 +194,11 @@ public class OrchestratorZoneControllerMockMvcTests {
         }
     }
 
-    private void performMockMvcCallAndAssertError(MockHttpServletRequestBuilder identityZone, ResultMatcher expectedStatus,
-                                                  String expected) throws Exception {
+    private void performMockMvcCallAndAssertError(MockHttpServletRequestBuilder identityZone,
+                                                  ResultMatcher expectedStatus,
+                                                  String expected, String token) throws Exception {
         MvcResult result = mockMvc.perform(identityZone
-                                          .header("Authorization", "Bearer " + identityClientZonesReadToken))
+                                               .header("Authorization", "Bearer " + token))
                                   .andExpect(expectedStatus).andReturn();
         assertEquals(expected, result.getResponse().getContentAsString());
     }
@@ -193,7 +206,8 @@ public class OrchestratorZoneControllerMockMvcTests {
     @Test
     void testGetZone_Notfound() throws Exception {
         performMockMvcCallAndAssertError(get("/orchestrator/zones").param("name", "random-name"), status().isNotFound(),
-                                         "{\"message\", \"Zone[random-name] not found.\" }");
+                                         "{\"message\", \"Zone[random-name] not found.\" }",
+                                         orchestratorClientZonesReadToken);
     }
 
     @Test
@@ -201,10 +215,12 @@ public class OrchestratorZoneControllerMockMvcTests {
         //TODO: remove this createIdentityZone method once the create orchestrator zone API is implemented and use it to create zone.
         IdentityZone identityZone = createIdentityZone();
         uaaEventListener.clearEvents();
-        processZoneAPI(delete("/orchestrator/zones"), identityZone.getName(), status().isAccepted());
+        processZoneAPI(delete("/orchestrator/zones"), identityZone.getName(), status().isAccepted(),
+                       orchestratorClientZonesWriteToken);
         performMockMvcCallAndAssertError(get("/orchestrator/zones").param("name", identityZone.getName()),
                                          status().isNotFound(),
-                                         "{\"message\", \"Zone[test-name] not found.\" }");
+                                         "{\"message\", \"Zone[test-name] not found.\" }",
+                                         orchestratorClientZonesWriteToken);
 
         // Asserting delete event
         assertThat(uaaEventListener.getEventCount(), is(1));
@@ -218,15 +234,34 @@ public class OrchestratorZoneControllerMockMvcTests {
     void testDeleteZone_ZoneNotFound() throws Exception {
         performMockMvcCallAndAssertError(delete("/orchestrator/zones").param("name", "random-name"),
                                          status().isNotFound(),
-                                         "{\"message\", \"Zone[random-name] not found.\" }");
+                                         "{\"message\", \"Zone[random-name] not found.\" }",
+                                         orchestratorClientZonesWriteToken);
+    }
+
+    @Test
+    void testDeleteZone_Forbidden() throws Exception {
+        performMockMvcCallAndAssertError(delete("/orchestrator/zones").param("name", "random-name"),
+                                         status().isForbidden(),
+                                         "{\"error\":\"insufficient_scope\",\"error_description\":\"Insufficient scope for this resource\",\"scope\":\"uaa.admin zones.uaa.admin zones.write\"}",
+                                         orchestratorClientZonesReadToken);
     }
 
     @Test
     void testUpdateZone_MethodNotImplemented() throws Exception {
         performMockMvcCallAndAssertError(put("/orchestrator/zones").contentType(APPLICATION_JSON).content(
-                                       "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
+                                             "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
                                          status().isMethodNotAllowed(),
-                                         "{\"message\", \"Put Operation not Supported\" }");
+                                         "{\"message\", \"Put Operation not Supported\" }",
+                                         orchestratorClientZonesWriteToken);
+    }
+
+    @Test
+    void testUpdateZone_Forbidden() throws Exception {
+        performMockMvcCallAndAssertError(put("/orchestrator/zones").contentType(APPLICATION_JSON).content(
+                                             "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
+                                         status().isForbidden(),
+                                         "{\"error\":\"insufficient_scope\",\"error_description\":\"Insufficient scope for this resource\",\"scope\":\"uaa.admin zones.uaa.admin zones.write\"}",
+                                         orchestratorClientZonesReadToken);
     }
 
     //TODO: delete once the orchestrator create API implemented
