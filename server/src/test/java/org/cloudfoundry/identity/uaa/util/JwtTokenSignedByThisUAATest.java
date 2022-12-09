@@ -71,9 +71,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildAccessTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildRefreshTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -95,7 +95,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 
-public class TokenValidationTest {
+public class JwtTokenSignedByThisUAATest {
     public static final String CLIENT_ID = "app";
     public static final String USER_ID = "a7f07bf6-e720-4652-8999-e980189cef54";
     private final SignatureVerifier verifier = new MacSigner("foobar");
@@ -224,7 +224,7 @@ public class TokenValidationTest {
 
         expectedException.expectMessage("kid claim not found in JWT token header");
 
-        TokenValidation.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
     }
 
     @Test
@@ -234,7 +234,7 @@ public class TokenValidationTest {
 
         expectedException.expectMessage("Token header claim [kid] references unknown signing key : [garbage]");
 
-        TokenValidation.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
     }
 
     @Test
@@ -312,7 +312,7 @@ public class TokenValidationTest {
         String token = getToken();
 
 
-        ClientDetails clientDetails = TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
+        ClientDetails clientDetails = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
                 .getClientDetails(inMemoryMultitenantClientServices);
 
         assertThat(clientDetails.getClientId(), equalTo(content.get("cid")));
@@ -327,14 +327,14 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid client ID " + invalidClientId);
 
-        TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(inMemoryMultitenantClientServices);
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(inMemoryMultitenantClientServices);
     }
 
     @Test
     public void testGetUserById() {
         String token = getToken();
 
-        UaaUser user = TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
 
         assertThat(user, notNullValue());
         assertThat(user.getUsername(), equalTo("marissa"));
@@ -346,7 +346,7 @@ public class TokenValidationTest {
         content.put("grant_type", "client_credentials");
         String token = getToken();
 
-        UaaUser user = TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
 
         assertThat(user, nullValue());
     }
@@ -360,7 +360,7 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Token bears a non-existent user ID: " + invalidUserId);
 
-        UaaUser user = TokenValidation.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
     }
 
     private String getToken() {
@@ -377,7 +377,7 @@ public class TokenValidationTest {
 
     @Test
     public void validate_required_groups_is_invoked() {
-        TokenValidation validation = spy(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")));
+        JwtTokenSignedByThisUAA validation = spy(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")));
 
         validation.checkClientAndUser(uaaClient, uaaUser);
         verify(validation, times(1))
@@ -408,7 +408,7 @@ public class TokenValidationTest {
 
     @Test
     public void required_groups_are_present() {
-        TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
         validation.checkClientAndUser(uaaClient, uaaUser);
@@ -416,7 +416,7 @@ public class TokenValidationTest {
 
     @Test
     public void required_groups_are_missing() {
-        TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
         uaaUserGroups.add("group-missing-from-user");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
@@ -537,7 +537,7 @@ public class TokenValidationTest {
     @Test
     public void emptyBodyJwt_failsCheckingIssuer() {
         content = null;
-        TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
         validation.checkIssuer("http://localhost:8080/uaa/oauth/token");
@@ -546,7 +546,7 @@ public class TokenValidationTest {
     @Test
     public void emptyBodyJwt_failsCheckingExpiry() {
         content = null;
-        TokenValidation validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
         validation.checkExpiry(oneSecondBeforeTheTokenExpires);
@@ -758,13 +758,13 @@ public class TokenValidationTest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage(expectedErrorMessage);
 
-        TokenValidation tokenValidation = buildAccessTokenValidator(
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(
                 refreshToken,
                 new KeyInfoService("https://localhost")
         );
 
         try {
-            tokenValidation.checkRequestedScopesAreGranted(grantedScopes);
+            jwtToken.checkRequestedScopesAreGranted(grantedScopes);
         } catch (InvalidTokenException e) {
             assertThat(logEvents, hasItem("ERROR -- " + expectedErrorMessage));
             throw e; // rethrow so that expectedException can see the exception

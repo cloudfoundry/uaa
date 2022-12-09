@@ -39,7 +39,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
-import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -99,7 +99,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.util.StringUtils.hasText;
@@ -599,7 +599,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
             return responseEntity.getBody();
         } else {
-            TokenValidation validation = validateToken(idToken, config);
+            JwtTokenSignedByThisUAA validation = validateToken(idToken, config);
             logger.debug("Decoding id_token");
             Jwt decodeIdToken = validation.getJwt();
             logger.debug("Deserializing id_token claims");
@@ -614,10 +614,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
     }
 
-    private TokenValidation validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+    private JwtTokenSignedByThisUAA validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
         logger.debug("Validating id_token");
 
-        TokenValidation validation;
+        JwtTokenSignedByThisUAA validation;
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()).equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
