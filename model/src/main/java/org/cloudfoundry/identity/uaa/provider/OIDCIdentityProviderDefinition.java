@@ -29,6 +29,8 @@ implements Cloneable {
     private boolean setForwardHeader = false;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts = null;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Object jwtClientAuthentication;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -62,6 +64,16 @@ implements Cloneable {
         this.prompts = prompts;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Object getJwtClientAuthentication() {
+        return this.jwtClientAuthentication;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public void setJwtClientAuthentication(final Object jwtClientAuthentication) {
+        this.jwtClientAuthentication = jwtClientAuthentication;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -77,6 +89,7 @@ implements Cloneable {
 
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         if (this.setForwardHeader != that.setForwardHeader) return false;
+        if (this.jwtClientAuthentication != that.jwtClientAuthentication) return false;
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
@@ -87,6 +100,7 @@ implements Cloneable {
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         result = 31 * result + (setForwardHeader ? 1 : 0);
+        result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
         return result;
     }
 }
