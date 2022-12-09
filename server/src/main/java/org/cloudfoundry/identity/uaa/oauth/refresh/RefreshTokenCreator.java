@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -181,13 +181,13 @@ public class RefreshTokenCreator {
         return JsonUtils.writeValueAsString(claims);
     }
 
-    public String createRefreshTokenValue(TokenValidation tokenValidation, Claims claims) {
+    public String createRefreshTokenValue(JwtTokenSignedByThisUAA jwtToken, Claims claims) {
         String refreshTokenValue;
         if (shouldRotateRefreshTokens()) {
             String refreshTokenString = getRefreshedTokenString(claims);
             refreshTokenValue = JwtHelper.encode(refreshTokenString, getActiveKeyInfo()).getEncoded();
         } else {
-            refreshTokenValue = tokenValidation.getJwt().getEncoded();
+            refreshTokenValue = jwtToken.getJwt().getEncoded();
         }
         return refreshTokenValue;
     }

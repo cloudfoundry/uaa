@@ -29,7 +29,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
@@ -216,9 +216,9 @@ public class DeprecatedUaaTokenServicesTests {
         TokenValidityResolver tokenValidityResolver = mock(TokenValidityResolver.class);
         when(tokenValidityResolver.resolve(TokenTestSupport.CLIENT_ID)).thenReturn(new Date());
 
-        TokenValidation tokenValidation = mock(TokenValidation.class);
+        JwtTokenSignedByThisUAA jwtToken = mock(JwtTokenSignedByThisUAA.class);
         TokenValidationService tokenValidationService = mock(TokenValidationService.class);
-        when(tokenValidationService.validateToken(anyString(), anyBoolean())).thenReturn(tokenValidation);
+        when(tokenValidationService.validateToken(anyString(), anyBoolean())).thenReturn(jwtToken);
         HashMap<String, Object> claims = Maps.newHashMap();
         String userId = "userid";
         claims.put(ClaimConstants.USER_ID, userId);
@@ -230,10 +230,10 @@ public class DeprecatedUaaTokenServicesTests {
         HashMap<Object, Object> acrMap = Maps.newHashMap();
         acrMap.put(IdToken.ACR_VALUES_KEY, acrValue);
         claims.put(ClaimConstants.ACR, acrMap);
-        when(tokenValidation.getClaims()).thenReturn(claims);
-        when(tokenValidation.checkJti()).thenReturn(tokenValidation);
+        when(jwtToken.getClaims()).thenReturn(claims);
+        when(jwtToken.checkJti()).thenReturn(jwtToken);
         Jwt jwt = mock(Jwt.class);
-        when(tokenValidation.getJwt()).thenReturn(jwt);
+        when(jwtToken.getJwt()).thenReturn(jwt);
         when(jwt.getEncoded()).thenReturn("encoded");
 
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
@@ -1769,7 +1769,7 @@ public class DeprecatedUaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken compositeToken = tokenServices.createAccessToken(authentication);
-        TokenValidation refreshToken = tokenSupport.tokenValidationService.validateToken(compositeToken.getRefreshToken().getValue(), false);
+        JwtTokenSignedByThisUAA refreshToken = tokenSupport.tokenValidationService.validateToken(compositeToken.getRefreshToken().getValue(), false);
 
         String refreshTokenValue = tokenProvisioning.retrieve(refreshToken.getClaims().get("jti").toString(), IdentityZoneHolder.get().getId()).getValue();
 

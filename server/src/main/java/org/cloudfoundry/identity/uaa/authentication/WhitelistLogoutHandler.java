@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -25,7 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildIdTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
@@ -72,8 +72,8 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
             try {
                 Map<String, KeyInfo> keys = keyInfoService.getKeys();
                 List<SignatureVerifier> signatureVerifiers = keys.values().stream().map(i -> i.getVerifier()).collect(Collectors.toList());
-                TokenValidation tokenValidation =buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
-                clientId = (String)tokenValidation.getClaims().get(ClaimConstants.AZP);
+                JwtTokenSignedByThisUAA jwtToken =buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
+                clientId = (String) jwtToken.getClaims().get(ClaimConstants.AZP);
             } catch (InvalidTokenException e) {
                 logger.debug("Invalid token (could not verify signature)");
             }
