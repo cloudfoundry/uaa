@@ -103,7 +103,7 @@
         </init-param>
         <init-param>
             <param-name>dispatchTraceRequest</param-name>
-            <param-value>true</param-value>
+            <param-value>false</param-value>
         </init-param>
         <load-on-startup>1</load-on-startup>
     </servlet>
