@@ -360,7 +360,7 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Token bears a non-existent user ID: " + invalidUserId);
 
-        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
     }
 
     private String getToken() {
@@ -377,18 +377,18 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void validate_required_groups_is_invoked() {
-        JwtTokenSignedByThisUAA validation = spy(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")));
+        JwtTokenSignedByThisUAA jwtToken = spy(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")));
 
-        validation.checkClientAndUser(uaaClient, uaaUser);
-        verify(validation, times(1))
+        jwtToken.checkClientAndUser(uaaClient, uaaUser);
+        verify(jwtToken, times(1))
                 .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
                         (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
                 );
-        Mockito.reset(validation);
+        Mockito.reset(jwtToken);
 
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, null);
-        validation.checkClientAndUser(uaaClient, uaaUser);
-        verify(validation, times(1))
+        jwtToken.checkClientAndUser(uaaClient, uaaUser);
+        verify(jwtToken, times(1))
                 .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[0])),
                         (Collection<String>) argThat(containsInAnyOrder(uaaUserGroups.toArray(new String[0])))
                 );
@@ -399,8 +399,8 @@ public class JwtTokenSignedByThisUAATest {
         authorities.addAll(AuthorityUtils.createAuthorityList(uaaUserGroups.toArray(new String[0])));
         uaaUser = uaaUser.authorities(authorities);
 
-        validation.checkClientAndUser(uaaClient, uaaUser);
-        verify(validation, times(1))
+        jwtToken.checkClientAndUser(uaaClient, uaaUser);
+        verify(jwtToken, times(1))
                 .checkRequiredUserGroups((Collection<String>) argThat(containsInAnyOrder(new String[]{"group1", "group2"})),
                         (Collection<String>) argThat(containsInAnyOrder(uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).toArray()))
                 );
@@ -408,22 +408,22 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void required_groups_are_present() {
-        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
-        validation.checkClientAndUser(uaaClient, uaaUser);
+        jwtToken.checkClientAndUser(uaaClient, uaaUser);
     }
 
     @Test
     public void required_groups_are_missing() {
-        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
         uaaUserGroups.add("group-missing-from-user");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("User does not meet the client's required group criteria.");
 
-        validation.checkClientAndUser(uaaClient, uaaUser);
+        jwtToken.checkClientAndUser(uaaClient, uaaUser);
     }
 
     @Test
@@ -537,19 +537,19 @@ public class JwtTokenSignedByThisUAATest {
     @Test
     public void emptyBodyJwt_failsCheckingIssuer() {
         content = null;
-        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
-        validation.checkIssuer("http://localhost:8080/uaa/oauth/token");
+        jwtToken.checkIssuer("http://localhost:8080/uaa/oauth/token");
     }
 
     @Test
     public void emptyBodyJwt_failsCheckingExpiry() {
         content = null;
-        JwtTokenSignedByThisUAA validation = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
-        validation.checkExpiry(oneSecondBeforeTheTokenExpires);
+        jwtToken.checkExpiry(oneSecondBeforeTheTokenExpires);
     }
 
     @Test
