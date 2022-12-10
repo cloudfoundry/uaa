@@ -233,7 +233,7 @@ public abstract class JwtTokenSignedByThisUAA {
 
 
     public JwtTokenSignedByThisUAA checkClientAndUser(ClientDetails client, UaaUser user) {
-        JwtTokenSignedByThisUAA validation =
+        JwtTokenSignedByThisUAA jwtToken =
                 checkClient(
                         cid -> {
                             if (!equals(cid, client.getClientId())) {
@@ -242,7 +242,7 @@ public abstract class JwtTokenSignedByThisUAA {
                             return client;
                         });
         if (isUserToken(claims)) {
-            return validation
+            return jwtToken
                     .checkUser(uid -> {
                         if (user == null) {
                             throw new InvalidTokenException("Unable to validate user, no user found.");
@@ -259,7 +259,7 @@ public abstract class JwtTokenSignedByThisUAA {
                     );
 
         } else {
-            return validation;
+            return jwtToken;
         }
     }
 

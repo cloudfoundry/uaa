@@ -599,9 +599,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             logger.debug(String.format("Request completed with status:%s", responseEntity.getStatusCode()));
             return responseEntity.getBody();
         } else {
-            JwtTokenSignedByThisUAA validation = validateToken(idToken, config);
+            JwtTokenSignedByThisUAA jwtToken = validateToken(idToken, config);
             logger.debug("Decoding id_token");
-            Jwt decodeIdToken = validation.getJwt();
+            Jwt decodeIdToken = jwtToken.getJwt();
             logger.debug("Deserializing id_token claims");
 
             return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>() {});
@@ -617,18 +617,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private JwtTokenSignedByThisUAA validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
         logger.debug("Validating id_token");
 
-        JwtTokenSignedByThisUAA validation;
+        JwtTokenSignedByThisUAA jwtToken;
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()).equals(config.getIssuer())) {
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
+            jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
-            validation = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
+            jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
                 .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
                 .checkAudience(config.getRelyingPartyId());
         }
-        return validation.checkExpiry();
+        return jwtToken.checkExpiry();
     }
 
     protected List<SignatureVerifier> getTokenKeyForUaaOrigin() {
