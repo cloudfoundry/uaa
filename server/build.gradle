@@ -101,6 +101,7 @@ dependencies {
         exclude(module: 'httpclient')
         //excluded to avoid bringing in jackson core < 2.9
         exclude(module: 'predix-event-hub-sdk')
+        exclude(group: 'org.hibernate')
     }
     implementation(libraries.springLogFilter) {
         exclude(group: 'ch.qos.logback')
