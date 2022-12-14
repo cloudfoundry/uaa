@@ -12,9 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
+
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
@@ -25,31 +45,23 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.util.Assert;
-
-import javax.validation.constraints.NotNull;
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
