@@ -396,6 +396,7 @@ public abstract class JwtTokenSignedByThisUAA {
                 try {
                     revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
                 } catch (EmptyResultDataAccessException ignored) {
+                    // ignore exception
                 }
 
                 if (revocableToken == null) {
