@@ -190,7 +190,6 @@ public abstract class JwtTokenSignedByThisUAA {
         UaaUser user;
         try {
             user = getUser.apply(userId);
-            Assert.notNull(user, "[Assertion failed] - this argument is required; it must not be null");
         } catch (UsernameNotFoundException ex) {
             throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
         }

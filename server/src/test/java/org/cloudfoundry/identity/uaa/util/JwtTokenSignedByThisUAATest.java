@@ -794,4 +794,10 @@ public class JwtTokenSignedByThisUAATest {
         buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
                 .requestedScopes();
     }
+
+    @Test(expected=InvalidTokenException.class)
+    public void nullUserIsCaught() {
+        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+                .checkUser((uid) -> null);
+    }
 }
