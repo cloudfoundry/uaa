@@ -181,31 +181,35 @@ public abstract class JwtTokenSignedByThisUAA {
         if (userId == null) {
             throw new InvalidTokenException("Token has a null USER_ID claim.", null);
         } else {
-            UaaUser user;
-            try {
-                user = getUser.apply(userId);
-                Assert.notNull(user, "[Assertion failed] - this argument is required; it must not be null");
-            } catch (UsernameNotFoundException ex) {
-                throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
-            }
-
-            if (user == null) {
-                // Unlikely to occur, but since this is dependent on the implementation of an interface...
-                throw new InvalidTokenException("Found no data for user ID: " + userId, null);
-            } else {
-                List<? extends GrantedAuthority> authorities = user.getAuthorities();
-                if (authorities == null) {
-                    throw new InvalidTokenException("Invalid token (all scopes have been revoked)", null);
-                } else {
-                    List<String> grantedScopes =
-                            authorities.stream()
-                                    .map(GrantedAuthority::getAuthority).collect(toList());
-
-                    checkRequestedScopesAreGranted(grantedScopes);
-                }
-            }
+            checkScope(getUser, userId);
         }
         return this;
+    }
+
+    void checkScope(Function<String, UaaUser> getUser, String userId) {
+        UaaUser user;
+        try {
+            user = getUser.apply(userId);
+            Assert.notNull(user, "[Assertion failed] - this argument is required; it must not be null");
+        } catch (UsernameNotFoundException ex) {
+            throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
+        }
+
+        if (user == null) {
+            // Unlikely to occur, but since this is dependent on the implementation of an interface...
+            throw new InvalidTokenException("Found no data for user ID: " + userId, null);
+        } else {
+            List<? extends GrantedAuthority> authorities = user.getAuthorities();
+            if (authorities == null) {
+                throw new InvalidTokenException("Invalid token (all scopes have been revoked)", null);
+            } else {
+                List<String> grantedScopes =
+                        authorities.stream()
+                                .map(GrantedAuthority::getAuthority).collect(toList());
+
+                checkRequestedScopesAreGranted(grantedScopes);
+            }
+        }
     }
 
     protected JwtTokenSignedByThisUAA checkRequestedScopesAreGranted(String... grantedScopes) {
