@@ -391,23 +391,25 @@ public abstract class JwtTokenSignedByThisUAA {
                 if ((tokenId = (String) claims.get(ClaimConstants.JTI)) == null) {
                     throw new InvalidTokenException("The token does not bear a token ID (JTI).", null);
                 }
-
-                RevocableToken revocableToken = null;
-                try {
-                    revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
-                } catch (EmptyResultDataAccessException ignored) {
-                    // ignore exception
-                }
-
-                if (revocableToken == null) {
-                    throw new TokenRevokedException("The token has been revoked: " + tokenId);
-                }
+                checkRevocableToken(revocableTokenProvisioning, tokenId);
             }
         } catch (ClassCastException ex) {
             throw new InvalidTokenException("The token's revocability or JTI claim is invalid or unparseable.", ex);
         }
 
         return this;
+    }
+
+    private static void checkRevocableToken(RevocableTokenProvisioning revocableTokenProvisioning, String tokenId) {
+        RevocableToken revocableToken = null;
+        try {
+            revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        } catch (EmptyResultDataAccessException ignored) {
+            // ignore exception until null check below
+        }
+        if (revocableToken == null) {
+            throw new TokenRevokedException("The token has been revoked: " + tokenId);
+        }
     }
 
     private static boolean equals(Object a, Object b) {
