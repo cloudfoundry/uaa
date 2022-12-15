@@ -6,6 +6,7 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -31,6 +32,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +55,10 @@ import org.springframework.util.StringUtils;
 
 @DefaultTestContext
 public class OrchestratorZoneControllerMockMvcTests {
+
+    public static final String ZONE_NAME = "The Twiglet Zone";
+    public static final String SUB_DOMAIN_NAME = "sub-domain-01";
+    public static final String ADMIN_CLIENT_SECRET = "admin-secret-01";
 
     private MockMvc mockMvc;
     private String orchestratorClientZonesReadToken = null;
@@ -264,6 +271,92 @@ public class OrchestratorZoneControllerMockMvcTests {
                                          orchestratorClientZonesReadToken);
     }
 
+
+    @Test
+    void testCreateZone_unAuthorized_withoutAccessToken() throws Exception {
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+                                                                                     SUB_DOMAIN_NAME);
+        MvcResult result = mockMvc
+            .perform(
+                post("/orchestrator/zones")
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest)))
+            .andExpect(status().isUnauthorized()).andReturn();
+    }
+
+    @Test
+    void testCreateZone_Forbidden_InSufficientScope() throws Exception {
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+                                                                                     SUB_DOMAIN_NAME);
+        MvcResult result = mockMvc
+            .perform(
+                post("/orchestrator/zones")
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
+                    .header("Authorization", "Bearer " + orchestratorClientZonesReadToken))
+            .andExpect(status().isForbidden()).andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("Insufficient scope for this resource"));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(SpaceAndEmptyArgumentsSource.class)
+    void testCreateZone_nameAsSpaceAndEmptyError(String name) throws Exception {
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(name,ADMIN_CLIENT_SECRET,SUB_DOMAIN_NAME);
+        MvcResult result = mockMvc
+            .perform(
+                post("/orchestrator/zones")
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
+                    .header("Authorization", "Bearer " + orchestratorClientZonesWriteToken))
+            .andExpect(status().isBadRequest()).andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("default message [name]]; default message [must not be empty]]"));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(SubDomainWithSpaceOrSpecialCharArguments.class)
+    void testCreateZone_subDomainWithSpaceOrSpecialCharFail(String subDomain) throws Exception {
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+                                                                                     subDomain);
+        MvcResult result = mockMvc
+            .perform(
+                post("/orchestrator/zones")
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
+                    .header("Authorization", "Bearer " + orchestratorClientZonesWriteToken))
+            .andExpect(status().isBadRequest()).andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("Special characters are not allowed in the subdomain " +
+                                                                      "name except hyphen which can be specified in the middle."));
+    }
+
+    @ParameterizedTest
+    @ArgumentsSource(SpaceAndEmptyArgumentsSource.class)
+    void testCreateZone_adminClientSecretAsSpaceAndEmptyError(String adminClientSecret) throws Exception {
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,adminClientSecret,
+                                                                                     SUB_DOMAIN_NAME);
+        MvcResult result = mockMvc
+            .perform(
+                post("/orchestrator/zones")
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
+                    .header("Authorization", "Bearer " + orchestratorClientZonesWriteToken))
+            .andExpect(status().isBadRequest()).andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("The \"adminClientSecret\" field cannot contain" +
+                                                                      " spaces or cannot be blank."));
+    }
+
+    @Test
+    void testCreateZone_Accepted_Success() throws Exception {
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+                                                                                     SUB_DOMAIN_NAME);
+        MvcResult result = mockMvc
+            .perform(
+                post("/orchestrator/zones")
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
+                    .header("Authorization", "Bearer " + uaaAdminClientToken))
+            .andExpect(status().isAccepted()).andReturn();
+    }
+
     //TODO: delete once the orchestrator create API implemented
     @SneakyThrows
     private IdentityZone createIdentityZone() {
@@ -330,6 +423,40 @@ public class OrchestratorZoneControllerMockMvcTests {
             return Stream.of(
                 Arguments.of("/orchestrator/zones?name"),
                 Arguments.of("/orchestrator/zones")
+                            );
+        }
+    }
+
+    private OrchestratorZoneRequest getOrchestratorZoneRequest(String name, String adminClientSecret,
+                                                               String subdomain) {
+        OrchestratorZone orchestratorZone = new OrchestratorZone(adminClientSecret, subdomain);
+        OrchestratorZoneRequest orchestratorZoneRequest = new OrchestratorZoneRequest();
+        orchestratorZoneRequest.setName(name);
+        orchestratorZoneRequest.setParameters(orchestratorZone);
+        return orchestratorZoneRequest;
+    }
+
+    private static class SpaceAndEmptyArgumentsSource implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                Arguments.of(""),
+                Arguments.of(" ")
+                            );
+        }
+    }
+
+    private static class SubDomainWithSpaceOrSpecialCharArguments implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                Arguments.of("sub#-domain"),
+                Arguments.of("-subdomainStartsWithHYphen"),
+                Arguments.of("subdomainEndsWithHYphen-"),
+                Arguments.of("sub\\\\domaincontainsslash"),
+                Arguments.of("sub$%domaincontainsSpecialChars")
                             );
         }
     }
