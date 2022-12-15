@@ -4,10 +4,13 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
 
+import java.io.IOException;
 import javax.naming.OperationNotSupportedException;
 import javax.validation.ConstraintViolationException;
 import javax.validation.constraints.NotBlank;
+import javax.validation.Valid;
 
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
@@ -22,11 +25,14 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.AccessDeniedException;
+
 
 @Validated
 @RestController("zoneEndpoints")
@@ -45,6 +51,13 @@ public class OrchestratorZoneController {
     @GetMapping
     public ResponseEntity<OrchestratorZoneResponse> getZone(@NotBlank(message = MANDATORY_VALIDATION_MESSAGE) @RequestParam String name) {
         return new ResponseEntity<>(zoneService.getZoneDetails(name), HttpStatus.OK);
+    }
+
+    @PostMapping
+    public ResponseEntity<?> createOrchestratorZone(@RequestBody @Valid OrchestratorZoneRequest orchestratorZoneRequest )
+        throws OrchestratorZoneServiceException, IOException {
+        zoneService.createZone(orchestratorZoneRequest);
+        return new ResponseEntity<>("", HttpStatus.ACCEPTED);
     }
 
     @DeleteMapping
@@ -87,9 +100,24 @@ public class OrchestratorZoneController {
         return new ResponseEntity<>("{\"message\", \""+ e.getMessage() +"\" }", METHOD_NOT_ALLOWED);
     }
 
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<String> handleAccessDeniedException(AccessDeniedException e) {
+        return new ResponseEntity<>("{\"message\", \""+ e.getMessage() +"\" }", FORBIDDEN);
+    }
+
+    @ExceptionHandler(ZoneAlreadyExistsException.class)
+    public ResponseEntity<String> handleZoneAlreadyExistsException(ZoneAlreadyExistsException e) {
+        return new ResponseEntity<>("{\"message\", \""+ e.getMessage() +"\" }", BAD_REQUEST);
+    }
+
+    @ExceptionHandler(OrchestratorZoneServiceException.class)
+    public ResponseEntity<String> handleOrchestratorZoneServiceException(OrchestratorZoneServiceException e) {
+        return new ResponseEntity<>("{\"message\", \""+ e.getMessage() +"\" }", BAD_REQUEST);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleException(Exception e) {
         logger.error(e.getClass() + ": " + e.getMessage(), e);
-        return new ResponseEntity<>("{\"message\",\"Server Error.\" }", INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>("{\"message\", \""+ e.getMessage() +"\" }", INTERNAL_SERVER_ERROR);
     }
 }

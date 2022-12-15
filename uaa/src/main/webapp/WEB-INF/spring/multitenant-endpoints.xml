@@ -24,7 +24,7 @@
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
-
+        <intercept-url pattern="/orchestrator/zones" access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')" method="POST"/>
         <intercept-url pattern="/orchestrator/zones" access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')" method="GET"/>
         <intercept-url pattern="/orchestrator/zones" access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')" method="DELETE"/>
         <intercept-url pattern="/orchestrator/zones" access="#oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScope('zones.write')" method="PUT"/>
