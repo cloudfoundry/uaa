@@ -11,13 +11,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
-
-import net.bytebuddy.utility.RandomString;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
@@ -108,10 +107,12 @@ public class OrchestratorZoneServiceTests {
 
 
     private IdentityZone mockIdentityZone;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @BeforeEach
     public void beforeEachTest() {
         mockIdentityZone = mock(IdentityZone.class);
+        applicationEventPublisher = mock(ApplicationEventPublisher.class);
         zoneProvisioning = mock(IdentityZoneProvisioning.class);
         idpProvisioning = mock(IdentityProviderProvisioning.class);
         groupProvisioning = mock(ScimGroupProvisioning.class);
@@ -153,6 +154,7 @@ public class OrchestratorZoneServiceTests {
 
     @Test
     public void testDeleteZone() {
+        zoneService.setApplicationEventPublisher(applicationEventPublisher);
         IdentityZone identityZone = buildIdentityZone();
         when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
         ResponseEntity<?> response = zoneService.deleteZone(identityZone.getName());
@@ -188,7 +190,7 @@ public class OrchestratorZoneServiceTests {
     }
 
     @Test
-    public void testCreateZone() throws OrchestratorZoneServiceException {
+    public void testCreateZone() throws OrchestratorZoneServiceException, IOException {
         Security.addProvider(new BouncyCastleProvider());
         OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
                                                                           SUB_DOMAIN_NAME);

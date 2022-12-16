@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
@@ -73,25 +72,22 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testGetZone() {
-        //TODO: delete once the orchestrator create API implemented
-        IdentityZone identityZone = createZone();
-        assertNotNull(identityZone);
+        String zoneName = createZoneGetZoneName();
         ResponseEntity<OrchestratorZoneResponse> response = client.getForEntity(
-            serverRunning.getUrl("/orchestrator/zones") + "?name=" + identityZone.getName(),
+            serverRunning.getUrl("/orchestrator/zones") + "?name=" + zoneName,
             OrchestratorZoneResponse.class);
         if (response.getStatusCode().is2xxSuccessful()) {
             OrchestratorZoneResponse zoneResponse = response.getBody();
             assertNotNull(zoneResponse);
-            assertNotNull(identityZone);
             assertNotNull(zoneResponse.getParameters());
-            assertEquals(identityZone.getSubdomain(), zoneResponse.getParameters().getSubdomain());
-            assertEquals(identityZone.getSubdomain(), zoneResponse.getConnectionDetails().getSubdomain());
-            String uri = "http://" + identityZone.getSubdomain() + ".localhost:8080/uaa";
+            assertEquals(zoneName, zoneResponse.getParameters().getSubdomain());
+            assertEquals(zoneName, zoneResponse.getConnectionDetails().getSubdomain());
+            String uri = "http://" + zoneName + ".localhost:8080/uaa";
             assertEquals(uri, zoneResponse.getConnectionDetails().getUri());
             assertEquals("http://localhost:8080/dashboard", zoneResponse.getConnectionDetails().getDashboardUri());
             assertEquals(uri + "/oauth/token", zoneResponse.getConnectionDetails().getIssuerId());
             assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
-            assertEquals(identityZone.getId(), zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
+            assertNotNull(zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
         } else {
             fail("Server not returning expected status code");
         }
@@ -143,19 +139,17 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testDeleteZone() {
-        //TODO: delete once the orchestrator create API implemented
-        IdentityZone identityZone = createZone();
-        assertNotNull(identityZone);
+        String zoneName = createZoneGetZoneName();
         ResponseEntity<String> response =
-            client.exchange(serverRunning.getUrl("/orchestrator/zones") + "?name=" + identityZone.getName(),
+            client.exchange(serverRunning.getUrl("/orchestrator/zones") + "?name=" + zoneName,
                             HttpMethod.DELETE, null, String.class);
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         ResponseEntity<String> getResponse = client.getForEntity(
-            serverRunning.getUrl("/orchestrator/zones") + "?name=" + identityZone.getName(),
+            serverRunning.getUrl("/orchestrator/zones") + "?name=" + zoneName,
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.NOT_FOUND);
         assertNotNull(getResponse.getBody());
-        assertEquals("{\"message\", \"Zone["+identityZone.getName()+"] not found.\" }", getResponse.getBody());
+        assertEquals("{\"message\", \"Zone["+zoneName+"] not found.\" }", getResponse.getBody());
     }
 
     @Test
@@ -183,12 +177,42 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testCreateZone() {
-        String id = UUID.randomUUID().toString();
-        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(id,ADMIN_CLIENT_SECRET, id));
+        String zoneName = getName();
+        ResponseEntity<Void> response = createZone(zoneName);
+        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+        assertNull(response.getBody());
+    }
+
+    @Test
+    public void testCreateAndGetZone_SubdomainAsNULL_inRequestBody() {
+        String zoneName = createZoneSubdomainAsNullInParameter();
+        ResponseEntity<OrchestratorZoneResponse> getResponse = client.getForEntity(
+            serverRunning.getUrl("/orchestrator/zones") + "?name=" + zoneName,
+            OrchestratorZoneResponse.class);
+        if (getResponse.getStatusCode().is2xxSuccessful()) {
+            OrchestratorZoneResponse zoneResponse = getResponse.getBody();
+            assertNotNull(zoneResponse);
+            assertNull(zoneResponse.getParameters().getSubdomain());
+            String connectionDetailSubdomain = zoneResponse.getConnectionDetails().getSubdomain();
+            assertNotNull(connectionDetailSubdomain);
+            String uri = "http://" + connectionDetailSubdomain + ".localhost:8080/uaa";
+            assertEquals(uri, zoneResponse.getConnectionDetails().getUri());
+            assertEquals("http://localhost:8080/dashboard", zoneResponse.getConnectionDetails().getDashboardUri());
+            assertEquals(uri + "/oauth/token", zoneResponse.getConnectionDetails().getIssuerId());
+            assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
+            assertEquals(connectionDetailSubdomain, zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
+        } else {
+            fail("Server not returning expected status code");
+        }
+    }
+
+    private String createZoneSubdomainAsNullInParameter() {
+        String zoneName = getName();
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET,
+                                                                                     null));
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-
         ResponseEntity<Void> response = client.exchange(
             serverRunning.getUrl("/orchestrator/zones"),
             HttpMethod.POST,
@@ -196,8 +220,8 @@ public class OrchestratorZoneControllerIntegrationTests {
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
         assertNull(response.getBody());
+        return zoneName;
     }
-
 
     @Test
     public void testCreateZone_ZoneAlreadyExists() {
@@ -266,28 +290,6 @@ public class OrchestratorZoneControllerIntegrationTests {
         assertTrue(getResponse.getBody().contains("default message [name]]; default message [must not be empty]]"));
     }
 
-    //TODO: delete once the orchestrator create API implemented
-    private IdentityZone createZone() {
-        String zoneId = UUID.randomUUID().toString();
-        String requestBody =
-            "{\"id\":\"" + zoneId + "\", \"subdomain\":\"" + zoneId + "\", \"name\":\"testCreateZone() " + zoneId +
-            "\"}";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-
-        ResponseEntity<IdentityZone> response = client.exchange(
-            serverRunning.getUrl("/identity-zones"),
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            new ParameterizedTypeReference<IdentityZone>() { });
-        if (response.getStatusCode().is2xxSuccessful()) {
-            return response.getBody();
-        }
-        return null;
-    }
-
     static class ZoneClient extends ClientCredentialsResourceDetails {
 
         public ZoneClient(Object target) {
@@ -312,5 +314,26 @@ public class OrchestratorZoneControllerIntegrationTests {
     private String getName() {
         String id = UUID.randomUUID().toString();
         return id;
+    }
+
+    private String createZoneGetZoneName() {
+        String zoneName = getName();
+        ResponseEntity<Void> createZoneResponse = createZone(zoneName);
+        assertEquals(HttpStatus.ACCEPTED, createZoneResponse.getStatusCode());
+        assertNull(createZoneResponse.getBody());
+        return zoneName;
+    }
+
+    private ResponseEntity<Void> createZone(String zoneName) {
+        String subDomain =  zoneName;
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET, subDomain));
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        ResponseEntity<Void> response = client.exchange(
+            serverRunning.getUrl("/orchestrator/zones"),
+            HttpMethod.POST,
+            new HttpEntity<>(requestBody, headers), new ParameterizedTypeReference<Void>() {});
+        return response;
     }
 }
