@@ -33,7 +33,7 @@ pushd $(dirname $DIR)
 
   readonly integrationTestCode="./gradlew '-Dspring.profiles.active=${TESTENV}' \
             '-Djava.security.egd=file:/dev/./urandom' \
-            integrationTest \
+            test \
             --no-daemon \
             --stacktrace \
             --console=plain \
