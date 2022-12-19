@@ -42,6 +42,10 @@ pipeline {
                 script {
                     setBuildStatus(repoStatusReportUrl, gitCommitStatusContext, 'in progress', 'pending')
                     currentBuild.displayName = "#${env.BUILD_NUMBER} (IAM Container Config Branch Name: ${params.IAM_CONTAINER_CONFIG_BRANCH_NAME}, Image Tag: ${params.IMAGE_TAG})"
+
+                    sh 'echo 10.229.23.137 gesos-apikey.gecloud.io >> /etc/hosts'
+                    sh 'echo 10.229.23.151 gesos-apikey.gecloud.io >> /etc/hosts'
+
                     result = sh(
                         script: """
                                     curl -sSL -X POST -H 'x-api-key: ${GESOS_API_KEY}' \\
