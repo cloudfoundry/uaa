@@ -51,7 +51,7 @@ CREATE TABLE oauth_client_details (
   client_secret VARCHAR(255),
   scope VARCHAR(255),
   authorized_grant_types VARCHAR(255),
-  web_server_redirect_uri VARCHAR(1024),
+  web_server_redirect_uri VARCHAR(65535),
   authorities VARCHAR(255),
   access_token_validity INTEGER default 0,
   refresh_token_validity INTEGER default 0,

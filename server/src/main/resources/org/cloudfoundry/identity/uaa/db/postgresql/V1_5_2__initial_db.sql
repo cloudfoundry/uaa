@@ -65,7 +65,7 @@ CREATE TABLE OAUTH_CLIENT_DETAILS (
   client_secret VARCHAR(256),
   scope VARCHAR(256),
   authorized_grant_types VARCHAR(256),
-  web_server_redirect_uri VARCHAR(1024),
+  web_server_redirect_uri VARCHAR(65535),
   authorities VARCHAR(256),
   access_token_validity INTEGER
 ) ;
