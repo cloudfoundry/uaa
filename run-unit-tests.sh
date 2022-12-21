@@ -52,7 +52,7 @@ docker run \
   --privileged \
   --tty \
   --interactive \
-  --shm-size=1G \
+  --shm-size=4G \
   --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   --volume "${GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
