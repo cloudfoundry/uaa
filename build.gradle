@@ -89,7 +89,7 @@ subprojects {
     targetCompatibility = 1.11
 
     test {
-        maxParallelForks = Runtime.getRuntime().availableProcessors()
+        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
