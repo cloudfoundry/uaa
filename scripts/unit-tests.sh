@@ -32,14 +32,6 @@ pushd $(dirname $SCRIPT_DIR)
       -w password \
       -f ./uaa/src/test/resources/ldap_init.ldif
 
-  ./gradlew "-Dspring.profiles.active=${TESTENV}" \
-            "-Djava.security.egd=file:/dev/./urandom" \
-            assemble \
-            --max-workers=2 \
-            --no-daemon \
-            --stacktrace \
-            --console=plain \
-            --exclude-task ':cloudfoundry-identity-samples:assemble'
 
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
             "-Djava.security.egd=file:/dev/./urandom" \
