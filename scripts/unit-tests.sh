@@ -35,7 +35,7 @@ pushd $(dirname $SCRIPT_DIR)
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
             "-Djava.security.egd=file:/dev/./urandom" \
             assemble \
-            --max-workers=4 \
+            --max-workers=2 \
             --no-daemon \
             --stacktrace \
             --console=plain \
