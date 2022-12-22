@@ -48,11 +48,9 @@ if [[ -z "${DOCKER_IMAGE+x}" ]]; then
     DOCKER_IMAGE="cfidentity/uaa-${DB_IMAGE_NAME}"
 fi
 
-docker run \
-  --privileged \
-  --tty \
-  --interactive \
-  --shm-size=4G \
+echo "Using docker image: ${DOCKER_IMAGE}"
+docker pull ${DOCKER_IMAGE}
+docker run --privileged -t -i --shm-size=1G --cpus=".5" \
   --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   --volume "${GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
