@@ -91,9 +91,9 @@ subprojects {
     test {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
         failFast = true
-        forkEvery = 100
         useJUnitPlatform()
-        jvmArgs += ["-Xmx2048m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
+        maxHeapSize = '1G'
+        jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
             failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "false"));
