@@ -50,7 +50,7 @@ fi
 
 echo "Using docker image: ${DOCKER_IMAGE}"
 docker pull ${DOCKER_IMAGE}
-docker run --privileged -t -i --shm-size=1G -m=4G --cpus=".8" \
+docker run --privileged -t -i --shm-size=1G -m=4G --oom-kill-disable --cpus=".8" \
   --volume "${SCRIPT_DIR}":"${CONTAINER_SCRIPT_DIR}" \
   --volume "${GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
