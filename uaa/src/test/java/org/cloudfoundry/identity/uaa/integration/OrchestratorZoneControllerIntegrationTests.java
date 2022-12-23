@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 
 import java.util.UUID;
 
@@ -13,6 +14,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorErrorResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
@@ -101,7 +103,10 @@ public class OrchestratorZoneControllerIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.NOT_FOUND);
             assertNotNull(response.getBody());
-            assertEquals("{\"message\", \"Zone[random-name] not found.\" }", response.getBody());
+            assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
+            String expected  =  JsonUtils.writeValueAsString(
+                new OrchestratorErrorResponse("Zone[random-name] not found."));
+            assertEquals(expected, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -115,9 +120,11 @@ public class OrchestratorZoneControllerIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
             assertNotNull(response.getBody());
-            assertEquals(
-                "{\"message\", \"Required request parameter 'name' for method parameter type String is not present\" }",
-                response.getBody());
+            assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
+            String expected  =  JsonUtils.writeValueAsString(
+                new OrchestratorErrorResponse("Required request parameter 'name' for method parameter type String is " +
+                                              "not present"));
+            assertEquals(expected, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -131,7 +138,10 @@ public class OrchestratorZoneControllerIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
             assertNotNull(response.getBody());
-            assertEquals("{\"message\", \"getZone.name: must not be empty\" }", response.getBody());
+            assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
+            String expected  =  JsonUtils.writeValueAsString(
+                new OrchestratorErrorResponse("getZone.name: must not be empty"));
+            assertEquals(expected, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -149,7 +159,10 @@ public class OrchestratorZoneControllerIntegrationTests {
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.NOT_FOUND);
         assertNotNull(getResponse.getBody());
-        assertEquals("{\"message\", \"Zone["+zoneName+"] not found.\" }", getResponse.getBody());
+        assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
+        String expected  =  JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse("Zone["+zoneName+"] not found."));
+        assertEquals(expected, getResponse.getBody());
     }
 
     @Test
@@ -159,7 +172,9 @@ public class OrchestratorZoneControllerIntegrationTests {
                             HttpMethod.DELETE, null, String.class);
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("{\"message\", \"Zone[random-name] not found.\" }", response.getBody());
+        String expected  =  JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse("Zone[random-name] not found."));
+        assertEquals(expected, response.getBody());
     }
 
     @Test
@@ -172,7 +187,8 @@ public class OrchestratorZoneControllerIntegrationTests {
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.METHOD_NOT_ALLOWED);
         assertNotNull(getResponse.getBody());
-        assertEquals("{\"message\", \"Put Operation not Supported\" }", getResponse.getBody());
+        assertEquals(JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse("Put Operation not Supported")), getResponse.getBody());
     }
 
     @Test
@@ -269,8 +285,11 @@ public class OrchestratorZoneControllerIntegrationTests {
             serverRunning.getUrl("/orchestrator/zones"), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
-        assertTrue(getResponse.getBody().contains("The \"adminClientSecret\" field cannot contain" +
-                                                  " spaces or cannot be blank."));
+        assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
+        String expected  =  JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse("The adminClientSecret field cannot contain" +
+                                          " spaces or cannot be blank."));
+        assertEquals(expected, getResponse.getBody());
     }
 
     private void testWithSpaceOrSpecialCharFail(OrchestratorZoneRequest orchestratorZoneRequest) {

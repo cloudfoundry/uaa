@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -32,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorErrorResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
@@ -45,6 +47,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
@@ -150,7 +153,10 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ArgumentsSource(NameRequiredArgumentsSource.class)
     void testGetZone_nameRequiredError(String url) throws Exception {
         performMockMvcCallAndAssertError(get(url), status().isBadRequest(),
-                                         "{\"message\", \"Required request parameter 'name' for method parameter type String is not present\" }",
+                                         JsonUtils.writeValueAsString(
+                                             new OrchestratorErrorResponse("Required request parameter 'name' for " +
+                                                                           "method parameter type String is not " +
+                                                                           "present")),
                                          orchestratorClientZonesReadToken);
     }
 
@@ -158,7 +164,8 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ArgumentsSource(NameNotEmptyArgumentsSource.class)
     void testGetZone_nameEmptyError(String url) throws Exception {
         performMockMvcCallAndAssertError(get(url), status().isBadRequest(),
-                                         "{\"message\", \"getZone.name: must not be empty\" }",
+                                         JsonUtils.writeValueAsString(
+                                             new OrchestratorErrorResponse("getZone.name: must not be empty")),
                                          orchestratorClientZonesReadToken);
     }
 
@@ -208,12 +215,14 @@ public class OrchestratorZoneControllerMockMvcTests {
                                                .header("Authorization", "Bearer " + token))
                                   .andExpect(expectedStatus).andReturn();
         assertEquals(expected, result.getResponse().getContentAsString());
+        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
     }
 
     @Test
     void testGetZone_Notfound() throws Exception {
         performMockMvcCallAndAssertError(get("/orchestrator/zones").param("name", "random-name"), status().isNotFound(),
-                                         "{\"message\", \"Zone[random-name] not found.\" }",
+                                         JsonUtils.writeValueAsString(
+                                             new OrchestratorErrorResponse("Zone[random-name] not found.")),
                                          orchestratorClientZonesReadToken);
     }
 
@@ -226,7 +235,8 @@ public class OrchestratorZoneControllerMockMvcTests {
                        orchestratorClientZonesWriteToken);
         performMockMvcCallAndAssertError(get("/orchestrator/zones").param("name", identityZone.getName()),
                                          status().isNotFound(),
-                                         "{\"message\", \"Zone[test-name] not found.\" }",
+                                         JsonUtils.writeValueAsString(
+                                             new OrchestratorErrorResponse("Zone[test-name] not found.")),
                                          orchestratorClientZonesWriteToken);
 
         // Asserting delete event
@@ -241,7 +251,8 @@ public class OrchestratorZoneControllerMockMvcTests {
     void testDeleteZone_ZoneNotFound() throws Exception {
         performMockMvcCallAndAssertError(delete("/orchestrator/zones").param("name", "random-name"),
                                          status().isNotFound(),
-                                         "{\"message\", \"Zone[random-name] not found.\" }",
+                                         JsonUtils.writeValueAsString(
+                                             new OrchestratorErrorResponse("Zone[random-name] not found.")),
                                          orchestratorClientZonesWriteToken);
     }
 
@@ -258,7 +269,8 @@ public class OrchestratorZoneControllerMockMvcTests {
         performMockMvcCallAndAssertError(put("/orchestrator/zones").contentType(APPLICATION_JSON).content(
                                              "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
                                          status().isMethodNotAllowed(),
-                                         "{\"message\", \"Put Operation not Supported\" }",
+                                         JsonUtils.writeValueAsString(
+                                             new OrchestratorErrorResponse("Put Operation not Supported")),
                                          orchestratorClientZonesWriteToken);
     }
 
@@ -309,6 +321,7 @@ public class OrchestratorZoneControllerMockMvcTests {
                     .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
                     .header("Authorization", "Bearer " + orchestratorClientZonesWriteToken))
             .andExpect(status().isBadRequest()).andReturn();
+        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
         assertTrue(result.getResponse().getContentAsString().contains("default message [name]]; default message [must not be empty]]"));
     }
 
@@ -324,6 +337,7 @@ public class OrchestratorZoneControllerMockMvcTests {
                     .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
                     .header("Authorization", "Bearer " + orchestratorClientZonesWriteToken))
             .andExpect(status().isBadRequest()).andReturn();
+        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
         assertTrue(result.getResponse().getContentAsString().contains("Special characters are not allowed in the subdomain " +
                                                                       "name except hyphen which can be specified in the middle."));
     }
@@ -340,8 +354,12 @@ public class OrchestratorZoneControllerMockMvcTests {
                     .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
                     .header("Authorization", "Bearer " + orchestratorClientZonesWriteToken))
             .andExpect(status().isBadRequest()).andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("The \"adminClientSecret\" field cannot contain" +
-                                                                      " spaces or cannot be blank."));
+
+        String expected = JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse("The adminClientSecret field cannot contain" +
+                                          " spaces or cannot be blank."));
+        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
+        assertEquals(expected, result.getResponse().getContentAsString());
     }
 
     @Test

@@ -153,12 +153,13 @@ public class OrchestratorZoneServiceTests {
     }
 
     @Test
-    public void testDeleteZone() {
+    public void testDeleteZone() throws Exception {
         zoneService.setApplicationEventPublisher(applicationEventPublisher);
         IdentityZone identityZone = buildIdentityZone();
         when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
-        ResponseEntity<?> response = zoneService.deleteZone(identityZone.getName());
-        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+        zoneService.deleteZone(identityZone.getName());
+        verify(zoneProvisioning, times(1)).retrieveByName(any());
+        verify(applicationEventPublisher, times(1)).publishEvent(any());
     }
 
     @Test
@@ -166,8 +167,8 @@ public class OrchestratorZoneServiceTests {
         zoneService.setApplicationEventPublisher(null);
         IdentityZone identityZone = buildIdentityZone();
         when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
-        ResponseEntity<?> response = zoneService.deleteZone(identityZone.getName());
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
+        Assertions.assertThrows(Exception.class, () -> zoneService.deleteZone(identityZone.getName()),
+                                "Zone - deleting Name[" + identityZone.getName() + "]");
     }
 
     @Test
