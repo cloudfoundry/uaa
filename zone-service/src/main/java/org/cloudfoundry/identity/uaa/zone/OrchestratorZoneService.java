@@ -131,7 +131,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return new OrchestratorZoneResponse(zoneName, zone, connectionDetails);
     }
 
-    public ResponseEntity<?> deleteZone(String zoneName) {
+    public void deleteZone(String zoneName) throws Exception {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - deleting Name[" + zoneName + "]");
@@ -142,9 +142,10 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                     new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(),
                                              IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
-                return new ResponseEntity<>(ACCEPTED);
+                return;
             } else {
-                return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
+                String errorMessage = "Error : deleting zone Name[" + zoneName + "]";
+                throw new Exception(errorMessage);
             }
         } finally {
             IdentityZoneHolder.set(previous);
@@ -225,7 +226,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         String adminClientSecret = zoneRequest.getParameters().getAdminClientSecret();
         if (!StringUtils.hasText(adminClientSecret)) {
             throw new OrchestratorZoneServiceException(
-                "The \"" + UAA_ADMIN_SECRET + "\" field cannot contain spaces or cannot be blank.");
+                "The " + UAA_ADMIN_SECRET + " field cannot contain spaces or cannot be blank.");
         }
         return adminClientSecret;
     }
