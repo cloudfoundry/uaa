@@ -631,6 +631,28 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
+    void pkceWithJwtClientAuthInBody_is_used() {
+        config.setClientAuthInBody(true);
+        mockUaaServer.expect(requestTo(config.getTokenUrl().toString()))
+            .andExpect(request -> assertThat("Check Auth header not present", request.getHeaders().get("Authorization"), nullValue()))
+            .andExpect(content().string(containsString("client_id=" + config.getRelyingPartyId())))
+            .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
+        IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = getProvider();
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        config.setRelyingPartySecret(null);
+        config.setJwtClientAuthentication(new HashMap<>());
+        RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
+        attributes.setAttribute(SessionUtils.codeVerifierParameterAttributeKeyForIdp("uaa"), "code_verifier", RequestAttributes.SCOPE_SESSION);
+        RequestContextHolder.setRequestAttributes(attributes);
+
+        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        assertNotNull(idToken);
+
+        mockUaaServer.verify();
+    }
+
+    @Test
     void idToken_In_Redirect_Should_Use_it() {
         mockToken();
         addTheUserOnAuth();
