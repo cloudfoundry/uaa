@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -74,10 +75,16 @@ public class OrchestratorZoneController {
 
     @ExceptionHandler(value = { HttpMessageNotReadableException.class, MethodArgumentNotValidException.class,
                                 MissingServletRequestParameterException.class, ConstraintViolationException.class,
-                                ZoneAlreadyExistsException.class, OrchestratorZoneServiceException.class})
+                                OrchestratorZoneServiceException.class})
     public ResponseEntity<OrchestratorErrorResponse> badRequest(Exception ex)
     {
         return ResponseEntity.badRequest().body(new OrchestratorErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(value = { ZoneAlreadyExistsException.class })
+    public ResponseEntity<OrchestratorErrorResponse> zoneAlreadyExist(Exception ex)
+    {
+        return ResponseEntity.status(CONFLICT).body(new OrchestratorErrorResponse(ex.getMessage()));
     }
 
     @ExceptionHandler(value = { ZoneDoesNotExistsException.class })

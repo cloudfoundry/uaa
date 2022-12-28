@@ -246,7 +246,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         try{
             identityZone = zoneProvisioning.retrieveByName(name);
             if(identityZone != null){
-                throw new ZoneAlreadyExistsException("Orchestrator zone already exists for name:  " + name );
+                String errorMessage = String.format("The zone name %s is already taken. Please use a different " +
+                                                    "zone name", name);
+                throw new ZoneAlreadyExistsException(errorMessage);
             }
         } catch (ZoneDoesNotExistsException e){
             String message = String.format("Its okey! Zone with name %s does not exists ", name);
@@ -296,10 +298,16 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             logger.debug("Zone - creating zone name [" + identityZone.getName() + "]");
             created = zoneProvisioning.create(identityZone);
             logger.debug("Zone - created zone name [" + identityZone.getName() + "]");
-        } catch (Exception e) {
-            String errorMessage = String.format("Unable to create identity zone for zone name : %s", identityZone.getName());
+        } catch (ZoneAlreadyExistsException e) {
+            String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
+                                                identityZone.getSubdomain());
             logger.error(errorMessage, e);
-            throw new OrchestratorZoneServiceException(errorMessage+ " Exception is : " + e.getMessage());
+            throw new ZoneAlreadyExistsException(errorMessage);
+        } catch (Exception e) {
+            String errorMessage = String.format("Unexpected exception while creating identity zone for zone name : " +
+                                                "%s", identityZone.getName());
+            logger.error(errorMessage, e);
+            throw new OrchestratorZoneServiceException(errorMessage);
         }
         return created;
     }
