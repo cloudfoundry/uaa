@@ -5,6 +5,8 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Map;
+
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -56,6 +58,19 @@ public class JwtHelperX5tTest {
     Jwt jwt = JwtHelper.encode("testJwtContent", keyInfo, true);
     assertThat(jwt.getHeader().getX5t(), is("ijN2hCBB85pSpHSUQGBLK2xGurY"));
     assertNull(jwt.getHeader().getJku());
+  }
+
+  @Test
+  public void jwtKeysMustNotContainX5t() {
+    Map<String, Object> keys = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256", "test")
+        .getJwkMap();
+    assertNull(keys.get("x5t"));
+  }
+
+  @Test
+  public void jwtKeysShouldContainX5t() {
+    Map<String, Object> keys = keyInfo.getJwkMap();
+    assertThat(keys.get("x5t"), is("ijN2hCBB85pSpHSUQGBLK2xGurY"));
   }
 
   @Test(expected = IllegalArgumentException.class)

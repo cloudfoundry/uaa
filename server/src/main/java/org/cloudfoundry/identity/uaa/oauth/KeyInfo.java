@@ -309,8 +309,8 @@ class RsaKeyInfo extends KeyInfo {
         // X509 releated values from JWK spec
         if (this.verifierCertificate != null) {
             X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate);
-            byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
-            if (encoded != null) {
+            if (x509Certificate != null) {
+                byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
                 result.put("x5c", Collections.singletonList(Base64.encode(encoded).toString()));
                 result.put("x5t", JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
                 result.put("x5t#S256", JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
