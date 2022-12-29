@@ -7,6 +7,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -107,5 +108,19 @@ public class TokenPolicyTest {
         TokenPolicy tokenPolicy = JsonUtils.readValue(jsonTokenPolicy, TokenPolicy.class);
         assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
         assertEquals(tokenPolicy.getKeys().get("key-id-2").getSigningKey(), "some-signing-key-2");
+    }
+
+    @Test
+    public void initializationWithKeyMap() {
+        String jsonTokenPolicy = "{\"key-id-1\":{\"signingKey\":\"some-signing-key-1\",\"signingCert\":\"some-cert\",\"signingAlg\":\"RS256\"}}";
+        Map<String, ? extends Map<String, String>> tokenPolicyMap = JsonUtils.readValue(jsonTokenPolicy, HashMap.class);
+        TokenPolicy tokenPolicy = new TokenPolicy(300, 300, tokenPolicyMap);
+        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
+        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningCert(), "some-cert");
+        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningAlg(), "RS256");
+        tokenPolicy.setKeys(null);
+        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
+        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningCert(), "some-cert");
+        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningAlg(), "RS256");
     }
 }
