@@ -85,7 +85,7 @@ public class JwtHelper {
         try {
             return x509Certificate.getEncoded();
         } catch (CertificateEncodingException e) {
-            return null;
+            throw new IllegalArgumentException(e);
         }
     }
     public static String getX509CertThumbprint(byte[] derEncodedCert, String alg) {
@@ -93,7 +93,7 @@ public class JwtHelper {
             MessageDigest sha256 = MessageDigest.getInstance(alg);
             return Base64URL.encode(sha256.digest(derEncodedCert)).toString();
         } catch (NoSuchAlgorithmException e) {
-            return null;
+            throw new IllegalArgumentException(e);
         }
     }
 
