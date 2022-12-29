@@ -9,8 +9,6 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 
 import java.nio.CharBuffer;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
 import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
@@ -84,7 +82,7 @@ public class JwtHelper {
     public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
         try {
             return x509Certificate.getEncoded();
-        } catch (CertificateEncodingException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
     }
@@ -92,7 +90,7 @@ public class JwtHelper {
         try {
             MessageDigest sha256 = MessageDigest.getInstance(alg);
             return Base64URL.encode(sha256.digest(derEncodedCert)).toString();
-        } catch (NoSuchAlgorithmException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException(e);
         }
     }

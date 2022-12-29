@@ -31,4 +31,10 @@ public class JwtHelperTest {
         Jwt jwt = JwtHelper.encode("testJwtContent", keyInfo);
         assertThat(jwt.getHeader().getJku(), is("https://localhost/uaa/token_keys"));
     }
+
+    @Test
+    public void jwtHeaderShouldContainJkuInTheHeaderEvenWithX5t() {
+        Jwt jwt = JwtHelper.encode("testJwtContent", keyInfo, true);
+        assertThat(jwt.getHeader().getJku(), is("https://localhost/uaa/token_keys"));
+    }
 }
