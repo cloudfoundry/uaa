@@ -6,6 +6,7 @@ import com.nimbusds.jose.util.X509CertUtils;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
@@ -18,11 +19,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -310,11 +309,11 @@ class RsaKeyInfo extends KeyInfo {
         // X509 releated values from JWK spec
         if (this.verifierCertificate != null) {
             X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate);
-            byte[] encoded = getX509CertEncoded(x509Certificate);
+            byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
             if (encoded != null) {
                 result.put("x5c", Collections.singletonList(Base64.encode(encoded).toString()));
-                result.put("x5t", getX509CertThumbprint(encoded, "SHA-1"));
-                result.put("x5t#S256", getX509CertThumbprint(encoded, "SHA-256"));
+                result.put("x5t", JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
+                result.put("x5t#S256", JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
             }
         }
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
@@ -339,22 +338,6 @@ class RsaKeyInfo extends KeyInfo {
             return DEFAULT_RSA_ALGORITHM;
         } else {
             return JwtAlgorithms.sigAlgJava(sigAlg);
-        }
-    }
-
-    private byte[] getX509CertEncoded(X509Certificate x509Certificate) {
-        try {
-            return x509Certificate.getEncoded();
-        } catch (CertificateEncodingException e) {
-            return null;
-        }
-    }
-    private String getX509CertThumbprint(byte[] derEncodedCert, String alg) {
-        try {
-            MessageDigest sha256 = MessageDigest.getInstance(alg);
-            return Base64URL.encode(sha256.digest(derEncodedCert)).toString();
-        } catch (NoSuchAlgorithmException e) {
-            return null;
         }
     }
 }

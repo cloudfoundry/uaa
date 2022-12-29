@@ -35,7 +35,7 @@ public class JwtClientAuthentication {
     claims.setJti(UUID.randomUUID().toString().replace("-", ""));
     claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-    return JwtHelper.encode(JsonUtils.writeValueAsString(claims), keyInfoService.getActiveKey()).getEncoded();
+    return JwtHelper.encode(JsonUtils.writeValueAsString(claims), keyInfoService.getActiveKey(), true).getEncoded();
   }
 
   public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {
