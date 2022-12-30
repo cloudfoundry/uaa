@@ -42,10 +42,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -56,15 +56,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@TestExecutionListeners(value = { ScreenshotOnFail.class }, mergeMode = MERGE_WITH_DEFAULTS)
 public class SamlLoginAT {
 
     private static final String SAML_ENTITY_ID = "gefssprd";
-
-    @Rule
-    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
     @Autowired
     RestOperations restOperations;
@@ -113,7 +112,6 @@ public class SamlLoginAT {
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         this.zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(this.baseUrl, "admin", "acceptance-test");
-        this.screenShootRule.setWebDriver(this.webDriver);
     }
 
     @Test

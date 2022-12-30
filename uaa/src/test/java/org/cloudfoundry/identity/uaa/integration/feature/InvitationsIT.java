@@ -45,6 +45,7 @@ import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
@@ -65,10 +66,12 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @Ignore // Invitations flow is disabled in Predix.
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@TestExecutionListeners(value = { ScreenshotOnFail.class }, mergeMode = MERGE_WITH_DEFAULTS)
 @ExtendWith(PollutionPreventionExtension.class)
 public class InvitationsIT {
 
@@ -79,8 +82,6 @@ public class InvitationsIT {
     @Rule
     public IntegrationTestRule integrationTestRule;
 
-    @Rule
-    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
     @Rule
     public RetryRule retryRule = new RetryRule(3);
 
@@ -109,7 +110,6 @@ public class InvitationsIT {
     public void setup() {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
-        screenShootRule.setWebDriver(webDriver);
 
         testInviteEmail = "testinvite@test.org";
 

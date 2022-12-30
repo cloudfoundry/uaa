@@ -51,6 +51,7 @@ import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
@@ -85,17 +86,16 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@TestExecutionListeners(value = { ScreenshotOnFail.class }, mergeMode = MERGE_WITH_DEFAULTS)
 public class OIDCLoginIT {
 
     @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
-
-    @Rule
-    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
     @Autowired
     RestOperations restOperations;
@@ -129,8 +129,6 @@ public class OIDCLoginIT {
     @Before
     public void setUp() throws Exception {
         assertTrue("/etc/hosts should contain the host 'oidcloginit.localhost' for this test to work", doesSupportZoneDNS());
-
-        screenShootRule.setWebDriver(webDriver);
 
         subdomain = "oidcloginit";
         //identity client token

@@ -30,6 +30,7 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -49,9 +50,11 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
+import static org.springframework.test.context.TestExecutionListeners.MergeMode.MERGE_WITH_DEFAULTS;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@TestExecutionListeners(value = { ScreenshotOnFail.class }, mergeMode = MERGE_WITH_DEFAULTS)
 public class DegradedSamlLoginTests {
 
     private static final String SAML_USERNAME = "samluser1";
@@ -59,9 +62,6 @@ public class DegradedSamlLoginTests {
     private static final String ZONE_AUTHCODE_CLIENT_ID = "exampleClient";
     private static final String ZONE_AUTHCODE_CLIENT_SECRET = "secret";
     public static final String ZONE_ADMIN = "admin";
-    @Rule
-    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
-
     @Value("${ZONE_ADMIN_SECRET:adminsecret}")
     String zoneAdminSecret;
 
@@ -101,7 +101,6 @@ public class DegradedSamlLoginTests {
         baseUrl = protocol + zoneSubdomain + "." + baseUaaZoneHost;
         testRedirectUri = protocol +  "www.example.com";
         zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, ZONE_ADMIN, zoneAdminSecret);
-        screenShootRule.setWebDriver(webDriver);
     }
 
     @Test
