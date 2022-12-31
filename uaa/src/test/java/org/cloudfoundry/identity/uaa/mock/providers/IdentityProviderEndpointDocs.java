@@ -135,7 +135,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
-    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Not recommended, but required if the external IdP does not support private_key_jwt.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not defined, the external OAuth client is treated as public client, then the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is reommended to set `jwtClientAuthentication:true` as replacement.");
+    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Required if the external client is confidential.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set, the external OAuth client is treated as public client, then the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`.");
 
     private static InMemoryLdapServer ldapContainer;
 
@@ -550,7 +550,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
                         "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
                 fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
-                fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Only effective, if relyingPartySecret is defined. Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header. It is reommended to set `jwtClientAuthentication:true` as replacement."),
+                fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Only effective, if relyingPartySecret is defined. Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
                 fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
                 fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OIDC logout endpoint. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
