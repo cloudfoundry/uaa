@@ -200,6 +200,27 @@ public class OrchestratorZoneControllerIntegrationTests {
     }
 
     @Test
+    public void testCreateZone_Duplicate_Subdomain_Returns_409_Conflict() {
+        String subDomain = createZoneGetZoneName();
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET, subDomain));
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        ResponseEntity<String> response = client.exchange(
+            serverRunning.getUrl("/orchestrator/zones"),
+            HttpMethod.POST,
+            new HttpEntity<>(requestBody, headers),String.class);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
+        String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
+                                            subDomain);
+        assertEquals(JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse(errorMessage)), response.getBody());
+    }
+
+    @Test
     public void testCreateAndGetZone_SubdomainAsNULL_inRequestBody() {
         String zoneName = createZoneSubdomainAsNullInParameter();
         ResponseEntity<OrchestratorZoneResponse> getResponse = client.getForEntity(
@@ -241,17 +262,18 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testCreateZone_ZoneAlreadyExists() {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+        String zoneName = createZoneGetZoneName();
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
-        client.exchange(
-            serverRunning.getUrl("/orchestrator/zones"), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
-            String.class);
-
         ResponseEntity<String> getResponseAlreadyExist = client.exchange(
             serverRunning.getUrl("/orchestrator/zones"), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
             String.class);
-        assertEquals(getResponseAlreadyExist.getStatusCode(), HttpStatus.BAD_REQUEST);
-        assertTrue(getResponseAlreadyExist.getBody().contains("Orchestrator zone already exists for name:  "+ZONE_NAME));
+        assertEquals(getResponseAlreadyExist.getStatusCode(), HttpStatus.CONFLICT);
+        assertEquals(APPLICATION_JSON_UTF8, getResponseAlreadyExist.getHeaders().getContentType());
+        String errorMessage = String.format("The zone name %s is already taken. Please use a different " +
+                                            "zone name", orchestratorZoneRequest.getName());
+        assertEquals(JsonUtils.writeValueAsString(
+            new OrchestratorErrorResponse(errorMessage)), getResponseAlreadyExist.getBody());
     }
 
     @Test

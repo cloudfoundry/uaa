@@ -33,15 +33,12 @@ import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -259,14 +256,35 @@ public class OrchestratorZoneServiceTests {
 
     @Test
     public void testCreateZone_checkOrchestratorZoneExists() {
+        Security.addProvider(new BouncyCastleProvider());
         OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
                                                                          SUB_DOMAIN_NAME);
         when(zoneProvisioning.retrieveByName(any())).thenReturn(new IdentityZone());
+        String errorMessage = String.format("The zone name %s is already taken. Please use a different " +
+                                            "zone name", zoneRequest.getName());
         ZoneAlreadyExistsException exception =
             assertThrows(ZoneAlreadyExistsException.class, () ->
                              zoneService.createZone(zoneRequest),
-                         "Orchestrator zone already exists for name");
-        assertTrue(exception.getMessage().contains("Orchestrator zone already exists for name"));
+                         errorMessage);
+        assertTrue(exception.getMessage().contains(errorMessage));
+    }
+
+    @Test
+    public void testCreateZone_DuplicateSubdomainCauseZoneAlreadyExistsException () {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                          SUB_DOMAIN_NAME);
+        when(zoneProvisioning.create(any())).thenReturn(createIdentityZone());
+        String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
+                                            zoneRequest.getParameters().getSubdomain());
+        when(zoneProvisioning.create(any())).thenThrow(new ZoneAlreadyExistsException(errorMessage));
+        ZoneAlreadyExistsException exception =
+            assertThrows(ZoneAlreadyExistsException.class, () ->
+                             zoneService.createZone(zoneRequest),
+                         errorMessage);
+        assertTrue(exception.getMessage().contains(errorMessage));
+        verify(zoneProvisioning, times(1)).retrieveByName(any());
+        verify(zoneProvisioning, times(1)).create(any());
     }
 
     private static class SubDomainWithSpaceOrSpecialCharArguments implements ArgumentsProvider {
