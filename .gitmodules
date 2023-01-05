@@ -1,0 +1,3 @@
+[submodule "iam-k8s-utils"]
+	path = iam-k8s-utils
+	url = https://github.build.ge.com/predix/iam-k8s-utils.git
