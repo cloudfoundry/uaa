@@ -108,6 +108,8 @@ dependencies {
     testImplementation(libraries.nurego)
 
     testAnnotationProcessor(libraries.lombok)
+
+    testImplementation(project(":iam-k8s-utils"))
 }
 
 ext {

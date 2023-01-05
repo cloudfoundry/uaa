@@ -9,6 +9,7 @@ include(":cloudfoundry-identity-samples:cloudfoundry-identity-api")
 include(":cloudfoundry-identity-samples:cloudfoundry-identity-app")
 include(":cloudfoundry-identity-samples")
 include(":zone-service")
+include(":iam-k8s-utils")
 
 project(":cloudfoundry-identity-metrics-data").projectDir = "$rootDir/metrics-data" as File
 project(":cloudfoundry-identity-model").projectDir = "$rootDir/model" as File
@@ -20,4 +21,4 @@ project(":cloudfoundry-identity-samples:cloudfoundry-identity-api").projectDir =
 project(":cloudfoundry-identity-samples:cloudfoundry-identity-app").projectDir = "$rootDir/samples/app" as File
 project(":cloudfoundry-identity-samples").projectDir = "$rootDir/samples" as File
 project(":zone-service").projectDir = "$rootDir/zone-service" as File
-
+project(":iam-k8s-utils").projectDir = "$rootDir/iam-k8s-utils" as File
