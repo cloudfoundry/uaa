@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.apache.commons.lang3.ObjectUtils;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -168,6 +169,9 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         params.add("response_type","id_token");
         params.add("username", userName);
         params.add("password", passProvider.get());
+        if (ObjectUtils.isNotEmpty(config.getScopes())) {
+            params.add("scope", String.join(" ", config.getScopes()));
+        }
 
         List<Prompt> prompts = config.getPrompts();
         List<String> promptsToInclude = new ArrayList<>();
