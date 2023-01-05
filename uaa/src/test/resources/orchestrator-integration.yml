@@ -1,0 +1,13 @@
+kubernetes:
+  config:
+    jenkins-jump-role-arn: ${IAM_AWS_JENKINS_JUMP_ROLE}
+    role-arn: ${IAM_ORCHESTRATOR_API_ACCESS_ROLE}
+    functional-user-username: ${FUNCTIONAL_USER_USR}
+    functional-user-password: ${FUNCTIONAL_USER_PSW}
+    env: dev
+    secondary-namespace: iam-dev
+
+orchestrator:
+  cluster:
+    name: ${ORCHESTRATOR_CLUSTER_NAME}
+    role-arn: ${ORCHESTRATOR_API_ACCESS_ROLE}
