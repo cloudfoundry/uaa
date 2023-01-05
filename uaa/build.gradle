@@ -197,6 +197,12 @@ task degradedTestLocal(type: Test) {
   include "org/cloudfoundry/identity/uaa/degraded/*.class"
 }
 
+task orchestratorIntegrationTest(type: Test) {
+    // Don't let tests be 'UP-TO-DATE' and not run
+    outputs.upToDateWhen { false }
+    include "org/cloudfoundry/identity/uaa/orchestrator/*.class"
+}
+
 war {
     //workaround for maven <scope>optional</scope>
     rootSpec.exclude("**/spring-security-oauth-*.jar")

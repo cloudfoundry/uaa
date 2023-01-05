@@ -398,6 +398,11 @@ task jacocoRootReportAcceptanceTest(type: org.gradle.testing.jacoco.tasks.Jacoco
     dependsOn(':cloudfoundry-identity-uaa:acceptanceTest')
 }
 
+task jacocoRootReportOrchestratorIntegrationTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+    configure jacocoRootReportConfiguration
+    dependsOn(':cloudfoundry-identity-uaa:orchestratorIntegrationTest')
+}
+
 coveralls {
     sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
     jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
