@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.MANDATORY_VALIDATION_MESSAGE;
+import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesHttpMessageNotReadable;
+import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesConstraintViolation;
+import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesMethodArgumentInvalid;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
@@ -39,10 +43,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/orchestrator/zones")
 public class OrchestratorZoneController {
 
+    public static final String GET_ZONE_PREFIX = "getZone.";
     private static final Logger logger = LoggerFactory.getLogger(OrchestratorZoneController.class);
     private final OrchestratorZoneService zoneService;
-
-    public static final String MANDATORY_VALIDATION_MESSAGE = "must not be empty";
 
     public OrchestratorZoneController(OrchestratorZoneService zoneService) {
         this.zoneService = zoneService;
@@ -75,8 +78,7 @@ public class OrchestratorZoneController {
         throw new OperationNotSupportedException("Put Operation not Supported");
     }
 
-    @ExceptionHandler(value = { HttpMessageNotReadableException.class, MethodArgumentNotValidException.class,
-                                MissingServletRequestParameterException.class, ConstraintViolationException.class,
+    @ExceptionHandler(value = { MissingServletRequestParameterException.class,
                                 OrchestratorZoneServiceException.class})
     public ResponseEntity<OrchestratorErrorResponse> badRequest(Exception ex)
     {
@@ -111,5 +113,25 @@ public class OrchestratorZoneController {
     public ResponseEntity<OrchestratorErrorResponse> internalServerError(Exception ex)
     {
         return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new OrchestratorErrorResponse(ex.getMessage()));
+    }
+
+    @ExceptionHandler(value = { HttpMessageNotReadableException.class })
+    public ResponseEntity<OrchestratorErrorResponse> messageReadableException(HttpMessageNotReadableException ex)
+    {
+        return ResponseEntity.badRequest()
+                             .body(new OrchestratorErrorResponse(getErrorMessagesHttpMessageNotReadable(ex)));
+    }
+
+    @ExceptionHandler(value = { MethodArgumentNotValidException.class })
+    public ResponseEntity<OrchestratorErrorResponse> methodArgumentException(MethodArgumentNotValidException ex) {
+        return ResponseEntity.badRequest()
+                             .body(new OrchestratorErrorResponse(getErrorMessagesMethodArgumentInvalid(ex)));
+    }
+
+    @ExceptionHandler(value = { ConstraintViolationException.class})
+    public ResponseEntity<OrchestratorErrorResponse> constraintViolationException(ConstraintViolationException ex)
+    {
+        return ResponseEntity.badRequest()
+                             .body(new OrchestratorErrorResponse(getErrorMessagesConstraintViolation(ex)));
     }
 }
