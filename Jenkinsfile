@@ -46,6 +46,10 @@ pipeline {
                         dir('uaa') {
                             checkout scm
                         }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                        }
                         sh '''#!/bin/bash -ex
                             source uaa-cf-release/config-local/set-env.sh
                             unset HTTPS_PROXY
@@ -90,6 +94,10 @@ pipeline {
                         }
                         dir('uaa') {
                             checkout scm
+                        }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                         }
                         sh '''#!/bin/bash -ex
                                 source uaa-cf-release/config-local/set-env.sh
@@ -151,6 +159,10 @@ pipeline {
                         }
                         dir('uaa') {
                             checkout scm
+                        }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                         }
                         sh '''#!/bin/bash -ex
                             source uaa-cf-release/config-local/set-env.sh
@@ -217,6 +229,10 @@ pipeline {
                         }
                         dir('uaa') {
                             checkout scm
+                        }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                         }
 
                         sh '''#!/bin/bash -ex
@@ -298,6 +314,10 @@ pipeline {
                         }
                         dir('uaa') {
                             checkout scm
+                        }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                         }
 
                         sh '''#!/bin/bash -ex
@@ -449,6 +469,10 @@ pipeline {
             steps{
                 dir('uaa') {
                     checkout scm
+                }
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                 }
                 dir('build') {
                     unstash 'uaa-war'
