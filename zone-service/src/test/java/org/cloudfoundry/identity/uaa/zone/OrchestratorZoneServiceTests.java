@@ -232,40 +232,6 @@ public class OrchestratorZoneServiceTests {
     }
 
     @Test
-    public void testCreateZone_AdminClientSecretEmptyFailWithException() {
-        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET_EMPTY, SUB_DOMAIN_NAME);
-        assertEmptyInputThrowException(zoneRequest);
-    }
-
-    private void assertEmptyInputThrowException(OrchestratorZoneRequest zoneRequest) {
-        OrchestratorZoneServiceException exception =
-            assertThrows(OrchestratorZoneServiceException.class, () ->
-                             zoneService.createZone(zoneRequest),
-                         "field cannot contain spaces or cannot be blank.");
-        assertTrue(exception.getMessage().contains("field cannot contain spaces or cannot be blank."));
-    }
-
-    @Test
-    public void testCreateZone_SubDomainWithBlankFailWithException() {
-        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                         SUB_DOMAIN_BLANK_SPACE);
-        assertEmptyInputThrowException(zoneRequest);
-    }
-
-    @ParameterizedTest
-    @ArgumentsSource(SubDomainWithSpaceOrSpecialCharArguments.class)
-    public void testCreateZone_SubDomainWithSpaceOrSpecialCharFailWithException(String subDomain) {
-        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                         subDomain);
-
-        OrchestratorZoneServiceException exception =
-            assertThrows(OrchestratorZoneServiceException.class, () ->
-                             zoneService.createZone(zoneRequest),
-                         "Special characters are not allowed in the subdomain name except hyphen which can be specified in the middle.");
-        assertTrue(exception.getMessage().contains("Special characters are not allowed in the subdomain name except hyphen which can be specified in the middle."));
-    }
-
-    @Test
     public void testCreateZone_DuplicateSubdomainCauseZoneAlreadyExistsException () {
         Security.addProvider(new BouncyCastleProvider());
         OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
@@ -282,19 +248,6 @@ public class OrchestratorZoneServiceTests {
         verify(zoneProvisioning, times(1)).create(any());
     }
 
-    private static class SubDomainWithSpaceOrSpecialCharArguments implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            return Stream.of(
-                Arguments.of("sub#-domain"),
-                Arguments.of("-subdomainStartsWithHYphen"),
-                Arguments.of("subdomainEndsWithHYphen-"),
-                Arguments.of("sub\\\\domaincontainsslash"),
-                Arguments.of("sub$%domaincontainsSpecialChars")
-                            );
-        }
-    }
 
     private OrchestratorZoneRequest getOrchestratorZoneRequest(String name, String adminClientSecret,
                                                                String subDomain) {

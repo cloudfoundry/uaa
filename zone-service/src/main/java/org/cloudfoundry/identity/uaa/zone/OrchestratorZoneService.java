@@ -17,7 +17,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -62,10 +61,6 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     public static final String X_IDENTITY_ZONE_ID = "X-Identity-Zone-Id";
     public static final String GENERATED_KEY_ID = "generated-saml-key";
-    private static final String SUBDOMAIN_REGEX = "(?:[A-Za-z0-9][A-Za-z0-9\\-]{0,61}[A-Za-z0-9]|[A-Za-z0-9])";
-    private static final Pattern SUBDOMAIN_PATTERN;
-    public static final String UAA_CUSTOM_SUBDOMAIN = "subdomain";
-    public static final String UAA_ADMIN_SECRET = "adminClientSecret";
     public static final String BEGIN_CERT = "-----BEGIN CERTIFICATE-----";
     public static final String END_CERT = "-----END CERTIFICATE-----";
 
@@ -86,10 +81,6 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     private final ClientDetailsValidator clientDetailsValidator;
     private final String uaaDashboardUri;
     private final String domainName;
-
-    static {
-        SUBDOMAIN_PATTERN = Pattern.compile(SUBDOMAIN_REGEX);
-    }
 
     private ApplicationEventPublisher publisher;
 
@@ -190,7 +181,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
         }
         String name = zoneRequest.getName();
-        String adminClientSecret = getAdminClientSecret(zoneRequest);
+        String adminClientSecret = zoneRequest.getParameters().getAdminClientSecret();
 
         String subdomain = zoneRequest.getParameters().getSubdomain();
         String id = UUID.randomUUID().toString();
@@ -213,21 +204,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         }
     }
 
-    private String getAdminClientSecret(OrchestratorZoneRequest zoneRequest) throws OrchestratorZoneServiceException {
-        String adminClientSecret = zoneRequest.getParameters().getAdminClientSecret();
-        if (!StringUtils.hasText(adminClientSecret)) {
-            throw new OrchestratorZoneServiceException(
-                "The " + UAA_ADMIN_SECRET + " field cannot contain spaces or cannot be blank.");
-        }
-        return adminClientSecret;
-    }
-
-    private String getSubDomain(String subdomain, String id) throws OrchestratorZoneServiceException {
-        String customSubdomain = getCustomSubdomain(subdomain);
-        if (customSubdomain == null) {
+    private String getSubDomain(String subdomain, String id) {
+        if (subdomain == null) {
             subdomain = id;
-        } else {
-            subdomain = customSubdomain;
         }
         return subdomain;
     }
@@ -344,22 +323,6 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             zoneName);
         logger.error(errorMessage, e);
         throw new OrchestratorZoneServiceException(errorMessage + " Exception is : " + e.getMessage());
-    }
-
-    private String getCustomSubdomain(final String subdomain) throws OrchestratorZoneServiceException {
-        if (subdomain == null) {
-            return null;
-        }
-        String subDomain = subdomain;
-        if (!StringUtils.hasText(subDomain)) {
-            throw new OrchestratorZoneServiceException(
-                "The \"" + UAA_CUSTOM_SUBDOMAIN + "\" field cannot contain spaces or cannot be blank.");
-        }
-        if (!SUBDOMAIN_PATTERN.matcher(subDomain).matches()) {
-            throw new OrchestratorZoneServiceException("The \"" + UAA_CUSTOM_SUBDOMAIN
-                                                       + "\" is invalid. Special characters are not allowed in the subdomain name except hyphen which can be specified in the middle.");
-        }
-        return subDomain;
     }
 
     private void createZoneAdminClient(final String id, final String authorities, final String clientId,
