@@ -48,6 +48,11 @@ pipeline {
                     checkout scm
                 }
 
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                }
+
                 dir('uaa-k8s-deploy') {
                     git changelog: false, credentialsId: 'github.devtools.predix.io', poll: false,
                         url: 'https://github.devtools.predix.io/predix-security/uaa-k8s-deploy.git',
@@ -79,6 +84,60 @@ pipeline {
                         reportDir: 'uaa/uaa/build/reports/tests/acceptanceTest',
                         reportFiles: 'index.html',
                         reportName: 'Acceptance Test Results'
+                    ]
+                }
+            }
+        }
+        stage('Run Orchestrator Integration tests in eks') {
+            agent{
+                docker {
+                    image "${NODE['IMAGE']}"
+                    label "${NODE['LABEL']}"
+                    args "${NODE['ARGS']}"
+                }
+            }
+            environment {
+                FUNCTIONAL_USER = credentials("AWS_ECR_SSO_CREDENTIALS")
+            }
+            steps {
+                script {
+                    currentBuild.displayName = "#${env.BUILD_NUMBER} (env: ${params.DEPLOYMENT_ENVIRONMENT})"
+                }
+
+                dir('uaa') {
+                    checkout scm
+                }
+
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                }
+
+                sh'''
+                    # Install gossamer
+                    CURRENT_VERSION=3.1.7
+                    wget -q https://github.com/GESkunkworks/gossamer3/releases/download/v${CURRENT_VERSION}/gossamer3_${CURRENT_VERSION}_linux_amd64.tar.gz
+                    tar -xzvf gossamer3_${CURRENT_VERSION}_linux_amd64.tar.gz -C /usr/local/bin
+                    chmod u+x /usr/local/bin/gossamer3
+                '''
+
+                sh '''#!/bin/bash -ex
+                    export ARTIFACTORY_READER=$FUNCTIONAL_USER_USR
+                    export ARTIFACTORY_READER_PW=$FUNCTIONAL_USER_PSW
+                    pushd uaa
+                        ./gradlew --no-daemon --continue jacocoRootReportOrchestratorIntegrationTest
+                    popd
+                '''
+            }
+            post{
+                always {
+                    publishHTML target: [
+                        allowMissing: true,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: 'uaa/uaa/build/reports/tests/orchestratorIntegrationTest',
+                        reportFiles: 'index.html',
+                        reportName: 'Orchestrator Integration Test Results'
                     ]
                 }
             }
