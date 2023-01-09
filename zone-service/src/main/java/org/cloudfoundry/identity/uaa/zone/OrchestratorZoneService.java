@@ -10,7 +10,6 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
@@ -19,7 +18,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
-
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -31,9 +29,6 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JcePEMEncryptorBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-
-import static org.springframework.http.HttpStatus.ACCEPTED;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
@@ -58,7 +53,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -206,9 +200,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         String id = UUID.randomUUID().toString();
         subdomain = getSubDomain(subdomain, id);
 
-        String zoneSigningKey = createSigningKey(name);
-
-        IdentityZone identityZone = generateIdentityZone(subdomain, name, id, zoneSigningKey);
+        IdentityZone identityZone = generateIdentityZone(subdomain, name, id);
 
         IdentityZone previous = IdentityZoneHolder.get();
         try {
@@ -312,12 +304,13 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return created;
     }
 
-    private IdentityZone generateIdentityZone(String subdomain, String name, String id, String zoneSigningKey) throws OrchestratorZoneServiceException {
+    protected IdentityZone generateIdentityZone(String subdomain, String name, String id) throws
+            OrchestratorZoneServiceException, IOException {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setName(name);
         identityZone.setSubdomain(subdomain);
-        setTokenPolicy(zoneSigningKey, identityZone);
+        setTokenPolicy(createSigningKey(name), identityZone);
         setSamlConfig(identityZone);
         identityZone.getConfig().getLinks().getLogout().setWhitelist(createDeploymentSpecificLogoutWhiteList());
         return identityZone;
@@ -479,7 +472,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
             HashMap<String, SamlKey> samlKeys = new HashMap<>();
 
-            String certificate = BEGIN_CERT + "\n" + Arrays.toString(base64encoder.encode(certHolder.getEncoded())) + "\n" + END_CERT;
+            String certificate = BEGIN_CERT + "\n" + base64encoder.encodeToString(certHolder.getEncoded()) + "\n" + END_CERT;
 
             samlKeys.put(GENERATED_KEY_ID, new SamlKey(pemStringWriter.toString(), passphrase, certificate));
             samlConfig.setKeys(samlKeys);

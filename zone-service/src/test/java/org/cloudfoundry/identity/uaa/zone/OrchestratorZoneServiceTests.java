@@ -206,6 +206,18 @@ public class OrchestratorZoneServiceTests {
     }
 
     @Test
+    public void testGenerateIdentityZone() throws OrchestratorZoneServiceException, IOException, InvalidIdentityZoneDetailsException {
+        Security.addProvider(new BouncyCastleProvider());
+
+        MfaConfigValidator mfaConfigValidator = mock(MfaConfigValidator.class);
+        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator(mfaConfigValidator);
+        GeneralIdentityZoneValidator validator = new GeneralIdentityZoneValidator(configValidator);
+
+        IdentityZone identityZone = zoneService.generateIdentityZone(ZONE_NAME, SUB_DOMAIN_NAME, UUID.randomUUID().toString());
+        validator.validate(identityZone, IdentityZoneValidator.Mode.CREATE);
+    }
+
+    @Test
     public void testCreateZoneDetails_AccessDeniedException() {
         when(mockIdentityZone.getId()).thenReturn("not uaa");
         IdentityZoneHolder.set(mockIdentityZone);
