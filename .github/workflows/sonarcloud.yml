@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   Sonar-Test-Analysis:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     if: github.actor != 'dependabot[bot]' && github.actor != 'dependabot-preview[bot]'
     steps:
       - uses: actions/checkout@v3

@@ -374,6 +374,7 @@ class PasswordGrantAuthenticationManagerTest {
         /* mock idp config using jwt client authentication */
         when(idpConfig.getRelyingPartySecret()).thenReturn(null);
         when(idpConfig.getJwtClientAuthentication()).thenReturn(true);
+        when(idpConfig.getScopes()).thenReturn(Arrays.asList("openid", "email"));
         /* hint mock to use idp for password grant */
         Authentication auth = getAuthenticationWithUaaHint();
         /* HTTP mock */
@@ -390,6 +391,8 @@ class PasswordGrantAuthenticationManagerTest {
         assertTrue(httpEntityBody.containsKey("client_assertion"));
         assertTrue(httpEntityBody.containsKey("client_assertion_type"));
         assertEquals(Collections.singletonList(JwtClientAuthentication.GRANT_TYPE), httpEntityBody.get("client_assertion_type"));
+        assertTrue(httpEntityBody.containsKey("scope"));
+        assertEquals(Collections.singletonList("openid email"), httpEntityBody.get("scope"));
         /* verify client assertion according OIDC private_key_jwt */
         JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").get(0)).getJWTClaimsSet();
         assertEquals(Collections.singletonList("http://localhost:8080/uaa/oauth/token"), jwtClaimsSet.getAudience());
