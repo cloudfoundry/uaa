@@ -28,6 +28,7 @@ import org.springframework.beans.factory.InitializingBean;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
@@ -97,7 +98,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
         for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
             SamlKey samlKey = new SamlKey(entry.getValue().get("key"), entry.getValue().get("passphrase"), entry.getValue().get("certificate"));
-            definition.getSamlConfig().addKey(entry.getKey(), samlKey);
+            definition.getSamlConfig().addKey(ofNullable(entry.getKey()).orElseThrow(() -> new InvalidIdentityZoneDetailsException("SAML key id must not be null.", null)).toLowerCase(Locale.US), samlKey);
         }
         definition.getSamlConfig().setActiveKeyId(this.activeKeyId);
 
@@ -165,7 +166,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
     public IdentityZoneConfigurationBootstrap setActiveKeyId(String activeKeyId) {
-        this.activeKeyId = activeKeyId;
+        this.activeKeyId = activeKeyId != null ? activeKeyId.toLowerCase(Locale.US) : null;
         return this;
     }
 
