@@ -140,7 +140,7 @@ public class OrchestratorZoneControllerIntegrationTests {
             assertNotNull(response.getBody());
             assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
             String expected  =  JsonUtils.writeValueAsString(
-                new OrchestratorErrorResponse("getZone.name: must not be empty"));
+                new OrchestratorErrorResponse("name must be specified"));
             assertEquals(expected, response.getBody());
         } else {
             fail("Server not returning expected status code");
@@ -178,10 +178,28 @@ public class OrchestratorZoneControllerIntegrationTests {
     }
 
     @Test
+    public void testDeleteZone_NameRequiredError() {
+        ResponseEntity<String> response =
+            client.exchange(serverRunning.getUrl("/orchestrator/zones") + "?name=",
+                            HttpMethod.DELETE, null, String.class);
+
+        if (response.getStatusCode().is4xxClientError()) {
+            assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
+            assertNotNull(response.getBody());
+            assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
+            String expected  =  JsonUtils.writeValueAsString(
+                new OrchestratorErrorResponse("name must be specified"));
+            assertEquals(expected, response.getBody());
+        } else {
+            fail("Server not returning expected status code");
+        }
+    }
+
+    @Test
     public void testUpdateZone() {
         OrchestratorZoneRequest zoneRequest = new OrchestratorZoneRequest();
         zoneRequest.setName("test name");
-        zoneRequest.setParameters(new OrchestratorZone());
+        zoneRequest.setParameters(new OrchestratorZone(ADMIN_CLIENT_SECRET, null));
         ResponseEntity<String> getResponse = client.exchange(
             serverRunning.getUrl("/orchestrator/zones"), HttpMethod.PUT, new HttpEntity<>(zoneRequest),
             String.class);
@@ -285,6 +303,10 @@ public class OrchestratorZoneControllerIntegrationTests {
     @Test
     public void testCreateZone_subDomainWithSpaceOrSpecialCharFail() {
         testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+                                                                  "  "));
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+                                                                  "sub    domain"));
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
                                                                   "sub#-domain"));
         testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
                                                                   "-subdomainStartsWithHYphen"));
@@ -308,10 +330,8 @@ public class OrchestratorZoneControllerIntegrationTests {
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
         assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
-        String expected  =  JsonUtils.writeValueAsString(
-            new OrchestratorErrorResponse("The adminClientSecret field cannot contain" +
-                                          " spaces or cannot be blank."));
-        assertEquals(expected, getResponse.getBody());
+        assertTrue(getResponse.getBody().contains("parameters.adminClientSecret " +
+                                                  "must not be empty and must not have empty spaces"));
     }
 
     private void testWithSpaceOrSpecialCharFail(OrchestratorZoneRequest orchestratorZoneRequest) {
@@ -319,8 +339,10 @@ public class OrchestratorZoneControllerIntegrationTests {
             serverRunning.getUrl("/orchestrator/zones"), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
-        assertTrue(getResponse.getBody().contains("Special characters are not allowed in the subdomain " +
-                                                  "name except hyphen which can be specified in the middle."));
+        assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
+        assertTrue(getResponse.getBody().contains("parameters.subdomain " +
+                                                  "is invalid. Special characters are not allowed in the " +
+                                                  "subdomain name except hyphen which can be specified in the middle"));
     }
 
     private void testNameAsSpaceAndEmpty(OrchestratorZoneRequest orchestratorZoneRequest) {
@@ -328,7 +350,8 @@ public class OrchestratorZoneControllerIntegrationTests {
             serverRunning.getUrl("/orchestrator/zones"), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
             String.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
-        assertTrue(getResponse.getBody().contains("default message [name]]; default message [must not be empty]]"));
+        assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
+        assertTrue(getResponse.getBody().contains("name must not be blank"));
     }
 
     static class ZoneClient extends ClientCredentialsResourceDetails {
