@@ -140,7 +140,7 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
-    public void test_null_key() throws InvalidIdentityZoneDetailsException {
+    void test_keyId_null_exception() {
         bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
         bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
         bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
