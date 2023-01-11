@@ -29,7 +29,7 @@ import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.openssl.jcajce.JcePEMEncryptorBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
-
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -41,25 +41,21 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-
-import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
-
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
-
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 public class OrchestratorZoneService implements ApplicationEventPublisherAware {
@@ -116,12 +112,12 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     }
 
     public OrchestratorZoneResponse getZoneDetails(String zoneName) {
-        IdentityZone identityZone = zoneProvisioning.retrieveByName(zoneName);
-        OrchestratorZone zone = new OrchestratorZone(null, getSubDomainStr(identityZone));
+        OrchestratorZoneEntity orchestratorZone = zoneProvisioning.retrieveByName(zoneName);
+        OrchestratorZone zone = new OrchestratorZone(null, getSubDomainStr(orchestratorZone));
         String uaaUri = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
-        String subDomain = identityZone.getSubdomain();
+        String subDomain = orchestratorZone.getSubdomain();
         String zoneUri = getZoneUri(subDomain, uaaUri);
-        ConnectionDetails connectionDetails = buildConnectionDetails(zoneName, identityZone, zoneUri);
+        ConnectionDetails connectionDetails = buildConnectionDetails(zoneName, orchestratorZone, zoneUri);
         return new OrchestratorZoneResponse(zoneName, zone, connectionDetails);
     }
 
@@ -129,9 +125,11 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - deleting Name[" + zoneName + "]");
-            IdentityZone zone = zoneProvisioning.retrieveByName(zoneName);
+            OrchestratorZoneEntity orchestratorZone = zoneProvisioning.retrieveByName(zoneName);
+            IdentityZone zone = zoneProvisioning.retrieve(orchestratorZone.getIdentityZoneId());
             IdentityZoneHolder.set(zone);
             if (publisher != null && zone != null) {
+                zoneProvisioning.deleteOrchestratorZone(zoneName);
                 publisher.publishEvent(
                     new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(),
                                              IdentityZoneHolder.getCurrentZoneId()));
@@ -146,14 +144,14 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         }
     }
 
-    private ConnectionDetails buildConnectionDetails(String zoneName, IdentityZone identityZone,
+    private ConnectionDetails buildConnectionDetails(String zoneName, OrchestratorZoneEntity orchestratorZone,
                                                      String zoneUri) {
         ConnectionDetails connectionDetails = new ConnectionDetails();
         connectionDetails.setUri(zoneUri);
         connectionDetails.setIssuerId(zoneUri + "/oauth/token");
-        connectionDetails.setSubdomain(identityZone.getSubdomain());
+        connectionDetails.setSubdomain(orchestratorZone.getSubdomain());
         connectionDetails.setDashboardUri(uaaDashboardUri);
-        OrchestratorZoneHeader zoneHeader = new OrchestratorZoneHeader(X_IDENTITY_ZONE_ID, identityZone.getId());
+        OrchestratorZoneHeader zoneHeader = new OrchestratorZoneHeader(X_IDENTITY_ZONE_ID, orchestratorZone.getIdentityZoneId());
         connectionDetails.setZone(zoneHeader);
         return connectionDetails;
     }
@@ -175,9 +173,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         this.publisher = applicationEventPublisher;
     }
 
-    private String getSubDomainStr(IdentityZone identityZone) {
-        String id = identityZone.getId();
-        String subDomain = identityZone.getSubdomain();
+    private String getSubDomainStr(OrchestratorZoneEntity orchestratorZone) {
+        String id = orchestratorZone.getIdentityZoneId();
+        String subDomain = orchestratorZone.getSubdomain();
         if(id.equals(subDomain)){
             subDomain = null;
         }
@@ -194,8 +192,6 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         String name = zoneRequest.getName();
         String adminClientSecret = getAdminClientSecret(zoneRequest);
 
-        checkOrchestratorZoneExists(name);
-
         String subdomain = zoneRequest.getParameters().getSubdomain();
         String id = UUID.randomUUID().toString();
         subdomain = getSubDomain(subdomain, id);
@@ -205,6 +201,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             IdentityZone created = createIdentityZone(identityZone);
+            // This DAO method will throw ConstraintViolationException
+            // if there is a duplicate entry in orchestrator_zone table
+            zoneProvisioning.createOrchestratorZone(identityZone.getId(), name);
             IdentityZoneHolder.set(created);
             createDefaultIdp(created);
             createUserGroups(created);
@@ -231,21 +230,6 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             subdomain = customSubdomain;
         }
         return subdomain;
-    }
-
-    private void checkOrchestratorZoneExists(String name) throws ZoneAlreadyExistsException {
-        IdentityZone identityZone = null;
-        try{
-            identityZone = zoneProvisioning.retrieveByName(name);
-            if(identityZone != null){
-                String errorMessage = String.format("The zone name %s is already taken. Please use a different " +
-                                                    "zone name", name);
-                throw new ZoneAlreadyExistsException(errorMessage);
-            }
-        } catch (ZoneDoesNotExistsException e){
-            String message = String.format("Its okey! Zone with name %s does not exists ", name);
-            logger.debug(message, e);
-        }
     }
 
     private void createZoneAdminClient(String adminClientSecret, IdentityZone created)

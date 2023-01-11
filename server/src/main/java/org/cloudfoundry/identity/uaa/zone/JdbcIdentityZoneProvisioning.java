@@ -22,19 +22,29 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config,active,enable_redirect_uri_check";
 
+    public static final String ORCHESTRATOR_ID_ZONE_FIELDS = "orchzone.id, orchzone.identity_zone_id,idzone.subdomain,orchzone.orchestrator_zone_name,orchzone.created,orchzone.lastmodified";
+
     public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config,active,enable_redirect_uri_check".replace(",","=?,")+"=?";
 
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?)";
+
+    public static final String CREATE_ORCHESTRATOR_ZONE_SQL = "insert into orchestrator_zone(identity_zone_id, orchestrator_zone_name) values (?,?)";
 
     public static final String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set " + ID_ZONE_UPDATE_FIELDS + " where id=?";
 
     public static final String DELETE_IDENTITY_ZONE_SQL = "delete from identity_zone where id=?";
 
+    public static final String DELETE_ORCHESTRATOR_ZONE_SQL = "delete from orchestrator_zone where orchestrator_zone_name=?";
+
     public static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY = IDENTITY_ZONES_QUERY + "where id=?";
 
-    public static final String IDENTITY_ZONE_BY_NAME_QUERY = IDENTITY_ZONES_QUERY + "where name=? and active = ?";
+    public static final String ORCHESTRATOR_ZONE_BY_NAME_QUERY = "SELECT " + ORCHESTRATOR_ID_ZONE_FIELDS +
+                                                                 " from identity_zone idzone inner join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where orchzone.orchestrator_zone_name=? and idzone.active = ?";
+
+    public static final String ORCHESTRATOR_ZONE_BY_NAME_IGNORE_ACTIVE_QUERY = "SELECT " + ORCHESTRATOR_ID_ZONE_FIELDS +
+                                                                               " from identity_zone idzone inner join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where orchzone.orchestrator_zone_name=?";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY_ACTIVE = IDENTITY_ZONE_BY_ID_QUERY + " and active = ?";
 
@@ -45,6 +55,8 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     protected final JdbcTemplate jdbcTemplate;
 
     private final RowMapper<IdentityZone> mapper = new IdentityZoneRowMapper();
+
+    private final RowMapper<OrchestratorZoneEntity> orchestratorZoneMapper = new OrchestratorZoneRowMapper();
 
     public JdbcIdentityZoneProvisioning(final JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -60,12 +72,26 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     }
 
     @Override
-    public IdentityZone retrieveByName(String name) {
+    public OrchestratorZoneEntity retrieveByName(String name) {
         try {
-            return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_NAME_QUERY, mapper, name, true);
+            return jdbcTemplate.queryForObject(ORCHESTRATOR_ZONE_BY_NAME_QUERY, orchestratorZoneMapper, name, true);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone[" + name + "] not found.", x);
         }
+    }
+
+    @Override
+    public OrchestratorZoneEntity retrieveByNameIgnoreActiveFlag(String name) {
+        try {
+            return jdbcTemplate.queryForObject(ORCHESTRATOR_ZONE_BY_NAME_IGNORE_ACTIVE_QUERY, orchestratorZoneMapper, name);
+        } catch (EmptyResultDataAccessException x) {
+            throw new ZoneDoesNotExistsException("Zone[" + name + "] not found.", x);
+        }
+    }
+
+    @Override
+    public int deleteOrchestratorZone(String orchestratorZoneName) {
+        return jdbcTemplate.update(DELETE_ORCHESTRATOR_ZONE_SQL, orchestratorZoneName);
     }
 
     @Override
@@ -115,6 +141,21 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         }
 
         return retrieveIgnoreActiveFlag(identityZone.getId());
+    }
+
+    @Override
+    public OrchestratorZoneEntity createOrchestratorZone(String identityZoneId, String orchestratorZoneName) {
+        try {
+            jdbcTemplate.update(CREATE_ORCHESTRATOR_ZONE_SQL, ps -> {
+                ps.setString(1, identityZoneId);
+                ps.setString(2, orchestratorZoneName);
+            });
+        } catch (DuplicateKeyException e) {
+            throw new ZoneAlreadyExistsException(
+                "The zone name " + orchestratorZoneName + " is already taken. Please use a different zone name", e);
+        }
+
+        return retrieveByNameIgnoreActiveFlag(orchestratorZoneName);
     }
 
     @Override
@@ -182,5 +223,20 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
             return identityZone;
         }
     }
+
+    private static final class OrchestratorZoneRowMapper implements RowMapper<OrchestratorZoneEntity> {
+        @Override
+        public OrchestratorZoneEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+            OrchestratorZoneEntity orchestratorZone = new OrchestratorZoneEntity();
+            orchestratorZone.setId(rs.getLong(1));
+            orchestratorZone.setIdentityZoneId(rs.getString(2).trim());
+            orchestratorZone.setSubdomain(rs.getString(3));
+            orchestratorZone.setOrchestratorZoneName(rs.getString(4));
+            orchestratorZone.setCreated(rs.getTimestamp(5).toLocalDateTime());
+            orchestratorZone.setLastModified(rs.getTimestamp(6).toLocalDateTime());
+            return orchestratorZone;
+        }
+    }
+
 
 }

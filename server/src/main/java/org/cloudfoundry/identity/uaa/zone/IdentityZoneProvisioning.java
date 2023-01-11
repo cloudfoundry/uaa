@@ -18,11 +18,17 @@ public interface IdentityZoneProvisioning {
 
     IdentityZone create(IdentityZone identityZone);
 
+    OrchestratorZoneEntity createOrchestratorZone(String identityZoneId, String orchestratorZoneName);
+
     IdentityZone update(IdentityZone identityZone);
 
     IdentityZone retrieve(String id);
 
-    IdentityZone retrieveByName(String name);
+    OrchestratorZoneEntity retrieveByName(String name);
+
+    OrchestratorZoneEntity retrieveByNameIgnoreActiveFlag(String name);
+
+    int deleteOrchestratorZone(String orchestratorZoneName);
 
     IdentityZone retrieveBySubdomain(String subdomain);
 
