@@ -14,6 +14,7 @@ dependencies {
         exclude(group: "org.glassfish", module: "jakarta.el")
     }
     implementation(libraries.springSecurityWeb)
+    implementation(libraries.springTx)
     implementation(project(":cloudfoundry-identity-server"))
     implementation(project(":cloudfoundry-identity-model"))
     implementation(project(":cloudfoundry-identity-metrics-data"))
