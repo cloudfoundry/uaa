@@ -11,12 +11,14 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -35,6 +37,7 @@ class JdbcIdentityZoneProvisioningTests {
     void setUp() {
         jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         randomValueStringGenerator = new RandomValueStringGenerator(8);
+        jdbcTemplate.execute("delete from orchestrator_zone where identity_zone_id != 'uaa'");
         jdbcTemplate.execute("delete from identity_zone where id != 'uaa'");
     }
 
@@ -466,39 +469,73 @@ class JdbcIdentityZoneProvisioningTests {
     }
 
     @Test
-    void testGetIdentityZoneByName() {
+    void testGetOrchestratorZoneByName() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setName("Test-Identity-Zone");
         jdbcIdentityZoneProvisioning.create(identityZone);
+        jdbcIdentityZoneProvisioning.createOrchestratorZone(identityZone.getId(), identityZone.getName());
 
-        IdentityZone retrievedIdZone = jdbcIdentityZoneProvisioning.retrieveByName(identityZone.getName());
+        OrchestratorZoneEntity orchestratorZoneEntity = jdbcIdentityZoneProvisioning.retrieveByName(identityZone.getName());
 
-        assertEquals(identityZone.getId(), retrievedIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), retrievedIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), retrievedIdZone.getName());
-        assertEquals(identityZone.getDescription(), retrievedIdZone.getDescription());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
-        assertTrue(retrievedIdZone.isActive());
-
-        assertFalse(retrievedIdZone.getConfig().getLinks().getSelfService().isSelfServiceCreateAccountEnabled());
-        assertTrue(retrievedIdZone.getConfig().getLinks().getSelfService().isSelfServiceResetPasswordEnabled());
-        assertNull(retrievedIdZone.getConfig().getLinks().getSelfService().getPasswd());
-        assertNull(retrievedIdZone.getConfig().getLinks().getSelfService().getSignup());
+        assertEquals(identityZone.getId(), orchestratorZoneEntity.getIdentityZoneId());
+        assertEquals(identityZone.getSubdomain(), orchestratorZoneEntity.getSubdomain());
+        assertEquals(identityZone.getName(), orchestratorZoneEntity.getOrchestratorZoneName());
+        assertNotNull(identityZone.getCreated());
+        assertNotNull(identityZone.getLastModified());
+        assertNotNull(orchestratorZoneEntity.getId());
+        assertNotNull(orchestratorZoneEntity.getCreated());
+        assertNotNull(orchestratorZoneEntity.getLastModified());
     }
 
     @Test
-    void testGetInactiveIdentityZoneByName() {
+    void testCreateDuplicateZoneName() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(),
+                                                                     randomValueStringGenerator.generate());
+        identityZone.setName("Test-Identity-Zone");
+        jdbcIdentityZoneProvisioning.create(identityZone);
+        jdbcIdentityZoneProvisioning.createOrchestratorZone(identityZone.getId(), identityZone.getName());
+        try {
+            String newId = UUID.randomUUID().toString();
+            identityZone.setId(newId);
+            identityZone.setSubdomain(UUID.randomUUID().toString());
+            jdbcIdentityZoneProvisioning.create(identityZone);
+            jdbcIdentityZoneProvisioning.createOrchestratorZone(newId, identityZone.getName());
+        } catch (ZoneAlreadyExistsException e) {
+            assertEquals(
+                "The zone name Test-Identity-Zone is already taken. Please use a different zone name",
+                e.getMessage());
+        }
+    }
+
+    @Test
+    void testGetInactiveOrchestratorZoneByName() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setName("Test-Identity-Zone");
         identityZone.setActive(false);
         jdbcIdentityZoneProvisioning.create(identityZone);
+        jdbcIdentityZoneProvisioning.createOrchestratorZone(identityZone.getId(), identityZone.getName());
         try {
             jdbcIdentityZoneProvisioning.retrieveByName(identityZone.getName());
             fail("Able to retrieve inactive zone.");
         } catch (ZoneDoesNotExistsException e) {
             assertEquals("Zone[Test-Identity-Zone] not found.", e.getMessage());
         }
+    }
+
+    @Test
+    void testDeleteOrchestratorZone() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
+        identityZone.setId(randomValueStringGenerator.generate());
+        identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
+
+        IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
+        jdbcIdentityZoneProvisioning.createOrchestratorZone(identityZone.getId(), identityZone.getName());
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from orchestrator_zone where identity_zone_id = ? and orchestrator_zone_name=?", new Object[]{createdIdZone.getId(), createdIdZone.getName()}, Integer.class), is(1));
+        jdbcIdentityZoneProvisioning.deleteOrchestratorZone(identityZone.getName());
+        jdbcIdentityZoneProvisioning.onApplicationEvent(new EntityDeletedEvent<>(identityZone, null, IdentityZoneHolder.getCurrentZoneId()));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class), is(0));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from orchestrator_zone where identity_zone_id = ? and orchestrator_zone_name=?", new Object[]{createdIdZone.getId(), createdIdZone.getName()}, Integer.class), is(0));
     }
 
     @Test

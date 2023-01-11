@@ -125,19 +125,19 @@ public class OrchestratorZoneServiceTests {
 
     @Test
     public void testGetZoneDetails() {
-        IdentityZone identityZone = buildIdentityZone();
-        when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
+        OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone();
+        when(zoneProvisioning.retrieveByName(any())).thenReturn(orchestratorZone);
         OrchestratorZoneResponse zone = zoneService.getZoneDetails(ZONE_NAME);
         assertNotNull(zone);
         assertEquals(zone.getName(), ZONE_NAME);
-        String uri = "http://" + identityZone.getSubdomain() + ".localhost";
-        assertEquals(zone.getParameters().getSubdomain(), identityZone.getSubdomain());
-        assertEquals(zone.getConnectionDetails().getSubdomain(), identityZone.getSubdomain());
+        String uri = "http://" + orchestratorZone.getSubdomain() + ".localhost";
+        assertEquals(zone.getParameters().getSubdomain(), orchestratorZone.getSubdomain());
+        assertEquals(zone.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
         assertEquals((zone.getConnectionDetails().getUri()), uri);
         assertEquals(zone.getConnectionDetails().getDashboardUri(), "http://localhost/dashboard");
         assertEquals(zone.getConnectionDetails().getIssuerId(), uri + "/oauth/token");
         assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
-        assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderValue(), identityZone.getId());
+        assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());
     }
 
     @Test
@@ -152,9 +152,10 @@ public class OrchestratorZoneServiceTests {
     @Test
     public void testDeleteZone() throws Exception {
         zoneService.setApplicationEventPublisher(applicationEventPublisher);
-        IdentityZone identityZone = buildIdentityZone();
-        when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
-        zoneService.deleteZone(identityZone.getName());
+        OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone();
+        when(zoneProvisioning.retrieveByName(any())).thenReturn(orchestratorZone);
+        when(zoneProvisioning.retrieve(any())).thenReturn(createIdentityZone(orchestratorZone.getIdentityZoneId()));
+        zoneService.deleteZone(orchestratorZone.getOrchestratorZoneName());
         verify(zoneProvisioning, times(1)).retrieveByName(any());
         verify(applicationEventPublisher, times(1)).publishEvent(any());
     }
@@ -162,10 +163,10 @@ public class OrchestratorZoneServiceTests {
     @Test
     public void testDeleteZone_InternalError() {
         zoneService.setApplicationEventPublisher(null);
-        IdentityZone identityZone = buildIdentityZone();
-        when(zoneProvisioning.retrieveByName(any())).thenReturn(identityZone);
-        Assertions.assertThrows(Exception.class, () -> zoneService.deleteZone(identityZone.getName()),
-                                "Zone - deleting Name[" + identityZone.getName() + "]");
+        OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone();
+        when(zoneProvisioning.retrieveByName(any())).thenReturn(orchestratorZone);
+        Assertions.assertThrows(Exception.class, () -> zoneService.deleteZone(orchestratorZone.getOrchestratorZoneName()),
+                                "Zone - deleting Name[" + orchestratorZone.getOrchestratorZoneName() + "]");
     }
 
     @Test
@@ -177,14 +178,13 @@ public class OrchestratorZoneServiceTests {
         assertTrue(exception.getMessage().contains("Zone not available."));
     }
 
-    private IdentityZone buildIdentityZone() {
-        IdentityZone identityZone = new IdentityZone();
+    private OrchestratorZoneEntity buildOrchestratorZone() {
+        OrchestratorZoneEntity orchestratorZone = new OrchestratorZoneEntity();
         String id = UUID.randomUUID().toString();
-        identityZone.setId(id);
-        identityZone.setSubdomain(SUB_DOMAIN_NAME);
-        identityZone.setName(ZONE_NAME);
-        identityZone.setDescription("Like the Twilight Zone but tastier.");
-        return identityZone;
+        orchestratorZone.setIdentityZoneId(id);
+        orchestratorZone.setSubdomain(SUB_DOMAIN_NAME);
+        orchestratorZone.setOrchestratorZoneName(ZONE_NAME);
+        return orchestratorZone;
     }
 
     @Test
@@ -192,13 +192,12 @@ public class OrchestratorZoneServiceTests {
         Security.addProvider(new BouncyCastleProvider());
         OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
                                                                           SUB_DOMAIN_NAME);
-        IdentityZone identityZone = createIdentityZone();
+        IdentityZone identityZone = createIdentityZone(null);
         IdentityProvider identityProvider = createDefaultIdp(identityZone);
         when(zoneProvisioning.create(any())).thenReturn(identityZone);
         when(idpProvisioning.create(any(),any())).thenReturn(identityProvider);
         when(clientDetailsService.retrieve(any(),any())).thenReturn(any());
         zoneService.createZone(zoneRequest);
-        verify(zoneProvisioning, times(1)).retrieveByName(any());
         verify(zoneProvisioning, times(1)).create(any());
         verify(idpProvisioning, times(1)).create(any(),any());
         verify(clientDetailsService, times(1)).create(any(),any());
@@ -267,26 +266,11 @@ public class OrchestratorZoneServiceTests {
     }
 
     @Test
-    public void testCreateZone_checkOrchestratorZoneExists() {
-        Security.addProvider(new BouncyCastleProvider());
-        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                         SUB_DOMAIN_NAME);
-        when(zoneProvisioning.retrieveByName(any())).thenReturn(new IdentityZone());
-        String errorMessage = String.format("The zone name %s is already taken. Please use a different " +
-                                            "zone name", zoneRequest.getName());
-        ZoneAlreadyExistsException exception =
-            assertThrows(ZoneAlreadyExistsException.class, () ->
-                             zoneService.createZone(zoneRequest),
-                         errorMessage);
-        assertTrue(exception.getMessage().contains(errorMessage));
-    }
-
-    @Test
     public void testCreateZone_DuplicateSubdomainCauseZoneAlreadyExistsException () {
         Security.addProvider(new BouncyCastleProvider());
         OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
                                                                           SUB_DOMAIN_NAME);
-        when(zoneProvisioning.create(any())).thenReturn(createIdentityZone());
+        when(zoneProvisioning.create(any())).thenReturn(createIdentityZone(null));
         String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
                                             zoneRequest.getParameters().getSubdomain());
         when(zoneProvisioning.create(any())).thenThrow(new ZoneAlreadyExistsException(errorMessage));
@@ -295,7 +279,6 @@ public class OrchestratorZoneServiceTests {
                              zoneService.createZone(zoneRequest),
                          errorMessage);
         assertTrue(exception.getMessage().contains(errorMessage));
-        verify(zoneProvisioning, times(1)).retrieveByName(any());
         verify(zoneProvisioning, times(1)).create(any());
     }
 
@@ -322,8 +305,15 @@ public class OrchestratorZoneServiceTests {
         return zoneRequest;
     }
 
-    private IdentityZone createIdentityZone() {
-        IdentityZone identityZone = buildIdentityZone();
+    private IdentityZone createIdentityZone(String id) {
+        IdentityZone identityZone = new IdentityZone();
+        if (id == null) {
+            id = UUID.randomUUID().toString();
+        }
+        identityZone.setId(id);
+        identityZone.setSubdomain(SUB_DOMAIN_NAME);
+        identityZone.setName(ZONE_NAME);
+        identityZone.setDescription("Like the Twilight Zone but tastier.");
         IdentityZoneConfiguration identityZoneConfiguration = new IdentityZoneConfiguration();
         Map<String, String> keys = new HashMap<>();
         keys.put("kid", "key");

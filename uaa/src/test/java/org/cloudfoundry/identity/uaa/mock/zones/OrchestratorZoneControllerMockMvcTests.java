@@ -172,22 +172,21 @@ public class OrchestratorZoneControllerMockMvcTests {
     @Test
     void testGetZone() throws Exception {
         //TODO: remove this createIdentityZone method once the create orchestrator zone API is implemented and use it to create zone.
-        IdentityZone identityZone = createIdentityZone();
-        assertNotNull(identityZone);
+        createOrchestratorZoneAndAssert();
         OrchestratorZoneResponse zoneResponse =
-            processZoneAPI(get("/orchestrator/zones"), "test-name", status().isOk(), orchestratorClientZonesReadToken);
+            processZoneAPI(get("/orchestrator/zones"), ZONE_NAME, status().isOk(), orchestratorClientZonesReadToken);
         assertNotNull(zoneResponse);
         assertNotNull(zoneResponse.getParameters());
-        assertEquals(identityZone.getSubdomain(), zoneResponse.getParameters().getSubdomain());
-        assertEquals(identityZone.getSubdomain(), zoneResponse.getConnectionDetails().getSubdomain());
-        String uri = "http://" + identityZone.getSubdomain() + ".localhost";
+        assertEquals(SUB_DOMAIN_NAME, zoneResponse.getParameters().getSubdomain());
+        assertEquals(SUB_DOMAIN_NAME, zoneResponse.getConnectionDetails().getSubdomain());
+        String uri = "http://" + SUB_DOMAIN_NAME + ".localhost";
         assertEquals(uri, zoneResponse.getConnectionDetails().getUri());
         assertEquals("http://localhost:8080/dashboard", zoneResponse.getConnectionDetails().getDashboardUri());
         assertEquals(uri + "/oauth/token", zoneResponse.getConnectionDetails().getIssuerId());
         assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
-        assertEquals(identityZone.getId(), zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
+        assertNotNull(zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
         // deleting after create and get to avoid multiple value in the database
-        processZoneAPI(delete("/orchestrator/zones"), identityZone.getName(), status().isAccepted(),
+        processZoneAPI(delete("/orchestrator/zones"), ZONE_NAME, status().isAccepted(),
                        orchestratorClientZonesWriteToken);
     }
 
@@ -229,14 +228,14 @@ public class OrchestratorZoneControllerMockMvcTests {
     @Test
     void testDeleteZone() throws Exception {
         //TODO: remove this createIdentityZone method once the create orchestrator zone API is implemented and use it to create zone.
-        IdentityZone identityZone = createIdentityZone();
+        createOrchestratorZoneAndAssert();
         uaaEventListener.clearEvents();
-        processZoneAPI(delete("/orchestrator/zones"), identityZone.getName(), status().isAccepted(),
+        processZoneAPI(delete("/orchestrator/zones"), ZONE_NAME, status().isAccepted(),
                        orchestratorClientZonesWriteToken);
-        performMockMvcCallAndAssertError(get("/orchestrator/zones").param("name", identityZone.getName()),
+        performMockMvcCallAndAssertError(get("/orchestrator/zones").param("name", ZONE_NAME),
                                          status().isNotFound(),
                                          JsonUtils.writeValueAsString(
-                                             new OrchestratorErrorResponse("Zone[test-name] not found.")),
+                                             new OrchestratorErrorResponse("Zone[The Twiglet Zone] not found.")),
                                          orchestratorClientZonesWriteToken);
 
         // Asserting delete event
@@ -364,6 +363,10 @@ public class OrchestratorZoneControllerMockMvcTests {
 
     @Test
     void testCreateZone_Accepted_Success() throws Exception {
+        createOrchestratorZoneAndAssert();
+    }
+
+    private void createOrchestratorZoneAndAssert() throws Exception {
         OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
         MvcResult result = mockMvc
