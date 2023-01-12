@@ -15,7 +15,6 @@ jobs:
         DB: postgresql
       volumes:
         - ${{ github.workspace }}:/root/uaa
-        - /root/uaa/.gradle/
       options: --privileged --tty --interactive --shm-size=1G
     steps:
       - name: Check out repository code
