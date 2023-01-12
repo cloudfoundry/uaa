@@ -25,7 +25,11 @@ jobs:
         continue-on-error: true
       - name: Test result upload
         uses: actions/upload-artifact@v3
+        if: steps.testrun.outcome == 'failure'
         with:
           name: Server test
-          path: /root/uaa/*/build/reports/tests/test/
+          path: /root/uaa/*/build/reports/tests/integrationTest/
+      - name: Check error Result
+        run: exit 1
+        if: steps.testrun.outcome == 'failure'
 
