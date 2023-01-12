@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: [ 'postgresql-11', 'postgresql-15', 'mysql-5', 'mysql-8' ]
+        database: [ 'postgresql-11', 'postgresql-15', 'mysql', 'mysql-8' ]
     container:
       image: cfidentity/uaa-${{ matrix.database }}
       volumes:
@@ -20,7 +20,7 @@ jobs:
       options: --privileged --tty --interactive --shm-size=1G
     steps:
       - name: Set env
-        run: echo "DB=$(echo ${{ matrix.database }} | sed 's/[-0-9]//g'" >> $GITHUB_ENV
+        run: echo "DB=$(echo ${{ matrix.database }} | sed 's/[-0-9]//g')" >> $GITHUB_ENV
       - name: Check out repository code
         uses: actions/checkout@v3
       - name: JUnit tests on container
