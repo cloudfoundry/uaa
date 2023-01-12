@@ -1,0 +1,28 @@
+name: unit-tests-postgresql-15
+on:
+  pull_request:
+    branches: [ develop ]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  container-test-job:
+    runs-on: ubuntu-latest
+    container:
+      image: cfidentity/uaa-postgresql-15
+      env:
+        DB: postgresql
+      volumes:
+        - ${{ github.workspace }}:/root/uaa
+      options: --privileged --tty --interactive --shm-size=1G
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+      - name: JUnit tests on postgresql version 15
+        run: /root/uaa/scripts/unit-tests.sh postgresql,default
+      - name: Test result upload
+        uses: actions/upload-artifact@v3
+        with:
+          name: Server test
+          path: /root/uaa/*/build/reports/tests/test/
