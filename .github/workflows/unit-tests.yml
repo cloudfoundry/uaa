@@ -11,8 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-        matrix:
-          database: [ 'postgresql-11', 'postgresql-15', 'mysql-5', 'mysql-8' ]
+      matrix:
+        database: [ 'postgresql-11', 'postgresql-15', 'mysql-5', 'mysql-8' ]
     container:
       image: cfidentity/${{ matrix.database }}
       volumes:
