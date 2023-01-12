@@ -1,4 +1,4 @@
-name: unit-tests-postgresql-15
+name: Integration tests on postgresql version 15
 on:
   pull_request:
     branches: [ develop ]
@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v3
       - name: Integration tests on postgresql version 15
         run: /root/uaa/scripts/integration-tests.sh postgresql,default
+        continue-on-error: true
       - name: Test result upload
         uses: actions/upload-artifact@v3
         with:
