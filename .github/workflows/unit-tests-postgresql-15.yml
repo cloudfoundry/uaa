@@ -1,0 +1,22 @@
+name: unit-tests-postgresql-15
+on:
+  push:
+    branches: [ develop ]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  container-test-job:
+    runs-on: ubuntu-latest
+    container:
+      image: cfidentity/uaa-postgresql-15
+      env:
+        DB: postgresql
+      volumes:
+        - $( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd ):/root/uaa
+        - /root/uaa/.gradle/
+      options: --privileged --tty --interactive --shm-size=1G
+    steps:
+      - name: JUnit Tests on Postgresql version 15
+        run: ./scripts/unit-tests.sh postgresql,default
