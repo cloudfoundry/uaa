@@ -1,6 +1,6 @@
 name: unit-tests-postgresql-15
 on:
-  push:
+  pull_request:
     branches: [ develop ]
 
 permissions:
