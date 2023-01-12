@@ -18,5 +18,7 @@ jobs:
         - /root/uaa/.gradle/
       options: --privileged --tty --interactive --shm-size=1G
     steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
       - name: JUnit Tests on Postgresql version 15
         run: /root/uaa/scripts/unit-tests.sh postgresql,default
