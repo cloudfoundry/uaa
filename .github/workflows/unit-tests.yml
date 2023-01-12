@@ -14,7 +14,7 @@ jobs:
       matrix:
         database: [ 'postgresql-11', 'postgresql-15', 'mysql-5', 'mysql-8' ]
     container:
-      image: cfidentity/${{ matrix.database }}
+      image: cfidentity/uaa-${{ matrix.database }}
       volumes:
         - ${{ github.workspace }}:/root/uaa
       options: --privileged --tty --interactive --shm-size=1G
