@@ -71,7 +71,7 @@ pipeline {
                     export SAML_IDP_USER_PW=$FUNCTIONAL_USER_PSW
 
                     pushd uaa-k8s-deploy
-                        ./scripts/uaa-acceptance-tests.sh $DEPLOYMENT_ENVIRONMENT with_propel_proxy
+                        ./scripts/uaa-acceptance-tests.sh $DEPLOYMENT_ENVIRONMENT
                     popd
                 '''
             }
