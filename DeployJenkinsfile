@@ -39,6 +39,10 @@ pipeline {
                 dir('uaa') {
                     checkout scm
                 }
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                }
                 script {
                     def util = load('uaa/JenkinsfileCommon.groovy')
                     ARTIFACTORY_PATH = util.getArtifactoryPath()
@@ -143,6 +147,11 @@ pipeline {
 
                 dir('uaa') {
                     checkout scm
+                }
+
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                 }
 
                 script {

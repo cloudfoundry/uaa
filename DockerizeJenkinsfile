@@ -59,6 +59,10 @@ pipeline {
                 dir('uaa') {
                     checkout scm
                 }
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                }
                 sh '''#!/bin/bash -ex
                     source uaa/scripts/setup-tests.sh
                     source uaa-cf-release/config-local/set-env.sh
