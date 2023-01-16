@@ -31,6 +31,11 @@ pipeline {
                     checkout scm
                 }
 
+                dir('uaa/iam-k8s-utils') {
+                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                    url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                }
+
                 sh 'echo Downloading UAA CI Repo'
 
                 dir('uaa-cf-release') {
