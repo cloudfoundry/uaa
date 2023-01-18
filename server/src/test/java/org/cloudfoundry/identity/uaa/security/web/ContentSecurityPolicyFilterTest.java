@@ -83,4 +83,13 @@ class ContentSecurityPolicyFilterTest {
 
         Mockito.verify(chain).doFilter(request, response);
     }
+
+    @Test
+    void testCustomScriptSrc() throws ServletException, IOException {
+        filter.setCspAllowedScriptSrc(java.util.Arrays.asList("'self'", "custom"));
+        filter.doFilter(request, response, chain);
+
+        assertEquals("script-src 'self' custom",
+                response.getHeader("Content-Security-Policy"));
+    }
 }
