@@ -98,7 +98,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
         for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
             SamlKey samlKey = new SamlKey(entry.getValue().get("key"), entry.getValue().get("passphrase"), entry.getValue().get("certificate"));
-            definition.getSamlConfig().addKey(ofNullable(entry.getKey()).orElseThrow(() -> new InvalidIdentityZoneDetailsException("SAML key id must not be null.", null)).toLowerCase(Locale.US), samlKey);
+            definition.getSamlConfig().addKey(ofNullable(entry.getKey()).orElseThrow(() -> new InvalidIdentityZoneDetailsException("SAML key id must not be null.", null)).toLowerCase(Locale.ROOT), samlKey);
         }
         definition.getSamlConfig().setActiveKeyId(this.activeKeyId);
 
