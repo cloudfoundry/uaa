@@ -82,7 +82,7 @@ ratelimit:
       pathSelectors:
         - "equals:/info"
     - name: SCIM
-      withCallerCredentialsID: 200r/s
+      withCallerCredentialsID: 500r/s
       pathSelectors:
         - "startsWith:/Users"
         - "startsWith:/Groups"
