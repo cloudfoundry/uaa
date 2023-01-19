@@ -250,10 +250,10 @@
     <bean id="contentSecurityPolicyFilter"
           class="org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter">
         <property name="cspAllowedScriptSrc"
-                  value="#{@config['contentSecurityPolicy']==null ? T(java.util.Arrays).asList('self') :
-                           @config['contentSecurityPolicy']['allowed']==null ? T(java.util.Arrays).asList('self') :
-                           @config['contentSecurityPolicy']['allowed']['scriptSrc']==null ? T(java.util.Arrays).asList('self') :
-                           @config['contentSecurityPolicy']['allowed']['scriptSrc']}"/>
+                  value="#{@config['csp']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
+                           @config['csp']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
+                           @config['csp']['scriptSrc']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
+                           @config['csp']['scriptSrc']}"/>
     </bean>
 
     <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
