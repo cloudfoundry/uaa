@@ -166,7 +166,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     }
 
     public IdentityZoneConfigurationBootstrap setActiveKeyId(String activeKeyId) {
-        this.activeKeyId = activeKeyId != null ? activeKeyId.toLowerCase(Locale.US) : null;
+        this.activeKeyId = activeKeyId != null ? activeKeyId.toLowerCase(Locale.ROOT) : null;
         return this;
     }
 
