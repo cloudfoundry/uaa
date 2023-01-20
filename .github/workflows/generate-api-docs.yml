@@ -18,7 +18,7 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v3
       - name: Generate https://docs.cloudfoundry.org/api/uaa/
-        run: pushd /root/uaa; ./gradlew generateDocs -Pversion=develop
+        run: /root/uaa/scripts/generate-docs.sh
       - name: Documentation Upload
         uses: actions/upload-artifact@v3
         with:
