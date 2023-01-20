@@ -19,7 +19,6 @@ jobs:
         uses: actions/checkout@v3
       - name: Generate https://docs.cloudfoundry.org/api/uaa/
         run: /root/uaa/scripts/generate-docs.sh
-        continue-on-error: false
       - name: Documentation Upload
         uses: actions/upload-artifact@v3
         with:
