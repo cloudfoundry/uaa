@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-retVal=0
 pushd /root/uaa
   ./gradlew generateDocs
   retVal=$?
