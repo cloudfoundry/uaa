@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
@@ -47,6 +48,8 @@ import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.access.AccessDeniedException;
@@ -84,6 +87,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     private ApplicationEventPublisher publisher;
 
+    private SignatureAlgorithm defaultSamlSignatureAlgorithm;
+
     private static final Logger logger = LoggerFactory.getLogger(OrchestratorZoneService.class);
 
     public OrchestratorZoneService(IdentityZoneProvisioning zoneProvisioning,
@@ -100,6 +105,11 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         this.clientDetailsValidator = clientDetailsValidator;
         this.uaaDashboardUri = uaaDashboardUri;
         this.domainName = uaaUrl;
+    }
+
+    @Autowired
+    public void setDefaultSamlSignatureAlgorithm(@Qualifier("globalSamlSignatureAlgorithm") SignatureAlgorithm samlSignatureAlgorithm) {
+        this.defaultSamlSignatureAlgorithm = samlSignatureAlgorithm;
     }
 
     public OrchestratorZoneResponse getZoneDetails(String zoneName) {
@@ -424,6 +434,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             samlKeys.put(GENERATED_KEY_ID, new SamlKey(pemStringWriter.toString(), passphrase, certificate));
             samlConfig.setKeys(samlKeys);
             samlConfig.setActiveKeyId(GENERATED_KEY_ID);
+            if (samlConfig.getSignatureAlgorithm() == null) {
+                samlConfig.setSignatureAlgorithm(defaultSamlSignatureAlgorithm);
+            }
         } finally {
             pemWriter.flush();
             pemWriter.close();
