@@ -17,8 +17,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: Generate files for docs.cloudfoundry.org/api/uaa/
-        run: cd ${{ github.workspace }} ; ./gradlew generateDocs -Pversion=develop
+      - name: Generate https://docs.cloudfoundry.org/api/uaa/
+        run: pushd /root/uaa; ./gradlew generateDocs -Pversion=develop
       - name: Documentation Upload
         uses: actions/upload-artifact@v3
         with:
