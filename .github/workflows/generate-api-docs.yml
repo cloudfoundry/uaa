@@ -17,8 +17,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-      - name: JUnit tests on container
-        run: /root/uaa/scripts/generate-docs.sh
+      - name: Generate files for docs.cloudfoundry.org/api/uaa/
+        run: cd /root/uaa ; ./gradlew generateDocs -Pversion=develop
       - name: Documentation Upload
         uses: actions/upload-artifact@v3
         with:
