@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.nimbusds.jose.jwk.JWKParameterNames;
 import com.nimbusds.jose.util.Base64URL;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -37,6 +38,7 @@ import static org.springframework.security.jwt.codec.Codecs.b64Decode;
 import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 public abstract class KeyInfo {
+    public static final String PUBLIC_KEY_VALUE = "value";
     public abstract void verify();
 
     public abstract SignatureVerifier getVerifier();
@@ -127,12 +129,12 @@ class HmacKeyInfo extends KeyInfo {
     @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
-        result.put("alg", this.algorithm());
-        result.put("value", this.verifierKey);
+        result.put(JWKParameterNames.ALGORITHM, this.algorithm());
+        result.put(PUBLIC_KEY_VALUE, this.verifierKey);
         //new values per OpenID and JWK spec
-        result.put("use", JsonWebKey.KeyUse.sig.name());
-        result.put("kid", this.keyId);
-        result.put("kty", MAC.name());
+        result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
+        result.put(JWKParameterNames.KEY_ID, this.keyId);
+        result.put(JWKParameterNames.KEY_TYPE, MAC.name());
         return result;
     }
 
@@ -279,19 +281,19 @@ class RsaKeyInfo extends KeyInfo {
     @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
-        result.put("alg", this.algorithm());
-        result.put("value", this.verifierKey);
+        result.put(JWKParameterNames.ALGORITHM, this.algorithm());
+        result.put(PUBLIC_KEY_VALUE, this.verifierKey);
         //new values per OpenID and JWK spec
-        result.put("use", JsonWebKey.KeyUse.sig.name());
-        result.put("kid", this.keyId);
-        result.put("kty", RSA.name());
+        result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
+        result.put(JWKParameterNames.KEY_ID, this.keyId);
+        result.put(JWKParameterNames.KEY_TYPE, RSA.name());
 
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
         if (rsaKey != null) {
             String n = Base64URL.encode(rsaKey.getModulus()).toString();
             String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
-            result.put("n", n);
-            result.put("e", e);
+            result.put(JWKParameterNames.RSA_MODULUS, n);
+            result.put(JWKParameterNames.RSA_EXPONENT, e);
         }
 
         return result;
