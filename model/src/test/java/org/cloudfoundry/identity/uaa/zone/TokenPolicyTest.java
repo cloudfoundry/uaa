@@ -115,12 +115,12 @@ public class TokenPolicyTest {
         final String sampleIdentityZone = getResourceAsString(getClass(), "SampleIdentityZone.json");
         IdentityZone identityZone = JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
         TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningCert(), "some-cert");
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningAlg(), "RS256");
+        assertEquals("some-signing-key-1", tokenPolicy.getKeys().get("key-id-1").getSigningKey());
+        assertEquals("some-cert", tokenPolicy.getKeys().get("key-id-1").getSigningCert());
+        assertEquals("RS256", tokenPolicy.getKeys().get("key-id-1").getSigningAlg());
         tokenPolicy.setKeys(null);
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningCert(), "some-cert");
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningAlg(), "RS256");
+        assertEquals("some-signing-key-1", tokenPolicy.getKeys().get("key-id-1").getSigningKey());
+        assertEquals("some-cert", tokenPolicy.getKeys().get("key-id-1").getSigningCert());
+        assertEquals("RS256", tokenPolicy.getKeys().get("key-id-1").getSigningAlg());
     }
 }
