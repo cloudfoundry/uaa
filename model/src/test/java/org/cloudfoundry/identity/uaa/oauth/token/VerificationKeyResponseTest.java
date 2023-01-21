@@ -1,33 +1,54 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class VerificationKeyResponseTest {
 
   private VerificationKeyResponse verificationKeyResponse;
-  @BeforeEach
-  void setup() {
+
+  void setupResponse(String kty, String x5t, String x5c) {
     HashMap hashMap = new HashMap<>();
-    hashMap.put(JsonWebKey.KTY, "RSA");
-    hashMap.put(JsonWebKey.X5T, "thumbprint");
-    hashMap.put(JsonWebKey.X5C, Arrays.asList("cert").toArray(new String[0]));
+    if (kty != null) {
+      hashMap.put(JsonWebKey.KTY, kty);
+    }
+    if (x5t != null) {
+      hashMap.put(JsonWebKey.X5T, x5t);
+    }
+    if (x5c != null) {
+      hashMap.put(JsonWebKey.X5C, Arrays.asList(x5c).toArray(new String[0]));
+    }
     verificationKeyResponse = new VerificationKeyResponse(hashMap);
   }
 
   @Test
-  void getCertX5c() {
+  void testX509CertificateSet() {
+    setupResponse("RSA", null, "certificate");
     assertEquals("cert", verificationKeyResponse.getCertX5c()[0]);
   }
 
   @Test
-  void getCertX5t() {
+  void testX509ThumbPrintSet() {
+    setupResponse("RSA", "thumbprint", null);
     assertEquals("thumbprint", verificationKeyResponse.getCertX5t());
+  }
+
+  @Test
+  void testKeyTypeNullException() {
+    assertThrows(IllegalArgumentException.class, () -> setupResponse(null, "thumbprint", "certificate"));
+  }
+
+  @Test
+  void testVerificationKeyResponse() {
+    setupResponse("RSA", "thumbprint", "certificate");
+    assertEquals(JsonWebKey.KeyType.valueOf("RSA"), verificationKeyResponse.getKty());
+    assertEquals("thumbprint", verificationKeyResponse.getX5t());
+    assertEquals("certificate", verificationKeyResponse.getCertX5c()[0]);
   }
 }

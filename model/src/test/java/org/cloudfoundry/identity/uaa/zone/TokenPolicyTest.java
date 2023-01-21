@@ -7,9 +7,9 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -111,10 +111,10 @@ public class TokenPolicyTest {
     }
 
     @Test
-    public void initializationWithKeyMap() {
-        String jsonTokenPolicy = "{\"key-id-1\":{\"signingKey\":\"some-signing-key-1\",\"signingCert\":\"some-cert\",\"signingAlg\":\"RS256\"}}";
-        Map<String, ? extends Map<String, String>> tokenPolicyMap = JsonUtils.readValue(jsonTokenPolicy, HashMap.class);
-        TokenPolicy tokenPolicy = new TokenPolicy(300, 300, tokenPolicyMap);
+    public void tokenPolicy_not_changed_if_keys_null() {
+        final String sampleIdentityZone = getResourceAsString(getClass(), "SampleIdentityZone.json");
+        IdentityZone identityZone = JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
         assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
         assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningCert(), "some-cert");
         assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningAlg(), "RS256");
