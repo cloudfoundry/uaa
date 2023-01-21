@@ -30,7 +30,7 @@ class VerificationKeyResponseTest {
   @Test
   void testX509CertificateSet() {
     setupResponse("RSA", null, "certificate");
-    assertEquals("cert", verificationKeyResponse.getCertX5c()[0]);
+    assertEquals("certificate", verificationKeyResponse.getCertX5c()[0]);
   }
 
   @Test
