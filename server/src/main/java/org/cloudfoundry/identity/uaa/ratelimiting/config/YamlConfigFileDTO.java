@@ -13,6 +13,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 @Getter
 @Setter
@@ -49,7 +50,7 @@ public class YamlConfigFileDTO {
 
         @Override
         public String toString() {
-            return new Yaml().dump( this );
+            return new Yaml(new SafeConstructor()).dump( this );
         }
     }
 
@@ -59,6 +60,6 @@ public class YamlConfigFileDTO {
 
     @Override
     public String toString() {
-        return new Yaml().dump( this );
+        return new Yaml(new SafeConstructor()).dump( this );
     }
 }

@@ -21,6 +21,7 @@ import org.yaml.snakeyaml.Yaml;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 @Getter
 public class InitialConfig {
@@ -142,7 +143,7 @@ public class InitialConfig {
 
         @Override
         public String toString() {
-            return new Yaml().dump( this );
+            return new Yaml(new SafeConstructor()).dump( this );
         }
     }
 }
