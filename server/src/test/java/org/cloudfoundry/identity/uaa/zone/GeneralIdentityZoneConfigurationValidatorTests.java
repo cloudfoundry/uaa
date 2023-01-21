@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -362,16 +363,35 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     }
 
     @Test
-    public void validate_with_token_key_active() throws InvalidIdentityZoneConfigurationException {
+    public void validate_with_token_key_and_certificate() throws InvalidIdentityZoneConfigurationException {
+        setupTokenPolicyWithCertificate(legacyKey, legacyCertificate, "RS256");
+
+        IdentityZoneConfiguration identityZoneConfiguration = validator.validate(zone, mode);
+        Map<String, TokenPolicy.KeyInformation> keys = identityZoneConfiguration.getTokenPolicy().getKeys();
+        assertEquals(legacyKey, keys.get("id-1").getSigningKey());
+        assertEquals(legacyCertificate, keys.get("id-1").getSigningCert());
+        assertEquals("RS256", keys.get("id-1").getSigningAlg());
+    }
+
+    @Test
+    public void validate_with_token_key_without_certificate() throws InvalidIdentityZoneConfigurationException {
+        setupTokenPolicyWithCertificate("secretkey", null, "HS512");
+
+        IdentityZoneConfiguration identityZoneConfiguration = validator.validate(zone, mode);
+        Map<String, TokenPolicy.KeyInformation> keys = identityZoneConfiguration.getTokenPolicy().getKeys();
+        assertEquals("secretkey", keys.get("id-1").getSigningKey());
+        assertNull(keys.get("id-1").getSigningCert());
+        assertEquals("HS512", keys.get("id-1").getSigningAlg());
+    }
+
+    private void setupTokenPolicyWithCertificate(String privateKey, String certificate, String alg) {
         Map<String, TokenPolicy.KeyInformation> keyInformationMap = new HashMap<>();
         TokenPolicy.KeyInformation keyInformation = new TokenPolicy.KeyInformation();
-        keyInformation.setSigningKey(legacyKey);
-        keyInformation.setSigningCert(legacyCertificate);
-        keyInformation.setSigningAlg("RS256");
+        keyInformation.setSigningKey(privateKey);
+        keyInformation.setSigningCert(certificate);
+        keyInformation.setSigningAlg(alg);
         keyInformationMap.put("id-1", keyInformation);
         zone.getConfig().getTokenPolicy().setKeyInformation(keyInformationMap);
         zone.getConfig().getTokenPolicy().setActiveKeyId("id-1");
-
-        validator.validate(zone, mode);
     }
 }

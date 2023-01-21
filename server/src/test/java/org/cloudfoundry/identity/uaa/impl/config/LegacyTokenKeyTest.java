@@ -14,7 +14,7 @@ public class LegacyTokenKeyTest {
 
     @Test
     public void shouldBuildLegacyTokenKey_withSecureKeyUrl() {
-        LegacyTokenKey.setLegacySigningKey("secret", "http://uaa.url", null, null);
+        LegacyTokenKey.setLegacySigningKey("secret", "http://uaa.url");
 
         KeyInfo legacyTokenKeyInfo = LegacyTokenKey.getLegacyTokenKeyInfo();
 
@@ -23,7 +23,7 @@ public class LegacyTokenKeyTest {
 
     @Test
     public void shouldBuildLegacyTokenKey() {
-        LegacyTokenKey.setLegacySigningKey("secret", "https://another.uaa.url", null, null);
+        LegacyTokenKey.setLegacySigningKey("secret", "https://another.uaa.url");
 
         KeyInfo legacyTokenKeyInfo = LegacyTokenKey.getLegacyTokenKeyInfo();
 
@@ -35,7 +35,7 @@ public class LegacyTokenKeyTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid Key URL");
 
-        LegacyTokenKey.setLegacySigningKey("secret", "not a valid url", null, null);
+        LegacyTokenKey.setLegacySigningKey("secret", "not a valid url");
     }
 
 }

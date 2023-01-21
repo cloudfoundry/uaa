@@ -11,6 +11,10 @@ public final class LegacyTokenKey {
     private LegacyTokenKey() {
     }
 
+    public static void setLegacySigningKey(String legacySigningKey, String uaaUrl) {
+        setLegacySigningKey(legacySigningKey, uaaUrl, null, null);
+    }
+
     public static void setLegacySigningKey(String legacySigningKey, String uaaUrl, String sigAlg, String signingCert) {
         if (!StringUtils.hasText(legacySigningKey)) {
             return;
