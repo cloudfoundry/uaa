@@ -121,8 +121,8 @@ public class IdentityZoneConfigurationBootstrapTests {
         key1.put("key", SamlTestUtils.PROVIDER_PRIVATE_KEY);
         key1.put("passphrase", SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
         key1.put("certificate", SamlTestUtils.PROVIDER_CERTIFICATE);
-        keys.put("key1", key1);
-        bootstrap.setActiveKeyId("key1");
+        keys.put("Key1", key1);
+        bootstrap.setActiveKeyId("KEY1");
         bootstrap.setSamlKeys(keys);
         bootstrap.afterPropertiesSet();
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
@@ -137,6 +137,22 @@ public class IdentityZoneConfigurationBootstrapTests {
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, config.getKeys().get("key1").getKey());
         assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, config.getKeys().get("key1").getPassphrase());
         assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, config.getKeys().get("key1").getCertificate());
+    }
+
+    @Test
+    void test_keyId_null_exception() {
+        bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
+        bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
+        bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        Map<String, Map<String, String>> keys = new HashMap<>();
+        Map<String, String> key1 = new HashMap<>();
+        key1.put("key", SamlTestUtils.PROVIDER_PRIVATE_KEY);
+        key1.put("passphrase", SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        key1.put("certificate", SamlTestUtils.PROVIDER_CERTIFICATE);
+        keys.put(null, key1);
+        bootstrap.setActiveKeyId(null);
+        bootstrap.setSamlKeys(keys);
+        assertThrows(InvalidIdentityZoneDetailsException.class, () -> bootstrap.afterPropertiesSet());
     }
 
     @Test
