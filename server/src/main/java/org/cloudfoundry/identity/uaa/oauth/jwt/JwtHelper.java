@@ -9,6 +9,7 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 
 import java.nio.CharBuffer;
 import java.security.MessageDigest;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 
 import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
@@ -82,7 +83,7 @@ public class JwtHelper {
     public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
         try {
             return x509Certificate.getEncoded();
-        } catch (Exception e) {
+        } catch (RuntimeException | CertificateEncodingException e) {
             throw new IllegalArgumentException(e);
         }
     }
