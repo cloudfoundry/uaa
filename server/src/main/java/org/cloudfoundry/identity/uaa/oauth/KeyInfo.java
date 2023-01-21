@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.X509CertUtils;
@@ -311,9 +312,9 @@ class RsaKeyInfo extends KeyInfo {
             X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate);
             if (x509Certificate != null) {
                 byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
-                result.put("x5c", Collections.singletonList(Base64.encode(encoded).toString()));
-                result.put("x5t", JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
-                result.put("x5t#S256", JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
+                result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_256_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
             }
         }
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();

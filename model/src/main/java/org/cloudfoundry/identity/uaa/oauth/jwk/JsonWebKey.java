@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.nimbusds.jose.HeaderParameterNames;
 import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
@@ -71,8 +72,8 @@ public class JsonWebKey {
     public static String KTY = "kty";
     public static String ALG = "alg";
 
-    public static final String X5C = "x5c";
-    public static final String X5T = "x5t";
+    public static final String X5C = HeaderParameterNames.X_509_CERT_CHAIN;
+    public static final String X5T = HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT;
 
     private final Map<String, Object> json;
 
