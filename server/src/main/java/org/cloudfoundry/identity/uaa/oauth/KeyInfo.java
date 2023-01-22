@@ -39,7 +39,6 @@ import static org.springframework.security.jwt.codec.Codecs.b64Decode;
 import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 public abstract class KeyInfo {
-    public static final String PUBLIC_KEY_VALUE = "value";
     public abstract void verify();
 
     public abstract SignatureVerifier getVerifier();
@@ -131,7 +130,7 @@ class HmacKeyInfo extends KeyInfo {
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
         result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
-        result.put(PUBLIC_KEY_VALUE, this.verifierKey);
+        result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
         //new values per OpenID and JWK spec
         result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
         result.put(HeaderParameterNames.KEY_ID, this.keyId);
@@ -174,7 +173,7 @@ class RsaKeyInfo extends KeyInfo {
         KeyPair keyPair = parseKeyPair(signingKey);
         RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
         String algorithm = getJavaAlgorithm(sigAlg);
-        String pemEncodePublicKey = pemEncodePublicKey(rsaPublicKey);
+        String pemEncodePublicKey = JsonWebKey.pemEncodePublicKey(rsaPublicKey);
 
         this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
         this.verifier = new RsaVerifier(rsaPublicKey, algorithm);
@@ -236,15 +235,6 @@ class RsaKeyInfo extends KeyInfo {
         }
     }
 
-    private String pemEncodePublicKey(PublicKey publicKey) {
-        String begin = "-----BEGIN PUBLIC KEY-----\n";
-        String end = "\n-----END PUBLIC KEY-----";
-        byte[] data = publicKey.getEncoded();
-        String base64encoded = new String(base64encoder.encode(data));
-
-        return begin + base64encoded + end;
-    }
-
     @Override
     public void verify() {
     }
@@ -283,7 +273,7 @@ class RsaKeyInfo extends KeyInfo {
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
         result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
-        result.put(PUBLIC_KEY_VALUE, this.verifierKey);
+        result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
         //new values per OpenID and JWK spec
         result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
         result.put(HeaderParameterNames.KEY_ID, this.keyId);

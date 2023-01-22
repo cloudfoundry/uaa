@@ -47,6 +47,8 @@ import static org.springframework.util.StringUtils.hasText;
 @JsonSerialize(using = JsonWebKeySerializer.class)
 public class JsonWebKey {
 
+    // value is not defined in RFC 7517
+    public static final String PUBLIC_KEY_VALUE = "value";
 
     public enum KeyUse {
         sig,
@@ -76,10 +78,10 @@ public class JsonWebKey {
     private final Map<String, Object> json;
 
     public JsonWebKey(Map<String, Object> json) {
-        if (json.get("kty") == null) {
+        if (json.get(JWKParameterNames.KEY_TYPE) == null) {
             throw new IllegalArgumentException("kty field is required");
         }
-        KeyType.valueOf((String) json.get("kty"));
+        KeyType.valueOf((String) json.get(JWKParameterNames.KEY_TYPE));
         this.json = new HashMap(json);
     }
 
@@ -101,7 +103,7 @@ public class JsonWebKey {
     }
 
     public final KeyUse getUse() {
-        String use = (String) getKeyProperties().get("use");
+        String use = (String) getKeyProperties().get(JWKParameterNames.PUBLIC_KEY_USE);
         KeyUse result = null;
         if (hasText(use)) {
             result = KeyUse.valueOf(use);
@@ -132,21 +134,21 @@ public class JsonWebKey {
     }
 
     public String getValue() {
-        String result = (String) getKeyProperties().get("value");
+        String result = (String) getKeyProperties().get(PUBLIC_KEY_VALUE);
         if (result == null) {
             if (RSA.equals(getKty())) {
                 result = pemEncodePublicKey(getRsaPublicKey(this));
-                this.json.put("value", result);
+                this.json.put(PUBLIC_KEY_VALUE, result);
             } else if (MAC.equals(getKty())) {
-                result = (String) getKeyProperties().get("k");
-                this.json.put("value", result);
+                result = (String) getKeyProperties().get(JWKParameterNames.OCT_KEY_VALUE);
+                this.json.put(PUBLIC_KEY_VALUE, result);
             }
         }
         return result;
     }
 
     public Set<KeyOperation> getKeyOps() {
-        List<String> result = (List<String>) getKeyProperties().get("key_ops");
+        List<String> result = (List<String>) getKeyProperties().get(JWKParameterNames.KEY_OPS);
         if (result==null) {
             result = Collections.emptyList();
         }
@@ -163,12 +165,12 @@ public class JsonWebKey {
 
     public static PublicKey getRsaPublicKey(JsonWebKey key) {
         final Base64 decoder = new Base64(true);
-        String e = (String) key.getKeyProperties().get("e");
-        String n = (String) key.getKeyProperties().get("n");
+        String e = (String) key.getKeyProperties().get(JWKParameterNames.RSA_EXPONENT);
+        String n = (String) key.getKeyProperties().get(JWKParameterNames.RSA_MODULUS);
         BigInteger modulus = new BigInteger(1, decoder.decode(n.getBytes(StandardCharsets.UTF_8)));
         BigInteger exponent = new BigInteger(1, decoder.decode(e.getBytes(StandardCharsets.UTF_8)));
         try {
-            return KeyFactory.getInstance("RSA").generatePublic(
+            return KeyFactory.getInstance(RSA.name()).generatePublic(
                 new RSAPublicKeySpec(modulus, exponent)
             );
         } catch (InvalidKeySpecException | NoSuchAlgorithmException e1) {

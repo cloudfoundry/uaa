@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.util.Arrays;
@@ -30,7 +31,7 @@ public class JsonWebKeyDeserializer extends JsonDeserializer<JsonWebKey> {
     @Override
     public JsonWebKey deserialize(JsonParser p, DeserializationContext ctxt) {
         JsonNode node = JsonUtils.readTree(p);
-        String kty = node.get("kty").asText("Unknown");
+        String kty = node.get(JWKParameterNames.KEY_TYPE).asText("Unknown");
         if(Arrays.stream(JsonWebKey.KeyType.values()).noneMatch(knownKeyType -> knownKeyType.name().equals(kty))) {
             return null;
         }
