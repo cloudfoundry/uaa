@@ -17,6 +17,8 @@ package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.nimbusds.jose.HeaderParameterNames;
+import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
@@ -67,9 +69,9 @@ public class JsonWebKey {
         deriveBits
     }
 
-    public static String KID = "kid";
-    public static String KTY = "kty";
-    public static String ALG = "alg";
+    public static String KID = HeaderParameterNames.KEY_ID;
+    public static String KTY = JWKParameterNames.KEY_TYPE;
+    public static String ALG = HeaderParameterNames.ALGORITHM;
 
     private final Map<String, Object> json;
 

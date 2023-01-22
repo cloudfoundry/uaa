@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import com.nimbusds.jose.util.Base64URL;
 import org.bouncycastle.asn1.ASN1Sequence;
@@ -129,11 +130,11 @@ class HmacKeyInfo extends KeyInfo {
     @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
-        result.put(JWKParameterNames.ALGORITHM, this.algorithm());
+        result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
         result.put(PUBLIC_KEY_VALUE, this.verifierKey);
         //new values per OpenID and JWK spec
         result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
-        result.put(JWKParameterNames.KEY_ID, this.keyId);
+        result.put(HeaderParameterNames.KEY_ID, this.keyId);
         result.put(JWKParameterNames.KEY_TYPE, MAC.name());
         return result;
     }
@@ -281,11 +282,11 @@ class RsaKeyInfo extends KeyInfo {
     @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
-        result.put(JWKParameterNames.ALGORITHM, this.algorithm());
+        result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
         result.put(PUBLIC_KEY_VALUE, this.verifierKey);
         //new values per OpenID and JWK spec
         result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
-        result.put(JWKParameterNames.KEY_ID, this.keyId);
+        result.put(HeaderParameterNames.KEY_ID, this.keyId);
         result.put(JWKParameterNames.KEY_TYPE, RSA.name());
 
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
