@@ -16,13 +16,11 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
-import java.io.IOException;
 import java.util.Arrays;
 
 /**
