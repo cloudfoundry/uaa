@@ -23,6 +23,7 @@ import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -71,9 +72,9 @@ public class JsonWebKey {
         deriveBits
     }
 
-    public static String KID = HeaderParameterNames.KEY_ID;
-    public static String KTY = JWKParameterNames.KEY_TYPE;
-    public static String ALG = HeaderParameterNames.ALGORITHM;
+    public static final String KID = HeaderParameterNames.KEY_ID;
+    public static final String KTY = JWKParameterNames.KEY_TYPE;
+    public static final String ALG = HeaderParameterNames.ALGORITHM;
 
     private final Map<String, Object> json;
 
@@ -116,7 +117,7 @@ public class JsonWebKey {
         if (this == o) return true;
         if (!(o instanceof JsonWebKey)) return false;
         JsonWebKey that = (JsonWebKey) o;
-        return getKid() != null ? getKid().equals(that.getKid()) : that.getKid() == null && getKeyProperties().equals(that.getKeyProperties());
+        return getKid() != null ? (getKid().equals(that.getKid())) : (that.getKid() == null && getKeyProperties().equals(that.getKeyProperties()));
     }
 
     @Override
@@ -152,10 +153,10 @@ public class JsonWebKey {
         if (result==null) {
             result = Collections.emptyList();
         }
-        return result.stream().map(o -> KeyOperation.valueOf(o)).collect(Collectors.toSet());
+        return result.stream().map(KeyOperation::valueOf).collect(Collectors.toSet());
     }
 
-    public static String pemEncodePublicKey(PublicKey publicKey) {
+    public static String pemEncodePublicKey(Key publicKey) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();

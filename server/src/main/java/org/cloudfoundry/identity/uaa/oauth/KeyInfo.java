@@ -156,7 +156,6 @@ class HmacKeyInfo extends KeyInfo {
 class RsaKeyInfo extends KeyInfo {
     private static final String DEFAULT_RSA_ALGORITHM = "SHA256withRSA";
     private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
-    private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes());
     private final String keyId;
     private final String keyUrl;
 
@@ -181,7 +180,7 @@ class RsaKeyInfo extends KeyInfo {
         this.verifierKey = pemEncodePublicKey;
     }
 
-    private KeyPair parseKeyPair(String pemData) {
+    private static KeyPair parseKeyPair(String pemData) {
         Matcher m = PEM_DATA.matcher(pemData.trim());
 
         if (!m.matches()) {
@@ -196,7 +195,7 @@ class RsaKeyInfo extends KeyInfo {
 
         try {
             KeyFactory fact = KeyFactory.getInstance("RSA");
-            if (type.equals("RSA PRIVATE KEY")) {
+            if ("RSA PRIVATE KEY".equals(type)) {
                 ASN1Sequence seq = ASN1Sequence.getInstance(content);
                 if (seq.size() != 9) {
                     throw new IllegalArgumentException("Invalid RSA Private Key ASN1 sequence.");
@@ -215,10 +214,10 @@ class RsaKeyInfo extends KeyInfo {
                 );
                 publicKey = fact.generatePublic(pubSpec);
                 privateKey = fact.generatePrivate(privSpec);
-            } else if (type.equals("PUBLIC KEY")) {
+            } else if ("PUBLIC KEY".equals(type)) {
                 KeySpec keySpec = new X509EncodedKeySpec(content);
                 publicKey = fact.generatePublic(keySpec);
-            } else if (type.equals("RSA PUBLIC KEY")) {
+            } else if ("RSA PUBLIC KEY".equals(type)) {
                 ASN1Sequence seq = ASN1Sequence.getInstance(content);
                 org.bouncycastle.asn1.pkcs.RSAPublicKey key = org.bouncycastle.asn1.pkcs.RSAPublicKey.getInstance(seq);
                 RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
