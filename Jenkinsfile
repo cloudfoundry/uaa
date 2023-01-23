@@ -217,7 +217,7 @@ pipeline {
                         docker {
                             image "${NODE['IMAGE']}"
                             label "${NODE['LABEL']}"
-                            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "zone-with-cors-policy.localhost testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost testzoneinactive.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost localhost":127.0.0.1'
+                            args '-v /var/lib/docker/.gradle:/root/.gradle --add-host "zone-with-cors-policy.localhost testzone1.localhost testzone2.localhost int-test-zone-uaa.localhost testzone3.localhost testzone4.localhost testzonedoesnotexist.localhost testzoneinactive.localhost oidcloginit.localhost test-zone1.localhost test-zone2.localhost test-victim-zone.localhost test-platform-zone.localhost test-saml-zone.localhost test-app-zone.localhost app-zone.localhost platform-zone.localhost testsomeother2.ip.com testsomeother.ip.com uaa-acceptance-zone.localhost orchestrator-int-test-zone.localhost localhost":127.0.0.1'
                         }
                     }
                     steps {

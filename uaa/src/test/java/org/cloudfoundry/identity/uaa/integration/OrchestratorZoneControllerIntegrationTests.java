@@ -103,6 +103,8 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     private static final String NATIVE_ZONES_APIS_ENDPOINT = "/identity-zones";
 
+    private static final String ORCHESTRATOR_INT_TEST_ZONE = "orchestrator-int-test-zone";
+
     @Before
     public void createRestTemplate() {
         client = (OAuth2RestTemplate) serverRunning.getRestTemplate();
@@ -268,7 +270,7 @@ public class OrchestratorZoneControllerIntegrationTests {
     public void testCreateZone_WithZoneConfigValidation() throws Throwable {
 
         // Create zone using orchestrator zone api
-        String zoneName = getName();
+        String zoneName = ORCHESTRATOR_INT_TEST_ZONE;
         ResponseEntity<Void> postResponse = createZone(zoneName);
         assertEquals(HttpStatus.ACCEPTED, postResponse.getStatusCode());
         assertNull(postResponse.getBody());
