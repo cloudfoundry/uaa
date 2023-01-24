@@ -576,7 +576,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 LAST_MODIFIED,
         }));
 
-        ResultActions resultActions = mockMvc.perform(post("/identity-providers")
+        ResultActions resultActions = mockMvc.perform(post("/identity-providersd")
                 .param("rawConfig", "true")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON)
