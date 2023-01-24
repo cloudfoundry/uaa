@@ -39,7 +39,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -217,10 +217,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid refresh token (empty token)");
         }
 
-        TokenValidation tokenValidation = tokenValidationService
+        JwtTokenSignedByThisUAA jwtToken = tokenValidationService
                 .validateToken(refreshTokenValue, false)
                 .checkJti();
-        Map<String, Object> refreshTokenClaims = tokenValidation.getClaims();
+        Map<String, Object> refreshTokenClaims = jwtToken.getClaims();
 
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
@@ -280,7 +280,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String accessTokenId = generateUniqueTokenId();
-        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(tokenValidation, claims);
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
@@ -303,7 +303,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String tokenIdToBeDeleted = null;
         if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens()) {
-            tokenIdToBeDeleted = (String) tokenValidation.getClaims().get(JTI);
+            tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
@@ -777,13 +777,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters");
         }
 
-        TokenValidation tokenValidation =
+        JwtTokenSignedByThisUAA jwtToken =
           tokenValidationService.validateToken(accessToken, true)
           .checkJti();
 
-        Map<String, Object> claims = tokenValidation.getClaims();
+        Map<String, Object> claims = jwtToken.getClaims();
 
-        accessToken = tokenValidation.getJwt().getEncoded();
+        accessToken = jwtToken.getJwt().getEncoded();
 
         // Check token expiry
         Long expiration = Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString());
@@ -849,11 +849,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
-        TokenValidation tokenValidation =
+        JwtTokenSignedByThisUAA jwtToken =
                 tokenValidationService.validateToken(accessToken, true).checkJti();
 
-        Map<String, Object> claims = tokenValidation.getClaims();
-        accessToken = tokenValidation.getJwt().getEncoded();
+        Map<String, Object> claims = jwtToken.getClaims();
+        accessToken = jwtToken.getJwt().getEncoded();
 
         // Expiry is verified by check_token
         CompositeToken token = new CompositeToken(accessToken);

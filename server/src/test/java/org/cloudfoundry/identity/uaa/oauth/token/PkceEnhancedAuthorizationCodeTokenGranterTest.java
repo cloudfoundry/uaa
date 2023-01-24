@@ -20,7 +20,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.util.TokenValidationTest.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAATest.CLIENT_ID;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;

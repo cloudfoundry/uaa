@@ -12,9 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.validation.constraints.NotNull;
+
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
+
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
@@ -25,55 +45,47 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.util.Assert;
-
-import javax.validation.constraints.NotNull;
-import java.time.Instant;
-import java.util.*;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isUserToken;
 
-public abstract class TokenValidation {
-    private static final Logger logger = LoggerFactory.getLogger(TokenValidation.class);
+public abstract class JwtTokenSignedByThisUAA {
+    private static final Logger logger = LoggerFactory.getLogger(JwtTokenSignedByThisUAA.class);
     private final Map<String, Object> claims;
     private final Jwt tokenJwt;
     private final String token;
 
     private final KeyInfoService keyInfoService;
 
-    public static TokenValidation buildAccessTokenValidator(String tokenJwtValue, KeyInfoService keyInfoService) {
+    public static JwtTokenSignedByThisUAA buildAccessTokenValidator(String tokenJwtValue, KeyInfoService keyInfoService) {
         AccessTokenValidation validator = new AccessTokenValidation(tokenJwtValue, keyInfoService);
         validator.checkSignature();
         return validator;
     }
 
-    public static TokenValidation buildRefreshTokenValidator(String tokenJwtValue, KeyInfoService keyInfoService) {
+    public static JwtTokenSignedByThisUAA buildRefreshTokenValidator(String tokenJwtValue, KeyInfoService keyInfoService) {
         RefreshTokenValidation refreshTokenValidation = new RefreshTokenValidation(tokenJwtValue, keyInfoService);
         refreshTokenValidation.checkSignature();
         return refreshTokenValidation;
     }
 
-    public static TokenValidation buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, KeyInfoService keyInfoService) {
+    public static JwtTokenSignedByThisUAA buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, KeyInfoService keyInfoService) {
         IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, keyInfoService);
         idTokenValidation.checkSignature(verifier);
         return idTokenValidation;
@@ -86,7 +98,7 @@ public abstract class TokenValidation {
         return readScopesFromClaim(scopeClaimKey());
     }
 
-    private TokenValidation(String token, KeyInfoService keyInfoService) {
+    private JwtTokenSignedByThisUAA(String token, KeyInfoService keyInfoService) {
         this.token = token;
 
         this.claims = UaaTokenUtils.getClaims(token);
@@ -110,11 +122,11 @@ public abstract class TokenValidation {
         return signingKey.getVerifier();
     }
 
-    public TokenValidation checkSignature() {
+    public JwtTokenSignedByThisUAA checkSignature() {
         return checkSignature(fetchSignatureVerifierFromToken(this.tokenJwt));
     }
 
-    public TokenValidation checkSignature(SignatureVerifier verifier) {
+    public JwtTokenSignedByThisUAA checkSignature(SignatureVerifier verifier) {
         try {
             this.tokenJwt.verifySignature(verifier);
         } catch (RuntimeException ex) {
@@ -124,7 +136,7 @@ public abstract class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkIssuer(String issuer) {
+    public JwtTokenSignedByThisUAA checkIssuer(String issuer) {
         if (issuer == null) {
             return this;
         }
@@ -139,7 +151,7 @@ public abstract class TokenValidation {
         return this;
     }
 
-    protected TokenValidation checkExpiry(Instant asOf) {
+    protected JwtTokenSignedByThisUAA checkExpiry(Instant asOf) {
         if (!claims.containsKey(EXPIRY_IN_SECONDS)) {
             throw new InvalidTokenException("Token does not bear an EXP claim.", null);
         }
@@ -157,11 +169,11 @@ public abstract class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkExpiry() {
+    public JwtTokenSignedByThisUAA checkExpiry() {
         return checkExpiry(Instant.now());
     }
 
-    protected TokenValidation checkUser(Function<String, UaaUser> getUser) {
+    protected JwtTokenSignedByThisUAA checkUser(Function<String, UaaUser> getUser) {
         if (!isUserToken(claims)) {
             throw new InvalidTokenException("Token is not a user token.", null);
         }
@@ -181,38 +193,41 @@ public abstract class TokenValidation {
         if (userId == null) {
             throw new InvalidTokenException("Token has a null USER_ID claim.", null);
         } else {
-            UaaUser user;
-            try {
-                user = getUser.apply(userId);
-                Assert.notNull(user, "[Assertion failed] - this argument is required; it must not be null");
-            } catch (UsernameNotFoundException ex) {
-                throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
-            }
-
-            if (user == null) {
-                // Unlikely to occur, but since this is dependent on the implementation of an interface...
-                throw new InvalidTokenException("Found no data for user ID: " + userId, null);
-            } else {
-                List<? extends GrantedAuthority> authorities = user.getAuthorities();
-                if (authorities == null) {
-                    throw new InvalidTokenException("Invalid token (all scopes have been revoked)", null);
-                } else {
-                    List<String> grantedScopes =
-                            authorities.stream()
-                                    .map(GrantedAuthority::getAuthority).collect(toList());
-
-                    checkRequestedScopesAreGranted(grantedScopes);
-                }
-            }
+            checkScope(getUser, userId);
         }
         return this;
     }
 
-    protected TokenValidation checkRequestedScopesAreGranted(String... grantedScopes) {
+    void checkScope(Function<String, UaaUser> getUser, String userId) {
+        UaaUser user;
+        try {
+            user = getUser.apply(userId);
+        } catch (UsernameNotFoundException ex) {
+            throw new InvalidTokenException("Token bears a non-existent user ID: " + userId, ex);
+        }
+
+        if (user == null) {
+            // Unlikely to occur, but since this is dependent on the implementation of an interface...
+            throw new InvalidTokenException("Found no data for user ID: " + userId, null);
+        } else {
+            List<? extends GrantedAuthority> authorities = user.getAuthorities();
+            if (authorities == null) {
+                throw new InvalidTokenException("Invalid token (all scopes have been revoked)", null);
+            } else {
+                List<String> grantedScopes =
+                        authorities.stream()
+                                .map(GrantedAuthority::getAuthority).collect(toList());
+
+                checkRequestedScopesAreGranted(grantedScopes);
+            }
+        }
+    }
+
+    protected JwtTokenSignedByThisUAA checkRequestedScopesAreGranted(String... grantedScopes) {
         return checkRequestedScopesAreGranted(Arrays.asList(grantedScopes));
     }
 
-    protected TokenValidation checkRequestedScopesAreGranted(Collection<String> grantedScopes) {
+    protected JwtTokenSignedByThisUAA checkRequestedScopesAreGranted(Collection<String> grantedScopes) {
         List<String> requestedScopes = requestedScopes();
         Set<Pattern> grantedScopePatterns = UaaStringUtils.constructWildcards(grantedScopes);
         List<String> missingScopes =
@@ -232,8 +247,8 @@ public abstract class TokenValidation {
     }
 
 
-    public TokenValidation checkClientAndUser(ClientDetails client, UaaUser user) {
-        TokenValidation validation =
+    public JwtTokenSignedByThisUAA checkClientAndUser(ClientDetails client, UaaUser user) {
+        JwtTokenSignedByThisUAA jwtToken =
                 checkClient(
                         cid -> {
                             if (!equals(cid, client.getClientId())) {
@@ -242,7 +257,7 @@ public abstract class TokenValidation {
                             return client;
                         });
         if (isUserToken(claims)) {
-            return validation
+            return jwtToken
                     .checkUser(uid -> {
                         if (user == null) {
                             throw new InvalidTokenException("Unable to validate user, no user found.");
@@ -259,18 +274,18 @@ public abstract class TokenValidation {
                     );
 
         } else {
-            return validation;
+            return jwtToken;
         }
     }
 
-    protected TokenValidation checkRequiredUserGroups(Collection<String> requiredGroups, Collection<String> userGroups) {
+    protected JwtTokenSignedByThisUAA checkRequiredUserGroups(Collection<String> requiredGroups, Collection<String> userGroups) {
         if (!UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups)) {
             throw new InvalidTokenException("User does not meet the client's required group criteria.", null);
         }
         return this;
     }
 
-    protected TokenValidation checkClient(Function<String, ClientDetails> getClient) {
+    protected JwtTokenSignedByThisUAA checkClient(Function<String, ClientDetails> getClient) {
         if (!claims.containsKey(CID)) {
             throw new InvalidTokenException("Token bears no client ID.", null);
         }
@@ -309,7 +324,7 @@ public abstract class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkRevocationSignature(List<String> revocableSignatureList) {
+    public JwtTokenSignedByThisUAA checkRevocationSignature(List<String> revocableSignatureList) {
         if (!claims.containsKey(REVOCATION_SIGNATURE)) {
             // tokens issued before revocation signatures were implemented are still valid
             return this;
@@ -335,11 +350,11 @@ public abstract class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkAudience(String... clients) {
+    public JwtTokenSignedByThisUAA checkAudience(String... clients) {
         return checkAudience(Arrays.asList(clients));
     }
 
-    protected TokenValidation checkAudience(Collection<String> clients) {
+    protected JwtTokenSignedByThisUAA checkAudience(Collection<String> clients) {
         if (!claims.containsKey(AUD)) {
             throw new InvalidTokenException("The token does not bear an AUD claim.", null);
         }
@@ -369,29 +384,32 @@ public abstract class TokenValidation {
         return this;
     }
 
-    public TokenValidation checkRevocableTokenStore(RevocableTokenProvisioning revocableTokenProvisioning) {
+    public JwtTokenSignedByThisUAA checkRevocableTokenStore(RevocableTokenProvisioning revocableTokenProvisioning) {
         try {
             String tokenId;
             if (claims.containsKey(ClaimConstants.REVOCABLE) && (boolean) claims.get(ClaimConstants.REVOCABLE)) {
                 if ((tokenId = (String) claims.get(ClaimConstants.JTI)) == null) {
                     throw new InvalidTokenException("The token does not bear a token ID (JTI).", null);
                 }
-
-                RevocableToken revocableToken = null;
-                try {
-                    revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
-                } catch (EmptyResultDataAccessException ignored) {
-                }
-
-                if (revocableToken == null) {
-                    throw new TokenRevokedException("The token has been revoked: " + tokenId);
-                }
+                checkRevocableToken(revocableTokenProvisioning, tokenId);
             }
         } catch (ClassCastException ex) {
             throw new InvalidTokenException("The token's revocability or JTI claim is invalid or unparseable.", ex);
         }
 
         return this;
+    }
+
+    private static void checkRevocableToken(RevocableTokenProvisioning revocableTokenProvisioning, String tokenId) {
+        RevocableToken revocableToken = null;
+        try {
+            revocableToken = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId());
+        } catch (EmptyResultDataAccessException ignored) {
+            // ignore exception until null check below
+        }
+        if (revocableToken == null) {
+            throw new TokenRevokedException("The token has been revoked: " + tokenId);
+        }
     }
 
     private static boolean equals(Object a, Object b) {
@@ -441,7 +459,7 @@ public abstract class TokenValidation {
         return claims;
     }
 
-    public TokenValidation checkJti() {
+    public JwtTokenSignedByThisUAA checkJti() {
         Object jti = this.getClaims().get(JTI);
         if (jti == null) {
             throw new InvalidTokenException("The token must contain a jti claim.", null);
@@ -476,7 +494,7 @@ public abstract class TokenValidation {
         return null;
     }
 
-    private static class AccessTokenValidation extends TokenValidation {
+    private static class AccessTokenValidation extends JwtTokenSignedByThisUAA {
         public AccessTokenValidation(String tokenJwtValue, KeyInfoService keyInfoService) {
             super(tokenJwtValue, keyInfoService);
         }
@@ -494,7 +512,7 @@ public abstract class TokenValidation {
         }
     }
 
-    private static class RefreshTokenValidation extends TokenValidation {
+    private static class RefreshTokenValidation extends JwtTokenSignedByThisUAA {
         public RefreshTokenValidation(String tokenJwtValue, KeyInfoService uaaUrl) {
             super(tokenJwtValue, uaaUrl);
         }
@@ -515,7 +533,7 @@ public abstract class TokenValidation {
         }
     }
 
-    private static class IdTokenValidation extends TokenValidation {
+    private static class IdTokenValidation extends JwtTokenSignedByThisUAA {
         public IdTokenValidation(String tokenJwtValue, KeyInfoService keyInfoService) {
             super(tokenJwtValue, keyInfoService);
         }
