@@ -10,24 +10,25 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
+import static java.util.Collections.unmodifiableSet;
 
 public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
 
-    private ContentSecurityPolicyConfiguration configuration = new ContentSecurityPolicyConfiguration();
-    private String cspHeader = null;
+    private final Set<String> allowedScriptSrc;
+    private final String cspHeader;
+
+    public ContentSecurityPolicyFilter(List<String> allowedScriptSrc) {
+        this.allowedScriptSrc = unmodifiableSet(new HashSet<String>(allowedScriptSrc));
+        this.cspHeader = cspHeaderValue();
+    }
 
     @Override
     public void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        // If cspHeader were set when the class was instantiated, it would use
-        // the values in `configuration` before they're possibly overwritten
-        // by spring-servlet.xml, which itself reads values from uaa.yml. To
-        // avoid this, we set it lazily here instead.
-        if (this.cspHeader == null) {
-            cspHeader = cspHeaderValue();
-        }
         response.setHeader("Content-Security-Policy", cspHeader);
         chain.doFilter(request, response);
     }
@@ -47,11 +48,7 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
     private String cspHeaderValue() {
         StringBuilder b = new StringBuilder();
         b.append("script-src ");
-        b.append(String.join(" ", configuration.getAllowedScriptSrc()));
+        b.append(String.join(" ", this.allowedScriptSrc));
         return b.toString();
-    }
-
-    public void setCspAllowedScriptSrc(List<String> cspAllowedScriptSrc) {
-        this.configuration.setAllowedScriptSrc(new HashSet<String>(cspAllowedScriptSrc));
     }
 }
