@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
@@ -19,6 +20,8 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.springframework.security.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
@@ -56,6 +59,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
@@ -220,6 +224,35 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
+    public String getUpdatedTokenString(String clientId, String userId) throws Exception {
+        RevocableToken oldRevocableToken = tokenProvisioning.retrieveRefreshTokensForClientAndUserId(clientId, userId);
+        String oldRevocableTokenString = oldRevocableToken.getValue();
+        Jwt jwt = JwtHelper.decode(oldRevocableTokenString);
+        Map<String, String> headers = org.springframework.security.jwt.JwtHelper.headers(oldRevocableTokenString);
+        headers.put("jku", keyInfoService.getActiveKey().keyURL()); // jku came out incomplete after parsing for some reason?
+
+        ClientDetails clientfromDB = clientDetailsService.loadClientByClientId(clientId);
+        String clientTokenSalt = (String) clientfromDB.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
+        UaaUser uaaUserfromDB = userDatabase.retrieveUserById(userId);
+
+        String newClientSecretFromDB;
+        String[] clientSecretsFromDB = clientfromDB.getClientSecret().split(" ");
+        if (clientSecretsFromDB.length == 2) {
+            newClientSecretFromDB = clientSecretsFromDB[1];
+        } else {
+            throw new Exception("There is only one client secret for the provided client id, no need to update rev_sig");
+        }
+
+        String newRevocableSignature = UaaTokenUtils.getRevocableTokenSignature(uaaUserfromDB, clientTokenSalt, clientId, newClientSecretFromDB);
+
+        Map jwtClaims = (Map)(new org.apache.tomcat.util.json.JSONParser(jwt.getClaims()).parse());
+        jwtClaims.put("rev_sig", newRevocableSignature);
+
+        Signer signer = keyInfoService.getActiveKey().getSigner();
+        Jwt newSignedToken = org.springframework.security.jwt.JwtHelper.encode(new ObjectMapper().writeValueAsString(jwtClaims), signer, headers);
+        return newSignedToken.getEncoded();
+    }
+
     @Override
     public OAuth2AccessToken refreshAccessToken(String refreshTokenValue, TokenRequest request) throws AuthenticationException {
         if (null == refreshTokenValue) {
@@ -344,12 +377,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private void throwIfInvalidRevocationHashSignature(String revocableHashSignature, UaaUser user, ClientDetails client) {
         if (hasText(revocableHashSignature)) {
-            String clientSecretForHash = client.getClientSecret();
-            if(clientSecretForHash != null && clientSecretForHash.split(" ").length > 1){
-                clientSecretForHash = clientSecretForHash.split(" ")[1];
+
+            List<String> clientSecrets = new ArrayList<>();
+            List<String> revocationSignatureList = new ArrayList<>();
+            if (client.getClientSecret() != null) {
+                clientSecrets.addAll(Arrays.asList(client.getClientSecret().split(" ")));
+            } else {
+                revocationSignatureList.add(UaaTokenUtils.getRevocableTokenSignature(client, null, user));
             }
-            String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, clientSecretForHash, user);
-            if (!revocableHashSignature.equals(newRevocableHashSignature)) {
+
+            for (String clientSecret : clientSecrets) {
+                revocationSignatureList.add(UaaTokenUtils.getRevocableTokenSignature(client, clientSecret, user));
+            }
+
+            boolean hashMatched = false;
+            for (String revocableSignature : revocationSignatureList) {
+                if (revocableHashSignature.equals(revocableSignature)) {
+                    hashMatched = true;
+                    break;
+                }
+            }
+            if (!hashMatched) {
                 throw new TokenRevokedException("Invalid refresh token: revocable signature mismatch");
             }
         }

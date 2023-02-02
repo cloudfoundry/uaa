@@ -29,10 +29,12 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     private static final String SELECT = "SELECT ";
     private static final String FROM = " FROM ";
     private final static String GET_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
+    private final static String RETRIEVE_REFRESH_TOKEN_BY_CLIENTID_AND_USERID_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE format=?" + " AND response_type=?" + " AND client_id=? AND user_id=? LIMIT 1";
     private final static String GET_COUNT_QUERY = "SELECT COUNT(*) FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
     private final static String GET_BY_USER_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE user_id=? AND identity_zone_id=?";
     private final static String GET_BY_CLIENT_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE client_id=? AND identity_zone_id=?";
     private final static String UPDATE_QUERY = "UPDATE " + TABLE + " SET " + UPDATE_FIELDS + " WHERE token_id=? and identity_zone_id=?";
+    private final static String UPDATE_REFRESH_TOKEN_TO_ASSOCIATE_WITH_NEW_CLIENT_SECERT_QUERY = "UPDATE " + TABLE + " SET " + "data = ?" + " WHERE client_id=? and user_id=?";
     private final static String INSERT_QUERY = "INSERT INTO " + TABLE + " (" + FIELDS + ") VALUES (?,?,?,?,?,?,?,?,?,?)";
     private final static String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
     private final static String DELETE_REFRESH_TOKEN_QUERY = "DELETE FROM " + TABLE + " WHERE user_id=? AND client_id=? AND response_type='" + REFRESH_TOKEN_RESPONSE_TYPE + "' AND identity_zone_id=?";
@@ -94,6 +96,16 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return template.update(DELETE_REFRESH_TOKEN_QUERY, userId, clientId, zoneId);
     }
 
+    @Override
+    public RevocableToken retrieveRefreshTokensForClientAndUserId(String clientId, String userId) {
+        RevocableToken result = template.queryForObject(RETRIEVE_REFRESH_TOKEN_BY_CLIENTID_AND_USERID_QUERY, rowMapper, "opaque", REFRESH_TOKEN_RESPONSE_TYPE, clientId, userId);
+
+        if (result == null) {
+            throw new EmptyResultDataAccessException("No refresh JWT matches the client id and user id", 1);
+        }
+        return result;
+    }
+
     public void createIfNotExists(RevocableToken t, String zoneId) {
         if (exists(t.getTokenId(), true, zoneId)) {
             return;
@@ -109,6 +121,11 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
                 t.getScope(),
                 t.getValue(),
                 zoneId);
+    }
+
+    @Override
+    public void updateRefreshTokenToAssociateWithNewClientSecret(String updatedTokenString, String clientId, String userId) {
+        template.update(UPDATE_REFRESH_TOKEN_TO_ASSOCIATE_WITH_NEW_CLIENT_SECERT_QUERY, updatedTokenString, clientId, userId);
     }
 
     @Override

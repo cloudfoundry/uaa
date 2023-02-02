@@ -202,8 +202,8 @@ oauth:
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.
-#jwt:
-#  token:
+jwt:
+  token:
 #    signing-key: |
 #      -----BEGIN RSA PRIVATE KEY-----
 #      MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV
@@ -231,10 +231,10 @@ oauth:
 #        accessTokenValiditySeconds: 3600
 #        refreshTokenValiditySeconds: 3600
 #    # This is a feature flag to turn on/off the refresh token issuance behavior. If set to true, the refresh token is only granted to clients with a scope of refresh_token for offline access.
-#    refresh:
+    refresh:
 #      restrict_grant: true
 #      unique: false
-#      format: jwt
+      format: opaque
 
 # Configure whitelist for allowing cross-origin XMLHttpRequest requests.
 #cors:

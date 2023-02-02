@@ -26,7 +26,11 @@ public interface RevocableTokenProvisioning extends ResourceManager<RevocableTok
 
     List<RevocableToken> getClientTokens(String clientId, String zoneId);
 
+    void updateRefreshTokenToAssociateWithNewClientSecret(String updatedTokenString, String clientId, String userId);
+
     void upsert(String id, RevocableToken t, String zoneId);
+
+    RevocableToken retrieveRefreshTokensForClientAndUserId(String clientId, String userId);
 
     void createIfNotExists(RevocableToken t, String zoneId);
 }

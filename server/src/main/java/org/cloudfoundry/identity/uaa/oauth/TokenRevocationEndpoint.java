@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -45,6 +46,10 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final MultitenantJdbcClientDetailsService clientDetailsService;
+
+    @Autowired
+    private UaaTokenServices tokenServices;
+
     private final ScimUserProvisioning userProvisioning;
     private final RevocableTokenProvisioning tokenProvisioning;
 
@@ -110,6 +115,16 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         RevocableToken revokedToken = tokenProvisioning.delete(tokenId, -1, zoneId);
         eventPublisher.publishEvent(new TokenRevocationEvent(revokedToken.getUserId(), revokedToken.getClientId(), zoneId, SecurityContextHolder.getContext().getAuthentication()));
         logger.debug("Revoked token with ID: " + tokenId);
+        return new ResponseEntity<>(OK);
+    }
+
+    @RequestMapping(value = "/oauth/token/list/refresh_jwt_rewrite/client/{clientId}/user/{userId}", method = GET)
+    public ResponseEntity<Void> rewriteRefreshJwtWithUpdatedRevSig(@PathVariable String clientId, @PathVariable String userId) throws Exception {
+        logger.info("Updating the refresh JWT for user " + userId + " requested by client " + clientId + " with the client's new secret");
+
+        String updatedTokenString = tokenServices.getUpdatedTokenString(clientId, userId);
+
+        tokenProvisioning.updateRefreshTokenToAssociateWithNewClientSecret(updatedTokenString, clientId, userId);
         return new ResponseEntity<>(OK);
     }
 
