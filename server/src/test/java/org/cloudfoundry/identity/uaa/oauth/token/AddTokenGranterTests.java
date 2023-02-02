@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -43,7 +44,8 @@ public class AddTokenGranterTests {
             mock(AuthorizationServerTokenServices.class),
             mock(MultitenantClientServices.class),
             mock(OAuth2RequestFactory.class),
-            mock(RevocableTokenProvisioning.class)
+            mock(RevocableTokenProvisioning.class),
+            mock(ClientDetailsAuthenticationProvider.class)
         );
     }
 

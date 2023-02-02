@@ -14,14 +14,18 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -40,14 +44,17 @@ public class UserTokenGranter  extends AbstractTokenGranter {
 
     private MultitenantClientServices clientDetailsService;
     private RevocableTokenProvisioning tokenStore;
+    private ClientDetailsAuthenticationProvider clientAuthenticationProvider;
 
     public UserTokenGranter(AuthorizationServerTokenServices tokenServices,
                             MultitenantClientServices clientDetailsService,
                             OAuth2RequestFactory requestFactory,
-                            RevocableTokenProvisioning tokenStore) {
+                            RevocableTokenProvisioning tokenStore,
+                            ClientDetailsAuthenticationProvider clientAuthenticationProvider) {
         super(tokenServices, clientDetailsService, requestFactory, TokenConstants.GRANT_TYPE_USER_TOKEN);
         this.clientDetailsService = clientDetailsService;
         this.tokenStore = tokenStore;
+        this.clientAuthenticationProvider = clientAuthenticationProvider;
     }
 
     @Override
@@ -96,6 +103,16 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         //6. receiving client must have refresh_token grant type
         ClientDetails receiving = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());
         super.validateGrantType(GRANT_TYPE_REFRESH_TOKEN, receiving);
+
+        //7. receiving client must have a client secret
+        try {
+            UsernamePasswordAuthenticationToken clientAuth = 
+                    new UsernamePasswordAuthenticationToken(request.getRequestParameters().get(CLIENT_ID), "");
+            clientAuthenticationProvider.authenticate(clientAuth);
+            throw new InvalidClientException("Grant type is not allowed for this client");
+        }
+        catch (AuthenticationException ignored) {
+        }
 
         return oauth2Authentication.getUserAuthentication();
     }

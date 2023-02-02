@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -22,7 +23,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
@@ -42,6 +45,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKE
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -66,6 +70,7 @@ public class UserTokenGranterTest {
     private BaseClientDetails requestingClient;
     private BaseClientDetails receivingClient;
     private RevocableTokenProvisioning tokenStore;
+    private ClientDetailsAuthenticationProvider clientAuthenticationProvider;
 
     @Before
     public void setup() {
@@ -74,13 +79,15 @@ public class UserTokenGranterTest {
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
         tokenStore = mock(RevocableTokenProvisioning.class);
+        clientAuthenticationProvider = mock(ClientDetailsAuthenticationProvider.class);
 
         userAuthentication = mock(UaaAuthentication.class);
         granter = new UserTokenGranter(
             tokenServices,
             clientDetailsService,
             requestFactory,
-            tokenStore
+            tokenStore,
+            clientAuthenticationProvider
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -94,8 +101,6 @@ public class UserTokenGranterTest {
         requestParameters.put(CLIENT_ID, receivingClient.getClientId());
         tokenRequest = new PublicTokenRequest();
         tokenRequest.setRequestParameters(requestParameters);
-
-
     }
 
     @After
@@ -168,7 +173,8 @@ public class UserTokenGranterTest {
             tokenServices,
             clientDetailsService,
             requestFactory,
-            tokenStore
+            tokenStore,
+            clientAuthenticationProvider
         ) {
             @Override
             protected DefaultOAuth2AccessToken prepareForSerialization(DefaultOAuth2AccessToken token) {
@@ -188,6 +194,15 @@ public class UserTokenGranterTest {
 
     @Test
     public void happy_day() {
+        when(clientAuthenticationProvider.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+            .thenThrow(new BadCredentialsException("Bad credentials"));
+        missing_parameter("non existent");
+    }
+
+    @Test(expected = InvalidClientException.class)
+    public void test_client_no_secret() {
+        when(clientAuthenticationProvider.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+            .thenReturn(null);
         missing_parameter("non existent");
     }
 
