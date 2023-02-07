@@ -248,7 +248,12 @@
     </bean>
 
     <bean id="contentSecurityPolicyFilter"
-          class="org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter"/>
+          class="org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter">
+        <constructor-arg value="#{@config['csp']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
+                                  @config['csp']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
+                                  @config['csp']['script-src']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
+                                  @config['csp']['script-src']}"/>
+    </bean>
 
     <bean id="metricsFilter" class="org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter">
         <property name="enabled" value="${metrics.enabled:true}"/>
