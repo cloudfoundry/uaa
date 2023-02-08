@@ -15,7 +15,7 @@ public class JsonWebKeyTest {
   private static final String microsoftJwKSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Microsoft.json");
   // UAA jwks_uri: https://login.uaa-acceptance.cf-app.com/token_keys
   private static final String uaaLegacyJwkSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-LegacyUaa.json");
-  // https://www.keycloak.org/ jwks_uri: https://ssotest.domain.de/auth/realms/tenantkey/protocol/openid-connect/certs
+  // Keycloak server configuration https://www.keycloak.org/docs/latest/server_admin/, e.g. jwks_uri: http://localhost:8080/realms/{realm-name}/protocol/openid-connect/certs
   private static final String keyCloakJwkSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Keycloak.json");
 
   @Test

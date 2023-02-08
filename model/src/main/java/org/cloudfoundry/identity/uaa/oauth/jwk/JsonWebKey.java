@@ -72,9 +72,6 @@ public class JsonWebKey {
     public static String KTY = "kty";
     public static String ALG = "alg";
 
-    public static final String X5C = HeaderParameterNames.X_509_CERT_CHAIN;
-    public static final String X5T = HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT;
-
     private final Map<String, Object> json;
 
     public JsonWebKey(Map<String, Object> json) {
@@ -103,20 +100,20 @@ public class JsonWebKey {
     }
 
     public String[] getX5c() {
-        return (String[]) getKeyProperties().get(X5C);
+        return (String[]) getKeyProperties().get(HeaderParameterNames.X_509_CERT_CHAIN);
     }
 
     public JsonWebKey setX5c(String[] x5c) {
-        this.json.put(X5C, x5c);
+        this.json.put(HeaderParameterNames.X_509_CERT_CHAIN, x5c);
         return this;
     }
 
     public String getX5t() {
-        return (String) getKeyProperties().get(X5T);
+        return (String) getKeyProperties().get(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT);
     }
 
     public JsonWebKey setX5t(String x5t) {
-        this.json.put(X5T, x5t);
+        this.json.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, x5t);
         return this;
     }
 
