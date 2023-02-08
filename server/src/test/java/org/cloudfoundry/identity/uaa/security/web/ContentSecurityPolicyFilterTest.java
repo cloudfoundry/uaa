@@ -9,6 +9,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.util.Arrays;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
@@ -21,7 +22,7 @@ class ContentSecurityPolicyFilterTest {
 
     @BeforeEach
     void setUp() {
-        filter = new ContentSecurityPolicyFilter();
+        filter = new ContentSecurityPolicyFilter(Arrays.asList("'self'"));
 
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
@@ -82,5 +83,14 @@ class ContentSecurityPolicyFilterTest {
         filter.doFilter(request, response, chain);
 
         Mockito.verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    void testCustomScriptSrc() throws ServletException, IOException {
+        filter = new ContentSecurityPolicyFilter(Arrays.asList("'self'", "custom"));
+        filter.doFilter(request, response, chain);
+
+        assertEquals("script-src 'self' custom",
+                response.getHeader("Content-Security-Policy"));
     }
 }
