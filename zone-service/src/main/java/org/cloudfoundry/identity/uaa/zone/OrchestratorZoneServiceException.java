@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-public class OrchestratorZoneServiceException extends Exception {
+public class OrchestratorZoneServiceException extends RuntimeException {
 
     public OrchestratorZoneServiceException(String message) {
         super(message);
