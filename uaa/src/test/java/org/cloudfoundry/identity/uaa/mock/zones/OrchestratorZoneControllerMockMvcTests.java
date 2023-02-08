@@ -258,7 +258,9 @@ public class OrchestratorZoneControllerMockMvcTests {
     void testDeleteZone_Forbidden() throws Exception {
         performMockMvcCallAndAssertError(delete("/orchestrator/zones").param("name", "random-name"),
                                          status().isForbidden(),
-                                         "{\"error\":\"insufficient_scope\",\"error_description\":\"Insufficient scope for this resource\",\"scope\":\"uaa.admin zones.uaa.admin zones.write\"}",
+                                         "{\"error\":\"insufficient_scope\",\"error_description\":\"Insufficient " +
+                                         "scope for this resource\",\"scope\":\"uaa.admin orchestrator.zones.write zones.uaa.admin zones" +
+                                         ".write\"}",
                                          orchestratorClientZonesReadToken);
     }
 
@@ -277,7 +279,8 @@ public class OrchestratorZoneControllerMockMvcTests {
         performMockMvcCallAndAssertError(put("/orchestrator/zones").contentType(APPLICATION_JSON).content(
                                              "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
                                          status().isForbidden(),
-                                         "{\"error\":\"insufficient_scope\",\"error_description\":\"Insufficient scope for this resource\",\"scope\":\"uaa.admin zones.uaa.admin zones.write\"}",
+                                         "{\"error\":\"insufficient_scope\",\"error_description\":\"Insufficient " +
+                                         "scope for this resource\",\"scope\":\"uaa.admin orchestrator.zones.write zones.uaa.admin zones.write\"}",
                                          orchestratorClientZonesReadToken);
     }
 
