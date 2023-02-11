@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -18,7 +19,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
+import org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -53,7 +54,7 @@ public class OrchestratorZoneServiceTests {
     private IdentityProviderProvisioning idpProvisioning;
     private ScimGroupProvisioning groupProvisioning;
     private QueryableResourceManager<ClientDetails> clientDetailsService;
-    private ClientDetailsValidator clientDetailsValidator;
+    private ClientAdminEndpointsValidator clientDetailsValidator;
 
     private final String serviceProviderKey =
         "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -108,7 +109,7 @@ public class OrchestratorZoneServiceTests {
         idpProvisioning = mock(IdentityProviderProvisioning.class);
         groupProvisioning = mock(ScimGroupProvisioning.class);
         clientDetailsService = mock(QueryableResourceManager.class);
-        clientDetailsValidator = mock(ClientDetailsValidator.class);
+        clientDetailsValidator = mock(ClientAdminEndpointsValidator.class);
         zoneService = new OrchestratorZoneService(zoneProvisioning, idpProvisioning, groupProvisioning,
                                                   clientDetailsService, clientDetailsValidator,
                                                   UAA_DASHBOARD_URI, DOMAIN_NAME);
@@ -195,7 +196,7 @@ public class OrchestratorZoneServiceTests {
                                 "Client Already exists exception not thrown");
         verify(idpProvisioning, times(1)).create(any(),any());
         verify(clientDetailsService, times(1)).create(any(),any());
-        verify(clientDetailsValidator, times(1)).validate(any(),any());
+        verify(clientDetailsValidator, times(1)).validate(any(),anyBoolean(),anyBoolean());
     }
 
     @Test
@@ -242,7 +243,7 @@ public class OrchestratorZoneServiceTests {
         verify(zoneProvisioning, times(1)).create(any());
         verify(idpProvisioning, times(1)).create(any(),any());
         verify(clientDetailsService, times(1)).create(any(),any());
-        verify(clientDetailsValidator, times(1)).validate(any(),any());
+        verify(clientDetailsValidator, times(1)).validate(any(),anyBoolean(),anyBoolean());
     }
 
     @Test

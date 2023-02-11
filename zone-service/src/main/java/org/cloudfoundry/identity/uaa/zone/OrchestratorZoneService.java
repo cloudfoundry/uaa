@@ -29,8 +29,7 @@ import org.bouncycastle.openssl.jcajce.JcePEMEncryptorBuilder;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
-import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
+import org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -57,7 +56,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 public class OrchestratorZoneService implements ApplicationEventPublisherAware {
@@ -81,7 +79,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     private final IdentityProviderProvisioning idpProvisioning;
     private final ScimGroupProvisioning groupProvisioning;
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
-    private final ClientDetailsValidator clientDetailsValidator;
+    private final ClientAdminEndpointsValidator clientDetailsValidator;
     private final String uaaDashboardUri;
     private final String domainName;
 
@@ -95,7 +93,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                                    IdentityProviderProvisioning idpProvisioning,
                                    ScimGroupProvisioning groupProvisioning,
                                    QueryableResourceManager<ClientDetails> clientDetailsService,
-                                   ClientDetailsValidator clientDetailsValidator,
+                                   ClientAdminEndpointsValidator clientDetailsValidator,
                                    String uaaDashboardUri, String uaaUrl
                                   ) {
         this.zoneProvisioning = zoneProvisioning;
@@ -337,7 +335,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                                        final String grantTypes, final String resourceIds, final String scopes) {
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, resourceIds, scopes, grantTypes, authorities);
         clientDetails.setClientSecret(clientSecret);
-        ClientDetails details = clientDetailsValidator.validate(clientDetails, Mode.CREATE);
+        ClientDetails details = clientDetailsValidator.validate(clientDetails, true, false);
         clientDetailsService.create(details, id);
     }
 
