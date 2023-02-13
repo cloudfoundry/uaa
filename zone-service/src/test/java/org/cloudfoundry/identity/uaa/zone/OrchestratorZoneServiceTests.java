@@ -16,28 +16,22 @@ import java.security.Security;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtensionContext;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
@@ -185,6 +179,53 @@ public class OrchestratorZoneServiceTests {
         orchestratorZone.setSubdomain(SUB_DOMAIN_NAME);
         orchestratorZone.setOrchestratorZoneName(ZONE_NAME);
         return orchestratorZone;
+    }
+
+    @Test
+    public void testCreateZone_createZoneAdminClient_ExceptionCheck() {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                          SUB_DOMAIN_NAME);
+        IdentityZone identityZone = createIdentityZone(null);
+        IdentityProvider identityProvider = createDefaultIdp(identityZone);
+        when(zoneProvisioning.create(any())).thenReturn(identityZone);
+        when(idpProvisioning.create(any(),any())).thenReturn(identityProvider);
+        when(clientDetailsService.create(any(),any())).thenThrow(new OrchestratorZoneServiceException("Client Already exists"));
+        Assertions.assertThrows(OrchestratorZoneServiceException.class, () -> zoneService.createZone(zoneRequest),
+                                "Client Already exists exception not thrown");
+        verify(idpProvisioning, times(1)).create(any(),any());
+        verify(clientDetailsService, times(1)).create(any(),any());
+        verify(clientDetailsValidator, times(1)).validate(any(),any());
+    }
+
+    @Test
+    public void testCreateZone_createDefaultIdp_ExceptionCheck() throws OrchestratorZoneServiceException {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                          SUB_DOMAIN_NAME);
+        IdentityZone identityZone = createIdentityZone(null);
+        IdentityProvider identityProvider = createDefaultIdp(identityZone);
+        when(zoneProvisioning.create(any())).thenReturn(identityZone);
+        when(idpProvisioning.create(any(),any())).thenThrow(new IdpAlreadyExistsException("IDP Already exists"));
+        when(clientDetailsService.create(any(),any())).thenReturn(any());
+
+        Assertions.assertThrows(OrchestratorZoneServiceException.class, () -> zoneService.createZone(zoneRequest),
+                                "IDP Already exists exception not thrown");
+    }
+
+    @Test
+    public void testCreateZone_createIdentityZone_ExceptionCheck() throws OrchestratorZoneServiceException {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                          SUB_DOMAIN_NAME);
+        IdentityZone identityZone = createIdentityZone(null);
+        IdentityProvider identityProvider = createDefaultIdp(identityZone);
+        when(zoneProvisioning.create(any())).thenThrow(new ZoneAlreadyExistsException("Identity Zone Already exists"));
+        when(idpProvisioning.create(any(),any())).thenReturn(identityProvider);
+        when(clientDetailsService.create(any(),any())).thenReturn(any());
+
+        Assertions.assertThrows(ZoneAlreadyExistsException.class, () -> zoneService.createZone(zoneRequest),
+                                "Identity Zone Already exists exception not thrown");
     }
 
     @Test
