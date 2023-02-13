@@ -122,7 +122,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return new OrchestratorZoneResponse(zoneName, zone, connectionDetails);
     }
 
-    public void deleteZone(String zoneName) throws Exception {
+    public void deleteZone(String zoneName) {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - deleting Name[" + zoneName + "]");
@@ -137,8 +137,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return;
             } else {
-                String errorMessage = "Error : deleting zone Name[" + zoneName + "]";
-                throw new Exception(errorMessage);
+                throw new OrchestratorZoneServiceException("Error : deleting zone Name[" + zoneName + "]");
             }
         } finally {
             IdentityZoneHolder.set(previous);
@@ -183,10 +182,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return subDomain;
     }
 
-    public void createZone(OrchestratorZoneRequest zoneRequest) throws OrchestratorZoneServiceException,
-                                                                       ZoneAlreadyExistsException,
-                                                                       AccessDeniedException,
-                                                                       IOException {
+    public void createZone(OrchestratorZoneRequest zoneRequest) {
         if (!IdentityZoneHolder.isUaa()) {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
         }
@@ -221,8 +217,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return subdomain;
     }
 
-    private void createZoneAdminClient(String adminClientSecret, IdentityZone created)
-        throws OrchestratorZoneServiceException {
+    private void createZoneAdminClient(String adminClientSecret, IdentityZone created) {
         String zoneId = IdentityZoneHolder.get().getId();
         String authorities = ZONE_AUTHORITIES + ",zones." + zoneId + ".admin";
         try {
@@ -235,7 +230,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         }
     }
 
-    private void createDefaultIdp(IdentityZone created) throws OrchestratorZoneServiceException {
+    private void createDefaultIdp(IdentityZone created) {
         try {
             IdentityProvider defaultIdp = new IdentityProvider();
             defaultIdp.setName(OriginKeys.UAA);
@@ -256,8 +251,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         }
     }
 
-    private IdentityZone createIdentityZone(IdentityZone identityZone)
-        throws OrchestratorZoneServiceException {
+    private IdentityZone createIdentityZone(IdentityZone identityZone) {
         IdentityZone created = null;
         try {
             logger.debug("Zone - creating zone name [" + identityZone.getName() + "]");
@@ -277,8 +271,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return created;
     }
 
-    protected IdentityZone generateIdentityZone(String subdomain, String name, String id) throws
-            OrchestratorZoneServiceException, IOException {
+    protected IdentityZone generateIdentityZone(String subdomain, String name, String id) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setName(name);
@@ -289,7 +282,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return identityZone;
     }
 
-    private void setSamlConfig(IdentityZone identityZone) throws OrchestratorZoneServiceException {
+    private void setSamlConfig(IdentityZone identityZone) {
         try {
             identityZone.getConfig().setSamlConfig(createSamlConfig(identityZone.getSubdomain()));
         } catch (Exception e) {
@@ -310,7 +303,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         identityZone.getConfig().setTokenPolicy(tokenPolicy);
     }
 
-    private String createSigningKey(String zoneName) throws OrchestratorZoneServiceException, IOException {
+    private String createSigningKey(String zoneName) {
         StringWriter pemStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(pemStringWriter);
         try {
@@ -319,15 +312,19 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             keyPairGenerator.initialize(2048);
             pemWriter.writeObject(keyPairGenerator.genKeyPair().getPrivate());
         } catch (Exception e) {
-            logAndThowException(zoneName, e);
+            logAndThrowException(zoneName, e);
         } finally {
-            pemWriter.flush();
-            pemWriter.close();
+            try {
+                pemWriter.flush();
+                pemWriter.close();
+            } catch (IOException e) {
+                logAndThrowException(zoneName, e);
+            }
         }
         return pemStringWriter.toString();
     }
 
-    private void logAndThowException(String zoneName, Exception e) throws OrchestratorZoneServiceException {
+    private void logAndThrowException(String zoneName, Exception e) {
         String errorMessage = String.format(
             "Unexpected exception while create signingKey for zone name : %s",
             zoneName);
@@ -393,7 +390,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return keysMap;
     }
 
-    private SamlConfig createSamlConfig(String subdomain) throws IOException, NoSuchAlgorithmException, OperatorCreationException {
+    private SamlConfig createSamlConfig(String subdomain)
+        throws NoSuchAlgorithmException, IOException, OperatorCreationException {
         StringWriter pemStringWriter = new StringWriter();
         JcaPEMWriter pemWriter = new JcaPEMWriter(pemStringWriter);
         SamlConfig samlConfig = new SamlConfig();
