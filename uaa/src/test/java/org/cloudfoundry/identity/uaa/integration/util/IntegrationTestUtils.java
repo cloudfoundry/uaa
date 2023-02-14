@@ -251,7 +251,8 @@ public class IntegrationTestUtils {
                 "testzone3.localhost",
                 "testzone4.localhost",
                 "testzonedoesnotexist.localhost",
-                "testzoneinactive.localhost"
+                "testzoneinactive.localhost",
+                "orchestrator-int-test-zone.localhost"
         ).forEach(IntegrationTestUtils::assertLoopback);
     }
 
