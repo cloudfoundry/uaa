@@ -106,6 +106,9 @@ public class TestAccountSetup extends TestWatchman {
             if (!cfClientExists(client)) {
                 createCfClient(client);
             }
+            if (!orchestratorClientExists(client)) {
+                createOrchestratorClient(client);
+            }
             initialized = true;
         }
         resource = testAccounts.getClientCredentialsResource("oauth.clients.scim", "scim", "scimsecret");
@@ -135,6 +138,13 @@ public class TestAccountSetup extends TestWatchman {
         createClient(client, testAccounts.getClientDetails("oauth.clients.app", clientDetails));
     }
 
+    private void createOrchestratorClient(RestOperations client) {
+        BaseClientDetails clientDetails = new BaseClientDetails("orchestrator-zone-provisioner", "none",
+                "uaa.none", "client_credentials","orchestrator.zones.write,orchestrator.zones.read");
+        clientDetails.setClientSecret("orchestratorsecret");
+        createClient(client, testAccounts.getClientDetails("oauth.clients.orchestrator", clientDetails));
+    }
+
     private void createClient(RestOperations client, ClientDetails clientDetails) {
         ResponseEntity<String> response = client.postForEntity(serverRunning.getClientsUri(), clientDetails,
                         String.class);
@@ -159,6 +169,11 @@ public class TestAccountSetup extends TestWatchman {
     private boolean appClientExists(RestOperations client) {
         return clientExists(client,
                         testAccounts.getClientCredentialsResource("oauth.clients.app", "app", "appclientsecret"));
+    }
+
+    private boolean orchestratorClientExists(RestOperations client) {
+        return clientExists(client,
+                testAccounts.getClientCredentialsResource("oauth.clients.orchestrator", "orchestrator-zone-provisioner", "orchestratorsecret"));
     }
 
     private void initializeUserAccount(RestOperations client) {

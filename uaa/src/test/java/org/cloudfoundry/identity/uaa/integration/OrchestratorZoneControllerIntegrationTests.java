@@ -74,7 +74,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
-@OAuth2ContextConfiguration(OrchestratorZoneControllerIntegrationTests.ZoneClient.class)
+@OAuth2ContextConfiguration(OrchestratorZoneControllerIntegrationTests.OrchestratorClient.class)
 public class OrchestratorZoneControllerIntegrationTests {
 
     public static final String ZONE_NAME = "The Twiglet Zone";
@@ -481,11 +481,12 @@ public class OrchestratorZoneControllerIntegrationTests {
         assertTrue(getResponse.getBody().contains("name must not be blank"));
     }
 
-    static class ZoneClient extends ClientCredentialsResourceDetails {
+    static class OrchestratorClient extends ClientCredentialsResourceDetails {
 
-        public ZoneClient(Object target) {
+        public OrchestratorClient(Object target) {
             OrchestratorZoneControllerIntegrationTests test = (OrchestratorZoneControllerIntegrationTests) target;
-            ClientCredentialsResourceDetails resource = test.testAccounts.getAdminClientCredentialsResource();
+            ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
+                    new String[] {"uaa.none"}, "orchestrator-zone-provisioner", "orchestratorsecret");
             setClientId(resource.getClientId());
             setClientSecret(resource.getClientSecret());
             setId(getClientId());
