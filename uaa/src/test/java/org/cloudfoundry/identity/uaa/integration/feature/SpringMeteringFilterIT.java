@@ -37,15 +37,20 @@ import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.annotation.IfProfileValue;
+import org.springframework.test.annotation.ProfileValueSourceConfiguration;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
 import com.nurego.Nurego;
 import com.nurego.model.Entitlement;
+import org.cloudfoundry.identity.uaa.CustomSpringActiveProfilesValueSource;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@IfProfileValue(name = "spring.profiles.active", value = "nurego")
+@ProfileValueSourceConfiguration(CustomSpringActiveProfilesValueSource.class)
 public class SpringMeteringFilterIT {
 
     private static final String USERS_FEATURE_ID = "number_of_users";
