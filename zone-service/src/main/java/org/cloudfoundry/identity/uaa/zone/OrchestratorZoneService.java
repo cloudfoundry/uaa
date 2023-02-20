@@ -277,6 +277,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         setTokenPolicy(createSigningKey(name), identityZone);
         setSamlConfig(identityZone);
         identityZone.getConfig().getLinks().getLogout().setWhitelist(createDeploymentSpecificLogoutWhiteList());
+        identityZone.getConfig().getLinks().getSelfService().setSelfServiceCreateAccountEnabled(false);
+        identityZone.getConfig().getLinks().getSelfService().setSignup("");
+        identityZone.getConfig().getLinks().getSelfService().setSelfServiceResetPasswordEnabled(true);
         return identityZone;
     }
 

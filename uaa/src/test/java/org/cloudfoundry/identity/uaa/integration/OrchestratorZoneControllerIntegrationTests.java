@@ -547,13 +547,11 @@ public class OrchestratorZoneControllerIntegrationTests {
             adminClient.getForEntity(identityZoneURI, IdentityZone.class);
         LOGGER.info("Got identity zone: " + OBJECT_MAPPER.writeValueAsString(identityZoneResponse.getBody()));
         IdentityZoneConfiguration config = identityZoneResponse.getBody().getConfig();
-
-        // TODO validate below 2 gaps with team, these gaps found when compared service broker IT tests.
-        // For now commented below 2 assertions to avoid jenkins build and test pipeline build failure
-        // and it should be fixed as part of separate story with implementation related fixes in orchestrator post zone api.
-
-        // assertEquals(config.getLinks().getLogout().getWhitelist(), Collections.singletonList("http*://**." + runDomain));
-        // assertEquals(config.getLinks().getSelfService().getSignup(), "");
+        assertEquals(config.getLinks().getLogout().getWhitelist(),Collections.singletonList("http*://**"));
+        assertEquals(config.getLinks().getSelfService().isSelfServiceCreateAccountEnabled(), false);
+        assertEquals(config.getLinks().getSelfService().isSelfServiceResetPasswordEnabled(), true);
+        assertEquals(config.getLinks().getSelfService().getSignup(), "");
+        assertEquals(config.getLinks().getSelfService().getPasswd(), "/forgot_password");
         assertEquals(config.isIdpDiscoveryEnabled(), false);
         assertNotNull(config.getTokenPolicy().getActiveKeyId());
 
