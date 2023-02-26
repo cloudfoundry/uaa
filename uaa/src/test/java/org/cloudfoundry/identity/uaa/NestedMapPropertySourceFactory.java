@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
-import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.EncodedResource;
 import org.springframework.core.io.support.PropertySourceFactory;

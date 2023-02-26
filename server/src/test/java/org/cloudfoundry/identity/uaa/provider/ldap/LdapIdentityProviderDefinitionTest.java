@@ -12,19 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
-import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
