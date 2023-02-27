@@ -2,10 +2,12 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -19,7 +21,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.SystemPropertyUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.ServletContext;
 import java.io.File;
@@ -113,12 +114,12 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         try {
             System.out.println("Loading YAML environment properties from location: " + resources.toString());
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
-            factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
+            factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
 
             factory.setResources(resources.toArray(new Resource[0]));
 
             Map<String, Object> map = factory.getObject();
-            String yamlStr = (new Yaml()).dump(map);
+            String yamlStr = UaaYamlUtils.dump(map);
             map.put(DEFAULT_YAML_KEY, yamlStr);
             NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
             applicationContext.getEnvironment().getPropertySources().addLast(properties);
