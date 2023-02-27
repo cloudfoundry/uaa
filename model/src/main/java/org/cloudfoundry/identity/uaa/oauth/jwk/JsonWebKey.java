@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.oct;
 import static org.springframework.util.StringUtils.hasText;
 
 /**
@@ -57,7 +58,9 @@ public class JsonWebKey {
 
     public enum KeyType {
         RSA,
-        MAC
+        EC,
+        MAC,
+        oct
     }
 
     public enum KeyOperation {
@@ -135,7 +138,7 @@ public class JsonWebKey {
             if (RSA.equals(getKty())) {
                 result = pemEncodePublicKey(getRsaPublicKey(this));
                 this.json.put(PUBLIC_KEY_VALUE, result);
-            } else if (MAC.equals(getKty())) {
+            } else if (MAC.equals(getKty()) || oct.equals(getKty())) {
                 result = (String) getKeyProperties().get(JWKParameterNames.OCT_KEY_VALUE);
                 this.json.put(PUBLIC_KEY_VALUE, result);
             }
@@ -153,9 +156,9 @@ public class JsonWebKey {
 
     public static String pemEncodePublicKey(PublicKey publicKey) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
-        String end = "\n-----END PUBLIC KEY-----";
+        String end = "-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();
-        String base64encoded = new String(new Base64(false).encode(data));
+        String base64encoded = new String(new Base64(Base64.PEM_CHUNK_SIZE, new byte[]{'\n'}).encode(data));
         return begin + base64encoded + end;
     }
 

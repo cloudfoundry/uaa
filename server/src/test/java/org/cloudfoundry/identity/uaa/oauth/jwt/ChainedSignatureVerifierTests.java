@@ -137,14 +137,14 @@ public class ChainedSignatureVerifierTests {
     @Test
     public void unsupported_key_types_are_ignored() {
         Map<String, Object> p = new HashMap<>();
-        p.put("kty", "EC");
+        p.put("kty", "ES");
         p.put("kid", "ecid");
         p.put("x", "test-ec-key-x");
         p.put("y", "test-ec-key-y");
         p.put("use", "sig");
         p.put("crv", "test-crv");
         Map<String, Object> q = new HashMap<>();
-        q.put("kty", "oct");
+        q.put("kty", "MC");
         q.put("k", "octkeyvalue");
         JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(validKey, p, q)), JsonWebKeySet.class);
         verifier = new ChainedSignatureVerifier(keySet);

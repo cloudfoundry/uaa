@@ -1,12 +1,15 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.nimbusds.jose.HeaderParameterNames;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKParameterNames;
+import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.util.Base64URL;
-import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.springframework.security.jwt.crypto.sign.EllipticCurveVerifier;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
@@ -16,290 +19,163 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.KeyFactory;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-import java.security.spec.RSAPrivateCrtKeySpec;
-import java.security.spec.RSAPublicKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.EC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
-import static org.springframework.security.jwt.codec.Codecs.b64Decode;
-import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
-public abstract class KeyInfo {
-    public abstract void verify();
+public class KeyInfo {
+    private final boolean isAsymetric;
+    private Signer signer;
+    private SignatureVerifier verifier;
+    private final String keyId;
+    private final String keyUrl;
+    private final String verifierKey;
+    private final JsonWebKey.KeyType type;
+    private final JWK jwk;
 
-    public abstract SignatureVerifier getVerifier();
+    public KeyInfo(String keyId, String signingKey, String keyUrl) {
+        this(keyId, signingKey, keyUrl, null);
+    }
+    public KeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
+        this.keyId = keyId;
+        this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
+        this.isAsymetric = isAssymetricKey(signingKey);
+        String algorithm;
+        if (this.isAsymetric) {
+            String jwtAlg;
+            KeyPair keyPair;
+            try {
+                jwk = JWK.parseFromPEMEncodedObjects(signingKey);
+                jwtAlg = jwk.getKeyType().getValue();
+                algorithm = getJavaAlgorithm(sigAlg, "SHA256withRSA");
+                if (jwtAlg.startsWith("RSA")) {
+                    keyPair = jwk.toRSAKey().toKeyPair();
+                    PublicKey rsaPublicKey = keyPair.getPublic();
+                    this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
+                    this.verifier = new RsaVerifier((RSAPublicKey) rsaPublicKey, algorithm);
+                    this.type = RSA;
+                } else if (jwtAlg.startsWith("EC")) {
+                    keyPair = jwk.toECKey().toKeyPair();
+                    this.signer = null;
+                    this.verifier = new EllipticCurveVerifier((ECPublicKey) keyPair.getPublic(), algorithm);
+                    this.type = EC;
+                } else {
+                    throw new IllegalArgumentException("Invalid JWK");
+                }
+            } catch (JOSEException e) {
+                throw new IllegalArgumentException("PEM is not a supported format", e);
+            }
+            this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic());
+        } else {
+            jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
+            algorithm = getJavaAlgorithm(sigAlg, "HMACSHA256");
+            SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
+            this.signer = new MacSigner(algorithm, hmacKey);
+            this.verifier = new MacSigner(algorithm, hmacKey);
+            this.verifierKey = signingKey;
+            this.type = MAC;
+        }
+    }
+    public void verify() {
+        // not in use
+    }
 
-    public abstract Signer getSigner();
+    public SignatureVerifier getVerifier() {
+        return this.verifier;
+    }
 
-    public abstract String keyId();
+    public Signer getSigner() {
+        return this.signer;
+    }
 
-    public abstract String keyURL();
+    public String keyId() {
+        return this.keyId;
+    }
 
-    public abstract String type();
+    public String keyURL() {
+        return this.keyUrl;
+    }
 
-    public abstract String verifierKey();
+    public String type() {
+        return this.type.name();
+    }
 
-    public abstract Map<String, Object> getJwkMap();
+    public String verifierKey() {
+        return this.verifierKey;
+    }
 
-    public abstract String algorithm();
+    public Map<String, Object> getJwkMap() {
+        if (this.isAsymetric) {
+            Map<String, Object> result = new HashMap<>();
+            result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
+            result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
+            //new values per OpenID and JWK spec
+            result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
+            result.put(HeaderParameterNames.KEY_ID, this.keyId);
+            result.put(JWKParameterNames.KEY_TYPE, type.name());
 
-    protected abstract String getJavaAlgorithm(String sigAlg);
+            if (type == RSA) {
+                RSAPublicKey rsaKey;
+                try {
+                    rsaKey = jwk.toRSAKey().toRSAPublicKey();
+                } catch (JOSEException e) {
+                    throw new IllegalArgumentException(e);
+                }
+                String n = Base64URL.encode(rsaKey.getModulus()).toString();
+                String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
+                result.put(JWKParameterNames.RSA_MODULUS, n);
+                result.put(JWKParameterNames.RSA_EXPONENT, e);
+                return result;
+            }
+        } else {
+            Map<String, Object> result = new HashMap<>();
+            result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
+            result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
+            //new values per OpenID and JWK spec
+            result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
+            result.put(HeaderParameterNames.KEY_ID, this.keyId);
+            result.put(JWKParameterNames.KEY_TYPE, type.name());
+            return result;
+        }
+        return Collections.emptyMap();
+    }
 
-    protected String validateAndConstructTokenKeyUrl(String keyUrl) {
+    public String algorithm()  {
+        return JwtAlgorithms.sigAlg(verifier.algorithm());
+    }
+
+    private static String getJavaAlgorithm(String sigAlg, String defaultAlg) {
+        if (sigAlg == null) {
+            if (defaultAlg == null) {
+                throw new IllegalArgumentException("Invalid algorithm");
+            }
+            return defaultAlg;
+        } else {
+            return JwtAlgorithms.sigAlgJava(sigAlg);
+        }
+    }
+
+    private static String validateAndConstructTokenKeyUrl(String keyUrl) {
         if (!UaaUrlUtils.isUrl(keyUrl)) {
             throw new IllegalArgumentException("Invalid Key URL");
         }
 
         return UriComponentsBuilder.fromHttpUrl(keyUrl).scheme("https").path("/token_keys").build().toUriString();
     }
-}
 
-class HmacKeyInfo extends KeyInfo {
-    private static final String DEFAULT_HMAC_ALGORITHM = "HMACSHA256";
-    private Signer signer;
-    private SignatureVerifier verifier;
-    private final String keyId;
-    private final String keyUrl;
-    private final String verifierKey;
-
-    public HmacKeyInfo(String keyId, String signingKey, String keyUrl) {
-        this(keyId, signingKey, keyUrl, null);
-    }
-    public HmacKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
-        this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
-
-        String algorithm = getJavaAlgorithm(sigAlg);
-        SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
-        this.signer = new MacSigner(algorithm, hmacKey);
-        this.verifier = new MacSigner(algorithm, hmacKey);
-
-        this.keyId = keyId;
-        this.verifierKey = signingKey;
-    }
-
-    @Override
-    public void verify() {
-
-    }
-
-    @Override
-    public SignatureVerifier getVerifier() {
-        return this.verifier;
-    }
-
-    @Override
-    public Signer getSigner() {
-        return this.signer;
-    }
-
-    @Override
-    public String keyId() {
-        return this.keyId;
-    }
-
-    @Override
-    public String keyURL() {
-        return this.keyUrl;
-    }
-
-    @Override
-    public String type() {
-        return MAC.name();
-    }
-
-    @Override
-    public String verifierKey() {
-        return this.verifierKey;
-    }
-
-    @Override
-    public Map<String, Object> getJwkMap() {
-        Map<String, Object> result = new HashMap<>();
-        result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
-        result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
-        //new values per OpenID and JWK spec
-        result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
-        result.put(HeaderParameterNames.KEY_ID, this.keyId);
-        result.put(JWKParameterNames.KEY_TYPE, MAC.name());
-        return result;
-    }
-
-    @Override
-    public String algorithm() {
-        return JwtAlgorithms.sigAlg(verifier.algorithm());
-    }
-
-     @Override
-     protected String getJavaAlgorithm(String sigAlg) {
-         if (sigAlg == null) {
-             return DEFAULT_HMAC_ALGORITHM;
-         } else {
-             return JwtAlgorithms.sigAlgJava(sigAlg);
-         }
-     }
-}
-
-class RsaKeyInfo extends KeyInfo {
-    private static final String DEFAULT_RSA_ALGORITHM = "SHA256withRSA";
-    private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
-    private final String keyId;
-    private final String keyUrl;
-
-    private Signer signer;
-    private SignatureVerifier verifier;
-    private String verifierKey;
-
-    public RsaKeyInfo(String keyId, String signingKey, String keyUrl) {
-        this(keyId, signingKey, keyUrl, null);
-    }
-    public RsaKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
-        this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
-
-        KeyPair keyPair = parseKeyPair(signingKey);
-        RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
-        String algorithm = getJavaAlgorithm(sigAlg);
-        String pemEncodePublicKey = JsonWebKey.pemEncodePublicKey(rsaPublicKey);
-
-        this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
-        this.verifier = new RsaVerifier(rsaPublicKey, algorithm);
-        this.keyId = keyId;
-        this.verifierKey = pemEncodePublicKey;
-    }
-
-    private static KeyPair parseKeyPair(String pemData) {
-        Matcher m = PEM_DATA.matcher(pemData.trim());
-
-        if (!m.matches()) {
-            throw new IllegalArgumentException("String is not PEM encoded data");
-        }
-
-        String type = m.group(1);
-        final byte[] content = b64Decode(utf8Encode(m.group(2)));
-
-        PublicKey publicKey;
-        PrivateKey privateKey = null;
-
-        try {
-            KeyFactory fact = KeyFactory.getInstance("RSA");
-            if ("RSA PRIVATE KEY".equals(type)) {
-                ASN1Sequence seq = ASN1Sequence.getInstance(content);
-                if (seq.size() != 9) {
-                    throw new IllegalArgumentException("Invalid RSA Private Key ASN1 sequence.");
-                }
-                org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
-                RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
-                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(
-                  key.getModulus(),
-                  key.getPublicExponent(),
-                  key.getPrivateExponent(),
-                  key.getPrime1(),
-                  key.getPrime2(),
-                  key.getExponent1(),
-                  key.getExponent2(),
-                  key.getCoefficient()
-                );
-                publicKey = fact.generatePublic(pubSpec);
-                privateKey = fact.generatePrivate(privSpec);
-            } else if ("PUBLIC KEY".equals(type)) {
-                KeySpec keySpec = new X509EncodedKeySpec(content);
-                publicKey = fact.generatePublic(keySpec);
-            } else if ("RSA PUBLIC KEY".equals(type)) {
-                ASN1Sequence seq = ASN1Sequence.getInstance(content);
-                org.bouncycastle.asn1.pkcs.RSAPublicKey key = org.bouncycastle.asn1.pkcs.RSAPublicKey.getInstance(seq);
-                RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
-                publicKey = fact.generatePublic(pubSpec);
-            } else {
-                throw new IllegalArgumentException(type + " is not a supported format");
-            }
-
-            return new KeyPair(publicKey, privateKey);
-        } catch (InvalidKeySpecException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    @Override
-    public void verify() {
-    }
-
-    @Override
-    public SignatureVerifier getVerifier() {
-        return this.verifier;
-    }
-
-    @Override
-    public Signer getSigner() {
-        return this.signer;
-    }
-
-    @Override
-    public String keyId() {
-        return this.keyId;
-    }
-
-    @Override
-    public String keyURL() {
-        return this.keyUrl;
-    }
-
-    @Override
-    public String type() {
-        return RSA.name();
-    }
-
-    @Override
-    public String verifierKey() {
-        return this.verifierKey;
-    }
-
-    @Override
-    public Map<String, Object> getJwkMap() {
-        Map<String, Object> result = new HashMap<>();
-        result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
-        result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
-        //new values per OpenID and JWK spec
-        result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
-        result.put(HeaderParameterNames.KEY_ID, this.keyId);
-        result.put(JWKParameterNames.KEY_TYPE, RSA.name());
-
-        RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
-        if (rsaKey != null) {
-            String n = Base64URL.encode(rsaKey.getModulus()).toString();
-            String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
-            result.put(JWKParameterNames.RSA_MODULUS, n);
-            result.put(JWKParameterNames.RSA_EXPONENT, e);
-        }
-
-        return result;
-    }
-
-    @Override
-    public String algorithm() {
-        return JwtAlgorithms.sigAlg(verifier.algorithm());
-    }
-
-    @Override
-    protected String getJavaAlgorithm(String sigAlg) {
-        if (sigAlg == null) {
-            return DEFAULT_RSA_ALGORITHM;
-        } else {
-            return JwtAlgorithms.sigAlgJava(sigAlg);
-        }
+    /**
+     * @return true if the string represents an asymmetric (RSA) key
+     */
+    private static boolean isAssymetricKey(String key) {
+        return key.startsWith("-----BEGIN");
     }
 }

@@ -73,6 +73,13 @@ public class JsonWebKeySetTests {
         "            \"kid\": \"mac-id\",\n" +
         "            \"kty\": \"MAC\",\n" +
         "            \"key_ops\": [\"sign\",\"verify\"]\n" +
+        "        },\n" +
+        "        {\n" +
+        "            \"alg\": \"HS256\",\n" +
+        "            \"k\": \"test-oct-key\",\n" +
+        "            \"kid\": \"oct-id\",\n" +
+        "            \"kty\": \"oct\",\n" +
+        "            \"key_ops\": [\"verify\"]\n" +
         "        }\n" +
         "    ]\n" +
         "}";
@@ -111,7 +118,7 @@ public class JsonWebKeySetTests {
     @Test
     public void test_multi_key() {
         JsonWebKeySet<JsonWebKey> keys = test_key(multiKeyJson);
-        assertEquals(2, keys.getKeys().size());
+        assertEquals(3, keys.getKeys().size());
         JsonWebKey key = keys.getKeys().get(1);
         assertEquals("HMACSHA256", key.getAlgorithm());
 
@@ -127,6 +134,27 @@ public class JsonWebKeySetTests {
 
         assertNull(key.getUse());
         assertEquals(new LinkedHashSet<>(Arrays.asList(JsonWebKey.KeyOperation.sign, JsonWebKey.KeyOperation.verify)), key.getKeyOps());
+    }
+
+    @Test
+    public void test_multi_key_rfc7518() {
+        JsonWebKeySet<JsonWebKey> keys = test_key(multiKeyJson);
+        assertEquals(3, keys.getKeys().size());
+        JsonWebKey key = keys.getKeys().get(2);
+        assertEquals("HS256", key.getAlgorithm());
+
+        assertEquals(
+            "test-oct-key",
+            key.getValue()
+        );
+
+        assertEquals(
+            "test-oct-key",
+            key.getKeyProperties().get("k")
+        );
+
+        assertNull(key.getUse());
+        assertEquals(new LinkedHashSet<>(Arrays.asList(JsonWebKey.KeyOperation.verify)), key.getKeyOps());
     }
 
     @Test
