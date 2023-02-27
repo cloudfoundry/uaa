@@ -23,7 +23,6 @@ import org.apache.commons.codec.binary.Base64;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
@@ -152,7 +151,7 @@ public class JsonWebKey {
         return result.stream().map(KeyOperation::valueOf).collect(Collectors.toSet());
     }
 
-    public static String pemEncodePublicKey(Key publicKey) {
+    public static String pemEncodePublicKey(PublicKey publicKey) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();
