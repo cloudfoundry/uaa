@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
-import org.yaml.snakeyaml.Yaml;
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,7 +49,7 @@ public class YamlConfigFileDTO {
 
         @Override
         public String toString() {
-            return new Yaml().dump( this );
+            return UaaYamlUtils.dump(this);
         }
     }
 
@@ -59,6 +59,6 @@ public class YamlConfigFileDTO {
 
     @Override
     public String toString() {
-        return new Yaml().dump( this );
+        return UaaYamlUtils.dump(this);
     }
 }

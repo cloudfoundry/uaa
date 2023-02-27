@@ -20,8 +20,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.impl.config.EnvironmentMapFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
-import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.StandardEnvironment;
@@ -60,7 +60,7 @@ public class TestProfileEnvironment {
 
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResources(resources.toArray(new Resource[0]));
-        factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
+        factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         Map<String, Object> properties = factory.getObject();
 
         logger.debug("Decoding environment properties: " + properties.size());
