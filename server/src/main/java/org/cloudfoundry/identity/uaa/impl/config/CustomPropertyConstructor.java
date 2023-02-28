@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.springframework.util.Assert;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -36,7 +37,7 @@ public class CustomPropertyConstructor extends Constructor {
     private final Map<Class<?>, AliasSupportingTypeDescription> typeDescriptions = new HashMap<>();
 
     public CustomPropertyConstructor(Class<?> theRoot) {
-        super(theRoot, getDefaultOptions());
+        super(theRoot, getDefaultLoaderOptions());
         TypeDescription typeDescription = createTypeDescription(theRoot);
         addTypeDescription(typeDescription);
         yamlClassConstructors.put(NodeId.mapping, new CustomPropertyConstructMapping());
@@ -49,11 +50,22 @@ public class CustomPropertyConstructor extends Constructor {
         return typeDescription;
     }
 
-    public static LoaderOptions getDefaultOptions() {
+    public static LoaderOptions getDefaultLoaderOptions() {
         LoaderOptions loaderOptions = new LoaderOptions();
         loaderOptions.setAllowDuplicateKeys(false);
         return loaderOptions;
     }
+
+    public static DumperOptions getDefaultDumperOptions() {
+        DumperOptions dump = new DumperOptions();
+        dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        dump.setPrettyFlow(true);
+        dump.setIndent(2);
+        dump.setCanonical(false);
+        dump.setExplicitStart(true);
+        return dump;
+    }
+
     /**
      * Adds an alias for a Javabean property name on a particular type.
      * The values of YAML keys with the alias name will be mapped to the

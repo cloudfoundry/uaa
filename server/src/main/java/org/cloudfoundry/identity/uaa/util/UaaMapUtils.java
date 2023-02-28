@@ -15,13 +15,13 @@
 package org.cloudfoundry.identity.uaa.util;
 
 
+import org.cloudfoundry.identity.uaa.impl.config.CustomPropertyConstructor;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.util.StringUtils;
-import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.util.AbstractMap;
@@ -131,13 +131,7 @@ public class UaaMapUtils {
     }
 
     public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K,V> map) {
-        DumperOptions dump = new DumperOptions();
-        dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        dump.setPrettyFlow(true);
-        dump.setIndent(2);
-        dump.setCanonical(false);
-        dump.setExplicitStart(true);
-        Yaml yaml = new Yaml(dump);
+        Yaml yaml = new Yaml(CustomPropertyConstructor.getDefaultDumperOptions());
         return yaml.dump(sortByKeys(map));
     }
 
