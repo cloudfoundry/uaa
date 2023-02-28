@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.BaseNCodec;
 
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -47,6 +48,8 @@ import static org.springframework.util.StringUtils.hasText;
 @JsonDeserialize(using = JsonWebKeyDeserializer.class)
 @JsonSerialize(using = JsonWebKeySerializer.class)
 public class JsonWebKey {
+
+    private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(BaseNCodec.PEM_CHUNK_SIZE, "\n".getBytes());
 
     // value is not defined in RFC 7517
     public static final String PUBLIC_KEY_VALUE = "value";
@@ -158,7 +161,8 @@ public class JsonWebKey {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "-----END PUBLIC KEY-----";
         byte[] data = publicKey.getEncoded();
-        String base64encoded = new String(new Base64(Base64.PEM_CHUNK_SIZE, new byte[]{'\n'}).encode(data));
+        String base64encoded = new String(base64encoder.encode(data));
+
         return begin + base64encoded + end;
     }
 
