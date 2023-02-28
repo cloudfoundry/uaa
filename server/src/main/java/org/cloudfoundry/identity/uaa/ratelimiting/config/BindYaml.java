@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.ratelimiting.config;
 import lombok.RequiredArgsConstructor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.representer.Representer;
@@ -28,9 +30,9 @@ public class BindYaml<T> {
     public T bind( String yaml ) {
         T target = null;
         if ( yaml != null ) {
-            Representer representer = new Representer();
+            Representer representer = new Representer(new DumperOptions());
             representer.getPropertyUtils().setSkipMissingProperties(true);
-            Yaml yamlParser = new Yaml( new Constructor( targetClass ), representer );
+            Yaml yamlParser = new Yaml( new Constructor( targetClass, new LoaderOptions()), representer );
             try {
                 target = yamlParser.load( yaml );
             }
