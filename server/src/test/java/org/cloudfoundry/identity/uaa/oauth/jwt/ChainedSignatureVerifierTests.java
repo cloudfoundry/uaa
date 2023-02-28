@@ -174,6 +174,37 @@ public class ChainedSignatureVerifierTests {
     }
 
     @Test
+    public void test_single_hmackey_valid() {
+        Map<String, Object> q = new HashMap<>();
+        q.put("kid", "test");
+        q.put("kty", "oct");
+        q.put("k", "octkeyvalue");
+        JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(q)), JsonWebKeySet.class);
+        verifier = new ChainedSignatureVerifier(keySet);
+        List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
+        assertNotNull(delegates);
+        assertEquals(1, delegates.size());
+        assertEquals("HMACSHA256", delegates.get(0).algorithm());
+    }
+
+    @Test
+    public void test_single_eckey_valid() {
+        Map<String, Object> q = new HashMap<>();
+        q.put("kid", "ec-key");
+        q.put("kty", "EC");
+        q.put("crv", "P-256");
+        q.put("x", "gI0GAILBdu7T53akrFmMyGcsF3n5dO7MmwNBHKW5SV0");
+        q.put("y", "SLW_xSffzlPWrHEVI30DHM_4egVwt3NQqeUD7nMFpps");
+        JsonWebKeySet keySet = JsonUtils.convertValue(singletonMap("keys", Arrays.asList(q)), JsonWebKeySet.class);
+        verifier = new ChainedSignatureVerifier(keySet);
+        List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
+        assertNotNull(delegates);
+        assertEquals(1, delegates.size());
+        assertNotNull(delegates.get(0));
+        assertEquals("SHA256withECDSA", delegates.get(0).algorithm());
+    }
+
+    @Test
     public void test_multi_key_both_valid() {
         Map<String, Object> p = new HashMap<>();
         p.put("kty", MAC.name());

@@ -33,6 +33,13 @@ public class JwtAlgorithms {
         sigAlgs.put("RS256" , "SHA256withRSA");
         sigAlgs.put("RS384" , "SHA384withRSA");
         sigAlgs.put("RS512" , "SHA512withRSA");
+        sigAlgs.put("PS256" , "SHA256withRSAandMGF1");
+        sigAlgs.put("PS384" , "SHA384withRSAandMGF1");
+        sigAlgs.put("PS512" , "SHA512withRSAandMGF1");
+        sigAlgs.put("ES256" , "SHA256withECDSA");
+        sigAlgs.put("ES256K" , "SHA256withECDSA");
+        sigAlgs.put("ES384" , "SHA384withECDSA");
+        sigAlgs.put("ES512" , "SHA512withECDSA");
 
         keyAlgs.put("RSA1_5" , "RSA/ECB/PKCS1Padding");
 
