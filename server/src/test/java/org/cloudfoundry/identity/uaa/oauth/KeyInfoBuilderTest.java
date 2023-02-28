@@ -6,6 +6,7 @@ import org.junit.rules.ExpectedException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
 
 public class KeyInfoBuilderTest {
     private static final String sampleRsaPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -23,6 +24,16 @@ public class KeyInfoBuilderTest {
       "oYaZoYWi6DzbQQUaIsKxAkEA2rXQjQFsfnSm+w/9067ChWg46p4lq5Na2NpcpFgH\n" +
       "waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==\n" +
       "-----END RSA PRIVATE KEY-----";
+
+    private static final String sampleEcKeyPair = "-----BEGIN PRIVATE KEY-----\n"
+        + "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgevZzL1gdAFr88hb2\n"
+        + "OF/2NxApJCzGCEDdfSp6VQO30hyhRANCAAQRWz+jn65BtOMvdyHKcvjBeBSDZH2r\n"
+        + "1RTwjmYSi9R/zpBnuQ4EiMnCqfMPWiZqB4QdbAd0E7oH50VpuZ1P087G\n"
+        + "-----END PRIVATE KEY-----\n"
+        + "-----BEGIN PUBLIC KEY-----\n"
+        + "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEEVs/o5+uQbTjL3chynL4wXgUg2R9\n"
+        + "q9UU8I5mEovUf86QZ7kOBIjJwqnzD1omageEHWwHdBO6B+dFabmdT9POxg==\n"
+        + "-----END PUBLIC KEY-----";
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -46,5 +57,13 @@ public class KeyInfoBuilderTest {
         expectedException.expect(IllegalArgumentException.class);
 
         KeyInfoBuilder.build("key-id", null, "https://localhost");
+    }
+
+    @Test
+    public void whenProvidingECKey_ShouldBuildJwkMap() {
+        KeyInfo keyInfo = KeyInfoBuilder.build("key-id", sampleEcKeyPair, "https://localhost");
+        assertThat(keyInfo.type(), is("EC"));
+        assertThat(keyInfo.algorithm(), is("ES256"));
+        assertEquals(8, keyInfo.getJwkMap().size());
     }
 }

@@ -56,14 +56,15 @@ public class KeyInfo {
             try {
                 jwk = JWK.parseFromPEMEncodedObjects(signingKey);
                 jwtAlg = jwk.getKeyType().getValue();
-                algorithm = getJavaAlgorithm(sigAlg, "SHA256withRSA");
                 if (jwtAlg.startsWith("RSA")) {
+                    algorithm = getJavaAlgorithm(sigAlg, "SHA256withRSA");
                     keyPair = jwk.toRSAKey().toKeyPair();
                     PublicKey rsaPublicKey = keyPair.getPublic();
                     this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
                     this.verifier = new RsaVerifier((RSAPublicKey) rsaPublicKey, algorithm);
                     this.type = RSA;
                 } else if (jwtAlg.startsWith("EC")) {
+                    algorithm = getJavaAlgorithm(sigAlg, "SHA256withECDSA");
                     keyPair = jwk.toECKey().toKeyPair();
                     this.signer = null;
                     this.verifier = new EllipticCurveVerifier((ECPublicKey) keyPair.getPublic(), algorithm);
@@ -117,7 +118,6 @@ public class KeyInfo {
         if (this.isAsymetric) {
             Map<String, Object> result = new HashMap<>();
             result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
-            result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
             //new values per OpenID and JWK spec
             result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
             result.put(HeaderParameterNames.KEY_ID, this.keyId);
@@ -126,6 +126,7 @@ public class KeyInfo {
             if (type == RSA) {
                 RSAPublicKey rsaKey;
                 try {
+                    result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
                     rsaKey = jwk.toRSAKey().toRSAPublicKey();
                 } catch (JOSEException e) {
                     throw new IllegalArgumentException(e);
@@ -134,6 +135,9 @@ public class KeyInfo {
                 String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
                 result.put(JWKParameterNames.RSA_MODULUS, n);
                 result.put(JWKParameterNames.RSA_EXPONENT, e);
+                return result;
+            } else if (type == EC) {
+                result.putAll(jwk.toJSONObject());
                 return result;
             }
         } else {

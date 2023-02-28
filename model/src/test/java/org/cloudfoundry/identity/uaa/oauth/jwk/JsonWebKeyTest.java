@@ -20,8 +20,8 @@ public class JsonWebKeyTest {
   private static final String uaaLegacyJwkSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-LegacyUaa.json");
   // Keycloak server configuration https://www.keycloak.org/docs/latest/server_admin/, e.g. jwks_uri: http://localhost:8080/realms/{realm-name}/protocol/openid-connect/certs
   private static final String keyCloakJwkSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Keycloak.json");
-
   private static final String keyHMacRfc7518 = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Hmac.json");
+  private static final String keyECRfc7518 = getResourceAsString(JsonWebKeyTest.class, "JwkSet-ECProvider.json");
 
   @Test
   public void testWebKeysMicrosoft() {
@@ -81,6 +81,22 @@ public class JsonWebKeyTest {
       assertEquals(JWSAlgorithm.HS256.getName(), key.getAlgorithm());
       assertEquals(Set.of(JsonWebKey.KeyOperation.verify), key.getKeyOps());
       assertEquals("legacy-token-key", key.getKid());
+    }
+  }
+
+  @Test
+  public void testWebKeysKeyEC() {
+    JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(keyECRfc7518, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
+    });
+    assertNotNull(keys);
+    assertNotNull(keys.getKeys());
+    assertEquals(1, keys.getKeys().size());
+    for (JsonWebKey key : keys.getKeys()) {
+      assertNotNull(key);
+      assertNull(JsonWebKey.getRsaPublicKey(key));
+      assertNull(key.getValue());
+      assertEquals(JWSAlgorithm.ES256.getName(), key.getAlgorithm());
+      assertEquals("ec-key-1", key.getKid());
     }
   }
 }
