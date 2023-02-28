@@ -60,6 +60,7 @@ public class JsonWebKey {
         enc
     }
 
+    // RFC 7518
     public enum KeyType {
         RSA,
         EC,
