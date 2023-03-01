@@ -121,10 +121,9 @@ libraries.orgJson = "org.json:json:20230227"
 libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.1.0"
 
 // gradle plugins
-libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.0"
-libraries.asciidoctorGradlePlugin = "org.asciidoctor:asciidoctor-gradle-plugin:1.6.1"
+libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.1"
 libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.8.0"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
-libraries.gradleJcocoPlugin = "gradle.plugin.org.barfuin.gradle.jacocolog:gradle-jacoco-log:1.2.4"
-libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
+libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:3.1.0"
+libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.0.0.2929"

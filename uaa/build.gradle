@@ -1,7 +1,6 @@
 Project identityServer = parent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
 
 apply(plugin: "war")
-apply(plugin: "org.asciidoctor.convert")
 
 processResources {
     //maven replaces project.artifactId in the log4j.properties file

@@ -19,7 +19,6 @@ buildscript {
 
     dependencies {
         classpath(libraries.cargoGradlePlugin)
-        classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
         classpath(libraries.testRetryPlugin)
