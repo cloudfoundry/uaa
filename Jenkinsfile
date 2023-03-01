@@ -172,7 +172,6 @@ pipeline {
                             unset https_proxy
                             unset GRADLE_OPTS
                             pushd uaa
-                                apt-get -qy install lsof
                                 ./gradlew --no-daemon --continue jacocoRootReportUaaTest
                             popd
                             '''
