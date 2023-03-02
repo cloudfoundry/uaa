@@ -16,8 +16,10 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -52,7 +54,7 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Properties>
         EnvironmentMapFactoryBean factory = new EnvironmentMapFactoryBean();
         factory.setEnvironment(environment);
         factory.setDefaultProperties(defaultProperties);
-        Map<String, ?> map = factory.getObject();
+        Map<String, ?> map = Optional.ofNullable(factory.getObject()).orElse(Collections.emptyMap());
         for (Object key : map.keySet()) {
             Object value = map.get(key);
             if (value == null) {
