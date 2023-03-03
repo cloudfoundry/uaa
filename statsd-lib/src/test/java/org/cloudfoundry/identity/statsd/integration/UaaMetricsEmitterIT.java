@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.*;
@@ -25,7 +26,7 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.*;
 
 class UaaMetricsEmitterIT {
-    private static final int WAIT_FOR_MESSAGE = 5500;
+    private static final long WAIT_FOR_MESSAGE = TimeUnit.MILLISECONDS.toNanos(5500);
     private static DatagramSocket serverSocket;
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
@@ -114,7 +115,7 @@ class UaaMetricsEmitterIT {
     }
 
     private static Map<String, String> getMessages(List<String> fragments) throws IOException {
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         Map<String, String> results = new HashMap<>();
         do {
             receiveData = new byte[65535];
@@ -130,7 +131,7 @@ class UaaMetricsEmitterIT {
             } catch (SocketTimeoutException e) {
                 //expected so that we keep looping
             }
-        } while (results.size() < fragments.size() && (System.currentTimeMillis() < (startTime + UaaMetricsEmitterIT.WAIT_FOR_MESSAGE)));
+        } while (results.size() < fragments.size() && (System.nanoTime() < (startTime + UaaMetricsEmitterIT.WAIT_FOR_MESSAGE)));
         return results;
     }
 
