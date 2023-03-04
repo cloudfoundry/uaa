@@ -33,7 +33,6 @@ libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-
 libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.2"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
-libraries.beanutils = "commons-beanutils:commons-beanutils:1.9.4"
 libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk18on:${versions.bouncyCastleVersion}"
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk18on:${versions.bouncyCastleVersion}"
 libraries.commonsIo = "commons-io:commons-io:2.11.0"
