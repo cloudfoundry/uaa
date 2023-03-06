@@ -33,7 +33,7 @@ public class JwtClientAuthentication {
     claims.setSub(config.getRelyingPartyId());
     claims.setIss(issuer);
     claims.setJti(UUID.randomUUID().toString().replace("-", ""));
-    claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
+    claims.setIat(Instant.now().minusSeconds(120).getEpochSecond());
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
     return JwtHelper.encode(JsonUtils.writeValueAsString(claims), keyInfoService.getActiveKey()).getEncoded();
   }

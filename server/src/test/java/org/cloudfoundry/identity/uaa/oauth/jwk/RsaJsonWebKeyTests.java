@@ -51,8 +51,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.springframework.security.jwt.codec.Codecs.b64Decode;
-import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 public class RsaJsonWebKeyTests {
     private static final String ISSUER = "http://localhost:8080/issuer";
@@ -258,7 +256,7 @@ public class RsaJsonWebKeyTests {
         }
 
         String type = m.group(1);
-        final byte[] content = b64Decode(utf8Encode(m.group(2)));
+        final byte[] content = new Base64URL(m.group(2)).decode();
 
         PublicKey publicKey;
         PrivateKey privateKey = null;

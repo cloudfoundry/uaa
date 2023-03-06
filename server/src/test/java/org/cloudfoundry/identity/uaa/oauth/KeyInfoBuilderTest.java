@@ -29,7 +29,7 @@ public class KeyInfoBuilderTest {
 
     @Test
     public void whenProvidingSecret_ShouldBuildHmacKey() {
-        KeyInfo keyInfo = KeyInfoBuilder.build("key-id", "secret", "https://localhost");
+        KeyInfo keyInfo = KeyInfoBuilder.build("key-id", "secret-key-with-minimum-length-32", "https://localhost");
 
         assertThat(keyInfo.type(), is("MAC"));
     }

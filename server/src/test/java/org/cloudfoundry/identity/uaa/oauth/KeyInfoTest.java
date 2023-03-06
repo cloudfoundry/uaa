@@ -30,14 +30,14 @@ public class KeyInfoTest {
 
     @Test
     public void HmacKeyShouldSetFieldsCorrectly() {
-        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret", "https://localhost");
+        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret-key-with-minimum-length-32", "https://localhost");
 
         assertThat(hmacKeyInfo.type(), is("MAC"));
     }
 
     @Test
     public void HmacKeyShouldSetKeyUrlWithASecureProtocol() {
-        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret", "http://localhost/path2");
+        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret-key-with-minimum-length-32", "http://localhost/path2");
 
         assertThat(hmacKeyInfo.keyURL(), is("https://localhost/path2/token_keys"));
     }

@@ -14,7 +14,7 @@ public class JwtHelperTest {
 
     @Before
     public void setUp() {
-        keyInfo = KeyInfoBuilder.build("testKid", "symmetricKey", "http://localhost/uaa");
+        keyInfo = KeyInfoBuilder.build("testKid", "tokenKeyHS256WithMinimumLength32", "http://localhost/uaa");
     }
 
     @Test

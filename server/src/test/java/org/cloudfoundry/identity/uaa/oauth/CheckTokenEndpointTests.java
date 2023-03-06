@@ -879,7 +879,7 @@ public class CheckTokenEndpointTests {
     public void validateIssuedAtIsSmallerThanExpiredAt() throws Exception {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
-        Integer iat = result.getIat();
+        Long iat = result.getIat();
         assertNotNull(iat);
         Long exp = result.getExp();
         assertNotNull(exp);

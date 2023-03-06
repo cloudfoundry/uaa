@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.nimbusds.jose.JWSVerifier;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
@@ -9,7 +10,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -71,7 +71,7 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         if (idToken != null) {
             try {
                 Map<String, KeyInfo> keys = keyInfoService.getKeys();
-                List<SignatureVerifier> signatureVerifiers = keys.values().stream().map(i -> i.getVerifier()).collect(Collectors.toList());
+                List<JWSVerifier> signatureVerifiers = keys.values().stream().map(i -> i.getVerifier()).collect(Collectors.toList());
                 JwtTokenSignedByThisUAA jwtToken =buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
                 clientId = (String) jwtToken.getClaims().get(ClaimConstants.AZP);
             } catch (InvalidTokenException e) {

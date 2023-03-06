@@ -14,39 +14,59 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.jca.JCAContext;
+import com.nimbusds.jose.util.Base64URL;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.util.ObjectUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
-public class ChainedSignatureVerifier implements SignatureVerifier {
-    private final List<SignatureVerifier> delegates;
+public class ChainedSignatureVerifier implements JWSVerifier {
+    private final List<JWSVerifier> delegates;
 
     public ChainedSignatureVerifier(JsonWebKeySet<? extends JsonWebKey> keys) {
         if(keys == null || keys.getKeys() == null || keys.getKeys().isEmpty()) {
             throw new IllegalArgumentException("keys cannot be null or empty");
         }
-        List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
+        List<JWSVerifier> ds = new ArrayList<>(keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
             ds.add(new CommonSignatureVerifier(key.getValue()));
         }
         delegates = Collections.unmodifiableList(ds);
     }
 
-    public ChainedSignatureVerifier(List<SignatureVerifier> delegates) {
+    public ChainedSignatureVerifier(List<JWSVerifier> delegates) {
         this.delegates = delegates;
     }
 
-    @Override
-    public void verify(byte[] content, byte[] signature) {
-        Exception last = new InvalidSignatureException("No matching keys found.");
-        for (SignatureVerifier delegate : delegates) {
+    public boolean verify(JWSObject jwsObject) {
+        Exception last = new RuntimeException("No matching keys found.");
+        for (JWSVerifier delegate : delegates) {
             try {
-                delegate.verify(content, signature);
+                if (jwsObject.verify(delegate)) {
+                    //success
+                    return true;
+                }
+            } catch (Exception e) {
+                last = e;
+            }
+        }
+        throw (last instanceof RuntimeException) ? (RuntimeException) last : new RuntimeException(last);
+    }
+    public void verify(byte[] content, byte[] signature) {
+        Exception last = new RuntimeException("No matching keys found.");
+        for (JWSVerifier delegate : delegates) {
+            try {
+                delegate.verify( new JWSHeader.Builder(JWSAlgorithm.RS256).build(), content, Base64URL.encode(signature));
                 //success
                 return;
             } catch (Exception e) {
@@ -56,8 +76,22 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
         throw (last instanceof RuntimeException) ? (RuntimeException) last : new RuntimeException(last);
     }
 
-    @Override
     public String algorithm() {
         return null;
+    }
+
+    @Override
+    public boolean verify(JWSHeader header, byte[] signingInput, Base64URL signature) throws JOSEException {
+        return false;
+    }
+
+    @Override
+    public Set<JWSAlgorithm> supportedJWSAlgorithms() {
+        return ObjectUtils.isEmpty(delegates) ? delegates.stream().findAny().get().supportedJWSAlgorithms() : Set.of(JWSAlgorithm.HS256);
+    }
+
+    @Override
+    public JCAContext getJCAContext() {
+        return delegates.stream().findAny().get().getJCAContext();
     }
 }

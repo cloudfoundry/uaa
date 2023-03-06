@@ -1,24 +1,30 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.springframework.security.jwt.BinaryFormat;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.CharBuffer;
-
-import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
-import static org.springframework.security.jwt.codec.Codecs.b64UrlEncode;
-import static org.springframework.security.jwt.codec.Codecs.concat;
-import static org.springframework.security.jwt.codec.Codecs.utf8Decode;
-import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
+import java.nio.charset.Charset;
+import java.text.ParseException;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
 public class JwtHelper {
-    static byte[] PERIOD = utf8Encode(".");
+    static final byte[] PERIOD = new String(".").getBytes();
 
     /**
      * Creates a token from an encoded token string.
@@ -33,13 +39,21 @@ public class JwtHelper {
         if (firstPeriod <= 0 || lastPeriod <= firstPeriod) {
             throw new IllegalArgumentException("JWT must have 3 tokens");
         }
+        JWT jwt;
+        Base64URL[] parsedParts;
+        JWSObject jwsObject;
+        try {
+            jwt = JWTParser.parse(token);
+            parsedParts = jwt.getParsedParts();
+            jwsObject = new JWSObject(parsedParts[0], parsedParts[1], parsedParts[2]);
+        } catch (ParseException e) {
+            throw new RuntimeException(e);
+        }
         CharBuffer buffer = CharBuffer.wrap(token, 0, firstPeriod);
-        JwtHeader header = JwtHeaderHelper.create(buffer.toString());
+        JwtHeader header = JwtHeaderHelper.create(jwt.getHeader().toString());
 
         buffer.limit(lastPeriod).position(firstPeriod + 1);
-        byte[] claims = b64UrlDecode(buffer);
         boolean emptyCrypto = lastPeriod == token.length() - 1;
-
         byte[] crypto;
 
         if (emptyCrypto) {
@@ -50,17 +64,20 @@ public class JwtHelper {
             crypto = new byte[0];
         } else {
             buffer.limit(token.length()).position(lastPeriod + 1);
-            crypto = b64UrlDecode(buffer);
+            crypto = new Base64URL(buffer.toString()).decode();
         }
-        return new JwtImpl(header, claims, crypto);
+        return new JwtImpl(header, jwsObject, crypto);
     }
 
     public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
         JwtHeader header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
-        byte[] claims = utf8Encode(content);
-        byte[] crypto = keyInfo.getSigner()
-          .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
-        return new JwtImpl(header, claims, crypto);
+        JWSObject jwsObject = new JWSObject(header.header(), new Payload(content.toString()));
+        try {
+            jwsObject.sign(keyInfo.getSigner());
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+        return new JwtImpl(header, jwsObject, jwsObject.getSignature().decode());
     }
 }
 
@@ -71,23 +88,36 @@ public class JwtHelper {
  */
 class JwtHeaderHelper {
     static JwtHeader create(String header) {
-        byte[] decodedBytes = b64UrlDecode(header);
+        JWSHeader jwsHeader;
+        try {
+            jwsHeader = JWSHeader.parse(header);
+        } catch (ParseException e) {
+            jwsHeader = null;
+        }
 
-        return new JwtHeader(decodedBytes, JsonUtils.readValue(decodedBytes, HeaderParameters.class));
+        return new JwtHeader(jwsHeader, JsonUtils.readValue(header, HeaderParameters.class));
     }
 
     static JwtHeader create(String algorithm, String kid, String jku) {
         HeaderParameters headerParameters = new HeaderParameters(algorithm, kid, jku);
 
-        return new JwtHeader(JsonUtils.writeValueAsBytes(headerParameters), headerParameters);
+        try {
+            JWSHeader.Builder jwsHeaderBuilder = new JWSHeader.Builder(JWSAlgorithm.parse(algorithm)).keyID(kid);
+            if (jku != null) {
+                jwsHeaderBuilder.jwkURL(new URI(jku));
+            }
+            return new JwtHeader(jwsHeaderBuilder.build(), headerParameters);
+        } catch (URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
 
 /**
  * Header part of JWT
  */
-class JwtHeader implements BinaryFormat {
-    private final byte[] bytes;
+class JwtHeader {
+    private final JWSHeader jwsHeader;
 
     final HeaderParameters parameters;
 
@@ -95,26 +125,25 @@ class JwtHeader implements BinaryFormat {
      * @param bytes      the decoded header
      * @param parameters the parameter values contained in the header
      */
-    JwtHeader(byte[] bytes, HeaderParameters parameters) {
-        this.bytes = bytes;
+    JwtHeader(JWSHeader jwsHeader, HeaderParameters parameters) {
+        this.jwsHeader = jwsHeader;
         this.parameters = parameters;
     }
 
-    @Override
-    public byte[] bytes() {
-        return bytes;
+    public JWSHeader header() {
+        return jwsHeader;
     }
 
     @Override
     public String toString() {
-        return utf8Decode(bytes);
+        return jwsHeader.toJSONObject().toString();
     }
 }
 
 class JwtImpl implements Jwt {
+    private static Charset UTF8 = Charset.forName("UTF-8");
     private final JwtHeader header;
-
-    private final byte[] content;
+    private final JWSObject jwsObject;
 
     private final byte[] crypto;
 
@@ -126,11 +155,11 @@ class JwtImpl implements Jwt {
      *                header information).
      * @param crypto  the base64-decoded "crypto" segment.
      */
-    JwtImpl(JwtHeader header, byte[] content, byte[] crypto) {
+    JwtImpl(JwtHeader header, JWSObject jwsObject, byte[] crypto) {
         this.header = header;
-        this.content = content;
+        this.jwsObject = jwsObject;
         this.crypto = crypto;
-        claims = utf8Decode(content);
+        this.claims = jwsObject.getPayload().toString();
     }
 
     /**
@@ -138,21 +167,32 @@ class JwtImpl implements Jwt {
      *
      * @param verifier the signature verifier
      */
-    @Override
-    public void verifySignature(SignatureVerifier verifier) {
-        verifier.verify(signingInput(), crypto);
+    public void verifySignature(JWSVerifier verifier) {
+        try {
+            boolean verified = false;
+            if (verifier instanceof ChainedSignatureVerifier) {
+                ChainedSignatureVerifier chainedSignatureVerifier = (ChainedSignatureVerifier) verifier;
+                verified = chainedSignatureVerifier.verify(jwsObject);
+            } else {
+                verified = jwsObject.verify(verifier);
+            }
+            if (!verified) {
+                throw new InvalidTokenException("JWS verify failed");
+            }
+        } catch (JOSEException e) {
+            throw new InvalidTokenException("JWS verify failed", e);
+        }
     }
 
     private byte[] signingInput() {
-        return concat(safeB64UrlEncode(header.bytes()), JwtHelper.PERIOD,
-          safeB64UrlEncode(content));
+        return null;//concat(safeB64UrlEncode(header.bytes()), JwtHelper.PERIOD,safeB64UrlEncode(content));
     }
 
     private byte[] safeB64UrlEncode(byte[] bytes) {
         if (bytes.length == 0) {
             return bytes;
         } else {
-            return b64UrlEncode(bytes);
+            return null;//b64UrlEncode(bytes);
         }
     }
 
@@ -162,28 +202,27 @@ class JwtImpl implements Jwt {
      * @return the encoded header, claims and crypto segments concatenated with "."
      * characters
      */
-    @Override
+
     public byte[] bytes() {
-        return concat(b64UrlEncode(header.bytes()), JwtHelper.PERIOD,
-          b64UrlEncode(content), JwtHelper.PERIOD, b64UrlEncode(crypto));
+        return null;//concat(b64UrlEncode(header.bytes()), JwtHelper.PERIOD,b64UrlEncode(content), JwtHelper.PERIOD, b64UrlEncode(crypto));
     }
 
-    @Override
+
     public String getClaims() {
-        return utf8Decode(content);
+        return jwsObject.getPayload().toString();
     }
 
-    @Override
+
     public String getEncoded() {
-        return utf8Decode(bytes());
+        return this.jwsObject.serialize();
     }
 
-    @Override
+
     public String toString() {
         return header + " " + claims + " [" + crypto.length + " crypto bytes]";
     }
 
-    @Override
+
     public HeaderParameters getHeader() {
         return header == null ? null : header.parameters;
     }

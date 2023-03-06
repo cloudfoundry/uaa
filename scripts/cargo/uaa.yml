@@ -15,7 +15,7 @@ LOGIN_SECRET: loginsecret
 
 jwt:
   token:
-    signing-key: tokenKey
+    signing-key: tokenKeyHS256WithMinimumLength32
 
 login:
   serviceProviderKey: |

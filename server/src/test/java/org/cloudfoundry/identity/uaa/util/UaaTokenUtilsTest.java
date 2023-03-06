@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -8,11 +10,11 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -133,14 +135,14 @@ public class UaaTokenUtilsTest {
     }
     
     @Test
-    public void getClaims() {
+    public void getClaims() throws KeyLengthException {
         Map<String, Object> headers = new HashMap<>();
         headers.put("kid", "some-key");
         headers.put("alg", "HS256");
         Map<String, Object> content = new HashMap<>();
         content.put("cid", "openidclient");
         content.put("origin", "uaa");
-        String jwt = UaaTokenUtils.constructToken(headers, content, new MacSigner("foobar"));
+        String jwt = UaaTokenUtils.constructToken(headers, content, new MACSigner("foobar-key-with-minimum-length-32"));
 
         Map<String, Object> claims = UaaTokenUtils.getClaims(jwt);
 
@@ -155,16 +157,16 @@ public class UaaTokenUtilsTest {
 
     @Test(expected = InvalidTokenException.class)
     public void getClaims_throwsExceptionWhenClaimsCannotBeRead() {
-        Jwt encoded = JwtHelper.encode("great content", KeyInfoBuilder.build("foo", "bar", "https://localhost/uaa"));
+        Jwt encoded = JwtHelper.encode("great content", KeyInfoBuilder.build("foo", "bar-key----with-minimum-length-32", "https://localhost/uaa"));
         UaaTokenUtils.getClaims(encoded.getEncoded());
     }
 
     @Test
-    public void getClaims_WhenClaimsAreMissing_returnsEmptyMap() {
+    public void getClaims_WhenClaimsAreMissing_returnsEmptyMap() throws KeyLengthException {
         Map<String, Object> headers = new HashMap<>();
         headers.put("kid", "some-key");
         headers.put("alg", "HS256");
-        String tokenWithNoClaims = UaaTokenUtils.constructToken(headers, null, new MacSigner("foobar"));
+        String tokenWithNoClaims = UaaTokenUtils.constructToken(headers, Collections.emptyMap(), new MACSigner("foobar-----key-with-minimum-length-32"));
 
         Map<String, Object> claims = UaaTokenUtils.getClaims(tokenWithNoClaims);
 

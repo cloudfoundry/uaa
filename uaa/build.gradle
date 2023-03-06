@@ -61,6 +61,7 @@ dependencies {
     testImplementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
     }
+    testImplementation(libraries.nimbusJwt)
     testImplementation(libraries.flywayCore)
     testImplementation(libraries.googleAuth)
     testImplementation(libraries.hibernateValidator)
@@ -83,7 +84,6 @@ dependencies {
     testImplementation(libraries.springContextSupport)
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
-    testImplementation(libraries.springSecurityJwt)
     testImplementation(libraries.springSecurityLdap)
     testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)

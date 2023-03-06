@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
@@ -15,7 +17,6 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -876,12 +877,16 @@ class PasswordGrantAuthenticationManagerTest {
     private void mockKeyInfoService() {
         KeyInfoService keyInfoService = mock(KeyInfoService.class);
         KeyInfo keyInfo = mock(KeyInfo.class);
-        Signer signer = mock(Signer.class);
+        MACSigner signer = null;
+        try {
+            signer = new MACSigner("legacy-token-key-with-minimum-length-32");
+        } catch (KeyLengthException e) {
+            throw new RuntimeException(e);
+        }
         when(externalOAuthAuthenticationManager.getKeyInfoService()).thenReturn(keyInfoService);
         when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
         when(keyInfo.algorithm()).thenReturn("HS256");
         when(keyInfo.getSigner()).thenReturn(signer);
-        when(signer.sign(any())).thenReturn("dummy".getBytes());
     }
 
     private Authentication getAuthenticationWithUaaHint() {

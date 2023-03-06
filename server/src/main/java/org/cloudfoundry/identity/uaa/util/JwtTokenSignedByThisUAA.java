@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,12 +25,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 
+import com.nimbusds.jose.JWSVerifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -85,7 +85,7 @@ public abstract class JwtTokenSignedByThisUAA {
         return refreshTokenValidation;
     }
 
-    public static JwtTokenSignedByThisUAA buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, KeyInfoService keyInfoService) {
+    public static JwtTokenSignedByThisUAA buildIdTokenValidator(String tokenJwtValue, JWSVerifier verifier, KeyInfoService keyInfoService) {
         IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, keyInfoService);
         idTokenValidation.checkSignature(verifier);
         return idTokenValidation;
@@ -106,7 +106,7 @@ public abstract class JwtTokenSignedByThisUAA {
         this.keyInfoService = keyInfoService;
     }
 
-    private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
+    private JWSVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
         String kid = tokenJwt.getHeader().getKid();
         if (kid == null) {
             throw new InvalidTokenException("kid claim not found in JWT token header");
@@ -126,12 +126,12 @@ public abstract class JwtTokenSignedByThisUAA {
         return checkSignature(fetchSignatureVerifierFromToken(this.tokenJwt));
     }
 
-    public JwtTokenSignedByThisUAA checkSignature(SignatureVerifier verifier) {
+    public JwtTokenSignedByThisUAA checkSignature(JWSVerifier verifier) {
         try {
             this.tokenJwt.verifySignature(verifier);
         } catch (RuntimeException ex) {
             logger.debug("Invalid token (could not verify signature)", ex);
-            throw new InvalidTokenException("Could not verify token signature.", new InvalidSignatureException(token));
+            throw new InvalidTokenException("Could not verify token signature.", new RuntimeException(token));
         }
         return this;
     }
@@ -157,10 +157,10 @@ public abstract class JwtTokenSignedByThisUAA {
         }
 
         Object expClaim = claims.get(EXPIRY_IN_SECONDS);
-        long expiry;
+        Date expiry;
         try {
-            expiry = (int) expClaim;
-            if (asOf.getEpochSecond() > expiry) {
+            expiry = (Date) expClaim;
+            if (asOf.getEpochSecond() > (expiry.getTime() / 1000) ) {
                 throw new InvalidTokenException("Token expired at " + expiry, null);
             }
         } catch (ClassCastException ex) {

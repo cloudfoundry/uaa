@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.springframework.security.jwt.crypto.cipher.CipherMetadata;
 
 /**
  * @author Luke Taylor
@@ -75,7 +74,8 @@ public class JwtAlgorithms {
         return alg;
     }
 
-    static String enc(CipherMetadata cipher) {
+    static String enc(Object cipher) {
+        /*
         if (!cipher.algorithm().equalsIgnoreCase("AES/CBC/PKCS5Padding")) {
             throw new IllegalArgumentException("Unknown or unsupported algorithm");
         }
@@ -84,7 +84,9 @@ public class JwtAlgorithms {
         } else if (cipher.keySize() == 256) {
             return "A256CBC";
         } else {
+
+         */
             throw new IllegalArgumentException("Unsupported key size");
-        }
+        //}
     }
 }

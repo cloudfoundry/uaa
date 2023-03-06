@@ -14,6 +14,12 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
@@ -45,9 +51,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -85,7 +88,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -98,13 +100,13 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 public class JwtTokenSignedByThisUAATest {
     public static final String CLIENT_ID = "app";
     public static final String USER_ID = "a7f07bf6-e720-4652-8999-e980189cef54";
-    private final SignatureVerifier verifier = new MacSigner("foobar");
+    private final JWSVerifier verifier = new MACVerifier("foobar-key-with-minimum-length-32");
 
     private final Instant oneSecondAfterTheTokenExpires = Instant.ofEpochSecond(1458997132 + 1);
     private final Instant oneSecondBeforeTheTokenExpires = Instant.ofEpochSecond(1458997132 - 1);
     private Map<String, Object> header;
     private Map<String, Object> content;
-    private Signer signer;
+    private JWSSigner signer;
     private RevocableTokenProvisioning revocableTokenProvisioning;
     private InMemoryMultitenantClientServices inMemoryMultitenantClientServices;
     private UaaUserDatabase userDb;
@@ -114,6 +116,9 @@ public class JwtTokenSignedByThisUAATest {
 
     private List<String> logEvents;
     private AbstractAppender appender;
+
+    public JwtTokenSignedByThisUAATest() throws JOSEException {
+    }
 
     @Before
     public void setupLogger() {
@@ -148,10 +153,10 @@ public class JwtTokenSignedByThisUAATest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private static final String macSigningKeySecret = "foobar";
+    private static final String macSigningKeySecret = "foobar-key-with-minimum-length-32";
 
     @Before
-    public void setup() {
+    public void setup() throws KeyLengthException {
         String defaultKeyId = "some-key-id";
 
         IdentityZone uaaZone = IdentityZone.getUaa();
@@ -192,7 +197,7 @@ public class JwtTokenSignedByThisUAATest {
                 entry("revocable", true)
         );
 
-        signer = new MacSigner(macSigningKeySecret);
+        signer = new MACSigner(macSigningKeySecret);
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
@@ -240,7 +245,8 @@ public class JwtTokenSignedByThisUAATest {
     @Test
     public void validation_must_fail_with_wrong_alg() {
         header.put("alg", "HS512");
-        expectedException.expectMessage("Could not verify token signature.");
+        expectedException.expect(InvalidTokenException.class);
+        expectedException.expectMessage("failed");
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
             .checkIssuer("http://localhost:8080/uaa/oauth/token")
             .checkSignature();
@@ -486,11 +492,9 @@ public class JwtTokenSignedByThisUAATest {
     }
 
     @Test
-    public void buildIdTokenValidator_performsSignatureValidation() {
-        ChainedSignatureVerifier signatureVerifier = mock(ChainedSignatureVerifier.class);
+    public void buildIdTokenValidator_performsSignatureValidation() throws JOSEException {
+        ChainedSignatureVerifier signatureVerifier = new ChainedSignatureVerifier(Arrays.asList(new MACVerifier("foobar-key-with-minimum-length-32")));
         buildIdTokenValidator(getToken(), signatureVerifier, new KeyInfoService("https://localhost"));
-
-        verify(signatureVerifier).verify(any(), any());
     }
 
     @Test
@@ -506,13 +510,13 @@ public class JwtTokenSignedByThisUAATest {
         content.put(SCOPE, Lists.newArrayList("openid"));
         content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
 
-        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).requestedScopes();
+        List<String> scopes = buildIdTokenValidator(getToken(), verifier, new KeyInfoService("https://localhost")).requestedScopes();
         assertThat(scopes, equalTo(Lists.newArrayList("openid")));
     }
 
     @Test
-    public void tokenSignedWithDifferentKey() {
-        signer = new MacSigner("some_other_key");
+    public void tokenSignedWithDifferentKey() throws KeyLengthException {
+        signer = new MACSigner("some_other_key-with-minimum-length-32");
 
         expectedException.expect(InvalidTokenException.class);
 
@@ -536,7 +540,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void emptyBodyJwt_failsCheckingIssuer() {
-        content = null;
+        content.put("iss", "me");
         JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
@@ -545,7 +549,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void emptyBodyJwt_failsCheckingExpiry() {
-        content = null;
+        content.remove("exp");
         JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);

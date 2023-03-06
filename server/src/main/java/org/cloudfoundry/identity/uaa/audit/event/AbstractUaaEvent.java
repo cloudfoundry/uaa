@@ -13,18 +13,18 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jwt.Jwt;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 
@@ -140,9 +140,8 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         if (hasText(tokenValue)) {
             if (isJwtToken(tokenValue)) {
                 try {
-                    Jwt token = JwtHelper.decode(tokenValue);
-                    Map<String, Object> claims = JsonUtils.readValue(token.getClaims(), new TypeReference<Map<String, Object>>() {
-                    });
+                    JWT token = JWTParser.parse(tokenValue);;
+                    Map<String, Object> claims = token.getJWTClaimsSet().getClaims();
                     String issuer = claims.get(ClaimConstants.ISS).toString();
                     String subject = claims.get(ClaimConstants.SUB).toString();
                     builder.append(", sub=").append(subject).append(", ").append("iss=").append(issuer);

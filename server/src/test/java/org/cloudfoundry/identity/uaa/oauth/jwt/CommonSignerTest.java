@@ -36,7 +36,7 @@ public class CommonSignerTest {
             "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
             "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
             "-----END RSA PRIVATE KEY-----";
-        macSigningKey = "mac-sign-key";
+        macSigningKey = "mac-tokenKeyHS256WithMinimumLength32";
     }
 
     @Test

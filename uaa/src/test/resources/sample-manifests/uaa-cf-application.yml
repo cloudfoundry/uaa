@@ -54,7 +54,7 @@ applications:
           -----END CERTIFICATE-----
       jwt:
         token:
-          signing-key: tokenKey
+          signing-key: legacy-token-key-with-minimum-length-32
       zones:
        internal:
          hostnames:

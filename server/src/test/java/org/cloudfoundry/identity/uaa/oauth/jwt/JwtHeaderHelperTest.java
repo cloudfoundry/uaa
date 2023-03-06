@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.directory.api.util.Base64;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension.RandomValue;
 import org.junit.jupiter.api.*;
@@ -28,7 +27,7 @@ class JwtHeaderHelperTest {
         void setup() {
             objectNode = new ObjectMapper().createObjectNode();
             objectNode.put("kid", "key-id");
-            objectNode.put("alg", "key-alg");
+            objectNode.put("alg", "HS256");
             objectNode.put("enc", "key-encoding");
             objectNode.put("iv", "key-init-vector");
             objectNode.put("typ", "JWT");
@@ -56,7 +55,7 @@ class JwtHeaderHelperTest {
         @DisplayName("given a valid signer it should serialize without error")
         @Test
         void shouldSerializeWithValidSigner() {
-            final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
+            final CommonSigner hmac = new CommonSigner("fake-key", "fake-keyHS256WithMinimumLength32", null);
 
             JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
 
@@ -89,7 +88,7 @@ class JwtHeaderHelperTest {
         @DisplayName("the enc/iv header claims are for JWE tokens.")
         @Test
         void shouldSerializeOnlyWithValidRequiredHeaders() {
-            final CommonSigner hmac = new CommonSigner("fake-key", "HMAC", null);
+            final CommonSigner hmac = new CommonSigner("fake-key", "fake-keyHS256WithMinimumLength32", null);
             JwtHeader header = JwtHeaderHelper.create(hmac.algorithm(), hmac.keyId(), hmac.keyURL());
 
             assertThat(header.toString(), not(containsString("enc")));
@@ -110,6 +109,7 @@ class JwtHeaderHelperTest {
             @BeforeEach
             void setup() {
                 objectNode = new ObjectMapper().createObjectNode();
+                objectNode.put("alg", "HS256");
             }
 
             @ParameterizedTest
@@ -173,12 +173,12 @@ class JwtHeaderHelperTest {
     private void validateJwtHeaders(JwtHeader header) {
         assertThat(header.parameters.typ, is("JWT"));
         assertThat(header.parameters.kid, is("key-id"));
-        assertThat(header.parameters.alg, is("key-alg"));
+        assertThat(header.parameters.alg, is("HS256"));
         assertThat(header.parameters.enc, is("key-encoding"));
         assertThat(header.parameters.iv, is("key-init-vector"));
     }
 
     private String asBase64(String jwt) {
-        return new String(Base64.encode(jwt.getBytes()));
+        return jwt;
     }
 }

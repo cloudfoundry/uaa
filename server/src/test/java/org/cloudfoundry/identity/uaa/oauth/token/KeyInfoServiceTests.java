@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.util.Base64URL;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
@@ -48,7 +52,7 @@ class KeyInfoServiceTests {
 
     @BeforeAll
     static void setupLegacyKey() {
-        LegacyTokenKey.setLegacySigningKey("testLegacyKey", "https://localhost/uaa");
+        LegacyTokenKey.setLegacySigningKey("testLegacyKeyWithMinimumLength32", "https://localhost/uaa");
     }
 
     @BeforeEach
@@ -57,20 +61,20 @@ class KeyInfoServiceTests {
     }
 
     @Test
-    void testSignedProviderSymmetricKeys() {
+    void testSignedProviderSymmetricKeys() throws JOSEException {
         String keyId = generator.generate();
-        configureDefaultZoneKeys(Collections.singletonMap(keyId, "testkey"));
+        configureDefaultZoneKeys(Collections.singletonMap(keyId, "testAnotherKeyWithMinimumLength32"));
 
         KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
-        byte[] signedValue = key.getSigner().sign("joel".getBytes());
-        key.getVerifier().verify("joel".getBytes(), signedValue);
+        Base64URL signedValue = key.getSigner().sign(new JWSHeader(JWSAlgorithm.HS256), "joel".getBytes());
+        key.getVerifier().verify(new JWSHeader(JWSAlgorithm.HS256), "joel".getBytes(), signedValue);
     }
 
     @Test
-    void testSignedProviderAsymmetricKeys() {
+    void testSignedProviderAsymmetricKeys() throws JOSEException {
         String signingKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIICXAIBAAKBgQDErZsZY70QAa7WdDD6eOv3RLBA4I5J0zZOiXMzoFB5yh64q0sm\n" +
                 "ESNtV4payOYE5TnHxWjMo0y7gDsGjI1omAG6wgfyp63I9WcLX7FDLyee43fG5+b9\n" +
@@ -92,8 +96,8 @@ class KeyInfoServiceTests {
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
-        byte[] signedValue = key.getSigner().sign("joel".getBytes());
-        key.getVerifier().verify("joel".getBytes(), signedValue);
+        Base64URL signedValue = key.getSigner().sign(new JWSHeader(JWSAlgorithm.RS256), "joel".getBytes());
+        key.getVerifier().verify(new JWSHeader(JWSAlgorithm.RS256), "joel".getBytes(), signedValue);
     }
 
     @Test
@@ -137,7 +141,7 @@ class KeyInfoServiceTests {
         configureDefaultZoneKeys(Collections.emptyMap());
 
         assertEquals(keyInfoService.getActiveKey().keyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
-        assertEquals(keyInfoService.getActiveKey().verifierKey(), "testLegacyKey");
+        assertEquals(keyInfoService.getActiveKey().verifierKey(), "testLegacyKeyWithMinimumLength32");
     }
 
     private void configureDefaultZoneKeys(Map<String,String> keys) {

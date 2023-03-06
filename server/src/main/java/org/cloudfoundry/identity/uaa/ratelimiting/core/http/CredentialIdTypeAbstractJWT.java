@@ -1,8 +1,12 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
+import com.nimbusds.jose.util.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.springframework.security.jwt.codec.Codecs;
+
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.Charset;
 
 public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
     protected enum Section {
@@ -116,10 +120,10 @@ public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
     @SuppressWarnings("deprecation")
     static String decodeSection( String section, Object toStringForException ) {
         try {
-            byte[] bytes = Codecs.b64UrlDecode( section );
-            return Codecs.utf8Decode( bytes );
+            byte[] bytes = new Base64(section).decode();
+            return Charset.forName("UTF-8").newDecoder().decode(ByteBuffer.wrap(bytes)).toString();
         }
-        catch ( RuntimeException e ) {
+        catch (RuntimeException | CharacterCodingException e ) {
             throw new RateLimitingConfigException(
                     e.getMessage() + " | with: " + toStringForException + " | sectionText: " + section, e );
         }

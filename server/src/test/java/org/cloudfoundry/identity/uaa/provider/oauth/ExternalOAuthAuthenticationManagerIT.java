@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.testing.FakeTicker;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWK;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
@@ -56,8 +58,6 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.util.LinkedMultiValueMap;
@@ -151,7 +151,7 @@ class ExternalOAuthAuthenticationManagerIT {
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
     private OIDCIdentityProviderDefinition config;
-    private RsaSigner signer;
+    private RSASSASigner signer;
     private Map<String, Object> header;
     private String invalidRsaSigningKey;
     private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
@@ -187,11 +187,11 @@ class ExternalOAuthAuthenticationManagerIT {
         IdentityZoneHolder.clear();
         String keyName = "testKey";
         header = map(
-                entry("alg", "HS256"),
+                entry("alg", "RS256"),
                 entry("kid", keyName),
                 entry("typ", "JWT")
         );
-        signer = new RsaSigner(PRIVATE_KEY);
+        signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(PRIVATE_KEY).toRSAKey().toPrivateKey(), true);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(keyName, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
@@ -312,7 +312,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void verify_hmac_256_signature() throws Exception {
-        String key = "key";
+        String key = "key-for-token-with-minimum-length-32";
         String data = "data";
         SecretKeySpec secretKey = new SecretKeySpec(key.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
         Mac mac = Mac.getInstance("HmacSHA256");
@@ -746,7 +746,7 @@ class ExternalOAuthAuthenticationManagerIT {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
             fail("not expected");
         } catch (Exception e) {
-            assertTrue(e.getCause() instanceof InvalidSignatureException);
+            assertTrue(e instanceof InvalidTokenException);
         }
     }
 

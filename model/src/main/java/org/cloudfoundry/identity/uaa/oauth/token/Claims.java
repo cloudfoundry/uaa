@@ -58,7 +58,7 @@ public class Claims {
     @JsonProperty(ClaimConstants.ISS)
     private String iss;
     @JsonProperty(ClaimConstants.IAT)
-    private Integer iat;
+    private Long iat;
     @JsonProperty(ClaimConstants.CID)
     private String cid;
     @JsonProperty(ClaimConstants.GRANT_TYPE)
@@ -210,11 +210,11 @@ public class Claims {
         this.iss = iss;
     }
 
-    public Integer getIat() {
+    public Long getIat() {
         return iat;
     }
 
-    public void setIat(Integer iat) {
+    public void setIat(Long iat) {
         this.iat = iat;
     }
 

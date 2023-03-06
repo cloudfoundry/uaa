@@ -1,8 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -60,13 +61,11 @@ public class IntrospectEndpoint {
 
 
     private IntrospectionClaims getClaimsForToken(String token) {
-        org.springframework.security.jwt.Jwt tokenJwt;
-        tokenJwt = JwtHelper.decode(token);
-
-        IntrospectionClaims claims;
+         IntrospectionClaims claims;
+        Jwt jwt = JwtHelper.decode(token);
         try {
             // we assume token.getClaims is never null due to previously parsing token when verifying the token
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), IntrospectionClaims.class);
+            claims = JsonUtils.readValue(jwt.getClaims(), IntrospectionClaims.class);
         } catch (JsonUtils.JsonUtilException e) {
             logger.error("Can't parse introspection claims in token. Is it a valid JSON?");
             throw new InvalidTokenException("Cannot read token claims", e);

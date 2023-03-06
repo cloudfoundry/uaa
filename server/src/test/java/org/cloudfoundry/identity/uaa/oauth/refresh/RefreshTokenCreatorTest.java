@@ -54,7 +54,7 @@ public class RefreshTokenCreatorTest {
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
         refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost"));
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(new HashMap<>(Collections.singletonMap("newKey", "secret")));
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(new HashMap<>(Collections.singletonMap("newKey", "secret-key-with-minimum-length-32")));
     }
 
     @Test
@@ -97,7 +97,7 @@ public class RefreshTokenCreatorTest {
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
         Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue());
-        assertThat(refreshClaims.get(AUTH_TIME), is(1));
+        assertThat(refreshClaims.get(AUTH_TIME), is(Long.valueOf(1)));
         assertThat((List<String>) refreshClaims.get(AMR), hasItem("pwd"));
         assertThat((Map<String, List<String>>) refreshClaims.get(ACR), hasKey("values"));
         assertThat(((Map<String, List<String>>) refreshClaims.get(ACR)).get("values"), hasItem("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"));

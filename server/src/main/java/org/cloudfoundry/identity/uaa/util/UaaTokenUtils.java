@@ -14,15 +14,18 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.Payload;
+import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -31,6 +34,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -185,18 +189,20 @@ public final class UaaTokenUtils {
         return getRevocationHash(saltlist);
     }
 
-    public static String constructToken(Map<String, Object> header, Map<String, Object> claims, Signer signer) {
-        byte[] headerJson = header == null ? new byte[0] : JsonUtils.writeValueAsBytes(header);
-        byte[] claimsJson = claims == null ? new byte[0] : JsonUtils.writeValueAsBytes(claims);
-
-        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
-        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
-        String headerAndClaims = headerBase64 + "." + claimsBase64;
-        byte[] signature = signer.sign(headerAndClaims.getBytes());
-
-        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
-
-        return headerAndClaims + "." + signatureBase64;
+    public static String constructToken(Map<String, Object> header, Map<String, Object> claims, JWSSigner signer) {
+        JWSObject idToken;
+        try {
+            JWSHeader jwtHeader = JWSHeader.parse(header);
+            idToken = new JWSObject(jwtHeader, new Payload(claims));
+        } catch (ParseException | IllegalArgumentException e) {
+            throw new InvalidTokenException("Invalid token header", e);
+        }
+        try {
+            idToken.sign(signer);
+        } catch (JOSEException e) {
+            throw new InvalidTokenException("Sign failed", e);
+        }
+        return idToken.serialize();
     }
 
     public static boolean isJwtToken(String token) {
@@ -253,9 +259,8 @@ public final class UaaTokenUtils {
 
         Map<String, Object> claims;
         try {
-            claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-        } catch (JsonUtils.JsonUtilException ex) {
+            claims = JWTParser.parse(jwtToken).getJWTClaimsSet().getClaims();
+        } catch (ParseException | JsonUtils.JsonUtilException ex) {
             throw new InvalidTokenException("Invalid token (cannot read token claims): " + jwtToken, ex);
         }
 

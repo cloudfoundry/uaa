@@ -220,7 +220,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         JwtTokenSignedByThisUAA jwtToken = tokenValidationService
                 .validateToken(refreshTokenValue, false)
                 .checkJti();
-        Map<String, Object> refreshTokenClaims = jwtToken.getClaims();
+        Map<String, Object> refreshTokenClaims = new HashMap<>(jwtToken.getClaims());
 
         ArrayList<String> tokenScopes = getScopesFromRefreshToken(refreshTokenClaims);
         refreshTokenCreator.ensureRefreshTokenCreationNotRestricted(tokenScopes);
@@ -786,9 +786,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken = jwtToken.getJwt().getEncoded();
 
         // Check token expiry
-        Long expiration = Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString());
-        if (new Date(expiration * MILLIS_PER_SECOND).before(timeService.getCurrentDate())) {
-            throw new InvalidTokenException("Invalid access token: expired at " + new Date(expiration * MILLIS_PER_SECOND));
+        Date expiration = (Date) claims.get(EXPIRY_IN_SECONDS);
+        if (expiration.before(timeService.getCurrentDate())) {
+            throw new InvalidTokenException("Invalid access token: expired at " + expiration);
         }
 
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
@@ -796,7 +796,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         AuthorizationRequest authorizationRequest = new AuthorizationRequest((String) claims.get(CLIENT_ID),
                         scopes);
 
-        ArrayList<String> rids = (ArrayList<String>) claims.get(AUD);
+        Collection<String> rids = (Collection) claims.get(AUD);
         Set<String> resourceIds = Collections.unmodifiableSet(rids==null?new HashSet<>():new HashSet<>(rids));
         authorizationRequest.setResourceIds(resourceIds);
 
@@ -858,7 +858,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Expiry is verified by check_token
         CompositeToken token = new CompositeToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
-        token.setExpiration(new Date(Long.valueOf(claims.get(EXPIRY_IN_SECONDS).toString()) * MILLIS_PER_SECOND));
+        token.setExpiration((Date) claims.get(EXPIRY_IN_SECONDS));
 
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
         if (!ObjectUtils.isEmpty(scopes)) {

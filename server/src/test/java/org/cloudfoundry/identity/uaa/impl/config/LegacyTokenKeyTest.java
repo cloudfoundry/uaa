@@ -14,7 +14,7 @@ public class LegacyTokenKeyTest {
 
     @Test
     public void shouldBuildLegacyTokenKey_withSecureKeyUrl() {
-        LegacyTokenKey.setLegacySigningKey("secret", "http://uaa.url");
+        LegacyTokenKey.setLegacySigningKey("secret-key-with-minimum-length-32", "http://uaa.url");
 
         KeyInfo legacyTokenKeyInfo = LegacyTokenKey.getLegacyTokenKeyInfo();
 
@@ -23,7 +23,7 @@ public class LegacyTokenKeyTest {
 
     @Test
     public void shouldBuildLegacyTokenKey() {
-        LegacyTokenKey.setLegacySigningKey("secret", "https://another.uaa.url");
+        LegacyTokenKey.setLegacySigningKey("secret-key-with-minimum-length-32", "https://another.uaa.url");
 
         KeyInfo legacyTokenKeyInfo = LegacyTokenKey.getLegacyTokenKeyInfo();
 

@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWK;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -15,11 +18,11 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.text.ParseException;
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.config.IdentityZoneConfigurationBootstrapTests.PRIVATE_KEY;
@@ -39,13 +42,13 @@ public class TokenValidationServiceTest {
     private MultitenantClientServices mockMultitenantClientServices;
     private RevocableTokenProvisioning revocableTokenProvisioning;
     private Map<String, Object> header;
-    private RsaSigner signer;
+    private RSASSASigner signer;
     private String userId = "asdf-bfdsajk-asdfjsa";
     private String clientId = "myclient";
     private Map<String, Object> content;
 
     @Before
-    public void setup() {
+    public void setup() throws ParseException, JOSEException {
         header = map(
                 entry("alg", "RS256"),
                 entry("kid", "key1"),
@@ -57,7 +60,7 @@ public class TokenValidationServiceTest {
                 entry(CID, clientId),
                 entry(SCOPE, Lists.newArrayList("foo.bar"))
         );
-        signer = new RsaSigner(PRIVATE_KEY);
+        signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(PRIVATE_KEY).toRSAKey().toPrivateKey(), true);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("key1", PRIVATE_KEY));
 
         userDatabase = mock(UaaUserDatabase.class);

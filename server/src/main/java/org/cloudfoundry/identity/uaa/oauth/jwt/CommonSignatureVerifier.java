@@ -14,20 +14,37 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jca.JCAContext;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.util.Base64URL;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 
-public class CommonSignatureVerifier implements SignatureVerifier {
-    private final SignatureVerifier delegate;
+import java.util.Set;
+
+public class CommonSignatureVerifier implements JWSVerifier {
+    private final JWSVerifier delegate;
 
     public CommonSignatureVerifier(String verificationKey) {
         if(verificationKey == null) {
             throw new IllegalArgumentException("verificationKey cannot be null");
         } else if(isAssymetricKey(verificationKey)) {
-            delegate = new RsaVerifier(verificationKey);
+            try {
+                delegate = new RSASSAVerifier(JWK.parseFromPEMEncodedObjects(verificationKey).toRSAKey().toRSAPublicKey());
+            } catch (JOSEException e) {
+                throw new InvalidTokenException("Verify failed", e);
+            }
         } else {
-            delegate = new MacSigner(verificationKey);
+            try {
+                delegate = new MACVerifier(verificationKey);
+            } catch (JOSEException e) {
+                throw new InvalidTokenException("Verify failed", e);
+            }
         }
     }
 
@@ -35,13 +52,28 @@ public class CommonSignatureVerifier implements SignatureVerifier {
         return key.startsWith("-----BEGIN");
     }
 
-    @Override
+
     public void verify(byte[] content, byte[] signature) {
-        delegate.verify(content, signature);
+
+    }
+
+
+    public String algorithm() {
+        return "";
     }
 
     @Override
-    public String algorithm() {
-        return delegate.algorithm();
+    public boolean verify(JWSHeader header, byte[] signingInput, Base64URL signature) throws JOSEException {
+        return delegate.verify(header, signingInput, signature);
+    }
+
+    @Override
+    public Set<JWSAlgorithm> supportedJWSAlgorithms() {
+        return delegate.supportedJWSAlgorithms();
+    }
+
+    @Override
+    public JCAContext getJCAContext() {
+        return delegate.getJCAContext();
     }
 }

@@ -14,6 +14,11 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACSigner;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
@@ -57,8 +62,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -610,8 +613,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     protected String hmacSignAndEncode(String data, String key) {
-        MacSigner macSigner = new MacSigner(key);
-        return new String(Base64.encodeBase64URLSafe(macSigner.sign(data.getBytes(StandardCharsets.UTF_8))), StandardCharsets.UTF_8);
+        MACSigner macSigner = null;
+        try {
+            macSigner = new MACSigner(key);
+            return macSigner.sign(new JWSHeader(JWSAlgorithm.HS256), data.getBytes(StandardCharsets.UTF_8)).toString();
+        } catch (JOSEException e) {
+            throw new RuntimeException(e);
+        }
+
     }
 
     private JwtTokenSignedByThisUAA validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
@@ -620,7 +629,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         JwtTokenSignedByThisUAA jwtToken;
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()).equals(config.getIssuer())) {
-            List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
+            List<JWSVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
@@ -631,7 +640,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return jwtToken.checkExpiry();
     }
 
-    protected List<SignatureVerifier> getTokenKeyForUaaOrigin() {
+    protected List<JWSVerifier> getTokenKeyForUaaOrigin() {
         Map<String, KeyInfo> keys = keyInfoService.getKeys();
         return keys.values().stream()
           .map(i -> i.getVerifier())

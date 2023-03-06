@@ -23,7 +23,7 @@ class IntrospectEndpointTest {
     @Mock
     private ResourceServerTokenServices resourceServerTokenServices;
 
-    private String validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlVBQSB1c2VybmFtZSIsImlhdCI6MTUxNjIzOTAyMn0.jS74pusAMo7VBsEN08rzpxMrk57ZMoRH3QX_gNUopJ4";
+    private String validToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlVBQSB1c2VybmFtZSIsImlhdCI6MTUxNjIzOTAyMn0._8fl-v5Kh_egOXkMyCsm_rorB78CJtvJcWHpg1yK_ek";
 
     @BeforeEach
     void setUp() {

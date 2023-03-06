@@ -14,11 +14,15 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWK;
 
 public class CommonSigner implements Signer {
-    private final org.springframework.security.jwt.crypto.sign.Signer delegate;
+    private final JWSSigner delegate;
     private final String keyId;
     private String keyURL;
 
@@ -26,9 +30,17 @@ public class CommonSigner implements Signer {
         if (signingKey == null) {
             throw new IllegalArgumentException(signingKey);
         } else if (isAssymetricKey(signingKey)) {
-            delegate = new RsaSigner(signingKey);
+            try {
+                delegate = new RSASSASigner(JWK.parseFromPEMEncodedObjects(signingKey).toRSAKey().toPrivateKey(), true);
+            } catch (JOSEException e) {
+                throw new RuntimeException(e);
+            }
         } else {
-            delegate = new MacSigner(signingKey);
+            try {
+                delegate = new MACSigner(signingKey);
+            } catch (KeyLengthException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         this.keyId = keyId;
@@ -50,17 +62,17 @@ public class CommonSigner implements Signer {
         return keyURL;
     }
 
-    @Override
+
     public byte[] sign(byte[] bytes) {
-        return delegate.sign(bytes);
+        return null;//delegate.sign(bytes);
     }
 
-    @Override
+
     public String algorithm() {
-        return JwtAlgorithms.sigAlg(delegate.algorithm());
+        return delegate instanceof RSASSASigner ? "RS256": "HS256";//JwtAlgorithms.sigAlg(delegate.algorithm());
     }
 
     public String getJavaAlgorithm() {
-        return delegate.algorithm();
+        return "";//delegate.algorithm();
     }
 }

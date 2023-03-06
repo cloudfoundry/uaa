@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -32,7 +34,7 @@ class JwtClientAuthenticationTest {
   private JwtClientAuthentication jwtClientAuthentication;
 
   @BeforeEach
-  void setup() throws MalformedURLException {
+  void setup() throws MalformedURLException, KeyLengthException {
     jwtClientAuthentication = new JwtClientAuthentication(keyInfoService);
     config = new OIDCIdentityProviderDefinition();
     config.setTokenUrl(new URL("http://localhost:8080/uaa/oauth/token"));
@@ -128,12 +130,12 @@ class JwtClientAuthenticationTest {
     assertEquals(params, jwtClientAuthentication.getClientAuthenticationParameters(params, config));
   }
 
-  private void mockKeyInfoService() {
+  private void mockKeyInfoService() throws KeyLengthException {
     KeyInfo keyInfo = mock(KeyInfo.class);
     Signer signer = mock(Signer.class);
     when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
+    when(keyInfo.getSigner()).thenReturn(new MACSigner("tokenKeyHS256WithMinimumLength32"));
     when(keyInfo.algorithm()).thenReturn("HS256");
-    when(keyInfo.getSigner()).thenReturn(signer);
     when(signer.sign(any())).thenReturn("dummy".getBytes());
   }
 

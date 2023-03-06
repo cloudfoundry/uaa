@@ -1,17 +1,20 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.nimbusds.jose.HeaderParameterNames;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
 import com.nimbusds.jose.jwk.JWKParameterNames;
+import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.crypto.SecretKey;
@@ -21,7 +24,6 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -35,15 +37,13 @@ import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
-import static org.springframework.security.jwt.codec.Codecs.b64Decode;
-import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 public abstract class KeyInfo {
     public abstract void verify();
 
-    public abstract SignatureVerifier getVerifier();
+    public abstract JWSVerifier getVerifier();
 
-    public abstract Signer getSigner();
+    public abstract JWSSigner getSigner();
 
     public abstract String keyId();
 
@@ -70,8 +70,8 @@ public abstract class KeyInfo {
 
 class HmacKeyInfo extends KeyInfo {
     private static final String DEFAULT_HMAC_ALGORITHM = "HMACSHA256";
-    private Signer signer;
-    private SignatureVerifier verifier;
+    private JWSSigner signer;
+    private JWSVerifier verifier;
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
@@ -84,8 +84,12 @@ class HmacKeyInfo extends KeyInfo {
 
         String algorithm = getJavaAlgorithm(sigAlg);
         SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
-        this.signer = new MacSigner(algorithm, hmacKey);
-        this.verifier = new MacSigner(algorithm, hmacKey);
+        try {
+            this.signer = new MACSigner(hmacKey);
+            this.verifier = new MACVerifier(hmacKey);
+        } catch (JOSEException e) {
+            throw new IllegalArgumentException(e);
+        }
 
         this.keyId = keyId;
         this.verifierKey = signingKey;
@@ -97,12 +101,12 @@ class HmacKeyInfo extends KeyInfo {
     }
 
     @Override
-    public SignatureVerifier getVerifier() {
+    public JWSVerifier getVerifier() {
         return this.verifier;
     }
 
     @Override
-    public Signer getSigner() {
+    public JWSSigner getSigner() {
         return this.signer;
     }
 
@@ -140,7 +144,7 @@ class HmacKeyInfo extends KeyInfo {
 
     @Override
     public String algorithm() {
-        return JwtAlgorithms.sigAlg(verifier.algorithm());
+        return "HS256";
     }
 
      @Override
@@ -159,8 +163,8 @@ class RsaKeyInfo extends KeyInfo {
     private final String keyId;
     private final String keyUrl;
 
-    private Signer signer;
-    private SignatureVerifier verifier;
+    private JWSSigner signer;
+    private JWSVerifier verifier;
     private String verifierKey;
 
     public RsaKeyInfo(String keyId, String signingKey, String keyUrl) {
@@ -174,8 +178,8 @@ class RsaKeyInfo extends KeyInfo {
         String algorithm = getJavaAlgorithm(sigAlg);
         String pemEncodePublicKey = JsonWebKey.pemEncodePublicKey(rsaPublicKey);
 
-        this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
-        this.verifier = new RsaVerifier(rsaPublicKey, algorithm);
+        this.signer = new RSASSASigner(keyPair.getPrivate(), true);
+        this.verifier = new RSASSAVerifier(rsaPublicKey);
         this.keyId = keyId;
         this.verifierKey = pemEncodePublicKey;
     }
@@ -188,7 +192,7 @@ class RsaKeyInfo extends KeyInfo {
         }
 
         String type = m.group(1);
-        final byte[] content = b64Decode(utf8Encode(m.group(2)));
+        final byte[] content = new Base64(m.group(2)).decode();
 
         PublicKey publicKey;
         PrivateKey privateKey = null;
@@ -239,12 +243,12 @@ class RsaKeyInfo extends KeyInfo {
     }
 
     @Override
-    public SignatureVerifier getVerifier() {
+    public JWSVerifier getVerifier() {
         return this.verifier;
     }
 
     @Override
-    public Signer getSigner() {
+    public JWSSigner getSigner() {
         return this.signer;
     }
 
@@ -291,7 +295,7 @@ class RsaKeyInfo extends KeyInfo {
 
     @Override
     public String algorithm() {
-        return JwtAlgorithms.sigAlg(verifier.algorithm());
+        return JwtAlgorithms.sigAlg(DEFAULT_RSA_ALGORITHM);
     }
 
     @Override

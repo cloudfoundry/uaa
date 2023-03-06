@@ -2,7 +2,11 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.google.common.testing.FakeTicker;
 import com.nimbusds.jose.HeaderParameterNames;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.jwk.JWK;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -24,11 +28,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.web.client.RestTemplate;
 
+import java.text.ParseException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
@@ -154,15 +157,15 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenProviderHasSigningKey_throwsWhenIdTokenCannotBeValidated() {
+    public void getExternalAuthenticationDetails_whenProviderHasSigningKey_throwsWhenIdTokenCannotBeValidated() throws ParseException, JOSEException {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Could not verify token signature.");
 
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        Signer signer = new RsaSigner(changedOidcProviderTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(changedOidcProviderTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com")
         );
@@ -174,16 +177,17 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenProviderIssuerMatchesUaaIssuer_throwsWhenIdTokenCannotBeValidated() {
+    public void getExternalAuthenticationDetails_whenProviderIssuerMatchesUaaIssuer_throwsWhenIdTokenCannotBeValidated()
+        throws ParseException, JOSEException {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Could not verify token signature.");
 
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(oidcProviderTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com")
         );
@@ -195,12 +199,12 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_doesNotThrowWhenIdTokenIsValid() {
+    public void getExternalAuthenticationDetails_doesNotThrowWhenIdTokenIsValid() throws ParseException, JOSEException {
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(oidcProviderTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
@@ -217,13 +221,13 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() {
+    public void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() throws ParseException, JOSEException {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(uaaIdentityZoneTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
@@ -240,13 +244,13 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() {
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() throws ParseException, JOSEException {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(uaaIdentityZoneTokenSigningKey).toRSAKey().toPrivateKey(), true);
         List<String> roles = Arrays.asList("manager.us", "manager.eu");
         Map<String, Object> claims = map(
             entry(EMAIL, "someuser@google.com"),
@@ -271,13 +275,13 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid() {
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid() throws ParseException, JOSEException {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(uaaIdentityZoneTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Set<String> roles = new HashSet<>(Arrays.asList("manager.us", "manager.eu"));
         Map<String, Object> claims = map(
             entry(EMAIL, "someuser@google.com"),
@@ -304,12 +308,12 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
   @Test
-  public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
+  public void getUser_doesNotThrowWhenIdTokenMappingIsArray() throws ParseException, JOSEException {
     Map<String, Object> header = map(
-        entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+        entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
         entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
     );
-    Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+    JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(oidcProviderTokenSigningKey).toRSAKey().toPrivateKey(), true);
     Map<String, Object> claims = map(
         entry("external_family_name", Collections.emptyList()),
         entry("external_given_name", Arrays.asList("bar", "bar")),
@@ -339,12 +343,12 @@ public class ExternalOAuthAuthenticationManagerTest {
   }
 
     @Test
-    public void getUser_doesThrowWhenIdTokenMappingIsAmbiguous() {
+    public void getUser_doesThrowWhenIdTokenMappingIsAmbiguous() throws ParseException, JOSEException {
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(oidcProviderTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Map<String, Object> claims = map(
             entry("external_family_name", Arrays.asList("bar", "baz")),
             entry(ISS, oidcConfig.getIssuer()),
@@ -367,12 +371,12 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getUser_doesThrowWhenIdTokenMappingIsWrongType() {
+    public void getUser_doesThrowWhenIdTokenMappingIsWrongType() throws ParseException, JOSEException {
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        JWSSigner signer = new RSASSASigner(JWK.parseFromPEMEncodedObjects(oidcProviderTokenSigningKey).toRSAKey().toPrivateKey(), true);
         Map<String, Object> entryMap = map(
             entry("external_map_name", Arrays.asList("bar", "baz"))
         );

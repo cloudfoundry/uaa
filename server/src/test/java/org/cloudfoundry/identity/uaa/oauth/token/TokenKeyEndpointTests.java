@@ -1,5 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.jwk.RSAKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -24,10 +33,10 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 
 import java.security.Principal;
+import java.security.interfaces.RSAPublicKey;
+import java.text.ParseException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -89,10 +98,10 @@ class TokenKeyEndpointTests {
 
     @Test
     void sharedSecretIsReturnedFromTokenKeyEndpoint() {
-        configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
+        configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "legacy-token-key-with-minimum-length-32"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
         assertEquals("HS256", response.getAlgorithm());
-        assertEquals("someKey", response.getKey());
+        assertEquals("legacy-token-key-with-minimum-length-32", response.getKey());
         assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());
         assertEquals("sig", response.getUse().name());
@@ -100,7 +109,7 @@ class TokenKeyEndpointTests {
 
     @Test
     void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() {
-        configureKeysForDefaultZone(Collections.singletonMap("anotherKeyId", "someKey"));
+        configureKeysForDefaultZone(Collections.singletonMap("anotherKeyId", "legacy-anothertoken-key-with-minimum-length-32"));
 
         assertThrows(AccessDeniedException.class, () -> tokenKeyEndpoint.getKey(
                 new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"))
@@ -109,14 +118,14 @@ class TokenKeyEndpointTests {
 
     @Test
     void responseIsBackwardCompatibleWithMap() {
-        configureKeysForDefaultZone(Collections.singletonMap("literallyAnything", "someKey"));
+        configureKeysForDefaultZone(Collections.singletonMap("literallyAnything", "legacy-token-key-with-minimum-length-32"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
 
         String serialized = JsonUtils.writeValueAsString(response);
 
         Map<String, String> deserializedMap = JsonUtils.readValue(serialized, Map.class);
         assertEquals("HS256", deserializedMap.get("alg"));
-        assertEquals("someKey", deserializedMap.get("value"));
+        assertEquals("legacy-token-key-with-minimum-length-32", deserializedMap.get("value"));
         assertEquals("MAC", deserializedMap.get("kty"));
         assertEquals("sig", deserializedMap.get("use"));
     }
@@ -140,23 +149,23 @@ class TokenKeyEndpointTests {
 
     @Test
     void defaultZoneKeyIsReturned_ForZoneWithNoKeys() {
-        configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
+        configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "legacy-token-key-with-minimum-length-32"));
         createAndSetTestZoneWithKeys(null);
 
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
 
         assertEquals("HS256", response.getAlgorithm());
-        assertEquals("someKey", response.getKey());
+        assertEquals("legacy-token-key-with-minimum-length-32", response.getKey());
         assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());
         assertEquals("sig", response.getUse().name());
     }
 
     @Test
-    void listResponseContainsAllPublicKeysWhenUnauthenticated() {
+    void listResponseContainsAllPublicKeysWhenUnauthenticated() throws ParseException, JOSEException {
         Map<String, String> keysForUaaZone = new HashMap<>();
         keysForUaaZone.put("RsaKey1", SIGNING_KEY_1);
-        keysForUaaZone.put("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM");
+        keysForUaaZone.put("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEMlegacy-token-key-with-minimum-length-32");
         keysForUaaZone.put("RsaKey2", SIGNING_KEY_2);
         keysForUaaZone.put("RsaKey3", SIGNING_KEY_3);
         configureKeysForDefaultZone(keysForUaaZone);
@@ -172,17 +181,17 @@ class TokenKeyEndpointTests {
         VerificationKeyResponse key3Response = keysMap.get("RsaKey3");
 
         byte[] bytes = "Text for testing of private/public key match".getBytes();
-        RsaSigner rsaSigner = new RsaSigner(SIGNING_KEY_1);
-        RsaVerifier rsaVerifier = new RsaVerifier(key1Response.getKey());
-        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+        JWSSigner rsaSigner = new RSASSASigner(JWK.parseFromPEMEncodedObjects(SIGNING_KEY_1).toRSAKey().toPrivateKey(), true);
+        JWSVerifier rsaVerifier = new RSASSAVerifier((RSAPublicKey) JWK.parseFromPEMEncodedObjects(key1Response.getKey()).toRSAKey().toPublicKey());
+        rsaVerifier.verify(new JWSHeader(JWSAlgorithm.RS256), bytes, rsaSigner.sign(new JWSHeader(JWSAlgorithm.RS256), bytes));
 
-        rsaSigner = new RsaSigner(SIGNING_KEY_2);
-        rsaVerifier = new RsaVerifier(key2Response.getKey());
-        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+        rsaSigner = new RSASSASigner(JWK.parseFromPEMEncodedObjects(SIGNING_KEY_2).toRSAKey().toPrivateKey(), true);
+        rsaVerifier = new RSASSAVerifier((RSAPublicKey) JWK.parseFromPEMEncodedObjects(key2Response.getKey()).toRSAKey().toPublicKey());
+        rsaVerifier.verify(new JWSHeader(JWSAlgorithm.RS256), bytes, rsaSigner.sign(new JWSHeader(JWSAlgorithm.RS256), bytes));
 
-        rsaSigner = new RsaSigner(SIGNING_KEY_3);
-        rsaVerifier = new RsaVerifier(key3Response.getKey());
-        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+        rsaSigner = new RSASSASigner(JWK.parseFromPEMEncodedObjects(SIGNING_KEY_3).toRSAKey().toPrivateKey(), true);
+        rsaVerifier = new RSASSAVerifier((RSAPublicKey) JWK.parseFromPEMEncodedObjects(key3Response.getKey()).toRSAKey().toPublicKey());
+        rsaVerifier.verify(new JWSHeader(JWSAlgorithm.RS256), bytes, rsaSigner.sign(new JWSHeader(JWSAlgorithm.RS256), bytes));
 
         //ensure that none of the keys are padded
         keys.forEach(
@@ -199,7 +208,7 @@ class TokenKeyEndpointTests {
         keysForUaaZone.put("RsaKey1", SIGNING_KEY_1);
         keysForUaaZone.put("RsaKey2", SIGNING_KEY_2);
         keysForUaaZone.put("RsaKey3", SIGNING_KEY_3);
-        keysForUaaZone.put("SymmetricKey", "ItHasSomeTextThatIsNotPEM");
+        keysForUaaZone.put("SymmetricKey", "ItHasSomeTextThatIsNotPEMlegacy-token-key-with-minimum-length-32");
         configureKeysForDefaultZone(keysForUaaZone);
 
         VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(validUaaResource);
@@ -208,7 +217,7 @@ class TokenKeyEndpointTests {
         assertThat(keyIds, containsInAnyOrder("RsaKey1", "RsaKey2", "RsaKey3", "SymmetricKey"));
 
         VerificationKeyResponse symKeyResponse = keys.stream().filter(k -> k.getId().equals("SymmetricKey")).findAny().get();
-        assertEquals("ItHasSomeTextThatIsNotPEM", symKeyResponse.getKey());
+        assertEquals("ItHasSomeTextThatIsNotPEMlegacy-token-key-with-minimum-length-32", symKeyResponse.getKey());
     }
 
     @Test
