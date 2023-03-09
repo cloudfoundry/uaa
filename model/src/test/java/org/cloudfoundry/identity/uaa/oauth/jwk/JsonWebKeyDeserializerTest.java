@@ -12,16 +12,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class JsonWebKeyTest {
+public class JsonWebKeyDeserializerTest {
 
   // Azure AD jwks_uri : https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys
-  private static final String microsoftJwKSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Microsoft.json");
+  private static final String microsoftJwKSet = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-Microsoft.json");
   // UAA jwks_uri: https://login.uaa-acceptance.cf-app.com/token_keys
-  private static final String uaaLegacyJwkSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-LegacyUaa.json");
+  private static final String uaaLegacyJwkSet = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-LegacyUaa.json");
   // Keycloak server configuration https://www.keycloak.org/docs/latest/server_admin/, e.g. jwks_uri: http://localhost:8080/realms/{realm-name}/protocol/openid-connect/certs
-  private static final String keyCloakJwkSet = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Keycloak.json");
-  private static final String keyHMacRfc7518 = getResourceAsString(JsonWebKeyTest.class, "JwkSet-Hmac.json");
-  private static final String keyECRfc7518 = getResourceAsString(JsonWebKeyTest.class, "JwkSet-ECProvider.json");
+  private static final String keyCloakJwkSet = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-Keycloak.json");
+  private static final String keyHMacRfc7518 = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-Hmac.json");
+  private static final String keyECRfc7518 = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-ECProvider.json");
 
   @Test
   public void testWebKeysMicrosoft() {
