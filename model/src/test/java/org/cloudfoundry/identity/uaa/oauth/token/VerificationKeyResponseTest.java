@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import com.nimbusds.jose.HeaderParameterNames;
+import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,7 @@ class VerificationKeyResponseTest {
   void setupResponse(String kty, String x5t, String x5c) {
     HashMap hashMap = new HashMap<>();
     if (kty != null) {
-      hashMap.put(JsonWebKey.KTY, kty);
+      hashMap.put(JWKParameterNames.KEY_TYPE, kty);
     }
     if (x5t != null) {
       hashMap.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, x5t);
