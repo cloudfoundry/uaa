@@ -29,9 +29,11 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -118,7 +120,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
             factory.setResources(resources.toArray(new Resource[0]));
 
-            Map<String, Object> map = factory.getObject();
+            Map<String, Object> map = Optional.ofNullable(factory.getObject()).orElse(Collections.emptyMap());
             String yamlStr = UaaYamlUtils.dump(map);
             map.put(DEFAULT_YAML_KEY, yamlStr);
             NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);

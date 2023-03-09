@@ -85,7 +85,7 @@ dependencies {
     }
 
     implementation(libraries.passay)
-    implementation(libraries.beanutils)
+
     implementation(libraries.velocity)
     implementation(libraries.xerces)
 
@@ -124,6 +124,9 @@ configurations.all {
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
     exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
     exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+    exclude(group: "com.fasterxml.woodstox", module: "woodstox-core")
+    exclude(group: "commons-beanutils", module: "commons-beanutils")
+    exclude(group: "commons-collections", module: "commons-collections")
 }
 
 jar {
