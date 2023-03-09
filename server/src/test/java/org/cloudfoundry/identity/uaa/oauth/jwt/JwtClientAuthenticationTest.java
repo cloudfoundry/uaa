@@ -132,8 +132,9 @@ class JwtClientAuthenticationTest {
     KeyInfo keyInfo = mock(KeyInfo.class);
     Signer signer = mock(Signer.class);
     when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
-    when(keyInfo.algorithm()).thenReturn("HS256");
+    when(keyInfo.algorithm()).thenReturn("RS256");
     when(keyInfo.getSigner()).thenReturn(signer);
+    when(keyInfo.verifierCertificate()).thenReturn(JwtHelperX5tTest.CERTIFICATE_1);
     when(signer.sign(any())).thenReturn("dummy".getBytes());
   }
 

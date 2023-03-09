@@ -49,13 +49,13 @@ public class JwtHelperX5tTest {
 
   @Test
   public void jwtHeaderShouldContainX5tInTheHeader() {
-    Jwt jwt = JwtHelper.encode("testJwtContent", keyInfo, true);
+    Jwt jwt = JwtHelper.encodePlusX5t("testJwtContent", keyInfo, keyInfo.verifierCertificate());
     assertThat("ijN2hCBB85pSpHSUQGBLK2xGurY", is(jwt.getHeader().getX5t()));
   }
 
   @Test
   public void jwtHeaderMustNotContainJkuInTheHeader() {
-    Jwt jwt = JwtHelper.encode("testJwtContent", keyInfo, true);
+    Jwt jwt = JwtHelper.encodePlusX5t("testJwtContent", keyInfo, keyInfo.verifierCertificate());
     assertThat(jwt.getHeader().getX5t(), is("ijN2hCBB85pSpHSUQGBLK2xGurY"));
     assertNull(jwt.getHeader().getJku());
   }
@@ -75,8 +75,8 @@ public class JwtHelperX5tTest {
 
   @Test(expected = IllegalArgumentException.class)
   public void jwtHeaderShouldFailWithInvalidCert() {
-    JwtHelper.encode("testJwtContent", KeyInfoBuilder.build("testKid", SIGNING_KEY_1,
-        "http://localhost/uaa", "RS256", "X"), true);
+    KeyInfo keyInfo1 = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256", "X");
+    JwtHelper.encodePlusX5t("testJwtContent", keyInfo1, keyInfo1.verifierCertificate());
   }
 
   @Test(expected = IllegalArgumentException.class)

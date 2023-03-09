@@ -61,24 +61,28 @@ public class JwtHelper {
         return new JwtImpl(header, claims, crypto);
     }
 
-    public static Jwt encode(CharSequence content, KeyInfo keyInfo, boolean addX5t) {
+    public static Jwt encodePlusX5t(CharSequence content, KeyInfo keyInfo, String x509Certificate) {
         JwtHeader header;
+        HeaderParameters headerParameters = new HeaderParameters(keyInfo.algorithm(), keyInfo.keyId(), null);
+        headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(X509CertUtils.parse(x509Certificate)), "SHA-1"));
+        header = JwtHeaderHelper.create(headerParameters);
+        return createJwt(content, keyInfo, header);
+    }
 
-        if (addX5t && keyInfo.verifierCertificate() != null) {
-            HeaderParameters headerParameters = new HeaderParameters(keyInfo.algorithm(), keyInfo.keyId(), null);
-            headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(X509CertUtils.parse(keyInfo.verifierCertificate())), "SHA-1"));
-            header = JwtHeaderHelper.create(headerParameters);
-        } else {
-            header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
-        }
+    public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
+        JwtHeader header;
+        header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
+        byte[] claims = utf8Encode(content);
+        byte[] crypto = keyInfo.getSigner()
+            .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
+        return createJwt(content, keyInfo, header);
+    }
+
+    private static JwtImpl createJwt(CharSequence content, KeyInfo keyInfo, JwtHeader header) {
         byte[] claims = utf8Encode(content);
         byte[] crypto = keyInfo.getSigner()
             .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
         return new JwtImpl(header, claims, crypto);
-    }
-
-    public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
-        return encode(content, keyInfo, false);
     }
 
     public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
