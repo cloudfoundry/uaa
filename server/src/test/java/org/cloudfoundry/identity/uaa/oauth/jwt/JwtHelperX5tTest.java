@@ -50,7 +50,7 @@ public class JwtHelperX5tTest {
   @Test
   public void jwtHeaderShouldContainX5tInTheHeader() {
     Jwt jwt = JwtHelper.encode("testJwtContent", keyInfo, true);
-    assertThat(jwt.getHeader().getX5t(), is("ijN2hCBB85pSpHSUQGBLK2xGurY"));
+    assertThat("ijN2hCBB85pSpHSUQGBLK2xGurY", is(jwt.getHeader().getX5t()));
   }
 
   @Test

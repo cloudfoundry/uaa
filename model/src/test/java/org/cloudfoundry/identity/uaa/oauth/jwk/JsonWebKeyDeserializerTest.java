@@ -2,14 +2,14 @@ package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-public class JsonWebKeyDeserializerTest {
+class JsonWebKeyDeserializerTest {
 
   // Azure AD jwks_uri : https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys
   private static final String microsoftJwKSet = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-Microsoft.json");
@@ -19,7 +19,7 @@ public class JsonWebKeyDeserializerTest {
   private static final String keyCloakJwkSet = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-Keycloak.json");
 
   @Test
-  public void testWebKeysMicrosoft() {
+  void testWebKeysMicrosoft() {
     JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(microsoftJwKSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
     });
     assertNotNull(keys);
@@ -28,12 +28,13 @@ public class JsonWebKeyDeserializerTest {
     for (JsonWebKey key : keys.getKeys()) {
       assertNotNull(key);
       assertNotNull(JsonWebKey.getRsaPublicKey(key));
-      assertNotNull(key.getX5t());
+      assertNotNull(key.getKid());
+      assertEquals(key.getKid(), key.getX5t());
     }
   }
 
   @Test
-  public void testWebKeysUaa() {
+  void testWebKeysUaa() {
     JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(uaaLegacyJwkSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
     });
     assertNotNull(keys);
@@ -48,7 +49,7 @@ public class JsonWebKeyDeserializerTest {
   }
 
   @Test
-  public void testWebKeysKeycloak() {
+  void testWebKeysKeycloak() {
     JsonWebKeySet<JsonWebKey> keys = JsonUtils.readValue(keyCloakJwkSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
     });
     assertNotNull(keys);
@@ -58,21 +59,8 @@ public class JsonWebKeyDeserializerTest {
       assertNotNull(key);
       assertNotNull(JsonWebKey.getRsaPublicKey(key));
       assertNotNull(key.getX5t());
-    }
-  }
-
-  @Test
-  public void testWebKeysCustom() {
-    JsonWebKeySet<JsonWebKey> uaaKeys = JsonUtils.readValue(uaaLegacyJwkSet, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
-    });
-    JsonWebKeySet<JsonWebKey> keys = new JsonWebKeySet<>(uaaKeys.getKeys());
-    keys.getKeys().forEach(k -> k.setX5t("x509Thumbprint"));
-    keys.getKeys().forEach(k -> k.setX5c(new String[] { "x509-Certificate" } ));
-    assertEquals(1, keys.getKeys().size());
-    for (JsonWebKey key : keys.getKeys()) {
-      assertNotNull(key);
-      assertEquals("x509Thumbprint", key.getX5t());
-      assertEquals("x509-Certificate", key.getX5c()[0]);
+      assertEquals("m-ERKoK9FRe8S9gP0eMI3OP4oljfQMOa3bukzi8ASmM", key.getKid());
+      assertEquals("Zv-dxo0VbAZrjp7gBP97yyjdxC8", key.getX5t());
     }
   }
 }

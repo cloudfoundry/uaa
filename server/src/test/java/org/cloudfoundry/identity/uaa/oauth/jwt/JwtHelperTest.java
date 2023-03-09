@@ -40,6 +40,6 @@ public class JwtHelperTest {
         KeyInfo rsaKeyInfo = KeyInfoBuilder.build("key-id-1", privatekey, "http://localhost/uaa", "RS256", certificate);
         Jwt jwt = JwtHelper.encode("testJwtContent", rsaKeyInfo, true);
         assertNull(jwt.getHeader().getJku());
-        assertEquals(jwt.getHeader().getX5t(), "8aFXmG4WA6wAiViW2DF2E6uigBU");
+        assertEquals("8aFXmG4WA6wAiViW2DF2E6uigBU", jwt.getHeader().getX5t());
     }
 }
