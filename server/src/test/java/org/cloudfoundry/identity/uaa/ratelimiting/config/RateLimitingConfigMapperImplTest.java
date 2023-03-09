@@ -141,6 +141,8 @@ class RateLimitingConfigMapperImplTest extends AbstractExceptionTestSupport {
                                   String expectedErrorStartsWithFragment, String... expectedErrorContainsFragments ) {
         YamlConfigFileDTO dto = dtoBuilder.build();
         ErrorSupplierPair pair = mapper.createErrorSupplierPair( dto );
+        assertNotNull( dto.toString() );
+        assertNotNull( mapper.toString() );
         assertTrue( pair.hasError(), dto::toString );
         assertTrue( pair.getSupplier().isSupplierNOOP(), dto::toString );
         assertNotNull( pair.getError(), dto::toString );

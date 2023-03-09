@@ -16,7 +16,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.RateLimitingFa
 import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.SourcedFile;
-import org.yaml.snakeyaml.Yaml;
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -142,7 +142,7 @@ public class InitialConfig {
 
         @Override
         public String toString() {
-            return new Yaml().dump( this );
+            return UaaYamlUtils.dump(this);
         }
     }
 }

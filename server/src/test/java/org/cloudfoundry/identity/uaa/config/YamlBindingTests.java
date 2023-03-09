@@ -32,13 +32,13 @@ import javax.validation.Payload;
 import javax.validation.constraints.NotNull;
 
 import org.cloudfoundry.identity.uaa.config.YamlBindingTests.OAuthConfiguration.OAuthConfigurationValidator;
-import org.cloudfoundry.identity.uaa.impl.config.YamlPropertiesFactoryBean;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.beans.MutablePropertyValues;
 import org.springframework.beans.PropertyValue;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
 import org.springframework.context.support.StaticMessageSource;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.StringUtils;
