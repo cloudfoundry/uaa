@@ -53,6 +53,7 @@ public class DefaultIntegrationTestConfig {
     public ChromeDriver webDriver() {
         System.setProperty("webdriver.chrome.logfile", "/tmp/chromedriver.log");
         System.setProperty("webdriver.chrome.verboseLogging", "true");
+        System.setProperty("webdriver.http.factory", "jdk-http-client");
 
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
@@ -63,7 +64,8 @@ public class DefaultIntegrationTestConfig {
           "--allow-running-insecure-content",
           "--allow-insecure-localhost",
           "--no-sandbox",
-          "--disable-gpu"
+          "--disable-gpu",
+          "--remote-allow-origins=*"
         );
 
         LoggingPreferences logs = new LoggingPreferences();

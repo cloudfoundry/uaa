@@ -64,6 +64,7 @@ dependencies {
     testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.junit)
     testImplementation(libraries.selenium)
+    testImplementation(libraries.seleniumHttp)
     testImplementation(libraries.dumbster)
     testImplementation(libraries.zxing)
     testImplementation(libraries.jsonAssert)
