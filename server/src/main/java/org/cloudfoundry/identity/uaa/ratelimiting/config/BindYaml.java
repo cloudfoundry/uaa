@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
 import lombok.RequiredArgsConstructor;
-import org.cloudfoundry.identity.uaa.impl.config.CustomPropertyConstructor;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.YamlRateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.StringUtilities;
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.representer.Representer;
@@ -29,9 +29,9 @@ public class BindYaml<T> {
     public T bind( String yaml ) {
         T target = null;
         if ( yaml != null ) {
-            Representer representer = new Representer(CustomPropertyConstructor.getDefaultDumperOptions());
+            Representer representer = new Representer(UaaYamlUtils.getDefaultDumperOptions());
             representer.getPropertyUtils().setSkipMissingProperties(true);
-            Yaml yamlParser = new Yaml( new Constructor( targetClass, CustomPropertyConstructor.getDefaultLoaderOptions()), representer );
+            Yaml yamlParser = new Yaml( new Constructor( targetClass, UaaYamlUtils.getDefaultLoaderOptions()), representer );
             try {
                 target = yamlParser.load( yaml );
             }
