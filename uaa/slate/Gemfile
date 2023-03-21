@@ -10,5 +10,6 @@ gem 'rouge', '~> 2.0.5'
 gem 'redcarpet', '~> 3.5.1'
 gem 'nokogiri', '~> 1.13.10'
 gem 'ffi', '~> 1.9.24'
+gem 'slim', '~> 3.0', '>= 3.0.6'
 gem 'rack', '~> 2.2.6.4'
 gem 'therubyracer', :platform => :ruby
