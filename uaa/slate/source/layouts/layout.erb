@@ -16,7 +16,7 @@ under the License.
 <% language_tabs = current_page.data.language_tabs || [] %>
 <% page_content = yield %>
 <%
-  def get_version
+  def self.get_version
     version = File.exists?('source/versionfile') ? File.read('source/versionfile') : 'local'
     if version =~ /release-candidate/
       "Release Candidate"
