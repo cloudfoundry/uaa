@@ -55,8 +55,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
@@ -69,7 +71,6 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-
 
 /**
  * @author Dave Syer
@@ -171,6 +172,20 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testCreateClients() throws Exception {
         doCreateClients();
+    }
+
+    @Test
+    public void testCreateClientWithValidLongRedirectUris() {
+        // redirectUri shorter than the database column size
+        HashSet<String> uris = new HashSet<>();
+        for (int i = 0; i < 666; ++i) {
+            uris.add("http://example.com/myuri/foo/bar/abcdefg/abcdefg" + i);
+        }
+
+        BaseClientDetails client = createClientWithSecretAndRedirectUri("secret", uris, "client_credentials");
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+                HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
     }
 
     public ClientDetailsModification[] doCreateClients() throws Exception {
@@ -814,7 +829,8 @@ public class ClientAdminEndpointsIntegrationTests {
         return createClientWithSecret("secret", grantTypes);
     }
 
-    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) {
+    private ClientDetailsModification createClientWithSecretAndRedirectUri(
+            String secret, Set<String> redirectUris, String... grantTypes) {
         ClientDetailsModification client = new ClientDetailsModification();
         client.setClientId(new RandomValueStringGenerator().generate());
         client.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
@@ -823,27 +839,28 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setClientSecret(secret);
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
                 Collections.singletonList("bar")));
-        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
+        client.setRegisteredRedirectUri(redirectUris == null?
+                Collections.singleton("http://redirect.url"): redirectUris);
+        return client;
+    }
+
+    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) {
+        ClientDetailsModification client =
+                createClientWithSecretAndRedirectUri(secret,
+                Collections.singleton("http://redirect.url"), grantTypes);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+                HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
         return client;
     }
 
     private ClientDetailsModification createApprovalsClient(String... grantTypes) {
-        ClientDetailsModification detailsModification = new ClientDetailsModification();
-        detailsModification.setClientId(new RandomValueStringGenerator().generate());
-        detailsModification.setScope(Arrays.asList("oauth.login", "oauth.approvals", "foo", "bar"));
-        detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
-        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-        detailsModification.setClientSecret("secret");
-        detailsModification.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
-                Collections.singletonList("bar")));
-        detailsModification.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
+        ClientDetailsModification client =createClientWithSecretAndRedirectUri("secret",
+                Collections.singleton("http://redirect.url"), grantTypes);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(detailsModification, headers), Void.class);
+                HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
-        return detailsModification;
+        return client;
     }
 
     public HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {
