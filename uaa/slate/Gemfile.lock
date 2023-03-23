@@ -53,7 +53,7 @@ GEM
       activesupport (>= 6.1, < 7.1)
       addressable (~> 2.4)
       backports (~> 3.6)
-      bundler (~> 2.0)
+      bundler (~> 1.1)
       contracts (~> 0.13)
       dotenv
       erubis
@@ -139,7 +139,7 @@ DEPENDENCIES
   webrick
 
 RUBY VERSION
-   ruby 2.7.2p137
+   ruby 2.3.3p222
 
 BUNDLED WITH
-   2.4.9
+   1.16.4
