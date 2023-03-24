@@ -11,6 +11,8 @@ import java.nio.CharBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 
 import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
@@ -87,8 +89,9 @@ public class JwtHelper {
 
     public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
         try {
+            x509Certificate.checkValidity();
             return x509Certificate.getEncoded();
-        } catch (RuntimeException | CertificateEncodingException e) {
+        } catch (RuntimeException | CertificateEncodingException | CertificateExpiredException | CertificateNotYetValidException e) {
             throw new IllegalArgumentException(e);
         }
     }
