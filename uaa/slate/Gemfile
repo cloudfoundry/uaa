@@ -11,3 +11,4 @@ gem 'redcarpet', '~> 3.6.0'
 gem 'nokogiri', '~> 1.13.10'
 gem 'sass'
 gem 'webrick'
+gem 'mini_racer', '~> 0.4.0', :platform => :ruby
