@@ -131,7 +131,7 @@ class TokenKeyEndpointTests {
         assertEquals("key1", response.getId());
         assertEquals("RSA", response.getType());
         assertEquals("sig", response.getUse().name());
-        assertEquals("ijN2hCBB85pSpHSUQGBLK2xGurY", response.getX5t());
+        assertEquals("RkckJulawIoaTm0iaziJBwFh7Nc", response.getX5t());
     }
 
     @Test
