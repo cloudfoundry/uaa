@@ -13,8 +13,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class JwtHelperX5tTest {
-  public static final String SIGNING_KEY_1 = getResourceAsString(JwtHelperTest.class, "privatekey.pem");
-  public static final String CERTIFICATE_1 = getResourceAsString(JwtHelperTest.class, "certificate.pem");
+  public static final String SIGNING_KEY_1 = getResourceAsString(JwtHelperX5tTest.class, "privatekey.pem");
+  public static final String CERTIFICATE_1 = getResourceAsString(JwtHelperX5tTest.class, "certificate.pem");
   private static final String THUMBPRINT = "RkckJulawIoaTm0iaziJBwFh7Nc";
 
   private KeyInfo keyInfo;
