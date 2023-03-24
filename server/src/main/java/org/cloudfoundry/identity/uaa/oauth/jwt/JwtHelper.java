@@ -74,9 +74,6 @@ public class JwtHelper {
     public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
         JwtHeader header;
         header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
-        byte[] claims = utf8Encode(content);
-        byte[] crypto = keyInfo.getSigner()
-            .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
         return createJwt(content, keyInfo, header);
     }
 

@@ -10,7 +10,7 @@ import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsStr
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
-public class JsonWebKeyTests {
+class JsonWebKeyTests {
 
   private static final String samplKeys = getResourceAsString(JsonWebKeyDeserializerTest.class, "JwkSet-Microsoft.json");
   JsonWebKeySet<JsonWebKey> samlKeySet = JsonUtils.readValue(samplKeys, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
