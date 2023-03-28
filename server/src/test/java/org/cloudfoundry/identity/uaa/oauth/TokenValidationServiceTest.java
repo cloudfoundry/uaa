@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -74,7 +75,7 @@ public class TokenValidationServiceTest {
                 tokenEndpointBuilder,
                 userDatabase,
                 mockMultitenantClientServices,
-                new KeyInfoService("http://localhost:8080/uaa")
+                new KeyInfoService("http://localhost:8080/uaa", new IdentityZoneManagerImpl())
         );
     }
 

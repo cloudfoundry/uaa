@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +53,7 @@ public class RefreshTokenCreatorTest {
         validityResolver = mock(TokenValidityResolver.class);
         when(validityResolver.resolve("someclient")).thenReturn(new Date());
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost");
-        refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost"));
+        refreshTokenCreator = new RefreshTokenCreator(false, validityResolver, tokenEndpointBuilder, new TimeServiceImpl(), new KeyInfoService("http://localhost", new IdentityZoneManagerImpl()));
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(new HashMap<>(Collections.singletonMap("newKey", "secret")));
     }

@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -115,6 +116,7 @@ public class JwtTokenSignedByThisUAATest {
     private List<String> logEvents;
     private AbstractAppender appender;
 
+    private KeyInfoService keyInfoService;
     @Before
     public void setupLogger() {
         logEvents = new ArrayList<>();
@@ -128,6 +130,7 @@ public class JwtTokenSignedByThisUAATest {
 
         LoggerContext context = (LoggerContext) LogManager.getContext(false);
         context.getRootLogger().addAppender(appender);
+        keyInfoService = new KeyInfoService("https://localhost", new IdentityZoneManagerImpl());
     }
 
     @After
@@ -224,7 +227,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expectMessage("kid claim not found in JWT token header");
 
-        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), keyInfoService);
     }
 
     @Test
@@ -234,14 +237,14 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expectMessage("Token header claim [kid] references unknown signing key : [garbage]");
 
-        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), keyInfoService);
     }
 
     @Test
     public void validation_must_fail_with_wrong_alg() {
         header.put("alg", "HS512");
         expectedException.expectMessage("Could not verify token signature.");
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
             .checkIssuer("http://localhost:8080/uaa/oauth/token")
             .checkSignature();
     }
@@ -288,7 +291,7 @@ public class JwtTokenSignedByThisUAATest {
             + "EFjWTH-T1xJJBS6FOi83M6wuV_9R8tgJ-Y6MfPf55yTQ90qhuUu0VbHktbI1ual0V_DQ8m3gzyF7au3WAO6FwwMJFvkNOrenCuZk00XrPjx_IDa2ewCJQ7mpLH9t8wS"
             + "mZtHethtGWLDeXdGn1YfP4awcHnMxW33sHE22RjXAH_LrNW5b2scCrzR3UrSa32aMrCSy19goL7SR813Q92Gd-KXPohkstsDSVGg7qwwWh9NsjRYcRYHylqJO3TYCWL"
             + "Fa0bMQ49pG7lQsSH-rOqPduw7olwmRBt2waA9o-YsbWSeIZGkJ11kZPzMf0IkPWRsx8P5C0ZoOuBqKUynY2ljwaA",
-            new KeyInfoService("https://localhost")).checkSignature();
+            keyInfoService).checkSignature();
         // alg: RS384
         buildAccessTokenValidator(
             "eyJhbGciOiJSUzM4NCIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
@@ -296,7 +299,7 @@ public class JwtTokenSignedByThisUAATest {
             + "Olf3eDtbAZtbzXDz-K07quiRf2ml2T98ywmBgHMPSSh8hIex_Qya8mDuSbra4z-PaxRXy1eGsk2dC2EguBjy5_mzpPetcyd6t-XyNK3msml2Cgs0vET5bPC4J5X2ohw"
             + "UqzlUAZwe7_h0wH3pk2IHYTlB0xelI2Wajw_NoTMBkwgdYICB7VchlO8Pn-3_04qZu5JFQ5aUp-0Pb05jxxGk7RqLiohrGbKKscaN8P4Rq5fw-Gn81ry0Ge_rKVzTaN"
             + "-vpmCnYKMzIqtdsUXTWWnswE0hTKqKVW0DkUU8-sO11jKYZTma-HUaWcmi5Chg73-R_9so_VCHxN_Jj4FUmfdLWA",
-            new KeyInfoService("https://localhost")).checkSignature();
+            keyInfoService).checkSignature();
         // alg: RS512
         buildAccessTokenValidator(
             "eyJhbGciOiJSUzUxMiIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
@@ -304,7 +307,7 @@ public class JwtTokenSignedByThisUAATest {
             + "guEkBUbMJ_b4YULBAE0Cw6dgNNUh03C3rhno3oFjjFwfgze8JUgKpwiKxBu2URZCoeA-pfdj4Mp0I8hz4x6W9C_FubFs0ihnxGWc053EVowgohvGZAoBRZ4S_Rkydhz"
             + "-16abJ_7tgoieR5g_1t5hSIX7EsKJF0V2Pxyn2OdsGZqe2cPbrxfzgIuH52k4oA3CXljXzBE7stc2Rbs6SlBijpXqc2mqfQWmG0QUy_iO2LqTAHFmgwHgJQONK5RVMba"
             + "JVM6yhYgiz8LmHy3gSHjI-kDBYDjVDPmpX_oI6jf-nfXd0q-lhKvpqjyKzBHWMbHFIJTJTVSFuDlJZpjosY_A8w",
-            new KeyInfoService("https://localhost")).checkSignature();
+            keyInfoService).checkSignature();
     }
 
     @Test
@@ -312,7 +315,7 @@ public class JwtTokenSignedByThisUAATest {
         String token = getToken();
 
 
-        ClientDetails clientDetails = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost"))
+        ClientDetails clientDetails = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, keyInfoService)
                 .getClientDetails(inMemoryMultitenantClientServices);
 
         assertThat(clientDetails.getClientId(), equalTo(content.get("cid")));
@@ -327,14 +330,14 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid client ID " + invalidClientId);
 
-        JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getClientDetails(inMemoryMultitenantClientServices);
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, keyInfoService).getClientDetails(inMemoryMultitenantClientServices);
     }
 
     @Test
     public void testGetUserById() {
         String token = getToken();
 
-        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, keyInfoService).getUserDetails(userDb);
 
         assertThat(user, notNullValue());
         assertThat(user.getUsername(), equalTo("marissa"));
@@ -346,7 +349,7 @@ public class JwtTokenSignedByThisUAATest {
         content.put("grant_type", "client_credentials");
         String token = getToken();
 
-        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        UaaUser user = JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, keyInfoService).getUserDetails(userDb);
 
         assertThat(user, nullValue());
     }
@@ -360,7 +363,7 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Token bears a non-existent user ID: " + invalidUserId);
 
-        JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, new KeyInfoService("https://localhost")).getUserDetails(userDb);
+        JwtTokenSignedByThisUAA.buildAccessTokenValidator(token, keyInfoService).getUserDetails(userDb);
     }
 
     private String getToken() {
@@ -377,7 +380,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void validate_required_groups_is_invoked() {
-        JwtTokenSignedByThisUAA jwtToken = spy(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")));
+        JwtTokenSignedByThisUAA jwtToken = spy(buildAccessTokenValidator(getToken(), keyInfoService));
 
         jwtToken.checkClientAndUser(uaaClient, uaaUser);
         verify(jwtToken, times(1))
@@ -408,7 +411,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void required_groups_are_present() {
-        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), keyInfoService);
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
         jwtToken.checkClientAndUser(uaaClient, uaaUser);
@@ -416,7 +419,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void required_groups_are_missing() {
-        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), keyInfoService);
         uaaUserGroups.add("group-missing-from-user");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, uaaUserGroups);
 
@@ -428,7 +431,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void checking_token_happy_case() {
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
@@ -447,7 +450,7 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Invalid access token.");
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")).checkJti();
+        buildAccessTokenValidator(getToken(), keyInfoService).checkJti();
     }
 
     @Test
@@ -455,7 +458,7 @@ public class JwtTokenSignedByThisUAATest {
         String dashR = "-r";
         content.put(JTI, "8b14f193" + dashR + "-8212-4af2-9927-e3ae903f94a6");
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkJti();
     }
 
@@ -466,14 +469,14 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("The token must contain a jti claim.");
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkJti();
     }
 
     @Test
     public void validateToken_Without_Email_And_Username_should_not_throw_exception() {
         buildAccessTokenValidator(
-                getToken(Arrays.asList(EMAIL, USER_NAME)), new KeyInfoService("https://localhost"))
+                getToken(Arrays.asList(EMAIL, USER_NAME)), keyInfoService)
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
@@ -488,7 +491,7 @@ public class JwtTokenSignedByThisUAATest {
     @Test
     public void buildIdTokenValidator_performsSignatureValidation() {
         ChainedSignatureVerifier signatureVerifier = mock(ChainedSignatureVerifier.class);
-        buildIdTokenValidator(getToken(), signatureVerifier, new KeyInfoService("https://localhost"));
+        buildIdTokenValidator(getToken(), signatureVerifier, keyInfoService);
 
         verify(signatureVerifier).verify(any(), any());
     }
@@ -498,7 +501,7 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
 
         content.put(JTI, "asdfsafsa-r");
-        buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).checkJti();
+        buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), keyInfoService).checkJti();
     }
 
     @Test
@@ -506,7 +509,7 @@ public class JwtTokenSignedByThisUAATest {
         content.put(SCOPE, Lists.newArrayList("openid"));
         content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
 
-        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).requestedScopes();
+        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), keyInfoService).requestedScopes();
         assertThat(scopes, equalTo(Lists.newArrayList("openid")));
     }
 
@@ -516,7 +519,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkSignature(verifier);
     }
 
@@ -524,20 +527,20 @@ public class JwtTokenSignedByThisUAATest {
     public void invalidJwt() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator("invalid.jwt.token", new KeyInfoService("https://localhost"));
+        buildAccessTokenValidator("invalid.jwt.token", keyInfoService);
     }
 
     @Test
     public void tokenWithInvalidIssuer() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")).checkIssuer("http://wrong.issuer/");
+        buildAccessTokenValidator(getToken(), keyInfoService).checkIssuer("http://wrong.issuer/");
     }
 
     @Test
     public void emptyBodyJwt_failsCheckingIssuer() {
         content = null;
-        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), keyInfoService);
 
         expectedException.expect(InvalidTokenException.class);
         jwtToken.checkIssuer("http://localhost:8080/uaa/oauth/token");
@@ -546,7 +549,7 @@ public class JwtTokenSignedByThisUAATest {
     @Test
     public void emptyBodyJwt_failsCheckingExpiry() {
         content = null;
-        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), keyInfoService);
 
         expectedException.expect(InvalidTokenException.class);
         jwtToken.checkExpiry(oneSecondBeforeTheTokenExpires);
@@ -556,7 +559,7 @@ public class JwtTokenSignedByThisUAATest {
     public void expiredToken() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkExpiry(oneSecondAfterTheTokenExpires);
     }
 
@@ -565,7 +568,7 @@ public class JwtTokenSignedByThisUAATest {
         UaaUserDatabase userDb = new InMemoryUaaUserDatabase(Collections.emptySet());
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkUser(userDb::retrieveUserById);
 
     }
@@ -580,7 +583,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkUser(userDb::retrieveUserById);
     }
 
@@ -588,7 +591,7 @@ public class JwtTokenSignedByThisUAATest {
     public void tokenHasInsufficientScope() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRequestedScopesAreGranted("a.different.scope");
     }
 
@@ -596,7 +599,7 @@ public class JwtTokenSignedByThisUAATest {
     public void tokenContainsRevokedScope() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRequestedScopesAreGranted("a.different.scope");
     }
 
@@ -607,7 +610,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkClient(clientDetailsService::loadClientByClientId);
     }
 
@@ -623,7 +626,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkClient(clientDetailsService::loadClientByClientId);
     }
 
@@ -631,16 +634,16 @@ public class JwtTokenSignedByThisUAATest {
     public void clientRevocationHashChanged() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRevocationSignature(Collections.singletonList("New-Hash"));
     }
 
     @Test
     public void clientRevocationHashChanged_and_Should_Pass() {
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRevocationSignature(Arrays.asList("fa1c787d", "New-Hash"));
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRevocationSignature(Arrays.asList("New-Hash", "fa1c787d"));
     }
 
@@ -648,7 +651,7 @@ public class JwtTokenSignedByThisUAATest {
     public void incorrectAudience() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkAudience("app", "somethingelse");
     }
 
@@ -656,7 +659,7 @@ public class JwtTokenSignedByThisUAATest {
     public void emptyAudience() {
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkAudience("");
     }
 
@@ -671,7 +674,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expect(InvalidTokenException.class);
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRevocableTokenStore(revocableTokenProvisioning);
     }
 
@@ -683,7 +686,7 @@ public class JwtTokenSignedByThisUAATest {
 
         content.remove("revocable");
 
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkRevocableTokenStore(revocableTokenProvisioning);
 
         verifyNoInteractions(revocableTokenProvisioning);
@@ -698,7 +701,7 @@ public class JwtTokenSignedByThisUAATest {
 
         String refreshToken = getToken();
 
-        buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+        buildRefreshTokenValidator(refreshToken, keyInfoService)
                 .checkRequestedScopesAreGranted("some-granted-scope");
     }
 
@@ -711,7 +714,7 @@ public class JwtTokenSignedByThisUAATest {
 
         String refreshToken = getToken();
 
-        buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+        buildRefreshTokenValidator(refreshToken, keyInfoService)
                 .checkRequestedScopesAreGranted("some-granted-scope");
     }
 
@@ -724,7 +727,7 @@ public class JwtTokenSignedByThisUAATest {
 
         String refreshToken = getToken();
 
-        buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+        buildRefreshTokenValidator(refreshToken, keyInfoService)
                 .checkRequestedScopesAreGranted("some-granted-scope");
 
         assertThat(logEvents, not(hasItems(containsString("ERROR"))));
@@ -743,7 +746,7 @@ public class JwtTokenSignedByThisUAATest {
                 "Some required \"granted_scopes\" are missing: [some-granted-scope, bruce, josh]"
         );
 
-        buildRefreshTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+        buildRefreshTokenValidator(refreshToken, keyInfoService)
                 .checkRequestedScopesAreGranted((Collection) content.get(SCOPE));
     }
 
@@ -760,7 +763,7 @@ public class JwtTokenSignedByThisUAATest {
 
         JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(
                 refreshToken,
-                new KeyInfoService("https://localhost")
+                keyInfoService
         );
 
         try {
@@ -779,7 +782,7 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("The token's \"scope\" claim is invalid or unparseable.");
 
-        buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(refreshToken, keyInfoService)
                 .requestedScopes();
     }
 
@@ -791,13 +794,13 @@ public class JwtTokenSignedByThisUAATest {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("The token's \"scope\" claim is invalid or unparseable.");
 
-        buildAccessTokenValidator(refreshToken, new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(refreshToken, keyInfoService)
                 .requestedScopes();
     }
 
     @Test(expected=InvalidTokenException.class)
     public void nullUserIsCaught() {
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        buildAccessTokenValidator(getToken(), keyInfoService)
                 .checkUser((uid) -> null);
     }
 }

@@ -47,6 +47,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.mockito.stubbing.Answer;
 import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -278,7 +279,7 @@ public class TokenTestSupport {
         approvalService = new ApprovalService(timeService, approvalStore);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
-        keyInfoService = keyInfo != null ? keyInfo : new KeyInfoService(DEFAULT_ISSUER);
+        keyInfoService = keyInfo != null ? keyInfo : new KeyInfoService(DEFAULT_ISSUER, new IdentityZoneManagerImpl());
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
         TokenValidityResolver refreshTokenValidityResolver = new TokenValidityResolver(new ClientRefreshTokenValidity(clientDetailsService, mockIdentityZoneManager), 12345, timeService);
         TokenValidityResolver accessTokenValidityResolver = new TokenValidityResolver(new ClientAccessTokenValidity(clientDetailsService, mockIdentityZoneManager), 1234, timeService);

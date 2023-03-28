@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -53,7 +54,7 @@ class KeyInfoServiceTests {
 
     @BeforeEach
     void setup() {
-        keyInfoService = new KeyInfoService("https://localhost/uaa");
+        keyInfoService = new KeyInfoService("https://localhost/uaa", new IdentityZoneManagerImpl());
     }
 
     @Test

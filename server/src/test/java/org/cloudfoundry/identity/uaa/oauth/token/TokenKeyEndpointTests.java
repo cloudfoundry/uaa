@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +48,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(PollutionPreventionExtension.class)
 class TokenKeyEndpointTests {
 
-    private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint(new KeyInfoService("https://localhost.uaa"));
+    private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint(new KeyInfoService("https://localhost.uaa", new IdentityZoneManagerImpl()));
     private Authentication validUaaResource;
     private final String SIGNING_KEY_1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
       "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +

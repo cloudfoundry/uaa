@@ -15,13 +15,11 @@
 
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -33,6 +31,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -352,7 +351,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     String getTokenVerificationKey(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
         try {
-            return new KeyInfoService("https://someurl").getActiveKey().verifierKey();
+            return new KeyInfoService("https://someurl", new IdentityZoneManagerImpl()).getActiveKey().verifierKey();
         } finally {
             IdentityZoneHolder.clear();
         }

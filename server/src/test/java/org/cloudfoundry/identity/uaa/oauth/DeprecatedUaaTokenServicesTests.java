@@ -115,7 +115,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Before
     public void setUp() throws Exception {
-        tokenSupport = new TokenTestSupport(tokenEnhancer, new KeyInfoService("https://uaa.url"));
+        tokenSupport = new TokenTestSupport(tokenEnhancer, new KeyInfoService("https://uaa.url", new IdentityZoneManagerImpl()));
         Set<String> thousandScopes = new HashSet<>();
         for (int i = 0; i < 1000; i++) {
             thousandScopes.add(String.valueOf(i));
@@ -264,7 +264,7 @@ public class DeprecatedUaaTokenServicesTests {
           userDatabase,
           Sets.newHashSet(),
           new TokenPolicy(),
-          new KeyInfoService(DEFAULT_ISSUER),
+          new KeyInfoService(DEFAULT_ISSUER, new IdentityZoneManagerImpl()),
           new IdTokenGranter(approvalService),
           approvalService
         );
@@ -719,7 +719,7 @@ public class DeprecatedUaaTokenServicesTests {
         tokenJwtHeaderMap.put("kid", JwtHelper.decode(refreshTokenJwt).getHeader().getKid());
         tokenJwtHeaderMap.put("typ", JwtHelper.decode(refreshTokenJwt).getHeader().getTyp());
 
-        String refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim = UaaTokenUtils.constructToken(tokenJwtHeaderMap, claimsWithScopeAndNotGrantedScopeMap, new KeyInfoService(DEFAULT_ISSUER).getKey(kid).getSigner());
+        String refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim = UaaTokenUtils.constructToken(tokenJwtHeaderMap, claimsWithScopeAndNotGrantedScopeMap, new KeyInfoService(DEFAULT_ISSUER, new IdentityZoneManagerImpl()).getKey(kid).getSigner());
 
         //When
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(refreshTokenWithOnlyScopeClaimNotGrantedScopeClaim, getRefreshTokenRequest());

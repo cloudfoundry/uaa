@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -312,7 +313,7 @@ public class CheckTokenEndpointTests {
 
         tokenEndpointBuilder = new TokenEndpointBuilder("http://localhost:8080/uaa");
         userDatabase = mock(UaaUserDatabase.class);
-        KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
+        KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa", new IdentityZoneManagerImpl());
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
         ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
         tokenServices = new UaaTokenServices(
@@ -690,7 +691,7 @@ public class CheckTokenEndpointTests {
                             "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                             "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
+            KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa", new IdentityZoneManagerImpl());
             ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
             tokenServices = new UaaTokenServices(
                 mock(IdTokenCreator.class),

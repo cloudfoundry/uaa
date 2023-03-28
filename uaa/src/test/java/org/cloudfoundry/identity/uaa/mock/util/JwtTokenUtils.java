@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 
 import java.util.Map;
@@ -30,7 +31,7 @@ public class JwtTokenUtils {
 
         String kid = tokenJwt.getHeader().getKid();
         assertNotNull("Token should have a key ID.", kid);
-        tokenJwt.verifySignature(new KeyInfoService("https://some-uaa").getKey(kid).getVerifier());
+        tokenJwt.verifySignature(new KeyInfoService("https://some-uaa", new IdentityZoneManagerImpl()).getKey(kid).getVerifier());
 
         return claims;
     }
