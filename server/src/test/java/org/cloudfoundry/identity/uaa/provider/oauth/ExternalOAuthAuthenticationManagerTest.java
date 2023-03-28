@@ -303,6 +303,39 @@ public class ExternalOAuthAuthenticationManagerTest {
         // no exception expected, but same array content in authority list
     }
 
+    @Test
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid_AndFilterManagerRolesOnly() {
+        oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        Map<String, Object> header = map(
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.KEY_ID, "uaa-key")
+        );
+        Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
+        Set<String> roles = new HashSet<>(Arrays.asList("manager.us", "manager.eu", "uaa.admin", "uaa.user", "idp.write", "employee.us"));
+        Map<String, Object> claims = map(
+            entry(EMAIL, "someuser@google.com"),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(ROLES, roles),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+        // When
+        oidcConfig.setGroupMappingMode(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES);
+        oidcConfig.setExternalGroupsWhitelist(Arrays.asList("manager.*"));
+        provider.setConfig(oidcConfig);
+        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
+        assertNotNull(authenticationData);
+        assertEquals(2, authenticationData.getAuthorities().size());
+        Set<String> authicatedAuthorities = AuthorityUtils.authorityListToSet(authenticationData.getAuthorities());
+        assertThat(Set.of("manager.us", "manager.eu").toArray(), arrayContainingInAnyOrder(authicatedAuthorities.toArray()));
+        // no exception expected, but same array content in authority list
+    }
   @Test
   public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
     Map<String, Object> header = map(
