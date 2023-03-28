@@ -22,6 +22,7 @@ import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.springframework.util.StringUtils;
 
 import java.math.BigInteger;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -49,7 +50,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.oct;
 @JsonSerialize(using = JsonWebKeySerializer.class)
 public class JsonWebKey {
 
-    private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(PEM_CHUNK_SIZE, "\n".getBytes());
+    private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(PEM_CHUNK_SIZE, "\n".getBytes(Charset.defaultCharset()));
     private static final Base64.Decoder base64decoder = Base64.getUrlDecoder();
 
     // value is not defined in RFC 7517
@@ -86,7 +87,7 @@ public class JsonWebKey {
             throw new IllegalArgumentException("kty field is required");
         }
         KeyType.valueOf((String) json.get(JWKParameterNames.KEY_TYPE));
-        this.json = new HashMap(json);
+        this.json = new HashMap<>(json);
     }
 
     public Map<String, Object> getKeyProperties() {
@@ -140,10 +141,10 @@ public class JsonWebKey {
     public String getValue() {
         String result = (String) getKeyProperties().get(PUBLIC_KEY_VALUE);
         if (result == null) {
-            if (RSA.equals(getKty())) {
+            if (RSA == getKty()) {
                 result = pemEncodePublicKey(getRsaPublicKey(this));
                 this.json.put(PUBLIC_KEY_VALUE, result);
-            } else if (MAC.equals(getKty()) || oct.equals(getKty())) {
+            } else if (MAC == getKty() || oct == getKty()) {
                 result = (String) getKeyProperties().get(JWKParameterNames.OCT_KEY_VALUE);
                 this.json.put(PUBLIC_KEY_VALUE, result);
             }

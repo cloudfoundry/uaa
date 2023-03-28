@@ -24,7 +24,6 @@ import java.security.PublicKey;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -135,11 +134,10 @@ public class KeyInfo {
                 String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
                 result.put(JWKParameterNames.RSA_MODULUS, n);
                 result.put(JWKParameterNames.RSA_EXPONENT, e);
-                return result;
             } else if (type == EC) {
                 result.putAll(jwk.toJSONObject());
-                return result;
             }
+            return result;
         } else {
             Map<String, Object> result = new HashMap<>();
             result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
@@ -150,7 +148,6 @@ public class KeyInfo {
             result.put(JWKParameterNames.KEY_TYPE, type.name());
             return result;
         }
-        return Collections.emptyMap();
     }
 
     public String algorithm()  {
