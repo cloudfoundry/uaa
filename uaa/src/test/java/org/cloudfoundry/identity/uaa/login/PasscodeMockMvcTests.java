@@ -337,6 +337,7 @@ class PasscodeMockMvcTests {
         assertThat(content, Matchers.containsString("Passcode information is missing."));
     }
 
+    // NOTE: This test is flaky but passes on retry
     @Test
     void testPasscodeReturnSpecialCharaters() throws Exception {
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());

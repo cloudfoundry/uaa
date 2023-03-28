@@ -70,6 +70,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -234,6 +235,27 @@ public class ClientAdminEndpointsMockMvcTests {
                 .content(JsonUtils.writeValueAsString(client));
         mockMvc.perform(createClientPost).andExpect(status().isBadRequest()).andReturn();
         verify(mockApplicationEventPublisher, times(0)).publishEvent(abstractUaaEventCaptor.capture());
+    }
+
+    @Test
+    void testCreateClientWithValidLongRedirectUri() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        BaseClientDetails client = createBaseClient(id, SECRET, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, Collections.singletonList(id + ".read"));
+
+        // redirectUri shorter than the database column size
+        HashSet<String> uris = new HashSet<>();
+        for (int i = 0; i < 400; ++i) {
+            uris.add("http://example.com/myuri/foo/bar/abcdefg/abcdefg" + i);
+        }
+        client.setRegisteredRedirectUri(uris);
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(client));
+        mockMvc.perform(createClientPost).andExpect(status().isCreated()).andReturn();
+        verify(mockApplicationEventPublisher, times(1)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
     // TODO: put in a nested context to clean up the excluded claims
