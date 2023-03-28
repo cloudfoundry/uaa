@@ -106,8 +106,8 @@ public class TokenPolicyTest {
     public void deserializationOfTokenPolicyWithNoActiveKeyIdWithMultipleKeys_doesNotFail() {
         String jsonTokenPolicy = "{\"keys\":{\"key-id-1\":{\"signingKey\":\"some-signing-key-1\"},\"key-id-2\":{\"signingKey\":\"some-signing-key-2\"}}}";
         TokenPolicy tokenPolicy = JsonUtils.readValue(jsonTokenPolicy, TokenPolicy.class);
-        assertEquals(tokenPolicy.getKeys().get("key-id-1").getSigningKey(), "some-signing-key-1");
-        assertEquals(tokenPolicy.getKeys().get("key-id-2").getSigningKey(), "some-signing-key-2");
+        assertEquals("some-signing-key-1", tokenPolicy.getKeys().get("key-id-1").getSigningKey());
+        assertEquals("some-signing-key-2", tokenPolicy.getKeys().get("key-id-2").getSigningKey());
     }
 
     @Test
