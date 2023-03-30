@@ -31,6 +31,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import java.util.Collection;
 import java.util.Collections;
 
+import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -97,12 +98,26 @@ public class UserIdConversionEndpointsTests {
 
     @Test
     public void testGoodFilter1() {
-        endpoints.findUsers("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"", "ascending", 0, 100, false);
+        final ResponseEntity<Object> response = endpoints.findUsers(
+                "(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"",
+                "ascending",
+                0,
+                100,
+                false
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
     public void testGoodFilter2() {
-        endpoints.findUsers("origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")", "ascending", 0, 100, false);
+        final ResponseEntity<Object> response = endpoints.findUsers(
+                "origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")",
+                "ascending",
+                0,
+                100,
+                false
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 
     @Test
@@ -172,6 +187,13 @@ public class UserIdConversionEndpointsTests {
 
         // illegal operator in right operand of root-level "or" -> all branches need to be checked even if left operands are valid
         endpoints.findUsers("id eq \"foo\" or origin co \"uaa\"", "ascending", 0, 100, false);
+    }
+
+    @Test
+    public void testBadFilter11() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+        endpoints.findUsers("origin eq \"uaa\" or origin eq \"bar\"", "ascending", 0, 100, false);
     }
 
     @Test
