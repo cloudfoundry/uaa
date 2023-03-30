@@ -101,6 +101,11 @@ public class UserIdConversionEndpointsTests {
     }
 
     @Test
+    public void testGoodFilter2() {
+        endpoints.findUsers("origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")", "ascending", 0, 100, false);
+    }
+
+    @Test
     public void testBadFilter1() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Wildcards are not allowed in filter."));
@@ -158,6 +163,15 @@ public class UserIdConversionEndpointsTests {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
         endpoints.findUsers("origin eq \"uaa\"", "ascending", 0, 100, false);
+    }
+
+    @Test
+    public void testBadFilter10() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Wildcards are not allowed in filter."));
+
+        // illegal operator in right operand of root-level "or" -> all branches need to be checked even if left operands are valid
+        endpoints.findUsers("id eq \"foo\" or origin co \"uaa\"", "ascending", 0, 100, false);
     }
 
     @Test
