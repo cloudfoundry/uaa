@@ -145,7 +145,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
                     role = role.toUpperCase();
                 }
                 role = getRolePrefix() + role;
-                circular = circular || (!authorities.add(new LdapAuthority(role, dn, record)));
+                circular = (!authorities.add(new LdapAuthority(role, dn, record))) || circular;
             }
             String roleName = roles.size()>0 ? roles.iterator().next() : dn;
             if (!circular) {
