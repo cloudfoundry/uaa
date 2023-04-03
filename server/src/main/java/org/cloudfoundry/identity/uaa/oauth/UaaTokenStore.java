@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
@@ -55,8 +56,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
-    public static final long DEFAULT_EXPIRATION_TIME_IN_MILLISECONDS =  1_000L*5*60;
-    public static final long LEGACY_CODE_EXPIRATION_TIME_IN_MILLISECONDS =  1_000L*3*24*60*60;
+    public static final Duration DEFAULT_EXPIRATION_TIME = Duration.ofMinutes(5);
+    public static final Duration LEGACY_CODE_EXPIRATION_TIME = Duration.ofDays(3);
     public static final String USER_AUTHENTICATION_UAA_AUTHENTICATION = "userAuthentication.uaaAuthentication";
     public static final String USER_AUTHENTICATION_UAA_PRINCIPAL = "userAuthentication.uaaPrincipal";
     public static final String USER_AUTHENTICATION_AUTHORITIES = "userAuthentication.authorities";
@@ -78,19 +79,19 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private static final String SQL_CLEAN_STATEMENT = "delete from oauth_code where created < ? and expiresat = 0";
 
     private final DataSource dataSource;
-    private final long expirationTimeInMilliseconds;
+    private final Duration expirationTime;
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
     private final AtomicLong lastClean = new AtomicLong(0);
 
     public UaaTokenStore(DataSource dataSource) {
-        this(dataSource, DEFAULT_EXPIRATION_TIME_IN_MILLISECONDS);
+        this(dataSource, DEFAULT_EXPIRATION_TIME);
     }
 
-    public UaaTokenStore(DataSource dataSource, long expirationTimeInMilliseconds) {
+    public UaaTokenStore(DataSource dataSource, Duration expirationTime) {
         this.dataSource = dataSource;
-        this.expirationTimeInMilliseconds = expirationTimeInMilliseconds;
+        this.expirationTime = expirationTime;
     }
 
     @Override
@@ -102,7 +103,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         while ((tries++)<=max_tries) {
             try {
                 String code = generator.generate();
-                long expiresAt = System.currentTimeMillis()+ getExpirationTimeInMilliseconds();
+                long expiresAt = System.currentTimeMillis()+ getExpirationTime().toMillis();
                 String userId = authentication.getUserAuthentication()==null ? null : ((UaaPrincipal)authentication.getUserAuthentication().getPrincipal()).getId();
                 String clientId = authentication.getOAuth2Request().getClientId();
                 SqlLobValue data = new SqlLobValue(serializeOauth2Authentication(authentication));
@@ -214,14 +215,14 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected void performExpirationClean() {
         long last = lastClean.get();
         //check if we should expire again
-        if ((System.currentTimeMillis()-last) > getExpirationTimeInMilliseconds()) {
+        if ((System.currentTimeMillis()-last) > getExpirationTime().toMillis()) {
             //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, last+ getExpirationTimeInMilliseconds())) {
+            if (lastClean.compareAndSet(last, last+ getExpirationTime().toMillis())) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
                     logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                    expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()- LEGACY_CODE_EXPIRATION_TIME_IN_MILLISECONDS));
+                    expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(Instant.now().minus(LEGACY_CODE_EXPIRATION_TIME)));
                     logger.debug("[oauth_code] Removed "+expired+" old entries.");
                 } catch (DeadlockLoserDataAccessException e) {
                     logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
@@ -230,8 +231,8 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         }
     }
 
-    public long getExpirationTimeInMilliseconds() {
-        return expirationTimeInMilliseconds;
+    public Duration getExpirationTime() {
+        return expirationTime;
     }
 
     protected class TokenCodeRowMapper implements RowMapper<TokenCode> {
@@ -302,7 +303,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         public boolean isExpired() {
             if (getExpiresAt().isEmpty()) {
-                return Instant.now().minusMillis(getExpirationTimeInMilliseconds()).isAfter(getCreated());
+                return Instant.now().minus(getExpirationTime()).isAfter(getCreated());
             } else {
                 return getExpiresAt().get().isBefore(Instant.now());
             }
