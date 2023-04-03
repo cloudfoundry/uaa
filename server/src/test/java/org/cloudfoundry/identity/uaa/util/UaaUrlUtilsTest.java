@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -133,12 +132,12 @@ class UaaUrlUtilsTest {
         assertNotNull(map);
         assertEquals("code", map.get("response_type")[0]);
         assertEquals("", map.get("redirect_uri")[0]);
-        assertEquals(Strings.EMPTY_STRING_ARRAY, map.get("client_id"));
+        assertEquals(UaaStringUtils.EMPTY_STRING_ARRAY, map.get("client_id"));
     }
 
     @Test
     void getUaaUrl() {
-        assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, IdentityZone.getUaa()));
+        assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(UaaStringUtils.EMPTY_STRING, IdentityZone.getUaa()));
     }
 
     @Test
@@ -185,7 +184,7 @@ class UaaUrlUtilsTest {
     void zoneAwareUaaUrl() {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl("", zone));
-        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, true, zone));
+        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl(UaaStringUtils.EMPTY_STRING, true, zone));
     }
 
     @Test
@@ -205,7 +204,7 @@ class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        assertEquals("http://zone1.localhost", UaaUrlUtils.getUaaUrl(Strings.EMPTY_STRING, zone));
+        assertEquals("http://zone1.localhost", UaaUrlUtils.getUaaUrl(UaaStringUtils.EMPTY_STRING, zone));
     }
 
     @Test
@@ -484,13 +483,13 @@ class UaaUrlUtilsTest {
 
     @Test
     void addSubdomainToUrl_handlesEmptySubdomain() {
-        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", Strings.EMPTY_STRING);
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", UaaStringUtils.EMPTY_STRING);
         assertEquals("http://localhost:8080", url);
     }
 
     @Test
     void addSubdomainToUrl_handlesEmptySubdomain_defaultZone() {
-        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", Strings.EMPTY_STRING);
+        String url = UaaUrlUtils.addSubdomainToUrl("http://localhost:8080", UaaStringUtils.EMPTY_STRING);
         assertEquals("http://localhost:8080", url);
     }
 
@@ -536,13 +535,13 @@ class UaaUrlUtilsTest {
     void getHostForURI() {
         assertThat(UaaUrlUtils.getHostForURI("http://google.com"), is("google.com"));
         assertThat(UaaUrlUtils.getHostForURI("http://subdomain.uaa.com/nowhere"), is("subdomain.uaa.com"));
-        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.getHostForURI(Strings.EMPTY_STRING));
+        assertThrows(IllegalArgumentException.class, () -> UaaUrlUtils.getHostForURI(UaaStringUtils.EMPTY_STRING));
     }
-    
+
     @Test
     void getSubdomain() {
         assertThat(UaaUrlUtils.getSubdomain(null), is(nullValue()));
-        assertThat(UaaUrlUtils.getSubdomain(Strings.EMPTY_STRING), is(Strings.EMPTY_STRING));
+        assertThat(UaaUrlUtils.getSubdomain(UaaStringUtils.EMPTY_STRING), is(UaaStringUtils.EMPTY_STRING));
         assertThat(UaaUrlUtils.getSubdomain("     "), is("     "));
         assertThat(UaaUrlUtils.getSubdomain("a"), is("a."));
         assertThat(UaaUrlUtils.getSubdomain("    z     "), is("z."));
@@ -613,7 +612,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void testisUrl() {
-        assertFalse(UaaUrlUtils.isUrl(Strings.EMPTY_STRING));
+        assertFalse(UaaUrlUtils.isUrl(UaaStringUtils.EMPTY_STRING));
         assertFalse(UaaUrlUtils.isUrl(" "));
         assertTrue(UaaUrlUtils.isUrl("http://localhost"));
     }
@@ -626,7 +625,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void getRequestPath() {
-        assertEquals(Strings.EMPTY_STRING, UaaUrlUtils.getRequestPath(mock(HttpServletRequest.class)));
+        assertEquals(UaaStringUtils.EMPTY_STRING, UaaUrlUtils.getRequestPath(mock(HttpServletRequest.class)));
     }
 
     @ParameterizedTest
@@ -651,7 +650,7 @@ class UaaUrlUtilsTest {
     void testLegacyUriWithPortWildCard() {
         assertTrue(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:*/callback"));
 
-        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl(Strings.EMPTY_STRING));
+        assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl(UaaStringUtils.EMPTY_STRING));
         assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:80*/callback"));
         assertFalse(UaaUrlUtils.isValidRegisteredRedirectUrl("http://localhost:*8/callback"));
     }
