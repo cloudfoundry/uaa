@@ -34,6 +34,7 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
@@ -246,7 +247,7 @@ class UaaTokenStoreTests {
         UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", Optional.empty(), Instant.now(), new byte[0]);
         assertFalse(code.isExpired());
 
-        code = store.createTokenCode("code", "userid", "clientid", Optional.empty(), Instant.now().minusMillis(2 * store.getExpirationTimeInMilliseconds()), new byte[0]);
+        code = store.createTokenCode("code", "userid", "clientid", Optional.empty(), Instant.now().minusMillis(2 * store.getExpirationTime().toMillis()), new byte[0]);
         assertTrue(code.isExpired());
     }
 
@@ -308,7 +309,7 @@ class UaaTokenStoreTests {
 
             SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(expirationLoser);
 
-            store = new UaaTokenStore(sameConnectionDataSource, 1);
+            store = new UaaTokenStore(sameConnectionDataSource, Duration.ofMillis(1));
             int count = 10;
             for (int i = 0; i < count; i++) {
                 String code = store.createAuthorizationCode(clientAuthentication);
