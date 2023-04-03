@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final long DEFAULT_EXPIRATION_TIME_IN_MILLISECONDS =  1_000L*5*60;
-    public static final long LEGACY_CODE_EXPIRATION_TIME =  1_000L*3*24*60*60;
+    public static final long LEGACY_CODE_EXPIRATION_TIME_IN_MILLISECONDS =  1_000L*3*24*60*60;
     public static final String USER_AUTHENTICATION_UAA_AUTHENTICATION = "userAuthentication.uaaAuthentication";
     public static final String USER_AUTHENTICATION_UAA_PRINCIPAL = "userAuthentication.uaaPrincipal";
     public static final String USER_AUTHENTICATION_AUTHORITIES = "userAuthentication.authorities";
@@ -221,7 +221,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
                     logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                    expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-LEGACY_CODE_EXPIRATION_TIME));
+                    expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()- LEGACY_CODE_EXPIRATION_TIME_IN_MILLISECONDS));
                     logger.debug("[oauth_code] Removed "+expired+" old entries.");
                 } catch (DeadlockLoserDataAccessException e) {
                     logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
