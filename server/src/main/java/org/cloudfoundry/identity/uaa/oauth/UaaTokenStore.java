@@ -51,6 +51,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
@@ -132,7 +133,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     if (tokenCode.isExpired()) {
                         logger.debug("[oauth_code] Found code, but it expired:"+tokenCode);
                         throw new InvalidGrantException("Authorization code expired: " + code);
-                    } else if (tokenCode.getExpiresAt() == 0) {
+                    } else if (tokenCode.getExpiresAt().isEmpty()) {
                         return SerializationUtils.deserialize(tokenCode.getAuthentication());
                     } else {
                         return deserializeOauth2Authentication(tokenCode.getAuthentication());
@@ -244,11 +245,17 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             long expiresat = rs.getLong(pos++);
             Instant created = rs.getTimestamp(pos++).toInstant();
             byte[] authentication = rs.getBytes(pos++);
-            return createTokenCode(code, userid, client_id, expiresat, created, authentication);
+
+            Optional<Instant> expirationInstant =
+                    (expiresat == 0) ?
+                            Optional.empty() :
+                            Optional.of(Instant.ofEpochMilli(expiresat));
+
+            return createTokenCode(code, userid, client_id, expirationInstant, created, authentication);
         }
     }
 
-    public TokenCode createTokenCode(String code, String userId, String clientId, long expiresAt, Instant created, byte[] authentication) {
+    public TokenCode createTokenCode(String code, String userId, String clientId, Optional<Instant> expiresAt, Instant created, byte[] authentication) {
         return new TokenCode(code,userId,clientId,expiresAt,created,authentication);
     }
 
@@ -256,11 +263,11 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         private final String code;
         private final String userId;
         private final String clientId;
-        private final long expiresAt;
+        private final Optional<Instant> expiresAt;
         private final Instant created;
         private final byte[] authentication;
 
-        public TokenCode(String code, String userId, String clientId, long expiresAt, Instant created, byte[] authentication) {
+        public TokenCode(String code, String userId, String clientId, Optional<Instant> expiresAt, Instant created, byte[] authentication) {
             this.code = code;
             this.userId = userId;
             this.clientId = clientId;
@@ -285,7 +292,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             return created;
         }
 
-        public long getExpiresAt() {
+        public Optional<Instant> getExpiresAt() {
             return expiresAt;
         }
 
@@ -294,10 +301,10 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         }
 
         public boolean isExpired() {
-            if (getExpiresAt()==0) {
+            if (getExpiresAt().isEmpty()) {
                 return Instant.now().minusMillis(getExpirationTimeInMilliseconds()).isAfter(getCreated());
             } else {
-                return getExpiresAt() < System.currentTimeMillis();
+                return getExpiresAt().get().isBefore(Instant.now());
             }
         }
 

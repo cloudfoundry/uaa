@@ -237,16 +237,16 @@ class UaaTokenStoreTests {
 
     @Test
     void expiresAtOnCode() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", System.currentTimeMillis() - 1000, Instant.now(), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", Optional.of(Instant.now().minusSeconds(1)), Instant.now(), new byte[0]);
         assertTrue(code.isExpired());
     }
 
     @Test
     void expiresAtOnCreated() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", 0, Instant.now(), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", Optional.empty(), Instant.now(), new byte[0]);
         assertFalse(code.isExpired());
 
-        code = store.createTokenCode("code", "userid", "clientid", 0, Instant.now().minusMillis(2 * store.getExpirationTimeInMilliseconds()), new byte[0]);
+        code = store.createTokenCode("code", "userid", "clientid", Optional.empty(), Instant.now().minusMillis(2 * store.getExpirationTimeInMilliseconds()), new byte[0]);
         assertTrue(code.isExpired());
     }
 
