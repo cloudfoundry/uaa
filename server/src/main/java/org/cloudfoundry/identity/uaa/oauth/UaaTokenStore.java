@@ -285,7 +285,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             return code;
         }
 
-        public Timestamp getCreated() {
+        private Timestamp getCreated() {
             return created;
         }
 
