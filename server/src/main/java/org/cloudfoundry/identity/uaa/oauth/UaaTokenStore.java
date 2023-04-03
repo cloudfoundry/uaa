@@ -121,8 +121,6 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         return null;
     }
 
-
-
     @Override
     public OAuth2Authentication consumeAuthorizationCode(String code) throws InvalidGrantException {
         performExpirationClean();
@@ -229,8 +227,6 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 }
             }
         }
-
-
     }
 
     public long getExpirationTimeInMilliseconds() {
@@ -263,7 +259,6 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         private final long expiresAt;
         private final Instant created;
         private final byte[] authentication;
-
 
         public TokenCode(String code, String userId, String clientId, long expiresAt, Instant created, byte[] authentication) {
             this.code = code;
