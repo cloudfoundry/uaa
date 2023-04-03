@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -245,13 +246,13 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             String userid = rs.getString(pos++);
             String client_id = rs.getString(pos++);
             long expiresat = rs.getLong(pos++);
-            Timestamp created = rs.getTimestamp(pos++);
+            Instant created = rs.getTimestamp(pos++).toInstant();
             byte[] authentication = rs.getBytes(pos++);
             return createTokenCode(code, userid, client_id, expiresat, created, authentication);
         }
     }
 
-    public TokenCode createTokenCode(String code, String userId, String clientId, long expiresAt, Timestamp created, byte[] authentication) {
+    public TokenCode createTokenCode(String code, String userId, String clientId, long expiresAt, Instant created, byte[] authentication) {
         return new TokenCode(code,userId,clientId,expiresAt,created,authentication);
     }
 
@@ -260,11 +261,11 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         private final String userId;
         private final String clientId;
         private final long expiresAt;
-        private final Timestamp created;
+        private final Instant created;
         private final byte[] authentication;
 
 
-        public TokenCode(String code, String userId, String clientId, long expiresAt, Timestamp created, byte[] authentication) {
+        public TokenCode(String code, String userId, String clientId, long expiresAt, Instant created, byte[] authentication) {
             this.code = code;
             this.userId = userId;
             this.clientId = clientId;
@@ -285,7 +286,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             return code;
         }
 
-        private Timestamp getCreated() {
+        private Instant getCreated() {
             return created;
         }
 
@@ -299,7 +300,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         public boolean isExpired() {
             if (getExpiresAt()==0) {
-                return new Timestamp(System.currentTimeMillis()-getExpirationTime()).after(getCreated());
+                return Instant.now().minusMillis(getExpirationTime()).isAfter(getCreated());
             } else {
                 return getExpiresAt() < System.currentTimeMillis();
             }

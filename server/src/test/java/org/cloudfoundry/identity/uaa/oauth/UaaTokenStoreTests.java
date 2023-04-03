@@ -34,6 +34,7 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -236,16 +237,16 @@ class UaaTokenStoreTests {
 
     @Test
     void expiresAtOnCode() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", System.currentTimeMillis() - 1000, new Timestamp(System.currentTimeMillis()), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", System.currentTimeMillis() - 1000, Instant.now(), new byte[0]);
         assertTrue(code.isExpired());
     }
 
     @Test
     void expiresAtOnCreated() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis()), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", 0, Instant.now(), new byte[0]);
         assertFalse(code.isExpired());
 
-        code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis() - (2 * store.getExpirationTime())), new byte[0]);
+        code = store.createTokenCode("code", "userid", "clientid", 0, Instant.now().minusMillis(2 * store.getExpirationTime()), new byte[0]);
         assertTrue(code.isExpired());
     }
 
