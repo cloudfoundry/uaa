@@ -51,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final long EXPIRATION_TIME = 5*60*1000;
@@ -213,6 +214,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     protected void performExpirationClean() {
         long last = lastClean.get();
+        //ReentrantLock cleanmutext = new ReentrantLock();
         //check if we should expire again
         if ((System.currentTimeMillis()-last) > getExpirationTime()) {
             //avoid concurrent deletes from the same UAA - performance improvement
