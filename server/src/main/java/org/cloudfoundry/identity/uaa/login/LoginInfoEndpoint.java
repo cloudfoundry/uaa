@@ -565,10 +565,6 @@ public class LoginInfoEndpoint {
                     }
                 } else {
                     // for oidc/saml, trigger the redirect
-                    List<Map.Entry<String, AbstractIdentityProviderDefinition>> hintIdentityProviders =
-                            allIdentityProviders.entrySet().stream().filter(
-                                    idp -> idp.getKey().equals(uaaLoginHint.getOrigin())
-                            ).collect(Collectors.toList());
                     if (loginHintProviders.size() > 1) {
                         throw new IllegalStateException(
                                 "There is a misconfiguration with the identity provider(s). Please contact your system administrator."
