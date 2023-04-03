@@ -216,14 +216,15 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected void performExpirationClean() {
         Instant last = lastClean.get();
         //check if we should expire again
-        if (Duration.between(last, Instant.now()).getNano() > getExpirationTime().getNano()) {
+        Instant now = Instant.now();
+        if (Duration.between(last, now).getNano() > getExpirationTime().getNano()) {
             //avoid concurrent deletes from the same UAA - performance improvement
             if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
                     logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                    expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(Instant.now().minus(LEGACY_CODE_EXPIRATION_TIME)));
+                    expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
                     logger.debug("[oauth_code] Removed "+expired+" old entries.");
                 } catch (DeadlockLoserDataAccessException e) {
                     logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
