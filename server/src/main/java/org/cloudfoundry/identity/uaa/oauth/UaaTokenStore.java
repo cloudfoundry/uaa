@@ -54,6 +54,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final Duration DEFAULT_EXPIRATION_TIME = Duration.ofMinutes(5);
@@ -83,7 +84,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
-    private final AtomicLong lastClean = new AtomicLong(0);
+    private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
 
     public UaaTokenStore(DataSource dataSource) {
         this(dataSource, DEFAULT_EXPIRATION_TIME);
@@ -213,11 +214,11 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     }
 
     protected void performExpirationClean() {
-        long last = lastClean.get();
+        Instant last = lastClean.get();
         //check if we should expire again
-        if ((System.currentTimeMillis()-last) > getExpirationTime().toMillis()) {
+        if (Duration.between(last, Instant.now()).getNano() > getExpirationTime().getNano()) {
             //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, last+ getExpirationTime().toMillis())) {
+            if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
