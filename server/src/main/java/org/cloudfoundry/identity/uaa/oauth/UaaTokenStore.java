@@ -103,13 +103,13 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         while ((tries++)<=max_tries) {
             try {
                 String code = generator.generate();
-                long expiresAt = System.currentTimeMillis()+ getExpirationTime().toMillis();
+                Instant expiresAt = Instant.now().plus(getExpirationTime());
                 String userId = authentication.getUserAuthentication()==null ? null : ((UaaPrincipal)authentication.getUserAuthentication().getPrincipal()).getId();
                 String clientId = authentication.getOAuth2Request().getClientId();
                 SqlLobValue data = new SqlLobValue(serializeOauth2Authentication(authentication));
                 int updated = template.update(
                     SQL_INSERT_STATEMENT,
-                    new Object[] {code, userId, clientId, expiresAt, data, IdentityZoneHolder.get().getId()},
+                    new Object[] {code, userId, clientId, expiresAt.toEpochMilli(), data, IdentityZoneHolder.get().getId()},
                     new int[] {Types.VARCHAR,Types.VARCHAR, Types.VARCHAR, Types.NUMERIC, Types.BLOB, Types.VARCHAR}
                 );
                 if (updated==0) {
