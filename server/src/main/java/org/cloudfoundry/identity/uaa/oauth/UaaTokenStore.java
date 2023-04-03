@@ -222,7 +222,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
-                    int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
+                    int expired = template.update(SQL_EXPIRE_STATEMENT, now.toEpochMilli());
                     logger.debug("[oauth_code] Removed "+expired+" expired entries.");
                     expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
                     logger.debug("[oauth_code] Removed "+expired+" old entries.");
