@@ -222,6 +222,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         } catch (InvalidGrantException ignored) {
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
+        // note: we understand this is now failing because of the recent change that makes the cleanup not necessarily run immediately.
 
     }
 
@@ -245,6 +246,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
             fail();
         } catch (InvalidGrantException ignored) {}
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
+        // note: we understand this is now failing because of the recent change that makes the cleanup not necessarily run immediately.
     }
 
     @Test
