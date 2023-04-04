@@ -254,7 +254,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         }
     }
 
-    public TokenCode createTokenCode(String code, String userId, String clientId, Optional<Instant> expiresAt, Instant created, byte[] authentication) {
+    public TokenCode createTokenCodeForTesting(String code, String userId, String clientId, Optional<Instant> expiresAt, Instant created, byte[] authentication) {
         if (expiresAt.isPresent()) {
             return new NewTokenCode(code, userId, expiresAt.get(), clientId, authentication);
         } else {
