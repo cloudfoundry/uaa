@@ -134,10 +134,8 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     if (tokenCode.isExpired()) {
                         logger.debug("[oauth_code] Found code, but it expired:"+tokenCode);
                         throw new InvalidGrantException("Authorization code expired: " + code);
-                    } else if (tokenCode.getExpiresAt().isEmpty()) {
-                        return SerializationUtils.deserialize(tokenCode.getAuthentication());
                     } else {
-                        return deserializeOauth2Authentication(tokenCode.getAuthentication());
+                        return tokenCode.deserialize();
                     }
                 } finally {
                     template.update(SQL_DELETE_STATEMENT, code);
@@ -248,33 +246,32 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             Instant created = rs.getTimestamp(pos++).toInstant();
             byte[] authentication = rs.getBytes(pos++);
 
-            Optional<Instant> expirationInstant =
-                    (expiresat == 0) ?
-                            Optional.empty() :
-                            Optional.of(Instant.ofEpochMilli(expiresat));
-
-            return createTokenCode(code, userid, client_id, expirationInstant, created, authentication);
+            if (expiresat == 0) {
+                return new LegacyTokenCode(code, userid, created, client_id, authentication);
+            } else {
+                return new NewTokenCode(code, userid, Instant.ofEpochMilli(expiresat), client_id, authentication);
+            }
         }
     }
 
     public TokenCode createTokenCode(String code, String userId, String clientId, Optional<Instant> expiresAt, Instant created, byte[] authentication) {
-        return new TokenCode(code,userId,clientId,expiresAt,created,authentication);
+        if (expiresAt.isPresent()) {
+            return new NewTokenCode(code, userId, expiresAt.get(), clientId, authentication);
+        } else {
+            return new LegacyTokenCode(code, userId, created, clientId, authentication);
+        }
     }
 
-    protected class TokenCode {
+    protected abstract class TokenCode {
         private final String code;
         private final String userId;
         private final String clientId;
-        private final Optional<Instant> expiresAt;
-        private final Instant created;
         private final byte[] authentication;
 
-        public TokenCode(String code, String userId, String clientId, Optional<Instant> expiresAt, Instant created, byte[] authentication) {
+        protected TokenCode(String code, String userId, String clientId, byte[] authentication) {
             this.code = code;
             this.userId = userId;
             this.clientId = clientId;
-            this.expiresAt = expiresAt;
-            this.created = created;
             this.authentication = authentication;
         }
 
@@ -290,35 +287,74 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             return code;
         }
 
-        private Instant getCreated() {
-            return created;
-        }
-
-        public Optional<Instant> getExpiresAt() {
-            return expiresAt;
-        }
-
         public String getUserId() {
             return userId;
         }
 
-        public boolean isExpired() {
-            if (getExpiresAt().isEmpty()) {
-                return Instant.now().minus(getExpirationTime()).isAfter(getCreated());
-            } else {
-                return getExpiresAt().get().isBefore(Instant.now());
-            }
+        abstract boolean isExpired();
+
+        @Override
+        public abstract String toString();
+
+        public abstract OAuth2Authentication deserialize();
+
+    }
+
+    protected class NewTokenCode extends TokenCode {
+        private final Instant expiresAt;
+
+        public NewTokenCode(String code, String userId, Instant expiresAt, String clientId, byte[] authentication) {
+            super(code, userId, clientId, authentication);
+            this.expiresAt = expiresAt;
+        }
+
+        @Override
+        boolean isExpired() {
+            return expiresAt.isBefore(Instant.now());
         }
 
         @Override
         public String toString() {
             return "TokenCode{" +
-                ", code='" + code + '\'' +
-                ", userId='" + userId + '\'' +
-                ", clientId='" + clientId + '\'' +
-                ", expiresAt=" + expiresAt +
-                ", created=" + created +
-                '}';
+                    ", code='" + getCode() + '\'' +
+                    ", userId='" + getUserId() + '\'' +
+                    ", clientId='" + getClientId() + '\'' +
+                    ", expiresAt=" + expiresAt +
+                    '}';
+        }
+
+    @Override
+    public OAuth2Authentication deserialize() {
+        return deserializeOauth2Authentication(getAuthentication());
+    }
+}
+
+    protected  class LegacyTokenCode extends TokenCode {
+        private final Instant created;
+
+        public LegacyTokenCode(String code, String userId, Instant created, String clientId, byte[] authentication) {
+            super(code, userId, clientId, authentication);
+            this.created = created;
+        }
+
+        @Override
+        boolean isExpired() {
+            return Instant.now().minus(getExpirationTime()).isAfter(created);
+        }
+
+        @Override
+        public String toString() {
+            return "TokenCode{" +
+                    ", code='" + getCode() + '\'' +
+                    ", userId='" + getUserId() + '\'' +
+                    ", clientId='" + getClientId() + '\'' +
+                    ", created=" + created +
+                    '}';
+        }
+
+        @Override
+        public OAuth2Authentication deserialize() {
+            return SerializationUtils.deserialize(getAuthentication());
         }
     }
 }
