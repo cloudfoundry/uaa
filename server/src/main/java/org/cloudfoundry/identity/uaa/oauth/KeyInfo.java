@@ -35,6 +35,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,15 +58,13 @@ public abstract class KeyInfo {
     public abstract String type();
 
     public abstract String verifierKey();
-    public abstract String verifierCertificate();
+    public abstract Optional<String> verifierCertificate();
 
     public abstract Map<String, Object> getJwkMap();
 
     public abstract String algorithm();
 
-    protected abstract String getJavaAlgorithm(String sigAlg);
-
-    protected String validateAndConstructTokenKeyUrl(String keyUrl) {
+    protected static String validateAndConstructTokenKeyUrl(String keyUrl) {
         if (!UaaUrlUtils.isUrl(keyUrl)) {
             throw new IllegalArgumentException("Invalid Key URL");
         }
@@ -81,7 +80,7 @@ class HmacKeyInfo extends KeyInfo {
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
-    private final String verifierCertificate;
+    private final Optional<String> verifierCertificate;
 
     public HmacKeyInfo(String keyId, String signingKey, String keyUrl) {
         this(keyId, signingKey, keyUrl, null);
@@ -89,11 +88,11 @@ class HmacKeyInfo extends KeyInfo {
     public HmacKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
 
-        String algorithm = getJavaAlgorithm(sigAlg);
+        String algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(DEFAULT_HMAC_ALGORITHM);
         SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
         this.signer = new MacSigner(algorithm, hmacKey);
         this.verifier = new MacSigner(algorithm, hmacKey);
-        this.verifierCertificate = null;
+        this.verifierCertificate = Optional.empty();
 
         this.keyId = keyId;
         this.verifierKey = signingKey;
@@ -135,7 +134,7 @@ class HmacKeyInfo extends KeyInfo {
     }
 
     @Override
-    public String verifierCertificate() {
+    public Optional<String> verifierCertificate() {
         return this.verifierCertificate;
     }
 
@@ -155,15 +154,6 @@ class HmacKeyInfo extends KeyInfo {
     public String algorithm() {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
     }
-
-     @Override
-     protected String getJavaAlgorithm(String sigAlg) {
-         if (sigAlg == null) {
-             return DEFAULT_HMAC_ALGORITHM;
-         } else {
-             return JwtAlgorithms.sigAlgJava(sigAlg);
-         }
-     }
 }
 
 class RsaKeyInfo extends KeyInfo {
@@ -175,7 +165,7 @@ class RsaKeyInfo extends KeyInfo {
     private Signer signer;
     private SignatureVerifier verifier;
     private String verifierKey;
-    private String verifierCertificate;
+    private Optional<String> verifierCertificate;
 
     public RsaKeyInfo(String keyId, String signingKey, String keyUrl) {
         this(keyId, signingKey, keyUrl, null, null);
@@ -185,14 +175,14 @@ class RsaKeyInfo extends KeyInfo {
 
         KeyPair keyPair = parseKeyPair(signingKey);
         RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
-        String algorithm = getJavaAlgorithm(sigAlg);
+        String algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(DEFAULT_RSA_ALGORITHM);
         String pemEncodePublicKey = JsonWebKey.pemEncodePublicKey(rsaPublicKey);
 
         this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
         this.verifier = new RsaVerifier(rsaPublicKey, algorithm);
         this.keyId = keyId;
         this.verifierKey = pemEncodePublicKey;
-        this.verifierCertificate = signingCert;
+        this.verifierCertificate = Optional.ofNullable(signingCert);
     }
 
     private static KeyPair parseKeyPair(String pemData) {
@@ -285,7 +275,7 @@ class RsaKeyInfo extends KeyInfo {
     }
 
     @Override
-    public String verifierCertificate() {
+    public Optional<String> verifierCertificate() {
         return this.verifierCertificate;
     }
 
@@ -299,8 +289,8 @@ class RsaKeyInfo extends KeyInfo {
         result.put(HeaderParameterNames.KEY_ID, this.keyId);
         result.put(JWKParameterNames.KEY_TYPE, RSA.name());
         // X509 releated values from JWK spec
-        if (this.verifierCertificate != null) {
-            X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate);
+        if (this.verifierCertificate.isPresent()) {
+            X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate.get());
             if (x509Certificate != null) {
                 byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
                 result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
@@ -322,14 +312,5 @@ class RsaKeyInfo extends KeyInfo {
     @Override
     public String algorithm() {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
-    }
-
-    @Override
-    protected String getJavaAlgorithm(String sigAlg) {
-        if (sigAlg == null) {
-            return DEFAULT_RSA_ALGORITHM;
-        } else {
-            return JwtAlgorithms.sigAlgJava(sigAlg);
-        }
     }
 }

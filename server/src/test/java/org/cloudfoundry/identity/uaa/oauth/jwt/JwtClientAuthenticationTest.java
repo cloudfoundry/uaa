@@ -15,6 +15,7 @@ import java.net.URL;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -134,7 +135,7 @@ class JwtClientAuthenticationTest {
     when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
     when(keyInfo.algorithm()).thenReturn("RS256");
     when(keyInfo.getSigner()).thenReturn(signer);
-    when(keyInfo.verifierCertificate()).thenReturn(JwtHelperX5tTest.CERTIFICATE_1);
+    when(keyInfo.verifierCertificate()).thenReturn(Optional.of(JwtHelperX5tTest.CERTIFICATE_1));
     when(signer.sign(any())).thenReturn("dummy".getBytes());
   }
 

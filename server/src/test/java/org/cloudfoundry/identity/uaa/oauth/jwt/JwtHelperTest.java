@@ -38,7 +38,7 @@ public class JwtHelperTest {
     @Test
     public void jwtHeaderShouldNotContainJkuInTheHeaderIfCertificateDefined() {
         KeyInfo rsaKeyInfo = KeyInfoBuilder.build("key-id-1", privatekey, "http://localhost/uaa", "RS256", certificate);
-        Jwt jwt = JwtHelper.encodePlusX5t("testJwtContent", rsaKeyInfo, rsaKeyInfo.verifierCertificate());
+        Jwt jwt = JwtHelper.encodePlusX5t("testJwtContent", rsaKeyInfo, rsaKeyInfo.verifierCertificate().orElse(null));
         assertNull(jwt.getHeader().getJku());
         assertEquals("RkckJulawIoaTm0iaziJBwFh7Nc", jwt.getHeader().getX5t());
     }

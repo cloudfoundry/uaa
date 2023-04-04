@@ -56,6 +56,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
@@ -882,7 +883,7 @@ class PasswordGrantAuthenticationManagerTest {
         when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
         when(keyInfo.algorithm()).thenReturn("RS256");
         when(keyInfo.getSigner()).thenReturn(signer);
-        when(keyInfo.verifierCertificate()).thenReturn(JwtHelperX5tTest.CERTIFICATE_1);
+        when(keyInfo.verifierCertificate()).thenReturn(Optional.of(JwtHelperX5tTest.CERTIFICATE_1));
         when(signer.sign(any())).thenReturn("dummy".getBytes());
     }
 
