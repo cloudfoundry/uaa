@@ -87,6 +87,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
@@ -101,6 +102,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -257,12 +259,24 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     authorities = mapAuthorities(codeToken.getOrigin(), oidcAuthorities);
                     break;
             }
-            authenticationData.setAuthorities(authorities);
+            authenticationData.setAuthorities(filterOidcAuthorities(config, authorities));
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
         logger.debug("No identity provider found for origin:"+getOrigin()+" and zone:"+IdentityZoneHolder.get().getId());
         return null;
+    }
+
+    private List<? extends GrantedAuthority> filterOidcAuthorities(AbstractExternalOAuthIdentityProviderDefinition definition, List<? extends GrantedAuthority> oidcAuthorities) {
+        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
+        if (whiteList.isEmpty()) {
+            return oidcAuthorities;
+        } else {
+            Set<String> authorities = oidcAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
+            Set<String> result = retainAllMatches(authorities, whiteList);
+            logger.debug(String.format("White listed external OIDC groups:'%s'", result));
+            return result.stream().map(e -> new ExternalOAuthUserAuthority(e)).collect(Collectors.toList());
+        }
     }
 
     @Override
