@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.HashSet;
 import java.util.List;
 
 public class UserInfo {
@@ -71,7 +72,7 @@ public class UserInfo {
         } else if (l1==null || l2==null) {
             return false;
         }
-        return l1.containsAll(l2) && l2.containsAll(l1);
+        return new HashSet<>(l1).containsAll(l2) && new HashSet<>(l2).containsAll(l1);
     }
 
     @Override
