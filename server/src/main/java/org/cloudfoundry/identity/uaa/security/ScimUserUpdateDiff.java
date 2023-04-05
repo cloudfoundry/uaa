@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 
 import java.util.Objects;
@@ -39,8 +40,7 @@ public class ScimUserUpdateDiff {
 
     private boolean originsEquivalent(ScimUser scimUserFromRequest, ScimUser scimUserFromDb) {
         return scimUserFromDb.getOrigin().equals(scimUserFromRequest.getOrigin()) ||
-                (scimUserFromDb.getOrigin().equals(OriginKeys.UAA) && (scimUserFromRequest.getOrigin() == null || scimUserFromRequest.getOrigin()
-                        .isEmpty()));
+                (scimUserFromDb.getOrigin().equals(OriginKeys.UAA) && UaaStringUtils.isNullOrEmpty(scimUserFromRequest.getOrigin()));
     }
 
     private boolean phoneNumbersEquivalent(ScimUser scimUserFromRequest, ScimUser scimUserFromDb) {
