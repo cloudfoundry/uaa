@@ -132,7 +132,7 @@ class UaaUrlUtilsTest {
         assertNotNull(map);
         assertEquals("code", map.get("response_type")[0]);
         assertEquals("", map.get("redirect_uri")[0]);
-        assertEquals(UaaStringUtils.EMPTY_STRING_ARRAY, map.get("client_id"));
+        assertEquals(new String[0], map.get("client_id"));
     }
 
     @Test

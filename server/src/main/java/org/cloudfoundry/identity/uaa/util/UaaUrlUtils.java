@@ -185,13 +185,13 @@ public abstract class UaaUrlUtils {
 
     private static String[] decodeValue(List<String> value) {
         if (value == null) {
-            return UaaStringUtils.EMPTY_STRING_ARRAY;
+            return new String[0];
         }
         String[] result = new String[value.size()];
         int pos = 0;
         for (String s : value) {
             if (s == null) {
-                return UaaStringUtils.EMPTY_STRING_ARRAY;
+                return new String[0];
             }
             result[pos] = UriUtils.decode(s, "UTF-8");
             pos++;

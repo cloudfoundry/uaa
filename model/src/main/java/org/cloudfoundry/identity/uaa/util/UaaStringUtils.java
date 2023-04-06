@@ -47,7 +47,6 @@ public final class UaaStringUtils {
     private static final Pattern CTRL_PATTERN = Pattern.compile("[\n\r\t]");
 
     public static final String EMPTY_STRING = "";
-    public static final String[] EMPTY_STRING_ARRAY = {};
 
     private UaaStringUtils() {
     }
