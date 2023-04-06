@@ -19,8 +19,18 @@ import javax.net.ssl.X509TrustManager;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import javax.net.SocketFactory;
 
 public class SkipSslLdapSocketFactory extends BaseLdapSocketFactory {
+
+    private static SocketFactory instance;
+    public static SocketFactory getDefault() {
+        if (instance == null) {
+            instance = new SkipSslLdapSocketFactory();
+        }
+
+        return instance;
+    }
 
     public SkipSslLdapSocketFactory() {
         try {
