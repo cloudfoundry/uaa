@@ -11,6 +11,11 @@ pipeline {
         }
     }
     parameters {
+        choice(
+            name: 'ECR_ENVIRONMENT',
+            choices:'dev\nstage\nprod',
+            description: 'ECR environment to publish image to'
+        )
         string(
             name: 'IAM_CONTAINER_CONFIG_BRANCH_NAME',
             defaultValue: BRANCH_NAME,
@@ -46,6 +51,12 @@ pipeline {
                     sh 'echo 10.229.23.137 gesos-apikey.gecloud.io >> /etc/hosts'
                     sh 'echo 10.229.23.151 gesos-apikey.gecloud.io >> /etc/hosts'
 
+                    if (params.ECR_ENVIRONMENT.matches('dev')) {
+                        IMAGE_NAME = 'iam-uaa'
+                    } else {
+                        IMAGE_NAME = "iam-${params.ECR_ENVIRONMENT}-uaa"
+                    }
+
                     result = sh(
                         script: """
                                     curl -sSL -X POST -H 'x-api-key: ${GESOS_API_KEY}' \\
@@ -55,7 +66,7 @@ pipeline {
                                                       "github_branch": "${params.IAM_CONTAINER_CONFIG_BRANCH_NAME}", \
                                                       "docker_folder": "./uaa", \
                                                       "pre_build_script":"pre-build.sh", \
-                                                      "image_name": "iam-uaa", \
+                                                      "image_name": "${IMAGE_NAME}", \
                                                       "contact_emails": "${API_BUILD_STATUS_EMAIL_RECIPIENTS}", \
                                                       "releaseTag1": "${params.IMAGE_TAG}", \
                                                       "release": "True" \

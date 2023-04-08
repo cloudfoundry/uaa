@@ -517,13 +517,16 @@ pipeline {
             script {
                 if (params.TRIGGER_GESOS_IMAGE_BUILD && (BRANCH_NAME.matches('rc_[\\d.]+') || BRANCH_NAME.matches('release_[\\d.]+'))) {
                     imageTag = BRANCH_NAME
+                    ecrEnvironment = 'dev'
                     if (imageTag.matches('release_[\\d.]+')) {
                         imageTag = imageTag.replaceAll('release_', '')
+                        ecrEnvironment = 'stage'
                     }
             	    build job: JOB_NAME.replaceAll('/Build n Test/', '/GE SOS Build/'),
                     propagate: false,
                     wait: false,
                     parameters: [
+                        string(name: 'ECR_ENVIRONMENT', value: ecrEnvironment),
                         string(name: 'IAM_CONTAINER_CONFIG_BRANCH_NAME', value: BRANCH_NAME),
                         string(name: 'IMAGE_TAG', value: imageTag)
                     ]
