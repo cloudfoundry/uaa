@@ -13,7 +13,7 @@ ext["hsqldb.version"] = "2.7.1" // HSQL-DB used for tests but not supported for 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.72"
+versions.bouncyCastleVersion = "1.73"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.7.10"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
