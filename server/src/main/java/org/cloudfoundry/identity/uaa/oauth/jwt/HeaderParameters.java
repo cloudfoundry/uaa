@@ -19,6 +19,7 @@ public class HeaderParameters {
     @JsonInclude(Include.NON_NULL)
     String iv;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String jku;
     @JsonProperty
     String kid;
@@ -96,6 +97,14 @@ public class HeaderParameters {
 
     public String getTyp() {
         return typ;
+    }
+
+    public String getX5t() {
+        return this.x5t;
+    }
+
+    public void setX5t(final String x5t) {
+        this.x5t = x5t;
     }
 
 }

@@ -6,9 +6,9 @@ import org.springframework.util.StringUtils;
 public class KeyInfoBuilder {
 
     public static KeyInfo build(String keyId, String signingKey, String uaaUrl) {
-        return build(keyId, signingKey, uaaUrl, null);
+        return build(keyId, signingKey, uaaUrl, null, null);
     }
-    public static KeyInfo build(String keyId, String signingKey, String uaaUrl, String sigAlg) {
+    public static KeyInfo build(String keyId, String signingKey, String uaaUrl, String sigAlg, String signingCert) {
         if (StringUtils.isEmpty(signingKey)) {
             throw new IllegalArgumentException("Signing key cannot be empty");
         }
@@ -17,7 +17,7 @@ public class KeyInfoBuilder {
         signingKey = signingKey.trim();
 
         if (isAssymetricKey(signingKey)) {
-            return new RsaKeyInfo(keyId, signingKey, uaaUrl, sigAlg);
+            return new RsaKeyInfo(keyId, signingKey, uaaUrl, sigAlg, signingCert);
         }
         return new HmacKeyInfo(keyId, signingKey, uaaUrl, sigAlg);
     }
