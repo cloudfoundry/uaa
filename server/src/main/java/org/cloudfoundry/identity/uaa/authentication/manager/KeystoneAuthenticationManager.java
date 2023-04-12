@@ -52,9 +52,9 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
 
     @Override
     protected KeystoneAuthenticationRequest getParameters(String username, String password) {
-        if (getRemoteUrl()!=null && getRemoteUrl().indexOf("/v2.0")>0) {
+        if (getRemoteUrl() != null && getRemoteUrl().contains("/v2.0")) {
             return new KeystoneV2AuthenticationRequest("", username, password);
-        } else if (getRemoteUrl()!=null && getRemoteUrl().indexOf("/v3")>0) {
+        } else if (getRemoteUrl() != null && getRemoteUrl().contains("/v3")) {
             return new KeystoneV3AuthenticationRequest("", username, password);
         } else {
             throw new UnsupportedOperationException("Unable to determine API version:"+ getRemoteUrl());

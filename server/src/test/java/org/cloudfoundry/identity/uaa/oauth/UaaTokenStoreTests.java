@@ -34,6 +34,8 @@ import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -236,16 +238,16 @@ class UaaTokenStoreTests {
 
     @Test
     void expiresAtOnCode() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", System.currentTimeMillis() - 1000, new Timestamp(System.currentTimeMillis()), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCodeForTesting("code", "userid", "clientid", Optional.of(Instant.now().minusSeconds(1)), Instant.now(), new byte[0]);
         assertTrue(code.isExpired());
     }
 
     @Test
     void expiresAtOnCreated() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis()), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCodeForTesting("code", "userid", "clientid", Optional.empty(), Instant.now(), new byte[0]);
         assertFalse(code.isExpired());
 
-        code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis() - (2 * store.getExpirationTime())), new byte[0]);
+        code = store.createTokenCodeForTesting("code", "userid", "clientid", Optional.empty(), Instant.now().minusMillis(2 * store.getExpirationTime().toMillis()), new byte[0]);
         assertTrue(code.isExpired());
     }
 
@@ -307,7 +309,7 @@ class UaaTokenStoreTests {
 
             SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(expirationLoser);
 
-            store = new UaaTokenStore(sameConnectionDataSource, 1);
+            store = new UaaTokenStore(sameConnectionDataSource, Duration.ofMillis(1));
             int count = 10;
             for (int i = 0; i < count; i++) {
                 String code = store.createAuthorizationCode(clientAuthentication);
