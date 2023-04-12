@@ -214,7 +214,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         Instant last = lastClean.get();
         //check if we should expire again
         Instant now = Instant.now();
-        if (Duration.between(last, now).getNano() > getExpirationTime().getNano()) {
+        if (Duration.between(last, now).getSeconds() > getExpirationTime().getSeconds()) {
             //avoid concurrent deletes from the same UAA - performance improvement
             if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
                 try {
