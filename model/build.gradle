@@ -25,6 +25,8 @@ dependencies {
     testImplementation(libraries.junit)
 
     testImplementation(libraries.jsonAssert)
+
+    implementation(libraries.nimbusJwt)
 }
 
 apply(from: file("build_properties.gradle"))

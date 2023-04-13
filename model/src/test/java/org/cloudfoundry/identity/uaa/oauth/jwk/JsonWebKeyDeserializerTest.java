@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class JsonWebKeyDeserializerTest {
 
@@ -28,6 +29,7 @@ class JsonWebKeyDeserializerTest {
       assertNotNull(key);
       assertNotNull(JsonWebKey.getRsaPublicKey(key));
       assertNotNull(key.getKid());
+      assertEquals(key.getKid(), key.getX5t());
     }
   }
 
@@ -41,6 +43,8 @@ class JsonWebKeyDeserializerTest {
     for (JsonWebKey key : keys.getKeys()) {
       assertNotNull(key);
       assertNotNull(JsonWebKey.getRsaPublicKey(key));
+      assertNull(key.getX5t());
+      assertNull(key.getX5c());
     }
   }
 
@@ -54,7 +58,9 @@ class JsonWebKeyDeserializerTest {
     for (JsonWebKey key : keys.getKeys()) {
       assertNotNull(key);
       assertNotNull(JsonWebKey.getRsaPublicKey(key));
+      assertNotNull(key.getX5t());
       assertEquals("m-ERKoK9FRe8S9gP0eMI3OP4oljfQMOa3bukzi8ASmM", key.getKid());
+      assertEquals("Zv-dxo0VbAZrjp7gBP97yyjdxC8", key.getX5t());
     }
   }
 }

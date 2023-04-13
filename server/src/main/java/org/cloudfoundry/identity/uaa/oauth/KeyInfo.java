@@ -8,8 +8,8 @@ import com.nimbusds.jose.jwk.OctetSequenceKey;
 import com.nimbusds.jose.util.Base64URL;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.springframework.security.jwt.crypto.sign.EllipticCurveVerifier;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
@@ -21,9 +21,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.KeyPair;
 import java.security.PublicKey;
-import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -71,8 +71,6 @@ public class KeyInfo {
                 } else {
                     throw new IllegalArgumentException("Invalid JWK");
                 }
-            } catch (JOSEException e) {
-                throw new IllegalArgumentException("PEM is not a supported format", e);
             }
             this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic());
         } else {
@@ -113,6 +111,11 @@ public class KeyInfo {
         return this.verifierKey;
     }
 
+    public Optional<String> verifierCertificate() {
+        return this.verifierCertificate;
+    }
+
+    @Override
     public Map<String, Object> getJwkMap() {
         if (this.isAsymetric) {
             Map<String, Object> result = new HashMap<>();
@@ -121,7 +124,16 @@ public class KeyInfo {
             result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
             result.put(HeaderParameterNames.KEY_ID, this.keyId);
             result.put(JWKParameterNames.KEY_TYPE, type.name());
-
+        // X509 releated values from JWK spec
+        if (this.verifierCertificate.isPresent()) {
+            X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate.get());
+            if (x509Certificate != null) {
+                byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
+                result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_256_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
+            }
+        }
             if (type == RSA) {
                 RSAPublicKey rsaKey;
                 try {
@@ -152,31 +164,5 @@ public class KeyInfo {
 
     public String algorithm()  {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
-    }
-
-    private static String getJavaAlgorithm(String sigAlg, String defaultAlg) {
-        if (sigAlg == null) {
-            if (defaultAlg == null) {
-                throw new IllegalArgumentException("Invalid algorithm");
-            }
-            return defaultAlg;
-        } else {
-            return JwtAlgorithms.sigAlgJava(sigAlg);
-        }
-    }
-
-    private static String validateAndConstructTokenKeyUrl(String keyUrl) {
-        if (!UaaUrlUtils.isUrl(keyUrl)) {
-            throw new IllegalArgumentException("Invalid Key URL");
-        }
-
-        return UriComponentsBuilder.fromHttpUrl(keyUrl).scheme("https").path("/token_keys").build().toUriString();
-    }
-
-    /**
-     * @return true if the string represents an asymmetric (RSA) key
-     */
-    private static boolean isAssymetricKey(String key) {
-        return key.startsWith("-----BEGIN");
     }
 }

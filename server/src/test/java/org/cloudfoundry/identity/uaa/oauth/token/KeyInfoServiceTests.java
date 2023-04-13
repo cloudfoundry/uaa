@@ -49,7 +49,7 @@ class KeyInfoServiceTests {
 
     @BeforeAll
     static void setupLegacyKey() {
-        LegacyTokenKey.setLegacySigningKey("testLegacyKey", "https://localhost/uaa");
+        LegacyTokenKey.setLegacySigningKey("testLegacyKey", "https://localhost/uaa", null, null);
     }
 
     @BeforeEach
