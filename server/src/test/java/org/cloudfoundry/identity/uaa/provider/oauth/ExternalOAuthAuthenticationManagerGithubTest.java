@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -101,7 +100,7 @@ public class ExternalOAuthAuthenticationManagerGithubTest {
             nonTrustingRestTemplate
         );
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, trustingRestTemplate,
-                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl, new IdentityZoneManagerImpl()), oidcMetadataFetcher);
+                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 
     @After

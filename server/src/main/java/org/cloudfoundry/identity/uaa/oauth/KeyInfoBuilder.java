@@ -15,6 +15,6 @@ public class KeyInfoBuilder {
 
         Assert.hasText(signingKey, "[Assertion failed] - this String argument must have text; it must not be null, empty, or blank");
         signingKey = signingKey.trim();
-        return new KeyInfo(keyId, signingKey, uaaUrl, sigAlg);
+        return new KeyInfo(keyId, signingKey, uaaUrl, sigAlg, signingCert);
     }
 }

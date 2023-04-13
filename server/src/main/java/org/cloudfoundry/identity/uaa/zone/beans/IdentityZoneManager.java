@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 
 public interface IdentityZoneManager {
     IdentityZone getCurrentIdentityZone();
-    IdentityZone getUaaZone();
     String getCurrentIdentityZoneId();
     boolean isCurrentZoneUaa();
     void setCurrentIdentityZone(final IdentityZone mockIdentityZone);

@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -29,7 +28,7 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
     }
 
     protected AbstractOAuth2AccessTokenMatchers() {
-        keyInfoService = new KeyInfoService("https://localhost/uaa", new IdentityZoneManagerImpl());
+        keyInfoService = new KeyInfoService("https://localhost/uaa");
     }
 
     protected String getToken(String token) {

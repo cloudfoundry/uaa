@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -145,7 +144,7 @@ public class ExternalOAuthAuthenticationManagerTest {
             new RestTemplate(),
             new RestTemplate()
         );
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl, new IdentityZoneManagerImpl()), oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
         authManager.setExternalMembershipManager(externalMembershipManager);
     }
 

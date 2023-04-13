@@ -51,7 +51,7 @@ public class KeyInfoTest {
 
     @Test
     public void Rsa512KeyShouldSetFieldsCorrectly() {
-        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "https://localhost", "RS512");
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "https://localhost", "RS512", null);
 
         assertThat(keyInfo.type(), is("RSA"));
     }

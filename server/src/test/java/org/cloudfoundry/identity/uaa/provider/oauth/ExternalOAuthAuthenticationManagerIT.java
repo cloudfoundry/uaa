@@ -43,7 +43,6 @@ import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -221,7 +220,7 @@ class ExternalOAuthAuthenticationManagerIT {
                         oidcMetadataFetcher,
                         mock(UaaRandomStringUtil.class))
         );
-        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL, new IdentityZoneManagerImpl()), oidcMetadataFetcher));
+        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);
