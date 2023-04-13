@@ -52,27 +52,7 @@ public class JwtAlgorithms {
 
     }
 
-    public static String
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    sigAlgJava(String sigAlg){
+    public static String sigAlgJava(String sigAlg){
         String alg = sigAlgs.get(sigAlg);
 
         if (alg == null) {
