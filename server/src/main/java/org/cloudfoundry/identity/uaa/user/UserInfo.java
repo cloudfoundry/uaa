@@ -67,12 +67,10 @@ public class UserInfo {
     }
 
     protected boolean compareRoles(List<String> l1, List<String> l2) {
-        if (l1==null && l2==null) {
-            return true;
-        } else if (l1==null || l2==null) {
-            return false;
+        if (l1 == null || l2 == null) {
+            return l1 == l2;
         }
-        return new HashSet<>(l1).containsAll(l2) && new HashSet<>(l2).containsAll(l1);
+        return new HashSet<>(l1).equals(new HashSet<>(l2));
     }
 
     @Override
