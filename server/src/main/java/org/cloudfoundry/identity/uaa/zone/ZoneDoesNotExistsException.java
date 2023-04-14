@@ -16,11 +16,22 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 
 public class ZoneDoesNotExistsException extends UaaException {
 
+    private String zoneName;
+
     public ZoneDoesNotExistsException(String msg) {
         super("zone_not_found", msg, 404);
     }
 
     public ZoneDoesNotExistsException(String msg, Throwable cause) {
         super(cause, "zone_not_found", msg, 404);
+    }
+
+    public ZoneDoesNotExistsException(String zoneName, String msg, Throwable cause) {
+        super(cause, "zone_not_found", msg, 404);
+        this.zoneName = zoneName;
+    }
+
+    public String getZoneName() {
+        return this.zoneName;
     }
 }

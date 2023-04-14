@@ -117,7 +117,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         String subDomain = orchestratorZone.getSubdomain();
         String zoneUri = getZoneUri(subDomain, uaaUri);
         ConnectionDetails connectionDetails = buildConnectionDetails(zoneName, orchestratorZone, zoneUri);
-        return new OrchestratorZoneResponse(zoneName, zone, connectionDetails);
+        return new OrchestratorZoneResponse(zoneName, connectionDetails, "", OrchestratorState.FOUND.toString());
     }
 
     public void deleteZone(String zoneName) {

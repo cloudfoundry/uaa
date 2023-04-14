@@ -80,9 +80,10 @@ public class OrchestratorZoneController {
 
     @ExceptionHandler(value = { MissingServletRequestParameterException.class,
                                 OrchestratorZoneServiceException.class})
-    public ResponseEntity<OrchestratorErrorResponse> badRequest(Exception ex)
+    public ResponseEntity<OrchestratorZoneResponse> badRequest(Exception ex)
     {
-        return ResponseEntity.badRequest().body(new OrchestratorErrorResponse(ex.getMessage()));
+        return ResponseEntity.badRequest().body(new OrchestratorZoneResponse(null, null,
+                ex.getMessage(), OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { ZoneAlreadyExistsException.class })
@@ -92,9 +93,10 @@ public class OrchestratorZoneController {
     }
 
     @ExceptionHandler(value = { ZoneDoesNotExistsException.class })
-    public ResponseEntity<OrchestratorErrorResponse> notFound(Exception ex)
+    public ResponseEntity<OrchestratorZoneResponse> notFound(ZoneDoesNotExistsException ex)
     {
-        return ResponseEntity.status(NOT_FOUND).body(new OrchestratorErrorResponse(ex.getMessage()));
+        return ResponseEntity.status(NOT_FOUND).body(
+                new OrchestratorZoneResponse(ex.getZoneName(), null, ex.getMessage(), OrchestratorState.NOT_FOUND.toString()));
     }
 
     @ExceptionHandler(value = { AccessDeniedException.class })

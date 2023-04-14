@@ -76,7 +76,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         try {
             return jdbcTemplate.queryForObject(ORCHESTRATOR_ZONE_BY_NAME_QUERY, orchestratorZoneMapper, name, true);
         } catch (EmptyResultDataAccessException x) {
-            throw new ZoneDoesNotExistsException("Zone[" + name + "] not found.", x);
+            throw new ZoneDoesNotExistsException(name, "Zone[" + name + "] not found.", x);
         }
     }
 

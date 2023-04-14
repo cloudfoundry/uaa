@@ -126,22 +126,25 @@ public class OrchestratorZoneServiceTests {
         assertNotNull(zone);
         assertEquals(zone.getName(), ZONE_NAME);
         String uri = "http://" + orchestratorZone.getSubdomain() + ".localhost";
-        assertEquals(zone.getParameters().getSubdomain(), orchestratorZone.getSubdomain());
         assertEquals(zone.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
         assertEquals((zone.getConnectionDetails().getUri()), uri);
         assertEquals(zone.getConnectionDetails().getDashboardUri(), "http://localhost/dashboard");
         assertEquals(zone.getConnectionDetails().getIssuerId(), uri + "/oauth/token");
         assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
         assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());
+        assertTrue(zone.getMessage().isEmpty());
+        assertEquals(OrchestratorState.FOUND.toString(), zone.getState());
     }
 
     @Test
     public void testGetZoneDetails_NotFound() {
-        when(zoneProvisioning.retrieveByName(any())).thenThrow(new ZoneDoesNotExistsException("Zone not available."));
+        when(zoneProvisioning.retrieveByName(any())).thenThrow(
+                new ZoneDoesNotExistsException("random-string", "Zone not available.", new Throwable()));
         ZoneDoesNotExistsException exception =
             Assertions.assertThrows(ZoneDoesNotExistsException.class, () -> zoneService.getZoneDetails("random-string"),
                                     "Not found exception not thrown");
         assertTrue(exception.getMessage().contains("Zone not available."));
+        assertEquals("random-string", exception.getZoneName());
     }
 
     @Test

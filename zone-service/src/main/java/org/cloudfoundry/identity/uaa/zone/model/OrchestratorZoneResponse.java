@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 public class OrchestratorZoneResponse {
 
     private String name;
-    private OrchestratorZone parameters;
     private ConnectionDetails connectionDetails;
-
+    private String message;
+    private String state;
 }

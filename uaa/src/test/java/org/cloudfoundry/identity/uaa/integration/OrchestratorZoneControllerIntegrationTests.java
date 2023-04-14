@@ -40,11 +40,14 @@ import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.OrchestratorState;
 import org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
+import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorErrorResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.junit.Before;
@@ -125,38 +128,82 @@ public class OrchestratorZoneControllerIntegrationTests {
     @Test
     public void testGetZone() {
         String zoneName = createZoneGetZoneName();
+
         ResponseEntity<OrchestratorZoneResponse> response = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
             OrchestratorZoneResponse.class);
+
         if (response.getStatusCode().is2xxSuccessful()) {
-            OrchestratorZoneResponse zoneResponse = response.getBody();
-            assertNotNull(zoneResponse);
-            assertNotNull(zoneResponse.getParameters());
-            assertEquals(zoneName, zoneResponse.getParameters().getSubdomain());
-            assertEquals(zoneName, zoneResponse.getConnectionDetails().getSubdomain());
-            String uri = "http://" + zoneName + ".localhost:8080/uaa";
-            assertEquals(uri, zoneResponse.getConnectionDetails().getUri());
-            assertEquals("http://localhost:8080/dashboard", zoneResponse.getConnectionDetails().getDashboardUri());
-            assertEquals(uri + "/oauth/token", zoneResponse.getConnectionDetails().getIssuerId());
-            assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
-            assertNotNull(zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());
+            OrchestratorZoneHeader expectedZoneHeader = new OrchestratorZoneHeader();
+            expectedZoneHeader.setHttpHeaderName(X_IDENTITY_ZONE_ID);
+            expectedZoneHeader.setHttpHeaderValue(zoneName);
+
+            ConnectionDetails expectedConnectionDetails = new ConnectionDetails();
+            expectedConnectionDetails.setSubdomain(zoneName);
+            expectedConnectionDetails.setUri("http://" + zoneName + ".localhost:8080/uaa");
+            expectedConnectionDetails.setDashboardUri("http://localhost:8080/dashboard");
+            expectedConnectionDetails.setIssuerId(expectedConnectionDetails.getUri() + "/oauth/token");
+            expectedConnectionDetails.setZone(expectedZoneHeader);
+
+            OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+            expectedResponse.setName(zoneName);
+            expectedResponse.setConnectionDetails(expectedConnectionDetails);
+            expectedResponse.setMessage("");
+            expectedResponse.setState(OrchestratorState.FOUND.toString());
+
+            assertResponse(expectedResponse, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
     }
 
+    private void assertResponse(OrchestratorZoneResponse expectedResponse, OrchestratorZoneResponse actualResponse) {
+        assertNotNull(actualResponse);
+        assertNotNull(actualResponse.getState());
+        assertEquals(expectedResponse.getState(), actualResponse.getState());
+
+        if (expectedResponse.getName() != null ) {
+            assertNotNull(actualResponse.getName());
+        }
+        assertEquals(expectedResponse.getName(), actualResponse.getName());
+
+        ConnectionDetails expectedConnectionDetails = expectedResponse.getConnectionDetails();
+        ConnectionDetails actualConnectionDetails = actualResponse.getConnectionDetails();
+        if (expectedConnectionDetails == null) {
+            assertNull(actualConnectionDetails);
+        } else {
+            assertNotNull(actualConnectionDetails);
+            assertEquals(expectedConnectionDetails.getSubdomain(), actualConnectionDetails.getSubdomain());
+            assertEquals(expectedConnectionDetails.getUri(), actualConnectionDetails.getUri());
+            assertEquals(expectedConnectionDetails.getDashboardUri(), actualConnectionDetails.getDashboardUri());
+            assertEquals(expectedConnectionDetails.getIssuerId(), actualConnectionDetails.getIssuerId());
+            assertEquals(expectedConnectionDetails.getZone().getHttpHeaderName(),
+                    actualConnectionDetails.getZone().getHttpHeaderName());
+            assertNotNull(actualConnectionDetails.getZone().getHttpHeaderValue());
+        }
+
+        assertNotNull(actualResponse.getMessage());
+        if (expectedResponse.getMessage().isEmpty()) {
+            assertTrue(actualResponse.getMessage().isEmpty());
+        } else {
+            assertEquals(expectedResponse.getMessage(), actualResponse.getMessage());
+        }
+    }
+
     @Test
-    public void testGetZone_Notfound() {
-        ResponseEntity<String> response = client.getForEntity(
+    public void testGetZone_NotFound() {
+        ResponseEntity<OrchestratorZoneResponse> response = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=random-name",
-            String.class);
+                OrchestratorZoneResponse.class);
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.NOT_FOUND);
-            assertNotNull(response.getBody());
-            assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
-            String expected  =  JsonUtils.writeValueAsString(
-                new OrchestratorErrorResponse("Zone[random-name] not found."));
-            assertEquals(expected, response.getBody());
+
+            OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+            expectedResponse.setName("random-name");
+            expectedResponse.setMessage("Zone[random-name] not found.");
+            expectedResponse.setState(OrchestratorState.NOT_FOUND.toString());
+
+            assertResponse(expectedResponse, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -164,17 +211,19 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testGetZone_EmptyError() {
-        ResponseEntity<String> response = client.getForEntity(
+        ResponseEntity<OrchestratorZoneResponse> response = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT),
-            String.class);
+                OrchestratorZoneResponse.class);
+
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
-            assertNotNull(response.getBody());
             assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
-            String expected  =  JsonUtils.writeValueAsString(
-                new OrchestratorErrorResponse("Required request parameter 'name' for method parameter type String is " +
-                                              "not present"));
-            assertEquals(expected, response.getBody());
+
+            OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+            expectedResponse.setMessage("Required request parameter 'name' for method parameter type String is not present");
+            expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+            assertResponse(expectedResponse, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -200,31 +249,32 @@ public class OrchestratorZoneControllerIntegrationTests {
     @Test
     public void testDeleteZone() {
         String zoneName = createZoneGetZoneName();
+
         ResponseEntity<String> response =
             client.exchange(serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
                             HttpMethod.DELETE, null, String.class);
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
-        ResponseEntity<String> getResponse = client.getForEntity(
+
+        ResponseEntity<OrchestratorZoneResponse> getResponse = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
-            String.class);
+                OrchestratorZoneResponse.class);
         assertEquals(getResponse.getStatusCode(), HttpStatus.NOT_FOUND);
-        assertNotNull(getResponse.getBody());
-        assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
-        String expected  =  JsonUtils.writeValueAsString(
-            new OrchestratorErrorResponse("Zone["+zoneName+"] not found."));
-        assertEquals(expected, getResponse.getBody());
     }
 
     @Test
     public void testDeleteZone_NotFound() {
-        ResponseEntity<String> response =
+        ResponseEntity<OrchestratorZoneResponse> response =
             client.exchange(serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=random-name",
-                            HttpMethod.DELETE, null, String.class);
-        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
-        assertNotNull(response.getBody());
-        String expected  =  JsonUtils.writeValueAsString(
-            new OrchestratorErrorResponse("Zone[random-name] not found."));
-        assertEquals(expected, response.getBody());
+                            HttpMethod.DELETE, null, OrchestratorZoneResponse.class);
+
+        assertEquals(response.getStatusCode(), HttpStatus.NOT_FOUND);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName("random-name");
+        expectedResponse.setMessage("Zone[random-name] not found.");
+        expectedResponse.setState(OrchestratorState.NOT_FOUND.toString());
+
+        assertResponse(expectedResponse, response.getBody());
     }
 
     @Test
@@ -374,7 +424,6 @@ public class OrchestratorZoneControllerIntegrationTests {
         if (getResponse.getStatusCode().is2xxSuccessful()) {
             OrchestratorZoneResponse zoneResponse = getResponse.getBody();
             assertNotNull(zoneResponse);
-            assertNull(zoneResponse.getParameters().getSubdomain());
             String connectionDetailSubdomain = zoneResponse.getConnectionDetails().getSubdomain();
             assertNotNull(connectionDetailSubdomain);
             String uri = "http://" + connectionDetailSubdomain + ".localhost:8080/uaa";
