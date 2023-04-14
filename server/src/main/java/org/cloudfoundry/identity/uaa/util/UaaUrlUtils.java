@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,7 +51,7 @@ public abstract class UaaUrlUtils {
     }
 
     public static String getUaaHost(IdentityZone currentIdentityZone) {
-        return getURIBuilder(Strings.EMPTY_STRING, false, currentIdentityZone).build().getHost();
+        return getURIBuilder(UaaStringUtils.EMPTY_STRING, false, currentIdentityZone).build().getHost();
     }
 
     private static UriComponentsBuilder getURIBuilder(
@@ -186,13 +185,13 @@ public abstract class UaaUrlUtils {
 
     private static String[] decodeValue(List<String> value) {
         if (value == null) {
-            return Strings.EMPTY_STRING_ARRAY;
+            return new String[0];
         }
         String[] result = new String[value.size()];
         int pos = 0;
         for (String s : value) {
             if (s == null) {
-                return Strings.EMPTY_STRING_ARRAY;
+                return new String[0];
             }
             result[pos] = UriUtils.decode(s, "UTF-8");
             pos++;
@@ -262,10 +261,10 @@ public abstract class UaaUrlUtils {
         String pathInfo = request.getPathInfo();
 
         if (servletPath == null) {
-            servletPath = Strings.EMPTY_STRING;
+            servletPath = UaaStringUtils.EMPTY_STRING;
         }
         if (pathInfo == null) {
-            pathInfo = Strings.EMPTY_STRING;
+            pathInfo = UaaStringUtils.EMPTY_STRING;
         }
 
         return String.format("%s%s", servletPath, pathInfo);
