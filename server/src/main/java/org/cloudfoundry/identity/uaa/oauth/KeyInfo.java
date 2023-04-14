@@ -82,7 +82,7 @@ public class KeyInfo {
                 throw new IllegalArgumentException(e);
             }
             this.verifierCertificate = Optional.ofNullable(signingCert);
-            this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic());
+            this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic()).orElse(null);
         } else {
             jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
             algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse("HMACSHA256");

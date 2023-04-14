@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.jwk.JWKParameterNames;
-import org.springframework.util.StringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 
 import java.math.BigInteger;
 import java.nio.charset.Charset;
@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -128,7 +129,7 @@ public class JsonWebKey {
     public final KeyUse getUse() {
         String use = (String) getKeyProperties().get(JWKParameterNames.PUBLIC_KEY_USE);
         KeyUse result = null;
-        if (StringUtils.hasText(use)) {
+        if (UaaStringUtils.isNotEmpty(use)) {
             result = KeyUse.valueOf(use);
         }
         return result;
@@ -160,7 +161,7 @@ public class JsonWebKey {
         String result = (String) getKeyProperties().get(PUBLIC_KEY_VALUE);
         if (result == null) {
             if (RSA == getKty()) {
-                result = pemEncodePublicKey(getRsaPublicKey(this));
+                result = pemEncodePublicKey(getRsaPublicKey(this)).orElse(UaaStringUtils.EMPTY_STRING);
                 this.json.put(PUBLIC_KEY_VALUE, result);
             } else if (MAC == getKty() || oct == getKty()) {
                 result = (String) getKeyProperties().get(JWKParameterNames.OCT_KEY_VALUE);
@@ -178,18 +179,17 @@ public class JsonWebKey {
         return result.stream().map(KeyOperation::valueOf).collect(Collectors.toSet());
     }
 
-    public static String pemEncodePublicKey(PublicKey publicKey) {
-
+    public static Optional<String> pemEncodePublicKey(PublicKey publicKey) {
         if (publicKey == null) {
-            return null;
+            return Optional.empty();
         }
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
 
-        return begin + base64encoder.encodeToString(publicKey.getEncoded()) + end;
+        return Optional.of(begin + base64encoder.encodeToString(publicKey.getEncoded()) + end);
     }
 
-    public static PublicKey getRsaPublicKey(JsonWebKey key) {
+    protected static PublicKey getRsaPublicKey(JsonWebKey key) {
         String e = (String) key.getKeyProperties().get(JWKParameterNames.RSA_EXPONENT);
         String n = (String) key.getKeyProperties().get(JWKParameterNames.RSA_MODULUS);
 

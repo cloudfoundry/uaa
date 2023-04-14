@@ -18,11 +18,11 @@ import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNullOrEmpty;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 
 public class KeyInfoService {
@@ -75,15 +75,15 @@ public class KeyInfoService {
         String activeKeyId = config.getTokenPolicy().getActiveKeyId();
 
         Map<String, KeyInfo> keys;
-        if (!StringUtils.hasText(activeKeyId) && (keys = getKeys()).size() == 1) {
+        if (isNullOrEmpty(activeKeyId) && (keys = getKeys()).size() == 1) {
             activeKeyId = keys.keySet().stream().findAny().orElse(null);
         }
 
-        if (!StringUtils.hasText(activeKeyId)) {
+        if (isNullOrEmpty(activeKeyId)) {
             activeKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
         }
 
-        if (!StringUtils.hasText(activeKeyId)) {
+        if (isNullOrEmpty(activeKeyId)) {
             activeKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
         }
 
