@@ -231,7 +231,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     }
 
     private boolean enoughTimeHasPassedSinceLastExpirationClean(Instant last, Instant now) {
-        return Duration.between(last, now).getSeconds() > getExpirationTime().getSeconds();
+        return Duration.between(last, now).toMillis() > getExpirationTime().toMillis();
     }
 
     public Duration getExpirationTime() {
