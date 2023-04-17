@@ -16,11 +16,22 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 
 public class ZoneAlreadyExistsException extends UaaException {
 
+    private String zoneName;
+
     public ZoneAlreadyExistsException(String msg) {
         super("zone_exists", msg, 409);
     }
 
     public ZoneAlreadyExistsException(String msg, Throwable cause) {
         super(cause, "zone_exists", msg, 409);
+    }
+
+    public ZoneAlreadyExistsException(String zoneName, String msg, Throwable cause) {
+        super(cause, "zone_exists", msg, 409);
+        this.zoneName = zoneName;
+    }
+
+    public String getZoneName() {
+        return this.zoneName;
     }
 }

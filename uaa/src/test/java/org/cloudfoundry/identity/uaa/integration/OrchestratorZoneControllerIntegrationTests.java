@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNotNull;
@@ -231,16 +232,18 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testGetZone_NameRequiredError() {
-        ResponseEntity<String> response = client.getForEntity(
+        ResponseEntity<OrchestratorZoneResponse> response = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=",
-            String.class);
+                OrchestratorZoneResponse.class);
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
-            assertNotNull(response.getBody());
             assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
-            String expected  =  JsonUtils.writeValueAsString(
-                new OrchestratorErrorResponse("name must be specified"));
-            assertEquals(expected, response.getBody());
+
+            OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+            expectedResponse.setMessage("name must be specified");
+            expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+            assertResponse(expectedResponse, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -279,17 +282,19 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testDeleteZone_NameRequiredError() {
-        ResponseEntity<String> response =
+        ResponseEntity<OrchestratorZoneResponse> response =
             client.exchange(serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=",
-                            HttpMethod.DELETE, null, String.class);
+                            HttpMethod.DELETE, null, OrchestratorZoneResponse.class);
 
         if (response.getStatusCode().is4xxClientError()) {
             assertEquals(response.getStatusCode(), HttpStatus.BAD_REQUEST);
-            assertNotNull(response.getBody());
             assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
-            String expected  =  JsonUtils.writeValueAsString(
-                new OrchestratorErrorResponse("name must be specified"));
-            assertEquals(expected, response.getBody());
+
+            OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+            expectedResponse.setMessage("name must be specified");
+            expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+            assertResponse(expectedResponse, response.getBody());
         } else {
             fail("Server not returning expected status code");
         }
@@ -312,9 +317,15 @@ public class OrchestratorZoneControllerIntegrationTests {
     @Test
     public void testCreateZone() {
         String zoneName = getName();
-        ResponseEntity<Void> response = createZone(zoneName);
+        ResponseEntity<OrchestratorZoneResponse> response = createZone(zoneName);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(zoneName);
+        expectedResponse.setMessage(ZONE_CREATED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
+
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
-        assertNull(response.getBody());
+        assertResponse(expectedResponse, response.getBody());
     }
 
     @Test
@@ -323,9 +334,8 @@ public class OrchestratorZoneControllerIntegrationTests {
 
         // Create zone using orchestrator zone api
         String zoneName = ORCHESTRATOR_INT_TEST_ZONE;
-        ResponseEntity<Void> postResponse = createZone(zoneName);
+        ResponseEntity<OrchestratorZoneResponse> postResponse = createZone(zoneName);
         assertEquals(HttpStatus.ACCEPTED, postResponse.getStatusCode());
-        assertNull(postResponse.getBody());
 
         // Fetch orchestrator created zone to get auto generated id of zone
         ResponseEntity<OrchestratorZoneResponse> getResponse = client.getForEntity(
@@ -397,27 +407,32 @@ public class OrchestratorZoneControllerIntegrationTests {
     @Test
     public void testCreateZone_Duplicate_Subdomain_Returns_409_Conflict() {
         String subDomain = createZoneGetZoneName();
-        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET, subDomain));
+        String name = getName();
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(name, ADMIN_CLIENT_SECRET, subDomain));
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-        ResponseEntity<String> response = client.exchange(
+
+        ResponseEntity<OrchestratorZoneResponse> response = client.exchange(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT),
             HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),String.class);
+            new HttpEntity<>(requestBody, headers),OrchestratorZoneResponse.class);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(name);
+        expectedResponse.setMessage(
+                String.format("The subdomain name %s is already taken. Please use a different subdomain",
+                subDomain));
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(APPLICATION_JSON_UTF8, response.getHeaders().getContentType());
-        String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
-                                            subDomain);
-        assertEquals(JsonUtils.writeValueAsString(
-            new OrchestratorErrorResponse(errorMessage)), response.getBody());
+        assertResponse(expectedResponse, response.getBody());
     }
 
     @Test
     public void testCreateAndGetZone_SubdomainAsNULL_inRequestBody() {
         String zoneName = createZoneSubdomainAsNullInParameter();
+
         ResponseEntity<OrchestratorZoneResponse> getResponse = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
             OrchestratorZoneResponse.class);
@@ -444,13 +459,20 @@ public class OrchestratorZoneControllerIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-        ResponseEntity<Void> response = client.exchange(
+
+        ResponseEntity<OrchestratorZoneResponse> response = client.exchange(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT),
             HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers), new ParameterizedTypeReference<Void>() {});
+            new HttpEntity<>(requestBody, headers), OrchestratorZoneResponse.class);
+
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(zoneName);
+        expectedResponse.setMessage(ZONE_CREATED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
 
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
-        assertNull(response.getBody());
+        assertResponse(expectedResponse, response.getBody());
         return zoneName;
     }
 
@@ -459,15 +481,21 @@ public class OrchestratorZoneControllerIntegrationTests {
         String zoneName = createZoneGetZoneName();
         OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
-        ResponseEntity<String> getResponseAlreadyExist = client.exchange(
-            serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
-            String.class);
-        assertEquals(getResponseAlreadyExist.getStatusCode(), HttpStatus.CONFLICT);
-        assertEquals(APPLICATION_JSON_UTF8, getResponseAlreadyExist.getHeaders().getContentType());
-        String errorMessage = String.format("The zone name %s is already taken. Please use a different " +
-                                            "zone name", orchestratorZoneRequest.getName());
-        assertEquals(JsonUtils.writeValueAsString(
-            new OrchestratorErrorResponse(errorMessage)), getResponseAlreadyExist.getBody());
+        ResponseEntity<OrchestratorZoneResponse> getResponseAlreadyExist = client.exchange(
+                serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT),
+                HttpMethod.POST,
+                new HttpEntity<>(orchestratorZoneRequest),
+                OrchestratorZoneResponse.class);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(zoneName);
+        expectedResponse.setMessage(
+                String.format("The zone name %s is already taken. Please use a different zone name",
+                        orchestratorZoneRequest.getName()));
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        assertEquals(HttpStatus.CONFLICT, getResponseAlreadyExist.getStatusCode());
+        assertResponse(expectedResponse, getResponseAlreadyExist.getBody());
     }
 
     @Test
@@ -553,28 +581,27 @@ public class OrchestratorZoneControllerIntegrationTests {
     }
 
     private String getName() {
-        String id = UUID.randomUUID().toString();
-        return id;
+        return UUID.randomUUID().toString();
     }
 
     private String createZoneGetZoneName() {
         String zoneName = getName();
-        ResponseEntity<Void> createZoneResponse = createZone(zoneName);
+        ResponseEntity<OrchestratorZoneResponse> createZoneResponse = createZone(zoneName);
         assertEquals(HttpStatus.ACCEPTED, createZoneResponse.getStatusCode());
-        assertNull(createZoneResponse.getBody());
         return zoneName;
     }
 
-    private ResponseEntity<Void> createZone(String zoneName) {
+    private ResponseEntity<OrchestratorZoneResponse> createZone(String zoneName) {
         String subDomain =  zoneName;
         String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET, subDomain));
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-        ResponseEntity<Void> response = client.exchange(
+
+        ResponseEntity<OrchestratorZoneResponse> response = client.postForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT),
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers), new ParameterizedTypeReference<Void>() {});
+            new HttpEntity<>(requestBody, headers), OrchestratorZoneResponse.class);
+
         return response;
     }
 

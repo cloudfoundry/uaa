@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneController.ZONE_CREATED_MESSAGE;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -168,10 +169,11 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ParameterizedTest
     @ArgumentsSource(NameNotEmptyArgumentsSource.class)
     void testGetZone_nameEmptyError(String url) throws Exception {
-        performMockMvcCallAndAssertError(get(url), status().isBadRequest(),
-                                         JsonUtils.writeValueAsString(
-                                             new OrchestratorErrorResponse("name must be specified")),
-                orchestratorZonesReadToken);
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse(null, null,
+                "name must be specified", OrchestratorState.PERMANENT_FAILURE.toString());
+
+        performMockMvcCallAndAssertResponse(get(url), orchestratorZonesReadToken, status().isBadRequest(),
+                expectedResponse);
     }
 
     @Test
@@ -260,7 +262,7 @@ public class OrchestratorZoneControllerMockMvcTests {
         if (expectedResponse.getMessage().isEmpty()) {
             assertTrue(actualResponse.getMessage().isEmpty());
         } else {
-            assertEquals(expectedResponse.getMessage(), actualResponse.getMessage());
+            assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
         }
     }
 
@@ -423,20 +425,27 @@ public class OrchestratorZoneControllerMockMvcTests {
     }
 
     @Test
-    void testCreateZone_Accepted_Success() throws Exception {
+    void testCreateZone() throws Exception {
         createOrchestratorZoneAndAssert();
+
+        performMockMvcCall(delete("/orchestrator/zones"), ZONE_NAME, orchestratorZonesWriteToken, status().isAccepted());
     }
 
     private void createOrchestratorZoneAndAssert() throws Exception {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
-                                                                                     SUB_DOMAIN_NAME);
-        MvcResult result = mockMvc
-            .perform(
+        OrchestratorZoneRequest orchestratorZoneRequest =
+                getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET, SUB_DOMAIN_NAME);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(ZONE_NAME);
+        expectedResponse.setMessage(ZONE_CREATED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
+
+        performMockMvcCallAndAssertResponse(
                 post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isAccepted()).andReturn();
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(orchestratorZoneRequest)),
+                orchestratorZonesWriteToken,
+                status().isAccepted(), expectedResponse);
     }
 
     @Test

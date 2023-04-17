@@ -14,15 +14,22 @@ package org.cloudfoundry.identity.uaa.zone;
 
 public class OrchestratorZoneServiceException extends RuntimeException {
 
+    private String zoneName;
+
     public OrchestratorZoneServiceException(String message) {
         super(message);
     }
 
-    public OrchestratorZoneServiceException(String message, Throwable cause) {
-        super(message, cause);
+    public OrchestratorZoneServiceException(String zoneName, String message) {
+        super(message);
+        this.zoneName = zoneName;
     }
 
     public OrchestratorZoneServiceException(Throwable cause) {
         super(cause);
+    }
+
+    public String getZoneName() {
+        return this.zoneName;
     }
 }

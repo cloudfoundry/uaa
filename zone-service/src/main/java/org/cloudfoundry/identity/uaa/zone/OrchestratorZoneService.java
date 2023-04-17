@@ -72,6 +72,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     public static final String GRANT_TYPES = "client_credentials";
     public static final String RESOURCE_IDS = "none";
     public static final String SCOPES = "uaa.none";
+    public static final String ZONE_CREATED_MESSAGE = "Zone Created Successfully";
+    public static final String ZONE_DELETED_MESSAGE = "Zone Deleted Successfully";
 
     private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes());
 
@@ -135,7 +137,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return;
             } else {
-                throw new OrchestratorZoneServiceException("Error : deleting zone Name[" + zoneName + "]");
+                throw new OrchestratorZoneServiceException(zoneName, "Error : deleting zone Name[" + zoneName + "]");
             }
         } finally {
             IdentityZoneHolder.set(previous);
@@ -180,7 +182,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return subDomain;
     }
 
-    public void createZone(OrchestratorZoneRequest zoneRequest) {
+    public OrchestratorZoneResponse createZone(OrchestratorZoneRequest zoneRequest) {
         if (!IdentityZoneHolder.isUaa()) {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
         }
@@ -206,6 +208,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         } finally {
             IdentityZoneHolder.set(previous);
         }
+        return new OrchestratorZoneResponse(zoneRequest.getName(), null, ZONE_CREATED_MESSAGE,
+                                        OrchestratorState.CREATE_IN_PROGRESS.toString());
     }
 
     private String getSubDomain(String subdomain, String id) {
@@ -224,7 +228,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         } catch (Exception e) {
             String errorMessage = String.format("Unable to create client for zone name : %s  failed.", created.getName());
             logger.error(errorMessage, e);
-            throw new OrchestratorZoneServiceException(errorMessage+" Exception is :" + e.getMessage());
+            throw new OrchestratorZoneServiceException(created.getName(), errorMessage+" Exception is :" + e.getMessage());
         }
     }
 
@@ -245,7 +249,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                 "Unable to create identity provider for zone name : %s",
                 created.getName());
             logger.error(errorMessage, e);
-            throw new OrchestratorZoneServiceException(errorMessage + " Exception is : " + e.getMessage());
+            throw new OrchestratorZoneServiceException(created.getName(), errorMessage + " Exception is : " + e.getMessage());
         }
     }
 
@@ -259,12 +263,12 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
                                                 identityZone.getSubdomain());
             logger.error(errorMessage, e);
-            throw new ZoneAlreadyExistsException(errorMessage);
+            throw new ZoneAlreadyExistsException(identityZone.getName(), errorMessage, e);
         } catch (Exception e) {
             String errorMessage = String.format("Unexpected exception while creating identity zone for zone name : " +
                                                 "%s", identityZone.getName());
             logger.error(errorMessage, e);
-            throw new OrchestratorZoneServiceException(errorMessage);
+            throw new OrchestratorZoneServiceException(identityZone.getName(), errorMessage);
         }
         return created;
     }
@@ -291,7 +295,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                 "Unexpected exception while create saml config for zone name: %s",
                 identityZone.getName());
             logger.error(errorMessage, e);
-            throw new OrchestratorZoneServiceException(errorMessage+ " Exception is : " + e.getMessage());
+            throw new OrchestratorZoneServiceException(identityZone.getName(), errorMessage+ " Exception is : " + e.getMessage());
         }
     }
 
@@ -330,7 +334,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
             "Unexpected exception while create signingKey for zone name : %s",
             zoneName);
         logger.error(errorMessage, e);
-        throw new OrchestratorZoneServiceException(errorMessage + " Exception is : " + e.getMessage());
+        throw new OrchestratorZoneServiceException(zoneName, errorMessage + " Exception is : " + e.getMessage());
     }
 
     private void createZoneAdminClient(final String id, final String authorities, final String clientId,

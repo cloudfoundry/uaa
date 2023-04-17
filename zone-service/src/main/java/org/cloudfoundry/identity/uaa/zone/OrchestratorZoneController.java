@@ -1,16 +1,16 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.MANDATORY_VALIDATION_MESSAGE;
-import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesHttpMessageNotReadable;
 import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesConstraintViolation;
+import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesHttpMessageNotReadable;
 import static org.cloudfoundry.identity.uaa.zone.ErrorMessageUtil.getErrorMessagesMethodArgumentInvalid;
+import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.FORBIDDEN;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
-import java.io.IOException;
 import javax.naming.OperationNotSupportedException;
 import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
@@ -59,16 +59,14 @@ public class OrchestratorZoneController {
 
     @PostMapping
     @Transactional
-    public ResponseEntity<?> createOrchestratorZone(@RequestBody @Valid OrchestratorZoneRequest orchestratorZoneRequest )
-        throws OrchestratorZoneServiceException, IOException {
-        zoneService.createZone(orchestratorZoneRequest);
-        return ResponseEntity.accepted().build();
+    public ResponseEntity<OrchestratorZoneResponse> createOrchestratorZone(
+        @RequestBody @Valid OrchestratorZoneRequest orchestratorZoneRequest) {
+        return ResponseEntity.status(ACCEPTED).body(zoneService.createZone(orchestratorZoneRequest));
     }
 
     @DeleteMapping
     @Transactional
-    public ResponseEntity<?> deleteZone(@NotBlank(message = MANDATORY_VALIDATION_MESSAGE) @RequestParam String name)
-        throws Exception {
+    public ResponseEntity<?> deleteZone(@NotBlank(message = MANDATORY_VALIDATION_MESSAGE) @RequestParam String name) {
         zoneService.deleteZone(name);
         return ResponseEntity.accepted().build();
     }
@@ -78,31 +76,37 @@ public class OrchestratorZoneController {
         throw new OperationNotSupportedException("Put Operation not Supported");
     }
 
-    @ExceptionHandler(value = { MissingServletRequestParameterException.class,
-                                OrchestratorZoneServiceException.class})
-    public ResponseEntity<OrchestratorZoneResponse> badRequest(Exception ex)
-    {
-        return ResponseEntity.badRequest().body(new OrchestratorZoneResponse(null, null,
-                ex.getMessage(), OrchestratorState.PERMANENT_FAILURE.toString()));
+    @ExceptionHandler(value = {
+        MissingServletRequestParameterException.class,
+        OrchestratorZoneServiceException.class
+    })
+    public ResponseEntity<OrchestratorZoneResponse> badRequest(Exception ex) {
+        String zoneName = null;
+        if (ex instanceof OrchestratorZoneServiceException) {
+            zoneName = ((OrchestratorZoneServiceException) ex).getZoneName();
+        }
+        return ResponseEntity.badRequest().body(new OrchestratorZoneResponse(zoneName, null, ex.getMessage(),
+                OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { ZoneAlreadyExistsException.class })
-    public ResponseEntity<OrchestratorErrorResponse> zoneAlreadyExist(Exception ex)
-    {
-        return ResponseEntity.status(CONFLICT).body(new OrchestratorErrorResponse(ex.getMessage()));
+    public ResponseEntity<OrchestratorZoneResponse> zoneAlreadyExist(ZoneAlreadyExistsException ex) {
+        return ResponseEntity.status(CONFLICT).body(
+            new OrchestratorZoneResponse(ex.getZoneName(), null, ex.getMessage(),
+                    OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { ZoneDoesNotExistsException.class })
-    public ResponseEntity<OrchestratorZoneResponse> notFound(ZoneDoesNotExistsException ex)
-    {
+    public ResponseEntity<OrchestratorZoneResponse> notFound(ZoneDoesNotExistsException ex) {
         return ResponseEntity.status(NOT_FOUND).body(
-                new OrchestratorZoneResponse(ex.getZoneName(), null, ex.getMessage(), OrchestratorState.NOT_FOUND.toString()));
+            new OrchestratorZoneResponse(ex.getZoneName(), null, ex.getMessage(),
+                                         OrchestratorState.NOT_FOUND.toString()));
     }
 
     @ExceptionHandler(value = { AccessDeniedException.class })
-    public ResponseEntity<OrchestratorErrorResponse> accessDenied(Exception ex)
-    {
-        return ResponseEntity.status(FORBIDDEN).body(new OrchestratorErrorResponse(ex.getMessage()));
+    public ResponseEntity<OrchestratorZoneResponse> accessDenied(Exception ex) {
+        return ResponseEntity.status(FORBIDDEN).body(new OrchestratorZoneResponse(null, null, ex.getMessage(),
+                                                                                  OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { OperationNotSupportedException.class })
@@ -112,28 +116,30 @@ public class OrchestratorZoneController {
     }
 
     @ExceptionHandler(value = { Exception.class })
-    public ResponseEntity<OrchestratorErrorResponse> internalServerError(Exception ex)
-    {
-        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(new OrchestratorErrorResponse(ex.getMessage()));
+    public ResponseEntity<OrchestratorZoneResponse> internalServerError(Exception ex) {
+        return ResponseEntity.status(INTERNAL_SERVER_ERROR)
+                             .body(new OrchestratorZoneResponse(null, null, ex.getMessage(),
+                                                                OrchestratorState.SERVER_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { HttpMessageNotReadableException.class })
-    public ResponseEntity<OrchestratorErrorResponse> messageReadableException(HttpMessageNotReadableException ex)
-    {
+    public ResponseEntity<OrchestratorZoneResponse> messageReadableException(HttpMessageNotReadableException ex) {
         return ResponseEntity.badRequest()
-                             .body(new OrchestratorErrorResponse(getErrorMessagesHttpMessageNotReadable(ex)));
+                             .body(new OrchestratorZoneResponse(null, null, getErrorMessagesHttpMessageNotReadable(ex),
+                                                                OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { MethodArgumentNotValidException.class })
-    public ResponseEntity<OrchestratorErrorResponse> methodArgumentException(MethodArgumentNotValidException ex) {
+    public ResponseEntity<OrchestratorZoneResponse> methodArgumentException(MethodArgumentNotValidException ex) {
         return ResponseEntity.badRequest()
-                             .body(new OrchestratorErrorResponse(getErrorMessagesMethodArgumentInvalid(ex)));
+                             .body(new OrchestratorZoneResponse(null, null, getErrorMessagesMethodArgumentInvalid(ex),
+                                                                OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
-    @ExceptionHandler(value = { ConstraintViolationException.class})
-    public ResponseEntity<OrchestratorErrorResponse> constraintViolationException(ConstraintViolationException ex)
-    {
+    @ExceptionHandler(value = { ConstraintViolationException.class })
+    public ResponseEntity<OrchestratorZoneResponse> constraintViolationException(ConstraintViolationException ex) {
         return ResponseEntity.badRequest()
-                             .body(new OrchestratorErrorResponse(getErrorMessagesConstraintViolation(ex)));
+                             .body(new OrchestratorZoneResponse(null, null, getErrorMessagesConstraintViolation(ex),
+                                                                OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 }
