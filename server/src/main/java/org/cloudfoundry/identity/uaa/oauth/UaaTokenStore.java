@@ -45,6 +45,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collection;
@@ -85,13 +86,24 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
 
+    private final Clock clock;
+
     public UaaTokenStore(DataSource dataSource) {
         this(dataSource, DEFAULT_EXPIRATION_TIME);
     }
 
     public UaaTokenStore(DataSource dataSource, Duration expirationTime) {
+        this(dataSource, expirationTime, Clock.systemDefaultZone());
+    }
+
+    private UaaTokenStore(DataSource dataSource, Duration expirationTime, Clock clock) {
         this.dataSource = dataSource;
         this.expirationTime = expirationTime;
+        this.clock = clock;
+    }
+
+    static UaaTokenStore constructorForTesting(DataSource dataSource, Duration expirationTime, Clock clock) {
+        return new UaaTokenStore(dataSource, expirationTime, clock);
     }
 
     @Override
@@ -213,7 +225,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected void performExpirationClean() {
         Instant last = lastClean.get();
         //check if we should expire again
-        Instant now = Instant.now();
+        Instant now = Instant.now(clock);
         if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
             //avoid concurrent deletes from the same UAA - performance improvement
             if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
@@ -314,7 +326,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         @Override
         boolean isExpired() {
-            return expiresAt.isBefore(Instant.now());
+            return expiresAt.isBefore(Instant.now(clock));
         }
 
         @Override
@@ -343,7 +355,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         @Override
         boolean isExpired() {
-            return Instant.now().minus(getExpirationTime()).isAfter(created);
+            return Instant.now(clock).minus(getExpirationTime()).isAfter(created);
         }
 
         @Override
