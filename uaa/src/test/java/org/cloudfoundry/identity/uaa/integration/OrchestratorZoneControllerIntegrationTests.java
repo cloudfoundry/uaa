@@ -544,33 +544,46 @@ public class OrchestratorZoneControllerIntegrationTests {
     }
 
     private void testAdminClientSecretAsSpaceAndEmpty(OrchestratorZoneRequest orchestratorZoneRequest) {
-        ResponseEntity<String> getResponse = client.exchange(
-            serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
-            String.class);
+        ResponseEntity<OrchestratorZoneResponse> getResponse = client.exchange(
+                serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST,
+                new HttpEntity<>(orchestratorZoneRequest), OrchestratorZoneResponse.class);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("parameters.adminClientSecret must not be empty and must not have empty spaces");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
         assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
-        assertTrue(getResponse.getBody().contains("parameters.adminClientSecret " +
-                                                  "must not be empty and must not have empty spaces"));
+        assertResponse(expectedResponse, getResponse.getBody());
     }
 
     private void testWithSpaceOrSpecialCharFail(OrchestratorZoneRequest orchestratorZoneRequest) {
-        ResponseEntity<String> getResponse = client.exchange(
-            serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
-            String.class);
+        ResponseEntity<OrchestratorZoneResponse> getResponse = client.exchange(
+                serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST,
+                new HttpEntity<>(orchestratorZoneRequest), OrchestratorZoneResponse.class);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("parameters.subdomain is invalid. Special characters are not allowed in the " +
+                "subdomain name except hyphen which can be specified in the middle");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
         assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
-        assertTrue(getResponse.getBody().contains("parameters.subdomain " +
-                                                  "is invalid. Special characters are not allowed in the " +
-                                                  "subdomain name except hyphen which can be specified in the middle"));
+        assertResponse(expectedResponse, getResponse.getBody());
     }
 
     private void testNameAsSpaceAndEmpty(OrchestratorZoneRequest orchestratorZoneRequest) {
-        ResponseEntity<String> getResponse = client.exchange(
-            serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST, new HttpEntity<>(orchestratorZoneRequest),
-            String.class);
+        ResponseEntity<OrchestratorZoneResponse> getResponse = client.exchange(
+            serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.POST,
+                new HttpEntity<>(orchestratorZoneRequest), OrchestratorZoneResponse.class);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("name must not be blank");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
         assertEquals(getResponse.getStatusCode(), HttpStatus.BAD_REQUEST);
         assertEquals(APPLICATION_JSON_UTF8, getResponse.getHeaders().getContentType());
-        assertTrue(getResponse.getBody().contains("name must not be blank"));
+        assertResponse(expectedResponse, getResponse.getBody());
     }
 
     static class OrchestratorClient extends ClientCredentialsResourceDetails {

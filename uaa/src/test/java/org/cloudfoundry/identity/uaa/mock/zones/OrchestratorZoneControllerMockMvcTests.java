@@ -360,7 +360,7 @@ public class OrchestratorZoneControllerMockMvcTests {
 
 
     @Test
-    void testCreateZone_unAuthorized_withoutAccessToken() throws Exception {
+    void testCreateZone_Unauthorized_WithoutAccessToken() throws Exception {
         OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
         MvcResult result = mockMvc
@@ -372,7 +372,7 @@ public class OrchestratorZoneControllerMockMvcTests {
     }
 
     @Test
-    void testCreateZone_Forbidden_InSufficientScope() throws Exception {
+    void testCreateZone_Forbidden_InsufficientScope() throws Exception {
         OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
         MvcResult result = mockMvc
@@ -388,52 +388,56 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ParameterizedTest
     @ArgumentsSource(SpaceAndEmptyArgumentsSource.class)
     void testCreateZone_nameAsSpaceAndEmptyError(String name) throws Exception {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(name,ADMIN_CLIENT_SECRET,SUB_DOMAIN_NAME);
-        MvcResult result = mockMvc
-            .perform(
+        OrchestratorZoneRequest orchestratorZoneRequest =
+                getOrchestratorZoneRequest(name, ADMIN_CLIENT_SECRET, SUB_DOMAIN_NAME);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("name must not be blank");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        performMockMvcCallAndAssertResponse(
                 post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("name must not be blank"));
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(orchestratorZoneRequest)),
+                orchestratorZonesWriteToken,
+                status().isBadRequest(), expectedResponse);
     }
 
     @ParameterizedTest
     @ArgumentsSource(SubDomainWithSpaceOrSpecialCharArguments.class)
     void testCreateZone_subDomainWithSpaceOrSpecialCharFail(String subDomain) throws Exception {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
-                                                                                     subDomain);
-        MvcResult result = mockMvc
-            .perform(
+        OrchestratorZoneRequest orchestratorZoneRequest =
+                getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET, subDomain);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("parameters.subdomain is invalid. Special characters are not allowed in the " +
+                "subdomain name except hyphen which can be specified in the middle");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        performMockMvcCallAndAssertResponse(
                 post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("parameters.subdomain " +
-                                                                      "is invalid. Special characters are not allowed in the " +
-                                                                      "subdomain name except hyphen which can be specified in the middle"));
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(orchestratorZoneRequest)),
+                orchestratorZonesWriteToken,
+                status().isBadRequest(), expectedResponse);
     }
 
     @ParameterizedTest
     @ArgumentsSource(SpaceAndEmptyArgumentsSource.class)
     void testCreateZone_adminClientSecretAsSpaceAndEmptyError(String adminClientSecret) throws Exception {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,adminClientSecret,
-                                                                                     SUB_DOMAIN_NAME);
-        MvcResult result = mockMvc
-            .perform(
-                post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(orchestratorZoneRequest))
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
+        OrchestratorZoneRequest orchestratorZoneRequest =
+                getOrchestratorZoneRequest(ZONE_NAME, adminClientSecret, SUB_DOMAIN_NAME);
 
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("parameters.adminClientSecret " +
-                                                                      "must not be empty and must not have empty spaces"));
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("parameters.adminClientSecret must not be empty and must not have empty spaces");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        performMockMvcCallAndAssertResponse(
+                post("/orchestrator/zones")
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(orchestratorZoneRequest)),
+                orchestratorZonesWriteToken,
+                status().isBadRequest(), expectedResponse);
     }
 
     @Test
@@ -463,87 +467,80 @@ public class OrchestratorZoneControllerMockMvcTests {
 
     @Test
     void testCreateZone_MessageNotReadable_InvalidFormatError() throws Exception {
-        MvcResult result = mockMvc
-            .perform(
-                post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content("[[[[ ]]]]")
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("Request failed due to a validation error");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("Request failed due to a validation error"));
+        performMockMvcCallAndAssertResponse(
+                post("/orchestrator/zones").contentType(APPLICATION_JSON).content("[[[[ ]]]]"),
+                orchestratorZonesWriteToken, status().isBadRequest(), expectedResponse);
     }
 
     @Test
     void testCreateZone_MessageNotReadable_JsonMappingException() throws Exception {
-        MvcResult result = mockMvc
-            .perform(
-                post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content("{\n" +
-                             "  \"name\": \"tes5000-00\",\n" +
-                             "  \"parameters\": {\n" +
-                             "    \"adminClientSecret\": 0992932.303203.00223\n" +
-                             "    \"subdomain\" : \"uywyyw\"\n" +
-                             "  }\n" +
-                             "}")
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("parameters is invalid: Invalid numeric value");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("parameters is invalid: Invalid numeric value"));
+        performMockMvcCallAndAssertResponse(
+                post("/orchestrator/zones")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\n" +
+                                "  \"name\": \"tes5000-00\",\n" +
+                                "  \"parameters\": {\n" +
+                                "    \"adminClientSecret\": 0992932.303203.00223\n" +
+                                "    \"subdomain\" : \"uywyyw\"\n" +
+                                "  }\n" +
+                                "}"),
+                orchestratorZonesWriteToken, status().isBadRequest(), expectedResponse);
     }
 
     @Test
     void testCreateZone_MessageNotReadable_MismatchedInputException() throws Exception {
-        MvcResult result = mockMvc
-            .perform(
-                post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content("{\n" +
-                             "  \"name\": [\"323231\", \"323232\", \"323233\"],\n" +
-                             "  \"parameters\": {\n" +
-                             "    \"adminClientSecret\": \"dsfds\",\n" +
-                             "    \"subdomain\" : \"test-zone-0\"\n" +
-                             "  }\n" +
-                             "}")
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage(
+                "name is invalid: Cannot deserialize value of type `java.lang.String` from Array value");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("name is invalid: Cannot deserialize value of type " +
-                                                                      "`java.lang.String` from Array value"));
+        performMockMvcCallAndAssertResponse(
+                post("/orchestrator/zones")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\n" +
+                                "  \"name\": [\"323231\", \"323232\", \"323233\"],\n" +
+                                "  \"parameters\": {\n" +
+                                "    \"adminClientSecret\": \"dsfds\",\n" +
+                                "    \"subdomain\" : \"test-zone-0\"\n" +
+                                "  }\n" +
+                                "}"),
+                orchestratorZonesWriteToken, status().isBadRequest(), expectedResponse);
     }
 
     @Test
     void testCreateZone_MessageNotReadable_JsonParsingException() throws Exception {
-        MvcResult result = mockMvc
-            .perform(
-                post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content("{\n" +
-                             "  \"name\": \"tes5000-00\",\n" +
-                             "}")
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("Unexpected character");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("Unexpected character"));
+        performMockMvcCallAndAssertResponse(
+                post("/orchestrator/zones")
+                        .contentType(APPLICATION_JSON)
+                        .content("{\n" +
+                                "  \"name\": \"tes5000-00\",\n" +
+                                "}"),
+                orchestratorZonesWriteToken, status().isBadRequest(), expectedResponse);
     }
 
     @Test
     void testCreateZone_WithoutPayload() throws Exception {
-        MvcResult result = mockMvc
-            .perform(
-                post("/orchestrator/zones")
-                    .contentType(APPLICATION_JSON)
-                    .content("")
-                    .header("Authorization", "Bearer " + orchestratorZonesWriteToken))
-            .andExpect(status().isBadRequest()).andReturn();
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("Required request body is missing");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
-        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
-        assertTrue(result.getResponse().getContentAsString().contains("Required request body is missing"));
+        performMockMvcCallAndAssertResponse(
+                post("/orchestrator/zones")
+                        .contentType(APPLICATION_JSON)
+                        .content(""),
+                orchestratorZonesWriteToken, status().isBadRequest(), expectedResponse);
     }
 
     private static class IdentityZonesBaseUrlsArgumentsSource implements ArgumentsProvider {
