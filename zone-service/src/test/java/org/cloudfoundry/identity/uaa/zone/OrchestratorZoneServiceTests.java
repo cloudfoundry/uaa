@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -154,9 +155,16 @@ public class OrchestratorZoneServiceTests {
         OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone();
         when(zoneProvisioning.retrieveByName(any())).thenReturn(orchestratorZone);
         when(zoneProvisioning.retrieve(any())).thenReturn(createIdentityZone(orchestratorZone.getIdentityZoneId()));
-        zoneService.deleteZone(orchestratorZone.getOrchestratorZoneName());
+
+        OrchestratorZoneResponse response = zoneService.deleteZone(orchestratorZone.getOrchestratorZoneName());
+
         verify(zoneProvisioning, times(1)).retrieveByName(any());
         verify(applicationEventPublisher, times(1)).publishEvent(any());
+
+        assertNotNull(response);
+        assertEquals(orchestratorZone.getOrchestratorZoneName(), response.getName());
+        assertEquals(OrchestratorState.DELETE_IN_PROGRESS.toString(), response.getState());
+        assertEquals(ZONE_DELETED_MESSAGE, response.getMessage());
     }
 
     @Test

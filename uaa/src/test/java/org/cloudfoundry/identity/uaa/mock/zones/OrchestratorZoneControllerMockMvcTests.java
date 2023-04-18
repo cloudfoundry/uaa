@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
-import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneController.ZONE_CREATED_MESSAGE;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -201,15 +202,15 @@ public class OrchestratorZoneControllerMockMvcTests {
                 status().isOk(), expectedResponse);
 
         // deleting after create and get to avoid multiple value in the database
-        performMockMvcCall(delete("/orchestrator/zones"), ZONE_NAME, orchestratorZonesWriteToken,
-                status().isAccepted());
+        performMockMvcCall(delete("/orchestrator/zones").param("name", ZONE_NAME),
+                orchestratorZonesWriteToken, status().isAccepted());
     }
 
     private OrchestratorZoneResponse performMockMvcCall(MockHttpServletRequestBuilder mockRequestBuilder,
-                                                        String nameParameter,
                                                         String token,
                                                         ResultMatcher expectedStatus) throws Exception {
-        MvcResult result = mockMvc.perform(mockRequestBuilder.param("name", nameParameter)
+        MvcResult result = mockMvc.perform(
+                mockRequestBuilder
                         .header("Authorization", "Bearer " + token)).andExpect(expectedStatus).andReturn();
         if (StringUtils.hasLength(result.getResponse().getContentAsString())) {
             return JsonUtils.readValue(result.getResponse().getContentAsString(), OrchestratorZoneResponse.class);
@@ -292,10 +293,15 @@ public class OrchestratorZoneControllerMockMvcTests {
         createOrchestratorZoneAndAssert();
         uaaEventListener.clearEvents();
 
-        performMockMvcCall(delete("/orchestrator/zones"), ZONE_NAME, orchestratorZonesWriteToken, status().isAccepted());
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(ZONE_NAME);
+        expectedResponse.setMessage(ZONE_DELETED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.DELETE_IN_PROGRESS.toString());
 
-        // Asserting that zone got deleted
-        performMockMvcCall(get("/orchestrator/zones"), ZONE_NAME, orchestratorZonesWriteToken, status().isNotFound());
+        performMockMvcCallAndAssertResponse(
+                delete("/orchestrator/zones").param("name", ZONE_NAME),
+                orchestratorZonesWriteToken,
+                status().isAccepted(), expectedResponse);
 
         // Asserting delete event
         assertThat(uaaEventListener.getEventCount(), is(1));
@@ -303,6 +309,10 @@ public class OrchestratorZoneControllerMockMvcTests {
         assertThat(event, instanceOf(EntityDeletedEvent.class));
         EntityDeletedEvent deletedEvent = (EntityDeletedEvent) event;
         assertThat(deletedEvent.getDeleted(), instanceOf(IdentityZone.class));
+
+        // Asserting that zone got deleted
+        performMockMvcCall(get("/orchestrator/zones").param("name", ZONE_NAME),
+                orchestratorZonesWriteToken, status().isNotFound());
     }
 
     @Test
@@ -328,12 +338,14 @@ public class OrchestratorZoneControllerMockMvcTests {
 
     @Test
     void testUpdateZone_MethodNotImplemented() throws Exception {
-        performMockMvcCallAndAssertError(put("/orchestrator/zones").contentType(APPLICATION_JSON).content(
-                                             "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
-                                         status().isMethodNotAllowed(),
-                                         JsonUtils.writeValueAsString(
-                                             new OrchestratorErrorResponse("Put Operation not Supported")),
-                orchestratorZonesWriteToken);
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("Put Operation not Supported");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        performMockMvcCallAndAssertResponse(
+                put("/orchestrator/zones").contentType(APPLICATION_JSON).content(
+                        "{\"name\": \"\",\"parameters\": {\"adminSecret\": \"\",\"subDomain\": \"\"}}"),
+                orchestratorZonesWriteToken, status().isMethodNotAllowed(), expectedResponse);
     }
 
     @Test
@@ -428,7 +440,8 @@ public class OrchestratorZoneControllerMockMvcTests {
     void testCreateZone() throws Exception {
         createOrchestratorZoneAndAssert();
 
-        performMockMvcCall(delete("/orchestrator/zones"), ZONE_NAME, orchestratorZonesWriteToken, status().isAccepted());
+        performMockMvcCall(delete("/orchestrator/zones").param("name", ZONE_NAME),
+                orchestratorZonesWriteToken, status().isAccepted());
     }
 
     private void createOrchestratorZoneAndAssert() throws Exception {

@@ -122,7 +122,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return new OrchestratorZoneResponse(zoneName, connectionDetails, "", OrchestratorState.FOUND.toString());
     }
 
-    public void deleteZone(String zoneName) {
+    public OrchestratorZoneResponse deleteZone(String zoneName) {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - deleting Name[" + zoneName + "]");
@@ -135,13 +135,14 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                     new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(),
                                              IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
-                return;
             } else {
                 throw new OrchestratorZoneServiceException(zoneName, "Error : deleting zone Name[" + zoneName + "]");
             }
         } finally {
             IdentityZoneHolder.set(previous);
         }
+        return new OrchestratorZoneResponse(zoneName, null, ZONE_DELETED_MESSAGE,
+                                            OrchestratorState.DELETE_IN_PROGRESS.toString());
     }
 
     private ConnectionDetails buildConnectionDetails(String zoneName, OrchestratorZoneEntity orchestratorZone,

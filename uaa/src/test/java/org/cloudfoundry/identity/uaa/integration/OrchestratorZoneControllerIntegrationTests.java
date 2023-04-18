@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNotNull;
@@ -253,10 +254,19 @@ public class OrchestratorZoneControllerIntegrationTests {
     public void testDeleteZone() {
         String zoneName = createZoneGetZoneName();
 
-        ResponseEntity<String> response =
+        ResponseEntity<OrchestratorZoneResponse> response =
             client.exchange(serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
-                            HttpMethod.DELETE, null, String.class);
+                            HttpMethod.DELETE, null, OrchestratorZoneResponse.class);
+
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(zoneName);
+        expectedResponse.setMessage(ZONE_DELETED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.DELETE_IN_PROGRESS.toString());
+
+        assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
+        assertResponse(expectedResponse, response.getBody());
 
         ResponseEntity<OrchestratorZoneResponse> getResponse = client.getForEntity(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
@@ -305,13 +315,18 @@ public class OrchestratorZoneControllerIntegrationTests {
         OrchestratorZoneRequest zoneRequest = new OrchestratorZoneRequest();
         zoneRequest.setName("test name");
         zoneRequest.setParameters(new OrchestratorZone(ADMIN_CLIENT_SECRET, null));
-        ResponseEntity<String> getResponse = client.exchange(
+
+        ResponseEntity<OrchestratorZoneResponse> getResponse = client.exchange(
             serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT), HttpMethod.PUT, new HttpEntity<>(zoneRequest),
-            String.class);
+                OrchestratorZoneResponse.class);
+
         assertEquals(getResponse.getStatusCode(), HttpStatus.METHOD_NOT_ALLOWED);
-        assertNotNull(getResponse.getBody());
-        assertEquals(JsonUtils.writeValueAsString(
-            new OrchestratorErrorResponse("Put Operation not Supported")), getResponse.getBody());
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("Put Operation not Supported");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        assertResponse(expectedResponse, getResponse.getBody());
     }
 
     @Test

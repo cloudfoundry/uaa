@@ -67,8 +67,7 @@ public class OrchestratorZoneController {
     @DeleteMapping
     @Transactional
     public ResponseEntity<?> deleteZone(@NotBlank(message = MANDATORY_VALIDATION_MESSAGE) @RequestParam String name) {
-        zoneService.deleteZone(name);
-        return ResponseEntity.accepted().build();
+        return ResponseEntity.status(ACCEPTED).body(zoneService.deleteZone(name));
     }
 
     @PutMapping
@@ -110,9 +109,9 @@ public class OrchestratorZoneController {
     }
 
     @ExceptionHandler(value = { OperationNotSupportedException.class })
-    public ResponseEntity<OrchestratorErrorResponse> methodNotAllowed(Exception ex)
-    {
-        return ResponseEntity.status(METHOD_NOT_ALLOWED).body(new OrchestratorErrorResponse(ex.getMessage()));
+    public ResponseEntity<OrchestratorZoneResponse> methodNotAllowed(Exception ex) {
+        return ResponseEntity.status(METHOD_NOT_ALLOWED).body(new OrchestratorZoneResponse(null, null, ex.getMessage(),
+                                                                                           OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 
     @ExceptionHandler(value = { Exception.class })
