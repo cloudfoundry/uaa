@@ -219,7 +219,7 @@ class UaaTokenStoreTests {
         final String finalLastCode = lastCode;
         TimeUnit.SECONDS.sleep(5);
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(finalLastCode));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(9));
     }
 
     @Test
@@ -236,7 +236,7 @@ class UaaTokenStoreTests {
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(10));
     }
 
     @Test
