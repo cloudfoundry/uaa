@@ -119,7 +119,13 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         String subDomain = orchestratorZone.getSubdomain();
         String zoneUri = getZoneUri(subDomain, uaaUri);
         ConnectionDetails connectionDetails = buildConnectionDetails(zoneName, orchestratorZone, zoneUri);
-        return new OrchestratorZoneResponse(zoneName, connectionDetails, "", OrchestratorState.FOUND.toString());
+
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(zoneName);
+        response.setConnectionDetails(connectionDetails);
+        response.setMessage("");
+        response.setState(OrchestratorState.FOUND.toString());
+        return response;
     }
 
     public OrchestratorZoneResponse deleteZone(String zoneName) {
@@ -141,8 +147,12 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         } finally {
             IdentityZoneHolder.set(previous);
         }
-        return new OrchestratorZoneResponse(zoneName, null, ZONE_DELETED_MESSAGE,
-                                            OrchestratorState.DELETE_IN_PROGRESS.toString());
+
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(zoneName);
+        response.setMessage(ZONE_DELETED_MESSAGE);
+        response.setState(OrchestratorState.DELETE_IN_PROGRESS.toString());
+        return response;
     }
 
     private ConnectionDetails buildConnectionDetails(String zoneName, OrchestratorZoneEntity orchestratorZone,
@@ -209,8 +219,12 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         } finally {
             IdentityZoneHolder.set(previous);
         }
-        return new OrchestratorZoneResponse(zoneRequest.getName(), null, ZONE_CREATED_MESSAGE,
-                                        OrchestratorState.CREATE_IN_PROGRESS.toString());
+
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(zoneRequest.getName());
+        response.setMessage(ZONE_CREATED_MESSAGE);
+        response.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
+        return response;
     }
 
     private String getSubDomain(String subdomain, String id) {

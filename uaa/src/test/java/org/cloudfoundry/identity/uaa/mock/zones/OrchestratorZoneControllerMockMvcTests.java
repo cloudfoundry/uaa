@@ -32,7 +32,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.OrchestratorState;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorErrorResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
@@ -159,9 +158,9 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ParameterizedTest
     @ArgumentsSource(NameRequiredArgumentsSource.class)
     void testGetZone_nameRequiredError(String url) throws Exception {
-        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse(null, null,
-                "Required request parameter 'name' for method parameter type String is not present",
-                OrchestratorState.PERMANENT_FAILURE.toString());
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("Required request parameter 'name' for method parameter type String is not present");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
         performMockMvcCallAndAssertResponse(get(url), orchestratorZonesReadToken, status().isBadRequest(),
                 expectedResponse);
@@ -170,8 +169,9 @@ public class OrchestratorZoneControllerMockMvcTests {
     @ParameterizedTest
     @ArgumentsSource(NameNotEmptyArgumentsSource.class)
     void testGetZone_nameEmptyError(String url) throws Exception {
-        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse(null, null,
-                "name must be specified", OrchestratorState.PERMANENT_FAILURE.toString());
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setMessage("name must be specified");
+        expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
         performMockMvcCallAndAssertResponse(get(url), orchestratorZonesReadToken, status().isBadRequest(),
                 expectedResponse);
@@ -236,6 +236,7 @@ public class OrchestratorZoneControllerMockMvcTests {
                 JsonUtils.readValue(result.getResponse().getContentAsString(), OrchestratorZoneResponse.class);
 
         assertNotNull(actualResponse);
+        assertNull(actualResponse.getParameters());
         assertNotNull(actualResponse.getState());
         assertEquals(expectedResponse.getState(), actualResponse.getState());
 

@@ -47,7 +47,6 @@ import org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorErrorResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
@@ -161,6 +160,7 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     private void assertResponse(OrchestratorZoneResponse expectedResponse, OrchestratorZoneResponse actualResponse) {
         assertNotNull(actualResponse);
+        assertNull(actualResponse.getParameters());
         assertNotNull(actualResponse.getState());
         assertEquals(expectedResponse.getState(), actualResponse.getState());
 

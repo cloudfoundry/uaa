@@ -5,6 +5,7 @@ import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CR
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -124,18 +125,19 @@ public class OrchestratorZoneServiceTests {
     public void testGetZoneDetails() {
         OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone();
         when(zoneProvisioning.retrieveByName(any())).thenReturn(orchestratorZone);
-        OrchestratorZoneResponse zone = zoneService.getZoneDetails(ZONE_NAME);
-        assertNotNull(zone);
-        assertEquals(zone.getName(), ZONE_NAME);
+        OrchestratorZoneResponse response = zoneService.getZoneDetails(ZONE_NAME);
+        assertNotNull(response);
+        assertEquals(response.getName(), ZONE_NAME);
         String uri = "http://" + orchestratorZone.getSubdomain() + ".localhost";
-        assertEquals(zone.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
-        assertEquals((zone.getConnectionDetails().getUri()), uri);
-        assertEquals(zone.getConnectionDetails().getDashboardUri(), "http://localhost/dashboard");
-        assertEquals(zone.getConnectionDetails().getIssuerId(), uri + "/oauth/token");
-        assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
-        assertEquals(zone.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());
-        assertTrue(zone.getMessage().isEmpty());
-        assertEquals(OrchestratorState.FOUND.toString(), zone.getState());
+        assertEquals(response.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
+        assertEquals((response.getConnectionDetails().getUri()), uri);
+        assertEquals(response.getConnectionDetails().getDashboardUri(), "http://localhost/dashboard");
+        assertEquals(response.getConnectionDetails().getIssuerId(), uri + "/oauth/token");
+        assertEquals(response.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
+        assertEquals(response.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());
+        assertTrue(response.getMessage().isEmpty());
+        assertEquals(OrchestratorState.FOUND.toString(), response.getState());
+        assertNull(response.getParameters());
     }
 
     @Test
@@ -165,6 +167,7 @@ public class OrchestratorZoneServiceTests {
         assertEquals(orchestratorZone.getOrchestratorZoneName(), response.getName());
         assertEquals(OrchestratorState.DELETE_IN_PROGRESS.toString(), response.getState());
         assertEquals(ZONE_DELETED_MESSAGE, response.getMessage());
+        assertNull(response.getParameters());
     }
 
     @Test
@@ -263,17 +266,18 @@ public class OrchestratorZoneServiceTests {
         when(idpProvisioning.create(any(),any())).thenReturn(identityProvider);
         when(clientDetailsService.retrieve(any(),any())).thenReturn(any());
 
-        OrchestratorZoneResponse zone = zoneService.createZone(zoneRequest);
+        OrchestratorZoneResponse response = zoneService.createZone(zoneRequest);
 
         verify(zoneProvisioning, times(1)).create(any());
         verify(idpProvisioning, times(1)).create(any(),any());
         verify(clientDetailsService, times(1)).create(any(),any());
         verify(clientDetailsValidator, times(1)).validate(any(),anyBoolean(),anyBoolean());
 
-        assertNotNull(zone);
-        assertEquals(ZONE_NAME, zone.getName());
-        assertEquals(OrchestratorState.CREATE_IN_PROGRESS.toString(), zone.getState());
-        assertEquals(ZONE_CREATED_MESSAGE, zone.getMessage());
+        assertNotNull(response);
+        assertEquals(ZONE_NAME, response.getName());
+        assertEquals(OrchestratorState.CREATE_IN_PROGRESS.toString(), response.getState());
+        assertEquals(ZONE_CREATED_MESSAGE, response.getMessage());
+        assertNull(response.getParameters());
     }
 
     @Test

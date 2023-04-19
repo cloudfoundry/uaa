@@ -83,62 +83,87 @@ public class OrchestratorZoneController {
         if (ex instanceof OrchestratorZoneServiceException) {
             zoneName = ((OrchestratorZoneServiceException) ex).getZoneName();
         }
-        return ResponseEntity.badRequest().body(new OrchestratorZoneResponse(zoneName, null, ex.getMessage(),
-                OrchestratorState.PERMANENT_FAILURE.toString()));
+
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(zoneName);
+        response.setMessage(ex.getMessage());
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(value = { ZoneAlreadyExistsException.class })
     public ResponseEntity<OrchestratorZoneResponse> zoneAlreadyExist(ZoneAlreadyExistsException ex) {
-        return ResponseEntity.status(CONFLICT).body(
-            new OrchestratorZoneResponse(ex.getZoneName(), null, ex.getMessage(),
-                    OrchestratorState.PERMANENT_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(ex.getZoneName());
+        response.setMessage(ex.getMessage());
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.status(CONFLICT).body(response);
     }
 
     @ExceptionHandler(value = { ZoneDoesNotExistsException.class })
     public ResponseEntity<OrchestratorZoneResponse> notFound(ZoneDoesNotExistsException ex) {
-        return ResponseEntity.status(NOT_FOUND).body(
-            new OrchestratorZoneResponse(ex.getZoneName(), null, ex.getMessage(),
-                                         OrchestratorState.NOT_FOUND.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(ex.getZoneName());
+        response.setMessage(ex.getMessage());
+        response.setState(OrchestratorState.NOT_FOUND.toString());
+
+        return ResponseEntity.status(NOT_FOUND).body(response);
     }
 
     @ExceptionHandler(value = { AccessDeniedException.class })
     public ResponseEntity<OrchestratorZoneResponse> accessDenied(Exception ex) {
-        return ResponseEntity.status(FORBIDDEN).body(new OrchestratorZoneResponse(null, null, ex.getMessage(),
-                                                                                  OrchestratorState.PERMANENT_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setMessage(ex.getMessage());
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.status(FORBIDDEN).body(response);
     }
 
     @ExceptionHandler(value = { OperationNotSupportedException.class })
     public ResponseEntity<OrchestratorZoneResponse> methodNotAllowed(Exception ex) {
-        return ResponseEntity.status(METHOD_NOT_ALLOWED).body(new OrchestratorZoneResponse(null, null, ex.getMessage(),
-                                                                                           OrchestratorState.PERMANENT_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setMessage(ex.getMessage());
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.status(METHOD_NOT_ALLOWED).body(response);
     }
 
     @ExceptionHandler(value = { Exception.class })
     public ResponseEntity<OrchestratorZoneResponse> internalServerError(Exception ex) {
-        return ResponseEntity.status(INTERNAL_SERVER_ERROR)
-                             .body(new OrchestratorZoneResponse(null, null, ex.getMessage(),
-                                                                OrchestratorState.SERVER_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setMessage(ex.getMessage());
+        response.setState(OrchestratorState.SERVER_FAILURE.toString());
+
+        return ResponseEntity.status(INTERNAL_SERVER_ERROR).body(response);
     }
 
     @ExceptionHandler(value = { HttpMessageNotReadableException.class })
     public ResponseEntity<OrchestratorZoneResponse> messageReadableException(HttpMessageNotReadableException ex) {
-        return ResponseEntity.badRequest()
-                             .body(new OrchestratorZoneResponse(null, null, getErrorMessagesHttpMessageNotReadable(ex),
-                                                                OrchestratorState.PERMANENT_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setMessage(getErrorMessagesHttpMessageNotReadable(ex));
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(value = { MethodArgumentNotValidException.class })
     public ResponseEntity<OrchestratorZoneResponse> methodArgumentException(MethodArgumentNotValidException ex) {
-        return ResponseEntity.badRequest()
-                             .body(new OrchestratorZoneResponse(ErrorMessageUtil.getNameFromException(ex), null,
-                                                                getErrorMessagesMethodArgumentInvalid(ex),
-                                                                OrchestratorState.PERMANENT_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setName(ErrorMessageUtil.getNameFromException(ex));
+        response.setMessage(getErrorMessagesMethodArgumentInvalid(ex));
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.badRequest().body(response);
     }
 
     @ExceptionHandler(value = { ConstraintViolationException.class })
     public ResponseEntity<OrchestratorZoneResponse> constraintViolationException(ConstraintViolationException ex) {
-        return ResponseEntity.badRequest()
-                             .body(new OrchestratorZoneResponse(null, null, getErrorMessagesConstraintViolation(ex),
-                                                                OrchestratorState.PERMANENT_FAILURE.toString()));
+        OrchestratorZoneResponse response = new OrchestratorZoneResponse();
+        response.setMessage(getErrorMessagesConstraintViolation(ex));
+        response.setState(OrchestratorState.PERMANENT_FAILURE.toString());
+
+        return ResponseEntity.badRequest().body(response);
     }
 }
