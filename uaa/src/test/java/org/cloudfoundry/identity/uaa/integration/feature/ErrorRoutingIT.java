@@ -53,7 +53,7 @@ public class ErrorRoutingIT {
     @Test
     public void testResponseToErrorPage() throws IOException {
         String body = CallErrorPageAndCheckHttpStatusCode("/info", "TRACE", 405);
-        Assert.assertTrue("Expected no response HTML body, but received: " + body, body.indexOf("<html") == -1);
+        Assert.assertEquals("Expected no response HTML body, but received: " + body, -1, body.indexOf("<html"));
     }
 
     @Test

@@ -101,6 +101,24 @@ public class JsonWebKey {
         return this;
     }
 
+    public String[] getX5c() {
+        return (String[]) getKeyProperties().get(HeaderParameterNames.X_509_CERT_CHAIN);
+    }
+
+    public JsonWebKey setX5c(String[] x5c) {
+        this.json.put(HeaderParameterNames.X_509_CERT_CHAIN, x5c);
+        return this;
+    }
+
+    public String getX5t() {
+        return (String) getKeyProperties().get(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT);
+    }
+
+    public JsonWebKey setX5t(String x5t) {
+        this.json.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, x5t);
+        return this;
+    }
+
     public final KeyUse getUse() {
         String use = (String) getKeyProperties().get(JWKParameterNames.PUBLIC_KEY_USE);
         KeyUse result = null;

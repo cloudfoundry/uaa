@@ -16,7 +16,13 @@
       "jwtRevocable": false,
       "refreshTokenUnique": false,
       "refreshTokenFormat": "jwt",
-      "activeKeyId": null
+      "activeKeyId": "key-id-1",
+      "keys" : {
+        "key-id-1":{
+          "signingKey":"some-signing-key-1",
+          "signingCert":"some-cert",
+          "signingAlg":"RS256"}
+      }
     },
     "samlConfig": {
       "assertionSigned": true,

@@ -172,7 +172,7 @@ public abstract class AbstractTokenMockMvcTests {
     IdentityZone setupIdentityZone(String subdomain, List<String> defaultUserGroups) {
         IdentityZone zone = new IdentityZone();
         zone.getConfig().getUserConfig().setDefaultGroups(defaultUserGroups);
-        zone.getConfig().getTokenPolicy().setKeys(IdentityZone.getUaa().getConfig().getTokenPolicy().getKeys());
+        zone.getConfig().getTokenPolicy().setKeyInformation(IdentityZone.getUaa().getConfig().getTokenPolicy().getKeys());
         zone.getConfig().setSamlConfig(IdentityZone.getUaa().getConfig().getSamlConfig());
         zone.setId(UUID.randomUUID().toString());
         zone.setName(subdomain);
