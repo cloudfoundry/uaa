@@ -12,12 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
@@ -89,8 +89,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
 
     private String getSafeParameterValue(String[] value) {
         if (null == value || value.length < 1) {
-            return Strings.EMPTY_STRING;
+            return UaaStringUtils.EMPTY_STRING;
         }
-        return StringUtils.hasText(value[0]) ? value[0] : Strings.EMPTY_STRING;
+        return StringUtils.hasText(value[0]) ? value[0] : UaaStringUtils.EMPTY_STRING;
     }
 }

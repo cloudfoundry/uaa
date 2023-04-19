@@ -1,9 +1,13 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Arrays;
@@ -392,6 +396,18 @@ class UaaStringUtilsTest {
     void containsIgnoreCase() {
         assertTrue(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "one"));
         assertFalse(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "any"));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void isNullOrEmpty_ShouldReturnTrue(final String input) {
+        Assertions.assertThat(UaaStringUtils.isNullOrEmpty(input)).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { " ", "  ", "\t", "\n", "abc" })
+    void isNullOrEmpty_ShouldReturnFalse(final String input) {
+        Assertions.assertThat(UaaStringUtils.isNullOrEmpty(input)).isFalse();
     }
 
     @Test

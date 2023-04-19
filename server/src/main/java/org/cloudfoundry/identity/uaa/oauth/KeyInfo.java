@@ -2,10 +2,13 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.jwk.JWKParameterNames;
+import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jose.util.X509CertUtils;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
@@ -21,6 +24,7 @@ import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
@@ -28,8 +32,10 @@ import java.security.spec.KeySpec;
 import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,14 +58,13 @@ public abstract class KeyInfo {
     public abstract String type();
 
     public abstract String verifierKey();
+    public abstract Optional<String> verifierCertificate();
 
     public abstract Map<String, Object> getJwkMap();
 
     public abstract String algorithm();
 
-    protected abstract String getJavaAlgorithm(String sigAlg);
-
-    protected String validateAndConstructTokenKeyUrl(String keyUrl) {
+    protected static String validateAndConstructTokenKeyUrl(String keyUrl) {
         if (!UaaUrlUtils.isUrl(keyUrl)) {
             throw new IllegalArgumentException("Invalid Key URL");
         }
@@ -75,6 +80,7 @@ class HmacKeyInfo extends KeyInfo {
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
+    private final Optional<String> verifierCertificate;
 
     public HmacKeyInfo(String keyId, String signingKey, String keyUrl) {
         this(keyId, signingKey, keyUrl, null);
@@ -82,10 +88,11 @@ class HmacKeyInfo extends KeyInfo {
     public HmacKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
 
-        String algorithm = getJavaAlgorithm(sigAlg);
+        String algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(DEFAULT_HMAC_ALGORITHM);
         SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
         this.signer = new MacSigner(algorithm, hmacKey);
         this.verifier = new MacSigner(algorithm, hmacKey);
+        this.verifierCertificate = Optional.empty();
 
         this.keyId = keyId;
         this.verifierKey = signingKey;
@@ -127,6 +134,11 @@ class HmacKeyInfo extends KeyInfo {
     }
 
     @Override
+    public Optional<String> verifierCertificate() {
+        return this.verifierCertificate;
+    }
+
+    @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
         result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
@@ -142,15 +154,6 @@ class HmacKeyInfo extends KeyInfo {
     public String algorithm() {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
     }
-
-     @Override
-     protected String getJavaAlgorithm(String sigAlg) {
-         if (sigAlg == null) {
-             return DEFAULT_HMAC_ALGORITHM;
-         } else {
-             return JwtAlgorithms.sigAlgJava(sigAlg);
-         }
-     }
 }
 
 class RsaKeyInfo extends KeyInfo {
@@ -162,22 +165,24 @@ class RsaKeyInfo extends KeyInfo {
     private Signer signer;
     private SignatureVerifier verifier;
     private String verifierKey;
+    private Optional<String> verifierCertificate;
 
     public RsaKeyInfo(String keyId, String signingKey, String keyUrl) {
-        this(keyId, signingKey, keyUrl, null);
+        this(keyId, signingKey, keyUrl, null, null);
     }
-    public RsaKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg) {
+    public RsaKeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg, String signingCert) {
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
 
         KeyPair keyPair = parseKeyPair(signingKey);
         RSAPublicKey rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
-        String algorithm = getJavaAlgorithm(sigAlg);
+        String algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(DEFAULT_RSA_ALGORITHM);
         String pemEncodePublicKey = JsonWebKey.pemEncodePublicKey(rsaPublicKey);
 
         this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
         this.verifier = new RsaVerifier(rsaPublicKey, algorithm);
         this.keyId = keyId;
         this.verifierKey = pemEncodePublicKey;
+        this.verifierCertificate = Optional.ofNullable(signingCert);
     }
 
     private static KeyPair parseKeyPair(String pemData) {
@@ -200,6 +205,7 @@ class RsaKeyInfo extends KeyInfo {
                 if (seq.size() != 9) {
                     throw new IllegalArgumentException("Invalid RSA Private Key ASN1 sequence.");
                 }
+
                 org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
                 RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
                 RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(
@@ -269,6 +275,11 @@ class RsaKeyInfo extends KeyInfo {
     }
 
     @Override
+    public Optional<String> verifierCertificate() {
+        return this.verifierCertificate;
+    }
+
+    @Override
     public Map<String, Object> getJwkMap() {
         Map<String, Object> result = new HashMap<>();
         result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
@@ -277,7 +288,16 @@ class RsaKeyInfo extends KeyInfo {
         result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
         result.put(HeaderParameterNames.KEY_ID, this.keyId);
         result.put(JWKParameterNames.KEY_TYPE, RSA.name());
-
+        // X509 releated values from JWK spec
+        if (this.verifierCertificate.isPresent()) {
+            X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate.get());
+            if (x509Certificate != null) {
+                byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
+                result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_256_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
+            }
+        }
         RSAPublicKey rsaKey = (RSAPublicKey) parseKeyPair(verifierKey).getPublic();
         if (rsaKey != null) {
             String n = Base64URL.encode(rsaKey.getModulus()).toString();
@@ -292,14 +312,5 @@ class RsaKeyInfo extends KeyInfo {
     @Override
     public String algorithm() {
         return JwtAlgorithms.sigAlg(verifier.algorithm());
-    }
-
-    @Override
-    protected String getJavaAlgorithm(String sigAlg) {
-        if (sigAlg == null) {
-            return DEFAULT_RSA_ALGORITHM;
-        } else {
-            return JwtAlgorithms.sigAlgJava(sigAlg);
-        }
     }
 }
