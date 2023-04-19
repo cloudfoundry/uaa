@@ -210,14 +210,14 @@ class UaaTokenStoreTests {
 
     @Test
     void cleanUpExpiredTokensBasedOnExpiresField() {
-        TestClock clock = new TestClock();
+        ConstantClock clock = new ConstantClock();
         Duration expirationTime = Duration.ofHours(1);
         store = UaaTokenStore.constructorForTesting(dataSource, expirationTime, clock);
 
         int count = 10;
         String lastCode = null;
         for (int i = 0; i < count; i++) {
-            clock.instants.add(Instant.now());
+            clock.timeItIs = Instant.now();
             lastCode = store.createAuthorizationCode(clientAuthentication);
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
@@ -225,8 +225,7 @@ class UaaTokenStoreTests {
         jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
 
         final String finalLastCode = lastCode;
-        clock.instants.add(Instant.now().plus(expirationTime));
-        clock.instants.add(Instant.now().plus(expirationTime));
+        clock.timeItIs = Instant.now().plus(expirationTime);
 
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(finalLastCode));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
@@ -234,7 +233,7 @@ class UaaTokenStoreTests {
 
     @Test
     void cleanUpLegacyCodesCodesWithoutExpiresAtAfter3Days() {
-        TestClock clock = new TestClock();
+        ConstantClock clock = new ConstantClock();
         store = UaaTokenStore.constructorForTesting(dataSource, Duration.ofMinutes(1), clock);
 
 
@@ -245,11 +244,11 @@ class UaaTokenStoreTests {
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
-        clock.instants.add(Instant.now());
+        clock.timeItIs = Instant.now();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
-        clock.instants.add(Instant.now().plus(Duration.ofMinutes(10)));
+        clock.timeItIs = Instant.now().plus(Duration.ofMinutes(10));
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
@@ -468,8 +467,8 @@ class UaaTokenStoreTests {
         }
     }
 
-    public class TestClock extends Clock {
-        public Queue<Instant> instants = new LinkedList<Instant>();
+    public class ConstantClock extends Clock {
+        public Instant timeItIs;
 
         @Override
         public ZoneId getZone() {
@@ -483,7 +482,7 @@ class UaaTokenStoreTests {
 
         @Override
         public Instant instant() {
-            return instants.remove();
+            return timeItIs;
         }
     }
 
