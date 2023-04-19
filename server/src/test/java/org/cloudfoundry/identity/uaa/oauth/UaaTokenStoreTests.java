@@ -232,7 +232,7 @@ class UaaTokenStoreTests {
     }
 
     @Test
-    void cleanUpLegacyCodesCodesWithoutExpiresAtAfter3Days() {
+    void cleanUpLegacyCodesAfter3Days() {
         ConstantClock clock = new ConstantClock();
         store = UaaTokenStore.constructorForTesting(dataSource, Duration.ofMinutes(1), clock);
 
@@ -244,14 +244,12 @@ class UaaTokenStoreTests {
 
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
 
-        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
-        clock.timeItIs = Instant.now();
+        clock.timeItIs = Instant.now().plus(Duration.ofDays(2));
 
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
 
-        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
-        clock.timeItIs = Instant.now().plus(Duration.ofMinutes(10));
+        clock.timeItIs = Instant.now().plus(Duration.ofDays(4));
 
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
