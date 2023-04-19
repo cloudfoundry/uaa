@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -205,23 +206,25 @@ class UaaTokenStoreTests {
     }
 
     @Test
-    void cleanUpExpiredTokensBasedOnExpiresField() {
+    @SuppressWarnings("java:S2925")
+    void cleanUpExpiredTokensBasedOnExpiresField() throws InterruptedException {
         int count = 10;
+        store = new UaaTokenStore(dataSource, Duration.ofSeconds(3));
         String lastCode = null;
         for (int i = 0; i < count; i++) {
             lastCode = store.createAuthorizationCode(clientAuthentication);
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
 
-        jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
-
         final String finalLastCode = lastCode;
+        TimeUnit.SECONDS.sleep(5);
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(finalLastCode));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(9));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
 
     @Test
     void cleanUpLegacyCodesCodesWithoutExpiresAtAfter3Days() {
+        store = new UaaTokenStore(dataSource, Duration.ZERO);
         int count = 10;
         long oneday = 1000 * 60 * 60 * 24;
         for (int i = 0; i < count; i++) {
@@ -233,7 +236,7 @@ class UaaTokenStoreTests {
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
-        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(10));
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
 
     @Test

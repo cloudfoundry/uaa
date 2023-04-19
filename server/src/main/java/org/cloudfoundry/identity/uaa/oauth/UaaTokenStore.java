@@ -83,7 +83,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
-    private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
+    private AtomicReference<Instant> lastClean;
 
     public UaaTokenStore(DataSource dataSource) {
         this(dataSource, DEFAULT_EXPIRATION_TIME);
@@ -92,6 +92,8 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     public UaaTokenStore(DataSource dataSource, Duration expirationTime) {
         this.dataSource = dataSource;
         this.expirationTime = expirationTime;
+        // set last clean to instant interval depending on expiration time, used later on also in performExpirationClean
+        this.lastClean = new AtomicReference<>(Instant.now().minus(expirationTime));
     }
 
     @Override
@@ -223,7 +225,6 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                     logger.debug("[oauth_code] Removed "+expired+" expired entries.");
                     expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
                     logger.debug("[oauth_code] Removed "+expired+" old entries.");
-                    lastClean.set(Instant.now());
                 } catch (DeadlockLoserDataAccessException e) {
                     logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
                 }
