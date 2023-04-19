@@ -236,19 +236,23 @@ class UaaTokenStoreTests {
         ConstantClock clock = new ConstantClock();
         store = UaaTokenStore.constructorForTesting(dataSource, Duration.ofMinutes(1), clock);
 
-
         int count = 10;
         long oneday = 1000 * 60 * 60 * 24;
         for (int i = 0; i < count; i++) {
             legacyCodeServices.createAuthorizationCode(clientAuthentication);
         }
+
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
+
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
         clock.timeItIs = Instant.now();
+
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
+
         jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
         clock.timeItIs = Instant.now().plus(Duration.ofMinutes(10));
+
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
