@@ -392,6 +392,7 @@ public class OrchestratorZoneControllerMockMvcTests {
                 getOrchestratorZoneRequest(name, ADMIN_CLIENT_SECRET, SUB_DOMAIN_NAME);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(name);
         expectedResponse.setMessage("name must not be blank");
         expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
@@ -410,6 +411,7 @@ public class OrchestratorZoneControllerMockMvcTests {
                 getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET, subDomain);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(orchestratorZoneRequest.getName());
         expectedResponse.setMessage("parameters.subdomain is invalid. Special characters are not allowed in the " +
                 "subdomain name except hyphen which can be specified in the middle");
         expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
@@ -429,6 +431,7 @@ public class OrchestratorZoneControllerMockMvcTests {
                 getOrchestratorZoneRequest(ZONE_NAME, adminClientSecret, SUB_DOMAIN_NAME);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(orchestratorZoneRequest.getName());
         expectedResponse.setMessage("parameters.adminClientSecret must not be empty and must not have empty spaces");
         expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 

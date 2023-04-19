@@ -16,7 +16,6 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorErrorResponse;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.slf4j.Logger;
@@ -131,7 +130,8 @@ public class OrchestratorZoneController {
     @ExceptionHandler(value = { MethodArgumentNotValidException.class })
     public ResponseEntity<OrchestratorZoneResponse> methodArgumentException(MethodArgumentNotValidException ex) {
         return ResponseEntity.badRequest()
-                             .body(new OrchestratorZoneResponse(null, null, getErrorMessagesMethodArgumentInvalid(ex),
+                             .body(new OrchestratorZoneResponse(ErrorMessageUtil.getNameFromException(ex), null,
+                                                                getErrorMessagesMethodArgumentInvalid(ex),
                                                                 OrchestratorState.PERMANENT_FAILURE.toString()));
     }
 

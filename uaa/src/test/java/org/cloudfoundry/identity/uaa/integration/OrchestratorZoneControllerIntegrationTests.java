@@ -549,6 +549,7 @@ public class OrchestratorZoneControllerIntegrationTests {
                 new HttpEntity<>(orchestratorZoneRequest), OrchestratorZoneResponse.class);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(orchestratorZoneRequest.getName());
         expectedResponse.setMessage("parameters.adminClientSecret must not be empty and must not have empty spaces");
         expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 
@@ -563,6 +564,7 @@ public class OrchestratorZoneControllerIntegrationTests {
                 new HttpEntity<>(orchestratorZoneRequest), OrchestratorZoneResponse.class);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(orchestratorZoneRequest.getName());
         expectedResponse.setMessage("parameters.subdomain is invalid. Special characters are not allowed in the " +
                 "subdomain name except hyphen which can be specified in the middle");
         expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
@@ -578,6 +580,7 @@ public class OrchestratorZoneControllerIntegrationTests {
                 new HttpEntity<>(orchestratorZoneRequest), OrchestratorZoneResponse.class);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(orchestratorZoneRequest.getName());
         expectedResponse.setMessage("name must not be blank");
         expectedResponse.setState(OrchestratorState.PERMANENT_FAILURE.toString());
 

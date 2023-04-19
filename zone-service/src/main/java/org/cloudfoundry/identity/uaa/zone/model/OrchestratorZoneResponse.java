@@ -9,7 +9,6 @@ import lombok.NoArgsConstructor;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@JsonInclude(Include.NON_NULL)
 public class OrchestratorZoneResponse {
 
     private String name;

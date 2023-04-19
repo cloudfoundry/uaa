@@ -9,6 +9,7 @@ import javax.validation.ConstraintViolationException;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.util.CollectionUtils;
 import org.springframework.validation.BindingResult;
@@ -68,6 +69,14 @@ public class ErrorMessageUtil {
             errorMessage = exception.getMessage();
         }
         return errorMessage;
+    }
+
+    public static String getNameFromException(MethodArgumentNotValidException ex) {
+        String name = null;
+        if (ex.getTarget() != null && ex.getTarget() instanceof OrchestratorZoneRequest) {
+            name = ((OrchestratorZoneRequest) ex.getTarget()).getName();
+        }
+        return name;
     }
 
     private static String getErrorMessage(final String errorMessage, JsonMappingException jsonMappingException) {
