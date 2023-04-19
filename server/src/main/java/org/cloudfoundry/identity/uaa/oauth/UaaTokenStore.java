@@ -228,7 +228,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         Instant now = Instant.now(clock);
         if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
             //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
+            if (lastClean.compareAndSet(last, now)) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, now.toEpochMilli());
