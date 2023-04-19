@@ -83,7 +83,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
-    private AtomicReference<Instant> lastClean;
+    private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
 
     public UaaTokenStore(DataSource dataSource) {
         this(dataSource, DEFAULT_EXPIRATION_TIME);
@@ -92,8 +92,6 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     public UaaTokenStore(DataSource dataSource, Duration expirationTime) {
         this.dataSource = dataSource;
         this.expirationTime = expirationTime;
-        // set last clean to instant interval depending on expiration time, used later on also in performExpirationClean
-        this.lastClean = new AtomicReference<>(Instant.now().minus(expirationTime));
     }
 
     @Override
