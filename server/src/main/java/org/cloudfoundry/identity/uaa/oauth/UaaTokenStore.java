@@ -111,9 +111,9 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         final int max_tries = 3;
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
-        int tries = 0;
+        int attempt = 0;
         while (true) {
-            tries++;
+            attempt++;
             try {
                 String code = generator.generate();
                 Instant expiresAt = Instant.now().plus(getExpirationTime());
@@ -130,7 +130,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 }
                 return code;
             } catch (DataIntegrityViolationException exists) {
-                if (tries>=max_tries) throw exists;
+                if (attempt>=max_tries) throw exists;
             }
         }
     }
