@@ -84,7 +84,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
-    private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
+    private final AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
 
     private final Clock clock;
 
