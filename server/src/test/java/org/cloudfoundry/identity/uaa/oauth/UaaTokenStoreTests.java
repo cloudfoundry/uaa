@@ -33,6 +33,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -56,8 +57,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @WithDatabaseContext
 class UaaTokenStoreTests {
@@ -338,6 +341,32 @@ class UaaTokenStoreTests {
         assertTrue(code.length() >= 32);
     }
 
+    @Test
+    void testCountingTheExecutedSqlDeleteStatements() throws SQLException {
+        // Given, mocked data source to count how often it is used, call performExpirationClean 10 times
+        DataSource mockedDataSource = mock(DataSource.class);
+        Connection mockedConnection = mock(Connection.class);
+        doReturn(mockedConnection).when(mockedDataSource).getConnection();
+        store = new UaaTokenStore(mockedDataSource);
+        try {
+            // warm up
+            store.performExpirationClean();
+        } catch (Exception sqlException) {
+            // expected during warm up
+        }
+        // When
+        for (int i = 0; i < 9; i++) {
+            // now start to cleanup in loop
+            try {
+                store.performExpirationClean();
+            } catch (Exception sqlException) {
+                // ignore
+            }
+        }
+        // Then
+        verify(mockedConnection, atMost(1)).prepareStatement("delete from oauth_code where expiresat > 0 AND expiresat < ?");
+    }
+
     public static class SameConnectionDataSource implements DataSource {
         private final Connection con;
 
@@ -458,8 +487,7 @@ class UaaTokenStoreTests {
 
     private static Duration givenMockedExpiration() {
         Duration durationMock = mock(Duration.class);
-        doReturn(Instant.EPOCH).when(durationMock).subtractFrom(any(Temporal.class));
-        doReturn(Instant.now().plus(Duration.ofMinutes(5))).when(durationMock).addTo(any(Temporal.class));
+        doReturn(Instant.now().plus(UaaTokenStore.DEFAULT_EXPIRATION_TIME)).when(durationMock).addTo(any(Temporal.class));
         return durationMock;
     }
 
