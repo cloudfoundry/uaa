@@ -628,13 +628,14 @@ class IdentityZoneEndpointsMockMvcTests {
         Map<String, String> keys = new HashMap<>();
         keys.put("kid", "key");
 
-        assertEquals(keys.toString(), retrieve.getConfig().getTokenPolicy().getKeys().toString());
+        assertEquals(keys.get("kid"), retrieve.getConfig().getTokenPolicy().getKeys().get("kid").getSigningKey());
 
         created.setDescription("updated description");
         created.getConfig().getTokenPolicy().setKeys(null);
         updateZone(created, HttpStatus.OK, identityClientToken);
         retrieve = provisioning.retrieve(created.getId());
-        assertEquals(keys.toString(), retrieve.getConfig().getTokenPolicy().getKeys().toString());
+        String keyId = retrieve.getConfig().getTokenPolicy().getActiveKeyId();
+        assertEquals(keys.get(keyId), retrieve.getConfig().getTokenPolicy().getKeys().get(keyId).getSigningKey());
     }
 
     @Test

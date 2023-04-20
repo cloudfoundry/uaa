@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
@@ -50,8 +51,10 @@ public class KeyInfoService {
         }
 
         Map<String, KeyInfo> keys = new HashMap<>();
-        for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
-            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()), sigAlg);
+        for (Map.Entry<String, TokenPolicy.KeyInformation> entry : config.getTokenPolicy().getKeys().entrySet()) {
+            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue().getSigningKey(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()),
+                sigAlg != null ? sigAlg : entry.getValue().getSigningAlg(),
+                entry.getValue().getSigningCert());
             keys.put(entry.getKey(), keyInfo);
         }
 

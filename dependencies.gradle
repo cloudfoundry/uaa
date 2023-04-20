@@ -13,13 +13,13 @@ ext["hsqldb.version"] = "2.7.1" // HSQL-DB used for tests but not supported for 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM26"
-versions.bouncyCastleVersion = "1.72"
+versions.bouncyCastleVersion = "1.73"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.7.10"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.tomcatCargoVersion = "9.0.73"
+versions.tomcatCargoVersion = "9.0.74"
 versions.guavaVersion = "31.1-jre"
 
 ext {
@@ -31,7 +31,7 @@ libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.5"
 libraries.apacheCommonsRngSimple = "org.apache.commons:commons-rng-simple:1.5"
 libraries.apacheCommonsText = "org.apache.commons:commons-text:1.10.0"
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
-libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.2"
+libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.3"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
 libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk18on:${versions.bouncyCastleVersion}"
@@ -120,7 +120,7 @@ libraries.zxing = "com.google.zxing:javase:3.5.1"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.31"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:3.0.2"
 libraries.orgJson = "org.json:json:20230227"
-libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.1.0"
+libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.2.0"
 
 // gradle plugins
 libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.1"
