@@ -20,7 +20,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.HashSet;
 import java.util.List;
 
 public class UserInfo {
@@ -67,10 +66,12 @@ public class UserInfo {
     }
 
     protected boolean compareRoles(List<String> l1, List<String> l2) {
-        if (l1 == null || l2 == null) {
-            return l1 == l2;
+        if (l1==null && l2==null) {
+            return true;
+        } else if (l1==null || l2==null) {
+            return false;
         }
-        return new HashSet<>(l1).equals(new HashSet<>(l2));
+        return l1.containsAll(l2) && l2.containsAll(l1);
     }
 
     @Override
