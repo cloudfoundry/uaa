@@ -112,8 +112,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         int attempt = 0;
-        while (true) {
-            attempt++;
+        while ((attempt++)<=maxAttempts) {
             try {
                 String code = generator.generate();
                 Instant expiresAt = Instant.now().plus(getExpirationTime());
@@ -133,6 +132,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 if (attempt>=maxAttempts) throw exists;
             }
         }
+        return null;
     }
 
     @Override
