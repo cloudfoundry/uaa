@@ -18,7 +18,7 @@ pipeline {
         choice(
             name: 'DEPLOYMENT_ENVIRONMENT',
             description: 'This specifies which EKS environment to test',
-            choices: 'dev\nint'
+            choices: 'dev\nint\nstage'
         )
         string(
             name: 'UAA_K8S_DEPLOY_BRANCH',
