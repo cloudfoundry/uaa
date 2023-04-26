@@ -345,18 +345,10 @@ class UaaTokenStoreTests {
     void testCountingTheExecutedSqlDeleteStatements() throws SQLException {
         // Given, mocked data source to count how often it is used, call performExpirationClean 10 times
         DataSource mockedDataSource = mock(DataSource.class);
-        Connection mockedConnection = mock(Connection.class);
-        doReturn(mockedConnection).when(mockedDataSource).getConnection();
+        Instant before = Instant.now();
         store = new UaaTokenStore(mockedDataSource);
-        try {
-            // warm up
-            store.performExpirationClean();
-        } catch (Exception sqlException) {
-            // expected during warm up
-        }
         // When
-        for (int i = 0; i < 9; i++) {
-            // now start to cleanup in loop
+        for (int i = 0; i < 10; i++) {
             try {
                 store.performExpirationClean();
             } catch (Exception sqlException) {
@@ -364,7 +356,12 @@ class UaaTokenStoreTests {
             }
         }
         // Then
-        verify(mockedConnection, atMost(1)).prepareStatement("delete from oauth_code where expiresat > 0 AND expiresat < ?");
+        Instant after = Instant.now();
+        assertTrue(after.isAfter(before));
+        // expect less than 5 minuates between start and end of tests
+        assertTrue(after.compareTo(before) < Duration.ofMinutes(5).toNanos());
+        // expect that we call DB only once within 5 minutes. Verfiy this in usage of data source object
+        verify(mockedDataSource, atMost(1)).getConnection();
     }
 
     public static class SameConnectionDataSource implements DataSource {
