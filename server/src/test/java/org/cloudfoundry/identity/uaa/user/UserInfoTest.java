@@ -70,7 +70,7 @@ class UserInfoTest {
         }
 
         @Test
-        void expectTrueWhenBothUserInfoHaveManyMultipleRolesAndAllAreCommon() {
+        void expectEqualsWhenBothUserInfoHaveManyMultipleRolesAndAllAreCommon() {
             // Given
             int count = 10000;
             List<String> roleList1 = new ArrayList<>(count);
@@ -79,6 +79,9 @@ class UserInfoTest {
                 roleList1.add("groups".concat(Integer.toString(i)));
             }
             for (int i=count; 0 < i; i-- ) {
+                roleList2.add("groups".concat(Integer.toString(i)));
+            }
+            for (int i=1; i <= count; i++ ) {
                 roleList2.add("groups".concat(Integer.toString(i)));
             }
             // When
