@@ -343,7 +343,7 @@ class UaaTokenStoreTests {
 
     @Test
     void testCountingTheExecutedSqlDeleteStatements() throws SQLException {
-        // Given, mocked data source to count how often it is used, call performExpirationClean 10 times
+        // Given, mocked data source to count how often it is used, call performExpirationClean 10 times.
         DataSource mockedDataSource = mock(DataSource.class);
         Instant before = Instant.now();
         store = new UaaTokenStore(mockedDataSource);
@@ -358,9 +358,9 @@ class UaaTokenStoreTests {
         // Then
         Instant after = Instant.now();
         assertTrue(after.isAfter(before));
-        // expect less than 5 minuates between start and end of tests
+        // Expect less than 5 minutes between the start and end of the tests
         assertTrue(after.compareTo(before) < Duration.ofMinutes(5).toNanos());
-        // expect that we call DB only once within 5 minutes. Verfiy this in usage of data source object
+        // Expect us to call the DB only once within 5 minutes. Check this when using the data source object
         verify(mockedDataSource, atMost(1)).getConnection();
     }
 
