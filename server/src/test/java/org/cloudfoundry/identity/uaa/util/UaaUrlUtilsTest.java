@@ -13,6 +13,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
@@ -185,6 +186,13 @@ class UaaUrlUtilsTest {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl("", zone));
         assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl(UaaStringUtils.EMPTY_STRING, true, zone));
+    }
+
+    @Test
+    void zoneAwareUaaUrlFromUriComponentsBuilder() {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString("http://external.domain.org").path("/custom-path");
+        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+        assertEquals("http://subdomain.external.domain.org/custom-path", UaaUrlUtils.getUaaUrl(builder, true, zone));
     }
 
     @Test

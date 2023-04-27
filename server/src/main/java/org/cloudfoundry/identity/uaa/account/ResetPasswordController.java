@@ -123,7 +123,7 @@ public class ResetPasswordController {
     private String getCodeSentEmailHtml(String code) {
         String resetUrl;
         if (UaaUrlUtils.isUrl(externalLoginUrl)) {
-            resetUrl = UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password").build().toUriString();
+            resetUrl = UaaUrlUtils.getUaaUrl(UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password"), true, IdentityZoneHolder.get());
         } else {
             resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", IdentityZoneHolder.get());
         }
