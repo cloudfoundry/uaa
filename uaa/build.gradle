@@ -119,7 +119,15 @@ task docsTestRestDocs(type: Test) {
     systemProperty("docs.build.generated.snippets.dir", snippetsDir.getPath())
 }
 
+task(gemInstallBundle, type: Exec) {
+    dependsOn("customizeSlate")
+    workingDir(file("build/slate"))
+    executable("gem")
+    args("install", "bundler:2.2.22")
+}
+
 task(bundleInstall, type: Exec) {
+    dependsOn gemInstallBundle
     dependsOn("customizeSlate")
     workingDir(file("build/slate"))
     executable("bundle")
