@@ -47,18 +47,22 @@ public abstract class UaaUrlUtils {
     }
 
     public static String getUaaUrl(String path, boolean zoneSwitchPossible, IdentityZone currentIdentityZone) {
-        return getURIBuilder(path, zoneSwitchPossible, currentIdentityZone).build().toUriString();
+        return getURIBuilder(path, zoneSwitchPossible, currentIdentityZone, null).build().toUriString();
+    }
+
+    public static String getUaaUrl(UriComponentsBuilder builder, boolean zoneSwitchPossible, IdentityZone currentIdentityZone) {
+        return getURIBuilder(null, zoneSwitchPossible, currentIdentityZone, builder).build().toUriString();
     }
 
     public static String getUaaHost(IdentityZone currentIdentityZone) {
-        return getURIBuilder(UaaStringUtils.EMPTY_STRING, false, currentIdentityZone).build().getHost();
+        return getURIBuilder(UaaStringUtils.EMPTY_STRING, false, currentIdentityZone, null).build().getHost();
     }
 
     private static UriComponentsBuilder getURIBuilder(
             String path,
             boolean zoneSwitchPossible,
-            IdentityZone currentIdentityZone) {
-        UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
+            IdentityZone currentIdentityZone, UriComponentsBuilder baseBuilder) {
+        UriComponentsBuilder builder = baseBuilder != null ? baseBuilder : ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         if (zoneSwitchPossible) {
             String host = builder.build().getHost();
             if (host != null && !currentIdentityZone.isUaa() &&

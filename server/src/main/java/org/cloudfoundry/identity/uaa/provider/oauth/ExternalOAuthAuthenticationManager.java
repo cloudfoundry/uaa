@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.ObjectUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
@@ -30,6 +31,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -267,15 +269,17 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return null;
     }
 
-    private List<? extends GrantedAuthority> filterOidcAuthorities(AbstractExternalOAuthIdentityProviderDefinition definition, List<? extends GrantedAuthority> oidcAuthorities) {
-        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
+    private static List<? extends GrantedAuthority> filterOidcAuthorities(AbstractExternalOAuthIdentityProviderDefinition<? extends ExternalIdentityProviderDefinition> definition, List<? extends GrantedAuthority> oidcAuthorities) {
+        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(emptyList());
         if (whiteList.isEmpty()) {
             return oidcAuthorities;
         } else {
             Set<String> authorities = oidcAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
             Set<String> result = retainAllMatches(authorities, whiteList);
-            logger.debug(String.format("White listed external OIDC groups:'%s'", result));
-            return result.stream().map(e -> new ExternalOAuthUserAuthority(e)).collect(Collectors.toList());
+            if (ObjectUtils.isNotEmpty(result)) {
+                logger.debug(String.format("White listed external OIDC groups:'%s'", result));
+            }
+            return result.stream().map(ExternalOAuthUserAuthority::new).collect(Collectors.toList());
         }
     }
 

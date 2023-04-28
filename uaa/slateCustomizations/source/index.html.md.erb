@@ -9,7 +9,7 @@ toc_footers:
 ---
 
 <%
-  def render(doc_relative_path)
+  def self.render(doc_relative_path)
     ERB.new(File.read('../../build/generated-snippets/' + doc_relative_path)).result(binding)
   end
 %>
