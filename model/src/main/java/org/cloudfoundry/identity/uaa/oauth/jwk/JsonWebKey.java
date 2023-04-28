@@ -42,7 +42,6 @@ import static org.apache.commons.codec.binary.BaseNCodec.PEM_CHUNK_SIZE;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.oct;
-import static org.springframework.util.StringUtils.hasText;
 
 /**
  * See https://tools.ietf.org/html/rfc7517
@@ -130,7 +129,7 @@ public class JsonWebKey {
     public final KeyUse getUse() {
         String use = (String) getKeyProperties().get(JWKParameterNames.PUBLIC_KEY_USE);
         KeyUse result = null;
-        if (hasText(use)) {
+        if (UaaStringUtils.isNotEmpty(use)) {
             result = KeyUse.valueOf(use);
         }
         return result;
