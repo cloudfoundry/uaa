@@ -286,8 +286,6 @@ public final class UaaStringUtils {
         return input == null || input.length() == 0;
     }
 
-    public static boolean isNotEmpty(final String input) { return !isNullOrEmpty(input); }
-
     public static String convertISO8859_1_to_UTF_8(String s) {
         if (s==null) {
             return null;
