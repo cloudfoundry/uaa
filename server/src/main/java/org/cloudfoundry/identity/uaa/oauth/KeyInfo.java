@@ -38,7 +38,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 public class KeyInfo {
-    private final boolean isAsymetric;
+    private final boolean isAsymmetric;
     private Signer signer;
     private SignatureVerifier verifier;
     private final String keyId;
@@ -54,23 +54,23 @@ public class KeyInfo {
     public KeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg, String signingCert) {
         this.keyId = keyId;
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
-        this.isAsymetric = isAssymetricKey(signingKey);
+        this.isAsymmetric = isAsymmetric(signingKey);
         String algorithm;
-        if (this.isAsymetric) {
+        if (this.isAsymmetric) {
             String jwtAlg;
             KeyPair keyPair;
             try {
                 jwk = JWK.parseFromPEMEncodedObjects(signingKey);
                 jwtAlg = jwk.getKeyType().getValue();
                 if (jwtAlg.startsWith("RSA")) {
-                    algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse("SHA256withRSA");
+                    algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_RSA);
                     keyPair = jwk.toRSAKey().toKeyPair();
                     PublicKey rsaPublicKey = keyPair.getPublic();
                     this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
                     this.verifier = new RsaVerifier((RSAPublicKey) rsaPublicKey, algorithm);
                     this.type = RSA;
                 } else if (jwtAlg.startsWith("EC")) {
-                    algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse("SHA256withECDSA");
+                    algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_EC);
                     keyPair = jwk.toECKey().toKeyPair();
                     this.signer = null;
                     this.verifier = new EllipticCurveVerifier((ECPublicKey) keyPair.getPublic(), algorithm);
@@ -85,7 +85,7 @@ public class KeyInfo {
             this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic()).orElse(null);
         } else {
             jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
-            algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse("HMACSHA256");
+            algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_HMAC);
             SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
             this.signer = new MacSigner(algorithm, hmacKey);
             this.verifier = new MacSigner(algorithm, hmacKey);
@@ -93,9 +93,6 @@ public class KeyInfo {
             this.verifierCertificate = Optional.empty();
             this.type = MAC;
         }
-    }
-    public void verify() {
-        // not in use
     }
 
     public SignatureVerifier getVerifier() {
@@ -127,13 +124,13 @@ public class KeyInfo {
     }
 
     public Map<String, Object> getJwkMap() {
-        if (this.isAsymetric) {
-            Map<String, Object> result = new HashMap<>();
-            result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
-            //new values per OpenID and JWK spec
-            result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
-            result.put(HeaderParameterNames.KEY_ID, this.keyId);
-            result.put(JWKParameterNames.KEY_TYPE, type.name());
+        Map<String, Object> result = new HashMap<>();
+        result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
+        //new values per OpenID and JWK spec
+        result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
+        result.put(HeaderParameterNames.KEY_ID, this.keyId);
+        result.put(JWKParameterNames.KEY_TYPE, type.name());
+        if (this.isAsymmetric) {
             // X509 releated values from JWK spec
             if (this.verifierCertificate.isPresent()) {
                 X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate.get());
@@ -161,13 +158,7 @@ public class KeyInfo {
             }
             return result;
         } else {
-            Map<String, Object> result = new HashMap<>();
-            result.put(HeaderParameterNames.ALGORITHM, this.algorithm());
             result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
-            //new values per OpenID and JWK spec
-            result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
-            result.put(HeaderParameterNames.KEY_ID, this.keyId);
-            result.put(JWKParameterNames.KEY_TYPE, type.name());
             return result;
         }
     }
@@ -184,7 +175,7 @@ public class KeyInfo {
         return UriComponentsBuilder.fromHttpUrl(keyUrl).scheme("https").path("/token_keys").build().toUriString();
     }
 
-    private static boolean isAssymetricKey(String key) {
+    private static boolean isAsymmetric(String key) {
         return key.startsWith("-----BEGIN");
     }
 }

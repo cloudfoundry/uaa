@@ -21,22 +21,25 @@ import org.springframework.security.jwt.crypto.cipher.CipherMetadata;
  * @author Luke Taylor
  */
 public class JwtAlgorithms {
+    public static final String DEFAULT_HMAC = "HMACSHA256";
+    public static final String DEFAULT_EC = "SHA256withECDSA";
+    public static final String DEFAULT_RSA = "SHA256withRSA";
     private static final Map<String,String> sigAlgs = new HashMap<String,String>();
     private static final Map<String,String> javaToSigAlgs = new HashMap<String,String>();
     private static final Map<String,String> keyAlgs = new HashMap<String,String>();
     private static final Map<String,String> javaToKeyAlgs = new HashMap<String,String>();
 
     static {
-        sigAlgs.put("HS256", "HMACSHA256");
+        sigAlgs.put("HS256", DEFAULT_HMAC);
         sigAlgs.put("HS384" , "HMACSHA384");
         sigAlgs.put("HS512" , "HMACSHA512");
-        sigAlgs.put("RS256" , "SHA256withRSA");
+        sigAlgs.put("RS256" , DEFAULT_RSA);
         sigAlgs.put("RS384" , "SHA384withRSA");
         sigAlgs.put("RS512" , "SHA512withRSA");
         sigAlgs.put("PS256" , "SHA256withRSAandMGF1");
         sigAlgs.put("PS384" , "SHA384withRSAandMGF1");
         sigAlgs.put("PS512" , "SHA512withRSAandMGF1");
-        sigAlgs.put("ES256" , "SHA256withECDSA");
+        sigAlgs.put("ES256" , DEFAULT_EC);
         sigAlgs.put("ES256K" , "SHA256withECDSA");
         sigAlgs.put("ES384" , "SHA384withECDSA");
         sigAlgs.put("ES512" , "SHA512withECDSA");
