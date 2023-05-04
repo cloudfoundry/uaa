@@ -40,7 +40,7 @@ public class JwtAlgorithms {
         sigAlgs.put("PS384" , "SHA384withRSAandMGF1");
         sigAlgs.put("PS512" , "SHA512withRSAandMGF1");
         sigAlgs.put("ES256" , DEFAULT_EC);
-        sigAlgs.put("ES256K" , "SHA256withECDSA");
+        sigAlgs.put("ES256K" , DEFAULT_EC);
         sigAlgs.put("ES384" , "SHA384withECDSA");
         sigAlgs.put("ES512" , "SHA512withECDSA");
 
