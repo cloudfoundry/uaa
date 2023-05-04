@@ -12,5 +12,6 @@ class SkipSslLdapSocketFactoryTest {
     Object ldapFactory = SkipSslLdapSocketFactory.getDefault();
     assertNotNull(ldapFactory);
     assertTrue(ldapFactory instanceof  SkipSslLdapSocketFactory);
+    assertTrue(SkipSslLdapSocketFactory.getDefault() instanceof  SkipSslLdapSocketFactory);
   }
 }
