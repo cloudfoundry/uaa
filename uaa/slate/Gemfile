@@ -1,14 +1,15 @@
-ruby '>=2.3.1'
+ruby '>= 2.6'
 source 'https://rubygems.org'
 
+gem 'bundler', '~> 2.2'
 # Middleman
-gem 'middleman', '~>4.2.1'
-gem 'middleman-syntax', '~> 3.0.0'
-gem 'middleman-autoprefixer', '~> 2.7.0'
-gem 'middleman-sprockets', "~> 4.1.1"
-gem 'rouge', '~> 2.0.5'
-gem 'redcarpet', '~> 3.5.1'
-gem 'nokogiri', '~> 1.13.10'
-gem 'ffi', '~> 1.9.24'
-gem 'rack', '~> 2.0.9.3'
-gem 'therubyracer', :platform => :ruby
+gem 'middleman', '~> 4.4'
+gem 'middleman-syntax', '~> 3.2'
+gem 'middleman-autoprefixer', '~> 3.0'
+gem 'middleman-sprockets', '~> 4.1'
+gem 'rouge', '~> 3.21'
+gem 'redcarpet', '~> 3.6.0'
+gem 'nokogiri', '~> 1.14.3'
+gem 'sass'
+gem 'webrick'
+gem 'mini_racer', '~> 0.4.0', :platform => :ruby

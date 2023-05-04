@@ -53,7 +53,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             if (tokenPolicy != null) {
                 String activeKeyId = tokenPolicy.getActiveKeyId();
                 if (StringUtils.hasText(activeKeyId)) {
-                    Map<String, String> jwtKeys = tokenPolicy.getKeys();
+                    Map<String, TokenPolicy.KeyInformation> jwtKeys = tokenPolicy.getKeys();
 
                     if (jwtKeys == null || jwtKeys.isEmpty()) {
                         throw new InvalidIdentityZoneConfigurationException("Identity zone cannot specify an active key ID with no keys configured for the zone.", null);

@@ -508,6 +508,8 @@
             <list>
                 <value type="java.lang.String">${jwt.token.signing-key:#{null}}</value>
                 <value type="java.lang.String">${uaa.url}</value>
+                <value type="java.lang.String">${jwt.token.signing-alg:#{null}}</value>
+                <value type="java.lang.String">${jwt.token.signing-cert:#{null}}</value>
             </list>
         </property>
         <property name="staticMethod"

@@ -33,8 +33,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest.CERTIFICATE_1;
+import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest.SIGNING_KEY_1;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -49,15 +53,6 @@ class TokenKeyEndpointTests {
 
     private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint(new KeyInfoService("https://localhost.uaa"));
     private Authentication validUaaResource;
-    private final String SIGNING_KEY_1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-      "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
-      "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
-      "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
-      "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
-      "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
-      "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
-      "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
-      "-----END RSA PRIVATE KEY-----";
     private final String SIGNING_KEY_2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
       "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
       "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
@@ -123,7 +118,7 @@ class TokenKeyEndpointTests {
 
     @Test
     void keyIsReturnedForZone() {
-        createAndSetTestZoneWithKeys(Collections.singletonMap("key1", SIGNING_KEY_1));
+        createAndSetTestZoneWithKeys(Collections.singletonMap("key1", SIGNING_KEY_1), CERTIFICATE_1);
 
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(mock(Principal.class));
         Base64.Encoder encoder = Base64.getUrlEncoder().withoutPadding();
@@ -136,6 +131,7 @@ class TokenKeyEndpointTests {
         assertEquals("key1", response.getId());
         assertEquals("RSA", response.getType());
         assertEquals("sig", response.getUse().name());
+        assertEquals("RkckJulawIoaTm0iaziJBwFh7Nc", response.getX5t());
     }
 
     @Test
@@ -251,10 +247,20 @@ class TokenKeyEndpointTests {
     }
 
     private IdentityZone createAndSetTestZoneWithKeys(Map<String, String> keys) {
+        return createAndSetTestZoneWithKeys(keys, null);
+    }
+    private IdentityZone createAndSetTestZoneWithKeys(Map<String, String> keys, String cert ) {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         TokenPolicy tokenPolicy = new TokenPolicy();
-        tokenPolicy.setKeys(keys);
+        Map<String, TokenPolicy.KeyInformation> keyInformationMap = Optional.ofNullable(keys).filter(Objects::nonNull).orElse(new HashMap<>())
+            .entrySet().stream().filter(Objects::nonNull).collect(Collectors.toMap(Map.Entry::getKey, e -> {
+            TokenPolicy.KeyInformation keyInfo = new TokenPolicy.KeyInformation();
+            keyInfo.setSigningKey(e.getValue());
+            keyInfo.setSigningCert(cert);
+            return keyInfo;
+        }));
+        tokenPolicy.setKeyInformation(keyInformationMap);
         config.setTokenPolicy(tokenPolicy);
         zone.setConfig(config);
         IdentityZoneHolder.set(zone);

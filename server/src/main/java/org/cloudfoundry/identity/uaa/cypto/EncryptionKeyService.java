@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.cypto;
 
-import org.apache.directory.api.util.Strings;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
@@ -18,13 +18,15 @@ public class EncryptionKeyService {
     public EncryptionKeyService(
             final @Value("${encryption.active_key_label}") String activeKeyLabel,
             final @Value("#{@config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
-        if (Strings.isEmpty(activeKeyLabel)) {
+        if (UaaStringUtils.isNullOrEmpty(activeKeyLabel)) {
             throw new NoActiveEncryptionKeyProvided(
               "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
             );
         }
 
-        List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream().filter(encryptionKey -> Strings.isEmpty(encryptionKey.getPassphrase())).collect(Collectors.toList());
+        List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream()
+                .filter(encryptionKey -> UaaStringUtils.isNullOrEmpty(encryptionKey.getPassphrase()))
+                .collect(Collectors.toList());
         if (!keysWithoutPassphrase.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
               String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined",

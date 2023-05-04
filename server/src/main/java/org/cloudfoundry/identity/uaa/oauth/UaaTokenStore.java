@@ -214,9 +214,9 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         Instant last = lastClean.get();
         //check if we should expire again
         Instant now = Instant.now();
-        if (Duration.between(last, now).getNano() > getExpirationTime().getNano()) {
+        if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
             //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, last.plus(getExpirationTime()))) {
+            if (lastClean.compareAndSet(last, now)) {
                 try {
                     JdbcTemplate template = new JdbcTemplate(dataSource);
                     int expired = template.update(SQL_EXPIRE_STATEMENT, now.toEpochMilli());
@@ -228,6 +228,10 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 }
             }
         }
+    }
+
+    private boolean enoughTimeHasPassedSinceLastExpirationClean(Instant last, Instant now) {
+        return Duration.between(last, now).toMillis() > getExpirationTime().toMillis();
     }
 
     public Duration getExpirationTime() {
