@@ -33,6 +33,9 @@ updates:
   - dependency-name: org.flywaydb:flyway-core
     versions:
     - ">= 8"
+  - dependency-name: com.icegreen:greenmail
+    versions:
+    - ">= 2"
 - package-ecosystem: gradle
   directory: "/model"
   schedule:
