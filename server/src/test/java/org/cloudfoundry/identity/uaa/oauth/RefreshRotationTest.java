@@ -17,6 +17,8 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -55,7 +57,7 @@ class RefreshRotationTest {
     persistToken.setExpiration(expiration);
 
     tokenServices = tokenSupport.getUaaTokenServices();
-    when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(1000L);
+    when(tokenSupport.timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenFormat(TokenConstants.TokenFormat.OPAQUE.getStringValue());
   }
 

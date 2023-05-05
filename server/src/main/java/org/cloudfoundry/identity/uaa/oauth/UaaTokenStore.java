@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -79,18 +80,20 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private static final String SQL_CLEAN_STATEMENT = "delete from oauth_code where created < ? and expiresat = 0";
 
     private final DataSource dataSource;
+    private final TimeService timeService;
     private final Duration expirationTime;
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
     private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
 
-    public UaaTokenStore(DataSource dataSource) {
-        this(dataSource, DEFAULT_EXPIRATION_TIME);
+    public UaaTokenStore(DataSource dataSource, TimeService timeService) {
+        this(dataSource, timeService, DEFAULT_EXPIRATION_TIME);
     }
 
-    public UaaTokenStore(DataSource dataSource, Duration expirationTime) {
+    public UaaTokenStore(DataSource dataSource, TimeService timeService, Duration expirationTime) {
         this.dataSource = dataSource;
+        this.timeService = timeService;
         this.expirationTime = expirationTime;
     }
 
@@ -213,7 +216,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected void performExpirationClean() {
         Instant last = lastClean.get();
         //check if we should expire again
-        Instant now = Instant.now();
+        Instant now = timeService.getCurrentInstant();
         if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
             //avoid concurrent deletes from the same UAA - performance improvement
             if (lastClean.compareAndSet(last, now)) {

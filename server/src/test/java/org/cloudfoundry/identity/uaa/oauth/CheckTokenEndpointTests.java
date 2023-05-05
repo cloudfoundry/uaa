@@ -65,6 +65,8 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -223,7 +225,7 @@ public class CheckTokenEndpointTests {
 
         nowMillis = 10000L;
         timeService = mock(TimeService.class);
-        when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis);
+        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(nowMillis, ChronoUnit.MILLIS));
         when(timeService.getCurrentDate()).thenCallRealMethod();
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
@@ -942,7 +944,7 @@ public class CheckTokenEndpointTests {
         tokenServices.setClientDetailsService(clientDetailsService);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis + validitySeconds.longValue() * 1000 + 1L);
+        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(nowMillis + validitySeconds.longValue() * 1000 + 1L, ChronoUnit.MILLIS));
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
 

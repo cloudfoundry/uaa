@@ -16,12 +16,15 @@
 package org.cloudfoundry.identity.uaa.util;
 
 
+import java.time.Instant;
 import java.util.Date;
 
 public interface TimeService {
     default long getCurrentTimeMillis() {
-        return System.currentTimeMillis();
+        return getCurrentInstant().toEpochMilli();
     }
 
-    default Date getCurrentDate() { return new Date(getCurrentTimeMillis()); }
+    default Date getCurrentDate() { return Date.from(getCurrentInstant()); }
+
+    default Instant getCurrentInstant() { return Instant.now(); }
 }
