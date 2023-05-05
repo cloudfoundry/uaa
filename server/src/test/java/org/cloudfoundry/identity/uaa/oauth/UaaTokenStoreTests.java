@@ -69,6 +69,7 @@ class UaaTokenStoreTests {
     private OAuth2Authentication clientAuthentication;
     private OAuth2Authentication usernamePasswordAuthentication;
     private OAuth2Authentication uaaAuthentication;
+    private TimeService timeService;
 
     private UaaPrincipal principal = new UaaPrincipal("userid", "username", "username@test.org", OriginKeys.UAA, null, IdentityZone.getUaaZoneId());
 
@@ -85,7 +86,8 @@ class UaaTokenStoreTests {
         List<GrantedAuthority> userAuthorities = Collections.singletonList(new SimpleGrantedAuthority(
                 "openid"));
 
-        store = new UaaTokenStore(dataSource, givenMockedTime());
+        timeService = givenMockedTime();
+        store = new UaaTokenStore(dataSource, timeService);
         legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         BaseClientDetails client = new BaseClientDetails("clientid", null, "openid", "client_credentials,password", "oauth.login", null);
         Map<String, String> parameters = new HashMap<>();
@@ -197,11 +199,9 @@ class UaaTokenStoreTests {
 
     @Test
     void retrieveExpiredToken() {
-        TimeService timeMock = givenMockedTime();
-        store = new UaaTokenStore(dataSource, timeMock);
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
-        doReturn(Instant.now().plus(UaaTokenStore.DEFAULT_EXPIRATION_TIME)).when(timeMock).getCurrentInstant();
+        doReturn(Instant.now().plus(UaaTokenStore.DEFAULT_EXPIRATION_TIME)).when(timeService).getCurrentInstant();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(code));
     }
 
@@ -215,15 +215,13 @@ class UaaTokenStoreTests {
     @Test
     void cleanUpExpiredTokensBasedOnExpiresField() {
         int count = 10;
-        TimeService timeMock = givenMockedTime();
-        store = new UaaTokenStore(dataSource, timeMock);
         String lastCode = null;
         for (int i = 0; i < count; i++) {
             lastCode = store.createAuthorizationCode(clientAuthentication);
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
 
-        doReturn(Instant.now().plus(UaaTokenStore.LEGACY_CODE_EXPIRATION_TIME)).when(timeMock).getCurrentInstant();
+        doReturn(Instant.now().plus(UaaTokenStore.LEGACY_CODE_EXPIRATION_TIME)).when(timeService).getCurrentInstant();
 
         final String finalLastCode = lastCode;
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(finalLastCode));
@@ -234,16 +232,14 @@ class UaaTokenStoreTests {
     void cleanUpLegacyCodesCodesWithoutExpiresAtAfter3Days() {
         int count = 10;
         long oneday = 1000 * 60 * 60 * 24;
-        TimeService timeMock = givenMockedTime();
-        store = new UaaTokenStore(dataSource, timeMock);
         for (int i = 0; i < count; i++) {
             legacyCodeServices.createAuthorizationCode(clientAuthentication);
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
-        doReturn(Instant.now().plus(Duration.ofDays(2))).when(timeMock).getCurrentInstant();
+        doReturn(Instant.now().plus(Duration.ofDays(2))).when(timeService).getCurrentInstant();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
-        doReturn(Instant.now().plus(Duration.ofDays(4))).when(timeMock).getCurrentInstant();
+        doReturn(Instant.now().plus(Duration.ofDays(4))).when(timeService).getCurrentInstant();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
@@ -292,7 +288,6 @@ class UaaTokenStoreTests {
                     throw new RuntimeException("Unknown DB profile:" + db);
             }
 
-            store = new UaaTokenStore(sameConnectionDataSource, givenMockedTime());
             legacyCodeServices = new JdbcAuthorizationCodeServices(sameConnectionDataSource);
             int count = 10;
             String lastCode = null;
@@ -307,7 +302,6 @@ class UaaTokenStoreTests {
             }
             assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count - 1));
         } finally {
-            store = new UaaTokenStore(dataSource, givenMockedTime());
             legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         }
     }
@@ -321,7 +315,7 @@ class UaaTokenStoreTests {
 
             SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(expirationLoser);
 
-            store = new UaaTokenStore(sameConnectionDataSource, givenMockedTime(), Duration.ofMillis(1));
+            store = new UaaTokenStore(sameConnectionDataSource, timeService, Duration.ofMillis(1));
             int count = 10;
             for (int i = 0; i < count; i++) {
                 String code = store.createAuthorizationCode(clientAuthentication);
@@ -330,8 +324,6 @@ class UaaTokenStoreTests {
                 } catch (InvalidGrantException ignored) {
                 }
             }
-        } finally {
-            store = new UaaTokenStore(dataSource, givenMockedTime());
         }
     }
 
@@ -349,14 +341,10 @@ class UaaTokenStoreTests {
         // Given, mocked data source to count how often it is used, call performExpirationClean 10 times.
         DataSource mockedDataSource = mock(DataSource.class);
         Instant before = Instant.now();
-        store = new UaaTokenStore(mockedDataSource, givenMockedTime());
+        store = new UaaTokenStore(mockedDataSource, timeService);
         // When
         for (int i = 0; i < 10; i++) {
-            try {
-                store.performExpirationClean();
-            } catch (Exception sqlException) {
-                // ignore
-            }
+            performExpirationClean(store);
         }
         // Then
         Instant after = Instant.now();
@@ -365,6 +353,20 @@ class UaaTokenStoreTests {
         assertTrue(after.compareTo(before) < Duration.ofMinutes(5).toNanos());
         // Expect us to call the DB only once within 5 minutes. Check this when using the data source object
         verify(mockedDataSource, atMost(1)).getConnection();
+        // When
+        doReturn(Instant.now().plus(Duration.ofDays(1))).when(timeService).getCurrentInstant();
+        for (int i = 0; i < 10; i++) {
+            performExpirationClean(store);
+            verify(mockedDataSource, atMost(i + 2)).getConnection();
+        }
+    }
+
+    private static void performExpirationClean(UaaTokenStore store) {
+        try {
+            store.performExpirationClean();
+        } catch (Exception sqlException) {
+            // ignore
+        }
     }
 
     public static class SameConnectionDataSource implements DataSource {
