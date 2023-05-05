@@ -405,6 +405,12 @@ class UaaStringUtilsTest {
     }
 
     @ParameterizedTest
+    @NullAndEmptySource
+    void isNotEmpty_ShouldReturnFalse(final String input) {
+        Assertions.assertThat(UaaStringUtils.isNotEmpty(input)).isFalse();
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = { " ", "  ", "\t", "\n", "abc" })
     void isNullOrEmpty_ShouldReturnFalse(final String input) {
         Assertions.assertThat(UaaStringUtils.isNullOrEmpty(input)).isFalse();

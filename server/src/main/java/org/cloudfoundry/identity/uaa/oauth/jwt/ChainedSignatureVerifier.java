@@ -32,7 +32,7 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
         }
         List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
-            ds.add(new CommonSignatureVerifier(key.getValue()));
+            ds.add(new CommonSignatureVerifier(key));
         }
         delegates = Collections.unmodifiableList(ds);
     }
