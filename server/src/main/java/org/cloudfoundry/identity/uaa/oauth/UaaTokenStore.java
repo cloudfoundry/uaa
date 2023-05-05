@@ -106,7 +106,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         while ((tries++)<=max_tries) {
             try {
                 String code = generator.generate();
-                Instant expiresAt = Instant.now().plus(getExpirationTime());
+                Instant expiresAt = timeService.getCurrentInstant().plus(getExpirationTime());
                 String userId = authentication.getUserAuthentication()==null ? null : ((UaaPrincipal)authentication.getUserAuthentication().getPrincipal()).getId();
                 String clientId = authentication.getOAuth2Request().getClientId();
                 SqlLobValue data = new SqlLobValue(serializeOauth2Authentication(authentication));
@@ -317,7 +317,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         @Override
         boolean isExpired() {
-            return expiresAt.isBefore(Instant.now());
+            return expiresAt.isBefore(timeService.getCurrentInstant());
         }
 
         @Override
@@ -346,7 +346,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         @Override
         boolean isExpired() {
-            return Instant.now().minus(getExpirationTime()).isAfter(created);
+            return timeService.getCurrentInstant().minus(getExpirationTime()).isAfter(created);
         }
 
         @Override
