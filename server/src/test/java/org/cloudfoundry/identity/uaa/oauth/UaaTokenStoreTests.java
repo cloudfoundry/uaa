@@ -353,12 +353,12 @@ class UaaTokenStoreTests {
         assertTrue(after.compareTo(before) < Duration.ofMinutes(5).toNanos());
         // Expect us to call the DB only once within 5 minutes. Check this when using the data source object
         verify(mockedDataSource, atMost(1)).getConnection();
-        // When
-        doReturn(Instant.now().plus(Duration.ofDays(1))).when(timeService).getCurrentInstant();
-        for (int i = 0; i < 10; i++) {
-            performExpirationClean(store);
-            verify(mockedDataSource, atMost(i + 2)).getConnection();
-        }
+        // When moving time to one hour later from now
+        doReturn(Instant.now().plus(Duration.ofHours(1))).when(timeService).getCurrentInstant();
+        // Then
+        performExpirationClean(store);
+        // Expect a 2nd DB call
+        verify(mockedDataSource, atMost(2)).getConnection();
     }
 
     private static void performExpirationClean(UaaTokenStore store) {
