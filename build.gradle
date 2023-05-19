@@ -58,28 +58,10 @@ subprojects {
     }
 
     dependencies {
-        implementation(libraries.snakeyaml)
-        implementation(libraries.velocityEngineCore)
-        implementation(libraries.xmlsec)
+        implementation(libraries.snakeyaml) // CVE resolution
+        implementation(libraries.velocityEngineCore) // CVE resolution
+        implementation(libraries.xmlsec) // CVE resolution
         implementation(libraries.commonsIo) // CVE resolution
-
-        implementation(libraries.guava) // dependency consistency resolution
-        implementation("org.bouncycastle:bcprov-jdk15on:1.70") // dependency consistency resolution
-        implementation("org.bouncycastle:bcprov-ext-jdk15on:1.70") // dependency consistency resolution
-        implementation("org.bouncycastle:bcpkix-jdk15on:1.70") // dependency consistency resolution
-
-        implementation("javax.activation:activation:1.1.1") // dependency consistency resolution
-        implementation("org.ow2.asm:asm:9.5") // dependency consistency resolution
-        implementation("org.ow2.asm:asm-analysis:9.5") // dependency consistency resolution
-        implementation("org.ow2.asm:asm-commons:9.5") // dependency consistency resolution
-        implementation("org.ow2.asm:asm-tree:9.5") // dependency consistency resolution
-        implementation("org.ow2.asm:asm-util:9.5") // dependency consistency resolution
-
-        implementation("org.owasp.esapi:esapi:2.5.2.0") // dependency consistency resolution
-        implementation("xml-apis:xml-apis:1.4.01") // dependency consistency resolution
-        implementation("commons-logging:commons-logging:1.2") // dependency consistency resolution
-        implementation("commons-collections:commons-collections:3.2.2") // dependency consistency resolution
-        implementation("org.checkerframework:checker-qual:3.12.0") // dependency consistency resolution
 
         testImplementation(libraries.springBootStarterTest)
         testImplementation(libraries.hamcrest)
