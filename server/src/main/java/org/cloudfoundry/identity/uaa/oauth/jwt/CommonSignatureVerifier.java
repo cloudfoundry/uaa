@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 public class CommonSignatureVerifier implements SignatureVerifier {
 
     private static final Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
+    private static final Pattern WS_DATA = Pattern.compile("\\s", Pattern.UNICODE_CHARACTER_CLASS);
     private static final int PATTERN_TYPE = 1;
     private static final int PATTERN_CONTENT = 2;
     private final SignatureVerifier delegate;
@@ -78,8 +79,8 @@ public class CommonSignatureVerifier implements SignatureVerifier {
         if (!m.matches()) {
             throw new IllegalArgumentException("String is not PEM encoded data");
         }
-        String begin = String.format("-----BEGIN %s-----\n", m.group(PATTERN_TYPE));
-        String end = String.format("\n-----END %s-----", m.group(PATTERN_TYPE));
-        return JWK.parseFromPEMEncodedObjects(begin + m.group(PATTERN_CONTENT).trim().replaceAll("\\s", "\n") + end).toRSAKey();
+        String begin = "-----BEGIN " + m.group(PATTERN_TYPE) + "-----\n";
+        String end = "\n-----END " + m.group(PATTERN_TYPE) + "-----";
+        return JWK.parseFromPEMEncodedObjects(begin + WS_DATA.matcher(m.group(PATTERN_CONTENT).trim()).replaceAll("\n") + end).toRSAKey();
     }
 }
