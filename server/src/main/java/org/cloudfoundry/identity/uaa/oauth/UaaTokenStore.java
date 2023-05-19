@@ -97,7 +97,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     @Override
     public String createAuthorizationCode(OAuth2Authentication authentication) {
         final int maxAttempts = 3;
-        performExpirationClean();
+        performExpirationCleanIfEnoughTimeHasElapsed();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         int attempt = 0;
         while (true) {
@@ -125,7 +125,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public OAuth2Authentication consumeAuthorizationCode(String code) throws InvalidGrantException {
-        performExpirationClean();
+        performExpirationCleanIfEnoughTimeHasElapsed();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         try {
             TokenCode tokenCode = (TokenCode) template.queryForObject(SQL_SELECT_STATEMENT, rowMapper, code);
@@ -210,7 +210,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         return new OAuth2Authentication(request, userAuthentication);
     }
 
-    protected void performExpirationClean() {
+    protected void performExpirationCleanIfEnoughTimeHasElapsed() {
         Instant last = lastClean.get();
         //check if we should expire again
         Instant now = Instant.now();
