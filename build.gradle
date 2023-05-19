@@ -70,6 +70,11 @@ subprojects {
     }
 
     dependencies {
+        implementation("org.yaml:snakeyaml:2.0") // CVE resolution-spring-boot internal package:currently v2.7.12
+        implementation("org.apache.velocity:velocity-engine-core:2.3") // CVE resolution
+        implementation("org.apache.santuario:xmlsec:3.0.2") // CVE resolution
+        implementation("commons-io:commons-io:2.12.0") // CVE resolution
+
         testImplementation(libraries.springBootStarterTest)
         testImplementation(libraries.hamcrest)
         testImplementation(libraries.junit5JupiterApi)
