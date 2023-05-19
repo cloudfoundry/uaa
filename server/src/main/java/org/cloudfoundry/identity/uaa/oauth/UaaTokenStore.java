@@ -84,7 +84,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
-    private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
+    private Instant lastClean = Instant.EPOCH;
     private Semaphore cleanMutex = new Semaphore(1);
 
     public UaaTokenStore(DataSource dataSource) {
@@ -214,14 +214,12 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     protected void performExpirationCleanIfEnoughTimeHasElapsed() {
         if (cleanMutex.tryAcquire()) {
-            Instant last = lastClean.get();
             //check if we should expire again
             Instant now = Instant.now();
-            if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
+            if (enoughTimeHasPassedSinceLastExpirationClean(lastClean, now)) {
                 //avoid concurrent deletes from the same UAA - performance improvement
-                if (lastClean.compareAndSet(last, now)) {
-                    actuallyPerformExpirationClean(now);
-                }
+                lastClean = now;
+                actuallyPerformExpirationClean(now);
             }
             cleanMutex.release();
         }
