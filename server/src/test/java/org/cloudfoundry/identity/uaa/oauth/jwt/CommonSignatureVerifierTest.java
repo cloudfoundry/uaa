@@ -16,7 +16,15 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 
+import com.nimbusds.jose.jwk.JWKParameterNames;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.junit.Test;
+
+import java.util.HashMap;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 
 public class CommonSignatureVerifierTest {
 
@@ -25,4 +33,23 @@ public class CommonSignatureVerifierTest {
         new CommonSignatureVerifier(null);
     }
 
+    @Test
+    public void testGetRsaPublicKeyFromConfig() {
+        HashMap key = new HashMap();
+        key.put(JWKParameterNames.KEY_TYPE, "RSA");
+        key.put("value", "-----BEGIN PUBLIC KEY----- MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxMi4Z4FBfQEOdNYLmzxk YJvP02TSeapZMKMQo90JQRL07ttIKcDMP6pGcirOGSQWWBBpvdo5EnVOiNzViu9J CJP2IWbHJ4sRe0S1dySYdBRVV/ZkgWOrj7Cr2yT0ZVvCCzH7NAWmlA6LUV19Mnp+ ugeGoxK+fsk8SRLS/Z9JdyxgOb3tPxdDas3MZweMZ6HqujoAAG9NASBGjFNXbhMc krEfecwm3OJzsjGFxhqXRqkTsGEHvzETMxfvSkTkldOzmErnjpwyoOPLrXcWIs1w vdXHakfVHSvyb3T4gm3ZfOOoUf6lrd2w1pF/PkA88NkjN2+W9fQmbUzNgVjEQiXo 4wIDAQAB -----END PUBLIC KEY-----");
+        JsonWebKey jsonWebKey = new JsonWebKey(key);
+        CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
+        assertNotNull(cs);
+        assertEquals("SHA256withRSA", cs.algorithm());
+    }
+
+    @Test
+    public void testGetRsaPublicKeyFromConfigInvalid() {
+        HashMap key = new HashMap();
+        key.put(JWKParameterNames.KEY_TYPE, "RSA");
+        key.put("value", "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxMi4Z4");
+        JsonWebKey jsonWebKey = new JsonWebKey(key);
+        assertThrows(IllegalArgumentException.class, () -> new CommonSignatureVerifier(jsonWebKey));
+    }
 }

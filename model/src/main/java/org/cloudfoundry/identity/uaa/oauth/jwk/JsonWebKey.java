@@ -24,15 +24,11 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
-import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
-import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.codec.binary.BaseNCodec.PEM_CHUNK_SIZE;
@@ -59,8 +53,6 @@ public class JsonWebKey {
 
     private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(PEM_CHUNK_SIZE, "\n".getBytes(Charset.defaultCharset()));
     private static final Base64.Decoder base64decoder = Base64.getUrlDecoder();
-    private static final Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
-    private static final int PATTERN_CONTENT = 2;
 
     // value is not defined in RFC 7517
     public static final String PUBLIC_KEY_VALUE = "value";
@@ -211,17 +203,5 @@ public class JsonWebKey {
             }
         }
         return null;
-    }
-
-    public static RSAPublicKey getRsaPublicKey(String jsonData) throws GeneralSecurityException {
-        Matcher m = PEM_DATA.matcher(jsonData.trim());
-
-        if (!m.matches()) {
-            throw new IllegalArgumentException("String is not PEM encoded data");
-        }
-        byte[] content = Base64.getMimeDecoder().decode(m.group(PATTERN_CONTENT).getBytes(StandardCharsets.UTF_8));
-        KeySpec keySpec = new X509EncodedKeySpec(content);
-        KeyFactory fact = KeyFactory.getInstance("RSA");
-        return (RSAPublicKey) fact.generatePublic(keySpec);
     }
 }
