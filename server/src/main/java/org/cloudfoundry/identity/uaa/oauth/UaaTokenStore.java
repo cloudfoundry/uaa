@@ -215,13 +215,16 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected void performExpirationCleanIfEnoughTimeHasElapsed() {
         if (cleanMutex.tryAcquire()) {
             //check if we should expire again
-            Instant now = Instant.now();
-            if (enoughTimeHasPassedSinceLastExpirationClean(lastClean, now)) {
-                //avoid concurrent deletes from the same UAA - performance improvement
-                lastClean = now;
-                actuallyPerformExpirationClean(now);
+            try {
+                Instant now = Instant.now();
+                if (enoughTimeHasPassedSinceLastExpirationClean(lastClean, now)) {
+                    //avoid concurrent deletes from the same UAA - performance improvement
+                    lastClean = now;
+                    actuallyPerformExpirationClean(now);
+                }
+            } finally {
+                cleanMutex.release();
             }
-            cleanMutex.release();
         }
     }
 
