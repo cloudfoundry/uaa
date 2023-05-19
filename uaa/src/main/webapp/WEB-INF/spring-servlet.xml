@@ -221,6 +221,8 @@
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(7)}"/>
+                <entry value-ref="referrerPolicyFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(8)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -246,6 +248,8 @@
         <constructor-arg
                 value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
+
+    <bean id="referrerPolicyFilter" class="org.cloudfoundry.identity.uaa.security.web.ReferrerPolicyFilter"/>
 
     <bean id="contentSecurityPolicyFilter"
           class="org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter">
