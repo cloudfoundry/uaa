@@ -53,6 +53,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
@@ -84,6 +85,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
     private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
+    private Semaphore cleanMutex = new Semaphore(1);
 
     public UaaTokenStore(DataSource dataSource) {
         this(dataSource, DEFAULT_EXPIRATION_TIME);
@@ -211,14 +213,17 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     }
 
     protected void performExpirationCleanIfEnoughTimeHasElapsed() {
-        Instant last = lastClean.get();
-        //check if we should expire again
-        Instant now = Instant.now();
-        if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
-            //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, now)) {
-                actuallyPerformExpirationClean(now);
+        if (cleanMutex.tryAcquire()) {
+            Instant last = lastClean.get();
+            //check if we should expire again
+            Instant now = Instant.now();
+            if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
+                //avoid concurrent deletes from the same UAA - performance improvement
+                if (lastClean.compareAndSet(last, now)) {
+                    actuallyPerformExpirationClean(now);
+                }
             }
+            cleanMutex.release();
         }
     }
 
