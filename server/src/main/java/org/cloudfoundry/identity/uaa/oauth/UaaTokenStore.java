@@ -96,7 +96,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public String createAuthorizationCode(OAuth2Authentication authentication) {
-        final int maxTries = 3;
+        final int maxAttempts = 3;
         performExpirationClean();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         int attempt = 0;
@@ -118,7 +118,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 }
                 return code;
             } catch (DataIntegrityViolationException exists) {
-                if (attempt>=maxTries) throw exists;
+                if (attempt>=maxAttempts) throw exists;
             }
         }
     }
