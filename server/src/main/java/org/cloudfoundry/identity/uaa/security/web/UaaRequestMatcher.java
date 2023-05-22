@@ -135,7 +135,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     private boolean matchesHeader(String requestValue, List<String> expectedValues) {
         for (String headerValue : expectedValues) {
-            if ("bearer ".equalsIgnoreCase(headerValue)) {
+            if ("bearer".equalsIgnoreCase(headerValue.trim())) {
                 //case insensitive for Authorization: Bearer match
                 if (requestValue == null || !requestValue.toLowerCase().startsWith(headerValue)) {
                     return false;

@@ -182,7 +182,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         String grantType = deriveGrantTypeFromResponseType(responseTypes);
 
         if (!supported_response_types.containsAll(responseTypes)) {
-            throw new UnsupportedResponseTypeException("Unsupported response types: " + responseTypes);
+            throw new UnsupportedResponseTypeException("Unsupported response types");
         }
 
         if (authorizationRequest.getClientId() == null) {
