@@ -16,12 +16,22 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.jwk.JWK;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.util.Collections;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+public final class JsonWebKeyHelper {
+    private static final Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
+    private static final Pattern WS_DATA = Pattern.compile("\\s", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final int PEM_TYPE = 1;
+    private static final int PEM_CONTENT = 2;
 
-public class JsonWebKeyHelper {
+    private JsonWebKeyHelper() {}
+
     public static JsonWebKeySet<JsonWebKey> deserialize(String s) {
         if (!s.contains("\"keys\"")) {
             return new JsonWebKeySet<>(Collections.singletonList(JsonUtils.readValue(s, JsonWebKey.class)));
@@ -29,5 +39,15 @@ public class JsonWebKeyHelper {
             return JsonUtils.readValue(s, new TypeReference<JsonWebKeySet<JsonWebKey>>() {
             });
         }
+    }
+
+    public static JWK getJsonWebKey(String pemData) throws JOSEException {
+        Matcher m = PEM_DATA.matcher(pemData.trim());
+        if (!m.matches()) {
+            throw new IllegalArgumentException("String is not PEM encoded data");
+        }
+        String begin = "-----BEGIN " + m.group(PEM_TYPE) + "-----\n";
+        String end = "\n-----END " + m.group(PEM_TYPE) + "-----";
+        return JWK.parseFromPEMEncodedObjects(begin + WS_DATA.matcher(m.group(PEM_CONTENT).trim()).replaceAll("\n") + end);
     }
 }
