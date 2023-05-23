@@ -27,6 +27,7 @@ import java.util.regex.Pattern;
 public final class JsonWebKeyHelper {
     private static final Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
     private static final Pattern WS_DATA = Pattern.compile("\\s", Pattern.UNICODE_CHARACTER_CLASS);
+    private static final Pattern JSON_DATA = Pattern.compile("^\\{(.*)\\:(.*)\\}$", Pattern.DOTALL);
     private static final int PEM_TYPE = 1;
     private static final int PEM_CONTENT = 2;
 
@@ -49,5 +50,18 @@ public final class JsonWebKeyHelper {
         String begin = "-----BEGIN " + m.group(PEM_TYPE) + "-----\n";
         String end = "\n-----END " + m.group(PEM_TYPE) + "-----";
         return JWK.parseFromPEMEncodedObjects(begin + WS_DATA.matcher(m.group(PEM_CONTENT).trim()).replaceAll("\n") + end);
+    }
+
+    public static JsonWebKeySet<JsonWebKey> parseConfiguration(String tokenKey) {
+        Matcher m = JSON_DATA.matcher(tokenKey.trim());
+        if (m.matches()) {
+            return deserialize(tokenKey);
+        } else {
+            try {
+                return deserialize(getJsonWebKey(tokenKey).toJSONString());
+            } catch(JOSEException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
     }
 }

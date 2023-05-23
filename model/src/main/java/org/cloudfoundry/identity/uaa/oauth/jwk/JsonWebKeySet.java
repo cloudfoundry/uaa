@@ -17,10 +17,14 @@ package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -28,9 +32,10 @@ import java.util.Set;
  */
 public class JsonWebKeySet<T extends JsonWebKey> {
 
+    private static final String KEYS = "keys";
     private final List<T> keys;
 
-    public JsonWebKeySet(@JsonProperty("keys") List<T> keys) {
+    public JsonWebKeySet(@JsonProperty(KEYS) List<T> keys) {
         Set<T> set = new LinkedHashSet<>();
         //rules for how to override duplicates
         for (T key : keys) {
@@ -43,5 +48,13 @@ public class JsonWebKeySet<T extends JsonWebKey> {
 
     public List<T> getKeys() {
         return Collections.unmodifiableList(keys);
+    }
+
+    public Map<String, Object> getKeySetMap() {
+        Map<String, Object> keySet = new HashMap<>();
+        ArrayList keyArray = new ArrayList();
+        Optional.ofNullable(keys).orElseThrow(() -> new IllegalStateException("No keys found.")).stream().forEach(k -> keyArray.add(k.getKeyProperties()));
+        keySet.put(KEYS, keyArray);
+        return keySet;
     }
 }
