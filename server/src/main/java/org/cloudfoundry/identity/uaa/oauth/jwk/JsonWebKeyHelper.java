@@ -21,8 +21,12 @@ import com.nimbusds.jose.jwk.JWK;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 
 public final class JsonWebKeyHelper {
     private static final Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
@@ -58,7 +62,14 @@ public final class JsonWebKeyHelper {
             return deserialize(tokenKey);
         } else {
             try {
-                return deserialize(getJsonWebKey(tokenKey).toJSONString());
+                if (PEM_DATA.matcher(tokenKey.trim()).matches()) {
+                    return deserialize(getJsonWebKey(tokenKey).toJSONString());
+                } else {
+                    Map<String, Object> p = new HashMap<>();
+                    p.put("value", tokenKey);
+                    p.put("kty", MAC.name());
+                    return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
+                }
             } catch(JOSEException e) {
                 throw new IllegalArgumentException(e);
             }

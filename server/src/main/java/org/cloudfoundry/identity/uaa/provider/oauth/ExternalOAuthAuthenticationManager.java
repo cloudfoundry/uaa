@@ -656,10 +656,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     }
 
-    private static boolean isAssymetricKey(String key) {
-        return key.startsWith("-----BEGIN");
-    }
-
     private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
 
         String tokenKey = config.getTokenKey();
