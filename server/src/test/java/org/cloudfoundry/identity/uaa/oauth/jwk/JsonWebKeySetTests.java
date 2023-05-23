@@ -220,10 +220,11 @@ public class JsonWebKeySetTests {
     }
 
     @Test
-    public void testJsonKeySetParseFailureRaw() {
+    public void testJsonKeySetParseRawKey() {
         String macKey = "tokenKey";
         JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(macKey);
         assertEquals(1, keys.getKeys().size());
         assertEquals(JsonWebKey.KeyType.MAC, keys.getKeys().get(0).getKty());
+        assertEquals(macKey, keys.getKeys().get(0).getValue());
     }
 }
