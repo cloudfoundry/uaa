@@ -25,6 +25,7 @@ import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -33,10 +34,10 @@ import java.util.Set;
  */
 public class JsonWebKeySet<T extends JsonWebKey> {
 
-    private static final String KEYS = "keys";
+    private static final String JSON_PROPERTY_KEYS = "keys";
     private final List<T> keys;
 
-    public JsonWebKeySet(@JsonProperty(KEYS) List<T> keys) {
+    public JsonWebKeySet(@JsonProperty(JSON_PROPERTY_KEYS) List<T> keys) {
         Set<T> set = new LinkedHashSet<>();
         //rules for how to override duplicates
         for (T key : keys) {
@@ -44,7 +45,7 @@ public class JsonWebKeySet<T extends JsonWebKey> {
             set.remove(key);
             set.add(key);
         }
-        this.keys = new LinkedList(set);
+        this.keys = new LinkedList<>(set);
     }
 
     public List<T> getKeys() {
@@ -54,9 +55,12 @@ public class JsonWebKeySet<T extends JsonWebKey> {
     @JsonIgnore
     public Map<String, Object> getKeySetMap() {
         Map<String, Object> keySet = new HashMap<>();
-        ArrayList keyArray = new ArrayList();
-        Optional.ofNullable(keys).orElseThrow(() -> new IllegalStateException("No keys found.")).stream().forEach(k -> keyArray.add(k.getKeyProperties()));
-        keySet.put(KEYS, keyArray);
+        ArrayList<Map<String, Object>> keyArray = new ArrayList<>();
+        long keyCount = Optional.ofNullable(keys).orElseThrow(() -> new IllegalStateException("No keys found.")).stream()
+            .map(k -> keyArray.add(k.getKeyProperties())).filter(Objects::nonNull).count();
+        if (keyCount > 0) {
+            keySet.put(JSON_PROPERTY_KEYS, keyArray);
+        }
         return keySet;
     }
 }
