@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public class JsonWebKeySet<T extends JsonWebKey> {
         return Collections.unmodifiableList(keys);
     }
 
+    @JsonIgnore
     public Map<String, Object> getKeySetMap() {
         Map<String, Object> keySet = new HashMap<>();
         ArrayList keyArray = new ArrayList();
