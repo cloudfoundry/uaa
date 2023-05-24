@@ -18,7 +18,6 @@ versions.springSecuritySamlVersion = "1.0.10.RELEASE" // this lib has reached EO
 versions.tomcatVersion = "9.0.75"
 versions.statsdClientVersion = "3.1.0" // statsd is not included in spring-boot 2.2 and later, so we need to specify the dependency explicitly
 versions.junitVersion = "4.13.2" // Needed to support junit 4 with spring-boot 2.4
-versions.snakeyamlVersion = "1.33" // Needed to resolve CVEs in internal spring-boot 2.7.12 inclusion of snakeyaml
 versions.velocityEngineCoreVersion = "2.3"
 versions.xmlsecVersion ="2.3.3"
 
@@ -73,7 +72,7 @@ libraries.selenium = "org.seleniumhq.selenium:selenium-java:4.9.1"
 libraries.seleniumHttp = "org.seleniumhq.selenium:selenium-http-jdk-client:4.9.1"
 libraries.slf4jApi = "org.slf4j:slf4j-api"
 libraries.slf4jImpl = "org.apache.logging.log4j:log4j-slf4j-impl"
-libraries.snakeyaml = "org.yaml:snakeyaml:${versions.snakeyamlVersion}"
+libraries.snakeyaml = "org.yaml:snakeyaml"
 libraries.springBeans = "org.springframework:spring-beans"
 libraries.springBootBom = "org.springframework.boot:spring-boot-dependencies:${versions.springBootVersion}"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
