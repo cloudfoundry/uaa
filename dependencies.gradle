@@ -19,7 +19,7 @@ versions.tomcatVersion = "9.0.75"
 versions.statsdClientVersion = "3.1.0" // statsd is not included in spring-boot 2.2 and later, so we need to specify the dependency explicitly
 versions.junitVersion = "4.13.2" // Needed to support junit 4 with spring-boot 2.4
 versions.velocityEngineCoreVersion = "2.3"
-versions.xmlsecVersion ="2.3.3"
+versions.xmlsecVersion ="3.0.2"
 
 ext {
     tomcatVersion = "${versions.tomcatVersion}"
