@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.springframework.util.Assert;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -35,7 +36,7 @@ public class CustomPropertyConstructor extends Constructor {
     private final Map<Class<?>, AliasSupportingTypeDescription> typeDescriptions = new HashMap<>();
 
     public CustomPropertyConstructor(Class<?> theRoot) {
-        super(theRoot);
+        super(theRoot, UaaYamlUtils.getDefaultLoaderOptions());
         TypeDescription typeDescription = createTypeDescription(theRoot);
         addTypeDescription(typeDescription);
         yamlClassConstructors.put(NodeId.mapping, new CustomPropertyConstructMapping());

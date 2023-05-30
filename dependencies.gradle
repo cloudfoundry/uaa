@@ -1,7 +1,8 @@
 // Versions we're overriding from the Spring Boot Bom
 ext["flyway.version"] = "7.15.0" // flyway 8+ drops support for mysql 5.7
 ext["mariadb.version"] = "2.7.7" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
-ext["snakeyaml.version"] = "1.33" // Needed to resolve CVEs in internal spring-boot 2.7.12 inclusion of snakeyaml
+ext["snakeyaml.version"] = "2.0" // Needed to resolve CVEs in internal spring-boot 2.7.12 inclusion of snakeyaml
+ext["jackson-bom.version"] = "2.14.2" // Bumping to latest version because of compatiblity to snakeyaml 2.0
 
 def versions = [:]
 
