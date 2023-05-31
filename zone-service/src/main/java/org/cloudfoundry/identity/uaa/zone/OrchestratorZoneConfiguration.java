@@ -21,10 +21,11 @@ public class OrchestratorZoneConfiguration {
                                                            @Qualifier("scimGroupProvisioning") ScimGroupProvisioning groupProvisioning,
                                                            @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
                                                            ClientAdminEndpointsValidator clientDetailsValidator,
+                                                           @Value("${uaa.url}") String uaaUrl,
                                                            @Value("${uaa.dashboard.uri}") String uaaDashboardUri,
-                                                           @Value("${issuer.uri}") String uaaUrl) {
+                                                           @Value("${issuer.uri}") String issuerUri) {
         return new OrchestratorZoneService(zoneProvisioning, idpProvisioning, groupProvisioning, clientDetailsService,
-                                           clientDetailsValidator, uaaDashboardUri, uaaUrl);
+                                           clientDetailsValidator, uaaDashboardUri, uaaUrl, issuerUri);
     }
 
 }

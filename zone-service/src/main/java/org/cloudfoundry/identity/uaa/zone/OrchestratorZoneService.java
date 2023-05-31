@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasLength;
+import static org.springframework.util.StringUtils.hasText;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -41,7 +42,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
@@ -56,7 +56,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
@@ -83,7 +83,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     private final QueryableResourceManager<ClientDetails> clientDetailsService;
     private final ClientAdminEndpointsValidator clientDetailsValidator;
     private final String uaaDashboardUri;
-    private final String domainName;
+    private final String uaaUrl;
+    private final String issuerUri;
 
     private ApplicationEventPublisher publisher;
 
@@ -96,7 +97,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
                                    ScimGroupProvisioning groupProvisioning,
                                    QueryableResourceManager<ClientDetails> clientDetailsService,
                                    ClientAdminEndpointsValidator clientDetailsValidator,
-                                   String uaaDashboardUri, String uaaUrl
+                                   String uaaDashboardUri, String uaaUrl,
+                                   String issuerUri
                                   ) {
         this.zoneProvisioning = zoneProvisioning;
         this.idpProvisioning = idpProvisioning;
@@ -104,7 +106,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         this.clientDetailsService = clientDetailsService;
         this.clientDetailsValidator = clientDetailsValidator;
         this.uaaDashboardUri = uaaDashboardUri;
-        this.domainName = uaaUrl;
+        this.uaaUrl = uaaUrl;
+        this.issuerUri = issuerUri;
     }
 
     @Autowired
@@ -114,12 +117,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     public OrchestratorZoneResponse getZoneDetails(String zoneName) {
         OrchestratorZoneEntity orchestratorZone = zoneProvisioning.retrieveByName(zoneName);
-        OrchestratorZone zone = new OrchestratorZone(null, getSubDomainStr(orchestratorZone));
-        String uaaUri = ServletUriComponentsBuilder.fromCurrentContextPath().toUriString();
-        String subDomain = orchestratorZone.getSubdomain();
-        String zoneUri = getZoneUri(subDomain, uaaUri);
-        ConnectionDetails connectionDetails = buildConnectionDetails(zoneName, orchestratorZone, zoneUri);
-
+        ConnectionDetails connectionDetails = buildConnectionDetails(orchestratorZone);
         OrchestratorZoneResponse response = new OrchestratorZoneResponse();
         response.setName(zoneName);
         response.setConnectionDetails(connectionDetails);
@@ -155,11 +153,10 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return response;
     }
 
-    private ConnectionDetails buildConnectionDetails(String zoneName, OrchestratorZoneEntity orchestratorZone,
-                                                     String zoneUri) {
+    private ConnectionDetails buildConnectionDetails(OrchestratorZoneEntity orchestratorZone) {
         ConnectionDetails connectionDetails = new ConnectionDetails();
-        connectionDetails.setUri(zoneUri);
-        connectionDetails.setIssuerId(zoneUri + "/oauth/token");
+        connectionDetails.setUri(constructUri(orchestratorZone.getSubdomain(), uaaUrl, ""));
+        connectionDetails.setIssuerId(constructUri(orchestratorZone.getSubdomain(), issuerUri, "oauth/token"));
         connectionDetails.setSubdomain(orchestratorZone.getSubdomain());
         connectionDetails.setDashboardUri(uaaDashboardUri);
         OrchestratorZoneHeader zoneHeader = new OrchestratorZoneHeader(X_IDENTITY_ZONE_ID, orchestratorZone.getIdentityZoneId());
@@ -167,30 +164,18 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         return connectionDetails;
     }
 
-    private String getZoneUri(String subdomain, String uaaUri) {
-        URI uaaUriObject = URI.create(uaaUri);
-        String currentUAAHostName = uaaUriObject.getHost();
-        String replacement = subdomain + "." + currentUAAHostName;
-        if (!hasLength(subdomain)) {
-            replacement = currentUAAHostName;
-        };
-        URI newUAARoute = URI
-            .create(uaaUriObject.toString().replace(currentUAAHostName, replacement));
-        return newUAARoute.toString();
+    private String constructUri(String subDomain, String baseUrl, String path) {
+        URI uri = URI.create(baseUrl);
+        String hostToUse = uri.getHost();
+        if (hasText(subDomain)) {
+            hostToUse = subDomain + "." + hostToUse;
+        }
+        return UriComponentsBuilder.fromUri(uri).host(hostToUse).pathSegment(path).build().toUriString();
     }
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
         this.publisher = applicationEventPublisher;
-    }
-
-    private String getSubDomainStr(OrchestratorZoneEntity orchestratorZone) {
-        String id = orchestratorZone.getIdentityZoneId();
-        String subDomain = orchestratorZone.getSubdomain();
-        if(id.equals(subDomain)){
-            subDomain = null;
-        }
-        return subDomain;
     }
 
     public OrchestratorZoneResponse createZone(OrchestratorZoneRequest zoneRequest) {
@@ -393,10 +378,10 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
      * Remove all characters till first dot
      */
     private String getRunDomainFromUAADomain() {
-        if (!hasLength(domainName))  return domainName;
-        int firstDotIndex = domainName.indexOf('.');
+        if (!hasLength(uaaUrl))  return uaaUrl;
+        int firstDotIndex = uaaUrl.indexOf('.');
         if (firstDotIndex == -1)  return "";
-        return domainName.substring(firstDotIndex);
+        return uaaUrl.substring(firstDotIndex);
     }
 
 
