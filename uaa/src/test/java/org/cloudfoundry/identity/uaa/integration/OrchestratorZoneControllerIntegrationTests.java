@@ -81,7 +81,6 @@ import org.springframework.web.client.RestTemplate;
 @OAuth2ContextConfiguration(OrchestratorZoneControllerIntegrationTests.OrchestratorClient.class)
 public class OrchestratorZoneControllerIntegrationTests {
 
-    public static final String ZONE_NAME = "The Twiglet Zone";
     public static final String SUB_DOMAIN_NAME = "sub-domain-01";
     public static final String ADMIN_CLIENT_SECRET = "admin-secret-01";
 
@@ -141,9 +140,7 @@ public class OrchestratorZoneControllerIntegrationTests {
 
             ConnectionDetails expectedConnectionDetails = new ConnectionDetails();
             expectedConnectionDetails.setSubdomain(zoneName);
-            expectedConnectionDetails.setUri("http://" + zoneName + ".localhost:8080/uaa");
             expectedConnectionDetails.setDashboardUri("http://localhost:8080/dashboard");
-            expectedConnectionDetails.setIssuerId(expectedConnectionDetails.getUri() + "/oauth/token");
             expectedConnectionDetails.setZone(expectedZoneHeader);
 
             OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();

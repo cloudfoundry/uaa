@@ -49,7 +49,8 @@ public class OrchestratorZoneServiceTests {
     public static final String SUB_DOMAIN_NAME = "sub-domain-01";
     public static final String SUB_DOMAIN_BLANK_SPACE = " ";
     public static final String UAA_DASHBOARD_URI = "http://localhost/dashboard";
-    public static final String DOMAIN_NAME = "domain-name";
+    public static final String UAA_URL = "http://localhost";
+    public static final String ISSUER_URI = "http://issuer-uri";
     public static final String ADMIN_CLIENT_SECRET = "admin-secret-01";
     public static final String ADMIN_CLIENT_SECRET_EMPTY = "";
     private OrchestratorZoneService zoneService;
@@ -115,7 +116,7 @@ public class OrchestratorZoneServiceTests {
         clientDetailsValidator = mock(ClientAdminEndpointsValidator.class);
         zoneService = new OrchestratorZoneService(zoneProvisioning, idpProvisioning, groupProvisioning,
                                                   clientDetailsService, clientDetailsValidator,
-                                                  UAA_DASHBOARD_URI, DOMAIN_NAME);
+                                                  UAA_DASHBOARD_URI, UAA_URL, ISSUER_URI);
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
         IdentityZoneHolder.set(IdentityZone.getUaa());
@@ -129,10 +130,11 @@ public class OrchestratorZoneServiceTests {
         assertNotNull(response);
         assertEquals(response.getName(), ZONE_NAME);
         String uri = "http://" + orchestratorZone.getSubdomain() + ".localhost";
+        String issuerId = "http://" + orchestratorZone.getSubdomain() + ".issuer-uri";
         assertEquals(response.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
         assertEquals((response.getConnectionDetails().getUri()), uri);
         assertEquals(response.getConnectionDetails().getDashboardUri(), "http://localhost/dashboard");
-        assertEquals(response.getConnectionDetails().getIssuerId(), uri + "/oauth/token");
+        assertEquals(response.getConnectionDetails().getIssuerId(), issuerId + "/oauth/token");
         assertEquals(response.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
         assertEquals(response.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());
         assertTrue(response.getMessage().isEmpty());
