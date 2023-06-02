@@ -76,6 +76,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     public static final String ZONE_DELETED_MESSAGE = "Zone Deleted Successfully";
 
     private static final java.util.Base64.Encoder base64encoder = java.util.Base64.getMimeEncoder(64, "\n".getBytes());
+    public static final String DASHBOARD_LOGIN_PATH = "/#/login/";
 
     private final IdentityZoneProvisioning zoneProvisioning;
     private final IdentityProviderProvisioning idpProvisioning;
@@ -158,7 +159,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         connectionDetails.setUri(constructUri(orchestratorZone.getSubdomain(), uaaUrl, ""));
         connectionDetails.setIssuerId(constructUri(orchestratorZone.getSubdomain(), issuerUri, "oauth/token"));
         connectionDetails.setSubdomain(orchestratorZone.getSubdomain());
-        connectionDetails.setDashboardUri(uaaDashboardUri);
+        connectionDetails.setDashboardUri(uaaDashboardUri + DASHBOARD_LOGIN_PATH + orchestratorZone.getIdentityZoneId());
         OrchestratorZoneHeader zoneHeader = new OrchestratorZoneHeader(X_IDENTITY_ZONE_ID, orchestratorZone.getIdentityZoneId());
         connectionDetails.setZone(zoneHeader);
         return connectionDetails;

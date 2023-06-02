@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.DASHBOARD_LOGIN_PATH;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
@@ -133,7 +134,8 @@ public class OrchestratorZoneServiceTests {
         String issuerId = "http://" + orchestratorZone.getSubdomain() + ".issuer-uri";
         assertEquals(response.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
         assertEquals((response.getConnectionDetails().getUri()), uri);
-        assertEquals(response.getConnectionDetails().getDashboardUri(), "http://localhost/dashboard");
+        assertEquals(response.getConnectionDetails().getDashboardUri(),
+                     "http://localhost/dashboard" + DASHBOARD_LOGIN_PATH + orchestratorZone.getIdentityZoneId());
         assertEquals(response.getConnectionDetails().getIssuerId(), issuerId + "/oauth/token");
         assertEquals(response.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
         assertEquals(response.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());

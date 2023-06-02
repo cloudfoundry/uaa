@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.assertSupportsZoneDNS;
+import static org.cloudfoundry.identity.uaa.mock.zones.OrchestratorZoneControllerMockMvcTests.DASHBOARD_URI;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.DASHBOARD_LOGIN_PATH;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
@@ -51,6 +53,7 @@ import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
+import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -140,8 +143,9 @@ public class OrchestratorZoneControllerIntegrationTests {
 
             ConnectionDetails expectedConnectionDetails = new ConnectionDetails();
             expectedConnectionDetails.setSubdomain(zoneName);
-            expectedConnectionDetails.setDashboardUri("http://localhost:8080/dashboard");
             expectedConnectionDetails.setZone(expectedZoneHeader);
+            expectedConnectionDetails.setUri("http://" + zoneName + ".localhost:8080/uaa");
+            expectedConnectionDetails.setIssuerId("http://" + zoneName + ".localhost:8080/uaa/oauth/token");
 
             OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
             expectedResponse.setName(zoneName);
@@ -174,7 +178,8 @@ public class OrchestratorZoneControllerIntegrationTests {
             assertNotNull(actualConnectionDetails);
             assertEquals(expectedConnectionDetails.getSubdomain(), actualConnectionDetails.getSubdomain());
             assertEquals(expectedConnectionDetails.getUri(), actualConnectionDetails.getUri());
-            assertEquals(expectedConnectionDetails.getDashboardUri(), actualConnectionDetails.getDashboardUri());
+            MatcherAssert.assertThat(actualConnectionDetails.getDashboardUri(), containsString(
+                DASHBOARD_URI + DASHBOARD_LOGIN_PATH));
             assertEquals(expectedConnectionDetails.getIssuerId(), actualConnectionDetails.getIssuerId());
             assertEquals(expectedConnectionDetails.getZone().getHttpHeaderName(),
                     actualConnectionDetails.getZone().getHttpHeaderName());
@@ -455,7 +460,8 @@ public class OrchestratorZoneControllerIntegrationTests {
             assertNotNull(connectionDetailSubdomain);
             String uri = "http://" + connectionDetailSubdomain + ".localhost:8080/uaa";
             assertEquals(uri, zoneResponse.getConnectionDetails().getUri());
-            assertEquals("http://localhost:8080/dashboard", zoneResponse.getConnectionDetails().getDashboardUri());
+            MatcherAssert.assertThat(zoneResponse.getConnectionDetails().getDashboardUri(), containsString(
+                DASHBOARD_URI + DASHBOARD_LOGIN_PATH));
             assertEquals(uri + "/oauth/token", zoneResponse.getConnectionDetails().getIssuerId());
             assertEquals(X_IDENTITY_ZONE_ID, zoneResponse.getConnectionDetails().getZone().getHttpHeaderName());
             assertEquals(connectionDetailSubdomain, zoneResponse.getConnectionDetails().getZone().getHttpHeaderValue());

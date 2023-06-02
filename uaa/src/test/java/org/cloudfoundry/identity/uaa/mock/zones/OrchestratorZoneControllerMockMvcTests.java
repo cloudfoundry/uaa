@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.DASHBOARD_LOGIN_PATH;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.X_IDENTITY_ZONE_ID;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
 import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_DELETED_MESSAGE;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -147,12 +149,13 @@ public class OrchestratorZoneControllerMockMvcTests {
 
         ConnectionDetails expectedConnectionDetails = new ConnectionDetails();
         expectedConnectionDetails.setSubdomain(SUB_DOMAIN_NAME);
-        expectedConnectionDetails.setDashboardUri(DASHBOARD_URI);
         expectedConnectionDetails.setZone(expectedZoneHeader);
 
         OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
         expectedResponse.setName(ZONE_NAME);
         expectedResponse.setConnectionDetails(expectedConnectionDetails);
+        expectedConnectionDetails.setUri("http://" + SUB_DOMAIN_NAME + ".localhost:8080/uaa");
+        expectedConnectionDetails.setIssuerId("http://" + SUB_DOMAIN_NAME + ".localhost:8080/uaa/oauth/token");
         expectedResponse.setMessage("");
         expectedResponse.setState(OrchestratorState.FOUND.toString());
 
@@ -211,7 +214,7 @@ public class OrchestratorZoneControllerMockMvcTests {
             assertNotNull(actualConnectionDetails);
             assertEquals(expectedConnectionDetails.getSubdomain(), actualConnectionDetails.getSubdomain());
             assertEquals(expectedConnectionDetails.getUri(), actualConnectionDetails.getUri());
-            assertEquals(expectedConnectionDetails.getDashboardUri(), actualConnectionDetails.getDashboardUri());
+            assertThat(actualConnectionDetails.getDashboardUri(), containsString(DASHBOARD_URI + DASHBOARD_LOGIN_PATH));
             assertEquals(expectedConnectionDetails.getIssuerId(), actualConnectionDetails.getIssuerId());
             assertEquals(expectedConnectionDetails.getZone().getHttpHeaderName(),
                     actualConnectionDetails.getZone().getHttpHeaderName());
@@ -320,7 +323,7 @@ public class OrchestratorZoneControllerMockMvcTests {
 
     @Test
     void testCreateZone_Unauthorized_WithoutAccessToken() throws Exception {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
         MvcResult result = mockMvc
             .perform(
@@ -332,7 +335,7 @@ public class OrchestratorZoneControllerMockMvcTests {
 
     @Test
     void testCreateZone_Forbidden_InsufficientScope() throws Exception {
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME,ADMIN_CLIENT_SECRET,
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
                                                                                      SUB_DOMAIN_NAME);
         MvcResult result = mockMvc
             .perform(
