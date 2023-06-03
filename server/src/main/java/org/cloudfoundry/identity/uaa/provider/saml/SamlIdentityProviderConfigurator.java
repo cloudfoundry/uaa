@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.UaaMetadataProviderException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -71,9 +72,9 @@ public class SamlIdentityProviderConfigurator {
      * adds or replaces a SAML identity proviider
      *
      * @param providerDefinition - the provider to be added
-     * @throws MetadataProviderException if the system fails to fetch meta data for this provider
+     * @throws UaaMetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
+    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws UaaMetadataProviderException {
         ExtendedMetadataDelegate added, deleted = null;
         if (providerDefinition == null) {
             throw new NullPointerException();
@@ -86,32 +87,41 @@ public class SamlIdentityProviderConfigurator {
         }
         SamlIdentityProviderDefinition clone = providerDefinition.clone();
         added = getExtendedMetadataDelegate(clone);
-        String entityIDToBeAdded = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
+        String entityIDToBeAdded;
+        try {
+            entityIDToBeAdded = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
+        } catch (MetadataProviderException e) {
+            throw new UaaMetadataProviderException(e.getMessage(), e);
+        }
         if (!StringUtils.hasText(entityIDToBeAdded)) {
-            throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
+            throw new UaaMetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
         }
 
         boolean entityIDexists = false;
 
         for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
             ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
-            if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
-                    !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
-                entityIDexists = true;
-                break;
+            try {
+                if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
+                        !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
+                    entityIDexists = true;
+                    break;
+                }
+            } catch (MetadataProviderException e) {
+                throw new UaaMetadataProviderException(e.getMessage(), e);
             }
         }
 
         if (entityIDexists) {
-            throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
+            throw new UaaMetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
         }
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws UaaMetadataProviderException {
         return getExtendedMetadataDelegate(def);
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws UaaMetadataProviderException {
         ExtendedMetadataDelegate metadata;
         switch (def.getType()) {
             case DATA: {
@@ -123,7 +133,7 @@ public class SamlIdentityProviderConfigurator {
                 break;
             }
             default: {
-                throw new MetadataProviderException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
+                throw new UaaMetadataProviderException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
             }
         }
         return metadata;
@@ -157,17 +167,22 @@ public class SamlIdentityProviderConfigurator {
         return uri;
     }
 
-    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws UaaMetadataProviderException {
         try {
             def = def.clone();
             String adjustedMetatadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
 
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetatadataURIForPort, def.isSkipSslValidation());
+            byte[] metadata;
+            try {
+                metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetatadataURIForPort, def.isSkipSslValidation());
+            } catch (MetadataProviderException e) {
+                throw new UaaMetadataProviderException(e.getMessage(), e);
+            }
 
             def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
             return configureXMLMetadata(def);
         } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
+            throw new UaaMetadataProviderException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
         }
     }
 }

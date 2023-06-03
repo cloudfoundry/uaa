@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.UaaMetadataProviderException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
@@ -146,7 +147,12 @@ public class NonSnarlMetadataManager extends MetadataManager implements Extended
         for (SamlIdentityProviderDefinition definition : configurator.getIdentityProviderDefinitions()) {
             log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
             try {
-                ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
+                ExtendedMetadataDelegate delegate;
+                try {
+                    delegate = configurator.getExtendedMetadataDelegate(definition);
+                } catch (UaaMetadataProviderException e) {
+                    throw new MetadataProviderException(e);
+                }
                 initializeProvider(delegate);
                 initializeProviderData(delegate);
                 initializeProviderFilters(delegate);
