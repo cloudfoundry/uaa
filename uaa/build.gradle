@@ -18,7 +18,7 @@ war { enabled = true }
 
 
 repositories {
-    maven { url("https://repo.spring.io/libs-milestone") }
+    maven { url("https://repo.spring.io/milestone") }
 }
 
 description = "UAA"
