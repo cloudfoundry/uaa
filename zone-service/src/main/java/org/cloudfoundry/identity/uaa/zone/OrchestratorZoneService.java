@@ -39,7 +39,6 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
 import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
 import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
@@ -67,7 +66,7 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     public static final String CLIENT_ID = "admin";
     public static final String ZONE_AUTHORITIES =
-        "clients.admin,clients.read,clients.write,clients.secret,idps.read,idps.write,sps" +
+        "uaa.admin,clients.admin,clients.read,clients.write,clients.secret,idps.read,idps.write,sps" +
         ".read,sps.write,scim.read,scim.write,uaa.resource";
     public static final String GRANT_TYPES = "client_credentials";
     public static final String RESOURCE_IDS = "none";
@@ -302,10 +301,9 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
 
     private void setTokenPolicy(String zoneSigningKey, IdentityZone identityZone) {
         String activeKeyId = new RandomValueStringGenerator(5).generate();
-        Map<String, String> keys = getKeys(zoneSigningKey, activeKeyId);
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setActiveKeyId(activeKeyId);
-        tokenPolicy.setKeys(keys);
+        tokenPolicy.setKeys(Collections.singletonMap(activeKeyId, zoneSigningKey));
         identityZone.getConfig().setTokenPolicy(tokenPolicy);
     }
 
@@ -383,17 +381,6 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         int firstDotIndex = uaaUrl.indexOf('.');
         if (firstDotIndex == -1)  return "";
         return uaaUrl.substring(firstDotIndex);
-    }
-
-
-    private Map<String, String> getKeys(String zoneSigningKey, String activeKeyId) {
-        Map<String, String> keysMap = new HashMap<>();
-        Map<String, Map<String, String>> keys = new HashMap<>();
-        Map<String, String> signingKeyMap = new HashMap<>();
-        signingKeyMap.put("signingKey", zoneSigningKey);
-        String keysStr = JsonUtils.writeValueAsString(signingKeyMap);
-        keysMap.put(activeKeyId, keysStr);
-        return keysMap;
     }
 
     private SamlConfig createSamlConfig(String subdomain)

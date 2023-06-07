@@ -14,6 +14,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 
 import java.io.ByteArrayInputStream;
@@ -57,6 +58,7 @@ import org.hamcrest.MatcherAssert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -645,6 +647,11 @@ public class OrchestratorZoneControllerIntegrationTests {
         String accessToken =
             IntegrationTestUtils.getClientCredentialsToken(uaaZoneEndpoint.toString(), "admin", ADMIN_CLIENT_SECRET);
 
+        //Make sure that token key is valid and able to retrieve
+        HttpStatus status =
+            new RestTemplate().getForEntity(uaaZoneEndpoint + "/token_key", String.class).getStatusCode();
+        assertEquals(status, HttpStatus.OK);
+
         checkIdentityZoneConfiguration(zoneId, adminClient);
         validateCheckTokenEndpoint(subdomain, zoneId, accessToken);
     }
@@ -658,11 +665,11 @@ public class OrchestratorZoneControllerIntegrationTests {
         LOGGER.info("Got identity zone: " + OBJECT_MAPPER.writeValueAsString(identityZoneResponse.getBody()));
         IdentityZoneConfiguration config = identityZoneResponse.getBody().getConfig();
         assertEquals(config.getLinks().getLogout().getWhitelist(),Collections.singletonList("http*://**"));
-        assertEquals(config.getLinks().getSelfService().isSelfServiceCreateAccountEnabled(), false);
-        assertEquals(config.getLinks().getSelfService().isSelfServiceResetPasswordEnabled(), true);
+        assertFalse(config.getLinks().getSelfService().isSelfServiceCreateAccountEnabled());
+        Assertions.assertTrue(config.getLinks().getSelfService().isSelfServiceResetPasswordEnabled());
         assertEquals(config.getLinks().getSelfService().getSignup(), "");
         assertEquals(config.getLinks().getSelfService().getPasswd(), "/forgot_password");
-        assertEquals(config.isIdpDiscoveryEnabled(), false);
+        assertFalse(config.isIdpDiscoveryEnabled());
         assertNotNull(config.getTokenPolicy().getActiveKeyId());
 
         checkSamlConfig(config.getSamlConfig());
