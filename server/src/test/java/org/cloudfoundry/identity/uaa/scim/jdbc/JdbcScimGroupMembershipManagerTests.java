@@ -15,8 +15,8 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -48,7 +48,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -73,6 +72,7 @@ class JdbcScimGroupMembershipManagerTests {
     private DbUtils dbUtils;
 
     private static final String ADD_USER_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities ,identity_zone_id) values ('%s','%s','%s','%s','%s','%s','%s','%s','%s')";
+    private static final String ADD_USER_ORIGIN_SQL_FORMAT = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, authorities , origin, identity_zone_id) values ('%s','%s','%s','%s','%s','%s','%s','%s','%s','%s')";
     private static final String ADD_GROUP_SQL_FORMAT = "insert into %s (id, displayName, identity_zone_id) values ('%s','%s','%s')";
     private static final String ADD_MEMBER_SQL_FORMAT = "insert into group_membership (group_id, member_id, member_type, origin, identity_zone_id) values ('%s', '%s', '%s', '%s', '%s')";
     private static final String ADD_EXTERNAL_MAP_SQL = "insert into external_group_mapping (group_id, external_group, added, origin, identity_zone_id) values (?, ?, ?, ?, ?)";
@@ -429,6 +429,20 @@ class JdbcScimGroupMembershipManagerTests {
     }
 
     @Test
+    void canAddMemberDifferentOrigin() throws SQLException {
+        String differentOrigin = "not.uaa";
+        addUser("m9", "test", uaaIdentityZone.getId(), differentOrigin, jdbcTemplate);
+        validateCount(0, jdbcTemplate, uaaIdentityZone.getId());
+        ScimGroupMember m1 = new ScimGroupMember("m9", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = jdbcScimGroupMembershipManager.addMember("g2", m1, uaaIdentityZone.getId());
+        validateCount(1, jdbcTemplate, uaaIdentityZone.getId());
+        assertEquals(ScimGroupMember.Type.USER, m2.getType());
+        assertEquals("m9", m2.getMemberId());
+        assertEquals(differentOrigin, m2.getOrigin());
+        validateUserGroups("m9", jdbcScimGroupMembershipManager, uaaIdentityZone.getId(), "test2");
+    }
+
+    @Test
     void addMemberInDifferentZoneCausesIssues() {
         otherIdentityZone.getConfig().getUserConfig().setDefaultGroups(emptyList());
         IdentityZoneHolder.set(otherIdentityZone);
@@ -708,6 +722,16 @@ class JdbcScimGroupMembershipManagerTests {
             final JdbcTemplate jdbcTemplate) {
         TestUtils.assertNoSuchUser(jdbcTemplate, id);
         jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, id, password, id, id, id, id, "", zoneId));
+    }
+
+    private static void addUser(
+        final String id,
+        final String password,
+        final String zoneId,
+        final String origin,
+        final JdbcTemplate jdbcTemplate) {
+        TestUtils.assertNoSuchUser(jdbcTemplate, id);
+        jdbcTemplate.execute(String.format(ADD_USER_ORIGIN_SQL_FORMAT, id, id, password, id, id, id, id, "", origin, zoneId));
     }
 
     private void validateCount(

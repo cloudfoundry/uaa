@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.*;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
@@ -413,7 +414,11 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (member.getType() == ScimGroupMember.Type.GROUP) {
             memberZoneId = scimGroupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
         } else {
-            memberZoneId = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
+            ScimUser scimUser = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
+            if (OriginKeys.UAA.equals(member.getOrigin()) && !scimUser.getOrigin().equals(member.getOrigin())) {
+                member.setOrigin(scimUser.getOrigin());
+            }
+            memberZoneId = scimUser.getZoneId();
         }
         if (!memberZoneId.equals(group.getZoneId())) {
             throw new ScimResourceConstraintFailedException("The zone of the group and the member must be the same.");
