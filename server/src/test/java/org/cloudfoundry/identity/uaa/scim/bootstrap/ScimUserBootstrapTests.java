@@ -19,12 +19,12 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
-import org.hamcrest.collection.IsArrayContainingInAnyOrder;
+import org.hamcrest.collection.ArrayMatching;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -446,7 +446,7 @@ class ScimUserBootstrapTests {
         users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
-        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+        validateAuthoritiesCreated(externalAuthorities, origin, created, jdbcScimGroupMembershipManager);
         assertEquals(newEmail, created.getPrimaryEmail());
 
         user = user.modifyEmail("test123@test.org");
@@ -455,14 +455,14 @@ class ScimUserBootstrapTests {
         users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
         assertEquals(1, users.size());
         created = users.get(0);
-        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+        validateAuthoritiesCreated(externalAuthorities, origin, created, jdbcScimGroupMembershipManager);
         assertEquals(newEmail, created.getPrimaryEmail());
 
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities), true));
         users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
         assertEquals(1, users.size());
         created = users.get(0);
-        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+        validateAuthoritiesCreated(externalAuthorities, origin, created, jdbcScimGroupMembershipManager);
         assertEquals("test123@test.org", created.getPrimaryEmail());
     }
 
@@ -627,25 +627,23 @@ class ScimUserBootstrapTests {
         users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
-        validateAuthoritiesCreated(add ? externalAuthorities : new String[0], userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+        validateAuthoritiesCreated(add ? externalAuthorities : new String[0], origin, created, jdbcScimGroupMembershipManager);
 
         externalAuthorities = new String[]{"extTest1", "extTest2"};
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities), add));
-        validateAuthoritiesCreated(add ? externalAuthorities : new String[0], userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+        validateAuthoritiesCreated(add ? externalAuthorities : new String[0], origin, created, jdbcScimGroupMembershipManager);
     }
 
     private static void validateAuthoritiesCreated(
-            final String[] externalAuthorities,
-            final String[] userAuthorities,
+            final String[] expected,
             final String origin,
             final ScimUser created,
             final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager) {
         Set<ScimGroup> groups = jdbcScimGroupMembershipManager.getGroupsWithMember(created.getId(), true, IdentityZone.getUaaZoneId());
-        String[] expected = merge(externalAuthorities, userAuthorities);
         String[] actual = getGroupNames(groups);
-        assertThat(actual, IsArrayContainingInAnyOrder.arrayContainingInAnyOrder(expected));
+        assertThat(actual, ArrayMatching.arrayContainingInAnyOrder(expected));
 
-        List<String> external = Arrays.asList(externalAuthorities);
+        List<String> external = Arrays.asList(expected);
         for (ScimGroup g : groups) {
             ScimGroupMember m = jdbcScimGroupMembershipManager.getMemberById(g.getId(), created.getId(), IdentityZone.getUaaZoneId());
             if (external.contains(g.getDisplayName())) {
