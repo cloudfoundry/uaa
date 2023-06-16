@@ -15,8 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
+import com.nimbusds.jose.jwk.JWKSet;
 import org.junit.Test;
 
+import java.text.ParseException;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 
@@ -24,6 +26,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyUse.sig;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 public class JsonWebKeySetTests {
 
@@ -188,4 +191,40 @@ public class JsonWebKeySetTests {
         assertEquals(1, keys.getKeys().size());
     }
 
+    @Test
+    public void testJsonKeySetParseJson() throws ParseException {
+        String jsonConfig = "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"use\":\"sig\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"xMi4Z4FBfQEOdNYLmzxkYJvP02TSeapZMKMQo90JQRL07ttIKcDMP6pGcirOGSQWWBBpvdo5EnVOiNzViu9JCJP2IWbHJ4sRe0S1dySYdBRVV_ZkgWOrj7Cr2yT0ZVvCCzH7NAWmlA6LUV19Mnp-ugeGoxK-fsk8SRLS_Z9JdyxgOb3tPxdDas3MZweMZ6HqujoAAG9NASBGjFNXbhMckrEfecwm3OJzsjGFxhqXRqkTsGEHvzETMxfvSkTkldOzmErnjpwyoOPLrXcWIs1wvdXHakfVHSvyb3T4gm3ZfOOoUf6lrd2w1pF_PkA88NkjN2-W9fQmbUzNgVjEQiXo4w\"}]}";
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(jsonConfig);
+        assertEquals(1, keys.getKeys().size());
+        assertEquals(1, keys.getKeySetMap().size());
+        JWKSet joseSet = JWKSet.parse(keys.getKeySetMap());
+        assertNotNull(joseSet);
+        assertEquals(1, joseSet.size());
+    }
+
+    @Test
+    public void testJsonKeySetParsePublicKey() throws ParseException {
+        String publicKey = "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxMi4Z4FBfQEOdNYLmzxkYJvP02TSeapZMKMQo90JQRL07ttIKcDMP6pGcirOGSQWWBBpvdo5EnVOiNzViu9JCJP2IWbHJ4sRe0S1dySYdBRVV/ZkgWOrj7Cr2yT0ZVvCCzH7NAWmlA6LUV19Mnp+ugeGoxK+fsk8SRLS/Z9JdyxgOb3tPxdDas3MZweMZ6HqujoAAG9NASBGjFNXbhMckrEfecwm3OJzsjGFxhqXRqkTsGEHvzETMxfvSkTkldOzmErnjpwyoOPLrXcWIs1wvdXHakfVHSvyb3T4gm3ZfOOoUf6lrd2w1pF/PkA88NkjN2+W9fQmbUzNgVjEQiXo4wIDAQAB-----END PUBLIC KEY-----";
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(publicKey);
+        assertEquals(1, keys.getKeys().size());
+        assertEquals(1, keys.getKeySetMap().size());
+        JWKSet joseSet = JWKSet.parse(keys.getKeySetMap());
+        assertNotNull(joseSet);
+        assertEquals(1, joseSet.size());
+    }
+
+    @Test
+    public void testJsonKeySetParseFailurePEM() throws ParseException {
+        String publicKey = "-----BEGIN PUBLIC KEY-----tokenKey-----END PUBLIC KEY-----";
+        assertThrows(IllegalArgumentException.class, () -> JsonWebKeyHelper.parseConfiguration(publicKey));
+    }
+
+    @Test
+    public void testJsonKeySetParseRawKey() {
+        String macKey = "tokenKey";
+        JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(macKey);
+        assertEquals(1, keys.getKeys().size());
+        assertEquals(JsonWebKey.KeyType.MAC, keys.getKeys().get(0).getKty());
+        assertEquals(macKey, keys.getKeys().get(0).getValue());
+    }
 }

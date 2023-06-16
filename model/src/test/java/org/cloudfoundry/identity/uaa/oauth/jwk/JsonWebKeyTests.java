@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
@@ -26,6 +27,7 @@ class JsonWebKeyTests {
     // then
     assertEquals(samlKeySet.getKeys().get(0).getKid(), jsonWebKey.getKid());
     assertEquals(samlKeySet.getKeys().get(0).getX5t(), jsonWebKey.getX5t());
+    assertEquals(3, ((ArrayList) samlKeySet.getKeySetMap().get("keys")).size());
   }
 
   @Test
