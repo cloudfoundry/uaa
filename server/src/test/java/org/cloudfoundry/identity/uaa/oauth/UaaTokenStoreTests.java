@@ -344,7 +344,11 @@ class UaaTokenStoreTests {
         store = new UaaTokenStore(mockedDataSource, timeService);
         // When
         for (int i = 0; i < 10; i++) {
-            performExpirationClean(store);
+            try {
+                store.performExpirationCleanIfEnoughTimeHasElapsed();
+            } catch (Exception sqlException) {
+                // ignore
+            }
         }
         // Then
         Instant after = Instant.now();

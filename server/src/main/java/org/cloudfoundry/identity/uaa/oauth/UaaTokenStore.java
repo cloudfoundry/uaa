@@ -54,6 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
@@ -85,7 +86,8 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
 
-    private AtomicReference<Instant> lastClean = new AtomicReference<>(Instant.EPOCH);
+    private Instant lastClean = Instant.EPOCH;
+    private Semaphore cleanMutex = new Semaphore(1);
 
     public UaaTokenStore(DataSource dataSource, TimeService timeService) {
         this(dataSource, timeService, DEFAULT_EXPIRATION_TIME);
@@ -99,11 +101,12 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     @Override
     public String createAuthorizationCode(OAuth2Authentication authentication) {
-        final int max_tries = 3;
-        performExpirationClean();
+        final int maxAttempts = 3;
+        performExpirationCleanIfEnoughTimeHasElapsed();
         JdbcTemplate template = new JdbcTemplate(dataSource);
-        int tries = 0;
-        while ((tries++)<=max_tries) {
+        int attempt = 0;
+        while (true) {
+            attempt++;
             try {
                 String code = generator.generate();
                 Instant expiresAt = timeService.getCurrentInstant().plus(getExpirationTime());
@@ -120,15 +123,14 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 }
                 return code;
             } catch (DataIntegrityViolationException exists) {
-                if (tries>=max_tries) throw exists;
+                if (attempt>=maxAttempts) throw exists;
             }
         }
-        return null;
     }
 
     @Override
     public OAuth2Authentication consumeAuthorizationCode(String code) throws InvalidGrantException {
-        performExpirationClean();
+        performExpirationCleanIfEnoughTimeHasElapsed();
         JdbcTemplate template = new JdbcTemplate(dataSource);
         try {
             TokenCode tokenCode = (TokenCode) template.queryForObject(SQL_SELECT_STATEMENT, rowMapper, code);
@@ -213,23 +215,31 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         return new OAuth2Authentication(request, userAuthentication);
     }
 
-    protected void performExpirationClean() {
-        Instant last = lastClean.get();
-        //check if we should expire again
-        Instant now = timeService.getCurrentInstant();
-        if (enoughTimeHasPassedSinceLastExpirationClean(last, now)) {
-            //avoid concurrent deletes from the same UAA - performance improvement
-            if (lastClean.compareAndSet(last, now)) {
-                try {
-                    JdbcTemplate template = new JdbcTemplate(dataSource);
-                    int expired = template.update(SQL_EXPIRE_STATEMENT, now.toEpochMilli());
-                    logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                    expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
-                    logger.debug("[oauth_code] Removed "+expired+" old entries.");
-                } catch (DeadlockLoserDataAccessException e) {
-                    logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
+    protected void performExpirationCleanIfEnoughTimeHasElapsed() {
+        if (cleanMutex.tryAcquire()) {
+            //check if we should expire again
+            try {
+                Instant now = Instant.now();
+                if (enoughTimeHasPassedSinceLastExpirationClean(lastClean, now)) {
+                    //avoid concurrent deletes from the same UAA - performance improvement
+                    lastClean = now;
+                    actuallyPerformExpirationClean(now);
                 }
+            } finally {
+                cleanMutex.release();
             }
+        }
+    }
+
+    private void actuallyPerformExpirationClean(Instant now) {
+        try {
+            JdbcTemplate template = new JdbcTemplate(dataSource);
+            int expired = template.update(SQL_EXPIRE_STATEMENT, now.toEpochMilli());
+            logger.debug("[oauth_code] Removed "+expired+" expired entries.");
+            expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
+            logger.debug("[oauth_code] Removed "+expired+" old entries.");
+        } catch (DeadlockLoserDataAccessException e) {
+            logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
         }
     }
 
