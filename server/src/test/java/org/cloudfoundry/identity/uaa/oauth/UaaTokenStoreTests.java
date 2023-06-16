@@ -350,7 +350,7 @@ class UaaTokenStoreTests {
         // When
         for (int i = 0; i < 10; i++) {
             try {
-                store.performExpirationClean();
+                store.performExpirationCleanIfEnoughTimeHasElapsed();
             } catch (Exception sqlException) {
                 // ignore
             }
