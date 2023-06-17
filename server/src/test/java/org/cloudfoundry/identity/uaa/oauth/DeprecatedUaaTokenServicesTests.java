@@ -56,8 +56,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 import static java.util.Collections.*;
@@ -130,7 +128,6 @@ public class DeprecatedUaaTokenServicesTests {
         tokenServices = tokenSupport.getUaaTokenServices();
         tokenProvisioning = tokenSupport.getTokenProvisioning();
         when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(1000L);
-        when(tokenSupport.timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
     }
 
     @After
@@ -252,7 +249,6 @@ public class DeprecatedUaaTokenServicesTests {
 
         TimeService timeService = mock(TimeService.class);
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
         when(timeService.getCurrentDate()).thenCallRealMethod();
         RefreshTokenCreator refreshTokenCreator = mock(RefreshTokenCreator.class);
         ApprovalService approvalService = mock(ApprovalService.class);
@@ -1827,7 +1823,6 @@ public class DeprecatedUaaTokenServicesTests {
         assertThat(accessToken, validFor(is(1)));
 
         when(tokenSupport.timeService.getCurrentTimeMillis()).thenReturn(2001L);
-        when(tokenSupport.timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(2001L, ChronoUnit.MILLIS));
         try {
             tokenServices.loadAuthentication(accessToken.getValue());
             fail("Expected Exception was not thrown");

@@ -43,8 +43,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -122,8 +120,6 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @BeforeEach
     void before() {
         timeService = mock(TimeServiceImpl.class);
-        when(timeService.getCurrentTimeMillis()).thenCallRealMethod();
-        when(timeService.getCurrentInstant()).thenCallRealMethod();
         when(timeService.getCurrentDate()).thenCallRealMethod();
 
         refreshTokenValidityResolver.setTimeService(timeService);
@@ -379,13 +375,13 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void refreshTokenGrantType_returnsIdToken_toOpenIdClients() throws Exception {
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         client = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
         user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "openiduser", "", OriginKeys.UAA, "uaa");
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "jwt");
         String refreshToken = tokenResponse.getRefreshToken().getValue();
         String originalIdTokenJwt = tokenResponse.getIdTokenValue();
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(5000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
 
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
@@ -397,13 +393,13 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void refreshTokenGrantType_returnsIdToken_toOpenIdClients_withOpaqueRefreshToken() throws Exception {
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         client = setUpClients("openidclient", "", "openid", "password,refresh_token", true);
         user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, "openiduser", "", OriginKeys.UAA, "uaa");
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost", "opaque");
         String refreshToken = tokenResponse.getRefreshToken().getValue();
         String originalIdTokenJwt = tokenResponse.getIdTokenValue();
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(5000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
 
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, "localhost");
 
@@ -416,10 +412,10 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     void refreshTokenGrantType_withJwtTokens_preservesRefreshTokenExpiryClaim() throws Exception {
         createClientAndUserInRandomZone();
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone), "jwt");
         String refreshToken = tokenResponse.getRefreshToken().getValue();
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(5000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
 
         MockHttpServletResponse refreshResponse = useRefreshToken(refreshToken, client.getClientId(), SECRET, getZoneHostUrl(zone));
 
@@ -442,12 +438,12 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         client.setRefreshTokenValiditySeconds(refreshTokenValiditySeconds);
         clientDetailsService.updateClientDetails(client, zone.getId());
         long firstGrantMillis = 1000L;
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(firstGrantMillis, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(firstGrantMillis);
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone), "opaque");
         String firstRefreshToken = tokenResponse.getRefreshToken().getValue();
 
         long notYetExpiredTimeMillis = 5000L;
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(notYetExpiredTimeMillis, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(notYetExpiredTimeMillis);
         MockHttpServletResponse refreshResponse = useRefreshToken(firstRefreshToken, client.getClientId(), SECRET, getZoneHostUrl(zone));
         String secondRefreshToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class)
                                                 .getRefreshToken()
@@ -455,7 +451,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
 
         long expiredTimeMillis = firstGrantMillis + refreshTokenValiditySeconds * 1000L + 1L;
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(expiredTimeMillis, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(expiredTimeMillis);
         MockHttpServletResponse expiredResponse = useRefreshToken(firstRefreshToken, client.getClientId(), SECRET, getZoneHostUrl(zone));
         assertEquals(HttpStatus.SC_UNAUTHORIZED, expiredResponse.getStatus());
         MockHttpServletResponse alsoExpiredResponse = useRefreshToken(secondRefreshToken, client.getClientId(), SECRET, getZoneHostUrl(zone));
@@ -467,10 +463,10 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         createClientAndUserInRandomZone();
         zone.getConfig().setIssuer("http://fancyissuer.com");
         identityZoneProvisioning.update(zone);
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone), "jwt");
         String refreshToken = tokenResponse.getRefreshToken().getValue();
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(5000L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(5000L);
         zone.getConfig().setIssuer("http://a.new.issuer.url.com");
         identityZoneProvisioning.update(zone);
 

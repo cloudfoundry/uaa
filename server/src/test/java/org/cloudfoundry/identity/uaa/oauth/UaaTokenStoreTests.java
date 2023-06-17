@@ -367,7 +367,7 @@ class UaaTokenStoreTests {
 
     private static void performExpirationClean(UaaTokenStore store) {
         try {
-            store.performExpirationClean();
+            store.performExpirationCleanIfEnoughTimeHasElapsed();
         } catch (Exception sqlException) {
             // ignore
         }

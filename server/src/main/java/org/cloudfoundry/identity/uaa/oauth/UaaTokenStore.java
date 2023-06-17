@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -55,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final Duration DEFAULT_EXPIRATION_TIME = Duration.ofMinutes(5);
@@ -219,7 +217,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         if (cleanMutex.tryAcquire()) {
             //check if we should expire again
             try {
-                Instant now = Instant.now();
+                Instant now = timeService.getCurrentInstant();
                 if (enoughTimeHasPassedSinceLastExpirationClean(lastClean, now)) {
                     //avoid concurrent deletes from the same UAA - performance improvement
                     lastClean = now;

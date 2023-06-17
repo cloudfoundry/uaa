@@ -21,10 +21,10 @@ import java.util.Date;
 
 public interface TimeService {
     default long getCurrentTimeMillis() {
-        return getCurrentInstant().toEpochMilli();
+        return System.currentTimeMillis();
     }
 
-    default Date getCurrentDate() { return Date.from(getCurrentInstant()); }
+    default Date getCurrentDate() { return new Date(getCurrentTimeMillis()); }
 
     default Instant getCurrentInstant() { return Instant.now(); }
 }

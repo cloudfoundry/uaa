@@ -12,8 +12,6 @@ import org.junit.rules.ExpectedException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.List;
 
@@ -52,7 +50,6 @@ public class ApprovalServiceTest {
         approval.setStatus(Approval.ApprovalStatus.APPROVED);
         approval.setExpiresAt(new Date(approvalExpiry));
         when(timeService.getCurrentTimeMillis()).thenReturn(approvalExpiry - 1L);
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(approvalExpiry - 1L, ChronoUnit.MILLIS));
         when(timeService.getCurrentDate()).thenCallRealMethod();
 
         List<Approval> approvals = Lists.newArrayList(approval);
@@ -71,7 +68,7 @@ public class ApprovalServiceTest {
         approval.setScope("foo.read");
         approval.setStatus(Approval.ApprovalStatus.APPROVED);
         approval.setExpiresAt(new Date(approvalExpiry));
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(approvalExpiry + 1L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(approvalExpiry + 1L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
 
         List<Approval> approvals = Lists.newArrayList(approval);
@@ -115,7 +112,7 @@ public class ApprovalServiceTest {
         approval3.setStatus(Approval.ApprovalStatus.APPROVED);
         approval3.setExpiresAt(new Date(approvalExpiry));
 
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(approvalExpiry - 1L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(approvalExpiry - 1L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
 
         List<Approval> approvals = Lists.newArrayList(approval1, approval2, approval3);
@@ -143,7 +140,7 @@ public class ApprovalServiceTest {
         approval3.setStatus(Approval.ApprovalStatus.APPROVED);
         approval3.setExpiresAt(new Date(approvalExpiry));
 
-        when(timeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(approvalExpiry - 1L, ChronoUnit.MILLIS));
+        when(timeService.getCurrentTimeMillis()).thenReturn(approvalExpiry - 1L);
         when(timeService.getCurrentDate()).thenCallRealMethod();
 
         List<Approval> approvals = Lists.newArrayList(approval1, approval2, approval3);

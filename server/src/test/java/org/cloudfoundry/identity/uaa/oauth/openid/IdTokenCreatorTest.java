@@ -20,8 +20,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +29,7 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.TOKEN_S
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -167,7 +166,6 @@ class IdTokenCreatorTest {
         TimeService mockTimeService = mock(TimeService.class);
         when(mockTimeService.getCurrentDate()).thenCallRealMethod();
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(1L);
-        when(mockTimeService.getCurrentInstant()).thenReturn(Instant.EPOCH.plus(1L, ChronoUnit.MILLIS));
         tokenCreator = new IdTokenCreator(
                 new TokenEndpointBuilder(uaaUrl),
                 mockTimeService,
