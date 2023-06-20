@@ -1,13 +1,18 @@
 kubernetes:
   config:
-    jenkins-jump-role-arn: ${IAM_AWS_JENKINS_JUMP_ROLE}
     role-arn: ${IAM_ORCHESTRATOR_API_ACCESS_ROLE}
     functional-user-username: ${FUNCTIONAL_USER_USR}
     functional-user-password: ${FUNCTIONAL_USER_PSW}
-    env: dev
-    secondary-namespace: iam-dev
+    env: ${ENVIRONMENT}
+    secondary-namespace: ${IAM_SECONDARY_NAMESPACE}
 
 orchestrator:
   cluster:
     name: ${ORCHESTRATOR_CLUSTER_NAME}
-    role-arn: ${ORCHESTRATOR_API_ACCESS_ROLE}
+    role-arn:  ${ORCHESTRATOR_API_ACCESS_ROLE}
+
+uaa:
+  url: ${UAA_URL}
+  orchestrator:
+    clientId: ${UAA_CLIENT_ID}
+    clientSecret: ${UAA_CLIENT_SECRET}

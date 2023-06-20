@@ -123,6 +123,12 @@ pipeline {
                         url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
                 }
 
+                dir('uaa-k8s-deploy') {
+                    git changelog: false, credentialsId: 'github.devtools.predix.io', poll: false,
+                            url: 'https://github.devtools.predix.io/predix-security/uaa-k8s-deploy.git',
+                            branch: params.UAA_K8S_DEPLOY_BRANCH
+                }
+
                 sh'''
                     # Install gossamer
                     CURRENT_VERSION=3.1.7
@@ -132,8 +138,14 @@ pipeline {
                 '''
 
                 sh '''#!/bin/bash -ex
+                    echo 10.229.23.137 signin.aws.amazon.com >> /etc/hosts
+                    echo 10.229.23.151 signin.aws.amazon.com >> /etc/hosts
                     export ARTIFACTORY_READER=$FUNCTIONAL_USER_USR
                     export ARTIFACTORY_READER_PW=$FUNCTIONAL_USER_PSW
+                    pushd uaa-k8s-deploy
+                        chmod +x ./test/e2e-claim-test/set-env-${DEPLOYMENT_ENVIRONMENT}.sh
+                       . test/e2e-claim-test/set-env-${DEPLOYMENT_ENVIRONMENT}.sh
+                    popd
                     pushd uaa
                         ./gradlew --no-daemon --continue jacocoRootReportOrchestratorIntegrationTest
                     popd
