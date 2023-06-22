@@ -18,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 
 import java.io.ByteArrayInputStream;
-import java.net.URI;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
@@ -36,15 +35,11 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.OrchestratorState;
 import org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
@@ -76,18 +71,27 @@ import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 @OAuth2ContextConfiguration(OrchestratorZoneControllerIntegrationTests.OrchestratorClient.class)
 public class OrchestratorZoneControllerIntegrationTests {
 
-    public static final String SUB_DOMAIN_NAME = "sub-domain-01";
-    public static final String ADMIN_CLIENT_SECRET = "admin-secret-01";
+    private static final Logger LOGGER = LoggerFactory.getLogger(OrchestratorZoneControllerIntegrationTests.class);
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final String OAUTH_CLIENT_ENDPOINT = "/oauth/clients";
+    private static final String CHECK_TOKEN_ENDPOINT = "/check_token";
+    private static final String TOKEN_KEY_ENDPOINT = "/token_key";
+    private static final String IDENTITY_PROVIDERS_ENDPOINT = "/identity-providers";
+    private static final String ORCHESTRATOR_ZONES_APIS_ENDPOINT = "/orchestrator/zones";
+    private static final String NATIVE_ZONES_APIS_ENDPOINT = "/identity-zones";
+    private static final String ORCHESTRATOR_INT_TEST_ZONE = "orchestrator-int-test-zone";
+    private static final String ZONE_SUBDOMAIN = "sub-domain-01";
+    private static final String ADMIN_CLIENT_SECRET = "admin-secret-01";
+    private static final String SUPER_ADMIN_CLIENT_SECRET = "adminsecret";
+    private static final String ADMIN_CLIENT_NAME = "admin";
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
@@ -101,18 +105,6 @@ public class OrchestratorZoneControllerIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     private RestTemplate client;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(OrchestratorZoneControllerIntegrationTests.class);
-
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-    private static final String OAUTH_CLIENT_URI = "/oauth/clients";
-
-    private static final String ORCHESTRATOR_ZONES_APIS_ENDPOINT = "/orchestrator/zones";
-
-    private static final String NATIVE_ZONES_APIS_ENDPOINT = "/identity-zones";
-
-    private static final String ORCHESTRATOR_INT_TEST_ZONE = "orchestrator-int-test-zone";
 
     @Before
     public void createRestTemplate() {
@@ -363,64 +355,35 @@ public class OrchestratorZoneControllerIntegrationTests {
         OrchestratorZoneResponse getZoneResponse = getResponse.getBody();
         final String subdomain= zoneName;
         final String zoneId = getZoneResponse.getConnectionDetails().getZone().getHttpHeaderValue();
+        final String zoneUri = getZoneResponse.getConnectionDetails().getUri();
 
         // Create rest template using base uaa admin client
         OAuth2RestTemplate adminClient = (OAuth2RestTemplate) IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0],
+                        ADMIN_CLIENT_NAME, SUPER_ADMIN_CLIENT_SECRET));
 
-        // Validate zone config and zone admin client (Validation steps extracted from Service Broker IT Tests)
-        validateZoneConfig(subdomain, zoneId, adminClient);
-        validateZoneAdminClientCreated(zoneId, adminClient);
+        OAuth2RestTemplate zoneAdminClient = (OAuth2RestTemplate) IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(zoneUri, new String[0],
+                        ADMIN_CLIENT_NAME, ADMIN_CLIENT_SECRET));
 
-        // Validate IDP (Validation steps copied from IdentityZoneEndpointsIntegrationTests.testCreateZone())
-        String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
-        ScimUser user = IntegrationTestUtils.createUser(adminClient, serverRunning.getBaseUrl(), email, "firstname", "lastname", email, true);
-
-        ScimGroup scimGroup = new ScimGroup(null, String.format("zones.%s.admin", zoneId), null);
-        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
-        ScimGroup group = IntegrationTestUtils.createGroup(clientCredentialsToken, "", serverRunning.getBaseUrl(), scimGroup);
-        IntegrationTestUtils.addMemberToGroup(adminClient, serverRunning.getBaseUrl(), user.getId(), group.getId());
-
-        String zoneAdminToken =
-            IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
-                                                          UaaTestAccounts.standard(serverRunning),
-                                                          "identity",
-                                                          "identitysecret",
-                                                          email,
-                                                          "secr3T");
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer "+zoneAdminToken);
-        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        ResponseEntity<List<IdentityProvider>> idpList = new RestTemplate().exchange(
-            serverRunning.getUrl("/identity-providers"),
-            HttpMethod.GET,
-            new HttpEntity<>(null, headers),
-            new ParameterizedTypeReference<List<IdentityProvider>>() {});
-
-        assertTrue(idpList.getHeaders().getContentType().includes(MediaType.APPLICATION_JSON_UTF8));
-
-        IdentityProvider identityProvider = idpList.getBody().get(0);
-        assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
-        assertThat(identityProvider.getOriginKey(), is(OriginKeys.UAA));
-
-        // The default created zone does have a definition, but no policy
-        assertNotNull(identityProvider.getConfig());
-        assertNull(ObjectUtils.castInstance(identityProvider.getConfig(), UaaIdentityProviderDefinition.class).getPasswordPolicy());
+        // Validate zone config (Validation steps extracted from Service Broker IT Tests)
+        validateZoneConfiguration(zoneId, adminClient);
+        validateZoneAdminClient(zoneUri, zoneId, zoneAdminClient);
+        validateZoneDefaultIdentityProvider(zoneUri, zoneId, zoneAdminClient);
+        validateZoneTokenKeyEndpoint(zoneUri);
+        validateZoneCheckTokenEndpoint(zoneUri);
 
         // Delete zone using orchestrator zone api as it was created with orchestrator zone api
         // and having foreign key ref in `orchestrator_zone` table
-        ResponseEntity<String> response =
-            client.exchange(serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT) + "?name=" + zoneName,
-                            HttpMethod.DELETE, null, String.class);
+        ResponseEntity<Void> response = client.exchange(
+                serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT + "?name=" + zoneName), HttpMethod.DELETE,
+                HttpEntity.EMPTY, Void.class);
         assertEquals(HttpStatus.ACCEPTED, response.getStatusCode());
 
         // Validate zone is deleted by calling native get zone api and should return 404
-        URI identityZoneURI = URI.create(serverRunning.getUrl(NATIVE_ZONES_APIS_ENDPOINT) + String.format("/%s", zoneId));
-        ResponseEntity<Void> identityZoneResponse = adminClient.getForEntity(identityZoneURI, Void.class);
-        assertEquals(HttpStatus.NOT_FOUND, identityZoneResponse.getStatusCode());
+        response = adminClient.getForEntity(
+                serverRunning.getUrl(NATIVE_ZONES_APIS_ENDPOINT + "/" + zoneId), Void.class);
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
     @Test
@@ -474,7 +437,7 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     private String createZoneSubdomainAsNullInParameter() {
         String zoneName = getName();
-        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET,
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName, ADMIN_CLIENT_SECRET,
                                                                                      null));
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
@@ -499,8 +462,8 @@ public class OrchestratorZoneControllerIntegrationTests {
     @Test
     public void testCreateZone_ZoneAlreadyExists() {
         String zoneName = createZoneGetZoneName();
-        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET,
-                                                                                     SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest(zoneName, ADMIN_CLIENT_SECRET,
+                ZONE_SUBDOMAIN);
         ResponseEntity<OrchestratorZoneResponse> getResponseAlreadyExist = client.exchange(
                 serverRunning.getUrl(ORCHESTRATOR_ZONES_APIS_ENDPOINT),
                 HttpMethod.POST,
@@ -520,32 +483,32 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     @Test
     public void testCreateZone_nameAsSpaceAndEmptyError() {
-        testNameAsSpaceAndEmpty(getOrchestratorZoneRequest("",ADMIN_CLIENT_SECRET,SUB_DOMAIN_NAME));
-        testNameAsSpaceAndEmpty(getOrchestratorZoneRequest("    ",ADMIN_CLIENT_SECRET,SUB_DOMAIN_NAME));
+        testNameAsSpaceAndEmpty(getOrchestratorZoneRequest("", ADMIN_CLIENT_SECRET, ZONE_SUBDOMAIN));
+        testNameAsSpaceAndEmpty(getOrchestratorZoneRequest("    ", ADMIN_CLIENT_SECRET, ZONE_SUBDOMAIN));
     }
 
     @Test
     public void testCreateZone_subDomainWithSpaceOrSpecialCharFail() {
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "  "));
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "sub    domain"));
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "sub#-domain"));
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "-subdomainStartsWithHYphen"));
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "subdomainEndsWithHYphen-"));
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "sub\\\\domaincontainsslash"));
-        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(),ADMIN_CLIENT_SECRET,
+        testWithSpaceOrSpecialCharFail(getOrchestratorZoneRequest(getName(), ADMIN_CLIENT_SECRET,
                                                                   "sub$%domaincontainsSpecialChars"));
     }
 
     @Test
     public void testCreateZone_adminClientSecretAsSpaceAndEmptyError() {
-        testAdminClientSecretAsSpaceAndEmpty(getOrchestratorZoneRequest(getName(),"", SUB_DOMAIN_NAME));
-        testAdminClientSecretAsSpaceAndEmpty(getOrchestratorZoneRequest(getName(),"    ", SUB_DOMAIN_NAME));
+        testAdminClientSecretAsSpaceAndEmpty(getOrchestratorZoneRequest(getName(),"", ZONE_SUBDOMAIN));
+        testAdminClientSecretAsSpaceAndEmpty(getOrchestratorZoneRequest(getName(),"    ", ZONE_SUBDOMAIN));
     }
 
     private void testAdminClientSecretAsSpaceAndEmpty(OrchestratorZoneRequest orchestratorZoneRequest) {
@@ -629,7 +592,7 @@ public class OrchestratorZoneControllerIntegrationTests {
 
     private ResponseEntity<OrchestratorZoneResponse> createZone(String zoneName) {
         String subDomain =  zoneName;
-        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName,ADMIN_CLIENT_SECRET, subDomain));
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorZoneRequest(zoneName, ADMIN_CLIENT_SECRET, subDomain));
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
@@ -641,28 +604,14 @@ public class OrchestratorZoneControllerIntegrationTests {
         return response;
     }
 
-    private void validateZoneConfig(final String subdomain, final String zoneId, final OAuth2RestTemplate adminClient)
-        throws Throwable {
-        URI uaaZoneEndpoint = URI.create(getZoneUaaUri(subdomain, zoneId).toString());
-        String accessToken =
-            IntegrationTestUtils.getClientCredentialsToken(uaaZoneEndpoint.toString(), "admin", ADMIN_CLIENT_SECRET);
-
-        //Make sure that token key is valid and able to retrieve
-        HttpStatus status =
-            new RestTemplate().getForEntity(uaaZoneEndpoint + "/token_key", String.class).getStatusCode();
-        assertEquals(status, HttpStatus.OK);
-
-        checkIdentityZoneConfiguration(zoneId, adminClient);
-        validateCheckTokenEndpoint(subdomain, zoneId, accessToken);
-    }
-
-    private void checkIdentityZoneConfiguration(final String zoneId, final OAuth2RestTemplate adminClient)
+    private void validateZoneConfiguration(final String zoneId, final OAuth2RestTemplate adminClient)
         throws Exception {
+
         // Get zone config and check
-        URI identityZoneURI = URI.create(serverRunning.getUrl(NATIVE_ZONES_APIS_ENDPOINT) + String.format("/%s", zoneId));
-        ResponseEntity<IdentityZone> identityZoneResponse =
-            adminClient.getForEntity(identityZoneURI, IdentityZone.class);
+        ResponseEntity<IdentityZone> identityZoneResponse = adminClient.getForEntity(
+                serverRunning.getUrl(NATIVE_ZONES_APIS_ENDPOINT + "/" + zoneId), IdentityZone.class);
         LOGGER.info("Got identity zone: " + OBJECT_MAPPER.writeValueAsString(identityZoneResponse.getBody()));
+
         IdentityZoneConfiguration config = identityZoneResponse.getBody().getConfig();
         assertEquals(config.getLinks().getLogout().getWhitelist(),Collections.singletonList("http*://**"));
         assertFalse(config.getLinks().getSelfService().isSelfServiceCreateAccountEnabled());
@@ -690,8 +639,10 @@ public class OrchestratorZoneControllerIntegrationTests {
         assertThat(cert.getSubjectDN().getName(), containsString("PredixUAA" + subdomain));
     }
 
-    private void validateCheckTokenEndpoint(final String subdomain, final String zoneId, final String accessToken) {
-        URI uaaCheckTokenEndpoint = URI.create(getZoneUaaUri(subdomain, zoneId) + "/check_token");
+    private void validateZoneCheckTokenEndpoint(final String zoneUri) {
+        String accessToken = IntegrationTestUtils.getClientCredentialsToken(
+                zoneUri, ADMIN_CLIENT_NAME, ADMIN_CLIENT_SECRET);
+
         MultiValueMap<String, String> request = new LinkedMultiValueMap<>();
         request.add("token", accessToken);
         request.add("grant_type", "client_credentials");
@@ -701,40 +652,25 @@ public class OrchestratorZoneControllerIntegrationTests {
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.set("Authorization", "Basic " + new String(
-            Base64.encode(String.format("%s:%s", "admin", ADMIN_CLIENT_SECRET).getBytes())));
+                Base64.encode(String.format("%s:%s", ADMIN_CLIENT_NAME, ADMIN_CLIENT_SECRET).getBytes())));
 
-        @SuppressWarnings("rawtypes")
         ResponseEntity<Map> responseEntity = template.exchange(
-            uaaCheckTokenEndpoint,
-            HttpMethod.POST,
-            new HttpEntity<>(request, headers),
-            Map.class);
-        assertEquals(responseEntity.getStatusCode(), HttpStatus.OK);
+                zoneUri + CHECK_TOKEN_ENDPOINT,
+                HttpMethod.POST,
+                new HttpEntity<>(request, headers),
+                Map.class);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         String clientId = String.valueOf(responseEntity.getBody().get("client_id"));
-        assertEquals(clientId, "admin");
+        assertEquals(clientId, ADMIN_CLIENT_NAME);
     }
 
-    private URI getZoneUaaUri(final String subdomain, final String zoneId) {
-        URI uaaURIObject = URI.create(serverRunning.getBaseUrl());
-        String host = uaaURIObject.getHost();
-        if (StringUtils.isEmpty(subdomain) || subdomain == null) {
-            return URI.create(uaaURIObject.toString().replace(host, (zoneId + "." + host)));
-        }
-        return URI.create(uaaURIObject.toString().replace(host, (subdomain + "." + host)));
-    }
+    private void validateZoneAdminClient(final String zoneUri,
+                                         final String zoneId,
+                                         final OAuth2RestTemplate zoneAdminClient) {
 
-    private void validateZoneAdminClientCreated(final String zoneId, final OAuth2RestTemplate adminClient) {
-        URI clientURI = URI.create(serverRunning.getBaseUrl() + OAUTH_CLIENT_URI + "/admin");
-
-        HttpHeaders uaaRequestHeaders = new HttpHeaders();
-        uaaRequestHeaders.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
-        uaaRequestHeaders.add("X-Identity-Zone-Id", zoneId);
-        HttpEntity<BaseClientDetails> httpEntity = new HttpEntity<>(uaaRequestHeaders);
-
-        adminClient.getOAuth2ClientContext().setAccessToken(null);
-
-        ResponseEntity<BaseClientDetails> baseClientDetailsResponse =
-            adminClient.exchange(clientURI, HttpMethod.GET, httpEntity, BaseClientDetails.class);
+        ResponseEntity<BaseClientDetails> baseClientDetailsResponse = zoneAdminClient.getForEntity(
+                zoneUri + OAUTH_CLIENT_ENDPOINT + "/admin",
+                BaseClientDetails.class);
         BaseClientDetails baseClientDetails = baseClientDetailsResponse.getBody();
 
         Collection<GrantedAuthority> authorities = baseClientDetails.getAuthorities();
@@ -745,5 +681,36 @@ public class OrchestratorZoneControllerIntegrationTests {
             LOGGER.info("Retrieved authority: " + authority.getAuthority());
             assertTrue(defaultAuthList.contains(authority.getAuthority()));
         }
+    }
+
+    private void validateZoneDefaultIdentityProvider(final String zoneUri,
+                                                     final String zoneId,
+                                                     final OAuth2RestTemplate zoneAdminClient) {
+
+        ResponseEntity<List<IdentityProvider>> idpList = zoneAdminClient.exchange(
+                zoneUri + IDENTITY_PROVIDERS_ENDPOINT,
+                HttpMethod.GET,
+                HttpEntity.EMPTY,
+                new ParameterizedTypeReference<List<IdentityProvider>>() {});
+
+        assertTrue(idpList.getHeaders().getContentType().includes(MediaType.APPLICATION_JSON_UTF8));
+
+        IdentityProvider identityProvider = idpList.getBody().get(0);
+        assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
+        assertThat(identityProvider.getOriginKey(), is(OriginKeys.UAA));
+
+        // The default created zone does have a definition, but no policy
+        UaaIdentityProviderDefinition identityProviderDefinition =
+                (UaaIdentityProviderDefinition) identityProvider.getConfig();
+        assertNotNull(identityProviderDefinition);
+        assertNull(identityProviderDefinition.getPasswordPolicy());
+    }
+
+    private void validateZoneTokenKeyEndpoint(final String zoneUri) {
+        //Make sure that token key is valid and able to retrieve
+        ResponseEntity<String> response =
+                new RestTemplate().getForEntity(zoneUri + TOKEN_KEY_ENDPOINT, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
     }
 }
