@@ -61,6 +61,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
                     if (allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic) ||
                         allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic)) {
+                        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod("none");
                         break;
                     }
                 }

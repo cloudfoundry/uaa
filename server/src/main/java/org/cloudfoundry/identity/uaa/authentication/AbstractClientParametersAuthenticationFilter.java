@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,6 +130,13 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
             AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, getScope(req));
             authorizationRequest.setRequestParameters(getSingleValueMap(req));
             authorizationRequest.setApproved(true);
+
+            if (auth.getDetails() instanceof  UaaAuthenticationDetails) {
+                UaaAuthenticationDetails clientDetails = (UaaAuthenticationDetails) auth.getDetails();
+                if (clientDetails.getAuthenticationMethod() != null) {
+                    authorizationRequest.setExtensions(Map.of(ClaimConstants.CLIENT_AUTHENTICATION, clientDetails.getAuthenticationMethod()));
+                }
+            }
             //must set this to true in order for
             //Authentication.isAuthenticated to return true
             OAuth2Authentication result = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);

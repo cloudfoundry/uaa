@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
+import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -102,6 +103,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITI
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTHENTICATION;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
@@ -276,6 +278,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 getUserAttributes(claims.getUserId()),
                 claims.getNonce(),
                 claims.getGrantType(),
+                UaaSecurityContextUtils.getClientAuthenticationMethod(),
                 generateUniqueTokenId()
         );
 
@@ -414,6 +417,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
 
+        String clientAuthentication = userAuthenticationData.client_auth;
+        if (clientAuthentication != null) {
+            addRootClaimEntry(additionalRootClaims, CLIENT_AUTHENTICATION, clientAuthentication);
+        }
+
         String nonce = userAuthenticationData.nonce;
         if (nonce != null) {
             info.put(NONCE, nonce);
@@ -457,6 +465,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         publish(new TokenIssuedEvent(compositeToken, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
 
         return compositeToken;
+    }
+
+    private static Map<String, Object> addRootClaimEntry(Map<String, Object> additionalRootClaims, String entry, String value) {
+        Map<String, Object> claims = additionalRootClaims != null ? additionalRootClaims : new HashMap<>();
+        claims.put(entry, value);
+        return claims;
     }
 
     private KeyInfo getActiveKeyInfo() {
@@ -635,6 +649,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 nonce,
                 grantType,
+                ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTHENTICATION)).map(String.class::cast).orElse(null),
                 tokenId);
 
         String refreshTokenValue = refreshToken != null ? refreshToken.getValue() : null;

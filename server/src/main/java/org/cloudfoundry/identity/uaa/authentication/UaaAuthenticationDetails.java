@@ -49,6 +49,15 @@ public class UaaAuthenticationDetails implements Serializable {
 
     private String clientId;
 
+    private transient String authenticationMethod;
+    public String getAuthenticationMethod() {
+        return this.authenticationMethod;
+    }
+
+    public void setAuthenticationMethod(final String authenticationMethod) {
+        this.authenticationMethod = authenticationMethod;
+    }
+
     @JsonIgnore
     private Map<String,String[]> parameterMap;
 
