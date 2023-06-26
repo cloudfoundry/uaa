@@ -34,3 +34,7 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+integrationTest {}.onlyIf { //disable since we don't have any
+    false
+}

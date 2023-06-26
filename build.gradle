@@ -373,6 +373,7 @@ task jacocoRootReportTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
 task jacocoRootReportServerTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
     configure jacocoRootReportConfiguration
     dependsOn(':cloudfoundry-identity-server:test')
+    dependsOn(':zone-service:test')
 }
 
 task jacocoRootReportUaaTest(type: org.gradle.testing.jacoco.tasks.JacocoReport) {

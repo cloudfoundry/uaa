@@ -119,14 +119,22 @@ pipeline {
                             echo "Unit tests failed"
                         }
                         always {
-                            junit testResults: 'uaa/server/build/test-results/**/*.xml', allowEmptyResults: true
+                            junit testResults: '**/build/test-results/**/*.xml', allowEmptyResults: true
                             publishHTML target: [
                                 allowMissing: true,
                                 alwaysLinkToLastBuild: true,
                                 keepAll: true,
                                 reportDir: 'uaa/server/build/reports/tests/test',
                                 reportFiles: 'index.html',
-                                reportName: 'Unit Test Results'
+                                reportName: 'Server Unit Test Results'
+                            ]
+                            publishHTML target: [
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'uaa/zone-service/build/reports/tests/test',
+                                reportFiles: 'index.html',
+                                reportName: 'Zone Service Unit Test Results'
                             ]
                             publishHTML target: [
                                 allowMissing: true,
