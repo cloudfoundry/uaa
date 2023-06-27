@@ -3,6 +3,7 @@ apply(plugin: "war")
 description = "CloudFoundry Identity Server JAR"
 
 dependencies {
+    implementation('org.springframework.cloud:spring-cloud-starter-sleuth:3.1.8')
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(project(":cloudfoundry-identity-model"))
 
