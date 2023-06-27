@@ -33,8 +33,6 @@ dependencies {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
-    implementation(libraries.springBootStarterActuator)
-    implementation(libraries.micrometerTracingBridgeBrave)
     implementation(libraries.thymeLeaf) {
         exclude(module: "ognl")
     }
