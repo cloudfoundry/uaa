@@ -17,6 +17,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.cloud.sleuth.CurrentTraceContext;
+import org.springframework.cloud.sleuth.http.HttpServerHandler;
+import org.springframework.cloud.sleuth.instrument.web.servlet.TracingFilter;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jmx.export.annotation.ManagedAttribute;
@@ -24,6 +29,7 @@ import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.RedirectUrlBuilder;
 import org.springframework.util.Assert;
+import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -67,7 +73,15 @@ import java.util.Map.Entry;
     objectName="cloudfoundry.identity:name=FilterChainProcessor",
     description = "Ability to dump requests through JMX"
 )
-public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
+
+public class SecurityFilterChainPostProcessor implements BeanPostProcessor, ApplicationContextAware {
+    private WebApplicationContext applicationContext;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = (WebApplicationContext)applicationContext;
+    }
+
     public static class ReasonPhrase {
         private int code;
         private String phrase;
@@ -113,6 +127,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
             Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
             fc.getFilters().add(0, uaaFilter);
+            fc.getFilters().add(0, tracingFilter());
             if (additionalFilters != null) {
                 for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
                     int position = entry.getKey().getPosition(fc);
@@ -126,6 +141,11 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         }
 
         return bean;
+    }
+
+    private TracingFilter tracingFilter() {
+        return TracingFilter.create(applicationContext.getBean(CurrentTraceContext.class),
+                applicationContext.getBean(HttpServerHandler.class));
     }
 
     @Override

@@ -21,8 +21,14 @@ repositories {
 }
 
 description = "UAA"
+
+ext {
+    snippetsDir = file("build/generated-snippets")
+    set('springCloudVersion', "2021.0.7")
+}
+
 dependencies {
-    implementation('org.springframework.cloud:spring-cloud-starter-sleuth:3.1.8')
+    implementation('org.springframework.cloud:spring-cloud-starter-sleuth')
     implementation(project(":cloudfoundry-identity-server")) {
         exclude(module: "jna")
     }
@@ -96,8 +102,10 @@ dependencies {
     testImplementation(libraries.greenmail)
 }
 
-ext {
-    snippetsDir = file("build/generated-snippets")
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
 }
 
 test {

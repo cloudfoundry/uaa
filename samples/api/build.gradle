@@ -1,6 +1,11 @@
 apply(plugin: "war")
 
 description = "Sample resource server for Cloudfoundry Identity Services"
+
+ext {
+    set('springCloudVersion', "2021.0.7")
+}
+
 dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
@@ -19,8 +24,16 @@ dependencies {
     }
     implementation(libraries.springSecurityConfig)
 
+    implementation('org.springframework.cloud:spring-cloud-starter-sleuth')
+
     testImplementation(identityServer.configurations.testImplementation.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
 }
 
 test {

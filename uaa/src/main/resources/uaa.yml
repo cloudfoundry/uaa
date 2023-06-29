@@ -577,3 +577,5 @@ ldap:
     password: 'password'
     searchBase: 'dc=test,dc=com'
     searchFilter: 'cn={0}'
+
+#logging.pattern.level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"

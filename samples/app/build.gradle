@@ -1,6 +1,11 @@
 apply(plugin: "war")
 
 description = "Sample user webapp for Cloudfoundry Identity Services"
+
+ext {
+    set('springCloudVersion', "2021.0.7")
+}
+
 dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
@@ -11,6 +16,7 @@ dependencies {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
     }
+    implementation('org.springframework.cloud:spring-cloud-starter-sleuth')
 
     providedCompile(libraries.tomcatEmbed)
     runtimeOnly(libraries.javaxServlet)
@@ -20,4 +26,10 @@ dependencies {
 
     testImplementation(identityServer.configurations.testImplementation.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudVersion}"
+    }
 }
