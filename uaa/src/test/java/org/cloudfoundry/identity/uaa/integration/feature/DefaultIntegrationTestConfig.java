@@ -17,9 +17,6 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.logging.LogType;
-import org.openqa.selenium.logging.LoggingPreferences;
-import org.openqa.selenium.remote.CapabilityType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,7 +30,6 @@ import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 @Configuration
 @PropertySource("classpath:integration.test.properties")
@@ -68,9 +64,6 @@ public class DefaultIntegrationTestConfig {
           "--remote-allow-origins=*"
         );
 
-        LoggingPreferences logs = new LoggingPreferences();
-        logs.enable(LogType.PERFORMANCE, Level.ALL);
-        options.setCapability(CapabilityType.LOGGING_PREFS, logs);
         options.setAcceptInsecureCerts(true);
 
         ChromeDriver driver = new ChromeDriver(options);
@@ -81,7 +74,6 @@ public class DefaultIntegrationTestConfig {
         driver.manage().window().setSize(new Dimension(1024, 768));
         return driver;
     }
-
 
     @Bean(destroyMethod = "stop")
     public SimpleSmtpServer simpleSmtpServer(@Value("${smtp.port}") int port) {
