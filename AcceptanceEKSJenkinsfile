@@ -25,6 +25,11 @@ pipeline {
             defaultValue: 'master',
             description: 'uaa-k8s-deploy repo branch to use for testing'
         )
+        booleanParam(
+            name: 'RUN_ORCHESTRATOR_INTEGRATION_TESTS',
+            defaultValue: false,
+            description: 'Whether or not to run orchestrator integration tests'
+        )
     }
     stages {
         stage('Run acceptance tests in eks') {
@@ -94,6 +99,11 @@ pipeline {
                     image "${NODE['IMAGE']}"
                     label "${NODE['LABEL']}"
                     args "${NODE['ARGS']}"
+                }
+            }
+            when {
+                expression {
+                    return params.RUN_ORCHESTRATOR_INTEGRATION_TESTS
                 }
             }
             environment {
