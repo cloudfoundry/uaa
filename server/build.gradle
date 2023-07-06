@@ -99,6 +99,8 @@ dependencies {
 
     implementation(libraries.nimbusJwt)
     implementation(libraries.orgJson)
+    implementation('io.zipkin.brave:brave-instrumentation-spring-webmvc:5.16.0')
+    implementation('io.zipkin.brave:brave-context-slf4j:5.16.0')
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
