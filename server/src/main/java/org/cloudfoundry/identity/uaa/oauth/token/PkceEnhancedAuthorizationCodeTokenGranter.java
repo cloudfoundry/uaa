@@ -110,7 +110,7 @@ public class PkceEnhancedAuthorizationCodeTokenGranter extends AuthorizationCode
 
         String clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod();
         if (clientAuthentication != null) {
-            finalStoredOAuth2Request.getExtensions().put(ClaimConstants.CLIENT_AUTHENTICATION, clientAuthentication);
+            finalStoredOAuth2Request.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
         }
 
         return new OAuth2Authentication(finalStoredOAuth2Request, userAuth);

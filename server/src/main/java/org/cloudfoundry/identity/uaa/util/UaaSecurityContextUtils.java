@@ -7,7 +7,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import java.io.Serializable;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTHENTICATION;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 
 public final class UaaSecurityContextUtils {
 
@@ -25,7 +25,7 @@ public final class UaaSecurityContextUtils {
       return null;
     }
 
-    return (String) extensions.get(CLIENT_AUTHENTICATION);
+    return (String) extensions.get(CLIENT_AUTH_METHOD);
   }
 
 }

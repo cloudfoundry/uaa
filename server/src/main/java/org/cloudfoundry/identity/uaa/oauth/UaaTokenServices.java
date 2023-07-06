@@ -103,7 +103,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITI
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTHENTICATION;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
@@ -417,9 +417,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
         }
 
-        String clientAuthentication = userAuthenticationData.client_auth;
+        String clientAuthentication = userAuthenticationData.clientAuth;
         if (clientAuthentication != null) {
-            addRootClaimEntry(additionalRootClaims, CLIENT_AUTHENTICATION, clientAuthentication);
+            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
         }
 
         String nonce = userAuthenticationData.nonce;
@@ -649,7 +649,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 nonce,
                 grantType,
-                ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTHENTICATION)).map(String.class::cast).orElse(null),
+                ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null),
                 tokenId);
 
         String refreshTokenValue = refreshToken != null ? refreshToken.getValue() : null;

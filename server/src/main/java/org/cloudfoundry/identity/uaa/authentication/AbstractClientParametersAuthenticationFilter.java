@@ -134,7 +134,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
             if (auth.getDetails() instanceof  UaaAuthenticationDetails) {
                 UaaAuthenticationDetails clientDetails = (UaaAuthenticationDetails) auth.getDetails();
                 if (clientDetails.getAuthenticationMethod() != null) {
-                    authorizationRequest.setExtensions(Map.of(ClaimConstants.CLIENT_AUTHENTICATION, clientDetails.getAuthenticationMethod()));
+                    authorizationRequest.setExtensions(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, clientDetails.getAuthenticationMethod()));
                 }
             }
             //must set this to true in order for
