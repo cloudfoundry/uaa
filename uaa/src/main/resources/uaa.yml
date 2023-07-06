@@ -577,3 +577,11 @@ ldap:
     password: 'password'
     searchBase: 'dc=test,dc=com'
     searchFilter: 'cn={0}'
+
+spring:
+  application:
+    name: uaa
+
+#logging:
+#  pattern:
+#    level: '[%X{traceId}/%X{spanId}] %-5p [%t] %C{2} - %m%n'

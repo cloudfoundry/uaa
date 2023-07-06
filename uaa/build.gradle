@@ -47,6 +47,9 @@ dependencies {
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.glassfishJaxb)
 
+    implementation('io.zipkin.brave:brave-instrumentation-spring-webmvc:5.16.0')  // TODO: don't pin version
+    implementation('io.zipkin.brave:brave-context-slf4j:5.16.0')
+
     providedCompile(libraries.tomcatEmbed)
 
     testImplementation(identityServer.sourceSets.test.output)
