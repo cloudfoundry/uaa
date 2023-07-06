@@ -21,6 +21,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAATest.CLIENT_ID;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -67,12 +68,12 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
     when(authorizationCodeServices.consumeAuthorizationCode("1234")).thenReturn(authentication);
     when(authentication.getOAuth2Request()).thenReturn(oAuth2Request);
-    when(oAuth2Request.getRequestParameters()).thenReturn(requestParameters);
     requestParameters = new HashMap<>();
     requestParameters.put(GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
     requestParameters.put(CLIENT_ID, requestingClient.getClientId());
     requestParameters.put("code", "1234");
     requestParameters.put(PkceValidationService.CODE_VERIFIER, "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+    when(oAuth2Request.getRequestParameters()).thenReturn(requestParameters);
     tokenRequest = new UserTokenGranterTest.PublicTokenRequest();
     tokenRequest.setRequestParameters(requestParameters);
 
@@ -83,5 +84,15 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
   void getOAuth2Authentication() throws PkceValidationException {
     when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(false);
     assertThrows(InvalidGrantException.class, () -> granter.getOAuth2Authentication(requestingClient, tokenRequest));
+  }
+
+  @Test
+  void getOAuth2AuthenticationMethod() throws PkceValidationException {
+    HashMap authMap = new HashMap();
+    authMap.put(ClaimConstants.CLIENT_AUTH_METHOD, "none");
+    when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);
+    when(oAuth2Request.getExtensions()).thenReturn(authMap);
+    when(oAuth2Request.createOAuth2Request(any())).thenReturn(oAuth2Request);
+    assertNotNull(granter.getOAuth2Authentication(requestingClient, tokenRequest));
   }
 }

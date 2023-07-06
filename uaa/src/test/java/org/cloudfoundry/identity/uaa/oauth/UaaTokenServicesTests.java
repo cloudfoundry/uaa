@@ -33,10 +33,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
@@ -69,6 +71,8 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @DisplayName("Uaa Token Services Tests")
 @DefaultTestContext
@@ -275,9 +279,16 @@ class UaaTokenServicesTests {
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
             refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
             assertThat(refreshToken, is(notNullValue()));
+            OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            OAuth2Request auth2Request = mock(OAuth2Request.class);
+            when(authentication.getOAuth2Request()).thenReturn(auth2Request);
+            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, "client_secret_basic"));
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
             assertThat(refreshedToken, is(notNullValue()));
+            Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue());
+            assertThat(claims, hasKey(ClaimConstants.CLIENT_AUTH_METHOD));
         }
 
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")
