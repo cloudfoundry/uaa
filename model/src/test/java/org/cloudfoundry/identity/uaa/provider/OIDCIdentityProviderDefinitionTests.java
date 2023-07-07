@@ -28,7 +28,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-
+import static org.junit.Assert.assertTrue;
 
 public class OIDCIdentityProviderDefinitionTests {
 
@@ -44,6 +44,14 @@ public class OIDCIdentityProviderDefinitionTests {
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertEquals(url, def.getDiscoveryUrl().toString());
+    }
+
+    @Test
+    public void testSerializableObjectCalls() throws CloneNotSupportedException {
+        OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
+        OIDCIdentityProviderDefinition def2 = (OIDCIdentityProviderDefinition) def.clone();
+        assertTrue(def.equals(def2));
+        assertEquals(def.hashCode(), def2.hashCode());
     }
 
     @Test
