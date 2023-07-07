@@ -26,6 +26,7 @@ import javax.servlet.ServletException;
 import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -83,5 +84,59 @@ public class ClientParametersAuthenticationFilterTest {
 
         verifyNoInteractions(authenticationEntryPoint);
         verify(chain).doFilter(request, response);
+        verify(authenticationDetails, atLeast(1)).getAuthenticationMethod();
+    }
+
+    @Test
+    public void testStoreClientAuthenticationMethodNoDetails() throws IOException, ServletException {
+        ClientParametersAuthenticationFilter filter = new ClientParametersAuthenticationFilter();
+
+        AuthenticationEntryPoint authenticationEntryPoint = mock(AuthenticationEntryPoint.class);
+        filter.setAuthenticationEntryPoint(authenticationEntryPoint);
+        AuthenticationManager clientAuthenticationManager = mock(AuthenticationManager.class);
+        filter.setClientAuthenticationManager(clientAuthenticationManager);
+
+        Authentication authentication = mock(Authentication.class);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        when(clientAuthenticationManager.authenticate(Mockito.any())).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getDetails()).thenReturn(null);
+
+        MockFilterChain chain = mock(MockFilterChain.class);
+        request.addHeader("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, chain);
+
+        verifyNoInteractions(authenticationEntryPoint);
+        verify(chain).doFilter(request, response);
+    }
+
+    @Test
+    public void testStoreClientAuthenticationMethodNoMethod() throws IOException, ServletException {
+        ClientParametersAuthenticationFilter filter = new ClientParametersAuthenticationFilter();
+
+        AuthenticationEntryPoint authenticationEntryPoint = mock(AuthenticationEntryPoint.class);
+        filter.setAuthenticationEntryPoint(authenticationEntryPoint);
+        AuthenticationManager clientAuthenticationManager = mock(AuthenticationManager.class);
+        filter.setClientAuthenticationManager(clientAuthenticationManager);
+
+        Authentication authentication = mock(Authentication.class);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        UaaAuthenticationDetails authenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(clientAuthenticationManager.authenticate(Mockito.any())).thenReturn(authentication);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getDetails()).thenReturn(authenticationDetails);
+        when(authenticationDetails.getAuthenticationMethod()).thenReturn(null);
+
+        MockFilterChain chain = mock(MockFilterChain.class);
+        request.addHeader("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        filter.doFilter(request, response, chain);
+
+        verifyNoInteractions(authenticationEntryPoint);
+        verify(chain).doFilter(request, response);
+        verify(authenticationDetails).getAuthenticationMethod();
     }
 }

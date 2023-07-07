@@ -26,7 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atMost;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PkceEnhancedAuthorizationCodeTokenGranterTest {
@@ -94,5 +97,17 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     when(oAuth2Request.getExtensions()).thenReturn(authMap);
     when(oAuth2Request.createOAuth2Request(any())).thenReturn(oAuth2Request);
     assertNotNull(granter.getOAuth2Authentication(requestingClient, tokenRequest));
+    verify(oAuth2Request, times(2)).getExtensions();
+  }
+
+  @Test
+  void getOAuth2AuthenticationNoMethod() throws PkceValidationException {
+    HashMap authMap = new HashMap();
+    authMap.put(ClaimConstants.CLIENT_AUTH_METHOD, null);
+    when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);
+    when(oAuth2Request.getExtensions()).thenReturn(authMap);
+    when(oAuth2Request.createOAuth2Request(any())).thenReturn(oAuth2Request);
+    assertNotNull(granter.getOAuth2Authentication(requestingClient, tokenRequest));
+    verify(oAuth2Request, atMost(1)).getExtensions();
   }
 }
