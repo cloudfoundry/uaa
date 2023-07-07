@@ -135,6 +135,7 @@ public class ExternalOAuthAuthenticationManagerTest {
             entry(GROUP_ATTRIBUTE_NAME, "roles")
         );
         oidcConfig.setAttributeMappings(externalGroupMapping);
+        oidcConfig.setAdditionalAuthzParameters(Map.of("token_format", "jwt"));
         provider.setConfig(oidcConfig);
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";

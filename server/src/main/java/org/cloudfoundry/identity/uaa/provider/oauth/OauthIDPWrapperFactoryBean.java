@@ -26,7 +26,9 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -37,6 +39,9 @@ import static org.springframework.util.StringUtils.hasText;
 public class OauthIDPWrapperFactoryBean {
     private Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
     private List<IdentityProviderWrapper> providers = new LinkedList<>();
+    private static final Set<String> oauthParameters = Set.of("redirect_uri", "code", "client_id", "client_secret", "response_type", "grant_type",
+        "code_verifier", "client_assertion", "client_assertion_type", "code_challenge", "code_challenge_method", "nonce", "state", "scope",
+        "assertion", "subject_token", "actor_token", "username", "password");
 
     public OauthIDPWrapperFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
@@ -142,8 +147,13 @@ public class OauthIDPWrapperFactoryBean {
         }
         String discoveryUrl = (String) idpDefinitionMap.get("discoveryUrl");
         try {
-            if (hasText(discoveryUrl) && idpDefinition instanceof OIDCIdentityProviderDefinition) {
-                ((OIDCIdentityProviderDefinition) idpDefinition).setDiscoveryUrl(new URL(discoveryUrl));
+            OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = null;
+            if (idpDefinition instanceof OIDCIdentityProviderDefinition) {
+                oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) idpDefinition;
+                oidcIdentityProviderDefinition.setAdditionalAuthzParameters(parseAdditionalParameters(idpDefinitionMap));
+            }
+            if (hasText(discoveryUrl) && oidcIdentityProviderDefinition != null) {
+                oidcIdentityProviderDefinition.setDiscoveryUrl(new URL(discoveryUrl));
             } else {
                 idpDefinition.setAuthUrl(new URL((String) idpDefinitionMap.get("authUrl")));
                 idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
@@ -157,6 +167,29 @@ public class OauthIDPWrapperFactoryBean {
         if (idpDefinitionMap.get("clientAuthInBody") instanceof Boolean) {
             idpDefinition.setClientAuthInBody((boolean)idpDefinitionMap.get("clientAuthInBody"));
         }
+    }
+
+    private static Map<String, String> parseAdditionalParameters(Map<String, Object> idpDefinitionMap) {
+        Map<String, Object> additionalParameters = (Map<String, Object>) idpDefinitionMap.get("additionalAuthzParameters");
+        if (additionalParameters != null) {
+            Map<String,String> additionalQueryParameters = new HashMap<>();
+            for (Map.Entry<String, Object> entry : additionalParameters.entrySet()) {
+                String keyEntry = entry.getKey().toLowerCase(Locale.ROOT);
+                String value = null;
+                if (entry.getValue() instanceof Integer) {
+                    value = String.valueOf(entry.getValue());
+                } else if (entry.getValue() instanceof String) {
+                    value = (String) entry.getValue();
+                }
+                // accept only custom parameters
+                if (value == null || oauthParameters.contains(keyEntry)) {
+                    continue;
+                }
+                additionalQueryParameters.put(entry.getKey(), value);
+            }
+            return additionalQueryParameters;
+        }
+        return null;
     }
 
     /* parse with null check because default should be null */

@@ -263,6 +263,7 @@ class ExternalOAuthAuthenticationManagerIT {
                 .setRelyingPartySecret("identitysecret")
                 .setUserInfoUrl(new URL("http://localhost/userinfo"))
                 .setTokenKey(PUBLIC_KEY);
+        config.setAdditionalAuthzParameters(Map.of("token_format", "jwt"));
         config.setExternalGroupsWhitelist(
                 Collections.singletonList(
                         "*"

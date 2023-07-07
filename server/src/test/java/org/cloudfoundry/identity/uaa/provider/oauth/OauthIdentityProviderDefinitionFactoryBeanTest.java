@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
@@ -164,5 +165,41 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
         assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
         assertEquals("issuer", (((Map<String, String>)((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")));
+    }
+
+    @Test
+    public void testAdditionalParametersInConfig() {
+        Map<String, Object> additionalMap = new HashMap<>();
+        Map<String, Map> definitions = new HashMap<>();
+        additionalMap.put("token_format", "jwt");
+        additionalMap.put("expires", 0);
+        additionalMap.put("code", 12345678);
+        additionalMap.put("client_id", "id");
+        additionalMap.put("complex", Set.of("1", "2"));
+        additionalMap.put("null", null);
+        additionalMap.put("empty", "");
+        idpDefinitionMap.put("additionalAuthzParameters", additionalMap);
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
+        assertEquals(3, receivedParameters.size());
+        assertEquals("jwt", receivedParameters.get("token_format"));
+        assertEquals("0", receivedParameters.get("expires"));
+        assertEquals("", receivedParameters.get("empty"));
+    }
+
+    @Test
+    public void testNoAdditionalParametersInConfig() {
+        Map<String, Map> definitions = new HashMap<>();
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
+        assertEquals(0, receivedParameters.size());
     }
 }

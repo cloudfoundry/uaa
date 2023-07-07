@@ -107,6 +107,7 @@ class ExternalOAuthProviderConfiguratorTests {
         config.setRelyingPartySecret("identitysecret");
         config.setResponseType("id_token");
         config.setScopes(List.of("openid", "cloud_controller.read"));
+        config.setAdditionalAuthzParameters(Map.of("token_format", "jwt"));
 
         oidcProvider = new IdentityProvider<>();
         oidcProvider.setType(OIDC10);
