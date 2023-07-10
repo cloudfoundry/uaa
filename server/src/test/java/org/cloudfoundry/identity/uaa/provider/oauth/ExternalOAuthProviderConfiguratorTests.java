@@ -109,7 +109,6 @@ class ExternalOAuthProviderConfiguratorTests {
         config.setResponseType("id_token");
         config.setScopes(List.of("openid", "cloud_controller.read"));
 
-
         oidcProvider = new IdentityProvider<>();
         oidcProvider.setType(OIDC10);
         oidcProvider.setConfig(config);
