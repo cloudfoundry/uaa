@@ -23,7 +23,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
@@ -97,7 +96,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
             uriBuilder.queryParam("nonce", nonceGenerator.generate());
 
             Map<String, String> additionalParameters = ofNullable(((OIDCIdentityProviderDefinition) definition).getAdditionalAuthzParameters()).orElse(emptyMap());
-            additionalParameters.keySet().stream().filter(Objects::nonNull).forEach(e -> uriBuilder.queryParam(e, additionalParameters.get(e)));
+            additionalParameters.keySet().stream().forEach(e -> uriBuilder.queryParam(e, additionalParameters.get(e)));
         }
 
         return uriBuilder.build().toUriString();

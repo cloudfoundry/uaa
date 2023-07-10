@@ -32,7 +32,7 @@ import static org.junit.Assert.assertTrue;
 
 public class OIDCIdentityProviderDefinitionTests {
 
-    private final String defaultJson = "{\"emailDomain\":null,\"additionalConfiguration\":null,\"providerDescription\":null,\"externalGroupsWhitelist\":[],\"attributeMappings\":{},\"addShadowUserOnLogin\":true,\"storeCustomAttributes\":false,\"authUrl\":null,\"tokenUrl\":null,\"tokenKeyUrl\":null,\"tokenKey\":null,\"linkText\":null,\"showLinkText\":true,\"skipSslValidation\":false,\"relyingPartyId\":null,\"relyingPartySecret\":null,\"scopes\":null,\"issuer\":null,\"responseType\":\"code\",\"userInfoUrl\":null,\"jwtClientAuthentication\":false,\"additonalAuthzParameters\":{\"token_format\":\"jwt\"}}";
+    private final String defaultJson = "{\"emailDomain\":null,\"additionalConfiguration\":null,\"providerDescription\":null,\"externalGroupsWhitelist\":[],\"attributeMappings\":{},\"addShadowUserOnLogin\":true,\"storeCustomAttributes\":false,\"authUrl\":null,\"tokenUrl\":null,\"tokenKeyUrl\":null,\"tokenKey\":null,\"linkText\":null,\"showLinkText\":true,\"skipSslValidation\":false,\"relyingPartyId\":null,\"relyingPartySecret\":null,\"scopes\":null,\"issuer\":null,\"responseType\":\"code\",\"userInfoUrl\":null,\"jwtClientAuthentication\":false,\"additionalAuthzParameters\":{\"token_format\":\"jwt\"}}";
     String url = "https://accounts.google.com/.well-known/openid-configuration";
 
     @Test
@@ -44,6 +44,7 @@ public class OIDCIdentityProviderDefinitionTests {
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertEquals(url, def.getDiscoveryUrl().toString());
+        assertEquals("jwt", def.getAdditionalAuthzParameters().get("token_format"));
     }
 
     @Test
@@ -52,6 +53,8 @@ public class OIDCIdentityProviderDefinitionTests {
         OIDCIdentityProviderDefinition def2 = (OIDCIdentityProviderDefinition) def.clone();
         assertTrue(def.equals(def2));
         assertEquals(def.hashCode(), def2.hashCode());
+        assertEquals(1, def2.getAdditionalAuthzParameters().size());
+        assertEquals("jwt", def2.getAdditionalAuthzParameters().get("token_format"));
     }
 
     @Test

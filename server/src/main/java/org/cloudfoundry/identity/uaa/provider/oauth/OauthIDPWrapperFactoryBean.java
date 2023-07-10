@@ -151,10 +151,13 @@ public class OauthIDPWrapperFactoryBean {
             if (idpDefinition instanceof OIDCIdentityProviderDefinition) {
                 oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) idpDefinition;
                 oidcIdentityProviderDefinition.setAdditionalAuthzParameters(parseAdditionalParameters(idpDefinitionMap));
+
+                if (hasText(discoveryUrl)) {
+                    oidcIdentityProviderDefinition.setDiscoveryUrl(new URL(discoveryUrl));
+                }
             }
-            if (hasText(discoveryUrl) && oidcIdentityProviderDefinition != null) {
-                oidcIdentityProviderDefinition.setDiscoveryUrl(new URL(discoveryUrl));
-            } else {
+
+            if (oidcIdentityProviderDefinition == null || !hasText(discoveryUrl)) {
                 idpDefinition.setAuthUrl(new URL((String) idpDefinitionMap.get("authUrl")));
                 idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
                 idpDefinition.setTokenUrl(new URL((String) idpDefinitionMap.get("tokenUrl")));
