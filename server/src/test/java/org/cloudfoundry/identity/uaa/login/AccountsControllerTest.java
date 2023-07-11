@@ -45,6 +45,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -214,6 +215,22 @@ class AccountsControllerTest {
                 .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
 
         assertNull(SecurityContextHolder.getContext().getAuthentication());
+    }
+
+    @Test
+    void verifyUserWithPriorHeadRequest() throws Exception {
+        when(accountCreationService.completeActivation("the_secret_code"))
+                .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
+
+        mockMvc.perform(head("/verify_user").param("code", "the_secret_code"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+        mockMvc.perform(get("/verify_user").param("code", "the_secret_code"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=verify_success&form_redirect_uri=//example.com/callback"));
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        Mockito.verify(accountCreationService, times(1)).completeActivation("the_secret_code");
     }
 
     @EnableWebMvc
