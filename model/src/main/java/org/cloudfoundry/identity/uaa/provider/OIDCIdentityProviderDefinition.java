@@ -103,8 +103,8 @@ implements Cloneable {
 
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         if (this.setForwardHeader != that.setForwardHeader) return false;
-        if (this.jwtClientAuthentication != that.jwtClientAuthentication) return false;
-        if (this.additionalAuthzParameters != that.additionalAuthzParameters) return false;
+        if (!Objects.equals(this.jwtClientAuthentication, that.jwtClientAuthentication)) return false;
+        if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) return false;
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }

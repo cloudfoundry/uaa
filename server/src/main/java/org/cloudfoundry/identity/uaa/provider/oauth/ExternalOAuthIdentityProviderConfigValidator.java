@@ -7,7 +7,9 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.springframework.util.StringUtils.hasText;
@@ -49,8 +51,8 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
                 }
             }
 
-            if (oidcIdentityProviderDefinition.getAdditionalAuthzParameters() != null &&
-                oAuthStandardParameters.stream().anyMatch(oidcIdentityProviderDefinition.getAdditionalAuthzParameters().keySet()::contains)) {
+            if (Optional.ofNullable(oidcIdentityProviderDefinition.getAdditionalAuthzParameters()).orElse(Collections.emptyMap())
+                .keySet().stream().anyMatch(ExternalOAuthIdentityProviderConfigValidator::isOAuthStandardParameter)) {
                 errors.add("No OAuth standard parameters allowed in section additionalAuthzParameters");
             }
         }
