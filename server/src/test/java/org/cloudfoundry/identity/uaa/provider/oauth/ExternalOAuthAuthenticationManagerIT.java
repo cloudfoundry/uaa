@@ -570,6 +570,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setAuthUrl(null);
         config.setTokenUrl(null);
         config.setDiscoveryUrl(new URL("http://some.discovery.url"));
+
         Map<String, Object> discoveryContent = new HashMap();
         discoveryContent.put("authorization_endpoint", authUrl.toString());
         discoveryContent.put("token_endpoint", tokenUrl.toString());

@@ -1,18 +1,23 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.springframework.util.StringUtils.hasText;
 
 @Component
 public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityProviderValidator {
+
+    private static final Set<String> oAuthStandardParameters = Set.of("redirect_uri", "code", "client_id", "client_secret", "response_type",
+        "grant_type", "code_verifier", "client_assertion", "client_assertion_type", "code_challenge", "code_challenge_method", "nonce", "state",
+        "scope", "assertion", "subject_token", "actor_token", "username", "password");
 
     @Override
     public void validate(AbstractIdentityProviderDefinition definition) {
@@ -26,19 +31,27 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
         AbstractExternalOAuthIdentityProviderDefinition def = (AbstractExternalOAuthIdentityProviderDefinition) definition;
 
         List<String> errors = new ArrayList<>();
-        if (def instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) definition).getDiscoveryUrl() != null) {
-            //we don't require auth/token url or keys/key url
-        } else {
-            if (def.getAuthUrl() == null) {
-                errors.add("Authorization URL must be a valid URL");
+        if (def instanceof OIDCIdentityProviderDefinition) {
+            OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) def;
+            if (oidcIdentityProviderDefinition.getDiscoveryUrl() != null) {
+                //we don't require auth/token url or keys/key url
+            } else {
+                if (def.getAuthUrl() == null) {
+                    errors.add("Authorization URL must be a valid URL");
+                }
+
+                if (def.getTokenUrl() == null) {
+                    errors.add("Token URL must be a valid URL");
+                }
+
+                if (!hasText(def.getTokenKey()) && def.getTokenKeyUrl() == null) {
+                    errors.add("Either token key or token key URL must be specified");
+                }
             }
 
-            if (def.getTokenUrl() == null) {
-                errors.add("Token URL must be a valid URL");
-            }
-
-            if (!hasText(def.getTokenKey()) && def.getTokenKeyUrl() == null) {
-                errors.add("Either token key or token key URL must be specified");
+            if (oidcIdentityProviderDefinition.getAdditionalAuthzParameters() != null &&
+                oAuthStandardParameters.stream().anyMatch(oidcIdentityProviderDefinition.getAdditionalAuthzParameters().keySet()::contains)) {
+                errors.add("No OAuth standard parameters allowed in section additionalAuthzParameters");
             }
         }
 
@@ -55,5 +68,9 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
             String errorMessages = String.join(",", errors);
             throw new IllegalArgumentException("Invalid config for Identity Provider " + errorMessages);
         }
+    }
+
+    protected static boolean isOAuthStandardParameter(String value) {
+        return oAuthStandardParameters.contains(value);
     }
 }

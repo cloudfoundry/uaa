@@ -39,9 +39,6 @@ import static org.springframework.util.StringUtils.hasText;
 public class OauthIDPWrapperFactoryBean {
     private Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
     private List<IdentityProviderWrapper> providers = new LinkedList<>();
-    private static final Set<String> oauthParameters = Set.of("redirect_uri", "code", "client_id", "client_secret", "response_type", "grant_type",
-        "code_verifier", "client_assertion", "client_assertion_type", "code_challenge", "code_challenge_method", "nonce", "state", "scope",
-        "assertion", "subject_token", "actor_token", "username", "password");
 
     public OauthIDPWrapperFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
@@ -184,8 +181,8 @@ public class OauthIDPWrapperFactoryBean {
                 } else if (entry.getValue() instanceof String) {
                     value = (String) entry.getValue();
                 }
-                // accept only custom parameters
-                if (value == null || oauthParameters.contains(keyEntry)) {
+                // accept only custom parameters, filter out standard parameters
+                if (value == null || ExternalOAuthIdentityProviderConfigValidator.isOAuthStandardParameter(keyEntry)) {
                     continue;
                 }
                 additionalQueryParameters.put(entry.getKey(), value);
