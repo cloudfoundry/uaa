@@ -66,6 +66,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertThat;
@@ -261,6 +262,11 @@ class UaaTokenServicesTests {
 
         private CompositeExpiringOAuth2RefreshToken refreshToken;
 
+        @AfterEach
+        void cleanup() {
+            SecurityContextHolder.clearContext();
+        }
+
         @Test
         void happyCase() {
             assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
@@ -283,12 +289,12 @@ class UaaTokenServicesTests {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             OAuth2Request auth2Request = mock(OAuth2Request.class);
             when(authentication.getOAuth2Request()).thenReturn(auth2Request);
-            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, "client_secret_basic"));
+            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, "none"));
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
             assertThat(refreshedToken, is(notNullValue()));
             Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue());
-            assertThat(claims, hasKey(ClaimConstants.CLIENT_AUTH_METHOD));
+            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, "none"));
         }
 
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")
