@@ -101,6 +101,12 @@ public class AccountsController {
         return "accounts/email_sent";
     }
 
+    @RequestMapping(value = "/verify_user", method = RequestMethod.HEAD)
+    public String verifyUser() {
+        // Some mail providers initially send a HEAD request to check the validity of the link before redirecting users.
+        return "redirect:/login";
+    }
+
     @RequestMapping(value = "/verify_user", method = GET)
     public String verifyUser(Model model,
                              @RequestParam("code") String code,
