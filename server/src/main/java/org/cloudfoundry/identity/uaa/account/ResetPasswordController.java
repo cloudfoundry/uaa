@@ -161,6 +161,11 @@ public class ResetPasswordController {
         return "email_sent";
     }
 
+    @RequestMapping(value = "/reset_password", method = RequestMethod.HEAD)
+    public void resetPassword() {
+        // Some mail providers initially send a HEAD request to check the validity of the link before redirecting users.
+    }
+
     @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = {"code"})
     public String resetPasswordPage(Model model,
                                     HttpServletResponse response,
