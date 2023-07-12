@@ -16,6 +16,9 @@ LOGIN_SECRET: loginsecret
 jwt:
   token:
     signing-key: tokenKey
+    refresh:
+      format: opaque
+      rotate: false
 
 login:
   serviceProviderKey: |
