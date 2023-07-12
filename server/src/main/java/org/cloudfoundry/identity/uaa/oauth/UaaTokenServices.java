@@ -282,6 +282,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 generateUniqueTokenId()
         );
 
+        if (authenticationData.clientAuth != null && "none".equals(authenticationData.clientAuth)) {
+            // public refresh flow, allowed if access_token before was also without authentiation (claim: client_auth_method=none)
+            if (!"none".equals(claims.getClientAuth())) {
+                throw new InvalidTokenException("Refresh without client authentication not allowed.");
+            }
+            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+        }
+
         String accessTokenId = generateUniqueTokenId();
         refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims);
         CompositeToken compositeToken =
@@ -415,11 +423,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         info.put(JTI, compositeToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
-        }
-
-        String clientAuthentication = userAuthenticationData.clientAuth;
-        if (clientAuthentication != null) {
-            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
         }
 
         String nonce = userAuthenticationData.nonce;
@@ -605,6 +608,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             additionalRootClaims = new HashMap<>(uaaTokenEnhancer.enhance(emptyMap(), authentication));
         }
 
+        String clientAuthentication = ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null);
+        if (clientAuthentication != null && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
+        }
+
         CompositeExpiringOAuth2RefreshToken refreshToken = null;
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
@@ -649,7 +657,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 nonce,
                 grantType,
-                ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null),
+                clientAuthentication,
                 tokenId);
 
         String refreshTokenValue = refreshToken != null ? refreshToken.getValue() : null;

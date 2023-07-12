@@ -55,7 +55,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for(String pwd: passwordList) {
             try {
                 User user = new User(userDetails.getUsername(), pwd, userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
-                if (authentication.getCredentials() == null && isGrantAuthorizationCode(authentication.getDetails()) && userDetails instanceof UaaClient) {
+                if (authentication.getCredentials() == null && isPublicGrantTypeUsageAllowed(authentication.getDetails()) && userDetails instanceof UaaClient) {
                     // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and proceed even if no secret is provided
                     UaaClient uaaClient = (UaaClient) userDetails;
                     Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
@@ -77,15 +77,25 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
     }
 
-    private boolean isGrantAuthorizationCode(Object uaaAuthenticationDetails) {
+    private boolean isPublicGrantTypeUsageAllowed(Object uaaAuthenticationDetails) {
         Map<String, String[]> requestParameters = uaaAuthenticationDetails instanceof UaaAuthenticationDetails &&
             ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() != null ?
             ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() : Collections.emptyMap();
+        return isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters);
+    }
+
+    private boolean isAuthorizationWithPkce(Map<String, String[]> requestParameters) {
         return PkceValidationService.isCodeVerifierParameterValid(getSafeParameterValue(requestParameters.get("code_verifier"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_id"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("code"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("redirect_uri"))) &&
             TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE.equals(getSafeParameterValue(requestParameters.get(ClaimConstants.GRANT_TYPE)));
+    }
+
+    private boolean isRefreshFlow(Map<String, String[]> requestParameters) {
+        return StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_id")))
+            && StringUtils.hasText(getSafeParameterValue(requestParameters.get("refresh_token")))
+            && TokenConstants.GRANT_TYPE_REFRESH_TOKEN.equals(getSafeParameterValue(requestParameters.get(ClaimConstants.GRANT_TYPE)));
     }
 
     private String getSafeParameterValue(String[] value) {
