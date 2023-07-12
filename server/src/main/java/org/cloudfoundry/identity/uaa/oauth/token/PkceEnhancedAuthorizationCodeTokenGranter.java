@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationException;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
@@ -106,6 +107,11 @@ public class PkceEnhancedAuthorizationCodeTokenGranter extends AuthorizationCode
         OAuth2Request finalStoredOAuth2Request = pendingOAuth2Request.createOAuth2Request(combinedParameters);
 
         Authentication userAuth = storedAuth.getUserAuthentication();
+
+        String clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod();
+        if (clientAuthentication != null) {
+            finalStoredOAuth2Request.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
+        }
 
         return new OAuth2Authentication(finalStoredOAuth2Request, userAuth);
 
