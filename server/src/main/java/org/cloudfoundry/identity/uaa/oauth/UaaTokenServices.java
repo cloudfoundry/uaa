@@ -286,9 +286,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
             // public refresh flow, allowed if access_token before was also without authentiation (claim: client_auth_method=none)
             if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
-                throw new InvalidTokenException("Refresh without client authentication not allowed.");
+                throw new TokenRevokedException("Refresh without client authentication not allowed.");
             }
-            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
         }
 
         String accessTokenId = generateUniqueTokenId();

@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
@@ -38,10 +37,10 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -124,7 +123,7 @@ class RefreshRotationTest {
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, "none"));
+    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
@@ -132,11 +131,11 @@ class RefreshRotationTest {
     OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertThat(refreshedToken, is(notNullValue()));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, "none"));
+    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
 
     refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, "none"));
+    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
   }
 
   @Test
@@ -150,7 +149,7 @@ class RefreshRotationTest {
     Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
     azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
     authorizationRequest.setRequestParameters(azParameters);
-    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, "none"));
+    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
     OAuth2Request oAuth2Request = authorizationRequest.createOAuth2Request();
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
@@ -160,7 +159,7 @@ class RefreshRotationTest {
     assertThat(refreshTokenValue, is(notNullValue()));
 
     setupOAuth2Authentication(oAuth2Request);
-    Exception exception = assertThrows(InvalidTokenException.class, () ->
+    RuntimeException exception = assertThrows(TokenRevokedException.class, () ->
         tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN)));
     assertEquals("Refresh without client authentication not allowed.", exception.getMessage());
   }
