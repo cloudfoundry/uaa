@@ -25,6 +25,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import javax.servlet.ServletException;
 import java.io.IOException;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
@@ -74,7 +75,7 @@ public class ClientParametersAuthenticationFilterTest {
         when(clientAuthenticationManager.authenticate(Mockito.any())).thenReturn(authentication);
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getDetails()).thenReturn(authenticationDetails);
-        when(authenticationDetails.getAuthenticationMethod()).thenReturn("none");
+        when(authenticationDetails.getAuthenticationMethod()).thenReturn(CLIENT_AUTH_NONE);
 
         MockFilterChain chain = mock(MockFilterChain.class);
         request.addHeader("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE);

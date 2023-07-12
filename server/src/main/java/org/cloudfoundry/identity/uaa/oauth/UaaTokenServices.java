@@ -123,6 +123,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ACCESS_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -282,9 +283,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 generateUniqueTokenId()
         );
 
-        if (authenticationData.clientAuth != null && "none".equals(authenticationData.clientAuth)) {
+        if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
             // public refresh flow, allowed if access_token before was also without authentiation (claim: client_auth_method=none)
-            if (!"none".equals(claims.getClientAuth())) {
+            if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
                 throw new InvalidTokenException("Refresh without client authentication not allowed.");
             }
             additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);

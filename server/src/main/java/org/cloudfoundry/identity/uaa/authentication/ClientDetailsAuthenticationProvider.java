@@ -30,6 +30,8 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
+
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
 
 
@@ -61,7 +63,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
                     if (allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic) ||
                         allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic)) {
-                        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod("none");
+                        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
                         break;
                     }
                 }
