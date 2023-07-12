@@ -31,16 +31,17 @@ import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -117,13 +118,13 @@ class RefreshRotationTest {
     Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
     azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
     authorizationRequest.setRequestParameters(azParameters);
-    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, "none"));
+    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     OAuth2Request oAuth2Request = authorizationRequest.createOAuth2Request();
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
+    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
@@ -131,11 +132,11 @@ class RefreshRotationTest {
     OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertThat(refreshedToken, is(notNullValue()));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
+    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
 
     refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
+    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
   }
 
   @Test
@@ -149,7 +150,7 @@ class RefreshRotationTest {
     Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
     azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
     authorizationRequest.setRequestParameters(azParameters);
-    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, CLIENT_AUTH_METHOD));
+    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     OAuth2Request oAuth2Request = authorizationRequest.createOAuth2Request();
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
