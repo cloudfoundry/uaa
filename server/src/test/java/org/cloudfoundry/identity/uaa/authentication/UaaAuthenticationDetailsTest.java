@@ -10,8 +10,6 @@ import javax.servlet.http.HttpServletRequest;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class UaaAuthenticationDetailsTest {
@@ -40,10 +38,9 @@ class UaaAuthenticationDetailsTest {
 
     @Test
     void testNoLoginHint() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getParameter("login_hint")).thenReturn(null);
+        HttpServletRequest request = new MockHttpServletRequest();
 
-        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "cliendId");
         assertNull(details.getLoginHint());
     }
 
