@@ -61,8 +61,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and proceed even if no secret is provided
                     UaaClient uaaClient = (UaaClient) userDetails;
                     Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
-                    if (allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic) ||
-                        allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic)) {
+                    if ((allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic)) ||
+                        (allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic))) {
                         ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
                         break;
                     }
@@ -83,11 +83,11 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         UaaAuthenticationDetails authenticationDetails = uaaAuthenticationDetails instanceof UaaAuthenticationDetails ?
             (UaaAuthenticationDetails)  uaaAuthenticationDetails : new UaaAuthenticationDetails();
         Map<String, String[]> requestParameters = authenticationDetails.getParameterMap() != null ?
-            ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() : Collections.emptyMap();
+            authenticationDetails.getParameterMap() : Collections.emptyMap();
         return isPublicTokenRequest(authenticationDetails) && (isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters));
     }
 
-    private boolean isPublicTokenRequest(UaaAuthenticationDetails authenticationDetails) {
+    private static boolean isPublicTokenRequest(UaaAuthenticationDetails authenticationDetails) {
         return !authenticationDetails.isAuthorizationSet() && "/oauth/token".equals(authenticationDetails.getRequestPath());
     }
 

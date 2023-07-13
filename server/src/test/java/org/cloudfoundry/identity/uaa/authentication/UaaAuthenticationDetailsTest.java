@@ -1,17 +1,15 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
-@ExtendWith(PollutionPreventionExtension.class)
 class UaaAuthenticationDetailsTest {
 
     @Test
@@ -42,6 +40,18 @@ class UaaAuthenticationDetailsTest {
 
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "cliendId");
         assertNull(details.getLoginHint());
+    }
+
+    @Test
+    void testPublicTokenRequest() {
+        HttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "cliendId");
+        details.setAuthenticationMethod("none");
+        assertNull(details.getLoginHint());
+        assertFalse(details.isAuthorizationSet());
+        assertEquals("/oauth/token", details.getRequestPath());
+        assertEquals("none", details.getAuthenticationMethod());
     }
 
     @Test
