@@ -80,10 +80,15 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     }
 
     private boolean isPublicGrantTypeUsageAllowed(Object uaaAuthenticationDetails) {
-        Map<String, String[]> requestParameters = uaaAuthenticationDetails instanceof UaaAuthenticationDetails &&
-            ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() != null ?
+        UaaAuthenticationDetails authenticationDetails = uaaAuthenticationDetails instanceof UaaAuthenticationDetails ?
+            (UaaAuthenticationDetails)  uaaAuthenticationDetails : new UaaAuthenticationDetails();
+        Map<String, String[]> requestParameters = authenticationDetails.getParameterMap() != null ?
             ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() : Collections.emptyMap();
-        return isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters);
+        return isPublicTokenRequest(authenticationDetails) && (isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters));
+    }
+
+    private boolean isPublicTokenRequest(UaaAuthenticationDetails authenticationDetails) {
+        return !authenticationDetails.isAuthorizationSet() && "/oauth/token".equals(authenticationDetails.getRequestPath());
     }
 
     private boolean isAuthorizationWithPkce(Map<String, String[]> requestParameters) {
