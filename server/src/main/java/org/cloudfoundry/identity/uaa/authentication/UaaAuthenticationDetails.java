@@ -19,12 +19,13 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
-
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Contains additional information about the authentication request which may be
@@ -84,7 +85,7 @@ public class UaaAuthenticationDetails implements Serializable {
 
         if (clientId == null) {
             this.clientId = request.getParameter("client_id");
-            if(!StringUtils.containsWhitespace(this.clientId)) {
+            if(!hasText(this.clientId)) {
                 this.clientId = (String) request.getAttribute("clientId");
             }
         } else {

@@ -92,6 +92,8 @@ class UaaClientAuthenticationProviderTest {
         requestParameters.put("redirect_uri", new String[] { "http://localhost:8080/uaa" });
         requestParameters.put("grant_type", new String[] { grant_type });
         when(uaaAuthenticationDetails.getParameterMap()).thenReturn(requestParameters);
+        when(uaaAuthenticationDetails.isAuthorizationSet()).thenReturn(false);
+        when(uaaAuthenticationDetails.getRequestPath()).thenReturn("/oauth/token");
         return a;
     }
 
