@@ -15,13 +15,7 @@ LOGIN_SECRET: loginsecret
 
 jwt:
   token:
-    signing-alg: HS256
     signing-key: tokenKey
-    revocable: false
-    refresh:
-      format: opaque
-      rotate: false
-      unique: false
 
 login:
   serviceProviderKey: |
