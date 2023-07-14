@@ -14,12 +14,12 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -54,7 +54,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final Duration DEFAULT_EXPIRATION_TIME = Duration.ofMinutes(5);
@@ -80,6 +79,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private static final String SQL_CLEAN_STATEMENT = "delete from oauth_code where created < ? and expiresat = 0";
 
     private final DataSource dataSource;
+    private final TimeService timeService;
     private final Duration expirationTime;
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
@@ -87,12 +87,13 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private Instant lastClean = Instant.EPOCH;
     private Semaphore cleanMutex = new Semaphore(1);
 
-    public UaaTokenStore(DataSource dataSource) {
-        this(dataSource, DEFAULT_EXPIRATION_TIME);
+    public UaaTokenStore(DataSource dataSource, TimeService timeService) {
+        this(dataSource, timeService, DEFAULT_EXPIRATION_TIME);
     }
 
-    public UaaTokenStore(DataSource dataSource, Duration expirationTime) {
+    public UaaTokenStore(DataSource dataSource, TimeService timeService, Duration expirationTime) {
         this.dataSource = dataSource;
+        this.timeService = timeService;
         this.expirationTime = expirationTime;
     }
 
@@ -106,7 +107,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             attempt++;
             try {
                 String code = generator.generate();
-                Instant expiresAt = Instant.now().plus(getExpirationTime());
+                Instant expiresAt = timeService.getCurrentInstant().plus(getExpirationTime());
                 String userId = authentication.getUserAuthentication()==null ? null : ((UaaPrincipal)authentication.getUserAuthentication().getPrincipal()).getId();
                 String clientId = authentication.getOAuth2Request().getClientId();
                 SqlLobValue data = new SqlLobValue(serializeOauth2Authentication(authentication));
@@ -216,7 +217,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         if (cleanMutex.tryAcquire()) {
             //check if we should expire again
             try {
-                Instant now = Instant.now();
+                Instant now = timeService.getCurrentInstant();
                 if (enoughTimeHasPassedSinceLastExpirationClean(lastClean, now)) {
                     //avoid concurrent deletes from the same UAA - performance improvement
                     lastClean = now;
@@ -324,7 +325,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         @Override
         boolean isExpired() {
-            return expiresAt.isBefore(Instant.now());
+            return expiresAt.isBefore(timeService.getCurrentInstant());
         }
 
         @Override
@@ -353,7 +354,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
         @Override
         boolean isExpired() {
-            return Instant.now().minus(getExpirationTime()).isAfter(created);
+            return timeService.getCurrentInstant().minus(getExpirationTime()).isAfter(created);
         }
 
         @Override

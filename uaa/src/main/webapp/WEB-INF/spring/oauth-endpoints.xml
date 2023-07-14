@@ -476,7 +476,8 @@
     <!-- End of PKCE -->
 
     <bean id="authorizationCodeServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenStore">
-        <constructor-arg ref="dataSource"/>
+        <constructor-arg name="dataSource" ref="dataSource"/>
+        <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
     <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler"/>
