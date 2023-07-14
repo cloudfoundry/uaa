@@ -91,6 +91,8 @@ public class Claims {
     private Long previousLogonTime;
     @JsonProperty(ClaimConstants.AMR)
     private String[] amr;
+    @JsonProperty(ClaimConstants.CLIENT_AUTH_METHOD)
+    private String clientAuth;
 
     public String getUserId() {
         return userId;
@@ -352,5 +354,13 @@ public class Claims {
 
     public void setGrantedScopes(List<String> grantedScopes) {
         this.grantedScopes = grantedScopes;
+    }
+
+    public String getClientAuth() {
+        return this.clientAuth;
+    }
+
+    public void setClientAuth(final String clientAuth) {
+        this.clientAuth = clientAuth;
     }
 }
