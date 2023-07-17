@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.approval;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -11,8 +14,6 @@ import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -28,17 +29,29 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpMediaTypeException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.View;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Controller
 public class ApprovalsAdminEndpoints implements InitializingBean {
 
-    private static final Logger logger = LoggerFactory.getLogger(ApprovalsAdminEndpoints.class);
+    private static final Logger logger = LogManager.getLogger();
     private static final Map<Class<? extends Exception>, HttpStatus> statuses;
 
     static {
@@ -77,7 +90,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
                                        @RequestParam(required = false, defaultValue = "1") int startIndex,
                                        @RequestParam(required = false, defaultValue = "100") int count) {
         String userId = getCurrentUserId();
-        logger.debug("Fetching all approvals for user: " + userId);
+        logger.log(Level.DEBUG, () -> "Fetching all approvals for user: " + userId);
         List<Approval> input = approvalStore.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
         List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
@@ -133,8 +146,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         List<Approval> result = new LinkedList<>();
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.warn("Error[2] {} attempting to update approvals for {}",
-                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
+                logger.log(Level.WARN, () -> String.format("Error[2] %s attempting to update approvals for %s",
+                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -156,8 +169,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.warn("Error[1] {} attemting to update approvals for {}.",
-                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
+                logger.log(Level.WARN, String.format("Error[1] %s attemting to update approvals for %s.",
+                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -176,6 +189,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
             userDatabase.retrieveUserById(userId);
             return true;
         } catch (UsernameNotFoundException e) {
+            logger.log(Level.DEBUG, "user not found", e);
             return false;
         }
     }
@@ -185,8 +199,8 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
     public ActionResult revokeApprovals(@RequestParam() String clientId) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = getCurrentUserId();
-        logger.debug("Revoking all existing approvals for user: {} and client {}",
-            UaaStringUtils.getCleanedUserControlString(userId), UaaStringUtils.getCleanedUserControlString(clientId));
+        logger.log(Level.DEBUG, () -> String.format("Revoking all existing approvals for user: %s and client %s",
+            UaaStringUtils.getCleanedUserControlString(userId), UaaStringUtils.getCleanedUserControlString(clientId)));
         approvalStore.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
         return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
     }
