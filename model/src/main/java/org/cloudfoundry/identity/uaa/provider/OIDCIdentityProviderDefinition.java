@@ -17,9 +17,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+import static java.util.Collections.emptyMap;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
@@ -31,6 +35,8 @@ implements Cloneable {
     private List<Prompt> prompts = null;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object jwtClientAuthentication;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Map<String, String> additionalAuthzParameters = null;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -74,6 +80,14 @@ implements Cloneable {
         this.jwtClientAuthentication = jwtClientAuthentication;
     }
 
+    public Map<String, String> getAdditionalAuthzParameters() {
+        return this.additionalAuthzParameters != null ? Collections.unmodifiableMap(this.additionalAuthzParameters) : null;
+    }
+
+    public void setAdditionalAuthzParameters(final Map<String, String> additonalAuthzParameters) {
+        this.additionalAuthzParameters = new HashMap<>(additonalAuthzParameters!=null?additonalAuthzParameters: emptyMap());
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -89,7 +103,8 @@ implements Cloneable {
 
         if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
         if (this.setForwardHeader != that.setForwardHeader) return false;
-        if (this.jwtClientAuthentication != that.jwtClientAuthentication) return false;
+        if (!Objects.equals(this.jwtClientAuthentication, that.jwtClientAuthentication)) return false;
+        if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) return false;
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
@@ -101,6 +116,7 @@ implements Cloneable {
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         result = 31 * result + (setForwardHeader ? 1 : 0);
         result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
+        result = 31 * result + (additionalAuthzParameters != null ? additionalAuthzParameters.hashCode() : 0);
         return result;
     }
 }

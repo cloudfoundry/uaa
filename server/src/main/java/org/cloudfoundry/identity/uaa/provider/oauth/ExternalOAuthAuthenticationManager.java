@@ -690,6 +690,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         logger.debug("Adding new client_id and client_secret for token exchange");
         body.add("client_id", config.getRelyingPartyId());
 
+        if (config instanceof OIDCIdentityProviderDefinition) {
+            OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) config;
+            if (oidcIdentityProviderDefinition.getAdditionalAuthzParameters() != null){
+                for (Map.Entry<String, String> entry : oidcIdentityProviderDefinition.getAdditionalAuthzParameters().entrySet()) {
+                    body.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
+
         HttpHeaders headers = new HttpHeaders();
 
         // no client-secret, switch to PKCE
