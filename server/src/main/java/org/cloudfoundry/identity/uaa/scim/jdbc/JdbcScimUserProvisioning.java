@@ -54,6 +54,7 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -335,7 +336,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public boolean checkPasswordChangeIndividuallyRequired(String userId, String zoneId) throws ScimResourceNotFoundException {
-        return jdbcTemplate.queryForObject(READ_PASSWORD_CHANGE_REQUIRED_SQL, boolean.class, userId, zoneId);
+        return Optional.ofNullable(jdbcTemplate).orElseThrow(() -> new ScimResourceNotFoundException("JDBC missing")).queryForObject(READ_PASSWORD_CHANGE_REQUIRED_SQL, boolean.class, userId, zoneId);
     }
 
     @Override

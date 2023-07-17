@@ -73,14 +73,14 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         this.sql = sql;
         this.args = args;
         this.mapper = mapper;
-        this.size = parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class);
+        this.size = jdbcTemplate != null ? parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class) : 0;
         this.pageSize = pageSize;
         this.limitSqlAdapter = limitSqlAdapter;
     }
 
     @Override
     public E get(int index) {
-        if (index >= size) {
+        if (index < 0 || index >= size) {
             throw new ArrayIndexOutOfBoundsException(index);
         }
         if (current == null || index - start >= pageSize || index < start) {
