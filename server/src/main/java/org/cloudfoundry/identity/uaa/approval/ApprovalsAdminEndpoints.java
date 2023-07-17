@@ -169,7 +169,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         approvalStore.revokeApprovalsForClientAndUser(clientId, currentUserId, IdentityZoneHolder.get().getId());
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
-                logger.log(Level.WARN, String.format("Error[1] %s attemting to update approvals for %s.",
+                logger.log(Level.WARN, () -> String.format("Error[1] %s attemting to update approvals for %s.",
                     UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId())));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
