@@ -19,6 +19,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -56,6 +58,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
     private final NamedParameterJdbcTemplate parameterJdbcTemplate;
 
     private final LimitSqlAdapter limitSqlAdapter;
+    private final Pattern dbName = Pattern.compile("select (.*) from (\\p{Alpha}*)", Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CHARACTER_CLASS);
 
     public JdbcPagingList(JdbcTemplate jdbTemplate, LimitSqlAdapter limitSqlAdapter, String sql, RowMapper<E> mapper,
                     int pageSize) {
@@ -73,7 +76,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         this.sql = sql;
         this.args = args;
         this.mapper = mapper;
-        this.size = jdbcTemplate != null ? parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class) : 0;
+        this.size = jdbcTemplate != null ? parameterJdbcTemplate.getJdbcTemplate().queryForObject("select count(*) from " + getDBName(sql), Integer.class) : 0;
         this.pageSize = pageSize;
         this.limitSqlAdapter = limitSqlAdapter;
     }
@@ -103,13 +106,12 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         return new SafeIteratorList<E>(super.subList(fromIndex, toIndex));
     }
 
-    private String getCountSql(String sql) {
-        String result = sql.replaceAll("(?i)select (.*?) from (.*)", "select count(*) from $2");
-        int orderByPos = result.toLowerCase().lastIndexOf("order by");
-        if (orderByPos >= 0) {
-            result = result.substring(0, orderByPos);
+    private String getDBName(String sql) {
+        String result = "";
+        Matcher dbNameResult = dbName.matcher(sql);
+        if (dbNameResult != null && dbNameResult.find() && dbNameResult.groupCount() > 1) {
+            result = dbNameResult.group(2);
         }
-
         return result;
     }
 
