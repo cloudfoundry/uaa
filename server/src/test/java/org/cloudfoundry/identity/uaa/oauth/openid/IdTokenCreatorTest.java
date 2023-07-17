@@ -29,7 +29,6 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.TOKEN_S
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.core.IsCollectionContaining.hasItems;
 import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -149,6 +148,7 @@ class IdTokenCreatorTest {
                 userAttributes,
                 nonce,
                 grantType,
+                null,
                 jti);
         excludedClaims = new HashSet<>();
 
@@ -258,6 +258,7 @@ class IdTokenCreatorTest {
                 userAttributes,
                 nonce,
                 grantType,
+                null,
                 jti);
 
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
@@ -286,6 +287,7 @@ class IdTokenCreatorTest {
                 null,
                 nonce,
                 grantType,
+                null,
                 jti);
 
         IdToken idToken = tokenCreator.create(clientDetails, user, userAuthenticationData);
