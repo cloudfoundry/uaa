@@ -283,13 +283,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 generateUniqueTokenId()
         );
 
-        if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
-            // public refresh flow, allowed if access_token before was also without authentiation (claim: client_auth_method=none)
-            if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
-                throw new TokenRevokedException("Refresh without client authentication not allowed.");
-            }
-            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
-        }
+        addAuthenticationMethod(claims, additionalRootClaims, authenticationData);
 
         String accessTokenId = generateUniqueTokenId();
         refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims);
@@ -318,6 +312,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
+    }
+
+    private static void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
+        if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
+            // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none)
+            if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
+                throw new TokenRevokedException("Refresh without client authentication not allowed.");
+            }
+            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+        }
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {

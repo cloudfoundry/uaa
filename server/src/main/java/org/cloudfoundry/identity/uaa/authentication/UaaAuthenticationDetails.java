@@ -139,7 +139,7 @@ public class UaaAuthenticationDetails implements Serializable {
     }
 
     public Map<String, String[]> getParameterMap() {
-        return new HashMap<>(parameterMap);
+        return parameterMap != null ? new HashMap<>(parameterMap) : null;
     }
 
     @JsonIgnore
