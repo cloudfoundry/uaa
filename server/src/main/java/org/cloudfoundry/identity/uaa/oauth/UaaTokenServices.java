@@ -314,6 +314,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
     }
 
+    private static String getAuthenticationMethod(OAuth2Request oAuth2Request) {
+        return ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null);
+    }
+
     private static void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
         if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
             // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none)
@@ -322,6 +326,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
             addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
         }
+    }
+
+    private Map<String, Object> addAuthenticationMethod(Map<String, Object> additionalRootClaims, String clientAuthentication) {
+        if (clientAuthentication != null && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
+        }
+        return additionalRootClaims;
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
@@ -613,10 +624,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             additionalRootClaims = new HashMap<>(uaaTokenEnhancer.enhance(emptyMap(), authentication));
         }
 
-        String clientAuthentication = ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null);
-        if (clientAuthentication != null && refreshTokenCreator.shouldRotateRefreshTokens()) {
-            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
-        }
+        String clientAuthentication = getAuthenticationMethod(oAuth2Request);
+        additionalRootClaims = addAuthenticationMethod(additionalRootClaims, clientAuthentication);
 
         CompositeExpiringOAuth2RefreshToken refreshToken = null;
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
