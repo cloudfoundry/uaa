@@ -1,5 +1,8 @@
 servlet:
   session-store: database
+  session-cookie:
+    encode-base64: true
+
 
 encryption:
   active_key_label: CHANGE-THIS-KEY
