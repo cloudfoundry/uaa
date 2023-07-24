@@ -29,13 +29,15 @@ public class UaaSessionConfig {
 
     @Bean
     public CookieSerializer uaaCookieSerializer(
-            final @Value("${servlet.session-cookie.max-age:-1}") int cookieMaxAge
+        final @Value("${servlet.session-cookie.max-age:-1}") int cookieMaxAge,
+        final @Value("${servlet.session-cookie.encode-base64:true}") boolean useBase64Encoding
     ) {
         DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
         cookieSerializer.setSameSite("None");
         cookieSerializer.setUseSecureCookie(true);
         cookieSerializer.setCookieMaxAge(cookieMaxAge);
         cookieSerializer.setCookieName("JSESSIONID");
+        cookieSerializer.setUseBase64Encoding(useBase64Encoding);
 
         return cookieSerializer;
     }
