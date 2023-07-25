@@ -560,8 +560,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
                 fieldWithPath("config.jwtClientAuthentication").optional(null).type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
-                    "<br>Please note that you can precise the created JWT for client authentication, e.g. if your IdP follows OAuth2 standard RFC 7523. If sub-parameter is not set, default is used, see" +
-                    "<ul><li>    `kid` <small><mark>UAA 76.18.0</mark></small>Custom key from your defined keys, default activeKeyId </li>" +
+                    "<br>Please note that you can precise the created JWT for client authentication, e.g. if your IdP follows OAuth2 standard RFC 7523. If sub-parameter is not set, default for OIDC standard is used, see" +
+                    "<ul><li>    `kid` <small><mark>UAA 76.18.0</mark></small> Custom key from your defined keys, default activeKeyId </li>" +
                     "<li>        `iss` Custom issuer, see RFC 7523, default relyingPartyId </li>" +
                     "<li>        `aud` Custom audience, see RFC 7523, default tokenUrl </li></ul>"),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
