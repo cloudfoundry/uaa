@@ -55,6 +55,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
@@ -280,7 +281,7 @@ class UaaTokenServicesTests {
                     false,
                     new Date(),
                     null,
-                    null
+                    Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE)
             );
             UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName("admin", "uaa");
             refreshToken = refreshTokenCreator.createRefreshToken(uaaUser, refreshTokenRequestData, null);
@@ -289,12 +290,12 @@ class UaaTokenServicesTests {
             SecurityContextHolder.getContext().setAuthentication(authentication);
             OAuth2Request auth2Request = mock(OAuth2Request.class);
             when(authentication.getOAuth2Request()).thenReturn(auth2Request);
-            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, "none"));
+            when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
             assertThat(refreshedToken, is(notNullValue()));
             Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue());
-            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, "none"));
+            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
         }
 
         @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#dates")

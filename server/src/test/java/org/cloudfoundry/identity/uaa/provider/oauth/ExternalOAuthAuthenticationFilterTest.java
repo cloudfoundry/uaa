@@ -214,6 +214,8 @@ class ExternalOAuthAuthenticationFilterTest {
 
     private HttpServletRequest mockRedirectRequest(boolean includeSession, String origin, Consumer<HttpServletRequest> config) {
         HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+        when(mockRequest.getContextPath()).thenReturn("/uaa");
+        when(mockRequest.getRequestURI()).thenReturn("/uaa/login/callback/" + origin);
         when(mockRequest.getServletPath()).thenReturn("login/callback/" + origin);
         when(mockRequest.getRequestURL()).thenReturn(new StringBuffer("http://localhost/uaa/login/callback/" + origin));
 

@@ -62,6 +62,8 @@ public class UaaAuthenticationTestFactory {
 
             when(req.getParameter("client_id")).thenReturn(name);
             when(req.getParameter(UaaAuthenticationDetails.ADD_NEW)).thenReturn(String.valueOf(addNew));
+            when(req.getContextPath()).thenReturn("");
+            when(req.getRequestURI()).thenReturn("");
             details = new UaaAuthenticationDetails(req);
         }
         return new AuthzAuthenticationRequest(name, "password", details);
