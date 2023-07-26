@@ -65,7 +65,9 @@ class JwtClientAuthenticationTest {
     // Then
     assertTrue(params.containsKey("client_assertion"));
     assertTrue(params.containsKey("client_assertion_type"));
-    JWSHeader header = validateClientAssertionOidcComplaint((String) params.get("client_assertion").get(0));
+    String clientAssertion = (String) params.get("client_assertion").get(0);
+    validateClientAssertionOidcComplaint(clientAssertion);
+    JWSHeader header = getJwtHeader(clientAssertion);
     assertEquals(KEY_ID, header.getKeyID());
   }
 
@@ -158,7 +160,9 @@ class JwtClientAuthenticationTest {
     // Then
     assertTrue(params.containsKey("client_assertion"));
     assertTrue(params.containsKey("client_assertion_type"));
-    JWSHeader header = validateClientAssertionOidcComplaint((String) params.get("client_assertion").get(0));
+    String clientAssertion = (String) params.get("client_assertion").get(0);
+    validateClientAssertionOidcComplaint(clientAssertion);
+    JWSHeader header = getJwtHeader(clientAssertion);
     assertEquals("myKey", header.getKeyID());
     assertNull(header.getJWKURL());
   }
@@ -176,8 +180,9 @@ class JwtClientAuthenticationTest {
     // Then
     assertTrue(params.containsKey("client_assertion"));
     assertTrue(params.containsKey("client_assertion_type"));
-    validateClientAssertionOidcComplaint((String) params.get("client_assertion").get(0));
-    JWSHeader header = validateClientAssertionOidcComplaint((String) params.get("client_assertion").get(0));
+    String clientAssertion = (String) params.get("client_assertion").get(0);
+    validateClientAssertionOidcComplaint(clientAssertion);
+    JWSHeader header = getJwtHeader(clientAssertion);
     assertEquals("myKey", header.getKeyID());
     assertNotNull(header.getJWKURL());
     assertEquals("http://localhost:8080/uaa/token_key", header.getJWKURL().toString());
@@ -205,13 +210,16 @@ class JwtClientAuthenticationTest {
     when(signer.sign(any())).thenReturn("dummy".getBytes());
   }
 
-  private static JWSHeader validateClientAssertionOidcComplaint(String clientAssertion) throws ParseException {
-    JWT jwt = JWTParser.parse(clientAssertion);
-    JWTClaimsSet jwtClaimsSet = jwt.getJWTClaimsSet();
+  private static JWSHeader getJwtHeader(String jwtString) throws ParseException {
+    JWT jwt = JWTParser.parse(jwtString);
+    return (JWSHeader) jwt.getHeader();
+  }
+
+  private static void validateClientAssertionOidcComplaint(String clientAssertion) throws ParseException {
+    JWTClaimsSet jwtClaimsSet = JWTParser.parse(clientAssertion).getJWTClaimsSet();
     assertEquals(Collections.singletonList("http://localhost:8080/uaa/oauth/token"), jwtClaimsSet.getAudience());
     assertEquals("identity", jwtClaimsSet.getSubject());
     assertEquals("identity", jwtClaimsSet.getIssuer());
-    return (JWSHeader) jwt.getHeader();
   }
 
   private static void validateClientAssertionRfc7523Complaint(String clientAssertion, String iss, String aud) throws ParseException {
