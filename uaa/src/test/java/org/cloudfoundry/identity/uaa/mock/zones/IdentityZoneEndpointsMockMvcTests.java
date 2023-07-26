@@ -63,7 +63,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -2258,7 +2257,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals(id.toLowerCase(), zone.getSubdomain());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenRotate());
-        assertEquals(JWT.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertEquals(OPAQUE.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
 
         //validate that default groups got created

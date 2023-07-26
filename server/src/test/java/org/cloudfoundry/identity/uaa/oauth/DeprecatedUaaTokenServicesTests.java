@@ -706,6 +706,7 @@ public class DeprecatedUaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenRefreshGrant_with_an_old_refresh_token_format_containing_scopes_claim() {
         //Given
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
         String refreshTokenJwt = accessToken.getRefreshToken().getValue();
 
@@ -1879,6 +1880,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void createRefreshToken_JwtDoesNotContainScopeClaim() {
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
         Map<String, String> authzParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         authzParameters.put(GRANT_TYPE, GRANT_TYPE_PASSWORD);
