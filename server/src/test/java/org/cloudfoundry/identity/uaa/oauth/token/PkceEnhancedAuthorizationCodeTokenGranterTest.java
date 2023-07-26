@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAATest.CLIENT_ID;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -92,7 +93,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
   @Test
   void getOAuth2AuthenticationMethod() throws PkceValidationException {
     HashMap authMap = new HashMap();
-    authMap.put(ClaimConstants.CLIENT_AUTH_METHOD, "none");
+    authMap.put(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE);
     when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);
     when(oAuth2Request.getExtensions()).thenReturn(authMap);
     when(oAuth2Request.createOAuth2Request(any())).thenReturn(oAuth2Request);

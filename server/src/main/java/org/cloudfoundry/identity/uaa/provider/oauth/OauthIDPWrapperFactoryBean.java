@@ -26,6 +26,7 @@ import java.net.URL;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -142,9 +143,17 @@ public class OauthIDPWrapperFactoryBean {
         }
         String discoveryUrl = (String) idpDefinitionMap.get("discoveryUrl");
         try {
-            if (hasText(discoveryUrl) && idpDefinition instanceof OIDCIdentityProviderDefinition) {
-                ((OIDCIdentityProviderDefinition) idpDefinition).setDiscoveryUrl(new URL(discoveryUrl));
-            } else {
+            OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = null;
+            if (idpDefinition instanceof OIDCIdentityProviderDefinition) {
+                oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) idpDefinition;
+                oidcIdentityProviderDefinition.setAdditionalAuthzParameters(parseAdditionalParameters(idpDefinitionMap));
+
+                if (hasText(discoveryUrl)) {
+                    oidcIdentityProviderDefinition.setDiscoveryUrl(new URL(discoveryUrl));
+                }
+            }
+
+            if (oidcIdentityProviderDefinition == null || !hasText(discoveryUrl)) {
                 idpDefinition.setAuthUrl(new URL((String) idpDefinitionMap.get("authUrl")));
                 idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String) idpDefinitionMap.get("tokenKeyUrl")));
                 idpDefinition.setTokenUrl(new URL((String) idpDefinitionMap.get("tokenUrl")));
@@ -157,6 +166,29 @@ public class OauthIDPWrapperFactoryBean {
         if (idpDefinitionMap.get("clientAuthInBody") instanceof Boolean) {
             idpDefinition.setClientAuthInBody((boolean)idpDefinitionMap.get("clientAuthInBody"));
         }
+    }
+
+    private static Map<String, String> parseAdditionalParameters(Map<String, Object> idpDefinitionMap) {
+        Map<String, Object> additionalParameters = (Map<String, Object>) idpDefinitionMap.get("additionalAuthzParameters");
+        if (additionalParameters != null) {
+            Map<String,String> additionalQueryParameters = new HashMap<>();
+            for (Map.Entry<String, Object> entry : additionalParameters.entrySet()) {
+                String keyEntry = entry.getKey().toLowerCase(Locale.ROOT);
+                String value = null;
+                if (entry.getValue() instanceof Integer) {
+                    value = String.valueOf(entry.getValue());
+                } else if (entry.getValue() instanceof String) {
+                    value = (String) entry.getValue();
+                }
+                // accept only custom parameters, filter out standard parameters
+                if (value == null || ExternalOAuthIdentityProviderConfigValidator.isOAuthStandardParameter(keyEntry)) {
+                    continue;
+                }
+                additionalQueryParameters.put(entry.getKey(), value);
+            }
+            return additionalQueryParameters;
+        }
+        return null;
     }
 
     /* parse with null check because default should be null */

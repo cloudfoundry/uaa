@@ -123,6 +123,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ACCESS_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -282,6 +283,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 generateUniqueTokenId()
         );
 
+        addAuthenticationMethod(claims, additionalRootClaims, authenticationData);
+
         String accessTokenId = generateUniqueTokenId();
         refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims);
         CompositeToken compositeToken =
@@ -309,6 +312,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
+    }
+
+    private static String getAuthenticationMethod(OAuth2Request oAuth2Request) {
+        return ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null);
+    }
+
+    private static void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
+        if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
+            // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none)
+            if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
+                throw new TokenRevokedException("Refresh without client authentication not allowed.");
+            }
+            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+        }
+    }
+
+    private Map<String, Object> addAuthenticationMethod(Map<String, Object> additionalRootClaims, String clientAuthentication) {
+        if (clientAuthentication != null && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
+        }
+        return additionalRootClaims;
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
@@ -415,11 +439,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         info.put(JTI, compositeToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
-        }
-
-        String clientAuthentication = userAuthenticationData.clientAuth;
-        if (clientAuthentication != null) {
-            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
         }
 
         String nonce = userAuthenticationData.nonce;
@@ -605,6 +624,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             additionalRootClaims = new HashMap<>(uaaTokenEnhancer.enhance(emptyMap(), authentication));
         }
 
+        String clientAuthentication = getAuthenticationMethod(oAuth2Request);
+        additionalRootClaims = addAuthenticationMethod(additionalRootClaims, clientAuthentication);
+
         CompositeExpiringOAuth2RefreshToken refreshToken = null;
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
@@ -649,7 +671,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 nonce,
                 grantType,
-                ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null),
+                clientAuthentication,
                 tokenId);
 
         String refreshTokenValue = refreshToken != null ? refreshToken.getValue() : null;
