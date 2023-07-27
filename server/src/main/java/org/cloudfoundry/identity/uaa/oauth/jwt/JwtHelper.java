@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jose.util.X509CertUtils;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.jwt.BinaryFormat;
@@ -11,8 +10,6 @@ import java.nio.CharBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateExpiredException;
-import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 
 import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
@@ -63,10 +60,10 @@ public class JwtHelper {
         return new JwtImpl(header, claims, crypto);
     }
 
-    public static Jwt encodePlusX5t(CharSequence content, KeyInfo keyInfo, String x509Certificate) {
+    public static Jwt encodePlusX5t(CharSequence content, KeyInfo keyInfo, X509Certificate x509Certificate) {
         JwtHeader header;
         HeaderParameters headerParameters = new HeaderParameters(keyInfo.algorithm(), keyInfo.keyId(), null);
-        headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(X509CertUtils.parse(x509Certificate)), "SHA-1"));
+        headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(x509Certificate), "SHA-1"));
         header = JwtHeaderHelper.create(headerParameters);
         return createJwt(content, keyInfo, header);
     }
@@ -86,9 +83,8 @@ public class JwtHelper {
 
     public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
         try {
-            x509Certificate.checkValidity();
             return x509Certificate.getEncoded();
-        } catch (RuntimeException | CertificateEncodingException | CertificateExpiredException | CertificateNotYetValidException e) {
+        } catch (RuntimeException | CertificateEncodingException e) {
             throw new IllegalArgumentException(e);
         }
     }

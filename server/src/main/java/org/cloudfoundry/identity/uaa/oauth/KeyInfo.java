@@ -24,6 +24,8 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.security.cert.CertificateExpiredException;
+import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.ECPublicKey;
 import java.security.interfaces.RSAPrivateKey;
@@ -44,7 +46,7 @@ public class KeyInfo {
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
-    private final Optional<String> verifierCertificate;
+    private final Optional<X509Certificate> verifierCertificate;
     private final JsonWebKey.KeyType type;
     private final JWK jwk;
 
@@ -81,7 +83,7 @@ public class KeyInfo {
             } catch (JOSEException e) {
                 throw new IllegalArgumentException(e);
             }
-            this.verifierCertificate = Optional.ofNullable(signingCert);
+            this.verifierCertificate = getValidX509Certificate(signingCert);
             this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic()).orElse(null);
         } else {
             jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
@@ -119,7 +121,7 @@ public class KeyInfo {
         return this.verifierKey;
     }
 
-    public Optional<String> verifierCertificate() {
+    public Optional<X509Certificate> verifierCertificate() {
         return this.verifierCertificate;
     }
 
@@ -133,7 +135,7 @@ public class KeyInfo {
         if (this.isAsymmetric) {
             // X509 releated values from JWK spec
             if (this.verifierCertificate.isPresent()) {
-                X509Certificate x509Certificate = X509CertUtils.parse(verifierCertificate.get());
+                X509Certificate x509Certificate = verifierCertificate.get();
                 if (x509Certificate != null) {
                     byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
                     result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
@@ -177,5 +179,18 @@ public class KeyInfo {
 
     private static boolean isAsymmetric(String key) {
         return key.startsWith("-----BEGIN");
+    }
+
+    private Optional<X509Certificate> getValidX509Certificate(String pemEncoded) {
+        try {
+            if (pemEncoded == null && isAsymmetric(pemEncoded)) {
+                return Optional.empty();
+            }
+            X509Certificate x509Certificate = X509CertUtils.parse(pemEncoded);
+            x509Certificate.checkValidity();
+            return Optional.of(x509Certificate);
+        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) {
+            return Optional.empty();
+        }
     }
 }
