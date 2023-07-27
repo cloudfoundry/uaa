@@ -183,14 +183,12 @@ public class KeyInfo {
 
     private Optional<X509Certificate> getValidX509Certificate(String pemEncoded) {
         try {
-            if (pemEncoded == null && isAsymmetric(pemEncoded)) {
-                return Optional.empty();
+            if (pemEncoded != null && isAsymmetric(pemEncoded)) {
+                X509Certificate x509Certificate = X509CertUtils.parse(pemEncoded);
+                x509Certificate.checkValidity();
+                return Optional.of(x509Certificate);
             }
-            X509Certificate x509Certificate = X509CertUtils.parse(pemEncoded);
-            x509Certificate.checkValidity();
-            return Optional.of(x509Certificate);
-        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) {
-            return Optional.empty();
-        }
+        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) { } // ignore
+        return Optional.empty();
     }
 }

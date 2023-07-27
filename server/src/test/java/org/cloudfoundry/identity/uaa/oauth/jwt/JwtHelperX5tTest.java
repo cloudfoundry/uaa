@@ -42,9 +42,9 @@ public class JwtHelperX5tTest {
 
   @Test
   public void jwtKeysMustNotContainX5t() {
-    Map<String, Object> keys = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256", "test")
+    Map<String, Object> tokenKey = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256", "test")
         .getJwkMap();
-    assertNull(keys.get("x5t"));
+    validateThatNoX509InformationInMap(tokenKey);
   }
 
   @Test
@@ -68,6 +68,16 @@ public class JwtHelperX5tTest {
   public void jwtKeysShouldIgnoreExpiredCertificatesAndNotContainX5t() {
     Map<String, Object> tokenKey = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256",
             EXPIRED_CERTIFICATE_1).getJwkMap();
+    validateThatNoX509InformationInMap(tokenKey);
+  }
+
+  @Test
+  public void jwtKeysShouldIgnoreNullCertificatesAndNotContainX5t() {
+    Map<String, Object> tokenKey = KeyInfoBuilder.build("testKid", SIGNING_KEY_1, "http://localhost/uaa", "RS256", null).getJwkMap();
+    validateThatNoX509InformationInMap(tokenKey);
+  }
+
+  private static void validateThatNoX509InformationInMap(Map<String, Object> tokenKey) {
     assertNull(tokenKey.get("x5t"));
     assertNull(tokenKey.get("x5c"));
     assertNotNull(tokenKey.get("value"));
