@@ -78,7 +78,7 @@ import static org.mockito.Mockito.when;
 
 @DisplayName("Uaa Token Services Tests")
 @DefaultTestContext
-@TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa"})
+@TestPropertySource(properties = {"uaa.url=https://uaa.some.test.domain.com:555/uaa", "jwt.token.refresh.format=jwt"})
 class UaaTokenServicesTests {
     @Autowired
     private UaaTokenServices tokenServices;

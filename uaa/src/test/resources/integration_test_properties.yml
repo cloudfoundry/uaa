@@ -45,7 +45,11 @@ jwt:
       HYeZSkMuQDYHcaO9xtYP3QdhD+nLXbNrCxaSSaSX8tS4BjdcSH1yMyLFg5OqiJYg
       wYFiptyKFm5QqFhFTY+20aE=
       -----END PRIVATE KEY-----
-
+    revocable: false
+    refresh:
+      format: opaque
+      rotate: false
+      unique: false
 login:
   serviceProviderKey: |
     -----BEGIN RSA PRIVATE KEY-----
