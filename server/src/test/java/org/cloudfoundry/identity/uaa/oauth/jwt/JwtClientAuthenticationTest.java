@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.util.X509CertUtils;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
@@ -198,7 +199,7 @@ class JwtClientAuthenticationTest {
       when(customKeyInfo.algorithm()).thenReturn("RS256");
       when(customKeyInfo.keyURL()).thenReturn("http://localhost:8080/uaa/token_key");
       when(customKeyInfo.getSigner()).thenReturn(signer);
-      when(customKeyInfo.verifierCertificate()).thenReturn(x509Certificate != null ? Optional.of(x509Certificate): Optional.empty());
+      when(customKeyInfo.verifierCertificate()).thenReturn(x509Certificate != null ? Optional.of(X509CertUtils.parse(x509Certificate)): Optional.empty());
     }
     when(keyInfo.keyId()).thenReturn(KEY_ID);
     when(keyInfoService.getKey(KEY_ID)).thenReturn(keyInfo);
@@ -206,7 +207,7 @@ class JwtClientAuthenticationTest {
     when(keyInfo.algorithm()).thenReturn("RS256");
     when(keyInfo.keyURL()).thenReturn("http://localhost:8080/uaa/token_key");
     when(keyInfo.getSigner()).thenReturn(signer);
-    when(keyInfo.verifierCertificate()).thenReturn(x509Certificate != null ? Optional.of(x509Certificate): Optional.of(JwtHelperX5tTest.CERTIFICATE_1));
+    when(keyInfo.verifierCertificate()).thenReturn(x509Certificate != null ? Optional.of(X509CertUtils.parse(x509Certificate)): Optional.of(X509CertUtils.parse(JwtHelperX5tTest.CERTIFICATE_1)));
     when(signer.sign(any())).thenReturn("dummy".getBytes());
   }
 
