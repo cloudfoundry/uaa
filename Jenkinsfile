@@ -4,10 +4,16 @@ def buildGeArtServer = Artifactory.server('build.ge')
 @Library(['PPCmanifest','security-ci-commons-shared-lib']) _
 def NODE = nodeDetails("uaa-upgrade")
 
-pipeline {
+def imagePath
+def repoName
+def artifactVersion
+
+pipeline 
+{
     agent none
     environment {
         COMPLIANCEENABLED = true
+        GRID_ARTIFACTORY_URL = "dig-grid-artifactory.apps.ge.com"
     }
     options {
         timestamps()
@@ -22,10 +28,9 @@ pipeline {
         booleanParam(name: 'PUSH_TO_BUILD_GE', defaultValue: false, description: 'Publish to build artifactory')
         string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
                         description: 'uaa-cf-release repo branch to use for testing/deployment')
-        booleanParam(name: 'TRIGGER_GESOS_IMAGE_BUILD', defaultValue: false,
-                                description: 'If enabled, triggers a GE SOS image build (needs corresponding branch in iam-container-config repo)')
     }
-    stages {
+    stages 
+    {
         stage('Build and run Tests') {
             parallel {
                 stage ('Checkout & Build') {
@@ -471,34 +476,120 @@ pipeline {
                 }
             }
         }
-    }
-    post {
-        success {
-            echo 'UAA pipeline was successful. Sending notification!'
-
-            // Trigger GE SOS build job for uaa image build
-            script {
-                if (params.TRIGGER_GESOS_IMAGE_BUILD && (BRANCH_NAME.matches('rc_[\\d.]+') || BRANCH_NAME.matches('release_[\\d.]+'))) {
-                    imageTag = BRANCH_NAME
-                    ecrEnvironment = 'dev'
-                    if (imageTag.matches('release_[\\d.]+')) {
-                        imageTag = imageTag.replaceAll('release_', '')
-                        ecrEnvironment = 'stage'
+        stage('UAA - Docker Image Creation & Push to Artifactory')
+        {
+            when
+            {
+                beforeAgent true
+                expression { BRANCH_NAME.contains("release_") || BRANCH_NAME.contains("rc_") }
+            }
+            agent
+            {
+                docker 
+                {
+                    image "${NODE['IMAGE']}"
+                    label "${NODE['LABEL']}"
+                    // Mount gradle home directory from host to cache downloaded dependencies
+                    // Mount docker socket from host to use for creating UAA container
+                    args '-v /var/lib/docker/.gradle:/root/.gradle -v /var/run/docker.sock:/var/run/docker.sock --add-host "localhost":127.0.0.1'
+                }
+            }   
+            stages
+            {
+                stage('Checkout Dockerfile Repository')
+                {
+                    steps
+                        {
+                            dir('iam-container-config')
+                            {
+                                // Check out repo with Dockerfiles and build/publish script
+                                git changelog: false,
+                                    credentialsId: 'github.build.ge.com',
+                                    poll: false,
+                                    url: 'https://github.build.ge.com/predix/iam-container-config.git',
+                                    branch: 'master'
+                            }
+                        }
+                }
+                stage('Install Docker CLI')
+                {
+                    steps
+                    {
+                        sh """
+                        apt-get update
+                        apt-get install -y docker-ce-cli
+                        """
                     }
-            	    build job: JOB_NAME.replaceAll('/Build n Test/', '/GE SOS Build/'),
-                    propagate: false,
-                    wait: false,
-                    parameters: [
-                        string(name: 'ECR_ENVIRONMENT', value: ecrEnvironment),
-                        string(name: 'IAM_CONTAINER_CONFIG_BRANCH_NAME', value: BRANCH_NAME),
-                        string(name: 'IMAGE_TAG', value: imageTag)
-                    ]
-            	}
+                }
+                stage('Calculate image tag')
+                {
+                    steps
+                    {
+                        script
+                        {
+                            if (BRANCH_NAME.contains('release'))
+                            {   
+                                repoName = "pgog-fss-iam-uaa-docker-stage"
+                                artifactVersion = BRANCH_NAME.replaceAll('release_','')
+                                imagePath = "${env.GRID_ARTIFACTORY_URL}/${repoName}/uaa:${artifactVersion}"
+                            }
+                            else
+                            {   
+                                repoName = "pgog-fss-iam-uaa-docker-snapshot"
+                                artifactVersion = BRANCH_NAME
+                                imagePath = "${env.GRID_ARTIFACTORY_URL}/${repoName}/uaa:${artifactVersion}-${BUILD_NUMBER}"
+                            }
+                        }
+                    }
+                }
+                stage('Build Image')
+                {
+                    steps
+                    {
+                        dir('build') 
+                        {
+                            unstash 'uaa-war'
+                        }
+                        
+                        sh """
+                            cp build/cloudfoundry-identity-uaa-*.war iam-container-config/uaa/cloudfoundry-identity-uaa.war
+                            cd iam-container-config/uaa/
+                            docker build --no-cache -t uaa:${artifactVersion} -f Dockerfile .
+                            docker images
+                        """
+                    }
+                }
+                stage('Push image')
+                {
+                    steps
+                    {
+                        echo "UAA Image Path: ${imagePath}"
+
+                        sh """
+                            docker tag uaa:${artifactVersion} ${imagePath}
+                            docker images
+                        """
+
+                        rtDockerPush(
+                            serverId: "Digital-Artifactory",
+                            image: "${imagePath}",
+                            targetRepo: 'docker-remote'
+
+                        )
+                    }
+                }
             }
         }
-        failure {
+    }
+    post 
+    {
+        success 
+        {
+            echo 'UAA pipeline was successful. Sending notification!'
+        }
+        failure 
+        {
             echo "UAA pipeline failed. Sending notification!"
         }
     }
-
 }

@@ -4,7 +4,8 @@ def buildGeArtServer = Artifactory.server('build.ge')
 library "security-ci-commons-shared-lib"
 def NODE = nodeDetails("uaa-upgrade")
 
-pipeline {
+pipeline 
+{
     agent none
     environment {
         COMPLIANCEENABLED = true
@@ -15,161 +16,242 @@ pipeline {
         buildDiscarder(logRotator(artifactNumToKeepStr: '30', numToKeepStr: '30'))
     }
     parameters  {
-        choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-integration\nvpc\neu-central\ngovw\nperf-cf3', description: 'This specifies which point of presence to deploy to')
+        choice(name: 'DEPLOYMENT_TYPE', choices:'cf3-release-candidate\ncf3-staging\ncf3-integration\nvpc\neu-central\ngovw\nperf-cf3\nint\nstage\nqa', description: 'This specifies which point of presence to deploy to')
+        booleanParam(name: 'DEPLOY_CF', defaultValue: false, description: 'Determines whether to deploy changes to CF environment.')
+
         booleanParam(name: 'MAP_ROUTES_TO_DEPLOYED_APP', defaultValue: true, description: 'Determines if the published routes are mapped to the newly deployed app. Defaults to true.')
         booleanParam(name: 'RUN_FULL_ACCEPTANCE_TESTS', defaultValue: true, description: 'Determines whether to run the full acceptance test suite against the freshly deployed UAA. If left unchecked, it will run at least the basic acceptance tests.')
         string(name: 'UAA_CI_CONFIG_BRANCH', defaultValue: 'master',
                 description: 'uaa-cf-release repo branch to use for testing/deployment')
+        booleanParam(name: 'DEPLOY_EKS', defaultValue: false, description: 'Determines whether to update GitOps repository to deploy changes to EKS.')
+        string(name: 'IMAGE_TAG', defaultValue: '',
+                description: 'Grid Artifactory image tag pushed from Build Pipeline')        
     }
-    stages{
-        stage('Deploy') {
-            agent{
-                docker {
-                    image "${NODE['IMAGE']}"
-                    label "${NODE['LABEL']}"
-                    args "${NODE['ARGS']}"
-                }
+    stages
+    {
+        stage('CF Deploy')
+        {
+            when 
+            {
+                beforeAgent true
+                expression { params.DEPLOY_CF == true }
             }
-            environment {
-                CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
-                ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
-                SPLUNK_OTEL_ACCESS_TOKEN = credentials("SPLUNK_OTEL_ACCESS_TOKEN")
-            }
-            steps {
-                dir('uaa') {
-                    checkout scm
+            stages
+            {
+                stage('Deploy') 
+                {
+                    agent{
+                        docker {
+                            image "${NODE['IMAGE']}"
+                            label "${NODE['LABEL']}"
+                            args "${NODE['ARGS']}"
+                        }
+                    }
+                    environment {
+                        CF_CREDENTIALS = credentials("CF_CREDENTIALS_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                        ADMIN_CLIENT_SECRET = credentials("ADMIN_CLIENT_SECRET_${DEPLOYMENT_TYPE.toUpperCase().replaceAll('-','_')}")
+                        SPLUNK_OTEL_ACCESS_TOKEN = credentials("SPLUNK_OTEL_ACCESS_TOKEN")
+                    }
+                    steps {
+                        dir('uaa') {
+                            checkout scm
+                        }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                        }
+                        script {
+                            def util = load('uaa/JenkinsfileCommon.groovy')
+                            ARTIFACTORY_PATH = util.getArtifactoryPath()
+                            WAR_FILE_NAME = util.getWarFileName()
+                            def downloadSpec = """{
+                                "files": [
+                                    {
+                                        "target": "deploy-workspace/",
+                                        "flat": "true",
+                                        "pattern": "${ARTIFACTORY_PATH}/*.war"
+                                    }
+                                ]
+                            }"""
+
+                            echo "Downloading ${WAR_FILE_NAME} from ${ARTIFACTORY_PATH}"
+                            buildGeArtServer.download(downloadSpec)
+                            // NOTE: ci-deploy.sh depends on deploy-workspace/${WAR_FILE_NAME} location and file name format
+                            // So make sure it is what got downloaded.
+                            sh """
+                                ls -l "deploy-workspace/${WAR_FILE_NAME}" || \
+                                (echo "${WAR_FILE_NAME} not found!" && ls -l deploy-workspace && exit 1)
+                            """
+                        }
+
+                        dir('deploy-workspace') {
+                            stash includes: '*.war', name: 'uaa-war'
+                        }
+
+                        dir('uaa-cf-release') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
+                                branch: params.UAA_CI_CONFIG_BRANCH
+                        }
+                        sh '''#!/bin/bash -ex
+
+                        source uaa/scripts/setup-tests.sh
+
+                        export CF_USERNAME=$CF_CREDENTIALS_USR
+                        export CF_PASSWORD=$CF_CREDENTIALS_PSW
+                        export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
+                        echo "APP_VERSION is:$APP_VERSION"
+                        export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
+                        source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
+                        unset_env
+
+                        export JRE_VERSION="{ jre: { version: 11.+ }}"
+
+                        pushd uaa-cf-release
+                            source combine-inline-config.sh
+                            echo "$UAA_CONFIG_YAML"
+                            echo "$APP_NAME"
+                            export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
+                            cf -v
+                            ruby -v
+                            ./ci_deploy.sh
+
+                            # run service broker acceptance tests
+                            if [ $DEPLOYMENT_TYPE != 'cf3-release-candidate' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'cf3-integration' ]; then
+                                ./uaa-sb-acceptance-tests.sh
+                            fi
+                        popd
+                        touch uaa-release.properties
+                        echo "DEPLOYMENT_TYPE:$DEPLOYMENT_TYPE" >> uaa-release.properties
+                        echo "UAA_CF_RELEASE_COMMIT_HASH:$UAA_CONFIG_COMMIT" >> uaa-release.properties
+                        echo "UAA_APP_VERSION:$APP_VERSION" >> uaa-release.properties
+                        '''
+                        stash includes: 'uaa-release.properties', name:'uaa-release.properties'
+                    }
+                    post
+                    {
+                        always {
+                            junit testResults: 'uaa/uaa/build/test-results/**/*.xml', allowEmptyResults: true
+                            publishHTML target: [
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'uaa/uaa/build/reports/tests/acceptanceTest',
+                                reportFiles: 'index.html',
+                                reportName: 'Acceptance Test Results'
+                            ]
+                            publishHTML target: [
+                                allowMissing: true,
+                                alwaysLinkToLastBuild: true,
+                                keepAll: true,
+                                reportDir: 'uaa/build/reports/jacoco/jacocoRootReportAcceptanceTest/html',
+                                reportFiles: 'index.html',
+                                reportName: 'Acceptance Test Code Coverage'
+                            ]
+                        }
+                    }
                 }
-                dir('uaa/iam-k8s-utils') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
-                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
-                }
-                script {
-                    def util = load('uaa/JenkinsfileCommon.groovy')
-                    ARTIFACTORY_PATH = util.getArtifactoryPath()
-                    WAR_FILE_NAME = util.getWarFileName()
-                    def downloadSpec = """{
-                        "files": [
-                            {
-                                "target": "deploy-workspace/",
-                                "flat": "true",
-                                "pattern": "${ARTIFACTORY_PATH}/*.war"
-                            }
-                        ]
-                    }"""
+                stage('Upload UAA Artifact upon successful deploy of staging artifact') 
+                {
+                    when {
+                        beforeAgent true
+                        expression { params.DEPLOYMENT_TYPE == 'cf3-staging' }
+                    }
+                    agent {
+                        label 'dind'
+                    }
+                    steps{
+                        dir('deploy-workspace') {
+                            unstash 'uaa-war'
+                        }
 
-                    echo "Downloading ${WAR_FILE_NAME} from ${ARTIFACTORY_PATH}"
-                    buildGeArtServer.download(downloadSpec)
-                    // NOTE: ci-deploy.sh depends on deploy-workspace/${WAR_FILE_NAME} location and file name format
-                    // So make sure it is what got downloaded.
-                    sh """
-                        ls -l "deploy-workspace/${WAR_FILE_NAME}" || \
-                          (echo "${WAR_FILE_NAME} not found!" && ls -l deploy-workspace && exit 1)
-                       """
-                }
+                        dir('uaa') {
+                            checkout scm
+                        }
 
-                dir('deploy-workspace') {
-                    stash includes: '*.war', name: 'uaa-war'
-                }
+                        dir('uaa/iam-k8s-utils') {
+                            git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
+                                url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
+                        }
 
-                dir('uaa-cf-release') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
-                        url: 'https://github.build.ge.com/predix/uaa-cf-release.git',
-                        branch: params.UAA_CI_CONFIG_BRANCH
-                }
-                sh '''#!/bin/bash -ex
-
-                source uaa/scripts/setup-tests.sh
-
-                export CF_USERNAME=$CF_CREDENTIALS_USR
-                export CF_PASSWORD=$CF_CREDENTIALS_PSW
-                export APP_VERSION=`grep 'version' uaa/gradle.properties | sed 's/version=//'`
-                echo "APP_VERSION is:$APP_VERSION"
-                export DEPLOY_BRANCH_SUFFIX=$APP_VERSION
-                source uaa-cf-release/config-${DEPLOYMENT_TYPE}/set-env.sh
-                unset_env
-
-                export JRE_VERSION="{ jre: { version: 11.+ }}"
-
-                pushd uaa-cf-release
-                    source combine-inline-config.sh
-                    echo "$UAA_CONFIG_YAML"
-                    echo "$APP_NAME"
-                    export UAA_CONFIG_COMMIT=`git rev-parse HEAD`
-                    cf -v
-                    ruby -v
-                    ./ci_deploy.sh
-
-                    # run service broker acceptance tests
-                    if [ $DEPLOYMENT_TYPE != 'cf3-release-candidate' -a $DEPLOYMENT_TYPE != 'perf-cf3' -a $DEPLOYMENT_TYPE != 'cf3-integration' ]; then
-                        ./uaa-sb-acceptance-tests.sh
-                    fi
-                popd
-                touch uaa-release.properties
-                echo "DEPLOYMENT_TYPE:$DEPLOYMENT_TYPE" >> uaa-release.properties
-                echo "UAA_CF_RELEASE_COMMIT_HASH:$UAA_CONFIG_COMMIT" >> uaa-release.properties
-                echo "UAA_APP_VERSION:$APP_VERSION" >> uaa-release.properties
-                '''
-                stash includes: 'uaa-release.properties', name:'uaa-release.properties'
-            }
-            post{
-                always {
-                    junit testResults: 'uaa/uaa/build/test-results/**/*.xml', allowEmptyResults: true
-                    publishHTML target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'uaa/uaa/build/reports/tests/acceptanceTest',
-                        reportFiles: 'index.html',
-                        reportName: 'Acceptance Test Results'
-                    ]
-                    publishHTML target: [
-                        allowMissing: true,
-                        alwaysLinkToLastBuild: true,
-                        keepAll: true,
-                        reportDir: 'uaa/build/reports/jacoco/jacocoRootReportAcceptanceTest/html',
-                        reportFiles: 'index.html',
-                        reportName: 'Acceptance Test Code Coverage'
-                    ]
+                        script {
+                            def util = load('uaa/JenkinsfileCommon.groovy')
+                            APP_VERSION = util.getAppVersion()
+                            echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
+                            def uploadSpec = """{
+                                "files": [
+                                    {
+                                        "pattern": "deploy-workspace/cloudfoundry-identity-uaa-${APP_VERSION}.war",
+                                        "target": "MAAXA/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                                    }
+                                ]
+                            }"""
+                            def buildInfo = buildGeArtServer.upload(uploadSpec)
+                            buildGeArtServer.publishBuildInfo(buildInfo)
+                        }
+                    }
                 }
             }
         }
-        stage('Upload UAA Artifact upon successful deploy of staging artifact') {
-            agent {
+        stage('EKS Deploy')
+        {
+            when 
+            {
+                beforeAgent true
+                expression { params.DEPLOY_EKS == true }
+            }
+            agent
+            {
                 label 'dind'
             }
-            when {
-                expression { params.DEPLOYMENT_TYPE == 'cf3-staging' }
-            }
-            steps{
-                dir('deploy-workspace') {
-                    unstash 'uaa-war'
+            stages
+            {
+                stage('Get GitOps Code Repository')
+                {
+                    steps
+                    {
+                        dir('uaa-k8s-deploy')
+                        {
+                            // Check out repo with Dockerfiles and build/publish script
+                            git changelog: false,
+                                    credentialsId: 'github.devtools.predix.io',
+                                    poll: false,
+                                    url: 'https://github.devtools.predix.io/predix-security/uaa-k8s-deploy.git',
+                                    branch: 'master'
+                        }
+                    }
                 }
-
-                dir('uaa') {
-                    checkout scm
-                }
-
-                dir('uaa/iam-k8s-utils') {
-                    git changelog: false, credentialsId: 'github.build.ge.com', poll: false,
-                        url: 'https://github.build.ge.com/predix/iam-k8s-utils.git'
-                }
-
-                script {
-                    def util = load('uaa/JenkinsfileCommon.groovy')
-                    APP_VERSION = util.getAppVersion()
-                    echo "Publishing UAA ${APP_VERSION} Artifact to Artifactory"
-                    def uploadSpec = """{
-                        "files": [
+                stage('Update GitOps Repository')
+                {
+                    steps
+                    {
+                        script
+                        {
+                            sh """
+                            cd uaa-k8s-deploy/uaa/
+                            sed -ri "s/tag:.*/tag: ${params.IMAGE_TAG}/g" values-${params.DEPLOYMENT_TYPE}.yaml
+                            git add values-${params.DEPLOYMENT_TYPE}.yaml
+                            git status
+                            """
+                        } 
+                        
+                        script
+                        {
+                            withCredentials([gitUsernamePassword(credentialsId: 'github.devtools.predix.io',gitToolName: 'git-tool')])
                             {
-                                "pattern": "deploy-workspace/cloudfoundry-identity-uaa-${APP_VERSION}.war",
-                                "target": "MAAXA/org/cloudfoundry/identity/cloudfoundry-identity-uaa/${APP_VERSION}/"
+                                sh """
+                                cd uaa-k8s-deploy
+                                git config user.email "security-services-sr@ge.com"
+                                git config user.name "Security Services Jenkins"
+                                git commit -m  "Image tag updated to ${params.IMAGE_TAG} for ${params.DEPLOYMENT_TYPE} environment to trigger GitOps reconciliation by Jenkins Deploy Job ${BUILD_NUMBER}"
+                                git push origin master
+                                """
                             }
-                        ]
-                    }"""
-                    def buildInfo = buildGeArtServer.upload(uploadSpec)
-                    buildGeArtServer.publishBuildInfo(buildInfo)
+                        }
+                    }    
                 }
-            }
+            }    
         }
-    }
+                
+    }    
 }
