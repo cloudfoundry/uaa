@@ -14,7 +14,7 @@ versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.tomcatCargoVersion = "9.0.78"
 versions.guavaVersion = "32.1.2-jre"
-versions.seleniumVersion = "4.10.0"
+versions.seleniumVersion = "4.11.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
 ext["mariadb.version"] = "2.7.9" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
