@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
@@ -25,7 +26,6 @@ import org.springframework.security.oauth2.common.util.JdbcListFactory;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -284,15 +284,15 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
      */
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-            BaseClientDetails details = new BaseClientDetails(
+            UaaClientDetails details = new UaaClientDetails(
                     rs.getString(1),
+                    rs.getString(2),
                     rs.getString(3),
                     rs.getString(4),
                     rs.getString(5),
                     rs.getString(7),
                     rs.getString(6)
             );
-            details.setClientSecret(rs.getString(2));
             if (rs.getObject(8) != null) {
                 details.setAccessTokenValiditySeconds(rs.getInt(8));
             }
