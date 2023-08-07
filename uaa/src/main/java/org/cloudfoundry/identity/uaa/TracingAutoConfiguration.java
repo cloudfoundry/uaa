@@ -40,8 +40,9 @@ public class TracingAutoConfiguration {
   }
 
   /** Controls aspects of tracing such as the service name that shows up in the UI */
+//          @Value("${brave.localServiceName:${spring.application.name}}") String serviceName,
   @Bean Tracing tracing(
-          @Value("${brave.localServiceName:${spring.application.name}}") String serviceName,
+          @Value("${brave.localServiceName:uaa}") String serviceName,  // TODO: don't hardcode
           @Value("${brave.supportsJoin:true}") boolean supportsJoin,
           @Value("${brave.traceId128Bit:false}") boolean traceId128Bit,
           CurrentTraceContext currentTraceContext) {
@@ -64,8 +65,8 @@ public class TracingAutoConfiguration {
   }
 
   /** Creates server spans for HTTP requests */
-  @Bean Filter tracingFilter(HttpTracing httpTracing) {
-    return TracingFilter.create(httpTracing);
+  @Bean TracingFilter tracingFilter(HttpTracing httpTracing) {
+    return (TracingFilter) TracingFilter.create(httpTracing);
   }
 
   /** Adds MVC Controller tags to server spans */
