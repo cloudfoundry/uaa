@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -56,7 +55,6 @@ public class UserTokenGrantIT {
   final String user_token_id = "oauth_showcase_user_token";
   final String user_token_secret = "secret";
 
-  @Before
   @After
   public void logout_and_clear_cookies() {
     try {
@@ -68,8 +66,10 @@ public class UserTokenGrantIT {
     webDriver.get(appUrl + "/j_spring_security_logout");
     webDriver.manage().deleteAllCookies();
   }
+
   @Test
-  public void testPasswordTokenDoUserTokenGrant() {
+  public void testFlowFromConfidentialClientWithPublicCfClient() {
+    // Create password token from confidential client
     HttpHeaders headers = new HttpHeaders();
     headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
     headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader(user_token_id, user_token_secret));
@@ -82,10 +82,80 @@ public class UserTokenGrantIT {
     ResponseEntity<Map> responseEntity = restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers),
         Map.class);
 
-    Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
     String token = (String)responseEntity.getBody().get("access_token");
 
+    // do password grant flow using public cf client
     String newToken = doUserTokenGrant("cf", token);
+    Assert.assertNotNull(newToken);
+  }
+
+  @Test
+  public void testFlowFromConfidentialClientWithConfidentialClient() {
+    // Create password token from confidential oauth_showcase_user_token client
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader(user_token_id, user_token_secret));
+
+    LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+    postBody.add("grant_type", "password");
+    postBody.add("username", testAccounts.getUserName());
+    postBody.add("password", testAccounts.getPassword());
+
+    ResponseEntity<Map> responseEntity = restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers),
+        Map.class);
+
+    assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    String token = (String)responseEntity.getBody().get("access_token");
+
+    // do password grant flow using confidential oauth_showcase_user_token client
+    String newToken = doUserTokenGrant(user_token_id, token);
+    Assert.assertNotNull(newToken);
+  }
+
+  @Test
+  public void testFlowFromPublicClientWithPublicCfClient() {
+    // Create password token from public client
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("oauth_showcase_user_token_public", ""));
+
+    LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+    postBody.add("grant_type", "password");
+    postBody.add("username", testAccounts.getUserName());
+    postBody.add("password", testAccounts.getPassword());
+
+    ResponseEntity<Map> responseEntity = restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers),
+        Map.class);
+
+    assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    String token = (String)responseEntity.getBody().get("access_token");
+
+    // do password grant flow using public cf client
+    String newToken = doUserTokenGrant("cf", token);
+    Assert.assertNotNull(newToken);
+  }
+
+  @Test
+  public void testFlowFromPublicClientWithConfidentialClient() {
+    // Create password token from public client
+    HttpHeaders headers = new HttpHeaders();
+    headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+    headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("oauth_showcase_user_token_public", ""));
+
+    LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+    postBody.add("grant_type", "password");
+    postBody.add("username", testAccounts.getUserName());
+    postBody.add("password", testAccounts.getPassword());
+
+    ResponseEntity<Map> responseEntity = restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers),
+        Map.class);
+
+    assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    String token = (String)responseEntity.getBody().get("access_token");
+
+    // do password grant flow using confidential oauth_showcase_user_token client
+    String newToken = doUserTokenGrant(user_token_id, token);
     Assert.assertNotNull(newToken);
   }
 

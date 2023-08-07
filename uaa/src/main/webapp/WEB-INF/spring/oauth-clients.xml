@@ -159,9 +159,16 @@
                     </entry>
                     <entry key="oauth_showcase_user_token">
                         <map>
-                            <entry key="authorized-grant-types" value="user_token,password"/>
+                            <entry key="authorized-grant-types" value="user_token,password,refresh_token"/>
                             <entry key="scope" value="openid,uaa.user"/>
                             <entry key="secret" value="secret"/>
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_user_token_public">
+                        <map>
+                            <entry key="authorized-grant-types" value="user_token,password,refresh_token"/>
+                            <entry key="scope" value="openid,uaa.user"/>
+                            <entry key="allowpublic" value="true"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_saml2_bearer">
