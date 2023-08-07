@@ -1,5 +1,15 @@
 package org.cloudfoundry.identity.uaa;
 
+import javax.servlet.Filter;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+
 import brave.CurrentSpanCustomizer;
 import brave.SpanCustomizer;
 import brave.Tracing;
@@ -10,15 +20,6 @@ import brave.propagation.CurrentTraceContext.ScopeDecorator;
 import brave.propagation.ThreadLocalCurrentTraceContext;
 import brave.servlet.TracingFilter;
 import brave.spring.webmvc.SpanCustomizingAsyncHandlerInterceptor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-
-import javax.servlet.Filter;
 
 /** This adds tracing configuration to any web mvc controllers or rest template clients. */
 @Configuration
@@ -64,8 +65,8 @@ public class TracingAutoConfiguration {
   }
 
   /** Creates server spans for HTTP requests */
-  @Bean TracingFilter tracingFilter(HttpTracing httpTracing) {
-    return (TracingFilter) TracingFilter.create(httpTracing);
+  @Bean Filter tracingFilter(HttpTracing httpTracing) {
+    return TracingFilter.create(httpTracing);
   }
 
   /** Adds MVC Controller tags to server spans */

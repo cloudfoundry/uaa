@@ -13,14 +13,23 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
-import brave.Tracing;
-import brave.http.HttpServerHandler;
-import brave.propagation.CurrentTraceContext;
-import brave.servlet.TracingFilter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -33,21 +42,8 @@ import org.springframework.security.web.util.RedirectUrlBuilder;
 import org.springframework.util.Assert;
 import org.springframework.web.context.WebApplicationContext;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Post processor which injects an additional filter at the head
@@ -119,8 +115,8 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor, Appl
         return errorMap;
     }
 
-    private TracingFilter tracingFilter() {
-        return applicationContext.getBean(TracingFilter.class);
+    private Filter tracingFilter() {
+        return applicationContext.getBean("tracingFilter", Filter.class);
     }
 
     @Override
