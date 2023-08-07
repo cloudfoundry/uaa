@@ -188,7 +188,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
     public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
-        logger.info("peterch!!");
+        logger.info("Info called");  // TODO: remove this before merging to main
         return login(model, principal, Collections.emptyList(), true, request);
     }
 
