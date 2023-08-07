@@ -40,9 +40,8 @@ public class TracingAutoConfiguration {
   }
 
   /** Controls aspects of tracing such as the service name that shows up in the UI */
-//          @Value("${brave.localServiceName:${spring.application.name}}") String serviceName,
   @Bean Tracing tracing(
-          @Value("${brave.localServiceName:uaa}") String serviceName,  // TODO: don't hardcode
+          @Value("${brave.localServiceName:${spring.application.name}}") String serviceName,
           @Value("${brave.supportsJoin:true}") boolean supportsJoin,
           @Value("${brave.traceId128Bit:false}") boolean traceId128Bit,
           CurrentTraceContext currentTraceContext) {
