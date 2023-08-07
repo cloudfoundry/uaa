@@ -63,7 +63,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -628,13 +627,14 @@ class IdentityZoneEndpointsMockMvcTests {
         Map<String, String> keys = new HashMap<>();
         keys.put("kid", "key");
 
-        assertEquals(keys.toString(), retrieve.getConfig().getTokenPolicy().getKeys().toString());
+        assertEquals(keys.get("kid"), retrieve.getConfig().getTokenPolicy().getKeys().get("kid").getSigningKey());
 
         created.setDescription("updated description");
         created.getConfig().getTokenPolicy().setKeys(null);
         updateZone(created, HttpStatus.OK, identityClientToken);
         retrieve = provisioning.retrieve(created.getId());
-        assertEquals(keys.toString(), retrieve.getConfig().getTokenPolicy().getKeys().toString());
+        String keyId = retrieve.getConfig().getTokenPolicy().getActiveKeyId();
+        assertEquals(keys.get(keyId), retrieve.getConfig().getTokenPolicy().getKeys().get(keyId).getSigningKey());
     }
 
     @Test
@@ -2257,7 +2257,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertEquals(id.toLowerCase(), zone.getSubdomain());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenUnique());
         assertFalse(zone.getConfig().getTokenPolicy().isRefreshTokenRotate());
-        assertEquals(JWT.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
+        assertEquals(OPAQUE.getStringValue(), zone.getConfig().getTokenPolicy().getRefreshTokenFormat());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaaZoneId(), "http://localhost:8080/uaa/oauth/token", "identity");
 
         //validate that default groups got created

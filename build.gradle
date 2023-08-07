@@ -19,7 +19,6 @@ buildscript {
 
     dependencies {
         classpath(libraries.cargoGradlePlugin)
-        classpath(libraries.asciidoctorGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
         classpath(libraries.testRetryPlugin)
@@ -95,7 +94,12 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            failOnPassedAfterRetry = Boolean.parseBoolean(System.getProperty("failOnPassedAfterRetry", "false"));
+            def retryFailOnPassedAfterRetry = Boolean.parseBoolean(
+                    System.getProperty("failOnPassedAfterRetry", "false"));
+            if (!retryFailOnPassedAfterRetry)
+                logger.warn("retry: Failed tests are to be retried and considered as passed if the retry passes.")
+
+            failOnPassedAfterRetry = retryFailOnPassedAfterRetry
             maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
             maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
         }

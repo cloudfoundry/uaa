@@ -25,7 +25,7 @@ public class CommonSigner implements Signer {
     public CommonSigner(String keyId, String signingKey, String keyURL) {
         if (signingKey == null) {
             throw new IllegalArgumentException(signingKey);
-        } else if (isAssymetricKey(signingKey)) {
+        } else if (isAsymmetricKey(signingKey)) {
             delegate = new RsaSigner(signingKey);
         } else {
             delegate = new MacSigner(signingKey);
@@ -36,7 +36,7 @@ public class CommonSigner implements Signer {
     }
 
 
-    private static boolean isAssymetricKey(String key) {
+    private static boolean isAsymmetricKey(String key) {
         return key.startsWith("-----BEGIN");
     }
 

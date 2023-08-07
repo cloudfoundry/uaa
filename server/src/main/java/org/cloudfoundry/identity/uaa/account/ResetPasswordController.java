@@ -123,7 +123,7 @@ public class ResetPasswordController {
     private String getCodeSentEmailHtml(String code) {
         String resetUrl;
         if (UaaUrlUtils.isUrl(externalLoginUrl)) {
-            resetUrl = UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password").build().toUriString();
+            resetUrl = UaaUrlUtils.getUaaUrl(UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password"), true, IdentityZoneHolder.get());
         } else {
             resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", IdentityZoneHolder.get());
         }
@@ -159,6 +159,11 @@ public class ResetPasswordController {
                                 HttpServletResponse response) {
         response.addHeader("Content-Security-Policy", "frame-ancestors 'none'");
         return "email_sent";
+    }
+
+    @RequestMapping(value = "/reset_password", method = RequestMethod.HEAD)
+    public void resetPassword() {
+        // Some mail providers initially send a HEAD request to check the validity of the link before redirecting users.
     }
 
     @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = {"code"})

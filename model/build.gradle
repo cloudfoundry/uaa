@@ -14,6 +14,7 @@ dependencies {
     implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityConfig)
 
+    implementation(libraries.nimbusJwt)
     implementation(libraries.springSecurityOauth) {
         exclude(module: "jackson-mapper-asl")
         exclude(module: "spring-security-web")
@@ -24,6 +25,8 @@ dependencies {
     testImplementation(libraries.junit)
 
     testImplementation(libraries.jsonAssert)
+
+    implementation(libraries.nimbusJwt)
 }
 
 apply(from: file("build_properties.gradle"))

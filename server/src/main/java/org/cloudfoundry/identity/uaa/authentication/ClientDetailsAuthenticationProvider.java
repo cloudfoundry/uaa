@@ -12,12 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
@@ -29,6 +29,8 @@ import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
 
@@ -55,12 +57,13 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for(String pwd: passwordList) {
             try {
                 User user = new User(userDetails.getUsername(), pwd, userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
-                if (authentication.getCredentials() == null && isGrantAuthorizationCode(authentication.getDetails()) && userDetails instanceof UaaClient) {
+                if (authentication.getCredentials() == null && isPublicGrantTypeUsageAllowed(authentication.getDetails()) && userDetails instanceof UaaClient) {
                     // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and proceed even if no secret is provided
                     UaaClient uaaClient = (UaaClient) userDetails;
                     Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
-                    if (allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic) ||
-                        allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic)) {
+                    if ((allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String)allowPublic)) ||
+                        (allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic))) {
+                        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
                         break;
                     }
                 }
@@ -76,10 +79,19 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
     }
 
-    private boolean isGrantAuthorizationCode(Object uaaAuthenticationDetails) {
-        Map<String, String[]> requestParameters = uaaAuthenticationDetails instanceof UaaAuthenticationDetails &&
-            ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() != null ?
-            ((UaaAuthenticationDetails)uaaAuthenticationDetails).getParameterMap() : Collections.emptyMap();
+    private boolean isPublicGrantTypeUsageAllowed(Object uaaAuthenticationDetails) {
+        UaaAuthenticationDetails authenticationDetails = uaaAuthenticationDetails instanceof UaaAuthenticationDetails ?
+            (UaaAuthenticationDetails)  uaaAuthenticationDetails : new UaaAuthenticationDetails();
+        Map<String, String[]> requestParameters = authenticationDetails.getParameterMap() != null ?
+            authenticationDetails.getParameterMap() : Collections.emptyMap();
+        return isPublicTokenRequest(authenticationDetails) && (isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters));
+    }
+
+    private static boolean isPublicTokenRequest(UaaAuthenticationDetails authenticationDetails) {
+        return !authenticationDetails.isAuthorizationSet() && "/oauth/token".equals(authenticationDetails.getRequestPath());
+    }
+
+    private boolean isAuthorizationWithPkce(Map<String, String[]> requestParameters) {
         return PkceValidationService.isCodeVerifierParameterValid(getSafeParameterValue(requestParameters.get("code_verifier"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_id"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("code"))) &&
@@ -87,10 +99,16 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE.equals(getSafeParameterValue(requestParameters.get(ClaimConstants.GRANT_TYPE)));
     }
 
+    private boolean isRefreshFlow(Map<String, String[]> requestParameters) {
+        return StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_id")))
+            && StringUtils.hasText(getSafeParameterValue(requestParameters.get("refresh_token")))
+            && TokenConstants.GRANT_TYPE_REFRESH_TOKEN.equals(getSafeParameterValue(requestParameters.get(ClaimConstants.GRANT_TYPE)));
+    }
+
     private String getSafeParameterValue(String[] value) {
         if (null == value || value.length < 1) {
-            return Strings.EMPTY_STRING;
+            return UaaStringUtils.EMPTY_STRING;
         }
-        return StringUtils.hasText(value[0]) ? value[0] : Strings.EMPTY_STRING;
+        return StringUtils.hasText(value[0]) ? value[0] : UaaStringUtils.EMPTY_STRING;
     }
 }

@@ -1,0 +1,11 @@
+{
+  "keys": [
+    {
+      "kty": "oct",
+      "alg": "HS256",
+      "key_ops": ["verify"],
+      "k": "tokenKey",
+      "kid": "legacy-token-key"
+    }
+  ]
+}

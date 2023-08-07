@@ -463,6 +463,22 @@ class ScimUserEndpointsTests {
     }
 
     @Test
+    void deleteAllGroupMemberEntriesIfUserIsDeleted() {
+        ScimUser newUser = new ScimUser(null, "myuser", "given", "family");
+        newUser.addEmail("exguy@imonlyheretobedeleted.com");
+        newUser.setOrigin("testOrigin");
+        newUser = jdbcScimUserProvisioning.createUser(newUser, "exguyspassword", identityZone.getId());
+        ScimGroup g1 = new ScimGroup(null, "scimgroup", identityZone.getId());
+        g1 = jdbcScimGroupProvisioning.create(g1, identityZone.getId());
+        ScimGroupMember m1 = new ScimGroupMember(newUser.getId(), ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = scimGroupMembershipManager.addMember(g1.getId(), m1, identityZone.getId());
+        assertEquals(1, scimGroupMembershipManager.getMembers(g1.getId(), false, identityZone.getId()).size());
+        scimUserEndpoints.deleteUser(newUser.getId(), Integer.toString(newUser.getMeta().getVersion()),
+            new MockHttpServletRequest(), new MockHttpServletResponse());
+        assertEquals(0, scimGroupMembershipManager.getMembers(g1.getId(), false, identityZone.getId()).size());
+    }
+
+    @Test
     void deleteIsAllowedWithQuotedEtag() {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");

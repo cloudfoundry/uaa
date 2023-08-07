@@ -1,19 +1,15 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import javax.servlet.http.HttpServletRequest;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-@ExtendWith(PollutionPreventionExtension.class)
 class UaaAuthenticationDetailsTest {
 
     @Test
@@ -40,11 +36,22 @@ class UaaAuthenticationDetailsTest {
 
     @Test
     void testNoLoginHint() {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        when(request.getParameter("login_hint")).thenReturn(null);
+        HttpServletRequest request = new MockHttpServletRequest();
 
-        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "cliendId");
         assertNull(details.getLoginHint());
+    }
+
+    @Test
+    void testPublicTokenRequest() {
+        HttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
+
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "cliendId");
+        details.setAuthenticationMethod("none");
+        assertNull(details.getLoginHint());
+        assertFalse(details.isAuthorizationSet());
+        assertEquals("/oauth/token", details.getRequestPath());
+        assertEquals("none", details.getAuthenticationMethod());
     }
 
     @Test

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.apache.directory.api.util.Strings;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,18 +47,22 @@ public abstract class UaaUrlUtils {
     }
 
     public static String getUaaUrl(String path, boolean zoneSwitchPossible, IdentityZone currentIdentityZone) {
-        return getURIBuilder(path, zoneSwitchPossible, currentIdentityZone).build().toUriString();
+        return getURIBuilder(path, zoneSwitchPossible, currentIdentityZone, null).build().toUriString();
+    }
+
+    public static String getUaaUrl(UriComponentsBuilder builder, boolean zoneSwitchPossible, IdentityZone currentIdentityZone) {
+        return getURIBuilder(null, zoneSwitchPossible, currentIdentityZone, builder).build().toUriString();
     }
 
     public static String getUaaHost(IdentityZone currentIdentityZone) {
-        return getURIBuilder(Strings.EMPTY_STRING, false, currentIdentityZone).build().getHost();
+        return getURIBuilder(UaaStringUtils.EMPTY_STRING, false, currentIdentityZone, null).build().getHost();
     }
 
     private static UriComponentsBuilder getURIBuilder(
             String path,
             boolean zoneSwitchPossible,
-            IdentityZone currentIdentityZone) {
-        UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
+            IdentityZone currentIdentityZone, UriComponentsBuilder baseBuilder) {
+        UriComponentsBuilder builder = baseBuilder != null ? baseBuilder : ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         if (zoneSwitchPossible) {
             String host = builder.build().getHost();
             if (host != null && !currentIdentityZone.isUaa() &&
@@ -186,13 +189,13 @@ public abstract class UaaUrlUtils {
 
     private static String[] decodeValue(List<String> value) {
         if (value == null) {
-            return Strings.EMPTY_STRING_ARRAY;
+            return new String[0];
         }
         String[] result = new String[value.size()];
         int pos = 0;
         for (String s : value) {
             if (s == null) {
-                return Strings.EMPTY_STRING_ARRAY;
+                return new String[0];
             }
             result[pos] = UriUtils.decode(s, "UTF-8");
             pos++;
@@ -262,10 +265,10 @@ public abstract class UaaUrlUtils {
         String pathInfo = request.getPathInfo();
 
         if (servletPath == null) {
-            servletPath = Strings.EMPTY_STRING;
+            servletPath = UaaStringUtils.EMPTY_STRING;
         }
         if (pathInfo == null) {
-            pathInfo = Strings.EMPTY_STRING;
+            pathInfo = UaaStringUtils.EMPTY_STRING;
         }
 
         return String.format("%s%s", servletPath, pathInfo);

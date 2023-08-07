@@ -30,30 +30,37 @@ public class KeyInfoTest {
 
     @Test
     public void HmacKeyShouldSetFieldsCorrectly() {
-        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret", "https://localhost");
+        KeyInfo hmacKeyInfo = new KeyInfo("key-id", "secret", "https://localhost");
 
         assertThat(hmacKeyInfo.type(), is("MAC"));
     }
 
     @Test
     public void HmacKeyShouldSetKeyUrlWithASecureProtocol() {
-        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret", "http://localhost/path2");
+        KeyInfo hmacKeyInfo = new KeyInfo("key-id", "secret", "http://localhost/path2");
 
         assertThat(hmacKeyInfo.keyURL(), is("https://localhost/path2/token_keys"));
     }
 
     @Test
     public void RsaKeyShouldSetFieldsCorrectly() {
-        RsaKeyInfo hmacKeyInfo = new RsaKeyInfo("key-id", sampleRsaPrivateKey, "https://localhost");
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "https://localhost");
 
-        assertThat(hmacKeyInfo.type(), is("RSA"));
+        assertThat(keyInfo.type(), is("RSA"));
+    }
+
+    @Test
+    public void Rsa512KeyShouldSetFieldsCorrectly() {
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "https://localhost", "RS512", null);
+
+        assertThat(keyInfo.type(), is("RSA"));
     }
 
     @Test
     public void RsaKeyShouldSetKeyUrlWithASecureProtocol() {
-        RsaKeyInfo hmacKeyInfo = new RsaKeyInfo("key-id", sampleRsaPrivateKey, "http://localhost/path");
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "http://localhost/path");
 
-        assertThat(hmacKeyInfo.keyURL(), is("https://localhost/path/token_keys"));
+        assertThat(keyInfo.keyURL(), is("https://localhost/path/token_keys"));
     }
 
     @Test
@@ -61,7 +68,7 @@ public class KeyInfoTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid Key URL");
 
-        new HmacKeyInfo("id", "secret", "foo bar");
+        new KeyInfo("id", "secret", "foo bar");
     }
 
 
@@ -70,6 +77,6 @@ public class KeyInfoTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid Key URL");
 
-        new RsaKeyInfo("id", "secret", "foo bar");
+        new KeyInfo("id", "secret", "foo bar");
     }
 }

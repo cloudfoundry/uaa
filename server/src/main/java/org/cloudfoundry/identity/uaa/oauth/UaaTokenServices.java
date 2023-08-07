@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
+import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -102,6 +103,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITI
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_AUTH_METHOD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
@@ -121,6 +123,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.ACCESS_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
@@ -276,8 +279,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 getUserAttributes(claims.getUserId()),
                 claims.getNonce(),
                 claims.getGrantType(),
+                UaaSecurityContextUtils.getClientAuthenticationMethod(),
                 generateUniqueTokenId()
         );
+
+        addAuthenticationMethod(claims, additionalRootClaims, authenticationData);
 
         String accessTokenId = generateUniqueTokenId();
         refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims);
@@ -306,6 +312,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
+    }
+
+    private static String getAuthenticationMethod(OAuth2Request oAuth2Request) {
+        return ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null);
+    }
+
+    private static void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
+        if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
+            // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none)
+            if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
+                throw new TokenRevokedException("Refresh without client authentication not allowed.");
+            }
+            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+        }
+    }
+
+    private Map<String, Object> addAuthenticationMethod(Map<String, Object> additionalRootClaims, String clientAuthentication) {
+        if (clientAuthentication != null && refreshTokenCreator.shouldRotateRefreshTokens()) {
+            additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
+        }
+        return additionalRootClaims;
     }
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
@@ -459,6 +486,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return compositeToken;
     }
 
+    private static Map<String, Object> addRootClaimEntry(Map<String, Object> additionalRootClaims, String entry, String value) {
+        Map<String, Object> claims = additionalRootClaims != null ? additionalRootClaims : new HashMap<>();
+        claims.put(entry, value);
+        return claims;
+    }
+
     private KeyInfo getActiveKeyInfo() {
         return ofNullable(keyInfoService.getActiveKey())
             .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
@@ -591,6 +624,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             additionalRootClaims = new HashMap<>(uaaTokenEnhancer.enhance(emptyMap(), authentication));
         }
 
+        String clientAuthentication = getAuthenticationMethod(oAuth2Request);
+        additionalRootClaims = addAuthenticationMethod(additionalRootClaims, clientAuthentication);
+
         CompositeExpiringOAuth2RefreshToken refreshToken = null;
         if(client.getAuthorizedGrantTypes().contains(GRANT_TYPE_REFRESH_TOKEN)){
             RefreshTokenRequestData refreshTokenRequestData = new RefreshTokenRequestData(
@@ -635,6 +671,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 nonce,
                 grantType,
+                clientAuthentication,
                 tokenId);
 
         String refreshTokenValue = refreshToken != null ? refreshToken.getValue() : null;

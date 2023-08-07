@@ -45,6 +45,7 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.head;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -283,6 +284,21 @@ class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
+    void testResetPasswordPageWithPriorHeadRequest() throws Exception {
+        ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
+        mockMvc.perform(head("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
+                .andExpect(status().isOk())
+                .andDo(print())
+                .andExpect(view().name("reset_password"))
+                .andExpect(model().attribute("email", "email"))
+                .andExpect(model().attribute("username", "username"))
+                .andExpect(content().string(containsString("<div class=\"email-display\">Username: username</div>")))
+                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"username\" value=\"username\"/>")));
+    }
+
+    @Test
     void testResetPasswordPageDuplicate() throws Exception {
         ExpiringCode code = codeStore.generateCode("{\"user_id\" : \"some-user-id\"}", new Timestamp(System.currentTimeMillis() + 1000000), null, IdentityZoneHolder.get().getId());
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", code.getCode()))
@@ -350,7 +366,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                                                         TemplateEngine mailTemplateEngine,
                                                         ExpiringCodeStore codeStore,
                                                         UaaUserDatabase userDatabase) {
-            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase, null);
+            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase, "http://localhost");
         }
     }
 

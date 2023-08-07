@@ -1,11 +1,16 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.util.Base64URL;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.jwt.BinaryFormat;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 
 import java.nio.CharBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
 
 import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
 import static org.springframework.security.jwt.codec.Codecs.b64UrlEncode;
@@ -55,13 +60,43 @@ public class JwtHelper {
         return new JwtImpl(header, claims, crypto);
     }
 
+    public static Jwt encodePlusX5t(CharSequence content, KeyInfo keyInfo, X509Certificate x509Certificate) {
+        JwtHeader header;
+        HeaderParameters headerParameters = new HeaderParameters(keyInfo.algorithm(), keyInfo.keyId(), null);
+        headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(x509Certificate), "SHA-1"));
+        header = JwtHeaderHelper.create(headerParameters);
+        return createJwt(content, keyInfo, header);
+    }
+
     public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
-        JwtHeader header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
+        JwtHeader header;
+        header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
+        return createJwt(content, keyInfo, header);
+    }
+
+    private static JwtImpl createJwt(CharSequence content, KeyInfo keyInfo, JwtHeader header) {
         byte[] claims = utf8Encode(content);
         byte[] crypto = keyInfo.getSigner()
-          .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
+            .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
         return new JwtImpl(header, claims, crypto);
     }
+
+    public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
+        try {
+            return x509Certificate.getEncoded();
+        } catch (RuntimeException | CertificateEncodingException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+    public static String getX509CertThumbprint(byte[] derEncodedCert, String alg) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance(alg);
+            return Base64URL.encode(sha256.digest(derEncodedCert)).toString();
+        } catch (RuntimeException | NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
 }
 
 /**
@@ -79,6 +114,10 @@ class JwtHeaderHelper {
     static JwtHeader create(String algorithm, String kid, String jku) {
         HeaderParameters headerParameters = new HeaderParameters(algorithm, kid, jku);
 
+        return create(headerParameters);
+    }
+
+    static JwtHeader create(HeaderParameters headerParameters) {
         return new JwtHeader(JsonUtils.writeValueAsBytes(headerParameters), headerParameters);
     }
 }

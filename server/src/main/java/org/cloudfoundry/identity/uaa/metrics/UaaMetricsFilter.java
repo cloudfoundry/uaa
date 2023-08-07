@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.metrics;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -167,7 +168,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
 
     public List<UrlGroup> getUrlGroups() throws IOException {
         ClassPathResource resource = new ClassPathResource("performance-url-groups.yml");
-        Yaml yaml = new Yaml();
+        Yaml yaml = UaaYamlUtils.createYaml();
         List<Map<String, Object>> load = (List<Map<String, Object>>) yaml.load(resource.getInputStream());
         return load.stream().map(map -> UrlGroup.from(map)).collect(Collectors.toList());
     }

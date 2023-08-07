@@ -8,6 +8,8 @@ import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
+import java.util.Map;
 
 public class ExternalOAuthIdentityProviderConfigValidatorTest {
     private AbstractExternalOAuthIdentityProviderDefinition definition;
@@ -100,6 +102,28 @@ public class ExternalOAuthIdentityProviderConfigValidatorTest {
     public void tokenKeyUrl_orTokenKeyMustBeSpecified() {
         definition.setTokenKey(null);
         definition.setTokenKeyUrl(null);
+        validator.validate(definition);
+    }
+
+    @Test
+    public void testAdditionalParametersAdd() {
+        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) definition;
+        // nothing
+        oidcIdentityProviderDefinition.setAdditionalAuthzParameters(null);
+        validator.validate(definition);
+        // empty
+        oidcIdentityProviderDefinition.setAdditionalAuthzParameters(Collections.emptyMap());
+        validator.validate(definition);
+        // list
+        oidcIdentityProviderDefinition.setAdditionalAuthzParameters(Map.of("token_format", "jwt", "token_key", "any"));
+        validator.validate(definition);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testAdditionalParametersError() {
+        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) definition;
+        // one standard parameter, should fail
+        oidcIdentityProviderDefinition.setAdditionalAuthzParameters(Map.of("token_format", "jwt", "code", "1234"));
         validator.validate(definition);
     }
 }

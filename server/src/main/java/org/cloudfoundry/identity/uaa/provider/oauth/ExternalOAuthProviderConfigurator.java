@@ -22,9 +22,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -92,6 +94,9 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         if (OIDCIdentityProviderDefinition.class.equals(definition.getParameterizedClass())) {
             var nonceGenerator = new RandomValueStringGenerator(12);
             uriBuilder.queryParam("nonce", nonceGenerator.generate());
+
+            Map<String, String> additionalParameters = ofNullable(((OIDCIdentityProviderDefinition) definition).getAdditionalAuthzParameters()).orElse(emptyMap());
+            additionalParameters.keySet().stream().forEach(e -> uriBuilder.queryParam(e, additionalParameters.get(e)));
         }
 
         return uriBuilder.build().toUriString();

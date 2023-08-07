@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import com.nimbusds.jose.util.X509CertUtils;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
@@ -15,6 +16,7 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -55,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
@@ -879,8 +882,11 @@ class PasswordGrantAuthenticationManagerTest {
         Signer signer = mock(Signer.class);
         when(externalOAuthAuthenticationManager.getKeyInfoService()).thenReturn(keyInfoService);
         when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
-        when(keyInfo.algorithm()).thenReturn("HS256");
+        when(keyInfoService.getKey("id")).thenReturn(keyInfo);
+        when(keyInfo.algorithm()).thenReturn("RS256");
         when(keyInfo.getSigner()).thenReturn(signer);
+        when(keyInfo.verifierCertificate()).thenReturn(Optional.of(X509CertUtils.parse(JwtHelperX5tTest.CERTIFICATE_1)));
+        when(keyInfo.keyId()).thenReturn("id");
         when(signer.sign(any())).thenReturn("dummy".getBytes());
     }
 

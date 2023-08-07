@@ -12,12 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.impl.config.YamlMapFactoryBean;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;

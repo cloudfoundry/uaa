@@ -5,6 +5,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,7 +35,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.Timestamp;
+import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -52,6 +56,10 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atMost;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 @WithDatabaseContext
 class UaaTokenStoreTests {
@@ -61,6 +69,7 @@ class UaaTokenStoreTests {
     private OAuth2Authentication clientAuthentication;
     private OAuth2Authentication usernamePasswordAuthentication;
     private OAuth2Authentication uaaAuthentication;
+    private TimeService timeService;
 
     private UaaPrincipal principal = new UaaPrincipal("userid", "username", "username@test.org", OriginKeys.UAA, null, IdentityZone.getUaaZoneId());
 
@@ -77,7 +86,8 @@ class UaaTokenStoreTests {
         List<GrantedAuthority> userAuthorities = Collections.singletonList(new SimpleGrantedAuthority(
                 "openid"));
 
-        store = new UaaTokenStore(dataSource);
+        timeService = givenMockedTime();
+        store = new UaaTokenStore(dataSource, timeService);
         legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         BaseClientDetails client = new BaseClientDetails("clientid", null, "openid", "client_credentials,password", "oauth.login", null);
         Map<String, String> parameters = new HashMap<>();
@@ -191,7 +201,7 @@ class UaaTokenStoreTests {
     void retrieveExpiredToken() {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code WHERE code = ?", new Object[]{code}, Integer.class), is(1));
-        jdbcTemplate.update("update oauth_code set expiresat = 1");
+        doReturn(Instant.now().plus(UaaTokenStore.DEFAULT_EXPIRATION_TIME)).when(timeService).getCurrentInstant();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(code));
     }
 
@@ -211,7 +221,7 @@ class UaaTokenStoreTests {
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
 
-        jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
+        doReturn(Instant.now().plus(UaaTokenStore.LEGACY_CODE_EXPIRATION_TIME)).when(timeService).getCurrentInstant();
 
         final String finalLastCode = lastCode;
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode(finalLastCode));
@@ -226,26 +236,26 @@ class UaaTokenStoreTests {
             legacyCodeServices.createAuthorizationCode(clientAuthentication);
         }
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
-        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
+        doReturn(Instant.now().plus(Duration.ofDays(2))).when(timeService).getCurrentInstant();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count));
-        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
+        doReturn(Instant.now().plus(Duration.ofDays(4))).when(timeService).getCurrentInstant();
         assertThrows(InvalidGrantException.class, () -> store.consumeAuthorizationCode("non-existent"));
         assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(0));
     }
 
     @Test
     void expiresAtOnCode() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", System.currentTimeMillis() - 1000, new Timestamp(System.currentTimeMillis()), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCodeForTesting("code", "userid", "clientid", Optional.of(Instant.now().minusSeconds(1)), Instant.now(), new byte[0]);
         assertTrue(code.isExpired());
     }
 
     @Test
     void expiresAtOnCreated() {
-        UaaTokenStore.TokenCode code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis()), new byte[0]);
+        UaaTokenStore.TokenCode code = store.createTokenCodeForTesting("code", "userid", "clientid", Optional.empty(), Instant.now(), new byte[0]);
         assertFalse(code.isExpired());
 
-        code = store.createTokenCode("code", "userid", "clientid", 0, new Timestamp(System.currentTimeMillis() - (2 * store.getExpirationTime())), new byte[0]);
+        code = store.createTokenCodeForTesting("code", "userid", "clientid", Optional.empty(), Instant.now().minusMillis(2 * store.getExpirationTime().toMillis()), new byte[0]);
         assertTrue(code.isExpired());
     }
 
@@ -278,7 +288,6 @@ class UaaTokenStoreTests {
                     throw new RuntimeException("Unknown DB profile:" + db);
             }
 
-            store = new UaaTokenStore(sameConnectionDataSource);
             legacyCodeServices = new JdbcAuthorizationCodeServices(sameConnectionDataSource);
             int count = 10;
             String lastCode = null;
@@ -293,7 +302,6 @@ class UaaTokenStoreTests {
             }
             assertThat(template.queryForObject("SELECT count(*) FROM oauth_code", Integer.class), is(count - 1));
         } finally {
-            store = new UaaTokenStore(dataSource);
             legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         }
     }
@@ -307,7 +315,7 @@ class UaaTokenStoreTests {
 
             SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(expirationLoser);
 
-            store = new UaaTokenStore(sameConnectionDataSource, 1);
+            store = new UaaTokenStore(sameConnectionDataSource, timeService, Duration.ofMillis(1));
             int count = 10;
             for (int i = 0; i < count; i++) {
                 String code = store.createAuthorizationCode(clientAuthentication);
@@ -316,8 +324,6 @@ class UaaTokenStoreTests {
                 } catch (InvalidGrantException ignored) {
                 }
             }
-        } finally {
-            store = new UaaTokenStore(dataSource);
         }
     }
 
@@ -328,6 +334,43 @@ class UaaTokenStoreTests {
         String code = store.createAuthorizationCode(clientAuthentication);
         assertNotNull(code);
         assertTrue(code.length() >= 32);
+    }
+
+    @Test
+    void testCountingTheExecutedSqlDeleteStatements() throws SQLException {
+        // Given, mocked data source to count how often it is used, call performExpirationClean 10 times.
+        DataSource mockedDataSource = mock(DataSource.class);
+        Instant before = Instant.now();
+        store = new UaaTokenStore(mockedDataSource, timeService);
+        // When
+        for (int i = 0; i < 10; i++) {
+            try {
+                store.performExpirationCleanIfEnoughTimeHasElapsed();
+            } catch (Exception sqlException) {
+                // ignore
+            }
+        }
+        // Then
+        Instant after = Instant.now();
+        assertTrue(after.isAfter(before));
+        // Expect less than 5 minutes between the start and end of the tests
+        assertTrue(after.compareTo(before) < Duration.ofMinutes(5).toNanos());
+        // Expect us to call the DB only once within 5 minutes. Check this when using the data source object
+        verify(mockedDataSource, atMost(1)).getConnection();
+        // When moving time to one hour later from now
+        doReturn(Instant.now().plus(Duration.ofHours(1))).when(timeService).getCurrentInstant();
+        // Then
+        performExpirationClean(store);
+        // Expect a 2nd DB call
+        verify(mockedDataSource, atMost(2)).getConnection();
+    }
+
+    private static void performExpirationClean(UaaTokenStore store) {
+        try {
+            store.performExpirationCleanIfEnoughTimeHasElapsed();
+        } catch (Exception sqlException) {
+            // ignore
+        }
     }
 
     public static class SameConnectionDataSource implements DataSource {
@@ -446,6 +489,12 @@ class UaaTokenStoreTests {
             }
             return method.invoke(con, args);
         }
+    }
+
+    private static TimeService givenMockedTime() {
+        TimeServiceImpl timeService = mock(TimeServiceImpl.class);
+        doReturn(Instant.now()).when(timeService).getCurrentInstant();
+        return timeService;
     }
 
     private static final byte[] UAA_AUTHENTICATION_DATA_OLD_STYLE = new byte[]{123, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 114, 101, 115, 112, 111, 110, 115, 101, 84, 121, 112, 101, 115, 34, 58, 91, 93, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 114, 101, 115, 111, 117, 114, 99, 101, 73, 100, 115, 34, 58, 91, 93, 44, 34, 117, 115, 101, 114, 65, 117, 116, 104, 101, 110, 116, 105, 99, 97, 116, 105, 111, 110, 46, 117, 97, 97, 80, 114, 105, 110, 99, 105, 112, 97, 108, 34, 58, 34, 123, 92, 34, 105, 100, 92, 34, 58, 92, 34, 117, 115, 101, 114, 105, 100, 92, 34, 44, 92, 34, 110, 97, 109, 101, 92, 34, 58, 92, 34, 117, 115, 101, 114, 110, 97, 109, 101, 92, 34, 44, 92, 34, 101, 109, 97, 105, 108, 92, 34, 58, 92, 34, 117, 115, 101, 114, 110, 97, 109, 101, 64, 116, 101, 115, 116, 46, 111, 114, 103, 92, 34, 44, 92, 34, 111, 114, 105, 103, 105, 110, 92, 34, 58, 92, 34, 117, 97, 97, 92, 34, 44, 92, 34, 101, 120, 116, 101, 114, 110, 97, 108, 73, 100, 92, 34, 58, 110, 117, 108, 108, 44, 92, 34, 122, 111, 110, 101, 73, 100, 92, 34, 58, 92, 34, 117, 97, 97, 92, 34, 125, 34, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 114, 101, 113, 117, 101, 115, 116, 80, 97, 114, 97, 109, 101, 116, 101, 114, 115, 34, 58, 123, 34, 103, 114, 97, 110, 116, 95, 116, 121, 112, 101, 34, 58, 34, 112, 97, 115, 115, 119, 111, 114, 100, 34, 44, 34, 99, 108, 105, 101, 110, 116, 95, 105, 100, 34, 58, 34, 99, 108, 105, 101, 110, 116, 105, 100, 34, 44, 34, 115, 99, 111, 112, 101, 34, 58, 34, 111, 112, 101, 110, 105, 100, 34, 125, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 114, 101, 100, 105, 114, 101, 99, 116, 85, 114, 105, 34, 58, 110, 117, 108, 108, 44, 34, 117, 115, 101, 114, 65, 117, 116, 104, 101, 110, 116, 105, 99, 97, 116, 105, 111, 110, 46, 97, 117, 116, 104, 111, 114, 105, 116, 105, 101, 115, 34, 58, 91, 34, 111, 112, 101, 110, 105, 100, 34, 93, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 97, 117, 116, 104, 111, 114, 105, 116, 105, 101, 115, 34, 58, 91, 34, 111, 97, 117, 116, 104, 46, 108, 111, 103, 105, 110, 34, 93, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 99, 108, 105, 101, 110, 116, 73, 100, 34, 58, 34, 99, 108, 105, 101, 110, 116, 105, 100, 34, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 97, 112, 112, 114, 111, 118, 101, 100, 34, 58, 116, 114, 117, 101, 44, 34, 111, 97, 117, 116, 104, 50, 82, 101, 113, 117, 101, 115, 116, 46, 115, 99, 111, 112, 101, 34, 58, 91, 34, 111, 112, 101, 110, 105, 100, 34, 93, 125};

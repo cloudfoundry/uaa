@@ -62,9 +62,11 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
     private static final String KEYS_UPDATE_DESC = "Keys which will be used to sign the token. If null value is specified for keys, then existing value will be retained.";
     private static final String KEYS_DESC = "Keys which will be used to sign the token";
+    private static final String KEYS_ALG_DESC = "Algorithm parameter according to [RFC7518](https://tools.ietf.org/html/rfc7518#section-3.1)";
+    private static final String KEYS_CERT_DESC = "PEM encoded X.509 to be used in x5c, e.g. [RFC7517](https://tools.ietf.org/html/rfc7517#section-4.7)";
     private static final String ACCESS_TOKEN_VALIDITY_DESC = "Time in seconds between when a access token is issued and when it expires. Defaults to global `accessTokenValidity`";
     private static final String REFRESH_TOKEN_VALIDITY_DESC = "Time in seconds between when a refresh token is issued and when it expires. Defaults to global `refreshTokenValidity`";
-    private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `jwt`.";
+    private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `opaque`.";
     private static final String REFRESH_TOKEN_UNIQUE = "If true, uaa will only issue one refresh token per client_id/user_id combination. Defaults to `false`.";
     private static final String REFRESH_TOKEN_ROTATE = "If true, uaa will issue a new refresh token value in grant type refresh_token. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
@@ -200,7 +202,11 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         identityZone.getConfig().setSamlConfig(samlConfig);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
         tokenPolicy.setActiveKeyId("active-key-1");
-        tokenPolicy.setKeys(new HashMap<>(Collections.singletonMap("active-key-1", "key")));
+        TokenPolicy.KeyInformation keyInformation = new TokenPolicy.KeyInformation();
+        keyInformation.setSigningKey(SERVICE_PROVIDER_KEY);
+        keyInformation.setSigningAlg("RS256");
+        keyInformation.setSigningCert(SERVICE_PROVIDER_CERTIFICATE);
+        tokenPolicy.setKeyInformation(Collections.singletonMap("active-key-1", keyInformation));
         identityZone.getConfig().setTokenPolicy(tokenPolicy);
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
         identityZone.setConfig(brandingConfig);
@@ -222,7 +228,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
 
                 fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
-                fieldWithPath("config.tokenPolicy.keys.*.*").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.tokenPolicy.keys.*.signingKey").type(STRING).description(KEYS_DESC).attributes(key("constraints").value("Key to be used for signing")),
+                fieldWithPath("config.tokenPolicy.keys.*.signingAlg").description(KEYS_ALG_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.signingKey` and `keys.<key-id>.signingCert`")),
+                fieldWithPath("config.tokenPolicy.keys.*.signingCert").description(KEYS_CERT_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.signingKey` and `keys.<key-id>.signingCert`")),
                 fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),
@@ -501,10 +509,11 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         updatedIdentityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
         updatedIdentityZone.setName("The Updated Twiglet Zone");
         updatedIdentityZone.setDescription("Like the Twilight Zone but not tastier.");
-        Map<String, String> keys = new HashMap<>();
-        keys.put("updatedKeyId", "upD4t3d.s1gNiNg.K3y/t3XT");
+        TokenPolicy.KeyInformation keyInformation = new TokenPolicy.KeyInformation();
+        keyInformation.setSigningKey("upD4t3d.s1gNiNg.K3y/t3XT");
+        keyInformation.setSigningAlg("HS256");
         updatedIdentityZone.getConfig().getTokenPolicy().setActiveKeyId("updatedKeyId");
-        updatedIdentityZone.getConfig().getTokenPolicy().setKeys(keys);
+        updatedIdentityZone.getConfig().getTokenPolicy().setKeyInformation(Collections.singletonMap("updatedKeyId", keyInformation));
         SamlConfig samlConfig = new SamlConfig();
         samlConfig.setPrivateKey(SERVICE_PROVIDER_KEY);
         samlConfig.setPrivateKeyPassword(SERVICE_PROVIDER_KEY_PASSWORD);
@@ -523,7 +532,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("active").description(ACTIVE_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.tokenPolicy.activeKeyId").optional().type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
-                fieldWithPath("config.tokenPolicy.keys.*.*").description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.tokenPolicy.keys.*.signingKey").type(STRING).description(KEYS_UPDATE_DESC).attributes(key("constraints").value("Key to be used for signing")),
+                fieldWithPath("config.tokenPolicy.keys.*.signingAlg").description(KEYS_ALG_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.signingKey` and `keys.<key-id>.signingCert`")),
+                fieldWithPath("config.tokenPolicy.keys.*.signingCert").description(KEYS_CERT_DESC).attributes(key("constraints").value("Optional. Can only be used in conjunction with `keys.<key-id>.signingKey` and `keys.<key-id>.signingCert`")),
                 fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.tokenPolicy.jwtRevocable").type(BOOLEAN).description(JWT_REVOCABLE_DESC).attributes(key("constraints").value("Optional")),

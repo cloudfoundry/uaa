@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.ObjectUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
@@ -23,6 +24,7 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -30,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -37,9 +40,9 @@ import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDe
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
-import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -87,9 +90,8 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
+import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
-import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
-import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
@@ -101,6 +103,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -257,12 +260,26 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     authorities = mapAuthorities(codeToken.getOrigin(), oidcAuthorities);
                     break;
             }
-            authenticationData.setAuthorities(authorities);
+            authenticationData.setAuthorities(filterOidcAuthorities(config, authorities));
             ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
         logger.debug("No identity provider found for origin:"+getOrigin()+" and zone:"+IdentityZoneHolder.get().getId());
         return null;
+    }
+
+    private static List<? extends GrantedAuthority> filterOidcAuthorities(AbstractExternalOAuthIdentityProviderDefinition<? extends ExternalIdentityProviderDefinition> definition, List<? extends GrantedAuthority> oidcAuthorities) {
+        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(emptyList());
+        if (whiteList.isEmpty()) {
+            return oidcAuthorities;
+        } else {
+            Set<String> authorities = oidcAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
+            Set<String> result = retainAllMatches(authorities, whiteList);
+            if (ObjectUtils.isNotEmpty(result)) {
+                logger.debug(String.format("White listed external OIDC groups:'%s'", result));
+            }
+            return result.stream().map(ExternalOAuthUserAuthority::new).collect(Collectors.toList());
+        }
     }
 
     @Override
@@ -639,19 +656,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     }
 
-    private static boolean isAssymetricKey(String key) {
-        return key.startsWith("-----BEGIN");
-    }
-
     private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
 
         String tokenKey = config.getTokenKey();
         if (StringUtils.hasText(tokenKey)) {
-            Map<String, Object> p = new HashMap<>();
-            p.put("value", tokenKey);
-            p.put("kty", isAssymetricKey(tokenKey) ? RSA.name() : MAC.name());
-            logger.debug("Key configured, returning.");
-            return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
+            return JsonWebKeyHelper.parseConfiguration(tokenKey);
         }
         try {
             return oidcMetadataFetcher.fetchWebKeySet(config);
@@ -680,6 +689,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         logger.debug("Adding new client_id and client_secret for token exchange");
         body.add("client_id", config.getRelyingPartyId());
+
+        if (config instanceof OIDCIdentityProviderDefinition) {
+            OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = (OIDCIdentityProviderDefinition) config;
+            if (oidcIdentityProviderDefinition.getAdditionalAuthzParameters() != null){
+                for (Map.Entry<String, String> entry : oidcIdentityProviderDefinition.getAdditionalAuthzParameters().entrySet()) {
+                    body.add(entry.getKey(), entry.getValue());
+                }
+            }
+        }
 
         HttpHeaders headers = new HttpHeaders();
 
