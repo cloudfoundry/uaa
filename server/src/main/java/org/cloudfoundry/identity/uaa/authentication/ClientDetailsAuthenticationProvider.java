@@ -87,7 +87,9 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
     }
 
     private static void setAuthenticationMethodNone(AbstractAuthenticationToken authentication) {
-        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
+        if (authentication.getDetails() instanceof  UaaAuthenticationDetails) {
+            ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
+        }
     }
 
     private boolean isPublicGrantTypeUsageAllowed(Object uaaAuthenticationDetails) {
