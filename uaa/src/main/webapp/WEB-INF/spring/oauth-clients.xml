@@ -166,8 +166,9 @@
                     </entry>
                     <entry key="oauth_showcase_user_token_public">
                         <map>
-                            <entry key="authorized-grant-types" value="user_token,password,refresh_token"/>
+                            <entry key="authorized-grant-types" value="user_token,password,authorization_code"/>
                             <entry key="scope" value="openid,uaa.user"/>
+                            <entry key="redirect-uri" value="http://localhost:8080/uaa/"/>
                             <entry key="allowpublic" value="true"/>
                         </map>
                     </entry>
