@@ -120,6 +120,7 @@ class UaaClientAuthenticationProviderTest {
 
     @Test
     void provider_authenticate_client_with_empty_password_public_string() {
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
         BaseClientDetails clientDetails = new BaseClientDetails(generator.generate(), "", "", "password", "uaa.resource");
         clientDetails.setClientSecret("");
         jdbcClientDetailsService.addClientDetails(clientDetails);

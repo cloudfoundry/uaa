@@ -14,7 +14,9 @@ public final class UaaSecurityContextUtils {
   private UaaSecurityContextUtils() {}
 
   public static String getClientAuthenticationMethod() {
-    Authentication a = SecurityContextHolder.getContext().getAuthentication();
+    return getClientAuthenticationMethod(SecurityContextHolder.getContext().getAuthentication());
+  }
+  public static String getClientAuthenticationMethod(Authentication a) {
     if (!(a instanceof OAuth2Authentication)) {
       return null;
     }

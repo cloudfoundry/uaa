@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -32,16 +33,20 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
 import java.util.Collections;
+import java.util.Map;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.junit.Assert.assertEquals;
@@ -127,13 +132,13 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter("username", "marissa");
         request.addParameter("password", "koala");
         when(passwordAuthManager.authenticate(any())).thenReturn(mock(UaaAuthentication.class));
-        UaaAuthentication clientAuthentication = mock(UaaAuthentication.class);
-        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        OAuth2Authentication clientAuthentication = mock(OAuth2Authentication.class);
+        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
         AuthorizationRequest authorizationRequest = mock(AuthorizationRequest.class);
-        when(clientAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
         when(clientAuthentication.isAuthenticated()).thenReturn(true);
-        when((uaaAuthenticationDetails.getAuthenticationMethod())).thenReturn("none");
         when(requestFactory.createAuthorizationRequest(anyMap())).thenReturn(authorizationRequest);
+        when(clientAuthentication.getOAuth2Request()).thenReturn(oAuth2Request);
+        when(oAuth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
         SecurityContextHolder.getContext().setAuthentication(clientAuthentication);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));

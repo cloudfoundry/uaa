@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -69,7 +70,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             setAuthenticationMethodNone(authentication);
                             break;
                         }
-                    } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
+                    } else if (ObjectUtils.isEmpty(authentication.getCredentials()) && IdentityZoneHolder.get().getConfig().getTokenPolicy().isRefreshTokenRotate()) {
                         // set none as client_auth_method for all usage of empty secrets, e.g. cf client
                         setAuthenticationMethodNone(authentication);
                     }
