@@ -51,7 +51,7 @@ jwt:
     revocable: false
     refresh:
       format: opaque
-      rotate: false
+      rotate: true
       unique: false
 
 login:

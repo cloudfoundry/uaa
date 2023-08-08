@@ -4,8 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -25,7 +27,14 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
@@ -42,6 +51,14 @@ public class PasswordGrantIntegrationTests {
     public void testUserLoginViaPasswordGrant() {
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        validateClientAuthenticationMethod(responseEntity, true);
+    }
+
+    @Test
+    public void testUserLoginViaPasswordGrantButOwnClient() {
+        ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "app", "appclientsecret", serverRunning.getAccessTokenUri());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        validateClientAuthenticationMethod(responseEntity, false);
     }
 
     @Test
@@ -134,5 +151,17 @@ public class PasswordGrantIntegrationTests {
             }
         });
         return template;
+    }
+
+    private void validateClientAuthenticationMethod(ResponseEntity<String> responseEntity, boolean isNone) {
+        Map<String, Object> jsonBody = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
+        String accessToken = (String) jsonBody.get("access_token");
+        assertThat(accessToken, is(notNullValue()));
+        Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken);
+        if (isNone) {
+            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+        } else {
+            assertThat(claims, not(hasKey(ClaimConstants.CLIENT_AUTH_METHOD)));
+        }
     }
 }

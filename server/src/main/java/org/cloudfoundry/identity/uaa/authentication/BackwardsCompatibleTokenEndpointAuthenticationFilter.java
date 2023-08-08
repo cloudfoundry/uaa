@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -130,6 +131,12 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 if (clientAuth.isAuthenticated()) {
                     // Ensure the OAuth2Authentication is authenticated
                     authorizationRequest.setApproved(true);
+                    if (clientAuth.getDetails() instanceof UaaAuthenticationDetails) {
+                        String clientAuthentication = ((UaaAuthenticationDetails) clientAuth.getDetails()).getAuthenticationMethod();
+                        if (clientAuthentication != null) {
+                            authorizationRequest.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
+                        }
+                    }
                 }
 
                 OAuth2Request storedOAuth2Request = oAuth2RequestFactory.createOAuth2Request(authorizationRequest);
