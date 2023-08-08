@@ -73,11 +73,11 @@ public class UserTokenGrantIT {
   }
 
   @Test
-  public void testExchangeFromConfidentialClientWithPublicCfClient() {
+  public void testExchangeFromConfidentialClientWithCfClientWithEmptySecret() {
     // Given Create password token from confidential client
     String token = getPasswordGrantToken(user_token_id, user_token_secret);
 
-    // When do user_token grant flow using public cf client
+    // When do user_token grant flow using public cf client (public, because of empty secret)
     String newToken = doUserTokenGrant("cf", token, HttpStatus.OK);
 
     // Then validation expected result
@@ -99,12 +99,12 @@ public class UserTokenGrantIT {
   }
 
   @Test
-  public void testExchangeFromPublicClientWithPublicCfClient() {
+  public void testExchangeFromPublicClientWithPublicClient() {
     // Given Create password token from public client
     String token = getPasswordGrantToken(user_token_public_id, empty_string);
 
-    // When do user_token grant flow using public cf client
-    String newToken = doUserTokenGrant("cf", token, HttpStatus.OK);
+    // When do user_token grant flow using public client
+    String newToken = doUserTokenGrant(user_token_public_id, token, HttpStatus.OK);
 
     // Then validation expected result
     assertNotNull(newToken);
