@@ -56,6 +56,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -141,13 +142,36 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         when(oAuth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
         SecurityContextHolder.getContext().setAuthentication(clientAuthentication);
         filter.doFilter(request, response, chain);
+        verify(clientAuthentication, times(0)).getDetails();
+        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        verify(passwordAuthManager, times(1)).authenticate(any());
+        verify(oAuth2Request, times(1)).getExtensions();
+        verifyNoInteractions(samlAuthFilter);
+        verifyNoInteractions(externalOAuthAuthenticationManager);
+    }
+
+    @Test
+    public void attempt_password_authentication_with_details() throws Exception {
+        request.addParameter(GRANT_TYPE, "password");
+        request.addParameter("username", "marissa");
+        request.addParameter("password", "koala");
+        when(passwordAuthManager.authenticate(any())).thenReturn(mock(UaaAuthentication.class));
+        UaaAuthentication clientAuthentication = mock(UaaAuthentication.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        AuthorizationRequest authorizationRequest = mock(AuthorizationRequest.class);
+        when(clientAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(clientAuthentication.isAuthenticated()).thenReturn(true);
+        when((uaaAuthenticationDetails.getAuthenticationMethod())).thenReturn(CLIENT_AUTH_NONE);
+        when(requestFactory.createAuthorizationRequest(anyMap())).thenReturn(authorizationRequest);
+        SecurityContextHolder.getContext().setAuthentication(clientAuthentication);
+        filter.doFilter(request, response, chain);
+        verify(clientAuthentication, atLeast(1)).getDetails();
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
         verify(authorizationRequest, times(1)).getExtensions();
         verifyNoInteractions(samlAuthFilter);
         verifyNoInteractions(externalOAuthAuthenticationManager);
     }
-
 
     @Test
     public void attempt_saml_assertion_authentication() throws Exception {
