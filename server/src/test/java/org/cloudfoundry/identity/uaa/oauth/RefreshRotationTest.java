@@ -40,7 +40,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -155,7 +154,7 @@ class RefreshRotationTest {
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertNull(UaaTokenUtils.getClaims(accessToken.getValue()).get(CLIENT_AUTH_METHOD));
+    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
