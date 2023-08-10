@@ -26,7 +26,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -94,7 +93,6 @@ public class UserTokenGrantIT {
     String newToken = doUserTokenGrant(user_token_id, token, HttpStatus.OK);
 
     // Then validation expected result
-    assertNotNull(newToken);
     checkRefreshToken(newToken);
   }
 
@@ -107,7 +105,6 @@ public class UserTokenGrantIT {
     String newToken = doUserTokenGrant(user_token_public_id, token, HttpStatus.OK);
 
     // Then validation expected result
-    assertNotNull(newToken);
     checkRefreshToken(newToken);
   }
 
@@ -120,7 +117,6 @@ public class UserTokenGrantIT {
     String newToken = doUserTokenGrant(user_token_id, token, HttpStatus.OK);
 
     // Then validation expected result
-    assertNotNull(newToken);
     checkRefreshToken(newToken);
   }
 
@@ -130,10 +126,7 @@ public class UserTokenGrantIT {
     String token = getPasswordGrantToken(user_token_id, user_token_secret);
 
     // When do user_token grant flow using admin client
-    String newToken = doUserTokenGrant("admin", token, HttpStatus.UNAUTHORIZED);
-
-    // Then validation expected result
-    assertNull(newToken);
+    doUserTokenGrant("admin", token, HttpStatus.UNAUTHORIZED);
   }
 
   private String getPasswordGrantToken(String clientId, String clientSecret) {
@@ -184,6 +177,7 @@ public class UserTokenGrantIT {
   }
 
   private void checkRefreshToken(String token) {
+    assertNotNull(token);
     assertEquals(34, token.length());
     assertTrue(token.endsWith("-r"));
   }
