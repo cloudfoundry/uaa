@@ -139,6 +139,10 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     private void createClientAndUserInRandomZone() throws Exception {
+        createClientAndUserInRandomZone(null);
+    }
+
+    private void createClientAndUserInRandomZone(String refreshTokenFormat) throws Exception {
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
         zone = setupIdentityZone(generator.generate());
         IdentityZoneHolder.set(zone);
@@ -151,6 +155,9 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         keys.put("key2", signingKey2);
         zone.getConfig().getTokenPolicy().setKeys(keys);
         zone.getConfig().getTokenPolicy().setActiveKeyId("key1");
+        if (refreshTokenFormat != null) {
+            zone.getConfig().getTokenPolicy().setRefreshTokenFormat(refreshTokenFormat);
+        }
         zone = identityZoneProvisioning.update(zone);
 
         String clientId = "refreshclient";
@@ -284,7 +291,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void test_default_refresh_tokens_count() throws Exception {
-        createClientAndUserInRandomZone();
+        createClientAndUserInRandomZone("jwt");
         template.update("delete from revocable_tokens");
         assertEquals(0, countTokens(client.getClientId(), user.getId()));
         getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone));
@@ -411,7 +418,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void refreshTokenGrantType_withJwtTokens_preservesRefreshTokenExpiryClaim() throws Exception {
-        createClientAndUserInRandomZone();
+        createClientAndUserInRandomZone("jwt");
         when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         CompositeToken tokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone), "jwt");
         String refreshToken = tokenResponse.getRefreshToken().getValue();

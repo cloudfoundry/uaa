@@ -66,7 +66,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String KEYS_CERT_DESC = "PEM encoded X.509 to be used in x5c, e.g. [RFC7517](https://tools.ietf.org/html/rfc7517#section-4.7)";
     private static final String ACCESS_TOKEN_VALIDITY_DESC = "Time in seconds between when a access token is issued and when it expires. Defaults to global `accessTokenValidity`";
     private static final String REFRESH_TOKEN_VALIDITY_DESC = "Time in seconds between when a refresh token is issued and when it expires. Defaults to global `refreshTokenValidity`";
-    private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `jwt`.";
+    private static final String REFRESH_TOKEN_FORMAT = "The format for the refresh token. Allowed values are `jwt`, `opaque`. Defaults to `opaque`.";
     private static final String REFRESH_TOKEN_UNIQUE = "If true, uaa will only issue one refresh token per client_id/user_id combination. Defaults to `false`.";
     private static final String REFRESH_TOKEN_ROTATE = "If true, uaa will issue a new refresh token value in grant type refresh_token. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";

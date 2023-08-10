@@ -22,6 +22,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
@@ -164,5 +165,73 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
         assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
         assertEquals("issuer", (((Map<String, String>)((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")));
+    }
+
+    @Test
+    public void testNoDiscoveryUrl() {
+        Map<String, Map> definitions = new HashMap<>();
+        idpDefinitionMap.remove("discoveryUrl");
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getDiscoveryUrl());
+        assertEquals("http://auth.url", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthUrl().toString());
+        assertEquals("http://token-key.url", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenKeyUrl().toString());
+        assertEquals("http://token.url", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenUrl().toString());
+        assertEquals("http://logout.url", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getLogoutUrl().toString());
+    }
+
+    @Test
+    public void testDiscoveryUrl() {
+        Map<String, Map> definitions = new HashMap<>();
+        idpDefinitionMap.put("discoveryUrl", "http://localhost:8080/uaa/.well-known/openid-configuration");
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        assertEquals("http://localhost:8080/uaa/.well-known/openid-configuration", ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getDiscoveryUrl().toString());
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthUrl());
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenKeyUrl());
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenUrl());
+        assertNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getLogoutUrl());
+    }
+
+    @Test
+    public void testAdditionalParametersInConfig() {
+        Map<String, Object> additionalMap = new HashMap<>();
+        Map<String, Map> definitions = new HashMap<>();
+        additionalMap.put("token_format", "jwt");
+        additionalMap.put("expires", 0);
+        additionalMap.put("code", 12345678);
+        additionalMap.put("client_id", "id");
+        additionalMap.put("complex", Set.of("1", "2"));
+        additionalMap.put("null", null);
+        additionalMap.put("empty", "");
+        idpDefinitionMap.put("additionalAuthzParameters", additionalMap);
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
+        assertEquals(3, receivedParameters.size());
+        assertEquals("jwt", receivedParameters.get("token_format"));
+        assertEquals("0", receivedParameters.get("expires"));
+        assertEquals("", receivedParameters.get("empty"));
+    }
+
+    @Test
+    public void testNoAdditionalParametersInConfig() {
+        Map<String, Map> definitions = new HashMap<>();
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        definitions.put("test", idpDefinitionMap);
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
+        assertEquals(0, receivedParameters.size());
     }
 }

@@ -14,15 +14,18 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Contains additional information about the authentication request which may be
@@ -38,6 +41,7 @@ public class UaaAuthenticationDetails implements Serializable {
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
 
     private static final String[] filteredParamKeys = {"username", "password", "passcode"};
+    private static final String UNKNOWN_STRING = "unknown";
 
     private UaaLoginHint loginHint;
 
@@ -50,12 +54,23 @@ public class UaaAuthenticationDetails implements Serializable {
     private String clientId;
 
     @JsonIgnore
+    private String authenticationMethod;
+
+    @JsonIgnore
+    private final String requestPath;
+
+    @JsonIgnore
+    private final boolean isAuthorizationSet;
+
+    @JsonIgnore
     private Map<String,String[]> parameterMap;
 
-    private UaaAuthenticationDetails() {
-        this.origin = "unknown";
-        this.sessionId = "unknown";
-        this.clientId = "unknown";
+    protected UaaAuthenticationDetails() {
+        this.origin = UNKNOWN_STRING;
+        this.sessionId = UNKNOWN_STRING;
+        this.clientId = UNKNOWN_STRING;
+        this.requestPath = UNKNOWN_STRING;
+        this.isAuthorizationSet = false;
     }
 
     public UaaAuthenticationDetails(HttpServletRequest request) {
@@ -65,10 +80,12 @@ public class UaaAuthenticationDetails implements Serializable {
         WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
         this.origin = webAuthenticationDetails.getRemoteAddress();
         this.sessionId = webAuthenticationDetails.getSessionId();
+        this.requestPath = StringUtils.removeEnd(request.getRequestURI().substring(request.getContextPath().length()), "/");
+        this.isAuthorizationSet = request.getHeader(HttpHeaders.AUTHORIZATION) != null;
 
         if (clientId == null) {
             this.clientId = request.getParameter("client_id");
-            if(!StringUtils.hasText(this.clientId)) {
+            if(!hasText(this.clientId)) {
                 this.clientId = (String) request.getAttribute("clientId");
             }
         } else {
@@ -89,6 +106,8 @@ public class UaaAuthenticationDetails implements Serializable {
         this.clientId = clientId;
         this.origin = origin;
         this.sessionId = sessionId;
+        this.requestPath = UNKNOWN_STRING;
+        this.isAuthorizationSet = false;
     }
 
     public String getOrigin() {
@@ -120,7 +139,27 @@ public class UaaAuthenticationDetails implements Serializable {
     }
 
     public Map<String, String[]> getParameterMap() {
-        return new HashMap<>(parameterMap);
+        return parameterMap != null ? new HashMap<>(parameterMap) : null;
+    }
+
+    @JsonIgnore
+    public String getAuthenticationMethod() {
+        return this.authenticationMethod;
+    }
+
+    @JsonIgnore
+    protected void setAuthenticationMethod(final String authenticationMethod) {
+        this.authenticationMethod = authenticationMethod;
+    }
+
+    @JsonIgnore
+    public String getRequestPath() {
+        return this.requestPath;
+    }
+
+    @JsonIgnore
+    public boolean isAuthorizationSet() {
+        return this.isAuthorizationSet;
     }
 
     @Override

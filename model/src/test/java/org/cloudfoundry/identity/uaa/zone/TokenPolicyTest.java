@@ -45,7 +45,7 @@ public class TokenPolicyTest {
         assertFalse(policy.isRefreshTokenUnique());
         assertFalse(policy.isJwtRevocable());
         assertFalse(policy.isRefreshTokenRotate());
-        assertEquals(TokenConstants.TokenFormat.JWT.getStringValue(), policy.getRefreshTokenFormat());
+        assertEquals(TokenConstants.TokenFormat.OPAQUE.getStringValue(), policy.getRefreshTokenFormat());
     }
 
     @Test

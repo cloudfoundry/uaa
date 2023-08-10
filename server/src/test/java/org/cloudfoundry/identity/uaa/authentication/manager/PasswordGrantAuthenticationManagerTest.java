@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import com.nimbusds.jose.util.X509CertUtils;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
@@ -881,9 +882,11 @@ class PasswordGrantAuthenticationManagerTest {
         Signer signer = mock(Signer.class);
         when(externalOAuthAuthenticationManager.getKeyInfoService()).thenReturn(keyInfoService);
         when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
+        when(keyInfoService.getKey("id")).thenReturn(keyInfo);
         when(keyInfo.algorithm()).thenReturn("RS256");
         when(keyInfo.getSigner()).thenReturn(signer);
-        when(keyInfo.verifierCertificate()).thenReturn(Optional.of(JwtHelperX5tTest.CERTIFICATE_1));
+        when(keyInfo.verifierCertificate()).thenReturn(Optional.of(X509CertUtils.parse(JwtHelperX5tTest.CERTIFICATE_1)));
+        when(keyInfo.keyId()).thenReturn("id");
         when(signer.sign(any())).thenReturn("dummy".getBytes());
     }
 

@@ -60,6 +60,8 @@ public class UaaAuthenticationSerializationTests {
         HttpServletRequest request = mock(HttpServletRequest.class);
         when(request.getRemoteAddr()).thenReturn("remoteAddr");
         when(request.getSession(false)).thenReturn(session);
+        when(request.getContextPath()).thenReturn("");
+        when(request.getRequestURI()).thenReturn("");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, "clientId");
         details.setAddNew(true);
 

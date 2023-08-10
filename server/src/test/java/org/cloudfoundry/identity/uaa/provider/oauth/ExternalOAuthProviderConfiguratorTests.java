@@ -89,6 +89,7 @@ class ExternalOAuthProviderConfiguratorTests {
             def.setRelyingPartySecret("clientSecret");
         }
         oidc.setResponseType("id_token code");
+        oidc.setAdditionalAuthzParameters(Map.of("token_format", "jwt"));
         oauth.setResponseType("code");
 
         configurator = spy(new ExternalOAuthProviderConfigurator(
@@ -329,5 +330,14 @@ class ExternalOAuthProviderConfiguratorTests {
         assertEquals(1, providers.size());
         assertEquals(oauthProvider.getName(), providers.get(0).getName());
         verify(configurator, times(1)).overlay(eq(config));
+    }
+
+    @Test
+    void testGetIdpAuthenticationUrlAndCheckTokenFormatParameter() {
+        String authzUri = configurator.getIdpAuthenticationUrl(oidc, OIDC10, mockHttpServletRequest);
+
+        Map<String, String> queryParams =
+            UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, hasEntry("token_format", "jwt"));
     }
 }
