@@ -55,6 +55,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -771,6 +772,20 @@ public class ClientAdminEndpointsIntegrationTests {
         assertNull(getClient(deletedClientId));
     }
 
+    @Test
+    public void testCreateClientWithValidLongAdditionalInformation() {
+        HashSet<String> uris = new HashSet<>();
+        for (int i = 0; i < 400; ++i) {
+            uris.add("http://example.com/myuri/foo/bar/abcdefg/abcdefghi" + i);
+        }
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put("privateKeyUrlArray", uris);
+        BaseClientDetails client = createClientWithSecretAndAdditionalInformation("secret", null, additionalInformation,"client_credentials");
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+    }
+
     private Approval[] getApprovals(String token, String clientId) {
         String filter = "client_id eq \"" + clientId + "\"";
         HttpHeaders headers = getAuthenticatedHeaders(token);
@@ -829,18 +844,22 @@ public class ClientAdminEndpointsIntegrationTests {
         return createClientWithSecret("secret", grantTypes);
     }
 
-    private ClientDetailsModification createClientWithSecretAndRedirectUri(
-            String secret, Set<String> redirectUris, String... grantTypes) {
+    private ClientDetailsModification createClientWithSecretAndRedirectUri(String secret, Set<String> redirectUris, String... grantTypes) {
+        return createClientWithSecretAndAdditionalInformation(secret, redirectUris, null, grantTypes);
+    }
+
+    private ClientDetailsModification createClientWithSecretAndAdditionalInformation(
+            String secret, Set<String> redirectUris, Map<String, Object> additionalInformation, String... grantTypes) {
         ClientDetailsModification client = new ClientDetailsModification();
         client.setClientId(new RandomValueStringGenerator().generate());
-        client.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
-        client.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
+        client.setScope(Set.of("oauth.approvals", "foo", "bar"));
+        client.setAuthorizedGrantTypes(Set.of(grantTypes));
         client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
         client.setClientSecret(secret);
-        client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
-                Collections.singletonList("bar")));
+        client.setAdditionalInformation(additionalInformation== null ? Map.of("foo",
+                Set.of("bar")) : additionalInformation);
         client.setRegisteredRedirectUri(redirectUris == null?
-                Collections.singleton("http://redirect.url"): redirectUris);
+                Set.of("http://redirect.url"): redirectUris);
         return client;
     }
 

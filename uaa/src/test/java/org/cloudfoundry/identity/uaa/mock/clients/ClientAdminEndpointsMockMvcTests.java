@@ -2157,4 +2157,24 @@ public class ClientAdminEndpointsMockMvcTests {
         return getClient(client.getClientId());
     }
 
+    @Test
+    void testCreateClientWithValidLongAdditionalInformation() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        BaseClientDetails client = createBaseClient(id, SECRET, Collections.singletonList(GRANT_TYPE_JWT_BEARER), null, Collections.singletonList(id + ".read"));
+        HashSet<String> uris = new HashSet<>();
+        for (int i = 0; i < 400; ++i) {
+            uris.add("http://example.com/myuri/foo/bar/abcdefg/abcdefghi" + i);
+        }
+        Map<String, Object> additionalInformation = new HashMap<>(client.getAdditionalInformation());
+        additionalInformation.put("privateKeyUrlArray", uris);
+        client.setAdditionalInformation(additionalInformation);
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(client));
+        mockMvc.perform(createClientPost).andExpect(status().isCreated()).andReturn();
+        verify(mockApplicationEventPublisher, times(1)).publishEvent(abstractUaaEventCaptor.capture());
+    }
 }

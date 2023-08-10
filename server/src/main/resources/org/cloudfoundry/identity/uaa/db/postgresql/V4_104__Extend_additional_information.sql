@@ -1,0 +1,1 @@
+ALTER TABLE oauth_client_details ALTER COLUMN additional_information TYPE TEXT;
