@@ -54,11 +54,6 @@ public class TracingAutoConfiguration {
             .build();
   }
 
-  /** Allows someone to add tags to a span if a trace is in progress. */
-  @Bean SpanCustomizer spanCustomizer(Tracing tracing) {
-    return CurrentSpanCustomizer.create(tracing);
-  }
-
   /** Decides how to name and tag spans. By default they are named the same as the http method. */
   @Bean HttpTracing httpTracing(Tracing tracing) {
     return HttpTracing.create(tracing);
@@ -67,17 +62,6 @@ public class TracingAutoConfiguration {
   /** Creates server spans for HTTP requests */
   @Bean Filter tracingFilter(HttpTracing httpTracing) {
     return TracingFilter.create(httpTracing);
-  }
-
-  /** Adds MVC Controller tags to server spans */
-  @Bean WebMvcConfigurer tracingWebMvcConfigurer(
-          final SpanCustomizingAsyncHandlerInterceptor webMvcTracingCustomizer) {
-    return new WebMvcConfigurerAdapter() {
-      /** Adds application-defined web controller details to HTTP server spans */
-      @Override public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(webMvcTracingCustomizer);
-      }
-    };
   }
 }
 
