@@ -318,18 +318,19 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return ofNullable(oAuth2Request.getExtensions().get(CLIENT_AUTH_METHOD)).map(String.class::cast).orElse(null);
     }
 
-    private static void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
+    private void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
         if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
-            // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none)
-            if (!CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
+            // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none) and refresh token is one time use (rotate it in refresh)
+            if (refreshTokenCreator.shouldRotateRefreshTokens() && CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
+                addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+            } else {
                 throw new TokenRevokedException("Refresh without client authentication not allowed.");
             }
-            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
         }
     }
 
-    private Map<String, Object> addAuthenticationMethod(Map<String, Object> additionalRootClaims, String clientAuthentication) {
-        if (clientAuthentication != null && refreshTokenCreator.shouldRotateRefreshTokens()) {
+    private static Map<String, Object> addAuthenticationMethod(Map<String, Object> additionalRootClaims, String clientAuthentication) {
+        if (clientAuthentication != null) {
             additionalRootClaims = addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, clientAuthentication);
         }
         return additionalRootClaims;
