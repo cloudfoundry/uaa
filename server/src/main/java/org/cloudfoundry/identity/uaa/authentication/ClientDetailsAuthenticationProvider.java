@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -33,6 +32,7 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
@@ -67,12 +67,12 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
                         if ((allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String) allowPublic)) ||
                             (allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic))) {
-                            setAuthenticationMethodNone(authentication);
+                            setAuthenticationMethod(authentication, CLIENT_AUTH_NONE);
                             break;
                         }
-                    } else if (ObjectUtils.isEmpty(authentication.getCredentials()) && IdentityZoneHolder.get().getConfig().getClientSecretPolicy().getMinLength() == 0) {
+                    } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
                         // set none as client_auth_method for all usage of empty secrets, e.g. cf client
-                        setAuthenticationMethodNone(authentication);
+                        setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
                     }
                 }
                 super.additionalAuthenticationChecks(user, authentication);
@@ -87,9 +87,9 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
     }
 
-    private static void setAuthenticationMethodNone(AbstractAuthenticationToken authentication) {
+    private static void setAuthenticationMethod(AbstractAuthenticationToken authentication, String method) {
         if (authentication.getDetails() instanceof  UaaAuthenticationDetails) {
-            ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
+            ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(method);
         }
     }
 

@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -121,10 +121,10 @@ public class PasswordGrantIntegrationTests {
         return JsonUtils.readValue(response.getBody(), BaseClientDetails.class);
     }
 
-    private ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret, String url) {
+    protected static ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret, String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));
-        headers.add("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        headers.add("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("grant_type", "password");
@@ -137,7 +137,7 @@ public class PasswordGrantIntegrationTests {
         return template.postForEntity(url, request, String.class);
     }
 
-    private RestTemplate getRestTemplate() {
+    protected static RestTemplate getRestTemplate() {
         RestTemplate template = new RestTemplate();
         template.setErrorHandler(new ResponseErrorHandler() {
             @Override
@@ -153,15 +153,16 @@ public class PasswordGrantIntegrationTests {
         return template;
     }
 
-    private void validateClientAuthenticationMethod(ResponseEntity<String> responseEntity, boolean isNone) {
+    protected static String validateClientAuthenticationMethod(ResponseEntity<String> responseEntity, boolean isEmpty) {
         Map<String, Object> jsonBody = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
         String accessToken = (String) jsonBody.get("access_token");
         assertThat(accessToken, is(notNullValue()));
         Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken);
-        if (isNone) {
-            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+        if (isEmpty) {
+            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_EMPTY));
         } else {
             assertThat(claims, not(hasKey(ClaimConstants.CLIENT_AUTH_METHOD)));
         }
+        return (String) jsonBody.get("refresh_token");
     }
 }
