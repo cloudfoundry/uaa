@@ -70,7 +70,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             setAuthenticationMethodNone(authentication);
                             break;
                         }
-                    } else if (ObjectUtils.isEmpty(authentication.getCredentials()) && IdentityZoneHolder.get().getConfig().getTokenPolicy().isRefreshTokenRotate()) {
+                    } else if (ObjectUtils.isEmpty(authentication.getCredentials()) && IdentityZoneHolder.get().getConfig().getClientSecretPolicy().getMinLength() == 0) {
                         // set none as client_auth_method for all usage of empty secrets, e.g. cf client
                         setAuthenticationMethodNone(authentication);
                     }
