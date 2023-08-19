@@ -222,6 +222,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
     @Test
     void getIdpAuthenticationUrl_includesNonceOnOIDC() {
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
         Map<String, String> queryParams =
@@ -231,6 +232,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
     @Test
     void getIdpAuthenticationUrl_doesNotIncludeNonceOnOAuth() {
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
 
         Map<String, String> queryParams =
@@ -263,6 +265,31 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
+    void getIdpAuthenticationUrl_includesPkceByDefault() {
+        oauth.setRelyingPartySecret("secret");
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
+        String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
+
+        Map<String, String> queryParams =
+            UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, hasKey("code_challenge"));
+        assertThat(queryParams, hasKey("code_challenge_method"));
+    }
+
+    @Test
+    void getIdpAuthenticationUrl_NoPkce() {
+        oauth.setRelyingPartySecret("secret");
+        oauth.setPkce(false);
+
+        String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
+
+        Map<String, String> queryParams =
+            UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
+        assertThat(queryParams, not(hasKey("code_challenge")));
+        assertThat(queryParams, not(hasKey("code_challenge_method")));
+    }
+
+    @Test
     void getIdpAuthenticationUrl_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException, OidcMetadataFetchingException {
         String discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
         oidc.setDiscoveryUrl(new URL(discoveryUrl));
@@ -274,6 +301,7 @@ class ExternalOAuthProviderConfiguratorTests {
         }).when(mockOidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
 
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authorizationURI = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
         assertThat(authorizationURI, Matchers.startsWith("https://accounts.google.com/o/oauth2/v2/auth"));
@@ -282,7 +310,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
     @Test
     void getIdpAuthenticationUrl_hasAllRequiredQueryParametersForOidc() {
-        when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-939b8307");
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
 
         String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
@@ -294,13 +322,13 @@ class ExternalOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "id_token+code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry("state", "random-939b8307"));
+        assertThat(queryParams, hasEntry("state", "01234567890123456789012345678901234567890123456789"));
         assertThat(queryParams, hasKey("nonce"));
     }
 
     @Test
     void getIdpAuthenticationUrl_hasAllRequiredQueryParametersForOauth() {
-        when(mockUaaRandomStringUtil.getSecureRandom(10)).thenReturn("random-451614ce");
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
 
         String authzUri = configurator.getIdpAuthenticationUrl(
                 oauth,
@@ -316,7 +344,7 @@ class ExternalOAuthProviderConfiguratorTests {
         assertThat(queryParams, hasEntry("response_type", "code"));
         assertThat(queryParams, hasEntry(is("redirect_uri"), containsString("login%2Fcallback%2Falias")));
         assertThat(queryParams, hasEntry("scope", "openid+password.write"));
-        assertThat(queryParams, hasEntry("state", "random-451614ce"));
+        assertThat(queryParams, hasEntry("state", "01234567890123456789012345678901234567890123456789"));
     }
 
     @Test
@@ -334,6 +362,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
     @Test
     void testGetIdpAuthenticationUrlAndCheckTokenFormatParameter() {
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authzUri = configurator.getIdpAuthenticationUrl(oidc, OIDC10, mockHttpServletRequest);
 
         Map<String, String> queryParams =

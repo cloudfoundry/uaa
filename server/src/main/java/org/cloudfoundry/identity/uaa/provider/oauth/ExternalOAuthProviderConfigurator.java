@@ -78,7 +78,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
         // no client-secret, switch to PKCE and treat client as public, same logic is implemented in spring security
         // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
-        if (definition.getRelyingPartySecret() == null) {
+        if (definition.isPkce() || definition.getRelyingPartySecret() == null) {
             var pkceVerifier = new S256PkceVerifier();
             var codeVerifier = generateCodeVerifier();
             var codeChallenge = pkceVerifier.compute(codeVerifier);
