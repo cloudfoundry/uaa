@@ -243,6 +243,7 @@ class ExternalOAuthProviderConfiguratorTests {
     @Test
     void getIdpAuthenticationUrl_includesPkceOnPublicOIDC() {
         oidc.setRelyingPartySecret(null); // public client means no secret
+        oidc.setPkce(false);
         when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authzUri = configurator.getIdpAuthenticationUrl(oidc, "alias", mockHttpServletRequest);
 
@@ -253,8 +254,9 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
-    void getIdpAuthenticationUrl_includesPkceOnPublicOAuth() {
-        oauth.setRelyingPartySecret(null); // public client means no secret
+    void getIdpAuthenticationUrl_includesPkce() {
+        oauth.setRelyingPartySecret(null);
+        oauth.setPkce(true);
         when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
 
@@ -265,22 +267,10 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
-    void getIdpAuthenticationUrl_includesPkceByDefault() {
-        oauth.setRelyingPartySecret("secret");
-        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
-        String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
-
-        Map<String, String> queryParams =
-            UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
-        assertThat(queryParams, hasKey("code_challenge"));
-        assertThat(queryParams, hasKey("code_challenge_method"));
-    }
-
-    @Test
-    void getIdpAuthenticationUrl_NoPkce() {
+    void getIdpAuthenticationUrl_deactivatesPkce() {
         oauth.setRelyingPartySecret("secret");
         oauth.setPkce(false);
-
+        when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         String authzUri = configurator.getIdpAuthenticationUrl(oauth, "alias", mockHttpServletRequest);
 
         Map<String, String> queryParams =
