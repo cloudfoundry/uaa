@@ -38,6 +38,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -264,6 +265,32 @@ class ExternalOAuthProviderConfiguratorTests {
             UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
         assertThat(queryParams, hasKey("code_challenge"));
         assertThat(queryParams, hasKey("code_challenge_method"));
+    }
+
+    @Test
+    void oidcIdPPkceEqual() throws CloneNotSupportedException {
+        OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
+        assertEquals(oidc, oidc1);
+    }
+
+    @Test
+    void oidcIdPPkceNotEqual() throws CloneNotSupportedException {
+        OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
+        oidc.setPkce(false);
+        assertNotEquals(oidc, oidc1);
+    }
+
+    @Test
+    void oidcIdPPkceHashCodeNotEqual() throws CloneNotSupportedException {
+        OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
+        oidc.setPkce(false);
+        assertNotEquals(oidc.hashCode(), oidc1.hashCode());
+    }
+
+    @Test
+    void oidcIdPPkceHashCodeEqual() throws CloneNotSupportedException {
+        OIDCIdentityProviderDefinition oidc1 = (OIDCIdentityProviderDefinition) oidc.clone();
+        assertEquals(oidc.hashCode(), oidc1.hashCode());
     }
 
     @Test
