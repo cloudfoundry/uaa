@@ -131,7 +131,6 @@ class LoginInfoEndpointTests {
         mockSamlIdentityProviderConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions()).thenReturn(emptyList());
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(emptyList());
-        //when(mockUaaRandomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         uaaIdentityProvider = new IdentityProvider();
         when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(eq(OriginKeys.UAA), anyString())).thenReturn(uaaIdentityProvider);
