@@ -6,6 +6,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,6 +20,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -204,7 +206,7 @@ public class ClientAdminBootstrap implements
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                     "redirect-uri", "secret", "id", "override", "access-token-validity",
-                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon")) {
+                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon", "jwks", "jwks_uri")) {
                 info.remove(key);
             }
 
@@ -232,6 +234,23 @@ public class ClientAdminBootstrap implements
             for (String s : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
                 if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
                     throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
+                }
+            }
+
+            if (map.get("jwks_uri") instanceof String) {
+                String jwksUri = (String) map.get("jwks_uri");
+                URI jwksUriObject = URI.create(jwksUri);
+                if (jwksUriObject.isAbsolute() && ("https".startsWith(jwksUriObject.getScheme()) || ("http".startsWith(jwksUriObject.getScheme()) && jwksUriObject.getHost().contains("localhost")))) {
+                    PrivateKeyJwtConfiguration keyConfig = PrivateKeyJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
+                    if (keyConfig != null && keyConfig.getCleanString() != null) {
+                        clientRegistrationService.addClientKeyConfig(clientId, keyConfig.getPrivateKeyJwtUrl(), IdentityZone.getUaaZoneId(), override);
+                    }
+                }
+            } else if (map.get("jwks") instanceof String) {
+                String jwks = (String) map.get("jwks");
+                PrivateKeyJwtConfiguration keyConfig = PrivateKeyJwtConfiguration.parse(null, jwks);
+                if (keyConfig != null && keyConfig.getCleanString() != null) {
+                    clientRegistrationService.addClientKeyConfig(clientId, keyConfig.getCleanString(), IdentityZone.getUaaZoneId(), override);
                 }
             }
 

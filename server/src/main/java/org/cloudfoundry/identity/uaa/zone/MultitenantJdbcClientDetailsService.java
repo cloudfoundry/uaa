@@ -2,10 +2,12 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.PrivateKeyJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -276,6 +278,42 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         }
     }
 
+    @Override
+    public void addClientKeyConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+        PrivateKeyJwtConfiguration privateKeyJwtConfiguration = PrivateKeyJwtConfiguration.parse(keyConfig);
+        if (privateKeyJwtConfiguration != null) {
+            BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
+            PrivateKeyJwtConfiguration existingConfig = PrivateKeyJwtConfiguration.createFromClientDetails(clientDetails);
+            if (existingConfig != null) {
+                PrivateKeyJwtConfiguration result =
+                PrivateKeyJwtConfiguration.merge(existingConfig, privateKeyJwtConfiguration, overwrite);
+                if (result != null) {
+                    result.persistToClientDetail(clientDetails);
+                }
+                updateClientDetails(clientDetails, zoneId);
+            }
+        }
+    }
+
+    @Override
+    public void deleteClientKeyConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        PrivateKeyJwtConfiguration privateKeyJwtConfiguration;
+        if(UaaUrlUtils.isUrl(keyConfig)) {
+            privateKeyJwtConfiguration = PrivateKeyJwtConfiguration.parse(keyConfig);
+        } else {
+            privateKeyJwtConfiguration = new PrivateKeyJwtConfiguration(keyConfig, null);
+        }
+        if (privateKeyJwtConfiguration != null) {
+            BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
+            PrivateKeyJwtConfiguration result = PrivateKeyJwtConfiguration.delete(PrivateKeyJwtConfiguration.createFromClientDetails(clientDetails), privateKeyJwtConfiguration);
+            if (result != null) {
+                result.persistToClientDetail(clientDetails);
+            } else {
+                PrivateKeyJwtConfiguration.cleanClientDetail(clientDetails);
+            }
+            updateClientDetails(clientDetails, zoneId);
+        }
+    }
 
     /**
      * Row mapper for ClientDetails.

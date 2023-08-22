@@ -12,14 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -244,6 +245,19 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                             "Client secret is required for client_credentials and authorization_code grant types");
                 }
                 clientSecretValidator.validate(client.getClientSecret());
+            }
+
+            if (prototype instanceof ClientDetailsCreation) {
+                ClientDetailsCreation clientDetailsCreation = (ClientDetailsCreation) prototype;
+                if (StringUtils.hasText(clientDetailsCreation.getPrivateKeyUrl()) || StringUtils.hasText(clientDetailsCreation.getPrivateKeySet())) {
+                    PrivateKeyJwtConfiguration privateKeyJwtConfiguration = PrivateKeyJwtConfiguration.parse(clientDetailsCreation.getPrivateKeyUrl(),
+                        clientDetailsCreation.getPrivateKeySet());
+                    if (privateKeyJwtConfiguration != null) {
+                        privateKeyJwtConfiguration.persistToClientDetail(client);
+                    } else {
+                        logger.warn("Client configuration with private_key_jwt not valid");
+                    }
+                }
             }
         }
 

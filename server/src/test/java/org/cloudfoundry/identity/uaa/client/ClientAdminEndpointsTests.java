@@ -1056,6 +1056,52 @@ class ClientAdminEndpointsTests {
         assertTrue(updated.isAutoApprove("foo.write"));
     }
 
+    @Test
+    void testCreateClientWithPrivateKeyUri() {
+        // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata, see jwks_uri
+        String jwksUri = "https://any.domain.net/openid/jwks-uri";
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+
+        input.setClientSecret("secret");
+        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setPrivateKeyUrl(jwksUri);
+        ClientDetails result = endpoints.createClientDetails(createRequest);
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        verify(clientDetailsService).create(clientCaptor.capture(), anyString());
+        BaseClientDetails created = clientCaptor.getValue();
+        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jwksUri)));
+    }
+
+    @Test
+    void testCreateClientWithPrivateKeySet() {
+        // Example JWK, a key is bound to a kid, means assumption is, a key is the same if kid is the same
+        String jsonJwk  = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+        String jsonJwk2 = "{\"kty\":\"RSA\",\"e\":\"\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"\"}";
+        String jsonJwk3 = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-2\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+        String jsonJwkSet = "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}";
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+
+        input.setClientSecret("secret");
+        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setPrivateKeySet(jsonJwk);
+        ClientDetails result = endpoints.createClientDetails(createRequest);
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        verify(clientDetailsService).create(clientCaptor.capture(), anyString());
+        BaseClientDetails created = clientCaptor.getValue();
+        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwk)));
+        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwk2)));
+        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwkSet)));
+        assertFalse(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwk3)));
+    }
+
     private ClientDetailsCreation createClientDetailsCreation(BaseClientDetails baseClientDetails) {
         final var clientDetails = new ClientDetailsCreation();
         clientDetails.setClientId(baseClientDetails.getClientId());
