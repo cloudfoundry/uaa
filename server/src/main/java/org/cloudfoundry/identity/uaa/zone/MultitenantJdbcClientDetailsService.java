@@ -284,14 +284,11 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         if (privateKeyJwtConfiguration != null) {
             BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
             PrivateKeyJwtConfiguration existingConfig = PrivateKeyJwtConfiguration.createFromClientDetails(clientDetails);
-            if (existingConfig != null) {
-                PrivateKeyJwtConfiguration result =
-                PrivateKeyJwtConfiguration.merge(existingConfig, privateKeyJwtConfiguration, overwrite);
-                if (result != null) {
-                    result.persistToClientDetail(clientDetails);
-                }
-                updateClientDetails(clientDetails, zoneId);
+            PrivateKeyJwtConfiguration result = PrivateKeyJwtConfiguration.merge(existingConfig, privateKeyJwtConfiguration, overwrite);
+            if (result != null) {
+                result.persistToClientDetail(clientDetails);
             }
+            updateClientDetails(clientDetails, zoneId);
         }
     }
 

@@ -253,6 +253,34 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void simpleAddClientWithJwksUri() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
+        map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
+        map.put("jwks_uri", "https://localhost:8080/uaa");
+        ClientDetails clientDetails = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertNotNull(clientDetails.getAdditionalInformation().get(ClientConstants.PRIVATE_KEY_CONFIG));
+    }
+
+    @Test
+    void simpleAddClientWithJwkSet() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
+        map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
+        map.put("jwks", "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}");
+        ClientDetails clientDetails = doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        assertNotNull(clientDetails.getAdditionalInformation().get(ClientConstants.PRIVATE_KEY_CONFIG));
+    }
+
+    @Test
     void clientMetadata_getsBootstrapped() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
@@ -592,7 +620,7 @@ class ClientAdminBootstrapTests {
 
         for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                 "redirect-uri", "secret", "id", "override", "access-token-validity",
-                "refresh-token-validity")) {
+                "refresh-token-validity", "jwks", "jwks_uri")) {
             info.remove(key);
         }
         for (Map.Entry<String, Object> entry : info.entrySet()) {
