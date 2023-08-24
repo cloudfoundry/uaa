@@ -553,7 +553,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             throw new InvalidClientDetailsException(e.getMessage());
         }
 
-        PrivateKeyJwtConfiguration clientKeyConfig = PrivateKeyJwtConfiguration.createFromClientDetails(clientDetails);
+        PrivateKeyJwtConfiguration clientKeyConfig = PrivateKeyJwtConfiguration.readValue(clientDetails);
 
         ActionResult result;
         switch (change.getChangeMode()){

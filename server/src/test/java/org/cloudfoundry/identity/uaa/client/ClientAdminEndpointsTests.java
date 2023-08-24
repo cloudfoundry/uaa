@@ -61,6 +61,7 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -1076,7 +1077,7 @@ class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
         BaseClientDetails created = clientCaptor.getValue();
-        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jwksUri)));
+        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jwksUri));
     }
 
     @Test
@@ -1096,7 +1097,7 @@ class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
         BaseClientDetails created = clientCaptor.getValue();
-        assertNull(PrivateKeyJwtConfiguration.createFromClientDetails(created));
+        assertNull(PrivateKeyJwtConfiguration.readValue(created));
     }
 
     @Test
@@ -1147,7 +1148,7 @@ class ClientAdminEndpointsTests {
         assertEquals("Private key updated", result.getMessage());
         verify(clientRegistrationService, times(1)).addClientKeyConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), true);
 
-        PrivateKeyJwtConfiguration.parse(jwksUri).persistToClientDetail(detail);
+        PrivateKeyJwtConfiguration.parse(jwksUri).writeValue(detail);
         change.setChangeMode(PrivateKeyChangeRequest.ChangeMode.DELETE);
         change.setKeyUrl(jwksUri);
         result = endpoints.changePrivateKey(detail.getClientId(), change);
@@ -1175,10 +1176,10 @@ class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
         BaseClientDetails created = clientCaptor.getValue();
-        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwk)));
-        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwk2)));
-        assertTrue(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwkSet)));
-        assertFalse(PrivateKeyJwtConfiguration.createFromClientDetails(created).configEquals(PrivateKeyJwtConfiguration.parse(jsonJwk3)));
+        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwk));
+        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwk2));
+        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwkSet));
+        assertNotEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwk3));
     }
 
     private ClientDetailsCreation createClientDetailsCreation(BaseClientDetails baseClientDetails) {

@@ -283,10 +283,10 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         PrivateKeyJwtConfiguration privateKeyJwtConfiguration = PrivateKeyJwtConfiguration.parse(keyConfig);
         if (privateKeyJwtConfiguration != null) {
             BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
-            PrivateKeyJwtConfiguration existingConfig = PrivateKeyJwtConfiguration.createFromClientDetails(clientDetails);
+            PrivateKeyJwtConfiguration existingConfig = PrivateKeyJwtConfiguration.readValue(clientDetails);
             PrivateKeyJwtConfiguration result = PrivateKeyJwtConfiguration.merge(existingConfig, privateKeyJwtConfiguration, overwrite);
             if (result != null) {
-                result.persistToClientDetail(clientDetails);
+                result.writeValue(clientDetails);
             }
             updateClientDetails(clientDetails, zoneId);
         }
@@ -302,11 +302,11 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         }
         if (privateKeyJwtConfiguration != null) {
             BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
-            PrivateKeyJwtConfiguration result = PrivateKeyJwtConfiguration.delete(PrivateKeyJwtConfiguration.createFromClientDetails(clientDetails), privateKeyJwtConfiguration);
+            PrivateKeyJwtConfiguration result = PrivateKeyJwtConfiguration.delete(PrivateKeyJwtConfiguration.readValue(clientDetails), privateKeyJwtConfiguration);
             if (result != null) {
-                result.persistToClientDetail(clientDetails);
+                result.writeValue(clientDetails);
             } else {
-                PrivateKeyJwtConfiguration.cleanClientDetail(clientDetails);
+                PrivateKeyJwtConfiguration.resetConfiguration(clientDetails);
             }
             updateClientDetails(clientDetails, zoneId);
         }

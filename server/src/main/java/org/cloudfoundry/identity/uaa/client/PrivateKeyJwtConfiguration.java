@@ -31,7 +31,7 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.PRIVATE
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PrivateKeyJwtConfiguration {
+public class PrivateKeyJwtConfiguration implements Cloneable{
 
   @JsonIgnore
   private static final int MAX_KEY_SIZE = 10;
@@ -73,8 +73,17 @@ public class PrivateKeyJwtConfiguration {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    if (!super.equals(o)) return false;
-    return configEquals(o);
+
+    if (o instanceof PrivateKeyJwtConfiguration) {
+      PrivateKeyJwtConfiguration that = (PrivateKeyJwtConfiguration) o;
+      if (!Objects.equals(privateKeyJwtUrl, that.privateKeyJwtUrl)) return false;
+      if (privateKeyJwt != null && that.privateKeyJwt != null) {
+        return privateKeyJwt.getKeys().equals(that.privateKeyJwt.getKeys());
+      } else {
+        return Objects.equals(privateKeyJwt, that.privateKeyJwt);
+      }
+    }
+    return false;
   }
 
   @Override
@@ -86,17 +95,9 @@ public class PrivateKeyJwtConfiguration {
     return result;
   }
 
-  public boolean configEquals(Object o) {
-    if (o instanceof PrivateKeyJwtConfiguration) {
-      PrivateKeyJwtConfiguration that = (PrivateKeyJwtConfiguration) o;
-      if (!Objects.equals(privateKeyJwtUrl, that.privateKeyJwtUrl)) return false;
-      if (privateKeyJwt != null && that.privateKeyJwt != null) {
-        return privateKeyJwt.getKeys().equals(that.privateKeyJwt.getKeys());
-      } else {
-        return Objects.equals(privateKeyJwt, that.privateKeyJwt);
-      }
-    }
-    return false;
+  @Override
+  public Object clone() throws CloneNotSupportedException {
+    return super.clone();
   }
 
   @JsonIgnore
@@ -148,10 +149,10 @@ public class PrivateKeyJwtConfiguration {
 
   private boolean validateJwkSet() {
     List<JsonWebKey> keyList = privateKeyJwt.getKeys();
-    Set<String> keyId = new HashSet<>();
     if (keyList.isEmpty() || keyList.size() > MAX_KEY_SIZE) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
     }
+    Set<String> keyId = new HashSet<>();
     keyList.forEach(key -> {
       if (!StringUtils.hasText(key.getKid())) {
         throw new InvalidClientDetailsException("Invalid private_key_jwt: kid is required attribute");
@@ -191,7 +192,7 @@ public class PrivateKeyJwtConfiguration {
    * @return
    */
   @JsonIgnore
-  public static PrivateKeyJwtConfiguration createFromClientDetails(ClientDetails clientDetails) {
+  public static PrivateKeyJwtConfiguration readValue(ClientDetails clientDetails) {
     if (clientDetails == null ||
         clientDetails.getAdditionalInformation() == null ||
         !(clientDetails.getAdditionalInformation().get(PRIVATE_KEY_CONFIG) instanceof String)) {
@@ -208,7 +209,7 @@ public class PrivateKeyJwtConfiguration {
    * @return
    */
   @JsonIgnore
-  public void persistToClientDetail(ClientDetails clientDetails) {
+  public void writeValue(ClientDetails clientDetails) {
     if (clientDetails instanceof BaseClientDetails) {
       BaseClientDetails baseClientDetails = (BaseClientDetails) clientDetails;
       HashMap<String, Object> additionalInformation = Optional.ofNullable(baseClientDetails.getAdditionalInformation()).map(HashMap::new).orElse(new HashMap<>());
@@ -225,7 +226,7 @@ public class PrivateKeyJwtConfiguration {
    * @return
    */
   @JsonIgnore
-  public static void cleanClientDetail(ClientDetails clientDetails) {
+  public static void resetConfiguration(ClientDetails clientDetails) {
     if (clientDetails instanceof BaseClientDetails) {
       BaseClientDetails baseClientDetails = (BaseClientDetails) clientDetails;
       HashMap<String, Object> additionalInformation = Optional.ofNullable(baseClientDetails.getAdditionalInformation()).map(HashMap::new).orElse(new HashMap<>());

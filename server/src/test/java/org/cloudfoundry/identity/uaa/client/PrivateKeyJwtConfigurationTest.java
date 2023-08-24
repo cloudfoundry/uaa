@@ -1,18 +1,22 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
-import org.junit.jupiter.api.BeforeEach;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -27,11 +31,8 @@ class PrivateKeyJwtConfigurationTest {
   private final String jsonWebKeyNoId  = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
   private final String jsonJwkSet = "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}";
   private final String jsonJwkSetEmtpy = "{\"keys\":[]}";
-  private PrivateKeyJwtConfiguration privateKeyJwtConfiguration;
-
-  @BeforeEach
-  void setUp() {
-  }
+  private final String defaultJsonUri = "{\"jwks_uri\":\"http://localhost:8080/uaa\"} ";
+  private final String defaultJsonKey = "{\"jwks\":{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\",\"kid\":\"key-1\"}]}}";
 
   @Test
   void testJwksValidity() {
@@ -197,8 +198,49 @@ class PrivateKeyJwtConfigurationTest {
   }
 
   @Test
-  void xxx() {
-    PrivateKeyJwtConfiguration xxx = PrivateKeyJwtConfiguration.parse("test-1");
-    xxx = new PrivateKeyJwtConfiguration("test-1", null);
+  void testHashCode() {
+    PrivateKeyJwtConfiguration key1 = PrivateKeyJwtConfiguration.parse("http://localhost:8080/uaa");
+    PrivateKeyJwtConfiguration key2 = PrivateKeyJwtConfiguration.parse("http://localhost:8080/uaa");
+    assertNotEquals(key1.hashCode(), key2.hashCode());
+    assertEquals(key1.hashCode(), key1.hashCode());
+    assertEquals(key2.hashCode(), key2.hashCode());
+  }
+
+  @Test
+  void testEquals() throws CloneNotSupportedException {
+    PrivateKeyJwtConfiguration key1 = PrivateKeyJwtConfiguration.parse("http://localhost:8080/uaa");
+    PrivateKeyJwtConfiguration key2 = (PrivateKeyJwtConfiguration) key1.clone();
+    assertEquals(key1, key2);
+  }
+
+  @Test
+  void testSerializableObjectCalls() throws CloneNotSupportedException {
+    PrivateKeyJwtConfiguration key1 = JsonUtils.readValue(defaultJsonUri, PrivateKeyJwtConfiguration.class);
+    PrivateKeyJwtConfiguration key2 = (PrivateKeyJwtConfiguration) key1.clone();
+    assertEquals(key1, key2);
+
+    key1 = JsonUtils.readValue(defaultJsonKey, PrivateKeyJwtConfiguration.class);
+    key2 = (PrivateKeyJwtConfiguration) key1.clone();
+    assertEquals(key1, key2);
+  }
+
+  @Test
+  void testConfiguration() {
+    PrivateKeyJwtConfiguration configUri = JsonUtils.readValue(defaultJsonUri, PrivateKeyJwtConfiguration.class);
+    PrivateKeyJwtConfiguration configKey = JsonUtils.readValue(defaultJsonKey, PrivateKeyJwtConfiguration.class);
+    BaseClientDetails baseClientDetails = new BaseClientDetails();
+    HashMap<String, Object> additionalInformation = new HashMap<>();
+    additionalInformation.put(ClientConstants.PRIVATE_KEY_CONFIG, configUri);
+    baseClientDetails.setAdditionalInformation(additionalInformation);
+
+    configUri.writeValue(baseClientDetails);
+    PrivateKeyJwtConfiguration readUriConfig = PrivateKeyJwtConfiguration.readValue(baseClientDetails);
+    assertEquals(configUri, readUriConfig);
+
+    PrivateKeyJwtConfiguration.resetConfiguration(baseClientDetails);
+    assertNull(PrivateKeyJwtConfiguration.readValue(baseClientDetails));
+    configKey.writeValue(baseClientDetails);
+    PrivateKeyJwtConfiguration readKeyConfig = PrivateKeyJwtConfiguration.readValue(baseClientDetails);
+    assertEquals(configKey, readKeyConfig);
   }
 }
