@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -59,10 +60,20 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
     }
 
     @Override
+    public void addUaaClientDetails(UaaClientDetails uaaClientDetails, String zoneId) throws ClientAlreadyExistsException {
+        getInMemoryService(zoneId).put(uaaClientDetails.getClientId(), (BaseClientDetails) uaaClientDetails);
+    }
+
+    @Override
     public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
         ofNullable((BaseClientDetails) loadClientByClientId(clientId, zoneId)).ifPresent(client ->
                 client.setClientSecret(secret)
         );
+    }
+
+    @Override
+    public void updateClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
     }
 
     @Override
