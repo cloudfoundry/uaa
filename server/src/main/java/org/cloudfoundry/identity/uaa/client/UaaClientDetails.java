@@ -27,13 +27,12 @@ public class UaaClientDetails extends BaseClientDetails {
 
     UaaClientDetails(ClientDetails prototype) {
         super(prototype);
-        this.setAdditionalInformation(prototype.getAdditionalInformation());
+        setAdditionalInformation(prototype.getAdditionalInformation());
     }
 
-    public UaaClientDetails(String clientId, String clientSecret, String clientJwtConfig, String resourceIds,
+    public UaaClientDetails(String clientId, String resourceIds,
         String scopes, String grantTypes, String authorities, String redirectUris) {
         super(clientId, resourceIds, scopes, grantTypes, authorities, redirectUris);
-        setClientSecret(clientSecret);
         this.clientJwtConfig = clientJwtConfig;
     }
 
