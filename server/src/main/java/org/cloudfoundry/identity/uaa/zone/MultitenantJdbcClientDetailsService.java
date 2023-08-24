@@ -155,7 +155,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     @Override
     public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
-        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, passwordEncoder.encode(secret), clientId, zoneId);
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, secret != null ? passwordEncoder.encode(secret) : null, clientId, zoneId);
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
