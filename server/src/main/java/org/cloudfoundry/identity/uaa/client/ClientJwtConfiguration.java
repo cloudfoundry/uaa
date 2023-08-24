@@ -37,36 +37,36 @@ public class ClientJwtConfiguration implements Cloneable{
   private static final int MAX_KEY_SIZE = 10;
 
   @JsonProperty("jwks_uri")
-  private String privateKeyJwtUrl;
+  private String jwksUri;
 
   @JsonProperty("jwks")
-  private JsonWebKeySet<JsonWebKey> privateKeyJwt;
+  private JsonWebKeySet<JsonWebKey> jwkSet;
 
   public ClientJwtConfiguration() {
   }
 
-  public ClientJwtConfiguration(final String privateKeyJwtUrl, final JsonWebKeySet<JsonWebKey> webKeySet) {
-    this.privateKeyJwtUrl = privateKeyJwtUrl;
-    privateKeyJwt = webKeySet;
-    if (privateKeyJwt != null) {
+  public ClientJwtConfiguration(final String jwksUri, final JsonWebKeySet<JsonWebKey> webKeySet) {
+    this.jwksUri = jwksUri;
+    jwkSet = webKeySet;
+    if (jwkSet != null) {
       validateJwkSet();
     }
   }
 
-  public String getPrivateKeyJwtUrl() {
-    return this.privateKeyJwtUrl;
+  public String getJwksUri() {
+    return this.jwksUri;
   }
 
-  public void setPrivateKeyJwtUrl(final String privateKeyJwtUrl) {
-    this.privateKeyJwtUrl = privateKeyJwtUrl;
+  public void setJwksUri(final String jwksUri) {
+    this.jwksUri = jwksUri;
   }
 
-  public JsonWebKeySet<JsonWebKey> getPrivateKeyJwt() {
-    return this.privateKeyJwt;
+  public JsonWebKeySet<JsonWebKey> getJwkSet() {
+    return this.jwkSet;
   }
 
-  public void setPrivateKeyJwt(final JsonWebKeySet<JsonWebKey> privateKeyJwt) {
-    this.privateKeyJwt = privateKeyJwt;
+  public void setJwkSet(final JsonWebKeySet<JsonWebKey> jwkSet) {
+    this.jwkSet = jwkSet;
   }
 
   @Override
@@ -76,11 +76,11 @@ public class ClientJwtConfiguration implements Cloneable{
 
     if (o instanceof ClientJwtConfiguration) {
       ClientJwtConfiguration that = (ClientJwtConfiguration) o;
-      if (!Objects.equals(privateKeyJwtUrl, that.privateKeyJwtUrl)) return false;
-      if (privateKeyJwt != null && that.privateKeyJwt != null) {
-        return privateKeyJwt.getKeys().equals(that.privateKeyJwt.getKeys());
+      if (!Objects.equals(jwksUri, that.jwksUri)) return false;
+      if (jwkSet != null && that.jwkSet != null) {
+        return jwkSet.getKeys().equals(that.jwkSet.getKeys());
       } else {
-        return Objects.equals(privateKeyJwt, that.privateKeyJwt);
+        return Objects.equals(jwkSet, that.jwkSet);
       }
     }
     return false;
@@ -90,8 +90,8 @@ public class ClientJwtConfiguration implements Cloneable{
   public int hashCode() {
     int result = super.hashCode();
 
-    result = 31 * result + (privateKeyJwtUrl != null ? privateKeyJwtUrl.hashCode() : 0);
-    result = 31 * result + (privateKeyJwt != null ? privateKeyJwt.hashCode() : 0);
+    result = 31 * result + (jwksUri != null ? jwksUri.hashCode() : 0);
+    result = 31 * result + (jwkSet != null ? jwkSet.hashCode() : 0);
     return result;
   }
 
@@ -103,10 +103,10 @@ public class ClientJwtConfiguration implements Cloneable{
   @JsonIgnore
   public String getCleanString() {
     try {
-      if (UaaUrlUtils.isUrl(this.privateKeyJwtUrl)) {
-        return this.privateKeyJwtUrl;
-      } else if (this.privateKeyJwt != null && !ObjectUtils.isEmpty(this.privateKeyJwt.getKeySetMap())) {
-        return JWKSet.parse(this.privateKeyJwt.getKeySetMap()).toString(true);
+      if (UaaUrlUtils.isUrl(this.jwksUri)) {
+        return this.jwksUri;
+      } else if (this.jwkSet != null && !ObjectUtils.isEmpty(this.jwkSet.getKeySetMap())) {
+        return JWKSet.parse(this.jwkSet.getKeySetMap()).toString(true);
       }
     } catch (IllegalStateException | JsonUtils.JsonUtilException | ParseException e) {
       throw new InvalidClientDetailsException("Client jwt configuration configuration fails ", e);
@@ -148,7 +148,7 @@ public class ClientJwtConfiguration implements Cloneable{
   }
 
   private boolean validateJwkSet() {
-    List<JsonWebKey> keyList = privateKeyJwt.getKeys();
+    List<JsonWebKey> keyList = jwkSet.getKeys();
     if (keyList.isEmpty() || keyList.size() > MAX_KEY_SIZE) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
     }
@@ -168,7 +168,7 @@ public class ClientJwtConfiguration implements Cloneable{
   private boolean validateJwksUri() {
     URI jwksUri;
     try {
-      jwksUri = URI.create(privateKeyJwtUrl);
+      jwksUri = URI.create(this.jwksUri);
     } catch (IllegalArgumentException e) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be URI complaint", e);
     }
@@ -244,25 +244,25 @@ public class ClientJwtConfiguration implements Cloneable{
       return existingConfig;
     }
     ClientJwtConfiguration result = null;
-    if (newConfig.privateKeyJwtUrl != null) {
+    if (newConfig.jwksUri != null) {
       if (overwrite) {
-        result = new ClientJwtConfiguration(newConfig.privateKeyJwtUrl, null);
+        result = new ClientJwtConfiguration(newConfig.jwksUri, null);
       } else {
         result = existingConfig;
       }
     }
-    if (newConfig.privateKeyJwt != null) {
-      if (existingConfig.privateKeyJwt == null) {
+    if (newConfig.jwkSet != null) {
+      if (existingConfig.jwkSet == null) {
         if (overwrite) {
-          result = new ClientJwtConfiguration(null, newConfig.privateKeyJwt);
+          result = new ClientJwtConfiguration(null, newConfig.jwkSet);
         } else {
           result = existingConfig;
         }
       } else {
-        JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.privateKeyJwt;
+        JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.jwkSet;
         List<JsonWebKey> existingKeys = new ArrayList<>(existingKeySet.getKeys());
         List<JsonWebKey> newKeys = new ArrayList<>();
-        newConfig.getPrivateKeyJwt().getKeys().forEach(key -> {
+        newConfig.getJwkSet().getKeys().forEach(key -> {
           if (existingKeys.contains(key)) {
             if (overwrite) {
               existingKeys.remove(key);
@@ -288,24 +288,24 @@ public class ClientJwtConfiguration implements Cloneable{
       return existingConfig;
     }
     ClientJwtConfiguration result = null;
-    if (existingConfig.privateKeyJwt != null && tobeDeleted.privateKeyJwtUrl != null) {
-      JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.privateKeyJwt;
-      List<JsonWebKey> keys = existingKeySet.getKeys().stream().filter(k -> !tobeDeleted.privateKeyJwtUrl.equals(k.getKid())).collect(Collectors.toList());
+    if (existingConfig.jwkSet != null && tobeDeleted.jwksUri != null) {
+      JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.jwkSet;
+      List<JsonWebKey> keys = existingKeySet.getKeys().stream().filter(k -> !tobeDeleted.jwksUri.equals(k.getKid())).collect(Collectors.toList());
       if (keys.isEmpty()) {
         result = null;
       } else {
         result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(keys));
       }
-    } else if (existingConfig.privateKeyJwt != null && tobeDeleted.privateKeyJwt != null) {
-      List<JsonWebKey> existingKeys = new ArrayList<>(existingConfig.getPrivateKeyJwt().getKeys());
-      existingKeys.removeAll(tobeDeleted.privateKeyJwt.getKeys());
+    } else if (existingConfig.jwkSet != null && tobeDeleted.jwkSet != null) {
+      List<JsonWebKey> existingKeys = new ArrayList<>(existingConfig.getJwkSet().getKeys());
+      existingKeys.removeAll(tobeDeleted.jwkSet.getKeys());
       if (existingKeys.isEmpty()) {
         result = null;
       } else {
         result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(existingKeys));
       }
-    } else if (existingConfig.privateKeyJwtUrl != null && tobeDeleted.privateKeyJwtUrl != null) {
-      if ("*".equals(tobeDeleted.privateKeyJwtUrl) || existingConfig.privateKeyJwtUrl.equals(tobeDeleted.privateKeyJwtUrl)) {
+    } else if (existingConfig.jwksUri != null && tobeDeleted.jwksUri != null) {
+      if ("*".equals(tobeDeleted.jwksUri) || existingConfig.jwksUri.equals(tobeDeleted.jwksUri)) {
         result = null;
       } else {
         result = existingConfig;

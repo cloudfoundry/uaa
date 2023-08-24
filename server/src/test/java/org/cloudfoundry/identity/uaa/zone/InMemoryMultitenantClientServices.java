@@ -49,12 +49,12 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
     }
 
     @Override
-    public void addClientKeyConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+    public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void deleteClientKeyConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+    public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
         throw new UnsupportedOperationException();
     }
 

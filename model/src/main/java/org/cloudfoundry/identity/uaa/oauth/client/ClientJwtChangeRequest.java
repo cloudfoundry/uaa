@@ -21,9 +21,9 @@ public class ClientJwtChangeRequest {
     @JsonProperty("kid")
     private String keyId;
     @JsonProperty("jwks_uri")
-    private String keyUrl;
+    private String jsonWebKeyUri;
     @JsonProperty("jwks")
-    private String keyConfig;
+    private String jsonWebKeySet;
     @JsonProperty("client_id")
     private String clientId;
     private ChangeMode changeMode = ADD;
@@ -31,26 +31,26 @@ public class ClientJwtChangeRequest {
     public ClientJwtChangeRequest() {
     }
 
-    public ClientJwtChangeRequest(String clientId, String keyUrl, String keyConfig) {
-        this.keyUrl = keyUrl;
-        this.keyConfig = keyConfig;
+    public ClientJwtChangeRequest(String clientId, String jsonWebKeyUri, String jsonWebKeySet) {
+        this.jsonWebKeyUri = jsonWebKeyUri;
+        this.jsonWebKeySet = jsonWebKeySet;
         this.clientId = clientId;
     }
 
-    public String getKeyUrl() {
-        return keyUrl;
+    public String getJsonWebKeyUri() {
+        return jsonWebKeyUri;
     }
 
-    public void setKeyUrl(String keyUrl) {
-        this.keyUrl = keyUrl;
+    public void setJsonWebKeyUri(String jsonWebKeyUri) {
+        this.jsonWebKeyUri = jsonWebKeyUri;
     }
 
-    public String getKeyConfig() {
-        return keyConfig;
+    public String getJsonWebKeySet() {
+        return jsonWebKeySet;
     }
 
-    public void setKeyConfig(String keyConfig) {
-        this.keyConfig = keyConfig;
+    public void setJsonWebKeySet(String jsonWebKeySet) {
+        this.jsonWebKeySet = jsonWebKeySet;
     }
 
     public String getClientId() {
@@ -76,6 +76,6 @@ public class ClientJwtChangeRequest {
     }
 
     public String getKey() {
-        return keyUrl != null ? keyUrl : keyConfig;
+        return jsonWebKeyUri != null ? jsonWebKeyUri : jsonWebKeySet;
     }
 }

@@ -279,7 +279,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     }
 
     @Override
-    public void addClientKeyConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+    public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
         ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
         if (clientJwtConfiguration != null) {
             BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
@@ -293,7 +293,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     }
 
     @Override
-    public void deleteClientKeyConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+    public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
         ClientJwtConfiguration clientJwtConfiguration;
         if(UaaUrlUtils.isUrl(keyConfig)) {
             clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);

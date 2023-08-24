@@ -13,11 +13,11 @@ public class ClientDetailsCreation extends BaseClientDetails {
     @JsonProperty("secondary_client_secret")
     private String secondaryClientSecret;
 
-    @JsonProperty("private_key_url")
-    private String privateKeyUrl;
+    @JsonProperty("jwks_uri")
+    private String jsonWebKeyUri;
 
-    @JsonProperty("private_key_set")
-    private String privateKeySet;
+    @JsonProperty("jwks")
+    private String jsonWebKeySet;
 
     @JsonIgnore
     public String getSecondaryClientSecret() {
@@ -28,19 +28,19 @@ public class ClientDetailsCreation extends BaseClientDetails {
         this.secondaryClientSecret = secondaryClientSecret;
     }
 
-    public String getPrivateKeyUrl() {
-        return privateKeyUrl;
+    public String getJsonWebKeyUri() {
+        return jsonWebKeyUri;
     }
 
-    public void setPrivateKeyUrl(String privateKeyUrl) {
-        this.privateKeyUrl = privateKeyUrl;
+    public void setJsonWebKeyUri(String jsonWebKeyUri) {
+        this.jsonWebKeyUri = jsonWebKeyUri;
     }
 
-    public String getPrivateKeySet() {
-        return privateKeySet;
+    public String getJsonWebKeySet() {
+        return jsonWebKeySet;
     }
 
-    public void setPrivateKeySet(String privateKeySet) {
-        this.privateKeySet = privateKeySet;
+    public void setJsonWebKeySet(String jsonWebKeySet) {
+        this.jsonWebKeySet = jsonWebKeySet;
     }
 }

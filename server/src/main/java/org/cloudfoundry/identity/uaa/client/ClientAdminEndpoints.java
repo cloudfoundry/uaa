@@ -559,7 +559,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         switch (change.getChangeMode()){
             case ADD :
                 if (change.getKey() != null) {
-                    clientRegistrationService.addClientKeyConfig(client_id, change.getKey(), IdentityZoneHolder.get().getId(), false);
+                    clientRegistrationService.addClientJwtConfig(client_id, change.getKey(), IdentityZoneHolder.get().getId(), false);
                     result = new ActionResult("ok", "Client jwt configuration is added");
                 } else {
                     result = new ActionResult("ok", "No key added");
@@ -569,13 +569,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             case DELETE :
                 String deleteString = change.getKeyId() == null ? change.getKey() : change.getKeyId();
                 if (clientKeyConfig != null && deleteString != null) {
-                    clientRegistrationService.deleteClientKeyConfig(client_id, deleteString, IdentityZoneHolder.get().getId());
+                    clientRegistrationService.deleteClientJwtConfig(client_id, deleteString, IdentityZoneHolder.get().getId());
                 }
                 result = new ActionResult("ok", "Client jwt configuration is deleted");
                 break;
 
             default:
-                clientRegistrationService.addClientKeyConfig(client_id, change.getKey(), IdentityZoneHolder.get().getId(), true);
+                clientRegistrationService.addClientJwtConfig(client_id, change.getKey(), IdentityZoneHolder.get().getId(), true);
                 result = new ActionResult("ok", "Client jwt configuration updated");
         }
         clientSecretChanges.incrementAndGet();

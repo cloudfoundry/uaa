@@ -249,13 +249,13 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
             if (prototype instanceof ClientDetailsCreation) {
                 ClientDetailsCreation clientDetailsCreation = (ClientDetailsCreation) prototype;
-                if (StringUtils.hasText(clientDetailsCreation.getPrivateKeyUrl()) || StringUtils.hasText(clientDetailsCreation.getPrivateKeySet())) {
-                    ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(clientDetailsCreation.getPrivateKeyUrl(),
-                        clientDetailsCreation.getPrivateKeySet());
+                if (StringUtils.hasText(clientDetailsCreation.getJsonWebKeyUri()) || StringUtils.hasText(clientDetailsCreation.getJsonWebKeySet())) {
+                    ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(clientDetailsCreation.getJsonWebKeyUri(),
+                        clientDetailsCreation.getJsonWebKeySet());
                     if (clientJwtConfiguration != null) {
                         clientJwtConfiguration.writeValue(client);
                     } else {
-                        logger.warn("Client configuration with private_key_jwt not valid");
+                        logger.warn("Client with client jwt configuration not valid");
                     }
                 }
             }

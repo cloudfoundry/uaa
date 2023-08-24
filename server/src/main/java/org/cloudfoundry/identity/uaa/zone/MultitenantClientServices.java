@@ -31,9 +31,9 @@ interface MultitenantClientSecretService {
 
     void deleteClientSecret(String clientId, String zoneId) throws NoSuchClientException;
 
-    void addClientKeyConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException;
+    void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException;
 
-    void deleteClientKeyConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException;
+    void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException;
 }
 
 public abstract class MultitenantClientServices implements

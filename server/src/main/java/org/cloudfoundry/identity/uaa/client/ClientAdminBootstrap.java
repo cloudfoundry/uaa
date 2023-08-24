@@ -240,13 +240,13 @@ public class ClientAdminBootstrap implements
                 String jwksUri = (String) map.get("jwks_uri");
                 ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
                 if (keyConfig != null && keyConfig.getCleanString() != null) {
-                        clientRegistrationService.addClientKeyConfig(clientId, keyConfig.getPrivateKeyJwtUrl(), IdentityZone.getUaaZoneId(), override);
+                        clientRegistrationService.addClientJwtConfig(clientId, keyConfig.getJwksUri(), IdentityZone.getUaaZoneId(), override);
                 }
             } else if (map.get("jwks") instanceof String) {
                 String jwks = (String) map.get("jwks");
                 ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(null, jwks);
                 if (keyConfig != null && keyConfig.getCleanString() != null) {
-                    clientRegistrationService.addClientKeyConfig(clientId, keyConfig.getCleanString(), IdentityZone.getUaaZoneId(), override);
+                    clientRegistrationService.addClientJwtConfig(clientId, keyConfig.getCleanString(), IdentityZone.getUaaZoneId(), override);
                 }
             }
 
