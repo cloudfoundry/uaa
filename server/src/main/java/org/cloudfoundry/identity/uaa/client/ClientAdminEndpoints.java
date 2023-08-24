@@ -540,20 +540,20 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     public ActionResult changeClientJwt(@PathVariable String client_id, @RequestBody ClientJwtChangeRequest change) {
 
-        ClientDetails clientDetails;
+        UaaClientDetails uaaClientDetails;
         try {
-            clientDetails = clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
+            uaaClientDetails = (UaaClientDetails) clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + client_id);
         }
 
         try {
-            checkPasswordChangeIsAllowed(clientDetails, "");
+            checkPasswordChangeIsAllowed(uaaClientDetails, "");
         } catch (IllegalStateException e) {
             throw new InvalidClientDetailsException(e.getMessage());
         }
 
-        ClientJwtConfiguration clientKeyConfig = ClientJwtConfiguration.readValue(clientDetails);
+        ClientJwtConfiguration clientKeyConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
 
         ActionResult result;
         switch (change.getChangeMode()){

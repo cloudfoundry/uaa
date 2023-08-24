@@ -159,7 +159,7 @@ public class ClientAdminBootstrap implements
             if (map.get("authorized-grant-types") == null) {
                 throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
             }
-            BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
+            UaaClientDetails client = new UaaClientDetails(clientId, (String) map.get("resource-ids"),
                     (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                     (String) map.get("authorities"), getRedirectUris(map));
 
@@ -210,6 +210,21 @@ public class ClientAdminBootstrap implements
             }
 
             client.setAdditionalInformation(info);
+
+            if (map.get("jwks_uri") instanceof String) {
+                String jwksUri = (String) map.get("jwks_uri");
+                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
+                if (keyConfig != null && keyConfig.getCleanString() != null) {
+                    keyConfig.writeValue(client);
+                }
+            } else if (map.get("jwks") instanceof String) {
+                String jwks = (String) map.get("jwks");
+                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(null, jwks);
+                if (keyConfig != null && keyConfig.getCleanString() != null) {
+                    keyConfig.writeValue(client);
+                }
+            }
+
             try {
                 clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
                 if (secondSecret != null) {
@@ -233,20 +248,6 @@ public class ClientAdminBootstrap implements
             for (String s : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
                 if (client.getAuthorizedGrantTypes().contains(s) && isMissingRedirectUris(client)) {
                     throw new InvalidClientDetailsException(s + " grant type requires at least one redirect URL. ClientID: " + client.getClientId());
-                }
-            }
-
-            if (map.get("jwks_uri") instanceof String) {
-                String jwksUri = (String) map.get("jwks_uri");
-                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
-                if (keyConfig != null && keyConfig.getCleanString() != null) {
-                        clientRegistrationService.addClientJwtConfig(clientId, keyConfig.getJwksUri(), IdentityZone.getUaaZoneId(), override);
-                }
-            } else if (map.get("jwks") instanceof String) {
-                String jwks = (String) map.get("jwks");
-                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(null, jwks);
-                if (keyConfig != null && keyConfig.getCleanString() != null) {
-                    clientRegistrationService.addClientJwtConfig(clientId, keyConfig.getCleanString(), IdentityZone.getUaaZoneId(), override);
                 }
             }
 

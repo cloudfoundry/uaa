@@ -1,16 +1,13 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -228,19 +225,17 @@ class ClientJwtConfigurationTest {
   void testConfiguration() {
     ClientJwtConfiguration configUri = JsonUtils.readValue(defaultJsonUri, ClientJwtConfiguration.class);
     ClientJwtConfiguration configKey = JsonUtils.readValue(defaultJsonKey, ClientJwtConfiguration.class);
-    BaseClientDetails baseClientDetails = new BaseClientDetails();
-    HashMap<String, Object> additionalInformation = new HashMap<>();
-    additionalInformation.put(ClientConstants.PRIVATE_KEY_CONFIG, configUri);
-    baseClientDetails.setAdditionalInformation(additionalInformation);
+    UaaClientDetails uaaClientDetails = new UaaClientDetails();
+    uaaClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(configUri));
 
-    configUri.writeValue(baseClientDetails);
-    ClientJwtConfiguration readUriConfig = ClientJwtConfiguration.readValue(baseClientDetails);
+    configUri.writeValue(uaaClientDetails);
+    ClientJwtConfiguration readUriConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
     assertEquals(configUri, readUriConfig);
 
-    ClientJwtConfiguration.resetConfiguration(baseClientDetails);
-    assertNull(ClientJwtConfiguration.readValue(baseClientDetails));
-    configKey.writeValue(baseClientDetails);
-    ClientJwtConfiguration readKeyConfig = ClientJwtConfiguration.readValue(baseClientDetails);
+    ClientJwtConfiguration.resetConfiguration(uaaClientDetails);
+    assertNull(ClientJwtConfiguration.readValue(uaaClientDetails));
+    configKey.writeValue(uaaClientDetails);
+    ClientJwtConfiguration readKeyConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
     assertEquals(configKey, readKeyConfig);
   }
 }

@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
@@ -23,11 +22,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.PRIVATE_KEY_CONFIG;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -186,52 +182,48 @@ public class ClientJwtConfiguration implements Cloneable{
 
   /**
    * Creator from ClientDetails. Should abstract the persistence.
-   * Use currently the additional information entry
+   * Use currently the client_jwt_config in UaaClientDetails
    *
    * @param clientDetails
    * @return
    */
   @JsonIgnore
-  public static ClientJwtConfiguration readValue(ClientDetails clientDetails) {
+  public static ClientJwtConfiguration readValue(UaaClientDetails clientDetails) {
     if (clientDetails == null ||
-        clientDetails.getAdditionalInformation() == null ||
-        !(clientDetails.getAdditionalInformation().get(PRIVATE_KEY_CONFIG) instanceof String)) {
+        clientDetails.getClientJwtConfig() == null ||
+        !(clientDetails.getClientJwtConfig() instanceof String)) {
       return null;
     }
-    return JsonUtils.readValue((String) clientDetails.getAdditionalInformation().get(PRIVATE_KEY_CONFIG), ClientJwtConfiguration.class);
+    return JsonUtils.readValue((String) clientDetails.getClientJwtConfig(), ClientJwtConfiguration.class);
   }
 
   /**
    * Creator from ClientDetails. Should abstract the persistence.
-   * Use currently the additional information entry
+   * Use currently the client_jwt_config in UaaClientDetails
    *
    * @param clientDetails
    * @return
    */
   @JsonIgnore
   public void writeValue(ClientDetails clientDetails) {
-    if (clientDetails instanceof BaseClientDetails) {
-      BaseClientDetails baseClientDetails = (BaseClientDetails) clientDetails;
-      HashMap<String, Object> additionalInformation = Optional.ofNullable(baseClientDetails.getAdditionalInformation()).map(HashMap::new).orElse(new HashMap<>());
-      additionalInformation.put(PRIVATE_KEY_CONFIG, JsonUtils.writeValueAsString(this));
-      baseClientDetails.setAdditionalInformation(additionalInformation);
+    if (clientDetails instanceof UaaClientDetails) {
+      UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
+      uaaClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(this));
     }
   }
 
   /**
    * Cleanup configuration in ClientDetails. Should abstract the persistence.
-   * Use currently the additional information entry
+   * Use currently the client_jwt_config in UaaClientDetails
    *
    * @param clientDetails
    * @return
    */
   @JsonIgnore
   public static void resetConfiguration(ClientDetails clientDetails) {
-    if (clientDetails instanceof BaseClientDetails) {
-      BaseClientDetails baseClientDetails = (BaseClientDetails) clientDetails;
-      HashMap<String, Object> additionalInformation = Optional.ofNullable(baseClientDetails.getAdditionalInformation()).map(HashMap::new).orElse(new HashMap<>());
-      additionalInformation.remove(PRIVATE_KEY_CONFIG);
-      baseClientDetails.setAdditionalInformation(additionalInformation);
+    if (clientDetails instanceof UaaClientDetails) {
+      UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
+      uaaClientDetails.setClientJwtConfig(null);
     }
   }
 

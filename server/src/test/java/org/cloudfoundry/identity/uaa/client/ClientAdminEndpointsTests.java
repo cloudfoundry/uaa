@@ -1074,9 +1074,9 @@ class ClientAdminEndpointsTests {
         createRequest.setJsonWebKeyUri(jwksUri);
         ClientDetails result = endpoints.createClientDetails(createRequest);
         assertNull(result.getClientSecret());
-        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
-        BaseClientDetails created = clientCaptor.getValue();
+        UaaClientDetails created = clientCaptor.getValue();
         assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jwksUri));
     }
 
@@ -1094,9 +1094,9 @@ class ClientAdminEndpointsTests {
         createRequest.setJsonWebKeySet(jwksUri);
         ClientDetails result = endpoints.createClientDetails(createRequest);
         assertNull(result.getClientSecret());
-        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
-        BaseClientDetails created = clientCaptor.getValue();
+        UaaClientDetails created = clientCaptor.getValue();
         assertNull(ClientJwtConfiguration.readValue(created));
     }
 
@@ -1173,9 +1173,9 @@ class ClientAdminEndpointsTests {
         createRequest.setJsonWebKeySet(jsonJwk);
         ClientDetails result = endpoints.createClientDetails(createRequest);
         assertNull(result.getClientSecret());
-        ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
-        BaseClientDetails created = clientCaptor.getValue();
+        UaaClientDetails created = clientCaptor.getValue();
         assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk));
         assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk2));
         assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwkSet));

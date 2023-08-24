@@ -303,13 +303,13 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
         ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
         if (clientJwtConfiguration != null) {
-            BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
-            ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(clientDetails);
+            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
             ClientJwtConfiguration result = ClientJwtConfiguration.merge(existingConfig, clientJwtConfiguration, overwrite);
             if (result != null) {
-                result.writeValue(clientDetails);
+                result.writeValue(uaaClientDetails);
             }
-            updateClientDetails(clientDetails, zoneId);
+            updateClientDetails(uaaClientDetails, zoneId);
         }
     }
 
@@ -322,14 +322,14 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
             clientJwtConfiguration = new ClientJwtConfiguration(keyConfig, null);
         }
         if (clientJwtConfiguration != null) {
-            BaseClientDetails clientDetails = (BaseClientDetails) loadClientByClientId(clientId, zoneId);
-            ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(clientDetails), clientJwtConfiguration);
+            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(uaaClientDetails), clientJwtConfiguration);
             if (result != null) {
-                result.writeValue(clientDetails);
+                result.writeValue(uaaClientDetails);
             } else {
-                ClientJwtConfiguration.resetConfiguration(clientDetails);
+                ClientJwtConfiguration.resetConfiguration(uaaClientDetails);
             }
-            updateClientDetails(clientDetails, zoneId);
+            updateClientDetails(uaaClientDetails, zoneId);
         }
     }
 

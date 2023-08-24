@@ -21,6 +21,5 @@ public class ClientConstants {
     public static final String APPROVALS_DELETED = "approvals_deleted";
     public static final String TOKEN_SALT = "token_salt";
     public static final String REQUIRED_USER_GROUPS = "required_user_groups";
-    public static final String PRIVATE_KEY_CONFIG = "private_key_config";
     public static final String LAST_MODIFIED = "lastModified";
 }
