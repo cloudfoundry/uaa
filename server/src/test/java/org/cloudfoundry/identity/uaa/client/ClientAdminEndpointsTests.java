@@ -1077,7 +1077,7 @@ class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
         BaseClientDetails created = clientCaptor.getValue();
-        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jwksUri));
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jwksUri));
     }
 
     @Test
@@ -1097,7 +1097,7 @@ class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
         BaseClientDetails created = clientCaptor.getValue();
-        assertNull(PrivateKeyJwtConfiguration.readValue(created));
+        assertNull(ClientJwtConfiguration.readValue(created));
     }
 
     @Test
@@ -1148,7 +1148,7 @@ class ClientAdminEndpointsTests {
         assertEquals("Client jwt configuration updated", result.getMessage());
         verify(clientRegistrationService, times(1)).addClientKeyConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), true);
 
-        PrivateKeyJwtConfiguration.parse(jwksUri).writeValue(detail);
+        ClientJwtConfiguration.parse(jwksUri).writeValue(detail);
         change.setChangeMode(ClientJwtChangeRequest.ChangeMode.DELETE);
         change.setKeyUrl(jwksUri);
         result = endpoints.changeClientJwt(detail.getClientId(), change);
@@ -1176,10 +1176,10 @@ class ClientAdminEndpointsTests {
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
         verify(clientDetailsService).create(clientCaptor.capture(), anyString());
         BaseClientDetails created = clientCaptor.getValue();
-        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwk));
-        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwk2));
-        assertEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwkSet));
-        assertNotEquals(PrivateKeyJwtConfiguration.readValue(created), PrivateKeyJwtConfiguration.parse(jsonJwk3));
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk));
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk2));
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwkSet));
+        assertNotEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk3));
     }
 
     private ClientDetailsCreation createClientDetailsCreation(BaseClientDetails baseClientDetails) {

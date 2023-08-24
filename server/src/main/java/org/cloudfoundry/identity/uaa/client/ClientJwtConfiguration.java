@@ -31,7 +31,7 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.PRIVATE
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PrivateKeyJwtConfiguration implements Cloneable{
+public class ClientJwtConfiguration implements Cloneable{
 
   @JsonIgnore
   private static final int MAX_KEY_SIZE = 10;
@@ -42,10 +42,10 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
   @JsonProperty("jwks")
   private JsonWebKeySet<JsonWebKey> privateKeyJwt;
 
-  public PrivateKeyJwtConfiguration() {
+  public ClientJwtConfiguration() {
   }
 
-  public PrivateKeyJwtConfiguration(final String privateKeyJwtUrl, final JsonWebKeySet<JsonWebKey> webKeySet) {
+  public ClientJwtConfiguration(final String privateKeyJwtUrl, final JsonWebKeySet<JsonWebKey> webKeySet) {
     this.privateKeyJwtUrl = privateKeyJwtUrl;
     privateKeyJwt = webKeySet;
     if (privateKeyJwt != null) {
@@ -74,8 +74,8 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    if (o instanceof PrivateKeyJwtConfiguration) {
-      PrivateKeyJwtConfiguration that = (PrivateKeyJwtConfiguration) o;
+    if (o instanceof ClientJwtConfiguration) {
+      ClientJwtConfiguration that = (ClientJwtConfiguration) o;
       if (!Objects.equals(privateKeyJwtUrl, that.privateKeyJwtUrl)) return false;
       if (privateKeyJwt != null && that.privateKeyJwt != null) {
         return privateKeyJwt.getKeys().equals(that.privateKeyJwt.getKeys());
@@ -115,7 +115,7 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
   }
 
   @JsonIgnore
-  public static PrivateKeyJwtConfiguration parse(String privateKeyConfig) {
+  public static ClientJwtConfiguration parse(String privateKeyConfig) {
     if (UaaUrlUtils.isUrl(privateKeyConfig)) {
       return parse(privateKeyConfig, null);
     } else {
@@ -124,11 +124,11 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
   }
 
   @JsonIgnore
-  public static PrivateKeyJwtConfiguration parse(String privateKeyUrl, String privateKeyJwt) {
-    PrivateKeyJwtConfiguration privateKeyJwtConfiguration = null;
+  public static ClientJwtConfiguration parse(String privateKeyUrl, String privateKeyJwt) {
+    ClientJwtConfiguration clientJwtConfiguration = null;
     if (privateKeyUrl != null) {
-      privateKeyJwtConfiguration = new PrivateKeyJwtConfiguration(privateKeyUrl, null);
-      privateKeyJwtConfiguration.validateJwksUri();
+      clientJwtConfiguration = new ClientJwtConfiguration(privateKeyUrl, null);
+      clientJwtConfiguration.validateJwksUri();
     } else if (privateKeyJwt != null && privateKeyJwt.contains("{") && privateKeyJwt.contains("}")) {
       HashMap<String, Object> jsonMap = JsonUtils.readValue(privateKeyJwt, HashMap.class);
       String cleanJwtString;
@@ -138,13 +138,13 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
         } else {
           cleanJwtString = JWK.parse(jsonMap).toPublicJWK().toString();
         }
-        privateKeyJwtConfiguration = new PrivateKeyJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
-        privateKeyJwtConfiguration.validateJwkSet();
+        clientJwtConfiguration = new ClientJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
+        clientJwtConfiguration.validateJwkSet();
       } catch (ParseException e) {
         throw new InvalidClientDetailsException("Client jwt configuration cannot be parsed", e);
       }
     }
-    return privateKeyJwtConfiguration;
+    return clientJwtConfiguration;
   }
 
   private boolean validateJwkSet() {
@@ -192,13 +192,13 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
    * @return
    */
   @JsonIgnore
-  public static PrivateKeyJwtConfiguration readValue(ClientDetails clientDetails) {
+  public static ClientJwtConfiguration readValue(ClientDetails clientDetails) {
     if (clientDetails == null ||
         clientDetails.getAdditionalInformation() == null ||
         !(clientDetails.getAdditionalInformation().get(PRIVATE_KEY_CONFIG) instanceof String)) {
       return null;
     }
-    return JsonUtils.readValue((String) clientDetails.getAdditionalInformation().get(PRIVATE_KEY_CONFIG), PrivateKeyJwtConfiguration.class);
+    return JsonUtils.readValue((String) clientDetails.getAdditionalInformation().get(PRIVATE_KEY_CONFIG), ClientJwtConfiguration.class);
   }
 
   /**
@@ -236,17 +236,17 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
   }
 
   @JsonIgnore
-  public static PrivateKeyJwtConfiguration merge(PrivateKeyJwtConfiguration existingConfig, PrivateKeyJwtConfiguration newConfig, boolean overwrite) {
+  public static ClientJwtConfiguration merge(ClientJwtConfiguration existingConfig, ClientJwtConfiguration newConfig, boolean overwrite) {
     if (existingConfig == null) {
       return newConfig;
     }
     if (newConfig == null) {
       return existingConfig;
     }
-    PrivateKeyJwtConfiguration result = null;
+    ClientJwtConfiguration result = null;
     if (newConfig.privateKeyJwtUrl != null) {
       if (overwrite) {
-        result = new PrivateKeyJwtConfiguration(newConfig.privateKeyJwtUrl, null);
+        result = new ClientJwtConfiguration(newConfig.privateKeyJwtUrl, null);
       } else {
         result = existingConfig;
       }
@@ -254,7 +254,7 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
     if (newConfig.privateKeyJwt != null) {
       if (existingConfig.privateKeyJwt == null) {
         if (overwrite) {
-          result = new PrivateKeyJwtConfiguration(null, newConfig.privateKeyJwt);
+          result = new ClientJwtConfiguration(null, newConfig.privateKeyJwt);
         } else {
           result = existingConfig;
         }
@@ -273,28 +273,28 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
           }
         });
         existingKeys.addAll(newKeys);
-        result = new PrivateKeyJwtConfiguration(null, new JsonWebKeySet<>(existingKeys));
+        result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(existingKeys));
       }
     }
     return result;
   }
 
   @JsonIgnore
-  public static PrivateKeyJwtConfiguration delete(PrivateKeyJwtConfiguration existingConfig, PrivateKeyJwtConfiguration tobeDeleted) {
+  public static ClientJwtConfiguration delete(ClientJwtConfiguration existingConfig, ClientJwtConfiguration tobeDeleted) {
     if (existingConfig == null) {
       return null;
     }
     if (tobeDeleted == null) {
       return existingConfig;
     }
-    PrivateKeyJwtConfiguration result = null;
+    ClientJwtConfiguration result = null;
     if (existingConfig.privateKeyJwt != null && tobeDeleted.privateKeyJwtUrl != null) {
       JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.privateKeyJwt;
       List<JsonWebKey> keys = existingKeySet.getKeys().stream().filter(k -> !tobeDeleted.privateKeyJwtUrl.equals(k.getKid())).collect(Collectors.toList());
       if (keys.isEmpty()) {
         result = null;
       } else {
-        result = new PrivateKeyJwtConfiguration(null, new JsonWebKeySet<>(keys));
+        result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(keys));
       }
     } else if (existingConfig.privateKeyJwt != null && tobeDeleted.privateKeyJwt != null) {
       List<JsonWebKey> existingKeys = new ArrayList<>(existingConfig.getPrivateKeyJwt().getKeys());
@@ -302,7 +302,7 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
       if (existingKeys.isEmpty()) {
         result = null;
       } else {
-        result = new PrivateKeyJwtConfiguration(null, new JsonWebKeySet<>(existingKeys));
+        result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(existingKeys));
       }
     } else if (existingConfig.privateKeyJwtUrl != null && tobeDeleted.privateKeyJwtUrl != null) {
       if ("*".equals(tobeDeleted.privateKeyJwtUrl) || existingConfig.privateKeyJwtUrl.equals(tobeDeleted.privateKeyJwtUrl)) {
