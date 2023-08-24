@@ -5,13 +5,13 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import static org.cloudfoundry.identity.uaa.oauth.client.PrivateKeyChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.ADD;
 
 /**
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PrivateKeyChangeRequest {
+public class ClientJwtChangeRequest {
 
     public enum ChangeMode {
         UPDATE,
@@ -28,10 +28,10 @@ public class PrivateKeyChangeRequest {
     private String clientId;
     private ChangeMode changeMode = ADD;
 
-    public PrivateKeyChangeRequest() {
+    public ClientJwtChangeRequest() {
     }
 
-    public PrivateKeyChangeRequest(String clientId, String keyUrl, String keyConfig) {
+    public ClientJwtChangeRequest(String clientId, String keyUrl, String keyConfig) {
         this.keyUrl = keyUrl;
         this.keyConfig = keyConfig;
         this.clientId = clientId;

@@ -109,7 +109,7 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
         return JWKSet.parse(this.privateKeyJwt.getKeySetMap()).toString(true);
       }
     } catch (IllegalStateException | JsonUtils.JsonUtilException | ParseException e) {
-      throw new InvalidClientDetailsException("Private key configuration fails ", e);
+      throw new InvalidClientDetailsException("Client jwt configuration configuration fails ", e);
     }
     return null;
   }
@@ -141,7 +141,7 @@ public class PrivateKeyJwtConfiguration implements Cloneable{
         privateKeyJwtConfiguration = new PrivateKeyJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
         privateKeyJwtConfiguration.validateJwkSet();
       } catch (ParseException e) {
-        throw new InvalidClientDetailsException("Private key cannot be parsed", e);
+        throw new InvalidClientDetailsException("Client jwt configuration cannot be parsed", e);
       }
     }
     return privateKeyJwtConfiguration;

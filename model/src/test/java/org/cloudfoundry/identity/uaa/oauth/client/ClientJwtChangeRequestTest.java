@@ -5,18 +5,18 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-class PrivateKeyChangeRequestTest {
+class ClientJwtChangeRequestTest {
 
   @Test
   void testRequestSerialization() {
-    PrivateKeyChangeRequest def = new PrivateKeyChangeRequest(null, null, null);
+    ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
     def.setKeyId("key-1");
-    def.setChangeMode(PrivateKeyChangeRequest.ChangeMode.DELETE);
+    def.setChangeMode(ClientJwtChangeRequest.ChangeMode.DELETE);
     def.setKeyUrl("http://localhost:8080/uaa/token_key");
     def.setKeyConfig("{}");
     def.setClientId("admin");
     String jsonRequest = JsonUtils.writeValueAsString(def);
-    PrivateKeyChangeRequest request = JsonUtils.readValue(jsonRequest, PrivateKeyChangeRequest.class);
+    ClientJwtChangeRequest request = JsonUtils.readValue(jsonRequest, ClientJwtChangeRequest.class);
     assertNotEquals(def, request);
   }
 

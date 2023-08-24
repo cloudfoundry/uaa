@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.oauth.client.PrivateKeyChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
@@ -536,9 +536,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return result;
     }
 
-    @RequestMapping(value = "/oauth/clients/{client_id}/privatekey", method = RequestMethod.PUT)
+    @RequestMapping(value = "/oauth/clients/{client_id}/clientjwt", method = RequestMethod.PUT)
     @ResponseBody
-    public ActionResult changePrivateKey(@PathVariable String client_id, @RequestBody PrivateKeyChangeRequest change) {
+    public ActionResult changeClientJwt(@PathVariable String client_id, @RequestBody ClientJwtChangeRequest change) {
 
         ClientDetails clientDetails;
         try {
@@ -560,7 +560,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             case ADD :
                 if (change.getKey() != null) {
                     clientRegistrationService.addClientKeyConfig(client_id, change.getKey(), IdentityZoneHolder.get().getId(), false);
-                    result = new ActionResult("ok", "Private key is added");
+                    result = new ActionResult("ok", "Client jwt configuration is added");
                 } else {
                     result = new ActionResult("ok", "No key added");
                 }
@@ -571,12 +571,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 if (clientKeyConfig != null && deleteString != null) {
                     clientRegistrationService.deleteClientKeyConfig(client_id, deleteString, IdentityZoneHolder.get().getId());
                 }
-                result = new ActionResult("ok", "Private key is deleted");
+                result = new ActionResult("ok", "Client jwt configuration is deleted");
                 break;
 
             default:
                 clientRegistrationService.addClientKeyConfig(client_id, change.getKey(), IdentityZoneHolder.get().getId(), true);
-                result = new ActionResult("ok", "Private key updated");
+                result = new ActionResult("ok", "Client jwt configuration updated");
         }
         clientSecretChanges.incrementAndGet();
 

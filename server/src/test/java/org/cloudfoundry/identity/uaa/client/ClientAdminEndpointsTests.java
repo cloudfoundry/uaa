@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.oauth.client.PrivateKeyChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
@@ -1108,18 +1108,18 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
-        PrivateKeyChangeRequest change = new PrivateKeyChangeRequest();
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
         // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata, see jwks_uri
         String jwksUri = "https://any.domain.net/openid/jwks-uri";
         change.setKeyUrl(jwksUri);
-        change.setChangeMode(PrivateKeyChangeRequest.ChangeMode.ADD);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
 
-        ActionResult result = endpoints.changePrivateKey(detail.getClientId(), change);
-        assertEquals("Private key is added", result.getMessage());
+        ActionResult result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration is added", result.getMessage());
         verify(clientRegistrationService, times(1)).addClientKeyConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), false);
 
         change.setKeyUrl(null);
-        result = endpoints.changePrivateKey(detail.getClientId(), change);
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
         assertEquals("No key added", result.getMessage());
     }
 
@@ -1131,28 +1131,28 @@ class ClientAdminEndpointsTests {
 
         when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
 
-        PrivateKeyChangeRequest change = new PrivateKeyChangeRequest();
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
         // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata, see jwks_uri
         String jwksUri = "https://any.domain.net/openid/jwks-uri";
         change.setKeyUrl(jwksUri);
-        change.setChangeMode(PrivateKeyChangeRequest.ChangeMode.ADD);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
 
-        ActionResult result = endpoints.changePrivateKey(detail.getClientId(), change);
-        assertEquals("Private key is added", result.getMessage());
+        ActionResult result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration is added", result.getMessage());
         verify(clientRegistrationService, times(1)).addClientKeyConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), false);
 
         jwksUri = "https://any.new.domain.net/openid/jwks-uri";
-        change.setChangeMode(PrivateKeyChangeRequest.ChangeMode.UPDATE);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.UPDATE);
         change.setKeyUrl(jwksUri);
-        result = endpoints.changePrivateKey(detail.getClientId(), change);
-        assertEquals("Private key updated", result.getMessage());
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration updated", result.getMessage());
         verify(clientRegistrationService, times(1)).addClientKeyConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), true);
 
         PrivateKeyJwtConfiguration.parse(jwksUri).writeValue(detail);
-        change.setChangeMode(PrivateKeyChangeRequest.ChangeMode.DELETE);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.DELETE);
         change.setKeyUrl(jwksUri);
-        result = endpoints.changePrivateKey(detail.getClientId(), change);
-        assertEquals("Private key is deleted", result.getMessage());
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration is deleted", result.getMessage());
         verify(clientRegistrationService, times(1)).deleteClientKeyConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId());
     }
 
