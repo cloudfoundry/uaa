@@ -6,7 +6,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 
 import java.net.MalformedURLException;
-import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -239,12 +238,9 @@ public class ClientAdminBootstrap implements
 
             if (map.get("jwks_uri") instanceof String) {
                 String jwksUri = (String) map.get("jwks_uri");
-                URI jwksUriObject = URI.create(jwksUri);
-                if (jwksUriObject.isAbsolute() && ("https".startsWith(jwksUriObject.getScheme()) || ("http".startsWith(jwksUriObject.getScheme()) && jwksUriObject.getHost().contains("localhost")))) {
-                    PrivateKeyJwtConfiguration keyConfig = PrivateKeyJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
-                    if (keyConfig != null && keyConfig.getCleanString() != null) {
+                PrivateKeyJwtConfiguration keyConfig = PrivateKeyJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
+                if (keyConfig != null && keyConfig.getCleanString() != null) {
                         clientRegistrationService.addClientKeyConfig(clientId, keyConfig.getPrivateKeyJwtUrl(), IdentityZone.getUaaZoneId(), override);
-                    }
                 }
             } else if (map.get("jwks") instanceof String) {
                 String jwks = (String) map.get("jwks");
