@@ -19,9 +19,12 @@ import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class UaaClientDetailsTest {
-    @Nested
+
+  @Nested
     class Creation {
         private BaseClientDetails testClient;
 
@@ -62,6 +65,35 @@ class UaaClientDetailsTest {
                     aUaaClientDetails()
                             .withAdditionalInformation(allOf(aMapWithSize(1), hasEntry("key", "value")))
             ));
+        }
+
+        @Test
+        void testClientJwtConfig() {
+          UaaClientDetails copy = new UaaClientDetails(testClient);
+          copy.setClientJwtConfig("test");
+          assertEquals("test", copy.getClientJwtConfig());
+        }
+
+        @Test
+        void testEquals() {
+          UaaClientDetails copy = new UaaClientDetails(testClient);
+          UaaClientDetails copy2 = new UaaClientDetails(testClient);
+          copy.setClientJwtConfig("test");
+          assertNotEquals(copy, copy2);
+          assertNotEquals(copy, new UaaClientDetails());
+          copy.setClientJwtConfig(null);
+          assertEquals(copy, copy2);
+        }
+
+        @Test
+        void testHashCode() {
+          UaaClientDetails copy = new UaaClientDetails(testClient);
+          UaaClientDetails copy2 = new UaaClientDetails(testClient.getClientId(), "",
+              "test.none", "", "test.admin", null);
+          copy.setClientJwtConfig("test");
+          assertNotEquals(copy.hashCode(), copy2.hashCode());
+          copy.setClientJwtConfig(null);
+          assertEquals(copy.hashCode(), copy2.hashCode());
         }
     }
 
