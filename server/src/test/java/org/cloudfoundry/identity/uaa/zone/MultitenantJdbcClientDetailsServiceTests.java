@@ -543,7 +543,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("newClientIdWithClientJwtConfig");
         clientDetails.setClientJwtConfig("small");
-        service.addUaaClientDetails(clientDetails, mockIdentityZoneManager.getCurrentIdentityZoneId());
+        service.addClientDetails(clientDetails, mockIdentityZoneManager.getCurrentIdentityZoneId());
 
         Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
             "newClientIdWithClientJwtConfig");

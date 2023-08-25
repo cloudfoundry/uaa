@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -57,11 +56,6 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
     @Override
     public void updateClientDetails(ClientDetails clientDetails, String zoneId) throws NoSuchClientException {
         addClientDetails(clientDetails, zoneId);
-    }
-
-    @Override
-    public void addUaaClientDetails(UaaClientDetails uaaClientDetails, String zoneId) throws ClientAlreadyExistsException {
-        getInMemoryService(zoneId).put(uaaClientDetails.getClientId(), (BaseClientDetails) uaaClientDetails);
     }
 
     @Override
