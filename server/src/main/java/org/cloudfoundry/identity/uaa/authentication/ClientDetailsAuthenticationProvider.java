@@ -61,9 +61,10 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and continue even if no secret is in request
                         ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
                         break;
-                    } else if (uaaClient.getPassword() == null) {
-                        throw new BadCredentialsException("Missing credentials");
                     }
+                }
+                if (uaaClient.getPassword() == null) {
+                    throw new BadCredentialsException("Missing credentials");
                 }
                 super.additionalAuthenticationChecks(uaaClient, authentication);
                 error = null;
