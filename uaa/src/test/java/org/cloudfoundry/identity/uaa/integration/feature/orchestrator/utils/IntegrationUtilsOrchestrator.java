@@ -16,7 +16,7 @@ public class IntegrationUtilsOrchestrator {
                                                boolean active) throws Throwable {
         OrchestratorZoneRequest orchestratorZoneRequest = new OrchestratorZoneRequest();
         orchestratorZoneRequest.setName(id);
-        orchestratorZoneRequest.setParameters(new OrchestratorZone("adminsecret", subdomain));
+        orchestratorZoneRequest.setParameters(new OrchestratorZone("adminsecret", subdomain, null));
         //Create orch zone
         client.postForEntity(url + "/orchestrator/zones", orchestratorZoneRequest, OrchestratorZoneResponse.class);
         //Get orch zone
@@ -37,7 +37,6 @@ public class IntegrationUtilsOrchestrator {
                                                  ) throws Throwable {
         return createOrchZone(client, url, id, subdomain, true);
     }
-
 
 
 }

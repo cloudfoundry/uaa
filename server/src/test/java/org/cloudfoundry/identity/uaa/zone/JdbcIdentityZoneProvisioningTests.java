@@ -488,6 +488,45 @@ class JdbcIdentityZoneProvisioningTests {
     }
 
     @Test
+    void testGetOrchZoneByIdentityZoneId() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(),
+                randomValueStringGenerator.generate());
+        identityZone.setName("Test-Identity-Zone");
+        jdbcIdentityZoneProvisioning.create(identityZone);
+        jdbcIdentityZoneProvisioning.createOrchestratorZone(identityZone.getId(), identityZone.getName());
+        OrchestratorZoneEntity orchIdentityZoneEntity = jdbcIdentityZoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(identityZone.getId());
+        assertEquals(identityZone.getId(), orchIdentityZoneEntity.getIdentityZoneId());
+        assertEquals(identityZone.getName(), orchIdentityZoneEntity.getOrchestratorZoneName());
+    }
+
+    @Test
+    void testGetOrchIdentityZoneById_NotFound() {
+        String identityZoneId = randomValueStringGenerator.generate();
+        try {
+            OrchestratorZoneEntity orchIdentityZoneEntity = jdbcIdentityZoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(identityZoneId);
+            fail("Able to retrieve orchestrator zone.");
+        } catch (ZoneDoesNotExistsException e) {
+            assertEquals("Zone[" + identityZoneId + "] not found.", e.getMessage());
+        }
+    }
+
+    @Test
+    void testGetOrchIdentityZoneById_ZonePresentButNotPorted() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(),
+                randomValueStringGenerator.generate());
+        identityZone.setName("Test-Identity-Zone");
+        jdbcIdentityZoneProvisioning.create(identityZone);
+        try {
+            OrchestratorZoneEntity orchestratorZone = jdbcIdentityZoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(identityZone.getId());
+            assertNotNull(orchestratorZone);
+            assertEquals(identityZone.getId(),orchestratorZone.getIdentityZoneId());
+            assertNull(orchestratorZone.getOrchestratorZoneName());
+        } catch (ZoneDoesNotExistsException e) {
+            assertEquals("Zone[" + identityZone.getId() + "] not found.", e.getMessage());
+        }
+    }
+
+    @Test
     void testCreateDuplicateZoneName() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(),
                                                                      randomValueStringGenerator.generate());

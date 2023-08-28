@@ -24,6 +24,8 @@ public interface IdentityZoneProvisioning {
 
     IdentityZone retrieve(String id);
 
+    OrchestratorZoneEntity retrieveOrchestratorZoneByIdentityZoneId(String id);
+
     OrchestratorZoneEntity retrieveByName(String name);
 
     OrchestratorZoneEntity retrieveByNameIgnoreActiveFlag(String name);

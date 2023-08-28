@@ -9,8 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -38,6 +37,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -54,6 +54,7 @@ public class OrchestratorZoneServiceTests {
     public static final String ISSUER_URI = "http://issuer-uri";
     public static final String ADMIN_CLIENT_SECRET = "admin-secret-01";
     public static final String ADMIN_CLIENT_SECRET_EMPTY = "";
+    public static final String IMPORT_SERVICE_INSTANCE_GUID = "1e1a1a11-b1a1-1fbb-a111-11ae11011111";
     private OrchestratorZoneService zoneService;
     private IdentityZoneProvisioning zoneProvisioning;
     private IdentityProviderProvisioning idpProvisioning;
@@ -62,45 +63,44 @@ public class OrchestratorZoneServiceTests {
     private ClientAdminEndpointsValidator clientDetailsValidator;
 
     private final String serviceProviderKey =
-        "-----BEGIN RSA PRIVATE KEY-----\n" +
-        "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n" +
-        "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n" +
-        "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n" +
-        "AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges\n" +
-        "7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu\n" +
-        "lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp\n" +
-        "ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX\n" +
-        "kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL\n" +
-        "gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK\n" +
-        "vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe\n" +
-        "A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS\n" +
-        "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n" +
-        "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" +
-        "-----END RSA PRIVATE KEY-----";
-
+            "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n" +
+                    "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n" +
+                    "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n" +
+                    "AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges\n" +
+                    "7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu\n" +
+                    "lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp\n" +
+                    "ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX\n" +
+                    "kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL\n" +
+                    "gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK\n" +
+                    "vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe\n" +
+                    "A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS\n" +
+                    "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n" +
+                    "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" +
+                    "-----END RSA PRIVATE KEY-----";
     private final String serviceProviderKeyPassword = "password";
 
     private final String serviceProviderCertificate =
-        "-----BEGIN CERTIFICATE-----\n" +
-        "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n" +
-        "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n" +
-        "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n" +
-        "cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx\n" +
-        "CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM\n" +
-        "BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb\n" +
-        "BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN\n" +
-        "ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W\n" +
-        "qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw\n" +
-        "znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha\n" +
-        "MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc\n" +
-        "gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD\n" +
-        "VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD\n" +
-        "VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh\n" +
-        "QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ\n" +
-        "0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC\n" +
-        "KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK\n" +
-        "RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
-        "-----END CERTIFICATE-----\n";
+            "-----BEGIN CERTIFICATE-----\n" +
+                    "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n" +
+                    "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n" +
+                    "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n" +
+                    "cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx\n" +
+                    "CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM\n" +
+                    "BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb\n" +
+                    "BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN\n" +
+                    "ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W\n" +
+                    "qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw\n" +
+                    "znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha\n" +
+                    "MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc\n" +
+                    "gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD\n" +
+                    "VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD\n" +
+                    "VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh\n" +
+                    "QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ\n" +
+                    "0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC\n" +
+                    "KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK\n" +
+                    "RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
+                    "-----END CERTIFICATE-----\n";
 
 
     private IdentityZone mockIdentityZone;
@@ -135,7 +135,7 @@ public class OrchestratorZoneServiceTests {
         assertEquals(response.getConnectionDetails().getSubdomain(), orchestratorZone.getSubdomain());
         assertEquals((response.getConnectionDetails().getUri()), uri);
         assertEquals(response.getConnectionDetails().getDashboardUri(),
-                     "http://localhost/dashboard" + DASHBOARD_LOGIN_PATH + orchestratorZone.getIdentityZoneId());
+                "http://localhost/dashboard" + DASHBOARD_LOGIN_PATH + orchestratorZone.getIdentityZoneId());
         assertEquals(response.getConnectionDetails().getIssuerId(), issuerId + "/oauth/token");
         assertEquals(response.getConnectionDetails().getZone().getHttpHeaderName(), X_IDENTITY_ZONE_ID);
         assertEquals(response.getConnectionDetails().getZone().getHttpHeaderValue(), orchestratorZone.getIdentityZoneId());
@@ -150,7 +150,7 @@ public class OrchestratorZoneServiceTests {
                 new ZoneDoesNotExistsException("random-string", "Zone not available.", new Throwable()));
         ZoneDoesNotExistsException exception =
             Assertions.assertThrows(ZoneDoesNotExistsException.class, () -> zoneService.getZoneDetails("random-string"),
-                                    "Not found exception not thrown");
+                           "Not found exception not thrown");
         assertTrue(exception.getMessage().contains("Zone not available."));
         assertEquals("random-string", exception.getZoneName());
     }
@@ -180,32 +180,40 @@ public class OrchestratorZoneServiceTests {
         OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone();
         when(zoneProvisioning.retrieveByName(any())).thenReturn(orchestratorZone);
         Assertions.assertThrows(Exception.class, () -> zoneService.deleteZone(orchestratorZone.getOrchestratorZoneName()),
-                                "Zone - deleting Name[" + orchestratorZone.getOrchestratorZoneName() + "]");
+                "Zone - deleting Name[" + orchestratorZone.getOrchestratorZoneName() + "]");
     }
 
     @Test
     public void testDeleteZone_NotFound() {
         when(zoneProvisioning.retrieveByName(any())).thenThrow(new ZoneDoesNotExistsException("Zone not available."));
         ZoneDoesNotExistsException exception =
-            Assertions.assertThrows(ZoneDoesNotExistsException.class, () -> zoneService.deleteZone("random-name"),
-                                    "Not found exception not thrown");
+                Assertions.assertThrows(ZoneDoesNotExistsException.class, () -> zoneService.deleteZone("random-name"),
+                        "Not found exception not thrown");
         assertTrue(exception.getMessage().contains("Zone not available."));
     }
 
     private OrchestratorZoneEntity buildOrchestratorZone() {
         OrchestratorZoneEntity orchestratorZone = new OrchestratorZoneEntity();
-        String id = UUID.randomUUID().toString();
-        orchestratorZone.setIdentityZoneId(id);
+        String identityZoneId = UUID.randomUUID().toString();
+        orchestratorZone.setIdentityZoneId(identityZoneId);
         orchestratorZone.setSubdomain(SUB_DOMAIN_NAME);
         orchestratorZone.setOrchestratorZoneName(ZONE_NAME);
+        return orchestratorZone;
+    }
+
+    private OrchestratorZoneEntity buildOrchestratorZone(String identityZoneId , String zoneName) {
+        OrchestratorZoneEntity orchestratorZone = new OrchestratorZoneEntity();
+        orchestratorZone.setIdentityZoneId(identityZoneId);
+        orchestratorZone.setSubdomain(SUB_DOMAIN_NAME);
+        orchestratorZone.setOrchestratorZoneName(zoneName);
         return orchestratorZone;
     }
 
     @Test
     public void testCreateZone_createZoneAdminClient_ExceptionCheck() {
         Security.addProvider(new BouncyCastleProvider());
-        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                          SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                         SUB_DOMAIN_NAME);
         IdentityZone identityZone = createIdentityZone(null);
         IdentityProvider identityProvider = createDefaultIdp(identityZone);
         when(zoneProvisioning.create(any())).thenReturn(identityZone);
@@ -220,14 +228,14 @@ public class OrchestratorZoneServiceTests {
         assertEquals(ZONE_NAME, exception.getZoneName());
         verify(idpProvisioning, times(1)).create(any(),any());
         verify(clientDetailsService, times(1)).create(any(),any());
-        verify(clientDetailsValidator, times(1)).validate(any(),anyBoolean(),anyBoolean());
+        verify(clientDetailsValidator, times(1)).validate(any(),anyBoolean(), anyBoolean());
     }
 
     @Test
     public void testCreateZone_createDefaultIdp_ExceptionCheck() throws OrchestratorZoneServiceException {
         Security.addProvider(new BouncyCastleProvider());
-        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                          SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                         SUB_DOMAIN_NAME);
         IdentityZone identityZone = createIdentityZone(null);
         IdentityProvider identityProvider = createDefaultIdp(identityZone);
         when(zoneProvisioning.create(any())).thenReturn(identityZone);
@@ -244,8 +252,8 @@ public class OrchestratorZoneServiceTests {
     @Test
     public void testCreateZone_createIdentityZone_ExceptionCheck() throws OrchestratorZoneServiceException {
         Security.addProvider(new BouncyCastleProvider());
-        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                          SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                         SUB_DOMAIN_NAME);
         IdentityZone identityZone = createIdentityZone(null);
         IdentityProvider identityProvider = createDefaultIdp(identityZone);
         when(zoneProvisioning.create(any())).thenThrow(new ZoneAlreadyExistsException("Identity Zone Already exists"));
@@ -262,8 +270,8 @@ public class OrchestratorZoneServiceTests {
     @Test
     public void testCreateZone() throws OrchestratorZoneServiceException, IOException {
         Security.addProvider(new BouncyCastleProvider());
-        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                          SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                         SUB_DOMAIN_NAME);
         IdentityZone identityZone = createIdentityZone(null);
         IdentityProvider identityProvider = createDefaultIdp(identityZone);
         when(zoneProvisioning.create(any())).thenReturn(identityZone);
@@ -300,13 +308,13 @@ public class OrchestratorZoneServiceTests {
     public void testCreateZoneDetails_AccessDeniedException() {
         when(mockIdentityZone.getId()).thenReturn("not uaa");
         IdentityZoneHolder.set(mockIdentityZone);
-        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                          SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                         SUB_DOMAIN_NAME);
         AccessDeniedException exception =
-            assertThrows(AccessDeniedException.class, () ->
-                             zoneService.createZone(zoneRequest),
-                         "Zones can only be created by being " +
-                         "authenticated in the default zone.");
+                assertThrows(AccessDeniedException.class, () ->
+                                zoneService.createZone(zoneRequest),
+                        "Zones can only be created by being " +
+                                "authenticated in the default zone.");
         assertTrue(exception.getMessage().contains("Zones can only be created by being " +
                                                    "authenticated in the default zone."));
     }
@@ -314,8 +322,8 @@ public class OrchestratorZoneServiceTests {
     @Test
     public void testCreateZone_DuplicateSubdomainCauseZoneAlreadyExistsException () {
         Security.addProvider(new BouncyCastleProvider());
-        OrchestratorZoneRequest zoneRequest =  getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
-                                                                          SUB_DOMAIN_NAME);
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                                                                         SUB_DOMAIN_NAME);
         when(zoneProvisioning.create(any())).thenReturn(createIdentityZone(null));
         String errorMessage = String.format("The subdomain name %s is already taken. Please use a different subdomain",
                                             zoneRequest.getParameters().getSubdomain());
@@ -324,18 +332,110 @@ public class OrchestratorZoneServiceTests {
         ZoneAlreadyExistsException exception =
             assertThrows(ZoneAlreadyExistsException.class, () ->
                              zoneService.createZone(zoneRequest),
-                         errorMessage);
+                        errorMessage);
 
         assertEquals(ZONE_NAME, exception.getZoneName());
         assertTrue(exception.getMessage().contains(errorMessage));
         verify(zoneProvisioning, times(1)).create(any());
     }
 
+    @Test
+    public void testImportZone() throws OrchestratorZoneServiceException, IOException {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneImportRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                SUB_DOMAIN_NAME, IMPORT_SERVICE_INSTANCE_GUID);
+
+        IdentityZone identityZone = createIdentityZone(null);
+        OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone(identityZone.getId(),null);
+        when(zoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(any())).thenReturn(orchestratorZone);
+        OrchestratorZoneResponse response = zoneService.createZone(zoneRequest);
+
+        verify(zoneProvisioning, times(1)).createOrchestratorZone(any(), anyString());
+
+        assertNotNull(response);
+        assertEquals(ZONE_NAME, response.getName());
+        assertEquals(OrchestratorState.CREATE_IN_PROGRESS.toString(), response.getState());
+        assertEquals(ZONE_CREATED_MESSAGE, response.getMessage());
+        assertNull(response.getParameters());
+    }
+
+    @Test
+    public void testCreateZoneWithImport_ZoneDoesNotExist() throws OrchestratorZoneServiceException, IOException {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneImportRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                SUB_DOMAIN_NAME, IMPORT_SERVICE_INSTANCE_GUID);
+
+        IdentityZone identityZone = createIdentityZone(null);
+        String errorMessage = "Zone[" + IMPORT_SERVICE_INSTANCE_GUID + "] not found.";
+        when(zoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(any())).thenThrow(new ZoneDoesNotExistsException(errorMessage));
+
+        ZoneDoesNotExistsException exception =
+                assertThrows(ZoneDoesNotExistsException.class, () ->
+                                zoneService.createZone(zoneRequest),
+                        errorMessage);
+
+        assertTrue(exception.getMessage().contains(errorMessage));
+        verify(zoneProvisioning, times(1)).retrieveOrchestratorZoneByIdentityZoneId(any());
+    }
+
+    @Test
+    public void testImportZone_ZoneAlreadyImported() throws OrchestratorZoneServiceException, IOException {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneImportRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                SUB_DOMAIN_NAME, IMPORT_SERVICE_INSTANCE_GUID);
+
+        IdentityZone identityZone = createIdentityZone(null);
+        OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone(identityZone.getId(),ZONE_NAME);
+        when(zoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(any())).thenReturn(orchestratorZone);
+
+        String errorMessage = String.format("already present in orchestrator zone, Import not needed");
+
+        ZoneAlreadyExistsException exception =
+                assertThrows(ZoneAlreadyExistsException.class, () ->
+                                zoneService.createZone(zoneRequest),
+                        errorMessage);
+
+        assertTrue(exception.getMessage().contains(errorMessage));
+        verify(zoneProvisioning, times(1)).retrieveOrchestratorZoneByIdentityZoneId(any());
+    }
+
+
+    @Test
+    public void testImportZone_ZoneNameAlreadyExist() throws OrchestratorZoneServiceException, IOException {
+        Security.addProvider(new BouncyCastleProvider());
+        OrchestratorZoneRequest zoneRequest = getOrchestratorZoneImportRequest(ZONE_NAME, ADMIN_CLIENT_SECRET,
+                SUB_DOMAIN_NAME, IMPORT_SERVICE_INSTANCE_GUID);
+
+        IdentityZone identityZone = createIdentityZone(null);
+        OrchestratorZoneEntity orchestratorZone = buildOrchestratorZone(identityZone.getId(),null);
+        String errorMessage = "The zone name " + ZONE_NAME + " is already taken. Please use a different zone name";
+
+        when(zoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(any())).thenReturn(orchestratorZone);
+        when(zoneProvisioning.createOrchestratorZone(any(), any())).thenThrow(new ZoneAlreadyExistsException(errorMessage));
+
+        ZoneAlreadyExistsException exception =
+                assertThrows(ZoneAlreadyExistsException.class, () ->
+                                zoneService.createZone(zoneRequest),
+                        errorMessage);
+
+        assertTrue(exception.getMessage().contains(errorMessage));
+        verify(zoneProvisioning, times(1)).retrieveOrchestratorZoneByIdentityZoneId(any());
+        verify(zoneProvisioning, times(1)).createOrchestratorZone(any(), any());
+    }
 
     private OrchestratorZoneRequest getOrchestratorZoneRequest(String name, String adminClientSecret,
                                                                String subDomain) {
         OrchestratorZoneRequest zoneRequest = new OrchestratorZoneRequest();
-        OrchestratorZone zone = new OrchestratorZone(adminClientSecret, subDomain);
+        OrchestratorZone zone = new OrchestratorZone(adminClientSecret, subDomain, null);
+        zoneRequest.setName(name);
+        zoneRequest.setParameters(zone);
+        return zoneRequest;
+    }
+
+    private OrchestratorZoneRequest getOrchestratorZoneImportRequest(String name, String adminClientSecret,
+                                                                     String subDomain, String importServiceInstanceGuid) {
+        OrchestratorZoneRequest zoneRequest = new OrchestratorZoneRequest();
+        OrchestratorZone zone = new OrchestratorZone(adminClientSecret, subDomain, importServiceInstanceGuid);
         zoneRequest.setName(name);
         zoneRequest.setParameters(zone);
         return zoneRequest;
