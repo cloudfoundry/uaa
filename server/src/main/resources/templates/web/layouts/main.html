@@ -8,9 +8,9 @@
                 copyrightCompanyName=${branding.getCompanyName() ?: 'CloudFoundry.org Foundation, Inc. '},
                 copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
                 copyright=${branding.getFooterLegalText() ?: copyrightFallback},
-                brandingLogo=${branding.getProductLogo()},
+                brandingLogo=${branding.getInlinedBase64PngLogo()},
                 fallbackLogo=${isUaa ? assetBaseUrl+'/images/product-logo.png' : null},
-                logo=${brandingLogo != null ? 'data:image/png;base64,'+#strings.replace(brandingLogo,T(java.lang.System).getProperty('line.separator'),'') : fallbackLogo}" >
+                logo=${brandingLogo != null ? #strings.replace(brandingLogo,T(java.lang.System).getProperty('line.separator'),'') : fallbackLogo}" >
 <head>
     <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
     <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
