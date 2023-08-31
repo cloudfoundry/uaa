@@ -928,7 +928,7 @@ public class SamlLoginIT {
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
         clientDetails.setClientSecret("secret");
 
-        String adminTokenInZone = IntegrationTestUtils.getClientCredentialsToken(zoneUrl,clientDetails.getClientId(), "secret");
+        IntegrationTestUtils.getClientCredentialsToken(zoneUrl,clientDetails.getClientId(), "secret");
 
         webDriver.get(zoneUrl + "/logout.do");
 
