@@ -1488,7 +1488,7 @@ public class SamlLoginIT {
     }
 
     private void sendCredentials(String username, String password) {
-        sendCredentials(username, password, By.xpath("//input[@value='Login']"));
+        sendCredentials(username, password, By.id("submit_button"));
     }
 
     private void CallEmpptyPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {
