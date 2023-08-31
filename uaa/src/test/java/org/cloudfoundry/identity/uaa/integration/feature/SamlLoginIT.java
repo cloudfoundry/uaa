@@ -129,7 +129,7 @@ public class SamlLoginIT {
     public IntegrationTestRule integrationTestRule;
 
     @Rule
-    public RetryRule retryRule = new RetryRule(3);
+    public RetryRule retryRule = new RetryRule(1);
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -476,7 +476,7 @@ public class SamlLoginIT {
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
         //takeScreenShot();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        assertThat(webDriver.getCurrentUrl(), Matchers.containsString("loginuserpass"));
         sendCredentials(username, password);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
     }
