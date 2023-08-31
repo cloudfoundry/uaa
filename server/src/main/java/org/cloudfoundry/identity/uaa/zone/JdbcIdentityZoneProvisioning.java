@@ -24,7 +24,9 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     public static final String ORCHESTRATOR_ID_ZONE_FIELDS = "orchzone.id, orchzone.identity_zone_id,idzone.subdomain,orchzone.orchestrator_zone_name,orchzone.created,orchzone.lastmodified";
 
-    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config,active,enable_redirect_uri_check".replace(",","=?,")+"=?";
+    public static final String ORCHESTRATOR_IDENTITY_BY_ID_ZONE_FIELDS = "idzone.id,orchzone.orchestrator_zone_name";
+
+    public static final String ID_ZONE_UPDATE_FIELDS = "version,lastmodified,name,subdomain,description,config,active,enable_redirect_uri_check".replace(",", "=?,") + "=?";
 
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?)";
 
@@ -41,10 +43,13 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     public static final String IDENTITY_ZONE_BY_ID_QUERY = IDENTITY_ZONES_QUERY + "where id=?";
 
     public static final String ORCHESTRATOR_ZONE_BY_NAME_QUERY = "SELECT " + ORCHESTRATOR_ID_ZONE_FIELDS +
-                                                                 " from identity_zone idzone inner join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where orchzone.orchestrator_zone_name=? and idzone.active = ?";
+            " from identity_zone idzone inner join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where orchzone.orchestrator_zone_name=? and idzone.active = ?";
+
+    public static final String ORCHESTRATOR_ZONE_BY_ID_QUERY = "SELECT " + ORCHESTRATOR_IDENTITY_BY_ID_ZONE_FIELDS +
+            " from identity_zone idzone left join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where idzone.id=?";
 
     public static final String ORCHESTRATOR_ZONE_BY_NAME_IGNORE_ACTIVE_QUERY = "SELECT " + ORCHESTRATOR_ID_ZONE_FIELDS +
-                                                                               " from identity_zone idzone inner join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where orchzone.orchestrator_zone_name=?";
+            " from identity_zone idzone inner join orchestrator_zone orchzone ON idzone.id=orchzone.identity_zone_id where orchzone.orchestrator_zone_name=?";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY_ACTIVE = IDENTITY_ZONE_BY_ID_QUERY + " and active = ?";
 
@@ -57,6 +62,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     private final RowMapper<IdentityZone> mapper = new IdentityZoneRowMapper();
 
     private final RowMapper<OrchestratorZoneEntity> orchestratorZoneMapper = new OrchestratorZoneRowMapper();
+    private final RowMapper<OrchestratorZoneEntity> orchestratorZoneByIdentityIdRowMapper = new OrchestratorZoneByIdentityIdRowMapper();
 
     public JdbcIdentityZoneProvisioning(final JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
@@ -66,6 +72,15 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     public IdentityZone retrieve(String id) {
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
+        } catch (EmptyResultDataAccessException x) {
+            throw new ZoneDoesNotExistsException("Zone[" + id + "] not found.", x);
+        }
+    }
+
+    @Override
+    public OrchestratorZoneEntity retrieveOrchestratorZoneByIdentityZoneId(String id) {
+        try {
+            return jdbcTemplate.queryForObject(ORCHESTRATOR_ZONE_BY_ID_QUERY, orchestratorZoneByIdentityIdRowMapper, id);
         } catch (EmptyResultDataAccessException x) {
             throw new ZoneDoesNotExistsException("Zone[" + id + "] not found.", x);
         }
@@ -238,5 +253,13 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
         }
     }
 
-
+    private static final class OrchestratorZoneByIdentityIdRowMapper implements RowMapper<OrchestratorZoneEntity> {
+        @Override
+        public OrchestratorZoneEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+            OrchestratorZoneEntity orchestratorZone = new OrchestratorZoneEntity();
+            orchestratorZone.setIdentityZoneId(rs.getString(1).trim());
+            orchestratorZone.setOrchestratorZoneName(rs.getString(2));
+            return orchestratorZone;
+        }
+    }
 }

@@ -11,13 +11,7 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -40,10 +34,7 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
-import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
-import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
+import org.cloudfoundry.identity.uaa.zone.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -182,15 +173,17 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         if (!IdentityZoneHolder.isUaa()) {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
         }
-        String name = zoneRequest.getName();
-        String adminClientSecret = zoneRequest.getParameters().getAdminClientSecret();
 
+        String name = zoneRequest.getName();
+        String importedServiceInstanceGuid = zoneRequest.getParameters().getImportedServiceInstanceGuid();
+        if (Objects.nonNull(importedServiceInstanceGuid)) {
+            return importZone(zoneRequest);
+        }
+        String adminClientSecret = zoneRequest.getParameters().getAdminClientSecret();
         String subdomain = zoneRequest.getParameters().getSubdomain();
         String id = UUID.randomUUID().toString();
         subdomain = getSubDomain(subdomain, id);
-
         IdentityZone identityZone = generateIdentityZone(subdomain, name, id);
-
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             IdentityZone created = createIdentityZone(identityZone);
@@ -204,12 +197,36 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         } finally {
             IdentityZoneHolder.set(previous);
         }
+        return getOrchestratorZoneResponse(zoneRequest);
+    }
 
+    private static OrchestratorZoneResponse getOrchestratorZoneResponse(OrchestratorZoneRequest zoneRequest) {
         OrchestratorZoneResponse response = new OrchestratorZoneResponse();
         response.setName(zoneRequest.getName());
         response.setMessage(ZONE_CREATED_MESSAGE);
         response.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
         return response;
+    }
+
+    private OrchestratorZoneResponse importZone(OrchestratorZoneRequest zoneRequest) {
+        String importedServiceInstanceGuid = zoneRequest.getParameters().getImportedServiceInstanceGuid();
+        logger.info("Importing existing Identity Zone {}", importedServiceInstanceGuid);
+        OrchestratorZoneEntity orchestratorZone = zoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(importedServiceInstanceGuid);
+        if (!isZoneNotFoundOrAlreadyImported(orchestratorZone)) {
+            zoneProvisioning.createOrchestratorZone(orchestratorZone.getIdentityZoneId(), zoneRequest.getName());
+        }
+        return getOrchestratorZoneResponse(zoneRequest);
+    }
+
+    private boolean isZoneNotFoundOrAlreadyImported(OrchestratorZoneEntity orchestratorZone) {
+
+        if (Objects.nonNull(orchestratorZone.getOrchestratorZoneName())) {
+            String errorMessage = String.format("Invalid Operation , Zone  " +
+                    "%s , already present in orchestrator zone, Import not needed ", orchestratorZone.getIdentityZoneId());
+            logger.error(errorMessage);
+            throw new ZoneAlreadyExistsException(errorMessage);
+        }
+        return false;
     }
 
     private String getSubDomain(String subdomain, String id) {
@@ -350,18 +367,18 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
         if (userConfig != null) {
             List<String> defaultGroups = ofNullable(userConfig.getDefaultGroups()).orElse(Collections.emptyList());
             logger.debug(String.format("About to create default groups count: %s for zone name: %s",
-                                       defaultGroups.size(), zone.getName()));
+                    defaultGroups.size(), zone.getName()));
             for (String group : defaultGroups) {
                 logger.debug(String.format("Creating zone default group: %s for zone name: %s", group,
-                                           zone.getName()));
+                        zone.getName()));
                 groupProvisioning.createOrGet(
-                    new ScimGroup(
-                        null,
-                        group,
+                        new ScimGroup(
+                                null,
+                                group,
+                                zone.getId()
+                        ),
                         zone.getId()
-                    ),
-                    zone.getId()
-                                             );
+                );
             }
         }
     }

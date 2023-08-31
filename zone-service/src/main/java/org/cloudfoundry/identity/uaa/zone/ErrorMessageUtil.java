@@ -31,6 +31,10 @@ public class ErrorMessageUtil {
 
     public static final String INVALID_FORMAT_ERROR_MESSAGE = "Request failed due to a validation error";
 
+    public static final String IMPORTED_SERVICE_INSTANCE_GUID_VALIDATION_PATTERN= "\\b[A-Fa-f0-9]{8}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{4}-[A-Fa-f0-9]{12}\\b";
+
+    public static final String IMPORTED_SERVICE_INSTANCE_GUID_VALIDATION_MESSAGE= "Failed to validate importServiceInstanceGuid. incorrect Pattern , should be UUID format";
+
     public static final String getAffectedProperty(ObjectError objectError) {
         return objectError instanceof FieldError ? ((FieldError)objectError).getField() : objectError.getObjectName();
     }

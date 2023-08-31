@@ -102,7 +102,7 @@ public class OrchestratorZoneControllerTransactionRollbackTests {
 
     private OrchestratorZoneRequest getOrchestratorZoneRequest(String name, String adminClientSecret,
                                                                String subdomain) {
-        OrchestratorZone orchestratorZone = new OrchestratorZone(adminClientSecret, subdomain);
+        OrchestratorZone orchestratorZone = new OrchestratorZone(adminClientSecret, subdomain, null);
         OrchestratorZoneRequest orchestratorZoneRequest = new OrchestratorZoneRequest();
         orchestratorZoneRequest.setName(name);
         orchestratorZoneRequest.setParameters(orchestratorZone);
@@ -110,7 +110,7 @@ public class OrchestratorZoneControllerTransactionRollbackTests {
     }
 }
 
-@ImportResource(locations = { "file:./src/main/webapp/WEB-INF/spring-servlet.xml" })
+@ImportResource(locations = {"file:./src/main/webapp/WEB-INF/spring-servlet.xml" })
 @PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
 class OrchestratorZoneTestConfiguration {
 
