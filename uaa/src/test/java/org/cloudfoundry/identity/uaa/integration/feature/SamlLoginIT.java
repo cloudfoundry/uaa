@@ -320,9 +320,16 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlPhpLogin() throws Exception {
+        createIdentityProvider(SAML_ORIGIN);
+
         Long beforeTest = System.currentTimeMillis();
-        testSimpleSamlLogin("/login", "Where to?");
+        new Page(webDriver)
+                .begin(baseUrl)
+                .startSamlLogin()
+                .login(testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
+
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
@@ -1570,7 +1577,7 @@ class LoginPage extends Page {
 class SamlLoginPage extends Page {
     SamlLoginPage(WebDriver driver) {
         super(driver);
-        assertThat("Should be on the SAML login page", driver.getCurrentUrl(), containsString("/module.php/core/loginuserpass?"));
+        assertThat("Should be on the SAML login page", driver.getCurrentUrl(), containsString("/module.php/core/loginuserpass"));
     }
 
     public HomePage login(String username, String password) {
