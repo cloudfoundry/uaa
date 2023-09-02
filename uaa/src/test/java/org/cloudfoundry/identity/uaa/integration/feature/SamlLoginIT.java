@@ -51,6 +51,7 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.xml.ConfigurationException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,6 +99,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -345,21 +347,13 @@ public class SamlLoginIT {
     public void testSingleLogout() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
 
-        webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
-
-        logout();
+        LoginPage loginPage = new Page(webDriver)
+                .begin(baseUrl)
+                .startSamlLogin()
+                .login(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout();
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        loginPage.startSamlLogin();
     }
 
     @Test
@@ -1525,5 +1519,66 @@ public class SamlLoginIT {
         cn.setRequestMethod("GET");
         cn.connect();
         assertEquals("Check status code from " + errorPath + " is " + codeExpected, cn.getResponseCode(), codeExpected);
+    }
+}
+
+class Page {
+    protected WebDriver driver;
+
+    Page() {
+        this(new ChromeDriver());
+    }
+
+    Page(WebDriver driver) {
+        this.driver = driver;
+    }
+
+    public LoginPage begin(String baseUrl) {
+        driver.get(baseUrl + "/login");
+        return new LoginPage(driver);
+    }
+
+    public LoginPage logout() {
+        driver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        driver.findElement(By.linkText("Sign Out")).click();
+        return new LoginPage(driver);
+    }
+}
+
+class HomePage extends Page {
+    HomePage(WebDriver driver) {
+        super(driver);
+        assertThat("Should be on the home page", driver.getCurrentUrl(), endsWith("/"));
+        assertThat(driver.getPageSource(), Matchers.containsString("Where to?"));
+    }
+}
+
+class LoginPage extends Page {
+    LoginPage(WebDriver driver) {
+        super(driver);
+        assertThat("Should be on the login page", driver.getCurrentUrl(), endsWith("/login"));
+    }
+
+    // When there is a SAML integration, there is a link to go to a SAML login page instead. This assumes there is
+    // only one SAML link.
+    SamlLoginPage startSamlLogin() {
+        driver.findElement(By.className("saml-login-link")).click();
+        return new SamlLoginPage(driver);
+    }
+}
+
+class SamlLoginPage extends Page {
+    SamlLoginPage(WebDriver driver) {
+        super(driver);
+        assertThat("Should be on the SAML login page", driver.getCurrentUrl(), containsString("/module.php/core/loginuserpass?"));
+    }
+
+    public HomePage login(String username, String password) {
+        final WebElement usernameElement = driver.findElement(By.name("username"));
+        usernameElement.clear();
+        usernameElement.sendKeys(username);
+        driver.findElement(By.name("password")).sendKeys(password);
+        driver.findElement(By.id("submit_button")).click();
+        return new HomePage(driver);
     }
 }
