@@ -42,13 +42,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -333,6 +327,11 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             logger.debug("Zone - deleting id[" + id + "]");
             // make sure it exists
             IdentityZone zone = zoneDao.retrieveIgnoreActiveFlag(id);
+            //If identity zone exists , check if it is already ported
+            OrchestratorZoneEntity orchestratorZone = zoneDao.retrieveOrchestratorZoneByIdentityZoneId(id);
+            if(Objects.nonNull(orchestratorZone.getOrchestratorZoneName()) && !orchestratorZone.getOrchestratorZoneName().isEmpty()){
+                throw new UnprocessableEntityException("This service instance has been ported to EKS. Deletion of this service instance from CF is not allowed");
+            }
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
             if (publisher != null && zone != null) {
