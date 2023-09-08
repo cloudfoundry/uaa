@@ -70,7 +70,7 @@ class UaaUsingDelegatingPasswordEncoderMockMvcTest {
     @ValueSource(strings = {
         "client_id_with_no_password"
     })
-    void tryToGetTokenWithNoPasswordFails(String clientId) throws Exception {
+    void tryToGetTokenWithEmtpyPasswordFails(String clientId) throws Exception {
         mockMvc.perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .accept(MediaType.APPLICATION_JSON)

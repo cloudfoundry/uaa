@@ -16,7 +16,7 @@ public class UaaClient extends User {
   private static final long serialVersionUID = SpringSecurityCoreVersion.SERIAL_VERSION_UID;
   private transient Map<String, Object> additionalInformation;
 
-  private String secret;
+  private final String secret;
 
   public UaaClient(String username, String password, Collection<? extends GrantedAuthority> authorities, Map<String, Object> additionalInformation) {
     super(username, password == null ? "" : password, authorities);
@@ -46,6 +46,11 @@ public class UaaClient extends User {
     return this.additionalInformation;
   }
 
+  /**
+   * Allow to return a null password. Super class does not allow to omit a password, therefore use own method
+   *
+   * @return The password of the client, can be null if no secret is set
+   */
   @Override
   public String getPassword() {
     return this.secret;
