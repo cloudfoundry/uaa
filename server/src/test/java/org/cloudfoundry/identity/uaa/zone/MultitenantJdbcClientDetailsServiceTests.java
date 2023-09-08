@@ -308,27 +308,25 @@ class MultitenantJdbcClientDetailsServiceTests {
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithSingleDetails");
 
-        assertEquals("clientIdWithSingleDetails", clientDetails.getClientId());
-        assertTrue(clientDetails.isSecretRequired());
-        assertEquals("mySecret", clientDetails.getClientSecret());
-        assertTrue(clientDetails.isScoped());
-        assertEquals(1, clientDetails.getScope().size());
-        assertEquals("myScope", clientDetails.getScope().iterator().next());
-        assertEquals(1, clientDetails.getResourceIds().size());
-        assertEquals("myResource", clientDetails.getResourceIds().iterator()
-                .next());
-        assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
-        assertEquals("myAuthorizedGrantType", clientDetails
-                .getAuthorizedGrantTypes().iterator().next());
-        assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
-                .iterator().next());
-        assertEquals(1, clientDetails.getAuthorities().size());
-        assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
-                .next().getAuthority());
-        assertEquals(new Integer(100),
-                clientDetails.getAccessTokenValiditySeconds());
-        assertEquals(new Integer(200),
-                clientDetails.getRefreshTokenValiditySeconds());
+        assertNotNull(clientDetails);
+        assertTrue(clientDetails instanceof UaaClientDetails);
+
+        UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
+        assertEquals("clientIdWithSingleDetails", uaaClientDetails.getClientId());
+        assertTrue(uaaClientDetails.isSecretRequired());
+        assertEquals("mySecret", uaaClientDetails.getClientSecret());
+        assertTrue(uaaClientDetails.isScoped());
+        assertEquals(1, uaaClientDetails.getScope().size());
+        assertEquals("myScope", uaaClientDetails.getScope().iterator().next());
+        assertEquals(1, uaaClientDetails.getResourceIds().size());
+        assertEquals("myResource", uaaClientDetails.getResourceIds().iterator().next());
+        assertEquals(1, uaaClientDetails.getAuthorizedGrantTypes().size());
+        assertEquals("myAuthorizedGrantType", uaaClientDetails .getAuthorizedGrantTypes().iterator().next());
+        assertEquals("myRedirectUri", uaaClientDetails.getRegisteredRedirectUri() .iterator().next());
+        assertEquals(1, uaaClientDetails.getAuthorities().size());
+        assertEquals("myAuthority", uaaClientDetails.getAuthorities().iterator() .next().getAuthority());
+        assertEquals(new Integer(100), uaaClientDetails.getAccessTokenValiditySeconds());
+        assertEquals(new Integer(200), uaaClientDetails.getRefreshTokenValiditySeconds());
     }
 
     @Test

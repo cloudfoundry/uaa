@@ -56,14 +56,12 @@ public class UaaClientDetails extends BaseClientDetails {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (o == null || getClass() != o.getClass() || !super.equals(o)) {
             return false;
         }
-        if (o instanceof UaaClientDetails) {
-            UaaClientDetails uaaClientDetails = (UaaClientDetails) o;
-            return Objects.equals(clientJwtConfig, uaaClientDetails.clientJwtConfig);
-        }
-        return false;
+
+        UaaClientDetails uaaClientDetails = (UaaClientDetails) o;
+        return Objects.equals(clientJwtConfig, uaaClientDetails.clientJwtConfig);
     }
 
     @Override

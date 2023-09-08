@@ -83,6 +83,8 @@ class UaaClientDetailsTest {
           assertNotEquals(copy, new UaaClientDetails());
           copy.setClientJwtConfig(null);
           assertEquals(copy, copy2);
+          assertEquals(copy, copy);
+          assertNotEquals(copy, new BaseClientDetails());
         }
 
         @Test
@@ -90,10 +92,9 @@ class UaaClientDetailsTest {
           UaaClientDetails copy = new UaaClientDetails(testClient);
           UaaClientDetails copy2 = new UaaClientDetails(testClient.getClientId(), "",
               "test.none", "", "test.admin", null);
+          assertEquals(copy.hashCode(), copy2.hashCode());
           copy.setClientJwtConfig("test");
           assertNotEquals(copy.hashCode(), copy2.hashCode());
-          copy.setClientJwtConfig(null);
-          assertEquals(copy.hashCode(), copy2.hashCode());
         }
     }
 
