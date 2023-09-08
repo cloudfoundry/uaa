@@ -22,7 +22,7 @@ jobs:
       - name: Set env
         run: echo "DB=$(echo ${{ matrix.database }} | sed 's/[-0-9]//g')" >> $GITHUB_ENV
       - name: Check out repository code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Integration tests on container
         id: testrun
         run: /root/uaa/scripts/integration-tests.sh $DB,default
