@@ -695,6 +695,15 @@ public class LoginMockMvcTests {
     }
 
     @Test
+    void testProductLogoOver100kChars() throws Exception {
+        String bigLogo = new String(new char[150000]).replace('\0', 'x');
+        setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, null, bigLogo);
+
+        mockMvc.perform(get("/login"))
+                .andExpect(content().string(allOf(containsString("<style>.header-image {background-image: url(data:image/png;base64," + bigLogo + ");}</style>"), not(containsString("product-logo.png")))));
+    }
+
+    @Test
     void testCustomFavIcon_With_LineBreaks() throws Exception {
         setZoneFavIconAndProductLogo(webApplicationContext, identityZoneConfiguration, "/sM4\n\nlL==", "/sM4\n\nlL==");
 

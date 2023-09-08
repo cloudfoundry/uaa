@@ -33,6 +33,14 @@ public class MergedZoneBrandingInformation implements BrandingInformationSource 
         return tryGet(IdentityZoneHolder.get(), BrandingInformationSource::getProductLogo).orElse(null);
     }
 
+    public String getInlinedBase64PngLogo() {
+        String logo = getProductLogo();
+        if ( logo != null ) {
+            logo = "data:image/png;base64," + logo;
+        }
+        return logo;
+    }
+
     @Override
     public String getSquareLogo() {
         return resolve(BrandingInformationSource::getSquareLogo);
