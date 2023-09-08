@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.security.oauth2.provider.*;
 
@@ -11,8 +10,6 @@ interface MultitenantClientRegistrationService extends ClientRegistrationService
     void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException;
 
     void updateClientDetails(ClientDetails clientDetails, String zoneId) throws NoSuchClientException;
-
-    void addUaaClientDetails(UaaClientDetails uaaClientDetails, String zoneId) throws ClientAlreadyExistsException;
 
     void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException;
 

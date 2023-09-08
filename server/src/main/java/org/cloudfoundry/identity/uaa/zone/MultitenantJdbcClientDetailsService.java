@@ -160,14 +160,6 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     }
 
     @Override
-    public void addUaaClientDetails(UaaClientDetails uaaClientDetails, String zoneId) throws ClientAlreadyExistsException {
-        if (exists(uaaClientDetails.getClientId(), zoneId)) {
-            throw new ClientAlreadyExistsException("Client already exists: " + uaaClientDetails.getClientId());
-        }
-        jdbcTemplate.update(DEFAULT_INSERT_STATEMENT, getInsertClientDetailsFields(uaaClientDetails, zoneId));
-    }
-
-    @Override
     public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
         int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, passwordEncoder.encode(secret), clientId, zoneId);
         if (count != 1) {
