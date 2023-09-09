@@ -18,7 +18,7 @@ versions.seleniumVersion = "4.12.1"
 versions.braveVersion = "5.16.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
-ext["mariadb.version"] = "2.7.9" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
+ext["mariadb.version"] = "2.7.10" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
 ext["snakeyaml.version"] = "2.0" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 ext["jackson-bom.version"] = "2.15.2" // Bumping to latest version because of compatiblity to snakeyaml 2.0
