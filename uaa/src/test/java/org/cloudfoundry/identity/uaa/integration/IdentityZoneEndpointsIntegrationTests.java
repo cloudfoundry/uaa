@@ -14,11 +14,16 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.zone.OrchestratorState;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
@@ -36,12 +42,10 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -244,6 +248,59 @@ public class IdentityZoneEndpointsIntegrationTests {
         
         assertEquals(HttpStatus.OK, updateResponse.getStatusCode());
         assertTrue(updateResponse.getBody().isEnableRedirectUriCheck());
+    }
+
+    @Test
+    public void testDeletePortedZone() {
+        //Create Identity Zone
+        IdentityZone idZone = new IdentityZone();
+        String id = UUID.randomUUID().toString();
+        idZone.setId(id);
+        idZone.setSubdomain(id);
+        idZone.setName("testCreateZone() " + id);
+        ResponseEntity<Void> response = client.exchange(serverRunning.getUrl("/identity-zones"), HttpMethod.POST, new HttpEntity<>(idZone), new ParameterizedTypeReference<Void>() {
+        }, id);
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+
+        //Port Zone and Validate
+        ResponseEntity<Void> importResponse = portZone(id);
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName(zoneId);
+        expectedResponse.setMessage(ZONE_CREATED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
+
+        Assertions.assertEquals(HttpStatus.ACCEPTED, importResponse.getStatusCode());
+
+        ResponseEntity<Void> deleteResponse = client.exchange(serverRunning.getUrl("/identity-zones/" + id), HttpMethod.DELETE, null, new ParameterizedTypeReference<Void>() {
+        });
+
+        Assertions.assertEquals(deleteResponse.getStatusCode(), HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    private ResponseEntity<Void> portZone(String zoneId) {
+        ClientCredentialsResourceDetails orchestratorZoneClientCredentials = new ClientCredentialsResourceDetails();
+        orchestratorZoneClientCredentials.setClientId("orchestrator-zone-provisioner");
+        orchestratorZoneClientCredentials.setClientSecret("orchestratorsecret");
+        orchestratorZoneClientCredentials.setId("orchestrator-zone-provisioner");
+        orchestratorZoneClientCredentials.setAccessTokenUri("http://localhost:8080/uaa/oauth/token");
+        OAuth2RestTemplate restTemplate = new OAuth2RestTemplate(orchestratorZoneClientCredentials, new DefaultOAuth2ClientContext());
+        String requestBody = JsonUtils.writeValueAsString(getOrchestratorImportZoneRequest("TestZone", "admin-secret", "TestZone", zoneId));
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+
+        ResponseEntity<Void> response = restTemplate.exchange(serverRunning.getUrl("/orchestrator/zones"), HttpMethod.POST, new HttpEntity<>(requestBody, headers), new ParameterizedTypeReference<Void>() {
+        });
+
+        return response;
+    }
+
+    private OrchestratorZoneRequest getOrchestratorImportZoneRequest(String name, String adminClientSecret, String subdomain, String importServiceInstanceGuid) {
+        OrchestratorZone orchestratorZone = new OrchestratorZone(adminClientSecret, subdomain, importServiceInstanceGuid);
+        OrchestratorZoneRequest orchestratorZoneRequest = new OrchestratorZoneRequest();
+        orchestratorZoneRequest.setName(name);
+        orchestratorZoneRequest.setParameters(orchestratorZone);
+        return orchestratorZoneRequest;
     }
 
     static class IdentityClient extends ClientCredentialsResourceDetails {

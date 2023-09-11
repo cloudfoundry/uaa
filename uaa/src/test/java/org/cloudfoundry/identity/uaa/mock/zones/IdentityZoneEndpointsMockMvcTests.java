@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Lists;
 import lombok.SneakyThrows;
+import net.bytebuddy.utility.RandomString;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -35,6 +36,10 @@ import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
+import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZone;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +60,9 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.util.*;
@@ -67,10 +74,10 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CsrfPostProcessor.csrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLoginForm;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.performGet;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
+import static org.cloudfoundry.identity.uaa.zone.OrchestratorZoneService.ZONE_CREATED_MESSAGE;
 import static org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm.SHA1;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
@@ -78,8 +85,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.http.MediaType.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
@@ -148,6 +154,14 @@ class IdentityZoneEndpointsMockMvcTests {
     private WebApplicationContext webApplicationContext;
     private MockMvc mockMvc;
     private TestClient testClient;
+
+    private String orchestratorZonesWriteToken = null;
+
+    @Autowired
+    private ClientRegistrationService orchestratorZoneClientRegistrationService;
+
+    @Autowired
+    private TestClient orchestratorZoneTestClient;
 
     @BeforeEach
     void setUp(
@@ -1818,6 +1832,21 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
+    void testDeletePortedZone() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
+        uaaEventListener.clearEvents();
+        portZone(id);
+
+        MvcResult result = mockMvc.perform(
+                        delete("/identity-zones/{id}", zone.getId())
+                                .header("Authorization", "Bearer " + identityClientToken)
+                                .accept(APPLICATION_JSON))
+                .andExpect(status().isUnprocessableEntity()).andReturn();
+        assertThat(result.getResponse().getContentAsString(), containsString("This service instance has been ported to EKS. Deletion of this service instance from CF is not allowed"));
+    }
+
+    @Test
     void testCreateAndDeleteLimitedClientInNewZoneUsingZoneEndpoint() throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
@@ -2538,5 +2567,77 @@ class IdentityZoneEndpointsMockMvcTests {
         JsonNode root = JsonUtils.readTree(mvcResult.getResponse().getContentAsString());
         return JsonUtils.readValue(root.get("resources").toString(), new TypeReference<List<ScimUser>>() {
         });
+    }
+
+    @SneakyThrows
+    private void portZone(String identityId) {
+        orchestratorZonesWriteToken = configureOrchestratorZone();
+
+        OrchestratorZoneRequest orchestratorZoneRequest = getOrchestratorZoneRequest("The Twiglet Zone", "admin-secret-01", "sub-domain-01", identityId);
+
+        OrchestratorZoneResponse expectedResponse = new OrchestratorZoneResponse();
+        expectedResponse.setName("The Twiglet Zone");
+        expectedResponse.setMessage(ZONE_CREATED_MESSAGE);
+        expectedResponse.setState(OrchestratorState.CREATE_IN_PROGRESS.toString());
+
+        performMockMvcCallAndAssertResponse(post("/orchestrator/zones").contentType(APPLICATION_JSON).content(JsonUtils.writeValueAsString(orchestratorZoneRequest)), orchestratorZonesWriteToken, status().isAccepted(), expectedResponse);
+    }
+
+    private void performMockMvcCallAndAssertResponse(MockHttpServletRequestBuilder mockRequestBuilder, String token, ResultMatcher expectedStatus, OrchestratorZoneResponse expectedResponse) throws Exception {
+
+        MvcResult result = mockMvc.perform(mockRequestBuilder.header("Authorization", "Bearer " + token)).andExpect(expectedStatus).andReturn();
+
+        assertNotNull(result);
+        assertNotNull(result.getResponse());
+        assertTrue(StringUtils.hasLength(result.getResponse().getContentAsString()));
+        assertEquals(APPLICATION_JSON_VALUE, result.getResponse().getContentType());
+
+        OrchestratorZoneResponse actualResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), OrchestratorZoneResponse.class);
+
+        assertNotNull(actualResponse);
+        assertNull(actualResponse.getParameters());
+        assertNotNull(actualResponse.getState());
+        assertEquals(expectedResponse.getState(), actualResponse.getState());
+
+        if (expectedResponse.getName() != null) {
+            assertNotNull(actualResponse.getName());
+        }
+        assertEquals(expectedResponse.getName(), actualResponse.getName());
+
+        ConnectionDetails expectedConnectionDetails = expectedResponse.getConnectionDetails();
+        ConnectionDetails actualConnectionDetails = actualResponse.getConnectionDetails();
+        if (expectedConnectionDetails == null) {
+            assertNull(actualConnectionDetails);
+        } else {
+            assertNotNull(actualConnectionDetails);
+            assertEquals(expectedConnectionDetails.getSubdomain(), actualConnectionDetails.getSubdomain());
+            assertEquals(expectedConnectionDetails.getUri(), actualConnectionDetails.getUri());
+            assertEquals(expectedConnectionDetails.getIssuerId(), actualConnectionDetails.getIssuerId());
+            assertEquals(expectedConnectionDetails.getZone().getHttpHeaderName(), actualConnectionDetails.getZone().getHttpHeaderName());
+            assertNotNull(actualConnectionDetails.getZone().getHttpHeaderValue());
+        }
+
+        assertNotNull(actualResponse.getMessage());
+        if (expectedResponse.getMessage().isEmpty()) {
+            assertTrue(actualResponse.getMessage().isEmpty());
+        } else {
+            assertTrue(actualResponse.getMessage().contains(expectedResponse.getMessage()));
+        }
+    }
+
+
+    private String configureOrchestratorZone() throws Exception {
+        BaseClientDetails clientDetails = new BaseClientDetails("orchestrator-zone-provisioner-" + RandomString.make(5).toLowerCase(), null, "uaa.none", "client_credentials", "orchestrator.zones.read,orchestrator.zones.write");
+        clientDetails.setClientSecret("pr0visioner");
+        orchestratorZoneClientRegistrationService.addClientDetails(clientDetails);
+        return testClient.getClientCredentialsOAuthAccessToken(clientDetails.getClientId(), clientDetails.getClientSecret(), "orchestrator.zones.read,orchestrator.zones.write");
+    }
+
+    private OrchestratorZoneRequest getOrchestratorZoneRequest(String name, String adminClientSecret, String subdomain, String importServiceInstanceGuid) {
+        OrchestratorZone orchestratorZone = new OrchestratorZone(adminClientSecret, subdomain, importServiceInstanceGuid);
+        OrchestratorZoneRequest orchestratorZoneRequest = new OrchestratorZoneRequest();
+        orchestratorZoneRequest.setName(name);
+        orchestratorZoneRequest.setParameters(orchestratorZone);
+        return orchestratorZoneRequest;
     }
 }
