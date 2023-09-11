@@ -128,7 +128,7 @@ libraries.orgJson = "org.json:json:20230618"
 libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.2.0"
 
 // gradle plugins
-libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.4"
+libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.5"
 libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.9.0"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
