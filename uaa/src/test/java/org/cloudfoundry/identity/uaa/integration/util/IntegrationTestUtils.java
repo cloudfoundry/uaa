@@ -86,7 +86,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
-    public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
+    public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp2.uaa-acceptance.cf-app.com";
     public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR =
         "//h2[contains(text(), 'Enter your username and password')]";
 
@@ -985,7 +985,7 @@ public class IntegrationTestUtils {
         def.setMetaDataLocation(idpMetaData);
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setAssertionConsumerIndex(0);
-        def.setMetadataTrustCheck(false);
+        def.setMetadataTrustCheck(true);
         def.setShowSamlLink(true);
         def.setIdpEntityAlias(alias);
         def.setLinkText("Login with Simple SAML PHP(" + alias + ")");
