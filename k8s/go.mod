@@ -1,6 +1,8 @@
 module github.com/cloudfoundry/uaa
 
-go 1.21.0
+go 1.21
+
+toolchain go1.21.0
 
 require (
 	github.com/onsi/ginkgo v1.16.5
