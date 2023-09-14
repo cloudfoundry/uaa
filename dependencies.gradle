@@ -18,9 +18,9 @@ versions.seleniumVersion = "4.12.1"
 versions.braveVersion = "5.16.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
-ext["mariadb.version"] = "2.7.9" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
+ext["mariadb.version"] = "2.7.10" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
-ext["snakeyaml.version"] = "2.0" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
+ext["snakeyaml.version"] = "2.2" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 ext["jackson-bom.version"] = "2.15.2" // Bumping to latest version because of compatiblity to snakeyaml 2.0
 ext["hsqldb.version"] = "2.7.2" // HSQL-DB used for tests but not supported for productive usage
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
@@ -122,15 +122,15 @@ libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.26"
 libraries.velocity = "org.apache.velocity:velocity-engine-core:2.3"
 libraries.xerces = "xerces:xercesImpl:2.12.2"
 libraries.zxing = "com.google.zxing:javase:3.5.2"
-libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.31"
+libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.32"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:3.0.2"
 libraries.orgJson = "org.json:json:20230618"
 libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.2.0"
 
 // gradle plugins
-libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.1"
-libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.8.0"
+libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.5"
+libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.9.0"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
 libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:3.1.0"
-libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.0.0.2929"
+libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:4.3.1.3277"
