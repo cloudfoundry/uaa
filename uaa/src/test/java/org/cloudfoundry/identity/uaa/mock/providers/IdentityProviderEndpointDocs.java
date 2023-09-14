@@ -456,6 +456,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setShowLinkText(false);
         definition.setAttributeMappings(getAttributeMappingMap());
         definition.setUserPropagationParameter("username");
+        definition.setPkce(true);
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
@@ -476,6 +477,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OAuth 2.0 logout endpoint."),
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
                 fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
+                fieldWithPath("config.pkce").optional(true).type(BOOLEAN).description("A flag controlling whether PKCE (RFC 7636) is active in authorization code flow when requesting tokens from the external provider."),
                 fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
                 fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
@@ -525,6 +527,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
+        definition.setPkce(true);
         definition.setAttributeMappings(getAttributeMappingMap());
         definition.setUserPropagationParameter("username");
         definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
@@ -551,6 +554,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                         "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
                 fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
                 fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Only effective if relyingPartySecret is defined. Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header. It is recommended to set `jwtClientAuthentication:true` instead."),
+                fieldWithPath("config.pkce").optional(true).type(BOOLEAN).description("A flag controlling whether PKCE (RFC 7636) is active in authorization code flow when requesting tokens from the external provider."),
                 fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
                 fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OIDC logout endpoint. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
                 fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
