@@ -338,11 +338,14 @@ public class SamlLoginIT {
     public void testSimpleSamlPhpLoginDisplaysLastLogin() throws Exception {
         Long beforeTest = System.currentTimeMillis();
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
-        login(provider);
-        logout();
-        login(provider);
+        LoginPage.go(webDriver, baseUrl)
+                .startSamlLogin()
+                .login(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout()
+                .startSamlLogin()
+                .login(testAccounts.getUserName(), testAccounts.getPassword())
+                .hasLastLoginTime();
 
-        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
@@ -1500,22 +1503,6 @@ public class SamlLoginIT {
         def.setIdpEntityAlias("simplesamlphp");
         def.setLinkText("Login with Simple SAML PHP(simplesamlphp)");
         return def;
-    }
-
-    private void logout() {
-        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-    }
-
-    private void login(IdentityProvider<SamlIdentityProviderDefinition> provider) {
-        webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
     }
 
     private void CallEmpptyPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {

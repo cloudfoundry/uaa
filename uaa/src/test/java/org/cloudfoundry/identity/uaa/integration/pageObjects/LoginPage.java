@@ -7,6 +7,12 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertThat;
 
 public class LoginPage extends Page {
+
+    static public LoginPage go(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + "/login");
+        return new LoginPage(driver);
+    }
+
     public LoginPage(WebDriver driver) {
         super(driver);
         assertThat("Should be on the login page", driver.getCurrentUrl(), endsWith("/login"));
