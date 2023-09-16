@@ -453,7 +453,10 @@ public class SamlLoginIT {
 
     @Test
     public void testGroupIntegration() throws Exception {
-        testSimpleSamlLogin("/login", "Where to?", "marissa4", "saml2");
+        createIdentityProvider(SAML_ORIGIN);
+        LoginPage.go(webDriver, baseUrl)
+                .startSamlLogin()
+                .login("marissa4", "saml2");
     }
 
     @Test
