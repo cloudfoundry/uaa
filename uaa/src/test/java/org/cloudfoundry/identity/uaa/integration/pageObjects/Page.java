@@ -17,8 +17,12 @@ public class Page {
     }
 
     public LoginPage logout() {
+        clickLogout();
+        return new LoginPage(driver);
+    }
+
+    private void clickLogout() {
         driver.findElement(By.cssSelector(".dropdown-trigger")).click();
         driver.findElement(By.linkText("Sign Out")).click();
-        return new LoginPage(driver);
     }
 }
