@@ -117,6 +117,13 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginIT {
 
+    public static final String MARISSA4_USERNAME = "marissa4";
+    private static final String MARISSA4_PASSWORD = "saml2";
+    public static final String MARISSA4_EMAIL = "marissa4@test.org";
+    public static final String MARISSA2_USERNAME = "marissa2";
+    private static final String MARISSA2_PASSWORD = "saml2";
+    public static final String MARISSA3_USERNAME = "marissa3";
+    private static final String MARISSA3_PASSWORD = "saml2";
     private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
@@ -456,13 +463,13 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
                 .startSamlLogin()
-                .login("marissa4", "saml2");
+                .login(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
     @Test
     public void testFavicon_Should_Not_Save() throws Exception {
         webDriver.get(baseUrl + "/favicon.ico");
-        testSimpleSamlLogin("/login", "Where to?", "marissa4", "saml2");
+        testSimpleSamlLogin("/login", "Where to?", MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
 
@@ -536,13 +543,13 @@ public class SamlLoginIT {
 
     @Test
     public void test_SamlInvitation_Automatic_Redirect_In_Zone2() throws Exception {
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
 
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA3_USERNAME, MARISSA3_PASSWORD, false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA3_USERNAME, MARISSA3_PASSWORD, false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA3_USERNAME, MARISSA3_PASSWORD, false);
     }
 
     public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) {
@@ -855,8 +862,8 @@ public class SamlLoginIT {
         //we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys("marissa4");
-        webDriver.findElement(By.name("password")).sendKeys("saml2");
+        webDriver.findElement(By.name("username")).sendKeys(MARISSA4_USERNAME);
+        webDriver.findElement(By.name("password")).sendKeys(MARISSA4_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
@@ -864,7 +871,7 @@ public class SamlLoginIT {
         webDriver.get(zoneUrl + "/logout.do");
 
         //validate that the groups were mapped
-        String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), "marissa4@test.org");
+        String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), MARISSA4_EMAIL);
         uaaSamlUserGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.user");
         uaaSamlAdminGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.admin");
         assertTrue(isMember(samlUserId, uaaSamlUserGroup));
