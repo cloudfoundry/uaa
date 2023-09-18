@@ -112,40 +112,48 @@ public class ClientJwtConfiguration implements Cloneable{
 
   @JsonIgnore
   public static ClientJwtConfiguration parse(String privateKeyConfig) {
-    if (UaaUrlUtils.isUrl(privateKeyConfig)) {
-      return parse(privateKeyConfig, null);
-    } else {
-      return parse(null, privateKeyConfig);
-    }
+    return UaaUrlUtils.isUrl(privateKeyConfig) ? parseJwksUri(privateKeyConfig) : parseJwkSet(privateKeyConfig);
   }
 
   @JsonIgnore
   public static ClientJwtConfiguration parse(String privateKeyUrl, String privateKeyJwt) {
     ClientJwtConfiguration clientJwtConfiguration = null;
     if (privateKeyUrl != null) {
-      String normalizedUri = null;
-      try {
-        normalizedUri = UaaUrlUtils.normalizeUri(privateKeyUrl);
-      } catch (IllegalArgumentException e) {
-        throw new InvalidClientDetailsException("Client jwt configuration with invalid URI", e);
-      }
-      clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
-      clientJwtConfiguration.validateJwksUri();
+      clientJwtConfiguration = parseJwksUri(privateKeyUrl);
     } else if (privateKeyJwt != null && privateKeyJwt.contains("{") && privateKeyJwt.contains("}")) {
-      HashMap<String, Object> jsonMap = JsonUtils.readValue(privateKeyJwt, HashMap.class);
-      String cleanJwtString;
-      try {
-        if (jsonMap.containsKey("keys")) {
-          cleanJwtString = JWKSet.parse(jsonMap).toString(true);
-        } else {
-          cleanJwtString = JWK.parse(jsonMap).toPublicJWK().toString();
-        }
-        clientJwtConfiguration = new ClientJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
-        clientJwtConfiguration.validateJwkSet();
-      } catch (ParseException e) {
-        throw new InvalidClientDetailsException("Client jwt configuration cannot be parsed", e);
-      }
+      clientJwtConfiguration = parseJwkSet(privateKeyJwt);
     }
+    return clientJwtConfiguration;
+  }
+
+  private static ClientJwtConfiguration parseJwkSet(String privateKeyJwt) {
+    ClientJwtConfiguration clientJwtConfiguration;
+    HashMap<String, Object> jsonMap = JsonUtils.readValue(privateKeyJwt, HashMap.class);
+    String cleanJwtString;
+    try {
+      if (jsonMap.containsKey("keys")) {
+        cleanJwtString = JWKSet.parse(jsonMap).toString(true);
+      } else {
+        cleanJwtString = JWK.parse(jsonMap).toPublicJWK().toString();
+      }
+      clientJwtConfiguration = new ClientJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
+      clientJwtConfiguration.validateJwkSet();
+    } catch (ParseException e) {
+      throw new InvalidClientDetailsException("Client jwt configuration cannot be parsed", e);
+    }
+    return clientJwtConfiguration;
+  }
+
+  private static ClientJwtConfiguration parseJwksUri(String privateKeyUrl) {
+    ClientJwtConfiguration clientJwtConfiguration;
+    String normalizedUri = null;
+    try {
+      normalizedUri = UaaUrlUtils.normalizeUri(privateKeyUrl);
+    } catch (IllegalArgumentException e) {
+      throw new InvalidClientDetailsException("Client jwt configuration with invalid URI", e);
+    }
+    clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
+    clientJwtConfiguration.validateJwksUri();
     return clientJwtConfiguration;
   }
 
