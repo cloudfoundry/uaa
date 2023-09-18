@@ -64,7 +64,8 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                     }
                 }
                 if (uaaClient.getPassword() == null) {
-                    throw new BadCredentialsException("Missing credentials");
+                    error = new BadCredentialsException("Missing credentials");
+                    break;
                 }
                 super.additionalAuthenticationChecks(uaaClient, authentication);
                 error = null;
