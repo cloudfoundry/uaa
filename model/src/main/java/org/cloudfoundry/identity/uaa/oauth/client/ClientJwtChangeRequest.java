@@ -1,14 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.ADD;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.DELETE;
 
-/**
- */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClientJwtChangeRequest {
@@ -75,7 +73,11 @@ public class ClientJwtChangeRequest {
         this.keyId = keyId;
     }
 
-    public String getKey() {
+    public String getChangeValue() {
+        // Depending on change mode, allow different values
+        if (changeMode == DELETE && keyId != null) {
+            return keyId;
+        }
         return jsonWebKeyUri != null ? jsonWebKeyUri : jsonWebKeySet;
     }
 }

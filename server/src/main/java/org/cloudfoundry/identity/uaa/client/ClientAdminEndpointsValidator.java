@@ -256,6 +256,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                         clientJwtConfiguration.writeValue(client);
                     } else {
                         logger.warn("Client with client jwt configuration not valid");
+                        throw new InvalidClientDetailsException(
+                            "Client with client jwt configuration not valid");
                     }
                 }
             }
