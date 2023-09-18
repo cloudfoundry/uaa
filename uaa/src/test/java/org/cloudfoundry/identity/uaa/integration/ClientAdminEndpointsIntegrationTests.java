@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -600,6 +601,41 @@ public class ClientAdminEndpointsIntegrationTests {
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
+    @Test
+    public void testChangeJwtConfig() throws Exception {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
+        BaseClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
+        def.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        def.setClientId("admin");
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+            serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+            HttpMethod.PUT, new HttpEntity<ClientJwtChangeRequest>(def, headers), Void.class,
+            client.getClientId());
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+    }
+
+    @Test
+    public void testChangeJwtConfigInvalidTokenKey() throws Exception {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
+        BaseClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
+        def.setJsonWebKeyUri("no uri");
+        def.setClientId("admin");
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+            serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+            HttpMethod.PUT, new HttpEntity<ClientJwtChangeRequest>(def, headers), Void.class,
+            client.getClientId());
+        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+    }
 
     @Test
     public void testCreateClientsWithStrictSecretPolicy() throws Exception {

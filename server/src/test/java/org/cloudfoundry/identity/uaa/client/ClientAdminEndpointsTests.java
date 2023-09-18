@@ -216,6 +216,7 @@ class ClientAdminEndpointsTests {
     void testStatistics() {
         assertEquals(0, endpoints.getClientDeletes());
         assertEquals(0, endpoints.getClientSecretChanges());
+        assertEquals(0, endpoints.getClientJwtChanges());
         assertEquals(0, endpoints.getClientUpdates());
         assertEquals(0, endpoints.getErrorCounts().size());
         assertEquals(0, endpoints.getTotalClients());
@@ -1092,12 +1093,8 @@ class ClientAdminEndpointsTests {
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetailsCreation createRequest = createClientDetailsCreation(input);
         createRequest.setJsonWebKeySet(jwksUri);
-        ClientDetails result = endpoints.createClientDetails(createRequest);
-        assertNull(result.getClientSecret());
-        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
-        verify(clientDetailsService).create(clientCaptor.capture(), anyString());
-        UaaClientDetails created = clientCaptor.getValue();
-        assertNull(ClientJwtConfiguration.readValue(created));
+        assertThrows(InvalidClientDetailsException.class,
+            () -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
     }
 
     @Test

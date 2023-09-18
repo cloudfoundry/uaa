@@ -123,7 +123,13 @@ public class ClientJwtConfiguration implements Cloneable{
   public static ClientJwtConfiguration parse(String privateKeyUrl, String privateKeyJwt) {
     ClientJwtConfiguration clientJwtConfiguration = null;
     if (privateKeyUrl != null) {
-      clientJwtConfiguration = new ClientJwtConfiguration(privateKeyUrl, null);
+      String normalizedUri = null;
+      try {
+        normalizedUri = UaaUrlUtils.normalizeUri(privateKeyUrl);
+      } catch (IllegalArgumentException e) {
+        throw new InvalidClientDetailsException("Client jwt configuration with invalid URI", e);
+      }
+      clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
       clientJwtConfiguration.validateJwksUri();
     } else if (privateKeyJwt != null && privateKeyJwt.contains("{") && privateKeyJwt.contains("}")) {
       HashMap<String, Object> jsonMap = JsonUtils.readValue(privateKeyJwt, HashMap.class);

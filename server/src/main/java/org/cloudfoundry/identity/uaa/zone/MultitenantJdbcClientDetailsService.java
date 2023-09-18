@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -302,6 +303,8 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                 result.writeValue(uaaClientDetails);
             }
             updateClientDetails(uaaClientDetails, zoneId);
+        } else {
+            throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
         }
     }
 
@@ -322,6 +325,8 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                 ClientJwtConfiguration.resetConfiguration(uaaClientDetails);
             }
             updateClientDetails(uaaClientDetails, zoneId);
+        } else {
+            throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
         }
     }
 

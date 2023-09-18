@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -211,17 +210,14 @@ public class ClientAdminBootstrap implements
 
             client.setAdditionalInformation(info);
 
-            if (map.get("jwks_uri") instanceof String) {
+            if (map.get("jwks_uri") instanceof String || map.get("jwks") instanceof String) {
                 String jwksUri = (String) map.get("jwks_uri");
-                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(UaaUrlUtils.normalizeUri(jwksUri), null);
-                if (keyConfig != null && keyConfig.getCleanString() != null) {
-                    keyConfig.writeValue(client);
-                }
-            } else if (map.get("jwks") instanceof String) {
                 String jwks = (String) map.get("jwks");
-                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(null, jwks);
+                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(jwksUri, jwks);
                 if (keyConfig != null && keyConfig.getCleanString() != null) {
                     keyConfig.writeValue(client);
+                } else {
+                    throw new InvalidClientDetailsException("Client jwt configuration invalid syntax. ClientID: " + client.getClientId());
                 }
             }
 
