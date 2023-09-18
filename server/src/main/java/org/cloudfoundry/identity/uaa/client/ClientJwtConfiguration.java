@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -29,13 +30,16 @@ import java.util.stream.Collectors;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClientJwtConfiguration implements Cloneable{
 
+  public static final String JWKS_URI = ClientJwtChangeRequest.JWKS_URI;
+  public static final String JWKS = ClientJwtChangeRequest.JWKS;
+
   @JsonIgnore
   private static final int MAX_KEY_SIZE = 10;
 
-  @JsonProperty("jwks_uri")
+  @JsonProperty(JWKS_URI)
   private String jwksUri;
 
-  @JsonProperty("jwks")
+  @JsonProperty(JWKS)
   private JsonWebKeySet<JsonWebKey> jwkSet;
 
   public ClientJwtConfiguration() {

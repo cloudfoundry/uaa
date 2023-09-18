@@ -11,6 +11,9 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ClientJwtChangeRequest {
 
+    public static final String JWKS_URI = "jwks_uri";
+    public static final String JWKS = "jwks";
+
     public enum ChangeMode {
         UPDATE,
         ADD,
@@ -18,9 +21,9 @@ public class ClientJwtChangeRequest {
     }
     @JsonProperty("kid")
     private String keyId;
-    @JsonProperty("jwks_uri")
+    @JsonProperty(JWKS_URI)
     private String jsonWebKeyUri;
-    @JsonProperty("jwks")
+    @JsonProperty(JWKS)
     private String jsonWebKeySet;
     @JsonProperty("client_id")
     private String clientId;

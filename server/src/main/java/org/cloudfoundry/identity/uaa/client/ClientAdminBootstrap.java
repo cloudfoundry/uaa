@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS_URI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -204,15 +206,15 @@ public class ClientAdminBootstrap implements
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                     "redirect-uri", "secret", "id", "override", "access-token-validity",
-                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon", "jwks", "jwks_uri")) {
+                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon", JWKS, JWKS_URI)) {
                 info.remove(key);
             }
 
             client.setAdditionalInformation(info);
 
-            if (map.get("jwks_uri") instanceof String || map.get("jwks") instanceof String) {
-                String jwksUri = (String) map.get("jwks_uri");
-                String jwks = (String) map.get("jwks");
+            if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {
+                String jwksUri = (String) map.get(JWKS_URI);
+                String jwks = (String) map.get(JWKS);
                 ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(jwksUri, jwks);
                 if (keyConfig != null && keyConfig.getCleanString() != null) {
                     keyConfig.writeValue(client);
