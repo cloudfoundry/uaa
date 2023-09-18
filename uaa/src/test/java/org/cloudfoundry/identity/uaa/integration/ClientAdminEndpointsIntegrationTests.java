@@ -603,7 +603,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Test
     public void testChangeJwtConfig() throws Exception {
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
         BaseClientDetails client = createClient("client_credentials");
 
         client.setResourceIds(Collections.singleton("foo"));
@@ -617,6 +617,25 @@ public class ClientAdminEndpointsIntegrationTests {
             HttpMethod.PUT, new HttpEntity<ClientJwtChangeRequest>(def, headers), Void.class,
             client.getClientId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
+    }
+
+    @Test
+    public void testChangeJwtConfigNoAuthorization() throws Exception {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
+        BaseClientDetails client = createClient("client_credentials");
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write"));
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
+        def.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        def.setClientId("admin");
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+            serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+            HttpMethod.PUT, new HttpEntity<ClientJwtChangeRequest>(def, headers), Void.class,
+            client.getClientId());
+        assertEquals(HttpStatus.FORBIDDEN, result.getStatusCode());
     }
 
     @Test

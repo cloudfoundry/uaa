@@ -281,7 +281,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                     parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader,
+                    headerWithName("Authorization").description("Bearer token containing `clients.trust`, `clients.admin` or `zones.{zone.id}.admin`"),
                     IDENTITY_ZONE_ID_HEADER,
                     IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
