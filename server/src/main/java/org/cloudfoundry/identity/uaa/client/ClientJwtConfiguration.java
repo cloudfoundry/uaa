@@ -128,9 +128,9 @@ public class ClientJwtConfiguration implements Cloneable{
 
   private static ClientJwtConfiguration parseJwkSet(String privateKeyJwt) {
     ClientJwtConfiguration clientJwtConfiguration;
-    HashMap<String, Object> jsonMap = JsonUtils.readValue(privateKeyJwt, HashMap.class);
     String cleanJwtString;
     try {
+      HashMap<String, Object> jsonMap = JsonUtils.readValue(privateKeyJwt, HashMap.class);
       if (jsonMap.containsKey("keys")) {
         cleanJwtString = JWKSet.parse(jsonMap).toString(true);
       } else {
@@ -138,7 +138,7 @@ public class ClientJwtConfiguration implements Cloneable{
       }
       clientJwtConfiguration = new ClientJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
       clientJwtConfiguration.validateJwkSet();
-    } catch (ParseException e) {
+    } catch (ParseException | JsonUtils.JsonUtilException e) {
       throw new InvalidClientDetailsException("Client jwt configuration cannot be parsed", e);
     }
     return clientJwtConfiguration;

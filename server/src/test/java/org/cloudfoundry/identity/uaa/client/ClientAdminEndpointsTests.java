@@ -1083,8 +1083,6 @@ class ClientAdminEndpointsTests {
 
     @Test
     void testCreateClientWithJsonWebKeyUriInvalid() {
-        // invalid jwks_uri
-        String jwksUri = "http://myhost/openid/jwks-uri";
         when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
         when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
         when(mockSecurityContextAccessor.isClient()).thenReturn(true);
@@ -1092,9 +1090,9 @@ class ClientAdminEndpointsTests {
         input.setClientSecret("secret");
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetailsCreation createRequest = createClientDetailsCreation(input);
-        createRequest.setJsonWebKeySet(jwksUri);
+        createRequest.setJsonWebKeySet("invalid");
         assertThrows(InvalidClientDetailsException.class,
-            () -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+            () -> endpoints.createClientDetails(createRequest));
     }
 
     @Test

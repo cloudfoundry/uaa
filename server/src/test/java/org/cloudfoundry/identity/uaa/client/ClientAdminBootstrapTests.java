@@ -281,6 +281,19 @@ class ClientAdminBootstrapTests {
     }
 
     @Test
+    void simpleInvalidClientWithJwkSet() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo-jwks");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", GRANT_TYPE_AUTHORIZATION_CODE);
+        map.put("authorities", "uaa.none");
+        map.put("redirect-uri", "http://localhost/callback");
+        map.put("jwks", "invalid");
+        assertThrows(InvalidClientDetailsException.class, () -> doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients));
+    }
+
+    @Test
     void clientMetadata_getsBootstrapped() {
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");

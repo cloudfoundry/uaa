@@ -300,9 +300,8 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
             ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
             ClientJwtConfiguration result = ClientJwtConfiguration.merge(existingConfig, clientJwtConfiguration, overwrite);
             if (result != null) {
-                result.writeValue(uaaClientDetails);
+                updateClientJwtConfig(clientId, JsonUtils.writeValueAsString(result), zoneId);
             }
-            updateClientDetails(uaaClientDetails, zoneId);
         } else {
             throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
         }
@@ -319,12 +318,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         if (clientJwtConfiguration != null) {
             UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
             ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(uaaClientDetails), clientJwtConfiguration);
-            if (result != null) {
-                result.writeValue(uaaClientDetails);
-            } else {
-                ClientJwtConfiguration.resetConfiguration(uaaClientDetails);
-            }
-            updateClientDetails(uaaClientDetails, zoneId);
+            updateClientJwtConfig(clientId, result != null ? JsonUtils.writeValueAsString(result) : null, zoneId);
         } else {
             throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
         }
