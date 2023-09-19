@@ -66,6 +66,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -543,7 +544,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return result;
     }
 
-    @RequestMapping(value = "/oauth/clients/{client_id}/clientjwt", method = RequestMethod.PUT)
+    @PutMapping(value = "/oauth/clients/{client_id}/clientjwt")
     @ResponseBody
     public ActionResult changeClientJwt(@PathVariable String client_id, @RequestBody ClientJwtChangeRequest change) {
 

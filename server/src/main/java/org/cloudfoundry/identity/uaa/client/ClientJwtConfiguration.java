@@ -149,14 +149,13 @@ public class ClientJwtConfiguration implements Cloneable{
   }
 
   private static ClientJwtConfiguration parseJwksUri(String privateKeyUrl) {
-    ClientJwtConfiguration clientJwtConfiguration;
-    String normalizedUri = null;
+    String normalizedUri;
     try {
       normalizedUri = UaaUrlUtils.normalizeUri(privateKeyUrl);
     } catch (IllegalArgumentException e) {
       throw new InvalidClientDetailsException("Client jwt configuration with invalid URI", e);
     }
-    clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
+    ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
     clientJwtConfiguration.validateJwksUri();
     return clientJwtConfiguration;
   }
@@ -167,7 +166,7 @@ public class ClientJwtConfiguration implements Cloneable{
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
     }
     Set<String> keyId = new HashSet<>();
-    keyList.forEach(key -> {
+    keyList.forEach((JsonWebKey key) -> {
       if (!StringUtils.hasText(key.getKid())) {
         throw new InvalidClientDetailsException("Invalid private_key_jwt: kid is required attribute");
       }
@@ -180,19 +179,19 @@ public class ClientJwtConfiguration implements Cloneable{
   }
 
   private boolean validateJwksUri() {
-    URI jwksUri;
+    URI validateJwksUri;
     try {
-      jwksUri = URI.create(this.jwksUri);
+      validateJwksUri = URI.create(this.jwksUri);
     } catch (IllegalArgumentException e) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be URI complaint", e);
     }
-    if (!jwksUri.isAbsolute()) {
+    if (!validateJwksUri.isAbsolute()) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be an absolute URL");
     }
-    if (!"https".equals(jwksUri.getScheme()) && !"http".equals(jwksUri.getScheme())) {
+    if (!"https".equals(validateJwksUri.getScheme()) && !"http".equals(validateJwksUri.getScheme())) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be either using https or http");
     }
-    if ("http".equals(jwksUri.getScheme()) && !jwksUri.getHost().endsWith("localhost")) {
+    if ("http".equals(validateJwksUri.getScheme()) && !validateJwksUri.getHost().endsWith("localhost")) {
       throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri with http is not on localhost");
     }
     return true;
@@ -212,7 +211,7 @@ public class ClientJwtConfiguration implements Cloneable{
         !(clientDetails.getClientJwtConfig() instanceof String)) {
       return null;
     }
-    return JsonUtils.readValue((String) clientDetails.getClientJwtConfig(), ClientJwtConfiguration.class);
+    return JsonUtils.readValue(clientDetails.getClientJwtConfig(), ClientJwtConfiguration.class);
   }
 
   /**
@@ -272,7 +271,7 @@ public class ClientJwtConfiguration implements Cloneable{
         JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.jwkSet;
         List<JsonWebKey> existingKeys = new ArrayList<>(existingKeySet.getKeys());
         List<JsonWebKey> newKeys = new ArrayList<>();
-        newConfig.getJwkSet().getKeys().forEach(key -> {
+        newConfig.getJwkSet().getKeys().forEach((JsonWebKey key) -> {
           if (existingKeys.contains(key)) {
             if (overwrite) {
               existingKeys.remove(key);
