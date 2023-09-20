@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
 
 public class Page {
     protected WebDriver driver;
@@ -11,12 +10,7 @@ public class Page {
         this.driver = driver;
     }
 
-    public LoginPage begin(String baseUrl) {
-        driver.get(baseUrl + "/login");
-        return new LoginPage(driver);
-    }
-
-    public LoginPage logout() {
+    public LoginPage logout_goToLoginPage() {
         clickLogout();
         return new LoginPage(driver);
     }

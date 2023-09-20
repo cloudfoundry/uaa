@@ -13,7 +13,7 @@ public class SamlLoginPage extends Page {
         assertThat("Should be on the SAML login page", driver.getCurrentUrl(), containsString("/module.php/core/loginuserpass"));
     }
 
-    public HomePage login(String username, String password) {
+    public HomePage login_goToHomePage(String username, String password) {
         final WebElement usernameElement = driver.findElement(By.name("username"));
         usernameElement.clear();
         usernameElement.sendKeys(username);
