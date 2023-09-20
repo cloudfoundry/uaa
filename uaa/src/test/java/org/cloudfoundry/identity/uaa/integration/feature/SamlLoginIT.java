@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
-import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -329,10 +328,9 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
 
         Long beforeTest = System.currentTimeMillis();
-        new Page(webDriver)
-                .begin(baseUrl)
-                .startSamlLogin()
-                .login(testAccounts.getUserName(), testAccounts.getPassword());
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
 
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
@@ -345,11 +343,11 @@ public class SamlLoginIT {
         Long beforeTest = System.currentTimeMillis();
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
-                .startSamlLogin()
-                .login(testAccounts.getUserName(), testAccounts.getPassword())
-                .logout()
-                .startSamlLogin()
-                .login(testAccounts.getUserName(), testAccounts.getPassword())
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout_goToLoginPage()
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .hasLastLoginTime();
 
         Long afterTest = System.currentTimeMillis();
@@ -362,12 +360,11 @@ public class SamlLoginIT {
     public void testSingleLogout() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
 
-        LoginPage loginPage = new Page(webDriver)
-                .begin(baseUrl)
-                .startSamlLogin()
-                .login(testAccounts.getUserName(), testAccounts.getPassword())
-                .logout();
-        loginPage.startSamlLogin();
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout_goToLoginPage()
+                .clickSamlLink_goToSamlLoginPage();
     }
 
     @Test
@@ -452,18 +449,18 @@ public class SamlLoginIT {
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         LoginPage.go(webDriver, baseUrl)
-                .startSamlLogin()
-                .login(testAccounts.getUserName(), testAccounts.getPassword())
-                .logout()
-                .automaticSamlLogin();
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout_goToLoginPage()
+                .clickSamlLink_goToHomePage();
     }
 
     @Test
     public void testGroupIntegration() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
-                .startSamlLogin()
-                .login(MARISSA4_USERNAME, MARISSA4_PASSWORD);
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
     @Test
