@@ -129,7 +129,7 @@ public class SamlLoginIT {
     public IntegrationTestRule integrationTestRule;
 
     @Rule
-    public RetryRule retryRule = new RetryRule(1);
+    public RetryRule retryRule = new RetryRule(1); // TODO: Change this back to 3 when merging back to develop?
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -208,7 +208,7 @@ public class SamlLoginIT {
             webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
             webDriver.manage().deleteAllCookies();
         }
-        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/logout/example-userpass");
     }
 
     @Test
