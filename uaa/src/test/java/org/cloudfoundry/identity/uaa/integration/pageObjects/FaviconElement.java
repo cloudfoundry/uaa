@@ -1,14 +1,14 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
-import org.hamcrest.Matchers;
 import org.openqa.selenium.WebDriver;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertThat;
 
 public class FaviconElement extends Page {
 
-    // The favicon.ico URL is not present on the server because we specify a custom icon URL
+    // The favicon.ico image is not present on the server because we specify a custom icon URL
     // in the headers, but browsers try to hit it and tests need to hit this default URL.
     static public FaviconElement getDefaultIcon(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + "/favicon.ico");
