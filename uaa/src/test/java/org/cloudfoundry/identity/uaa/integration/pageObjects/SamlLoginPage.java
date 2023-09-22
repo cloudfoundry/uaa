@@ -14,11 +14,20 @@ public class SamlLoginPage extends Page {
     }
 
     public HomePage login_goToHomePage(String username, String password) {
+        sendLoginCredentials(username, password);
+        return new HomePage(driver);
+    }
+
+    public PasscodePage login_goToPasscodePage(String username, String password) {
+        sendLoginCredentials(username, password);
+        return new PasscodePage(driver);
+    }
+
+    private void sendLoginCredentials(String username, String password) {
         final WebElement usernameElement = driver.findElement(By.name("username"));
         usernameElement.clear();
         usernameElement.sendKeys(username);
         driver.findElement(By.name("password")).sendKeys(password);
         driver.findElement(By.id("submit_button")).click();
-        return new HomePage(driver);
     }
 }
