@@ -19,6 +19,6 @@ public class FaviconElement extends Page {
     public FaviconElement(WebDriver driver) {
         super(driver);
         assertThat("Should be on the favicon image", driver.getCurrentUrl(), endsWith("/favicon.ico"));
-        assertThat(driver.getPageSource(), Matchers.containsString("Something went amiss."));
+        assertThat(driver.getPageSource(), containsString("Something went amiss."));
     }
 }
