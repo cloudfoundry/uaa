@@ -16,6 +16,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.FaviconElement;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
@@ -465,8 +466,11 @@ public class SamlLoginIT {
 
     @Test
     public void testFavicon_Should_Not_Save() throws Exception {
-        webDriver.get(baseUrl + "/favicon.ico");
-        testSimpleSamlLogin("/login", "Where to?", MARISSA4_USERNAME, MARISSA4_PASSWORD);
+        createIdentityProvider(SAML_ORIGIN);
+        FaviconElement.getDefaultIcon(webDriver, baseUrl);
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
 
