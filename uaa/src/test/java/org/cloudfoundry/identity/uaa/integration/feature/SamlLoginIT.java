@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.PasscodePage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -240,7 +241,11 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlPhpPasscodeRedirect() throws Exception {
-        testSimpleSamlLogin("/passcode", "Temporary Authentication Code");
+        createIdentityProvider(SAML_ORIGIN);
+
+        PasscodePage.requestPasscode_goToLoginPage(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToPasscodePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
