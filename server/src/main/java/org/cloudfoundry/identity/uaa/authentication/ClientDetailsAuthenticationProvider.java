@@ -65,6 +65,9 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
                         break;
                     }
+                } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
+                    // set none as client_auth_method for all usage of empty secrets, e.g. cf client
+                    setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
                 }
                 if (uaaClient.getPassword() == null) {
                     error = new BadCredentialsException("Missing credentials");
