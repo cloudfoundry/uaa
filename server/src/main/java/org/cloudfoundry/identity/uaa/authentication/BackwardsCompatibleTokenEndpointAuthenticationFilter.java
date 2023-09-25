@@ -132,12 +132,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 if (clientAuth.isAuthenticated()) {
                     // Ensure the OAuth2Authentication is authenticated
                     authorizationRequest.setApproved(true);
-                    String clientAuthentication = null;
-                    if (clientAuth instanceof OAuth2Authentication) {
-                        clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod(clientAuth);
-                    } else if (clientAuth.getDetails() instanceof UaaAuthenticationDetails) {
-                        clientAuthentication = ((UaaAuthenticationDetails) clientAuth.getDetails()).getAuthenticationMethod();
-                    }
+                    String clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod(clientAuth);
                     if (clientAuthentication != null) {
                         authorizationRequest.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
                     }
