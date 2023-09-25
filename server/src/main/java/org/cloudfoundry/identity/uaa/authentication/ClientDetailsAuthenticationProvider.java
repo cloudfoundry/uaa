@@ -17,8 +17,8 @@ import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
@@ -57,21 +57,16 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         AuthenticationException error = null;
         for(String pwd: passwordList) {
             try {
-                User user = new User(userDetails.getUsername(), pwd, userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
-                if (userDetails instanceof UaaClient) {
-                    UaaClient uaaClient = (UaaClient) userDetails;
-                    if (authentication.getCredentials() == null && isPublicGrantTypeUsageAllowed(authentication.getDetails())) {
-                        // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and proceed even if no secret is provided
-                        Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
-                        if ((allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String) allowPublic)) ||
-                            (allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic))) {
-                            setAuthenticationMethodNone(authentication);
-                            break;
-                        }
-                    } else if (ObjectUtils.isEmpty(authentication.getCredentials()) && IdentityZoneHolder.get().getConfig().getClientSecretPolicy().getMinLength() == 0) {
-                        // set none as client_auth_method for all usage of empty secrets, e.g. cf client
-                        setAuthenticationMethodNone(authentication);
+                UaaClient uaaClient = new UaaClient(userDetails, pwd);
+                if (authentication.getCredentials() == null) {
+                    if (isPublicGrantTypeUsageAllowed(authentication.getDetails()) && uaaClient.isAllowPublic()) {
+                        // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and continue even if no secret is in request
+                        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
+                        break;
                     }
+                } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
+                    // set none as client_auth_method for all usage of empty secrets, e.g. cf client
+                    setAuthenticationMethod(authentication, CLIENT_AUTH_NONE);
                 }
                 if (uaaClient.getPassword() == null) {
                     error = new BadCredentialsException("Missing credentials");
@@ -89,9 +84,9 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
     }
 
-    private static void setAuthenticationMethodNone(AbstractAuthenticationToken authentication) {
+    private static void setAuthenticationMethod(AbstractAuthenticationToken authentication, String method) {
         if (authentication.getDetails() instanceof  UaaAuthenticationDetails) {
-            ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
+            ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(method);
         }
     }
 
