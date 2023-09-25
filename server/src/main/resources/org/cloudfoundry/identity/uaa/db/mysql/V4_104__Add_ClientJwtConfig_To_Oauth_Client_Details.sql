@@ -1,0 +1,1 @@
+ALTER TABLE oauth_client_details ADD COLUMN client_jwt_config TEXT DEFAULT NULL;

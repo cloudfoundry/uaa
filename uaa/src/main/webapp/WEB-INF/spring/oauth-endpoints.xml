@@ -310,7 +310,6 @@
     <bean id="clientDetailsUserService"
           class="org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService">
         <constructor-arg ref="jdbcClientDetailsService"/>
-        <property name="passwordEncoder" ref="cachingPasswordEncoder"/>
     </bean>
 
     <bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">

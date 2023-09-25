@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.client.UaaClient;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -23,7 +22,6 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -75,7 +73,11 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         setAuthenticationMethodNone(authentication);
                     }
                 }
-                super.additionalAuthenticationChecks(user, authentication);
+                if (uaaClient.getPassword() == null) {
+                    error = new BadCredentialsException("Missing credentials");
+                    break;
+                }
+                super.additionalAuthenticationChecks(uaaClient, authentication);
                 error = null;
                 break;
             } catch (AuthenticationException e) {

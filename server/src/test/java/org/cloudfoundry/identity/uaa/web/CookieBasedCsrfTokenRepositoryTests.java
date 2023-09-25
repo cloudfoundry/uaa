@@ -107,6 +107,18 @@ class CookieBasedCsrfTokenRepositoryTests {
     }
 
     @Test
+    void saveToken_sameSiteIsNone() {
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        repo.setSameSiteCookies("None");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        CsrfToken token = repo.generateToken(null);
+        repo.saveToken(token, request, response);
+
+        assertThat(response.getHeader("Set-Cookie"), containsString("SameSite=None"));
+    }
+
+    @Test
     void saveToken_alwaysHttpOnly() {
         Cookie cookie = saveTokenAndReturnCookie(false, "http");
         assertTrue(cookie.isHttpOnly());

@@ -32,10 +32,10 @@ updates:
     - ">= 3"
   - dependency-name: org.flywaydb:flyway-core
     versions:
-    - ">= 8"
+    - ">= 8" # Version 8+ no longer supports MySQL 5.7, we're not ready to drop MySQL 5.7 support yet. Tracker story: https://www.pivotaltracker.com/story/show/180879913.
   - dependency-name: com.icegreen:greenmail
     versions:
-    - ">= 2"
+    - ">= 2" # Version 2+ was causing test flakiness, wait for it to stabilize. See https://github.com/cloudfoundry/uaa/pull/2314.
 - package-ecosystem: gradle
   directory: "/model"
   schedule:
