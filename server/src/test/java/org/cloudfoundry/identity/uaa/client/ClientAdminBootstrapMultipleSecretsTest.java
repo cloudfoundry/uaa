@@ -223,7 +223,7 @@ public class ClientAdminBootstrapMultipleSecretsTest {
 		buildClient(null);
 		clients.get(clientId).put("secret", new LinkedList<>());
 		clientAdminBootstrap.afterPropertiesSet();
-		assertClient("");
+		assertClient(null);
 	}
 
 	@Test
@@ -280,7 +280,7 @@ public class ClientAdminBootstrapMultipleSecretsTest {
 
 	private void assertClient(String password) {
 		Assert.assertEquals(clientId, verifyClient.getClientId());
-		Assert.assertEquals(password == null ? "" : password, verifyClient.getClientSecret());
+		Assert.assertEquals(password, verifyClient.getClientSecret());
 	}
 
 	private void buildClientSingletonList(String password1) {

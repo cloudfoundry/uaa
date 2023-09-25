@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification.SECRET;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,7 +59,6 @@ class UaaClientAuthenticationProviderTest {
 
         jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         UaaClientDetailsUserDetailsService clientDetailsService = new UaaClientDetailsUserDetailsService(jdbcClientDetailsService);
-        clientDetailsService.setPasswordEncoder(passwordEncoder);
         client = createClient();
         authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder);
     }
@@ -206,6 +206,19 @@ class UaaClientAuthenticationProviderTest {
         Map<String, String[]> requestParameters = new HashMap<>();
         when(uaaAuthenticationDetails.getParameterMap()).thenReturn(requestParameters);
         assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation()), a));
+    }
+
+    @Test
+    void provider_authenticate_client_without_secret_user_without_secret() {
+        client = new BaseClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
+        jdbcClientDetailsService.addClientDetails(client);
+        UsernamePasswordAuthenticationToken a = mock(UsernamePasswordAuthenticationToken.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(a.getDetails()).thenReturn(uaaAuthenticationDetails);
+        Map<String, String[]> requestParameters = new HashMap<>();
+        when(uaaAuthenticationDetails.getParameterMap()).thenReturn(requestParameters);
+        Exception e = assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", null, Collections.emptyList(), client.getAdditionalInformation()), a));
+        assertEquals("Missing credentials", e.getMessage());
     }
 
     @Test

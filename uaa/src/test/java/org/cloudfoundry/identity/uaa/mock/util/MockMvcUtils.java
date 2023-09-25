@@ -1008,6 +1008,10 @@ public final class MockMvcUtils {
     public static BaseClientDetails createClient(ApplicationContext context, BaseClientDetails clientDetails, IdentityZone zone) {
 
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
+        if (clientDetails.getClientSecret() == null) {
+            // provide for tests the empty secret behavior
+            clientDetails.setClientSecret("");
+        }
         service.addClientDetails(clientDetails, zone.getId());
         return (BaseClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
     }

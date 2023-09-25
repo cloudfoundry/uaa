@@ -13,16 +13,15 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.client.UaaClient;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -59,23 +58,19 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         AuthenticationException error = null;
         for(String pwd: passwordList) {
             try {
-                User user = new User(userDetails.getUsername(), pwd, userDetails.isEnabled(), userDetails.isAccountNonExpired(), userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
-                if (userDetails instanceof UaaClient) {
-                    UaaClient uaaClient = (UaaClient) userDetails;
-                    if (authentication.getCredentials() == null && isPublicGrantTypeUsageAllowed(authentication.getDetails())) {
-                        // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and proceed even if no secret is provided
-                        Object allowPublic = uaaClient.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC);
-                        if ((allowPublic instanceof String && Boolean.TRUE.toString().equalsIgnoreCase((String) allowPublic)) ||
-                            (allowPublic instanceof Boolean && Boolean.TRUE.equals(allowPublic))) {
-                            setAuthenticationMethod(authentication, CLIENT_AUTH_NONE);
-                            break;
-                        }
-                    } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
-                        // set none as client_auth_method for all usage of empty secrets, e.g. cf client
-                        setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
+                UaaClient uaaClient = new UaaClient(userDetails, pwd);
+                if (authentication.getCredentials() == null) {
+                    if (isPublicGrantTypeUsageAllowed(authentication.getDetails()) && uaaClient.isAllowPublic()) {
+                        // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and continue even if no secret is in request
+                        ((UaaAuthenticationDetails) authentication.getDetails()).setAuthenticationMethod(CLIENT_AUTH_NONE);
+                        break;
                     }
                 }
-                super.additionalAuthenticationChecks(user, authentication);
+                if (uaaClient.getPassword() == null) {
+                    error = new BadCredentialsException("Missing credentials");
+                    break;
+                }
+                super.additionalAuthenticationChecks(uaaClient, authentication);
                 error = null;
                 break;
             } catch (AuthenticationException e) {

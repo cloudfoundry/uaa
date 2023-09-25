@@ -444,6 +444,31 @@ class ClientAdminBootstrapTests {
             reset(multitenantJdbcClientDetailsService);
 
             Map<String, Object> map = new HashMap<>();
+            map.put("secret", "");
+            map.put("override", true);
+            map.put("authorized-grant-types", "client_credentials");
+            clients.put(clientId, map);
+
+            doThrow(new ClientAlreadyExistsException("Planned"))
+                .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
+            clientAdminBootstrap.afterPropertiesSet();
+            verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
+            ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "", "uaa");
+            assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
+        }
+
+        @Test
+        void doNotOverrideClientWithNullSecret() {
+            String clientId = randomValueStringGenerator.generate();
+            BaseClientDetails foo = new BaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            foo.setClientSecret("secret");
+            multitenantJdbcClientDetailsService.addClientDetails(foo);
+
+            reset(multitenantJdbcClientDetailsService);
+
+            Map<String, Object> map = new HashMap<>();
             map.put("secret", null);
             map.put("override", true);
             map.put("authorized-grant-types", "client_credentials");
@@ -455,7 +480,7 @@ class ClientAdminBootstrapTests {
             verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
             ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(captor.capture(), anyString());
-            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, "", "uaa");
+            verify(multitenantJdbcClientDetailsService, times(1)).updateClientSecret(clientId, null, "uaa");
             assertEquals(new HashSet(Collections.singletonList("client_credentials")), captor.getValue().getAuthorizedGrantTypes());
         }
 

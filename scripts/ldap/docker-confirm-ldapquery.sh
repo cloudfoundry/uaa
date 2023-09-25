@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 #query to run to confirm docker openldap is up and running with correct configuration
 
 set -e
