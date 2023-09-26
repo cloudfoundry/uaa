@@ -14,7 +14,7 @@ versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.tomcatCargoVersion = "9.0.80"
 versions.guavaVersion = "32.1.2-jre"
-versions.seleniumVersion = "4.12.1"
+versions.seleniumVersion = "4.13.0"
 versions.braveVersion = "5.16.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
