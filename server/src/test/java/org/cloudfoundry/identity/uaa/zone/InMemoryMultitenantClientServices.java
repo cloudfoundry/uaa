@@ -49,6 +49,16 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
     }
 
     @Override
+    public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException {
         getInMemoryService(zoneId).put(clientDetails.getClientId(), (BaseClientDetails) clientDetails);
     }

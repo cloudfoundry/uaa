@@ -10,7 +10,7 @@ Overview
 The User Account and Authentication Service (UAA):
 
 * is a separate application from Cloud Foundry the Cloud Controller
-* owns the user accounts and authentication sources (SAML, LDAP, Keystone)
+* owns the user accounts and authentication sources (SAML, OpenID Connect, LDAP, Keystone)
 * is invoked via JSON APIs
 * supports standard protocols to provide single sign-on and delegated authorization to web applications in addition to JSON APIs to support the Cloud Controller and team features of Cloud Foundry
 * supports APIs and a basic login/approval UI for web client apps
@@ -35,6 +35,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **clients.write** - scope required to create and modify clients. The scopes are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes that have the 'testclient.' prefix. Authorities are limited to uaa.resource
 * **clients.read** - scope to read information about clients
 * **clients.secret** - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
+* **clients.trust** - ``/oauth/clients/*/clientjwt`` endpoint. Scope required to change the JWT configuration of a client. Considered an admin scope.
 * **scim.write** - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
 * **scim.read** - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
 * **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (get verification links ``GET /Users/{id}/verify-link`` or verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
@@ -3100,6 +3101,24 @@ Example::
     {
       "oldSecret": "fooclientsecret",
       "secret": "newclientsceret"
+    }
+
+
+Change Client JWT Configuration: ``PUT /oauth/clients/{client_id}/clientjwt``
+---------------------------------------------------------------
+
+==============  ===============================================
+Request         ``PUT /oauth/clients/{client_id}/clientjwt``
+Request body    *jwt trust configuration change request*
+Reponse code    ``200 OK`` if successful
+Response body   a status message (hash)
+==============  ===============================================
+
+Example::
+
+    PUT /oauth/clients/foo/clientjwt
+    {
+      "jwks_uri": "http://localhost:8080/uaa/token_keys"
     }
 
 

@@ -2,11 +2,14 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -289,6 +292,37 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         }
     }
 
+    @Override
+    public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+        ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
+        if (clientJwtConfiguration != null) {
+            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
+            ClientJwtConfiguration result = ClientJwtConfiguration.merge(existingConfig, clientJwtConfiguration, overwrite);
+            if (result != null) {
+                updateClientJwtConfig(clientId, JsonUtils.writeValueAsString(result), zoneId);
+            }
+        } else {
+            throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
+        }
+    }
+
+    @Override
+    public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        ClientJwtConfiguration clientJwtConfiguration;
+        if(UaaUrlUtils.isUrl(keyConfig)) {
+            clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
+        } else {
+            clientJwtConfiguration = new ClientJwtConfiguration(keyConfig, null);
+        }
+        if (clientJwtConfiguration != null) {
+            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(uaaClientDetails), clientJwtConfiguration);
+            updateClientJwtConfig(clientId, result != null ? JsonUtils.writeValueAsString(result) : null, zoneId);
+        } else {
+            throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
+        }
+    }
 
     /**
      * Row mapper for ClientDetails.

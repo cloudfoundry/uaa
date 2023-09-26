@@ -2472,6 +2472,29 @@ _Request Fields_
 
 <%= render('ClientAdminEndpointDocs/changeClientSecret/request-fields.md') %>
 
+## Change Client JWT
+This configuration can be done if client authentication is performed with method private_key_jwt
+instead of secret based client authentication. See details for client authentiction with [OAuth2](https://oauth.net/2/client-authentication/) and/or
+[OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
+
+The client can send a client_assertion for authentication. The signature of the assertion is validated either with the jwks_uri or the internal jwks public keys.
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/changeClientJwt/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/changeClientJwt/http-response.md') %>
+
+_Path Parameters_
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/path-parameters.md') %>
+
+_Request Headers_
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/request-headers.md') %>
+
+_Request Fields_
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/request-fields.md') %>
+
 ## List
 
 <%= render('ClientAdminEndpointDocs/listClients/curl-request.md') %>

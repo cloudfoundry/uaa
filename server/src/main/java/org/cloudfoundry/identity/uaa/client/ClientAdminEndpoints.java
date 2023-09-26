@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
@@ -65,6 +66,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -114,6 +116,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private final AtomicInteger clientUpdates;
     private final AtomicInteger clientDeletes;
     private final AtomicInteger clientSecretChanges;
+    private final AtomicInteger clientJwtChanges;
 
     private ApplicationEventPublisher publisher;
 
@@ -154,6 +157,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         this.clientUpdates = new AtomicInteger();
         this.clientDeletes = new AtomicInteger();
         this.clientSecretChanges = new AtomicInteger();
+        this.clientJwtChanges = new AtomicInteger();
     }
 
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Registration Count")
@@ -174,6 +178,11 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Secret Change Count (Since Startup)")
     public int getClientSecretChanges() {
         return clientSecretChanges.get();
+    }
+
+    @ManagedMetric(metricType = MetricType.COUNTER, displayName = "Client Jwt Config Change Count (Since Startup)")
+    public int getClientJwtChanges() {
+        return clientJwtChanges.get();
     }
 
     @ManagedMetric(displayName = "Errors Since Startup")
@@ -531,6 +540,52 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 result = new ActionResult("ok", "secret updated");
         }
         clientSecretChanges.incrementAndGet();
+
+        return result;
+    }
+
+    @PutMapping(value = "/oauth/clients/{client_id}/clientjwt")
+    @ResponseBody
+    public ActionResult changeClientJwt(@PathVariable String client_id, @RequestBody ClientJwtChangeRequest change) {
+
+        UaaClientDetails uaaClientDetails;
+        try {
+            uaaClientDetails = (UaaClientDetails) clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
+        } catch (InvalidClientException e) {
+            throw new NoSuchClientException("No such client: " + client_id);
+        }
+
+        try {
+            checkPasswordChangeIsAllowed(uaaClientDetails, "");
+        } catch (IllegalStateException e) {
+            throw new InvalidClientDetailsException(e.getMessage());
+        }
+
+        ActionResult result;
+        switch (change.getChangeMode()){
+            case ADD :
+                if (change.getChangeValue() != null) {
+                    clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId(), false);
+                    result = new ActionResult("ok", "Client jwt configuration is added");
+                } else {
+                    result = new ActionResult("ok", "No key added");
+                }
+                break;
+
+            case DELETE :
+                if (ClientJwtConfiguration.readValue(uaaClientDetails) != null && change.getChangeValue() != null) {
+                    clientRegistrationService.deleteClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId());
+                    result = new ActionResult("ok", "Client jwt configuration is deleted");
+                } else {
+                    result = new ActionResult("ok", "No key deleted");
+                }
+                break;
+
+            default:
+                clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId(), true);
+                result = new ActionResult("ok", "Client jwt configuration updated");
+        }
+        clientJwtChanges.incrementAndGet();
 
         return result;
     }

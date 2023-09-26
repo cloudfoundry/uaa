@@ -25,7 +25,7 @@
                             <entry key="authorized-grant-types" value="client_credentials"/>
                             <entry key="scope" value="uaa.none"/>
                             <entry key="authorities"
-                                   value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin"/>
+                                   value="uaa.admin,clients.read,clients.write,clients.secret,clients.trust,scim.read,scim.write,clients.admin"/>
                             <entry key="secret" value="adminsecret"/>
                         </map>
                     </entry>

@@ -9,7 +9,9 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -59,6 +61,7 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -73,6 +76,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -212,6 +216,7 @@ class ClientAdminEndpointsTests {
     void testStatistics() {
         assertEquals(0, endpoints.getClientDeletes());
         assertEquals(0, endpoints.getClientSecretChanges());
+        assertEquals(0, endpoints.getClientJwtChanges());
         assertEquals(0, endpoints.getClientUpdates());
         assertEquals(0, endpoints.getErrorCounts().size());
         assertEquals(0, endpoints.getTotalClients());
@@ -1054,6 +1059,122 @@ class ClientAdminEndpointsTests {
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertTrue(updated.isAutoApprove("foo.read"));
         assertTrue(updated.isAutoApprove("foo.write"));
+    }
+
+    @Test
+    void testCreateClientWithJsonWebKeyUri() {
+        // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata, see jwks_uri
+        String jwksUri = "https://any.domain.net/openid/jwks-uri";
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+
+        input.setClientSecret("secret");
+        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setJsonWebKeyUri(jwksUri);
+        ClientDetails result = endpoints.createClientDetails(createRequest);
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
+        verify(clientDetailsService).create(clientCaptor.capture(), anyString());
+        UaaClientDetails created = clientCaptor.getValue();
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jwksUri));
+    }
+
+    @Test
+    void testCreateClientWithJsonWebKeyUriInvalid() {
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+
+        input.setClientSecret("secret");
+        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setJsonWebKeySet("invalid");
+        assertThrows(InvalidClientDetailsException.class,
+            () -> endpoints.createClientDetails(createRequest));
+    }
+
+    @Test
+    void testAddClientJwtConfigUri() {
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
+
+        when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
+
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
+        // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata, see jwks_uri
+        String jwksUri = "https://any.domain.net/openid/jwks-uri";
+        change.setJsonWebKeyUri(jwksUri);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+
+        ActionResult result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration is added", result.getMessage());
+        verify(clientRegistrationService, times(1)).addClientJwtConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), false);
+
+        change.setJsonWebKeyUri(null);
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("No key added", result.getMessage());
+    }
+
+    @Test
+    void testChangeDeleteClientJwtConfigUri() {
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
+
+        when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
+
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
+        // https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderMetadata, see jwks_uri
+        String jwksUri = "https://any.domain.net/openid/jwks-uri";
+        change.setJsonWebKeyUri(jwksUri);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+
+        ActionResult result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration is added", result.getMessage());
+        verify(clientRegistrationService, times(1)).addClientJwtConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), false);
+
+        jwksUri = "https://any.new.domain.net/openid/jwks-uri";
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.UPDATE);
+        change.setJsonWebKeyUri(jwksUri);
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration updated", result.getMessage());
+        verify(clientRegistrationService, times(1)).addClientJwtConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId(), true);
+
+        ClientJwtConfiguration.parse(jwksUri).writeValue(detail);
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.DELETE);
+        change.setJsonWebKeyUri(jwksUri);
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Client jwt configuration is deleted", result.getMessage());
+        verify(clientRegistrationService, times(1)).deleteClientJwtConfig(detail.getClientId(), jwksUri, IdentityZoneHolder.get().getId());
+    }
+
+    @Test
+    void testCreateClientWithJsonKeyWebSet() {
+        // Example JWK, a key is bound to a kid, means assumption is, a key is the same if kid is the same
+        String jsonJwk  = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+        String jsonJwk2 = "{\"kty\":\"RSA\",\"e\":\"\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"\"}";
+        String jsonJwk3 = "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-2\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}";
+        String jsonJwkSet = "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}]}";
+        when(clientDetailsService.retrieve(anyString(), anyString())).thenReturn(input);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+
+        input.setClientSecret("secret");
+        detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
+        ClientDetailsCreation createRequest = createClientDetailsCreation(input);
+        createRequest.setJsonWebKeySet(jsonJwk);
+        ClientDetails result = endpoints.createClientDetails(createRequest);
+        assertNull(result.getClientSecret());
+        ArgumentCaptor<UaaClientDetails> clientCaptor = ArgumentCaptor.forClass(UaaClientDetails.class);
+        verify(clientDetailsService).create(clientCaptor.capture(), anyString());
+        UaaClientDetails created = clientCaptor.getValue();
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk));
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk2));
+        assertEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwkSet));
+        assertNotEquals(ClientJwtConfiguration.readValue(created), ClientJwtConfiguration.parse(jsonJwk3));
     }
 
     private ClientDetailsCreation createClientDetailsCreation(BaseClientDetails baseClientDetails) {
