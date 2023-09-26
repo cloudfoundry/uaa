@@ -15,7 +15,7 @@ versions.statsdClientVersion = "3.1.0" // statsd is not included in spring-boot 
 versions.junitVersion = "4.13.2" // Needed to support junit 4 with spring-boot 2.4
 versions.velocityEngineCoreVersion = "2.3"
 versions.xmlsecVersion ="3.0.2"
-versions.seleniumVersion = "4.12.1"
+versions.seleniumVersion = "4.13.0"
 
 // Versions we're overriding from the Spring Boot Bom
 ext["flyway.version"] = "7.15.0" // flyway 8+ drops support for mysql 5.7
