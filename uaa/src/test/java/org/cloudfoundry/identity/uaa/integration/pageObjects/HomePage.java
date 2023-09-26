@@ -1,20 +1,19 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.hamcrest.Matchers;
-import org.joda.time.DateTime;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.opensaml.xml.encryption.Public;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.endsWith;
-import static org.junit.Assert.assertNotNull;
 
 public class HomePage extends Page {
+    static final protected String urlPath = "/";
+
     public HomePage(WebDriver driver) {
         super(driver);
-        assertThat("Should be on the home page", driver.getCurrentUrl(), endsWith("/"));
+        validateUrl(driver, endsWith(urlPath));
         assertThat(driver.getPageSource(), Matchers.containsString("Where to?"));
     }
 

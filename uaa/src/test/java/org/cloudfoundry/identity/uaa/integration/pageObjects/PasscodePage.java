@@ -7,15 +7,16 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertThat;
 
 public class PasscodePage extends Page {
+    static final protected String urlPath = "/passcode";
 
     static public LoginPage requestPasscode_goToLoginPage(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + "/passcode");
+        driver.get(baseUrl + urlPath);
         return new LoginPage(driver);
     }
 
     public PasscodePage(WebDriver driver) {
         super(driver);
-        assertThat("Should be on the passcode page", driver.getCurrentUrl(), endsWith("/passcode"));
+        validateUrl(driver, endsWith(urlPath));
         assertThat(driver.getPageSource(), containsString("Temporary Authentication Code"));
     }
 }
