@@ -131,7 +131,7 @@ public class SamlLoginIT {
     public IntegrationTestRule integrationTestRule;
 
     @Rule
-    public RetryRule retryRule = new RetryRule(1); // TODO: Change this back to 3 when merging back to develop?
+    public RetryRule retryRule = new RetryRule(3);
 
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
@@ -629,7 +629,7 @@ public class SamlLoginIT {
         }
 
         webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");  // TODO: Fix nonfatal error "SimpleSAML\Error\Exception: Missing certificate in metadata for 'testzone2.cloudfoundry-saml-login'"
+        webDriver.get(zoneUrl + "/logout.do");
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
     }
 
