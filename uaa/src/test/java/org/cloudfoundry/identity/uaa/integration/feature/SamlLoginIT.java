@@ -627,8 +627,8 @@ public class SamlLoginIT {
         }
 
         webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
+        webDriver.get(zoneUrl + "/logout.do");  // TODO: Fix nonfatal error "SimpleSAML\Error\Exception: Missing certificate in metadata for 'testzone2.cloudfoundry-saml-login'"
+        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/logout/example-userpass");
     }
 
     @Test
