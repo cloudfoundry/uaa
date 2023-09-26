@@ -4,18 +4,19 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
 import static org.hamcrest.Matchers.endsWith;
-import static org.junit.Assert.assertThat;
 
 public class LoginPage extends Page {
 
+    static final protected String urlPath = "/login";
+
     static public LoginPage go(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + "/login");
+        driver.get(baseUrl + urlPath);
         return new LoginPage(driver);
     }
 
     public LoginPage(WebDriver driver) {
         super(driver);
-        assertThat("Should be on the login page", driver.getCurrentUrl(), endsWith("/login"));
+        validateUrl(driver, endsWith(urlPath));
     }
 
     // When there is a SAML integration, there is a link to go to a SAML login page instead. This assumes there is

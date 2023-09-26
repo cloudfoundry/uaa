@@ -5,12 +5,14 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
 
 public class SamlLoginPage extends Page {
+    // This is on the saml server, not the UAA server
+    static final protected String urlPath = "/module.php/core/loginuserpass";
+
     public SamlLoginPage(WebDriver driver) {
         super(driver);
-        assertThat("Should be on the SAML login page", driver.getCurrentUrl(), containsString("/module.php/core/loginuserpass"));
+        validateUrl(driver, containsString(urlPath));
     }
 
     public HomePage login_goToHomePage(String username, String password) {
