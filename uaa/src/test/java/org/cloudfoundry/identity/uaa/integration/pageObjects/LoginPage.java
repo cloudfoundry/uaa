@@ -9,14 +9,14 @@ public class LoginPage extends Page {
 
     static final protected String urlPath = "/login";
 
-    static public LoginPage go(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + urlPath);
-        return new LoginPage(driver);
-    }
-
     public LoginPage(WebDriver driver) {
         super(driver);
         validateUrl(driver, endsWith(urlPath));
+    }
+
+    static public LoginPage go(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + urlPath);
+        return new LoginPage(driver);
     }
 
     // When there is a SAML integration, there is a link to go to a SAML login page instead. This assumes there is
