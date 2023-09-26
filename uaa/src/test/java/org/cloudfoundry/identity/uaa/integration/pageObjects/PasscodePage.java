@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.hamcrest.Matcher;
 import org.openqa.selenium.WebDriver;
 
 import static org.hamcrest.Matchers.containsString;
@@ -12,7 +13,7 @@ public class PasscodePage extends Page {
     public PasscodePage(WebDriver driver) {
         super(driver);
         validateUrl(driver, endsWith(urlPath));
-        assertThat(driver.getPageSource(), containsString("Temporary Authentication Code"));
+        validatePageSource(driver, containsString("Temporary Authentication Code") );
     }
 
     static public LoginPage requestPasscode_goToLoginPage(WebDriver driver, String baseUrl) {

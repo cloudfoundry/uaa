@@ -17,6 +17,10 @@ public class Page {
         assertThat("URL validation failed", driver.getCurrentUrl(), urlMatcher);
     }
 
+    protected static void validatePageSource(WebDriver driver, Matcher matcher) {
+        assertThat(driver.getPageSource(), matcher);
+    }
+
     public LoginPage logout_goToLoginPage() {
         clickLogout();
         return new LoginPage(driver);

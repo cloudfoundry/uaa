@@ -1,11 +1,10 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
-import org.hamcrest.Matchers;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 
 public class HomePage extends Page {
@@ -14,7 +13,7 @@ public class HomePage extends Page {
     public HomePage(WebDriver driver) {
         super(driver);
         validateUrl(driver, endsWith(urlPath));
-        assertThat(driver.getPageSource(), Matchers.containsString("Where to?"));
+        validatePageSource(driver, containsString("Where to?"));
     }
 
     public boolean hasLastLoginTime() {
