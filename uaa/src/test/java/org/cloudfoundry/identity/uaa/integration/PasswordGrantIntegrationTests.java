@@ -27,7 +27,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -153,13 +153,13 @@ public class PasswordGrantIntegrationTests {
         return template;
     }
 
-    protected static String validateClientAuthenticationMethod(ResponseEntity<String> responseEntity, boolean isEmpty) {
+    protected static String validateClientAuthenticationMethod(ResponseEntity<String> responseEntity, boolean isNone) {
         Map<String, Object> jsonBody = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
         String accessToken = (String) jsonBody.get("access_token");
         assertThat(accessToken, is(notNullValue()));
         Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken);
-        if (isEmpty) {
-            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_EMPTY));
+        if (isNone) {
+            assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
         } else {
             assertThat(claims, not(hasKey(ClaimConstants.CLIENT_AUTH_METHOD)));
         }
