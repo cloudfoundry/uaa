@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -14,8 +15,13 @@ public final class UaaSecurityContextUtils {
   private UaaSecurityContextUtils() {}
 
   public static String getClientAuthenticationMethod() {
-    Authentication a = SecurityContextHolder.getContext().getAuthentication();
+    return getClientAuthenticationMethod(SecurityContextHolder.getContext().getAuthentication());
+  }
+  public static String getClientAuthenticationMethod(Authentication a) {
     if (!(a instanceof OAuth2Authentication)) {
+      if (a != null && a.isAuthenticated() && a.getDetails() instanceof UaaAuthenticationDetails) {
+        return ((UaaAuthenticationDetails) a.getDetails()).getAuthenticationMethod();
+      }
       return null;
     }
     OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) a;

@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,13 +11,18 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -103,6 +111,23 @@ class OidcMetadataFetcherTest {
                             eq(definition.getDiscoveryUrl().toString()), eq(restTemplate)
                     );
         }
+
+        @Test
+        public void shouldPerformTokenKeyUrlUsingCache() throws OidcMetadataFetchingException, MalformedURLException {
+            definition.setTokenKeyUrl(new URL("http://should.be.updated"));
+            definition.setSkipSslValidation(false);
+
+            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+                .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+
+            metadataDiscoverer.fetchWebKeySet(definition);
+            metadataDiscoverer.fetchWebKeySet(definition);
+
+            verify(urlContentCache, times(2))
+                .getUrlContent(
+                    any(), any(), any(), any()
+                );
+        }
     }
 
     @Nested
@@ -135,4 +160,71 @@ class OidcMetadataFetcherTest {
         }
 
     }
+
+    @Nested
+    class WithErrorSituations {
+        @BeforeEach
+        public void setup() throws MalformedURLException {
+            definition.setTokenKeyUrl(new URL("http://token_keys"));
+            definition.setSkipSslValidation(true);
+            definition.setRelyingPartyId("id");
+            definition.setRelyingPartySecret("x");
+        }
+
+        @Test
+        public void failWithEmptyContent() throws OidcMetadataFetchingException, MalformedURLException {
+
+            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+                .thenReturn("".getBytes());
+
+            assertThrows(OidcMetadataFetchingException.class, () -> metadataDiscoverer.fetchWebKeySet(definition));
+        }
+
+        @Test
+        public void failWithInvalidContent() throws OidcMetadataFetchingException, MalformedURLException {
+
+            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+                .thenReturn("{x}".getBytes());
+
+            assertThrows(OidcMetadataFetchingException.class, () -> metadataDiscoverer.fetchWebKeySet(definition));
+        }
+    }
+
+    @Nested
+    class WithJwtClientKey {
+        @BeforeEach
+        public void setup() throws MalformedURLException {
+            definition.setTokenKeyUrl(new URL("http://token_keys"));
+            definition.setSkipSslValidation(true);
+            definition.setRelyingPartyId("id");
+            definition.setRelyingPartySecret(null);
+            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+                .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+        }
+
+        @Test
+        public void getConfigFromJwksUri() throws OidcMetadataFetchingException, MalformedURLException {
+
+            JsonWebKeySet<JsonWebKey> keys = metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration("http://token_keys", null));
+            assertNotNull(keys);
+            assertEquals(1, keys.getKeys().size());
+            assertEquals("id", keys.getKeys().get(0).getKid());
+        }
+
+        @Test
+        public void getConfigFromJwks() throws OidcMetadataFetchingException, MalformedURLException {
+
+            JsonWebKeySet<JsonWebKey> keys = metadataDiscoverer.fetchWebKeySet(ClientJwtConfiguration.parse("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"a\",\"kty\":\"RSA\",\"n\":\"n\"}]}"));
+            assertNotNull(keys);
+            assertEquals(1, keys.getKeys().size());
+            assertEquals("a", keys.getKeys().get(0).getKid());
+        }
+
+        @Test
+        public void failWithInvalidConfig() throws OidcMetadataFetchingException, MalformedURLException {
+
+            assertThrows(OidcMetadataFetchingException.class, () -> metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration(null, null)));
+        }
+    }
+
 }
