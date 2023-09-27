@@ -237,7 +237,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         if (create) {
             // Only check for missing secret if client is being created.
+            if (requestedGrantTypes.contains(GRANT_TYPE_CLIENT_CREDENTIALS) && !StringUtils.hasText(client.getClientSecret())) {
+                logger.debug("Client secret is required for client_credentials grant type");
+                throw new InvalidClientDetailsException("Client secret is required for client_credentials grant type");
             }
+            clientSecretValidator.validate(client.getClientSecret());
 
             if (prototype instanceof ClientDetailsCreation) {
                 ClientDetailsCreation clientDetailsCreation = (ClientDetailsCreation) prototype;
