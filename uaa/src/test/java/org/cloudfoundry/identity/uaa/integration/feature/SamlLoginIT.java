@@ -16,6 +16,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.PasscodePage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -36,7 +38,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -116,6 +117,13 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginIT {
 
+    public static final String MARISSA4_USERNAME = "marissa4";
+    private static final String MARISSA4_PASSWORD = "saml2";
+    public static final String MARISSA4_EMAIL = "marissa4@test.org";
+    public static final String MARISSA2_USERNAME = "marissa2";
+    private static final String MARISSA2_PASSWORD = "saml2";
+    public static final String MARISSA3_USERNAME = "marissa3";
+    private static final String MARISSA3_PASSWORD = "saml2";
     private static final String SAML_ORIGIN = "simplesamlphp";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
@@ -233,7 +241,11 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlPhpPasscodeRedirect() throws Exception {
-        testSimpleSamlLogin("/passcode", "Temporary Authentication Code");
+        createIdentityProvider(SAML_ORIGIN);
+
+        PasscodePage.requestPasscode_goToLoginPage(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToPasscodePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
@@ -318,9 +330,14 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlPhpLogin() throws Exception {
+        createIdentityProvider(SAML_ORIGIN);
+
         Long beforeTest = System.currentTimeMillis();
-        testSimpleSamlLogin("/login", "Where to?");
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
+
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
@@ -330,11 +347,14 @@ public class SamlLoginIT {
     public void testSimpleSamlPhpLoginDisplaysLastLogin() throws Exception {
         Long beforeTest = System.currentTimeMillis();
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
-        login(provider);
-        logout();
-        login(provider);
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout_goToLoginPage()
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .hasLastLoginTime();
 
-        assertNotNull(webDriver.findElement(By.cssSelector("#last_login_time")));
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
@@ -345,21 +365,11 @@ public class SamlLoginIT {
     public void testSingleLogout() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
 
-        webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
-
-        logout();
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout_goToLoginPage()
+                .clickSamlLink_goToSamlLoginPage();
     }
 
     @Test
@@ -443,32 +453,25 @@ public class SamlLoginIT {
 
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
-        webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
-
-        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .logout_goToLoginPage()
+                .clickSamlLink_goToHomePage();
     }
 
     @Test
     public void testGroupIntegration() throws Exception {
-        testSimpleSamlLogin("/login", "Where to?", "marissa4", "saml2");
+        createIdentityProvider(SAML_ORIGIN);
+        LoginPage.go(webDriver, baseUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
     @Test
     public void testFavicon_Should_Not_Save() throws Exception {
         webDriver.get(baseUrl + "/favicon.ico");
-        testSimpleSamlLogin("/login", "Where to?", "marissa4", "saml2");
+        testSimpleSamlLogin("/login", "Where to?", MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
 
@@ -488,7 +491,6 @@ public class SamlLoginIT {
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
-        IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
@@ -543,13 +545,13 @@ public class SamlLoginIT {
 
     @Test
     public void test_SamlInvitation_Automatic_Redirect_In_Zone2() throws Exception {
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
 
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA3_USERNAME, MARISSA3_PASSWORD, false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA3_USERNAME, MARISSA3_PASSWORD, false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA3_USERNAME, MARISSA3_PASSWORD, false);
     }
 
     public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) {
@@ -862,8 +864,8 @@ public class SamlLoginIT {
         //we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys("marissa4");
-        webDriver.findElement(By.name("password")).sendKeys("saml2");
+        webDriver.findElement(By.name("username")).sendKeys(MARISSA4_USERNAME);
+        webDriver.findElement(By.name("password")).sendKeys(MARISSA4_PASSWORD);
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
@@ -871,7 +873,7 @@ public class SamlLoginIT {
         webDriver.get(zoneUrl + "/logout.do");
 
         //validate that the groups were mapped
-        String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), "marissa4@test.org");
+        String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), MARISSA4_EMAIL);
         uaaSamlUserGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.user");
         uaaSamlAdminGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.admin");
         assertTrue(isMember(samlUserId, uaaSamlUserGroup));
@@ -1502,22 +1504,6 @@ public class SamlLoginIT {
         def.setIdpEntityAlias("simplesamlphp");
         def.setLinkText("Login with Simple SAML PHP(simplesamlphp)");
         return def;
-    }
-
-    private void logout() {
-        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-    }
-
-    private void login(IdentityProvider<SamlIdentityProviderDefinition> provider) {
-        webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
     }
 
     private void CallEmpptyPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {

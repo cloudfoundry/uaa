@@ -704,8 +704,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         // no client-secret, switch to PKCE
         // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
         if (config.getRelyingPartySecret() == null) {
-            // if session is expired or other issues in retrieven code_verifier, then flow fails with 401, which is expected
-            body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
             // no secret but jwtClientAuthentication
             if (config instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) config).getJwtClientAuthentication() != null) {
                 body = new JwtClientAuthentication(keyInfoService)
@@ -718,6 +716,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 String clientAuthHeader = getClientAuthHeader(config);
                 headers.add("Authorization", clientAuthHeader);
             }
+        }
+        if (ExternalOAuthProviderConfigurator.isPkceNeeded(config)) {
+            // if session is expired or other issues in retrieven code_verifier, then flow fails with 401, which is expected
+            body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
         }
         headers.add("Accept", "application/json");
 

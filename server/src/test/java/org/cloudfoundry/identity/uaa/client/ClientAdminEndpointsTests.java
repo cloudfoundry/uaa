@@ -9,7 +9,9 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -60,6 +62,7 @@ import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertT
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -74,6 +77,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
@@ -213,6 +217,7 @@ class ClientAdminEndpointsTests {
     void testStatistics() {
         assertEquals(0, endpoints.getClientDeletes());
         assertEquals(0, endpoints.getClientSecretChanges());
+        assertEquals(0, endpoints.getClientJwtChanges());
         assertEquals(0, endpoints.getClientUpdates());
         assertEquals(0, endpoints.getErrorCounts().size());
         assertEquals(0, endpoints.getTotalClients());
@@ -1055,16 +1060,6 @@ class ClientAdminEndpointsTests {
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertTrue(updated.isAutoApprove("foo.read"));
         assertTrue(updated.isAutoApprove("foo.write"));
-    }
-
-    @Test
-    void clientCredentialWithEmptySecretIsRejected() {
-        detail.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_CLIENT_CREDENTIALS));
-        detail.setClientSecret("");
-        detail.setScope(Collections.emptyList());
-        Exception e = assertThrows(InvalidClientDetailsException.class,
-            () -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
-        assertEquals("Client secret is required for client_credentials grant type", e.getMessage());
     }
 
     private ClientDetailsCreation createClientDetailsCreation(BaseClientDetails baseClientDetails) {

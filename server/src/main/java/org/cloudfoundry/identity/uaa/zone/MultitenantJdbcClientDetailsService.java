@@ -2,10 +2,14 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,7 +29,6 @@ import org.springframework.security.oauth2.common.util.JdbcListFactory;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -64,7 +67,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                     "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, " +
                     "refresh_token_validity, additional_information, autoapprove, lastmodified, required_user_groups";
 
-    private static final String CLIENT_FIELDS = "client_secret, " + CLIENT_FIELDS_FOR_UPDATE;
+    private static final String CLIENT_FIELDS = "client_secret, client_jwt_config, " + CLIENT_FIELDS_FOR_UPDATE;
 
     private static final String BASE_FIND_STATEMENT =
             "select client_id, " + CLIENT_FIELDS + " from oauth_client_details";
@@ -80,7 +83,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private static final String DEFAULT_INSERT_STATEMENT =
             "insert into oauth_client_details (" + CLIENT_FIELDS
-                    + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String DEFAULT_UPDATE_STATEMENT =
             "update oauth_client_details " + "set "
@@ -89,6 +92,10 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     private static final String DEFAULT_UPDATE_SECRET_STATEMENT =
             "update oauth_client_details "
                     + "set client_secret = ? where client_id = ? and identity_zone_id = ?";
+
+    private static final String DEFAULT_UPDATE_CLIENT_JWT_CONFIG_STATEMENT =
+            "update oauth_client_details "
+                    + "set client_jwt_config = ? where client_id = ? and identity_zone_id = ?";
 
     static final String DEFAULT_DELETE_STATEMENT =
             "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
@@ -155,7 +162,15 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     @Override
     public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
-        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, passwordEncoder.encode(secret), clientId, zoneId);
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_SECRET_STATEMENT, secret != null ? passwordEncoder.encode(secret) : null, clientId, zoneId);
+        if (count != 1) {
+            throw new NoSuchClientException("No client found with id = " + clientId);
+        }
+    }
+
+    @Override
+    public void updateClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        int count = jdbcTemplate.update(DEFAULT_UPDATE_CLIENT_JWT_CONFIG_STATEMENT, keyConfig, clientId, zoneId);
         if (count != 1) {
             throw new NoSuchClientException("No client found with id = " + clientId);
         }
@@ -172,12 +187,13 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private Object[] getInsertClientDetailsFields(ClientDetails clientDetails, String zoneId) {
         Object[] fieldsForUpdate = getFieldsForUpdate(clientDetails, zoneId);
-        Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 2];
-        System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 1, fieldsForUpdate.length);
+        Object[] clientDetailFieldsForUpdate = new Object[fieldsForUpdate.length + 3];
+        System.arraycopy(fieldsForUpdate, 0, clientDetailFieldsForUpdate, 2, fieldsForUpdate.length);
         clientDetailFieldsForUpdate[0] =
                 clientDetails.getClientSecret() != null ?
                         passwordEncoder.encode(clientDetails.getClientSecret()) :
                         null;
+        clientDetailFieldsForUpdate[1] = (clientDetails instanceof UaaClientDetails) ? ((UaaClientDetails) clientDetails).getClientJwtConfig() : null;
         clientDetailFieldsForUpdate[clientDetailFieldsForUpdate.length - 1] = getUserId();
         return clientDetailFieldsForUpdate;
     }
@@ -276,6 +292,37 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         }
     }
 
+    @Override
+    public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+        ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
+        if (clientJwtConfiguration != null) {
+            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
+            ClientJwtConfiguration result = ClientJwtConfiguration.merge(existingConfig, clientJwtConfiguration, overwrite);
+            if (result != null) {
+                updateClientJwtConfig(clientId, JsonUtils.writeValueAsString(result), zoneId);
+            }
+        } else {
+            throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
+        }
+    }
+
+    @Override
+    public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        ClientJwtConfiguration clientJwtConfiguration;
+        if(UaaUrlUtils.isUrl(keyConfig)) {
+            clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
+        } else {
+            clientJwtConfiguration = new ClientJwtConfiguration(keyConfig, null);
+        }
+        if (clientJwtConfiguration != null) {
+            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(uaaClientDetails), clientJwtConfiguration);
+            updateClientJwtConfig(clientId, result != null ? JsonUtils.writeValueAsString(result) : null, zoneId);
+        } else {
+            throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
+        }
+    }
 
     /**
      * Row mapper for ClientDetails.
@@ -284,23 +331,24 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
      */
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-            BaseClientDetails details = new BaseClientDetails(
+            UaaClientDetails details = new UaaClientDetails(
                     rs.getString(1),
-                    rs.getString(3),
                     rs.getString(4),
                     rs.getString(5),
-                    rs.getString(7),
-                    rs.getString(6)
+                    rs.getString(6),
+                    rs.getString(8),
+                    rs.getString(7)
             );
             details.setClientSecret(rs.getString(2));
-            if (rs.getObject(8) != null) {
-                details.setAccessTokenValiditySeconds(rs.getInt(8));
-            }
+            details.setClientJwtConfig(rs.getString(3));
             if (rs.getObject(9) != null) {
-                details.setRefreshTokenValiditySeconds(rs.getInt(9));
+                details.setAccessTokenValiditySeconds(rs.getInt(9));
             }
-            String json = rs.getString(10);
-            String scopes = rs.getString(11);
+            if (rs.getObject(10) != null) {
+                details.setRefreshTokenValiditySeconds(rs.getInt(10));
+            }
+            String json = rs.getString(11);
+            String scopes = rs.getString(12);
             Set<String> autoApproveScopes = new HashSet<>();
             if (scopes != null) {
                 autoApproveScopes = commaDelimitedListToSet(scopes);
@@ -330,12 +378,12 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
 
             // lastModified
-            if (rs.getObject(12) != null) {
-                details.addAdditionalInformation("lastModified", rs.getTimestamp(12));
+            if (rs.getObject(13) != null) {
+                details.addAdditionalInformation("lastModified", rs.getTimestamp(13));
             }
 
             //required_user_groups
-            String requiredUserGroups = rs.getString(13);
+            String requiredUserGroups = rs.getString(14);
             if (StringUtils.isEmpty(requiredUserGroups)) {
                 details.addAdditionalInformation(REQUIRED_USER_GROUPS, emptySet());
             } else {

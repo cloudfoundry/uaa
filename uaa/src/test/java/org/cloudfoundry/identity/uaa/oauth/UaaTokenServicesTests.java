@@ -478,7 +478,7 @@ class UaaTokenServicesTests {
             @MethodSource("org.cloudfoundry.identity.uaa.oauth.UaaTokenServicesTests#authenticationTestParams")
             void happyCase(List<String> amrs) {
                 setup(amrs);
-
+                assumeTrue(waitForClient("jku_test", 5), "Test client needs to be setup for this test");
                 CompositeToken refreshedToken = (CompositeToken) tokenServices.refreshAccessToken(
                         refreshToken.getValue(),
                         new TokenRequest(

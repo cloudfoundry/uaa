@@ -13,6 +13,8 @@ interface MultitenantClientRegistrationService extends ClientRegistrationService
 
     void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException;
 
+    void updateClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException;
+
     void removeClientDetails(String clientId, String zoneId) throws NoSuchClientException;
 
     List<ClientDetails> listClientDetails(String zoneId);
@@ -30,6 +32,10 @@ interface MultitenantClientSecretService {
     void addClientSecret(String clientId, String newSecret, String zoneId) throws NoSuchClientException;
 
     void deleteClientSecret(String clientId, String zoneId) throws NoSuchClientException;
+
+    void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException;
+
+    void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException;
 }
 
 public abstract class MultitenantClientServices implements

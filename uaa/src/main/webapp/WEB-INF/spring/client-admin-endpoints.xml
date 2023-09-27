@@ -19,6 +19,18 @@
         <csrf disabled="true"/>
     </http>
 
+    <http name="clientJwtSecurity" pattern="/oauth/clients/*/clientjwt" create-session="stateless"
+          authentication-manager-ref="emptyAuthenticationManager" entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/oauth/clients/*/clientjwt"
+                       access="#oauth2.hasAnyScope('clients.trust', 'clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"/>
+        <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
+        <access-denied-handler ref="oauthAccessDeniedHandler"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
+        <csrf disabled="true"/>
+    </http>
+
     <http name="clientTxAdminSecurity" pattern="/oauth/clients/tx/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
@@ -86,6 +98,11 @@
                                  pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"/>
             <aop:after-throwing method="secretFailure"
                                 pointcut="execution(* *..ClientAdminEndpoints+.changeSecret(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"
+                                throwing="e"/>
+            <aop:after-returning method="clientJwtChange"
+                                 pointcut="execution(* *..ClientAdminEndpoints+.changeClientJwt(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"/>
+            <aop:after-throwing method="clientJwtFailure"
+                                pointcut="execution(* *..ClientAdminEndpoints+.changeClientJwt(String, ..)) and args(clientId,..) and bean(clientAdminEndpoints)"
                                 throwing="e"/>
             <aop:after-returning method="createTx"
                                  pointcut="execution(* *..ClientAdminEndpoints+.createClientDetailsTx(..)) and bean(clientAdminEndpoints)"

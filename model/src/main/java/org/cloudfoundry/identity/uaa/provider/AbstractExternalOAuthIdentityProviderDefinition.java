@@ -45,6 +45,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private String responseType = "code";
     private String userPropagationParameter;
     private OAuthGroupMappingMode groupMappingMode;
+    private boolean pkce = true;
 
     public URL getAuthUrl() {
         return authUrl;
@@ -205,6 +206,14 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         return (T) this;
     }
 
+    public void setPkce(final boolean pkce) {
+        this.pkce = pkce;
+    }
+
+    public boolean isPkce() {
+        return this.pkce;
+    }
+
     @JsonIgnore
     public Class getParameterizedClass() {
         ParameterizedType parameterizedType =
@@ -237,6 +246,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(issuer, that.issuer)) return false;
         if (!Objects.equals(userPropagationParameter, that.userPropagationParameter)) return false;
         if (!Objects.equals(groupMappingMode, that.groupMappingMode)) return false;
+        if (pkce != that.pkce) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -260,6 +270,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (userPropagationParameter != null ? userPropagationParameter.hashCode() : 0);
         result = 31 * result + (groupMappingMode != null ? groupMappingMode.hashCode() : 0);
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
+        result = 31 * result + (pkce ? 1 : 0);
         return result;
     }
 }

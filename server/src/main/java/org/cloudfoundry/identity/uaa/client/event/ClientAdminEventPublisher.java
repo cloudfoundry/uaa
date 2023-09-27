@@ -112,6 +112,14 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
         publish(new SecretChangeEvent(getClient(clientId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
     }
 
+    public void clientJwtFailure(String clientId, Exception e) {
+        publish(new ClientJwtFailureEvent(e.getMessage(), getClient(clientId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
+    }
+
+    public void clientJwtChange(String clientId) {
+        publish(new ClientJwtChangeEvent(getClient(clientId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
+    }
+
     private ClientDetails getClient(String clientId) {
         try {
             return clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());

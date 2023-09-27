@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS_URI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
@@ -158,7 +160,7 @@ public class ClientAdminBootstrap implements
             if (map.get("authorized-grant-types") == null) {
                 throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
             }
-            BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
+            UaaClientDetails client = new UaaClientDetails(clientId, (String) map.get("resource-ids"),
                     (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                     (String) map.get("authorities"), getRedirectUris(map));
 
@@ -166,16 +168,14 @@ public class ClientAdminBootstrap implements
             String secondSecret = null;
             if (map.get("secret") instanceof List) {
                 List<String> secrets = (List<String>) map.get("secret");
-                if (secrets.isEmpty()) {
-                    client.setClientSecret("");
-                } else {
+                if (!secrets.isEmpty()) {
                     client.setClientSecret(secrets.get(0) == null ? "" : secrets.get(0));
                     if (secrets.size() > 1) {
                         secondSecret = secrets.get(1) == null ? "" : secrets.get(1);
                     }
                 }
             } else {
-                client.setClientSecret(map.get("secret") == null ? "" : (String) map.get("secret"));
+                client.setClientSecret((String) map.get("secret"));
             }
 
             Integer validity = (Integer) map.get("access-token-validity");
@@ -204,11 +204,23 @@ public class ClientAdminBootstrap implements
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                     "redirect-uri", "secret", "id", "override", "access-token-validity",
-                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon")) {
+                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon", JWKS, JWKS_URI)) {
                 info.remove(key);
             }
 
             client.setAdditionalInformation(info);
+
+            if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {
+                String jwksUri = (String) map.get(JWKS_URI);
+                String jwks = (String) map.get(JWKS);
+                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(jwksUri, jwks);
+                if (keyConfig != null && keyConfig.getCleanString() != null) {
+                    keyConfig.writeValue(client);
+                } else {
+                    throw new InvalidClientDetailsException("Client jwt configuration invalid syntax. ClientID: " + client.getClientId());
+                }
+            }
+
             try {
                 clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
                 if (secondSecret != null) {
@@ -272,8 +284,10 @@ public class ClientAdminBootstrap implements
             // check if both passwords are still up to date
             // 1st line: client already has 2 passwords: check if both are still correct
             // 2nd line: client has only 1 pasword: check if password is correct and second password is null
-            if ( (existingPasswordHash.length > 1 && passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]) )
-                    || (passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null) ) {
+            if ( (existingPasswordHash.length > 1 && rawPassword1 != null
+                && passwordEncoder.matches(rawPassword1, existingPasswordHash[0])
+                && rawPassword2 != null && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]) )
+                || (rawPassword1 != null && (passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null)) ) {
                 // no changes to passwords: nothing to do here
                 return;
             }
