@@ -48,14 +48,14 @@ public class PasswordGrantIntegrationTests {
     RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
 
     @Test
-    public void testUserLoginViaPasswordGrant() {
+    public void testUserLoginViaPasswordGrant_usingClientWithEmptyClientSecret() {
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         validateClientAuthenticationMethod(responseEntity, true);
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantButOwnClient() {
+    public void testUserLoginViaPasswordGrant_usingConfidentialClient() {
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "app", "appclientsecret", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         validateClientAuthenticationMethod(responseEntity, false);

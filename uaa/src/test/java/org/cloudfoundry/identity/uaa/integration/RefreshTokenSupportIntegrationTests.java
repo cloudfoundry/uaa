@@ -191,7 +191,7 @@ public class RefreshTokenSupportIntegrationTests {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantAndRefresh() {
+    public void testUserLoginViaPasswordGrantAndRefresh_usingClientWithEmptyClientSecret() {
         ResponseEntity<String> responseEntity = PasswordGrantIntegrationTests.makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         String refreshToken = PasswordGrantIntegrationTests.validateClientAuthenticationMethod(responseEntity, true);
@@ -201,7 +201,7 @@ public class RefreshTokenSupportIntegrationTests {
     }
 
     @Test
-    public void ttestUserLoginViaPasswordGrantButOwnClientAndRefresh() {
+    public void testUserLoginViaPasswordGrantAndRefresh_usingConfidentialClient() {
         ResponseEntity<String> responseEntity = PasswordGrantIntegrationTests.makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "app", "appclientsecret", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         String refreshToken = PasswordGrantIntegrationTests.validateClientAuthenticationMethod(responseEntity, false);

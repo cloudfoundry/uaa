@@ -140,7 +140,7 @@ class RefreshRotationTest {
   }
 
   @Test
-  @DisplayName("Refresh Token from public to empty authenticatioon")
+  @DisplayName("Refresh Token from public to empty authentication")
   void testRefreshPublicClientWithRotationAndEmpyAuthentication() {
     BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
