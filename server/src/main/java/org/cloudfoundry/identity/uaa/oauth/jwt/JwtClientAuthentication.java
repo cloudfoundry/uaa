@@ -18,6 +18,8 @@ import java.util.UUID;
 public class JwtClientAuthentication {
 
   public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+  public static final String CLIENT_ASSERTION = "client_assertion";
+  public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
 
   private final KeyInfoService keyInfoService;
 
