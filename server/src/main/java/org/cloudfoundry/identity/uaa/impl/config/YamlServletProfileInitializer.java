@@ -12,6 +12,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.util.InMemoryResource;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.SystemPropertyUtils;
@@ -99,6 +100,13 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         resources.addAll(getResource(applicationContext, FILE_CONFIG_LOCATIONS));
         resources.addAll(getResource(applicationContext, getSecretsFiles(applicationContext)));
+
+        // Create resources from AWS Secret Manager Secret Paths
+        AwsSecretsLoader awsSecretsLoader = new AwsSecretsLoader();
+        List<Resource> awsResources = awsSecretsLoader.createResourcesFromSecrets(applicationContext.getEnvironment());
+        if (!CollectionUtils.isEmpty(awsResources)) {
+            resources.addAll(awsResources);
+        }
 
         Resource yamlFromEnv = getYamlFromEnvironmentVariable();
         if (yamlFromEnv != null) {

@@ -121,6 +121,10 @@ libraries.xmlSecurity = "org.apache.santuario:xmlsec:2.3.0"
 libraries.orgJson = "org.json:json:20220320"
 libraries.jakartaEl = "org.glassfish:jakarta.el:${versions.jakartaElVersion}"
 
+// AWS secret manager dependencies
+libraries.springAwsSecretsManager = "io.awspring.cloud:spring-cloud-starter-aws-secrets-manager-config:2.4.4"
+libraries.awsJavaSdkSts = "com.amazonaws:aws-java-sdk-sts:1.12.395"
+
 // Predix dependencies
 libraries.springMeteringFilter = "com.ge.predix:spring-metering-filter:2.0.0"
 libraries.nurego = "com.nurego:nurego-java:2.1"
