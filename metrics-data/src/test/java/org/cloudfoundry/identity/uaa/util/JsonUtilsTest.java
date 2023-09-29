@@ -68,7 +68,7 @@ class JsonUtilsTest {
   }
 
   @Test
-  void testSerializeExcludingPropertiesInnerCallFailed() {
+  void testSerializeExcludingPropertiesInnerCallFails() {
     Map<String, String> groupProperties = JsonUtils.readValue(jsonTestObjectString, new TypeReference<Map<String, String>>() {});
     try {
       JsonUtils.serializeExcludingProperties(groupProperties, "limit.unkonwn");
