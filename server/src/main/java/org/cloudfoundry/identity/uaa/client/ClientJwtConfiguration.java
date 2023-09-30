@@ -211,7 +211,18 @@ public class ClientJwtConfiguration implements Cloneable{
         !(clientDetails.getClientJwtConfig() instanceof String)) {
       return null;
     }
-    return JsonUtils.readValue(clientDetails.getClientJwtConfig(), ClientJwtConfiguration.class);
+    return readValue(clientDetails.getClientJwtConfig());
+  }
+
+  /**
+   * Creator from searialized ClientJwtConfiguration.
+   *
+   * @param clientJwtConfig
+   * @return
+   */
+  @JsonIgnore
+  public static ClientJwtConfiguration readValue(String clientJwtConfig) {
+    return JsonUtils.readValue(clientJwtConfig, ClientJwtConfiguration.class);
   }
 
   /**

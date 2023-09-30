@@ -36,7 +36,6 @@ import java.text.ParseException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -51,6 +50,8 @@ public class JwtClientAuthentication {
 
   // no signature check with invalid algorithms
   private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
+  private static final Set<String> JWT_REQUIRED_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
+      ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
 
   private final KeyInfoService keyInfoService;
   private final OidcMetadataFetcher oidcMetadataFetcher;
@@ -112,9 +113,9 @@ public class JwtClientAuthentication {
         if (!clientId.equals(getClientId(clientAssertion))) {
           throw new BadCredentialsException("Wrong client_assertion");
         }
-        JWT clientToken = JWTParser.parse(UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION)));
-        return clientId.equals(validateClientJWToken(clientToken, JWKSet.parse(
-            oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()), clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
+        return clientId.equals(validateClientJWToken(JWTParser.parse(clientAssertion), oidcMetadataFetcher == null ? new JWKSet() :
+            JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
+            clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
       } catch (ParseException | URISyntaxException | OidcMetadataFetchingException e) {
         throw new BadCredentialsException("Bad client_assertion", e);
       }
@@ -147,11 +148,8 @@ public class JwtClientAuthentication {
     ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
     jwtProcessor.setJWSKeySelector(keySelector);
 
-    Set<String> intRequiredClaims = new HashSet<>(
-        Arrays.asList(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD, ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI));
-
     JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectedClientId).subject(expectedClientId);
-    jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), intRequiredClaims));
+    jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), JWT_REQUIRED_CLAIMS));
 
     try {
       return jwtProcessor.process(jwtAssertion, null);

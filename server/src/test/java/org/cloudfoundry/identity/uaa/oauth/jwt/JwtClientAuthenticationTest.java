@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.util.X509CertUtils;
@@ -215,13 +214,14 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testWrongAssertionInvalidateClientId() throws Exception {
+  void testWrongAssertionInvalidateClientId() {
     // Given
     jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher);
     // Then
     Exception exception = assertThrows(BadCredentialsException.class, () ->
         jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null,  jwtClientAuthentication.getClientAssertion(config)),
-            getMockedClientJwtConfiguration(null), "test"));
+            // pass a different client_id to the provided one from client_assertion JWT
+            getMockedClientJwtConfiguration(null), "wrong_client_id"));
     assertEquals("Wrong client_assertion", exception.getMessage());
   }
 
@@ -252,16 +252,17 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testInvalidateClientAssertion() throws Exception {
+  void testUntrustedClientAssertion() throws Exception {
     // Given
     jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher);
+    // create client assertion with key ids which wont map to provide JWT, lead to failing validateClientJWToken check
     ClientJwtConfiguration clientJwtConfiguration = getMockedClientJwtConfiguration("extId");
     when(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration)).thenReturn(clientJwtConfiguration.getJwkSet());
+    String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
     // When
-    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
-    // Then
     Exception exception = assertThrows(BadCredentialsException.class, () ->
         jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion), clientJwtConfiguration, "identity"));
+    // Then, expect key resolution error because of not maching configured keys to JWT kid
     assertEquals("Untrusted client_assertion", exception.getMessage());
   }
 
@@ -271,11 +272,11 @@ class JwtClientAuthenticationTest {
     jwtClientAuthentication = new JwtClientAuthentication(keyInfoService, oidcMetadataFetcher);
     ClientJwtConfiguration clientJwtConfiguration = getMockedClientJwtConfiguration(null);
     when(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration)).thenReturn(clientJwtConfiguration.getJwkSet());
+    String clientAssertion = jwtClientAuthentication.getClientAssertion(config);
     // When
-    String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
-    // Then
     Exception exception = assertThrows(BadCredentialsException.class, () ->
         jwtClientAuthentication.validateClientJwt(getMockedRequestParameter(null, clientAssertion), clientJwtConfiguration, "identity"));
+    // Then, expect signature failed because mockKeyInfoService creates corrupted signature
     assertEquals("Unauthorized client_assertion", exception.getMessage());
   }
 
@@ -338,7 +339,7 @@ class JwtClientAuthenticationTest {
     return requestParameters;
   }
 
-  private static ClientJwtConfiguration getMockedClientJwtConfiguration(String keyId) throws JOSEException, ParseException {
+  private static ClientJwtConfiguration getMockedClientJwtConfiguration(String keyId) throws ParseException {
     KeyInfo keyInfo = KeyInfoBuilder.build(keyId != null ? keyId : "tokenKeyId", JwtHelperX5tTest.SIGNING_KEY_1, "http://localhost:8080/uaa");
     return ClientJwtConfiguration.parse(JWK.parse(keyInfo.getJwkMap()).toString());
   }

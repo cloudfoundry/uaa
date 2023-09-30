@@ -53,9 +53,7 @@ public class UaaClient extends User {
   }
 
   public ClientJwtConfiguration getClientJwtConfiguration() {
-    UaaClientDetails uaaClientDetails = new UaaClientDetails();
-    uaaClientDetails.setClientJwtConfig(clientJwtConfig);
-    return Optional.ofNullable(ClientJwtConfiguration.readValue(uaaClientDetails)).orElse(new ClientJwtConfiguration());
+    return Optional.ofNullable(clientJwtConfig).map(ClientJwtConfiguration::readValue).orElse(new ClientJwtConfiguration());
   }
 
   /**
