@@ -56,6 +56,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -1059,6 +1060,16 @@ class ClientAdminEndpointsTests {
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertTrue(updated.isAutoApprove("foo.read"));
         assertTrue(updated.isAutoApprove("foo.write"));
+    }
+
+    @Test
+    void clientCredentialWithEmptySecretIsRejected() {
+        detail.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_CLIENT_CREDENTIALS));
+        detail.setClientSecret("");
+        detail.setScope(Collections.emptyList());
+        Exception e = assertThrows(InvalidClientDetailsException.class,
+            () -> endpoints.createClientDetails(createClientDetailsCreation(detail)));
+        assertEquals("Client secret is required for client_credentials grant type", e.getMessage());
     }
 
     @Test
