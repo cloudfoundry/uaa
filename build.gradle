@@ -94,7 +94,7 @@ subprojects {
             def retryFailOnPassedAfterRetry = Boolean.parseBoolean(
                     System.getProperty("failOnPassedAfterRetry", "false"));
             if (!retryFailOnPassedAfterRetry)
-                logger.warn("retry: Failed tests are to be retried and considered as passed if the retry passes.")
+                logger.warn("retry: Flaky tests will not make the test run fail because failOnPassedAfterRetry is false.")
 
             failOnPassedAfterRetry = retryFailOnPassedAfterRetry
             maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
