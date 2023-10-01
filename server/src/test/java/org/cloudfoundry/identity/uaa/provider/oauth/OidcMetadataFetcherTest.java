@@ -48,7 +48,7 @@ class OidcMetadataFetcherTest {
         private OidcMetadata oidcMetadata;
 
         @BeforeEach
-        public void setup() throws MalformedURLException {
+        void setup() throws MalformedURLException {
             definition.setDiscoveryUrl(new URL("http://discovery.url"));
             oidcMetadata = new OidcMetadata();
 
@@ -60,7 +60,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void shouldFavorUsingConfiguredIdentityProviderProperties() throws OidcMetadataFetchingException, MalformedURLException {
+        void shouldFavorUsingConfiguredIdentityProviderProperties() throws OidcMetadataFetchingException, MalformedURLException {
             definition.setAuthUrl(new URL("http://authz.should.not.have.been.updated"));
             definition.setTokenUrl(new URL("http://token.should.not.have.been.updated"));
             definition.setUserInfoUrl(new URL("http://userinfo.should.not.have.been.updated"));
@@ -80,7 +80,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void givenConfiguredIdentityProviderPropertiesAreNotSet_shouldUseOidcMetadata() throws OidcMetadataFetchingException {
+        void givenConfiguredIdentityProviderPropertiesAreNotSet_shouldUseOidcMetadata() throws OidcMetadataFetchingException {
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class)))
                     .thenReturn(JsonUtils.writeValueAsBytes(oidcMetadata));
 
@@ -95,7 +95,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void shouldPerformDiscoveryUsingCache() throws OidcMetadataFetchingException, MalformedURLException {
+        void shouldPerformDiscoveryUsingCache() throws OidcMetadataFetchingException, MalformedURLException {
             definition.setAuthUrl(new URL("http://should.be.updated"));
             definition.setTokenUrl(new URL("http://should.be.updated"));
             definition.setSkipSslValidation(false);
@@ -113,7 +113,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void shouldPerformTokenKeyUrlUsingCache() throws OidcMetadataFetchingException, MalformedURLException {
+        void shouldPerformTokenKeyUrlUsingCache() throws OidcMetadataFetchingException, MalformedURLException {
             definition.setTokenKeyUrl(new URL("http://should.be.updated"));
             definition.setSkipSslValidation(false);
 
@@ -133,13 +133,13 @@ class OidcMetadataFetcherTest {
     @Nested
     class WithoutDiscoveryUrl {
         @BeforeEach
-        public void setup() {
+        void setup() {
             definition.setDiscoveryUrl(null);
         }
 
         @Test
         @DisplayName("when the idp is configured without a discovery URL then it should retain the configured OAuth/OIDC endpoints")
-        public void shouldNotPerformDiscovery() throws OidcMetadataFetchingException, MalformedURLException {
+        void shouldNotPerformDiscovery() throws OidcMetadataFetchingException, MalformedURLException {
             definition.setAuthUrl(new URL("http://authz.not.updated"));
             definition.setTokenUrl(new URL("http://token.not.updated"));
             definition.setTokenKeyUrl(new URL("http://jwk.not.updated"));
@@ -164,7 +164,7 @@ class OidcMetadataFetcherTest {
     @Nested
     class WithErrorSituations {
         @BeforeEach
-        public void setup() throws MalformedURLException {
+        void setup() throws MalformedURLException {
             definition.setTokenKeyUrl(new URL("http://token_keys"));
             definition.setSkipSslValidation(true);
             definition.setRelyingPartyId("id");
@@ -172,7 +172,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void failWithEmptyContent() throws OidcMetadataFetchingException, MalformedURLException {
+        void failWithEmptyContent() throws OidcMetadataFetchingException, MalformedURLException {
 
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
                 .thenReturn("".getBytes());
@@ -181,7 +181,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void failWithInvalidContent() throws OidcMetadataFetchingException, MalformedURLException {
+        void failWithInvalidContent() throws OidcMetadataFetchingException, MalformedURLException {
 
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
                 .thenReturn("{x}".getBytes());
@@ -193,7 +193,7 @@ class OidcMetadataFetcherTest {
     @Nested
     class WithJwtClientKey {
         @BeforeEach
-        public void setup() throws MalformedURLException {
+        void setup() throws MalformedURLException {
             definition.setTokenKeyUrl(new URL("http://token_keys"));
             definition.setSkipSslValidation(true);
             definition.setRelyingPartyId("id");
@@ -203,7 +203,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void getConfigFromJwksUri() throws OidcMetadataFetchingException, MalformedURLException {
+        void getConfigFromJwksUri() throws OidcMetadataFetchingException, MalformedURLException {
 
             JsonWebKeySet<JsonWebKey> keys = metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration("http://token_keys", null));
             assertNotNull(keys);
@@ -212,7 +212,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void getConfigFromJwks() throws OidcMetadataFetchingException, MalformedURLException {
+        void getConfigFromJwks() throws OidcMetadataFetchingException, MalformedURLException {
 
             JsonWebKeySet<JsonWebKey> keys = metadataDiscoverer.fetchWebKeySet(ClientJwtConfiguration.parse("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"a\",\"kty\":\"RSA\",\"n\":\"n\"}]}"));
             assertNotNull(keys);
@@ -221,7 +221,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        public void failWithInvalidConfig() throws OidcMetadataFetchingException, MalformedURLException {
+        void failWithInvalidConfig() throws OidcMetadataFetchingException, MalformedURLException {
 
             assertThrows(OidcMetadataFetchingException.class, () -> metadataDiscoverer.fetchWebKeySet(new ClientJwtConfiguration(null, null)));
         }

@@ -37,7 +37,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameter
 
 public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvider {
 
-    final JwtClientAuthentication jwtClientAuthentication;
+    private final JwtClientAuthentication jwtClientAuthentication;
 
     public ClientDetailsAuthenticationProvider(UserDetailsService userDetailsService, PasswordEncoder encoder, JwtClientAuthentication jwtClientAuthentication) {
         super();
@@ -97,7 +97,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         }
     }
 
-    private boolean isPublicGrantTypeUsageAllowed(Object uaaAuthenticationDetails) {
+    private static boolean isPublicGrantTypeUsageAllowed(Object uaaAuthenticationDetails) {
         UaaAuthenticationDetails authenticationDetails = getUaaAuthenticationDetails(uaaAuthenticationDetails);
         Map<String, String[]> requestParameters = getRequestParameters(authenticationDetails);
         return isPublicTokenRequest(authenticationDetails) && (isAuthorizationWithPkce(requestParameters) || isRefreshFlow(requestParameters));
@@ -107,7 +107,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         return !authenticationDetails.isAuthorizationSet() && "/oauth/token".equals(authenticationDetails.getRequestPath());
     }
 
-    private boolean isAuthorizationWithPkce(Map<String, String[]> requestParameters) {
+    private static boolean isAuthorizationWithPkce(Map<String, String[]> requestParameters) {
         return PkceValidationService.isCodeVerifierParameterValid(getSafeParameterValue(requestParameters.get("code_verifier"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_id"))) &&
             StringUtils.hasText(getSafeParameterValue(requestParameters.get("code"))) &&
@@ -115,7 +115,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
             TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE.equals(getSafeParameterValue(requestParameters.get(ClaimConstants.GRANT_TYPE)));
     }
 
-    private boolean isRefreshFlow(Map<String, String[]> requestParameters) {
+    private static boolean isRefreshFlow(Map<String, String[]> requestParameters) {
         return StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_id")))
             && StringUtils.hasText(getSafeParameterValue(requestParameters.get("refresh_token")))
             && TokenConstants.GRANT_TYPE_REFRESH_TOKEN.equals(getSafeParameterValue(requestParameters.get(ClaimConstants.GRANT_TYPE)));
@@ -129,16 +129,13 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         return Optional.ofNullable(authenticationDetails.getParameterMap()).orElse(Collections.emptyMap());
     }
 
-    private boolean isPrivateKeyJwt(Object uaaAuthenticationDetails) {
+    private static boolean isPrivateKeyJwt(Object uaaAuthenticationDetails) {
         UaaAuthenticationDetails authenticationDetails = getUaaAuthenticationDetails(uaaAuthenticationDetails);
         Map<String, String[]> requestParameters = getRequestParameters(authenticationDetails);
-        if (isPublicTokenRequest(authenticationDetails) &&
+        return (isPublicTokenRequest(authenticationDetails) &&
             !StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_secret"))) &&
              StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_assertion_type"))) &&
-             StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_assertion")))) {
-            return true;
-        }
-        return false;
+             StringUtils.hasText(getSafeParameterValue(requestParameters.get("client_assertion"))));
     }
 
     private boolean validatePrivateKeyJwt(Object uaaAuthenticationDetails, UaaClient uaaClient) {
