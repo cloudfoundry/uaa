@@ -18,7 +18,7 @@ public class OpenIdConfiguration {
     private String tokenUrl;
 
     @JsonProperty("token_endpoint_auth_methods_supported")
-    private String[] tokenAMR = new String[]{"client_secret_basic", "client_secret_post"};
+    private String[] tokenAMR = new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"};
 
     @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
     private String[] tokenEndpointAuthSigningValues = new String[]{"RS256", "HS256"};
