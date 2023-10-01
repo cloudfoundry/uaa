@@ -72,7 +72,7 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
     @Override
     public void validate(String clientSecret) throws InvalidClientSecretException {
         if(clientSecret == null) {
-            throw new InvalidClientSecretException("Client Secret cannot be null.");
+            return;
         }
 
         ClientSecretPolicy clientSecretPolicy = this.globalDefaultClientSecretPolicy;
