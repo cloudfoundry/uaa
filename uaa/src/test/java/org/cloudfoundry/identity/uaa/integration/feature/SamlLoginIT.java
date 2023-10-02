@@ -248,11 +248,11 @@ public class SamlLoginIT {
                 + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
 
         webDriver.get(baseUrl + firstUrl);
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         assertThat(webDriver.getCurrentUrl(), containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
     }
@@ -302,11 +302,11 @@ public class SamlLoginIT {
 
         webDriver.get(zoneUrl);
         webDriver.findElement(By.linkText("Login with Simple SAML PHP(simplesamlphp)")).click();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         assertEquals("No local entity found for alias invalid, verify your configuration.", webDriver.findElement(By.cssSelector("h2")).getText());
     }
@@ -343,18 +343,18 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/login");
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
 
         logout();
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
 
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
     }
 
     @Test
@@ -406,11 +406,11 @@ public class SamlLoginIT {
         webDriver.get(zoneUrl + "/login");
         Assert.assertTrue(webDriver.getTitle().contains("testzone2"));
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
 
         String redirectUrl = zoneUrl + "/login?test=test";
@@ -441,11 +441,11 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/login");
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
@@ -477,11 +477,11 @@ public class SamlLoginIT {
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
         //takeScreenShot();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
         IntegrationTestUtils.validateAccountChooserCookie(baseUrl, webDriver, IdentityZoneHolder.get());
     }
@@ -615,11 +615,11 @@ public class SamlLoginIT {
         webDriver.get(zoneUrl + "/invitations/accept?code=" + code);
 
         //redirected to saml login
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         //we should now be on the login page because we don't have a redirect
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
@@ -693,11 +693,11 @@ public class SamlLoginIT {
             "RelayState=https://www.google.com";
         webDriver.get(samlUrl);
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         assertThat(webDriver.getCurrentUrl(), startsWith("https://www.google.com"));
         webDriver.get(baseUrl + "/logout.do");
@@ -763,11 +763,11 @@ public class SamlLoginIT {
         String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=" + URLEncoder.encode(zoneUrl) + "&response_type=code&state=8tp0tR";
         webDriver.get(authUrl);
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         webDriver.get(baseUrl + "/logout.do");
@@ -855,11 +855,11 @@ public class SamlLoginIT {
         String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl) + "&response_type=code&state=8tp0tR";
         webDriver.get(authUrl);
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("marissa4");
         webDriver.findElement(By.name("password")).sendKeys("saml2");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         webDriver.get(baseUrl + "/logout.do");
@@ -952,11 +952,11 @@ public class SamlLoginIT {
         String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl) + "&response_type=code&state=8tp0tR";
         webDriver.get(authUrl);
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("marissa5");
         webDriver.findElement(By.name("password")).sendKeys("saml5");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
         Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
@@ -1180,11 +1180,11 @@ public class SamlLoginIT {
         String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl) + "&response_type=code&state=8tp0tR";
         webDriver.get(authUrl);
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("marissa6");
         webDriver.findElement(By.name("password")).sendKeys("saml6");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
         Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
@@ -1293,11 +1293,11 @@ public class SamlLoginIT {
         assertNotNull(element);
         element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         element.click();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
         webDriver.get(baseUrl + "/logout.do");
@@ -1394,11 +1394,11 @@ public class SamlLoginIT {
 
         webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=" + URLEncoder.encode(baseUrl) + "&response_type=code&state=8tp0tR");
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         webDriver.get(baseUrl + "/logout.do");
@@ -1494,10 +1494,10 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/login");
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        webDriver.findElement(By.id("submit_button")).click();
     }
 }

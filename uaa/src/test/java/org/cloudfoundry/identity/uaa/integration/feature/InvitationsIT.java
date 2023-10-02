@@ -228,11 +228,11 @@ public class InvitationsIT {
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.xpath("//h1[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
-        WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
+        WebElement loginButton = webDriver.findElement(By.id("submit_button"));
 
         loginButton.click();
 
