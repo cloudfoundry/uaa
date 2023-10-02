@@ -237,7 +237,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
-        WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
+        WebElement loginButton = webDriver.findElement(By.id("submit_button"));
 
         loginButton.click();
 

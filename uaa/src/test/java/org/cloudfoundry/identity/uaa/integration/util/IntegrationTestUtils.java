@@ -91,7 +91,7 @@ public class IntegrationTestUtils {
     );
 
     public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
-    public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR = "//h2[contains(text(), 'Enter your username and password')]";
+    public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR = "//h1[contains(text(), 'Enter your username and password')]";
 
 
     public static final String EXAMPLE_DOT_COM_SAML_IDP_METADATA = "<?xml version=\"1.0\"?>\n" +
