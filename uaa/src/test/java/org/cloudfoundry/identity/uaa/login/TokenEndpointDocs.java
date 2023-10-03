@@ -102,7 +102,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
 
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header or as part of the client_assertion.");
-    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The secret passphrase configured for the OAuth client. Optional if it is passed as part of the Basic Authorization header.");
+    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The [secret passphrase configured](#change-secret) for the OAuth client. Optional if it is passed as part of the Basic Authorization header or if client_assertion is sent as part of private_key_jwt authentication.");
     private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque and revocable token or to `" + JWT.getStringValue() + "` to retrieve a JWT token. If not set the zone setting config.tokenPolicy.jwtRevocable is used.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 75.5.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
@@ -117,9 +117,9 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     private final FieldDescriptor jtiFieldDescriptor = fieldWithPath("jti").description("A globally unique identifier for this access token. This identifier is used when [revoking tokens](#revoke-tokens).");
     private final FieldDescriptor tokenTypeFieldDescriptor = fieldWithPath("token_type").description("The type of the access token issued. This field is mandated in [RFC 6749](https://tools.ietf.org/html/rfc6749#section-7.1). In the UAA, the only supported `token_type` is `bearer`.");
 
-    private final ParameterDescriptor clientAssertionType = parameterWithName(JwtClientAuthentication.CLIENT_ASSERTION_TYPE).optional(null).description("<small><mark>UAA 76.22.0</mark></small> [RFC 7523](https://tools.ietf.org/html/rfc7523) describes the type, constant `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` if `client_assertion` parameter is present.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
+    private final ParameterDescriptor clientAssertionType = parameterWithName(JwtClientAuthentication.CLIENT_ASSERTION_TYPE).optional(null).description("<small><mark>UAA 76.22.0</mark></small> [RFC 7523](https://tools.ietf.org/html/rfc7523) describes the type. Must be set to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` if `client_assertion` parameter is present.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
 
-    private final ParameterDescriptor clientAssertion = parameterWithName(JwtClientAuthentication.CLIENT_ASSERTION).optional(null).description("<small><mark>UAA 76.22.0</mark></small> Client authentication using method [private_key_jwt](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication) optional instead of client_secret_basic or client_secret_post, used as replacement for secrets. The client authentication is used already for the OIDC proxy token requests.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
+    private final ParameterDescriptor clientAssertion = parameterWithName(JwtClientAuthentication.CLIENT_ASSERTION).optional(null).description("<small><mark>UAA 76.22.0</mark></small> Client authentication using method [private_key_jwt](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication) optional as replacement of methods client_secret_basic or client_secret_post using secrets. The client needs to have a valid [JWT confiuration](#change-client-jwt) for trust to JWT in client_assertion.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
 
     private final String codeDescription = "the authorization code, obtained from `/oauth/authorize`, issued for the user";
 
@@ -651,7 +651,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         Snippet requestParameters = requestParameters(
                 grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `refresh_token`"),
                 clientIdParameter,
-                clientSecretParameter,
+                clientSecretParameter.description("Optional and can be omitted if token before was requested using [PKCE](https://tools.ietf.org/html/rfc7636) with `code_challange_method=S256` without a secret or client_assertion is used for private_key_jwt client authentication."),
                 clientAssertion,
                 clientAssertionType,
                 parameterWithName("refresh_token").required().type(STRING).description("the refresh_token that was returned along with the access token."),
