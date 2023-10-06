@@ -31,6 +31,18 @@ class SourcedFileTest {
         check( ODD_FILE_CONTENTS, "test-2" );
     }
 
+    @Test
+    void loadStream() {
+        ByteArrayInputStream is = new ByteArrayInputStream(ODD_FILE_CONTENTS.getBytes());
+        assertNotNull( SourcedFile.loadFile( is, "test-0" ) );
+    }
+
+    @Test
+    void loadEnv() {
+        assertNotNull( SourcedFile.locateAndLoadLocalFile("uaa-ratelimit.yml", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", "")));
+        assertNull( SourcedFile.locateAndLoadLocalFile("", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", "")));
+    }
+
     private void check( String fileContents, String source ) {
         SourcedFile sourcedFile = SourcedFile.loadFile( inputStringFrom( fileContents ), source );
         assertNotNull( sourcedFile, source );
