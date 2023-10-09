@@ -41,6 +41,8 @@ class SourcedFileTest {
     void loadEnv() {
         assertNotNull( SourcedFile.locateAndLoadLocalFile("uaa-ratelimit.yml", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", "")));
         assertNull( SourcedFile.locateAndLoadLocalFile("", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", "")));
+        assertNull( SourcedFile.locateAndLoadLocalFile("random", "/dev"));
+        assertNull( SourcedFile.locateAndLoadLocalFile("0", "/proc/1/fdinfo"));
     }
 
     private void check( String fileContents, String source ) {
