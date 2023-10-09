@@ -130,7 +130,9 @@ public class FakeJavaMailSender implements JavaMailSender {
         }
 
         public String getContentString() throws MessagingException, IOException {
-            return StreamUtils.copyToString(mimeMessage.getDataHandler().getInputStream(), StandardCharsets.UTF_8);
+            try (InputStream in = mimeMessage.getDataHandler().getInputStream()) {
+                return StreamUtils.copyToString(in, StandardCharsets.UTF_8);
+            }
         }
 
         public MimeMessage getMessage() {
@@ -139,7 +141,7 @@ public class FakeJavaMailSender implements JavaMailSender {
 
         @Override
         public String toString() {
-            final StringBuffer sb = new StringBuffer("MimeMessageWrapper{");
+            final StringBuilder sb = new StringBuilder("MimeMessageWrapper{");
             try {
                 sb.append("From=").append(Arrays.toString(getFrom().toArray()));
                 sb.append("; To=").append(Arrays.toString(getRecipients(Message.RecipientType.TO).toArray()));

@@ -33,6 +33,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -298,11 +299,13 @@ public class UaaConfiguration {
             throw new IllegalArgumentException("YAML file required");
         }
         Yaml yaml = new Yaml(new UaaConfigConstructor());
-        BufferedReader br = new BufferedReader(new FileReader(args[0]));
-        UaaConfiguration config = (UaaConfiguration) yaml.load(br);
-        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
-        Validator validator = factory.getValidator();
-        Set<ConstraintViolation<UaaConfiguration>> errors = validator.validate(config);
-        System.out.println(errors);
+        try (InputStreamReader inputStreamReader = new FileReader(args[0])) {
+            BufferedReader br = new BufferedReader(inputStreamReader);
+            UaaConfiguration config = (UaaConfiguration) yaml.load(br);
+            ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+            Validator validator = factory.getValidator();
+            Set<ConstraintViolation<UaaConfiguration>> errors = validator.validate(config);
+            System.out.println(errors);
+        }
     }
 }
