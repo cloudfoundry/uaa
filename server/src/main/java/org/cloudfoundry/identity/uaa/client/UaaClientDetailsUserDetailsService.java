@@ -21,8 +21,7 @@ public class UaaClientDetailsUserDetailsService implements UserDetailsService {
     } catch (NoSuchClientException e) {
       throw new UsernameNotFoundException(e.getMessage(), e);
     }
-    return new UaaClient(username, clientDetails.getClientSecret(), clientDetails.getAuthorities(), clientDetails.getAdditionalInformation(),
-        clientDetails.getClientJwtConfig());
+    return new UaaClient(username, clientDetails.getClientSecret(), clientDetails.getAuthorities(), clientDetails.getAdditionalInformation());
   }
 
 }

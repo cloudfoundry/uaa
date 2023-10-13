@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
-import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -53,7 +52,16 @@ public class OidcMetadataFetcher {
         if (tokenKeyUrl == null || !org.springframework.util.StringUtils.hasText(tokenKeyUrl.toString())) {
             return new JsonWebKeySet<>(Collections.emptyList());
         }
-        byte[] rawContents = getJsonBody(tokenKeyUrl.toString(), config.isSkipSslValidation(), getClientAuthHeader(config));
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Authorization", getClientAuthHeader(config));
+        headers.add("Accept", "application/json");
+        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
+        byte[] rawContents;
+        if (config.isSkipSslValidation()) {
+            rawContents = contentCache.getUrlContent(tokenKeyUrl.toString(), trustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
+        } else {
+            rawContents = contentCache.getUrlContent(tokenKeyUrl.toString(), nonTrustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
+        }
         if (rawContents == null || rawContents.length == 0) {
             throw new OidcMetadataFetchingException("Unable to fetch verification keys");
         }
@@ -64,39 +72,7 @@ public class OidcMetadataFetcher {
         }
     }
 
-    public JsonWebKeySet<JsonWebKey> fetchWebKeySet(ClientJwtConfiguration clientJwtConfiguration) throws OidcMetadataFetchingException {
-        if (clientJwtConfiguration.getJwkSet() != null) {
-            return clientJwtConfiguration.getJwkSet();
-        } else if (clientJwtConfiguration.getJwksUri() != null) {
-            byte[] rawContents = getJsonBody(clientJwtConfiguration.getJwksUri(), false, null);
-            if (rawContents != null && rawContents.length > 0) {
-                ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, new String(rawContents, StandardCharsets.UTF_8));
-                if (clientKeys != null && clientKeys.getJwkSet() != null) {
-                    return clientKeys.getJwkSet();
-                }
-            }
-        }
-        throw new OidcMetadataFetchingException("Unable to fetch verification keys");
-    }
-
-    private byte[] getJsonBody(String uri, boolean isSkipSslValidation, String authorizationValue) {
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        if (authorizationValue != null) {
-            headers.add("Authorization", authorizationValue);
-        }
-        headers.add("Accept", "application/json");
-        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        if (isSkipSslValidation) {
-            return contentCache.getUrlContent(uri, trustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
-        } else {
-            return contentCache.getUrlContent(uri, nonTrustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
-        }
-    }
-
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
-        if (config.getRelyingPartySecret() == null) {
-            return null;
-        }
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
     }

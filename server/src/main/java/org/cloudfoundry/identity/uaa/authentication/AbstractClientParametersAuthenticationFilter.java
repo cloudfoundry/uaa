@@ -14,7 +14,6 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
@@ -43,7 +42,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 /**
  * Filter which processes and authenticates a client based on
@@ -56,7 +54,6 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
 
     public static final String CLIENT_ID = "client_id";
     public static final String CLIENT_SECRET = "client_secret";
-    public static final String CLIENT_ASSERTION = "client_assertion";
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     protected AuthenticationManager clientAuthenticationManager;
@@ -88,9 +85,6 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         String clientId = loginInfo.get(CLIENT_ID);
 
         try {
-            if (clientId == null) {
-                clientId = Optional.ofNullable(loginInfo.get(CLIENT_ASSERTION)).map(JwtClientAuthentication::getClientId).orElse(null);
-            }
             wrapClientCredentialLogin(req, res, loginInfo, clientId);
         } catch (AuthenticationException ex) {
             logger.debug("Could not authenticate with client credentials.");
@@ -158,12 +152,8 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
 
     private Map<String, String> getCredentials(HttpServletRequest request) {
         Map<String, String> credentials = new HashMap<>();
-        String clientId = request.getParameter(CLIENT_ID);
-        credentials.put(CLIENT_ID, clientId);
+        credentials.put(CLIENT_ID, request.getParameter(CLIENT_ID));
         credentials.put(CLIENT_SECRET, request.getParameter(CLIENT_SECRET));
-        if (clientId == null) {
-            credentials.put(CLIENT_ASSERTION, request.getParameter(CLIENT_ASSERTION));
-        }
         return credentials;
     }
 

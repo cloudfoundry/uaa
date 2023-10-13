@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
-import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.Map;
 
@@ -139,13 +138,6 @@ class KeyInfoServiceTests {
 
         assertEquals(keyInfoService.getActiveKey().keyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
         assertEquals(keyInfoService.getActiveKey().verifierKey(), "testLegacyKey");
-    }
-
-    @Test
-    void testTokenEndpointUrl() throws URISyntaxException {
-        configureDefaultZoneKeys(Collections.emptyMap());
-
-        assertEquals("https://localhost/uaa/oauth/token", keyInfoService.getTokenEndpointUrl());
     }
 
     private void configureDefaultZoneKeys(Map<String,String> keys) {

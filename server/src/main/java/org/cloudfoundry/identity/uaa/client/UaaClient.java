@@ -17,14 +17,11 @@ public class UaaClient extends User {
   private transient Map<String, Object> additionalInformation;
 
   private final String secret;
-  private final String clientJwtConfig;
 
-  public UaaClient(String username, String password, Collection<? extends GrantedAuthority> authorities, Map<String, Object> additionalInformation,
-      String clientJwtConfig) {
+  public UaaClient(String username, String password, Collection<? extends GrantedAuthority> authorities, Map<String, Object> additionalInformation) {
     super(username, password == null ? "" : password, authorities);
     this.additionalInformation = additionalInformation;
     this.secret = password;
-    this.clientJwtConfig = clientJwtConfig;
   }
 
   public UaaClient(UserDetails userDetails, String secret) {
@@ -32,9 +29,6 @@ public class UaaClient extends User {
         userDetails.isCredentialsNonExpired(), userDetails.isAccountNonLocked(), userDetails.getAuthorities());
     if (userDetails instanceof UaaClient) {
       this.additionalInformation = ((UaaClient) userDetails).getAdditionalInformation();
-      this.clientJwtConfig = ((UaaClient) userDetails).clientJwtConfig;
-    } else {
-      this.clientJwtConfig = null;
     }
     this.secret = secret;
   }
@@ -50,10 +44,6 @@ public class UaaClient extends User {
 
   private Map<String, Object> getAdditionalInformation() {
     return this.additionalInformation;
-  }
-
-  public ClientJwtConfiguration getClientJwtConfiguration() {
-    return Optional.ofNullable(clientJwtConfig).map(ClientJwtConfiguration::readValue).orElse(new ClientJwtConfiguration());
   }
 
   /**

@@ -424,14 +424,6 @@ class UaaStringUtilsTest {
         assertThat(objectMap, hasEntry("key", "value"));
     }
 
-    @Test
-    void getSafeParameterValue() {
-        assertEquals("test", UaaStringUtils.getSafeParameterValue(new String[] {"test"}));
-        assertEquals("", UaaStringUtils.getSafeParameterValue(new String[] {"  "}));
-        assertEquals("", UaaStringUtils.getSafeParameterValue(new String[] {}));
-        assertEquals("", UaaStringUtils.getSafeParameterValue(null));
-    }
-
     private static void replaceZoneVariables(IdentityZone zone) {
         String s = "https://{zone.subdomain}.domain.com/z/{zone.id}?id={zone.id}&domain={zone.subdomain}";
         String expect = String.format("https://%s.domain.com/z/%s?id=%s&domain=%s", zone.getSubdomain(), zone.getId(), zone.getId(), zone.getSubdomain());

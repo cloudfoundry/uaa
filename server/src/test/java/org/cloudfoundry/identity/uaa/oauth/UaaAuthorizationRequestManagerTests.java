@@ -24,7 +24,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidScopeExcepti
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -135,13 +134,8 @@ class UaaAuthorizationRequestManagerTests {
 
     @Test
     void test_user_token_request() {
-        OAuth2Authentication oAuth2Authentication = mock(OAuth2Authentication.class);
-        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.user,requested.scope"));
-        when(oAuth2Authentication.getOAuth2Request()).thenReturn(oAuth2Request);
-        when(oAuth2Request.getExtensions()).thenReturn(Map.of("client_auth_method", "none"));
-        SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
         BaseClientDetails recipient = new BaseClientDetails("recipient", "requested", "requested.scope", "password", "");
         parameters.put("scope", "requested.scope");
         parameters.put("client_id", recipient.getClientId());

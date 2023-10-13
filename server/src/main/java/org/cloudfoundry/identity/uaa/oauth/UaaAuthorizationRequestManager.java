@@ -13,14 +13,13 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -398,10 +397,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         @Override
         public OAuth2Request createOAuth2Request(ClientDetails client) {
             OAuth2Request request = super.createOAuth2Request(client);
-            String clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod();
-            if (clientAuthentication != null) {
-                request.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
-            }
             return new OAuth2Request(
                 request.getRequestParameters(),
                 client.getClientId(),

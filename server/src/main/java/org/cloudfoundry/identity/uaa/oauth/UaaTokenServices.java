@@ -319,14 +319,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private void addAuthenticationMethod(Claims claims, Map<String, Object> additionalRootClaims, UserAuthenticationData authenticationData) {
-        if (authenticationData.clientAuth != null) {
+        if (authenticationData.clientAuth != null && CLIENT_AUTH_NONE.equals(authenticationData.clientAuth)) {
             // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none) and refresh token is one time use (rotate it in refresh)
-            if (CLIENT_AUTH_NONE.equals(authenticationData.clientAuth) && // current authentication
-                (!CLIENT_AUTH_NONE.equals(claims.getClientAuth()) || // authentication before
-                !refreshTokenCreator.shouldRotateRefreshTokens())) {
+            if (refreshTokenCreator.shouldRotateRefreshTokens() && CLIENT_AUTH_NONE.equals(claims.getClientAuth())) {
+                addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
+            } else {
                 throw new TokenRevokedException("Refresh without client authentication not allowed.");
             }
-            addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
         }
     }
 

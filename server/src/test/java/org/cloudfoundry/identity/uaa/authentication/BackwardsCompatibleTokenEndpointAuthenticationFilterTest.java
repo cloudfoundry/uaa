@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.TokenTestSupport;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -32,21 +31,16 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.FilterChain;
 import java.util.Collections;
-import java.util.Map;
 
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.TokenTestSupport.OPENID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.junit.Assert.assertEquals;
@@ -54,9 +48,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.same;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -132,46 +124,13 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, "password");
         request.addParameter("username", "marissa");
         request.addParameter("password", "koala");
-        when(passwordAuthManager.authenticate(any())).thenReturn(mock(UaaAuthentication.class));
-        OAuth2Authentication clientAuthentication = mock(OAuth2Authentication.class);
-        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
-        AuthorizationRequest authorizationRequest = mock(AuthorizationRequest.class);
-        when(clientAuthentication.isAuthenticated()).thenReturn(true);
-        when(requestFactory.createAuthorizationRequest(anyMap())).thenReturn(authorizationRequest);
-        when(clientAuthentication.getOAuth2Request()).thenReturn(oAuth2Request);
-        when(oAuth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
-        SecurityContextHolder.getContext().setAuthentication(clientAuthentication);
         filter.doFilter(request, response, chain);
-        verify(clientAuthentication, times(0)).getDetails();
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
-        verify(oAuth2Request, times(1)).getExtensions();
         verifyNoInteractions(samlAuthFilter);
         verifyNoInteractions(externalOAuthAuthenticationManager);
     }
 
-    @Test
-    public void attempt_password_authentication_with_details() throws Exception {
-        request.addParameter(GRANT_TYPE, "password");
-        request.addParameter("username", "marissa");
-        request.addParameter("password", "koala");
-        when(passwordAuthManager.authenticate(any())).thenReturn(mock(UaaAuthentication.class));
-        UaaAuthentication clientAuthentication = mock(UaaAuthentication.class);
-        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
-        AuthorizationRequest authorizationRequest = mock(AuthorizationRequest.class);
-        when(clientAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
-        when(clientAuthentication.isAuthenticated()).thenReturn(true);
-        when((uaaAuthenticationDetails.getAuthenticationMethod())).thenReturn(CLIENT_AUTH_NONE);
-        when(requestFactory.createAuthorizationRequest(anyMap())).thenReturn(authorizationRequest);
-        SecurityContextHolder.getContext().setAuthentication(clientAuthentication);
-        filter.doFilter(request, response, chain);
-        verify(clientAuthentication, atLeast(1)).getDetails();
-        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
-        verify(passwordAuthManager, times(1)).authenticate(any());
-        verify(authorizationRequest, times(1)).getExtensions();
-        verifyNoInteractions(samlAuthFilter);
-        verifyNoInteractions(externalOAuthAuthenticationManager);
-    }
 
     @Test
     public void attempt_saml_assertion_authentication() throws Exception {
