@@ -21,7 +21,7 @@ versions.braveVersion = "5.16.0"
 ext["mariadb.version"] = "2.7.10" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
 ext["snakeyaml.version"] = "2.2" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
-ext["jackson-bom.version"] = "2.15.2" // Bumping to latest version because of compatiblity to snakeyaml 2.0
+ext["jackson-bom.version"] = "2.15.3" // Bumping to latest version because of compatiblity to snakeyaml 2.0
 ext["hsqldb.version"] = "2.7.2" // HSQL-DB used for tests but not supported for productive usage
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
 
