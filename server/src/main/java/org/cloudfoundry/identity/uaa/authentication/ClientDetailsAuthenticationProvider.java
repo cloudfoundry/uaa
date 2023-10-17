@@ -77,7 +77,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         break;
                     }
                 } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
-                    // set none as client_auth_method for all usage of empty secrets, e.g. cf client
+                    // set internally empty as client_auth_method e.g. cf client
                     setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
                 }
                 if (uaaClient.getPassword() == null) {

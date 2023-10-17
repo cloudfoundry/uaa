@@ -491,6 +491,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private static Map<String, Object> addRootClaimEntry(Map<String, Object> additionalRootClaims, String entry, String value) {
         Map<String, Object> claims = additionalRootClaims != null ? additionalRootClaims : new HashMap<>();
+        // set externally none as client_auth_method if internally empty
         claims.put(entry, CLIENT_AUTH_EMPTY.equals(value) ? CLIENT_AUTH_NONE : value);
         return claims;
     }
