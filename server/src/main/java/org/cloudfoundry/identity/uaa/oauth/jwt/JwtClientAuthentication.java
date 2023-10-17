@@ -1,18 +1,45 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.Algorithm;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.BadJWSException;
+import com.nimbusds.jose.proc.JWSKeySelector;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
+import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.util.MultiValueMap;
 
+import java.net.URISyntaxException;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class JwtClientAuthentication {
@@ -21,11 +48,22 @@ public class JwtClientAuthentication {
   public static final String CLIENT_ASSERTION = "client_assertion";
   public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
 
+  // no signature check with invalid algorithms
+  private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
+  private static final Set<String> JWT_REQUIRED_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
+      ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
+
   private final KeyInfoService keyInfoService;
+  private final OidcMetadataFetcher oidcMetadataFetcher;
 
   public JwtClientAuthentication(
       KeyInfoService keyInfoService) {
+    this(keyInfoService, null);
+  }
+
+  public JwtClientAuthentication(KeyInfoService keyInfoService, OidcMetadataFetcher oidcMetadataFetcher) {
     this.keyInfoService = keyInfoService;
+    this.oidcMetadataFetcher = oidcMetadataFetcher;
   }
 
   public String getClientAssertion(OIDCIdentityProviderDefinition config) {
@@ -53,8 +91,8 @@ public class JwtClientAuthentication {
     if (!params.containsKey("client_id")) {
       params.add("client_id", config.getRelyingPartyId());
     }
-    params.add("client_assertion_type", GRANT_TYPE);
-    params.add("client_assertion", getClientAssertion(config));
+    params.add(CLIENT_ASSERTION_TYPE, GRANT_TYPE);
+    params.add(CLIENT_ASSERTION, getClientAssertion(config));
     return params;
   }
 
@@ -66,5 +104,59 @@ public class JwtClientAuthentication {
       jwtClientConfiguration = (HashMap<String, String>) jwtClientAuthentication;
     }
     return jwtClientConfiguration;
+  }
+
+  public boolean validateClientJwt(Map<String, String[]> requestParameters, ClientJwtConfiguration clientJwtConfiguration, String clientId) {
+    if (GRANT_TYPE.equals(UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION_TYPE)))) {
+      try {
+        String clientAssertion = UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION));
+        if (!clientId.equals(getClientId(clientAssertion))) {
+          throw new BadCredentialsException("Wrong client_assertion");
+        }
+        return clientId.equals(validateClientJWToken(JWTParser.parse(clientAssertion), oidcMetadataFetcher == null ? new JWKSet() :
+            JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
+            clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
+      } catch (ParseException | URISyntaxException | OidcMetadataFetchingException e) {
+        throw new BadCredentialsException("Bad client_assertion", e);
+      }
+    }
+    return false;
+  }
+
+  public static String getClientId(String clientAssertion) {
+    try {
+      JWTClaimsSet clientToken = clientAssertion != null ? JWTParser.parse(clientAssertion).getJWTClaimsSet() : null;
+      if (clientToken != null && clientToken.getSubject() != null && clientToken.getIssuer() != null &&
+          clientToken.getSubject().equals(clientToken.getIssuer()) && clientToken.getAudience() != null && clientToken.getJWTID() != null &&
+          clientToken.getExpirationTime() != null) {
+        // required claims, e.g. https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+        return clientToken.getSubject();
+      }
+      throw new BadCredentialsException("Bad credentials");
+    } catch (ParseException e) {
+      throw new BadCredentialsException("Bad client_assertion", e);
+    }
+  }
+
+  private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, String expectedClientId, String expectedAud) {
+    Algorithm algorithm = jwtAssertion.getHeader().getAlgorithm();
+    if (algorithm == null || NOT_SUPPORTED_ALGORITHMS.contains(algorithm) || !(algorithm instanceof JWSAlgorithm)) {
+      throw new BadCredentialsException("Bad client_assertion algorithm");
+    }
+    JWKSource<SecurityContext> keySource = new ImmutableJWKSet<>(jwkSet);
+    JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>((JWSAlgorithm) algorithm, keySource);
+    ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+    jwtProcessor.setJWSKeySelector(keySelector);
+
+    JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectedClientId).subject(expectedClientId);
+    jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), JWT_REQUIRED_CLAIMS));
+
+    try {
+      return jwtProcessor.process(jwtAssertion, null);
+    } catch (BadJWSException | BadJWTException jwtException) { // signature failed
+      throw new BadCredentialsException("Unauthorized client_assertion", jwtException);
+    } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
+      throw new BadCredentialsException("Untrusted client_assertion", e);
+    }
   }
 }

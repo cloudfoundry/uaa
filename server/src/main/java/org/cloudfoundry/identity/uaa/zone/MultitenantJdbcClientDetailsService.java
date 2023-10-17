@@ -85,17 +85,18 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
             "insert into oauth_client_details (" + CLIENT_FIELDS
                     + ", client_id, identity_zone_id, created_by) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
+    private static final String BASE_UPDATE_STATEMENT =
+            "update oauth_client_details set ";
+
     private static final String DEFAULT_UPDATE_STATEMENT =
-            "update oauth_client_details " + "set "
-                    + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ") + "=? where client_id = ? and identity_zone_id = ?";
+            BASE_UPDATE_STATEMENT + CLIENT_FIELDS_FOR_UPDATE.replaceAll(", ", "=?, ")
+                    + "=? where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_UPDATE_SECRET_STATEMENT =
-            "update oauth_client_details "
-                    + "set client_secret = ? where client_id = ? and identity_zone_id = ?";
+            BASE_UPDATE_STATEMENT + "client_secret = ? where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_UPDATE_CLIENT_JWT_CONFIG_STATEMENT =
-            "update oauth_client_details "
-                    + "set client_jwt_config = ? where client_id = ? and identity_zone_id = ?";
+            BASE_UPDATE_STATEMENT + "client_jwt_config = ? where client_id = ? and identity_zone_id = ?";
 
     static final String DEFAULT_DELETE_STATEMENT =
             "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
