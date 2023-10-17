@@ -91,12 +91,13 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            def retryFailOnPassedAfterRetry = Boolean.parseBoolean(
+            def failOnPassedAfterRetrySystemProperty = Boolean.parseBoolean(
                     System.getProperty("failOnPassedAfterRetry", "false"));
-            if (!retryFailOnPassedAfterRetry)
-                logger.warn("retry: Failed tests are to be retried and considered as passed if the retry passes.")
+            if (!failOnPassedAfterRetrySystemProperty)
+                logger.warn("retry: Flaky tests will not make the test run fail because failOnPassedAfterRetry is false.")
 
-            failOnPassedAfterRetry = retryFailOnPassedAfterRetry
+            // Configure the retry extension
+            failOnPassedAfterRetry = failOnPassedAfterRetrySystemProperty
             maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
             maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
         }

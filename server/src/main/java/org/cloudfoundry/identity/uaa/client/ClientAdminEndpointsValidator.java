@@ -12,14 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -236,14 +237,24 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
         if (create) {
             // Only check for missing secret if client is being created.
-            if (requestedGrantTypes.contains(GRANT_TYPE_CLIENT_CREDENTIALS)
-                    || requestedGrantTypes.contains(GRANT_TYPE_AUTHORIZATION_CODE)) {
-                if(!StringUtils.hasText(client.getClientSecret())) {
-                    logger.debug("Client secret is required for client_credentials and authorization_code grant types");
-                    throw new InvalidClientDetailsException(
-                            "Client secret is required for client_credentials and authorization_code grant types");
+            if (requestedGrantTypes.contains(GRANT_TYPE_CLIENT_CREDENTIALS) && !StringUtils.hasText(client.getClientSecret())) {
+                logger.debug("Client secret is required for client_credentials grant type");
+                throw new InvalidClientDetailsException("Client secret is required for client_credentials grant type");
+            }
+            clientSecretValidator.validate(client.getClientSecret());
+
+            if (prototype instanceof ClientDetailsCreation) {
+                ClientDetailsCreation clientDetailsCreation = (ClientDetailsCreation) prototype;
+                if (StringUtils.hasText(clientDetailsCreation.getJsonWebKeyUri()) || StringUtils.hasText(clientDetailsCreation.getJsonWebKeySet())) {
+                    ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(clientDetailsCreation.getJsonWebKeyUri(),
+                        clientDetailsCreation.getJsonWebKeySet());
+                    if (clientJwtConfiguration != null) {
+                        clientJwtConfiguration.writeValue(client);
+                    } else {
+                        throw new InvalidClientDetailsException(
+                            "Client with client jwt configuration not valid");
+                    }
                 }
-                clientSecretValidator.validate(client.getClientSecret());
             }
         }
 

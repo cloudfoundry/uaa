@@ -25,8 +25,9 @@
                             <entry key="authorized-grant-types" value="client_credentials"/>
                             <entry key="scope" value="uaa.none"/>
                             <entry key="authorities"
-                                   value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin"/>
+                                   value="uaa.admin,clients.read,clients.write,clients.secret,clients.trust,scim.read,scim.write,clients.admin"/>
                             <entry key="secret" value="adminsecret"/>
+                            <entry key="jwks" value="{&quot;alg&quot;:&quot;RS256&quot;,&quot;e&quot;:&quot;AQAB&quot;,&quot;kid&quot;:&quot;cUiuzP1rw1zm9MV8F0vtrws7BLc&quot;,&quot;kty&quot;:&quot;RSA&quot;,&quot;n&quot;:&quot;rWuIqrVV8kuqeorvRuLio1_pdQm_z7HZJKIcCD5SQqGO0AsKyf1xa5TPzHM0lqEh2GcPTer4u7MYQZzXAAvzOsSaTmgSlenLKDYCDZy2bwOjK0izVLbJwYqiiqyiMGhKeWsYokyDNoYaefjz8izDrp47XDHnwC2eeyJ43cE8GP0JJXRyxIPFecO8rfpe3AzTrHszJ9lPSX9E8QGppSFmcnUDUQYDRipNMzXXp2FHdR7T2MZkvxzjFhVSSMiaDTmAca-Wv_Uct2HpOfC3IuKSy1jpu8yr_GT6aBsDkt1XC1iARuFf9dE83R39oNgvVMICPjeWgNoyhK-ddQAUnRDeqw&quot;}"/>
                         </map>
                     </entry>
                     <entry key="cf">

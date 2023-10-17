@@ -16,6 +16,8 @@ import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
 import org.cloudfoundry.identity.uaa.client.event.ClientApprovalsDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientJwtChangeEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientJwtFailureEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
@@ -23,6 +25,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
@@ -1941,6 +1944,107 @@ public class ClientAdminEndpointsMockMvcTests {
         }
         client = result;
         assertThat(client.getAdditionalInformation(), hasEntry(is("name"), PredicateMatcher.is(value -> value.equals("New Client Name"))));
+    }
+
+    @Test
+    void testAddNewClientJwtKeyUri() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
+        ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
+        request.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        request.setClientId("admin");
+        request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+        MockHttpServletResponse response = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", client.getClientId())
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
+
+        ActionResult actionResult = JsonUtils.readValue(response.getContentAsString(), ActionResult.class);
+        assertEquals("ok", actionResult.getStatus());
+        assertEquals("Client jwt configuration is added", actionResult.getMessage());
+
+        verify(mockApplicationEventPublisher, times(2)).publishEvent(abstractUaaEventCaptor.capture());
+        assertEquals(ClientJwtChangeEvent.class, abstractUaaEventCaptor.getValue().getClass());
+        ClientJwtChangeEvent event = (ClientJwtChangeEvent) abstractUaaEventCaptor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    void testAddNewClientJwtKeyUriButInvalidChange() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
+        ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
+        request.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        request.setClientId("admin");
+        request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+        MockHttpServletResponse response = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", client.getClientId())
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)))
+            .andExpect(status().isOk())
+            .andReturn().getResponse();
+
+        ActionResult actionResult = JsonUtils.readValue(response.getContentAsString(), ActionResult.class);
+        assertEquals("ok", actionResult.getStatus());
+        assertEquals("Client jwt configuration is added", actionResult.getMessage());
+
+        verify(mockApplicationEventPublisher, times(2)).publishEvent(abstractUaaEventCaptor.capture());
+        assertEquals(ClientJwtChangeEvent.class, abstractUaaEventCaptor.getValue().getClass());
+        ClientJwtChangeEvent event = (ClientJwtChangeEvent) abstractUaaEventCaptor.getValue();
+        assertEquals(id, event.getAuditEvent().getPrincipalId());
+
+        request = new ClientJwtChangeRequest("admin", null, "{\"keys\":[{\"kty\":\"RSA\",\"e\":\"AQAB\",\"use\":\"sig\",\"alg\":\"RS256\",\"n\":\"n\"}]}");
+        request.setChangeMode(ClientJwtChangeRequest.ChangeMode.UPDATE);
+        response = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", client.getClientId())
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andReturn().getResponse();
+
+        verify(mockApplicationEventPublisher, times(3)).publishEvent(abstractUaaEventCaptor.capture());
+        assertEquals(ClientJwtFailureEvent.class, abstractUaaEventCaptor.getValue().getClass());
+        ClientJwtFailureEvent eventUpdate = (ClientJwtFailureEvent) abstractUaaEventCaptor.getValue();
+        assertEquals(client.getClientId(), eventUpdate.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    void testInvalidClientJwtKeyUri() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+            testAccounts.getAdminClientId(),
+            testAccounts.getAdminClientSecret(),
+            "uaa.admin,clients.secret");
+        String id = generator.generate();
+        ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
+        ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
+        request.setJsonWebKeyUri("no uri");
+        request.setClientId("admin");
+        request.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+        MockHttpServletResponse response = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", client.getClientId())
+                .header("Authorization", "Bearer " + token)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)))
+            .andExpect(status().isBadRequest())
+            .andReturn().getResponse();
+
+        verify(mockApplicationEventPublisher, times(2)).publishEvent(abstractUaaEventCaptor.capture());
+        assertEquals(ClientJwtFailureEvent.class, abstractUaaEventCaptor.getValue().getClass());
+        ClientJwtFailureEvent event = (ClientJwtFailureEvent) abstractUaaEventCaptor.getValue();
+        assertEquals(client.getClientId(), event.getAuditEvent().getPrincipalId());
     }
 
     private BaseClientDetails createClient(List<String> authorities) throws Exception {

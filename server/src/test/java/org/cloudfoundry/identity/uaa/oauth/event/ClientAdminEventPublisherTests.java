@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.oauth.event;
 
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.event.*;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -19,6 +21,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.*;
 
 class ClientAdminEventPublisherTests {
@@ -90,5 +93,23 @@ class ClientAdminEventPublisherTests {
                 new InvalidClientException("Not found"));
         subject.secretFailure("foo", new RuntimeException("planned"));
         verify(mockApplicationEventPublisher).publishEvent(isA(SecretFailureEvent.class));
+    }
+
+    @Test
+    void clientJwtChange() {
+        UaaClientDetails uaaClientDetails = new UaaClientDetails("foo", null, null, "client_credentials", "none", null);
+        when(mockMultitenantClientServices.loadClientByClientId("foo")).thenReturn(uaaClientDetails);
+        subject.clientJwtChange("foo");
+        verify(mockApplicationEventPublisher).publishEvent(isA(ClientJwtChangeEvent.class));
+        assertEquals(AuditEventType.ClientJwtChangeSuccess, new ClientJwtChangeEvent(uaaClientDetails, SecurityContextHolder.getContext().getAuthentication(), "uaa").getAuditEvent().getType());
+    }
+
+    @Test
+    void clientJwtFailure() {
+        UaaClientDetails uaaClientDetails = new UaaClientDetails("foo", null, null, "client_credentials", "none", null);
+        when(mockMultitenantClientServices.loadClientByClientId("foo")).thenReturn(uaaClientDetails);
+        subject.clientJwtFailure("foo", new RuntimeException("planned"));
+        verify(mockApplicationEventPublisher).publishEvent(isA(ClientJwtFailureEvent.class));
+        assertEquals(AuditEventType.ClientJwtChangeFailure, new ClientJwtFailureEvent("", uaaClientDetails, SecurityContextHolder.getContext().getAuthentication(), "uaa").getAuditEvent().getType());
     }
 }

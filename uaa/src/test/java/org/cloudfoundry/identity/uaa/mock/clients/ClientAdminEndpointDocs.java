@@ -77,6 +77,13 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one and if the change mode is set to `"+DELETE+"`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
+    private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{
+        fieldWithPath("client_id").required().description(clientIdDescription),
+        fieldWithPath("kid").optional(UPDATE).type(STRING).description("If change mode is set to `"+DELETE+"`, the `id of the key` that will be deleted. The kid parameter is only possible if jwks configuration is used."),
+        fieldWithPath("jwks").constrained("Optional if jwks_uri is used. Required otherwise.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA"),
+        fieldWithPath("jwks_uri").constrained("Optional if jwks is used. Required otherwise.").type(STRING).description("A valid URI to token keys endpoint. Must be compliant to jwks_uri from [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html).")
+    };
+
     @BeforeEach
     void setup() throws Exception {
         clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
@@ -251,6 +258,34 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                     IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields(secretChangeFields)
+            )
+        );
+    }
+
+    @Test
+    void changeClientJwt() throws Exception {
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+
+        ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", createdClientDetails.getClientId())
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(writeValueAsString(map(
+                    entry("client_id", createdClientDetails.getClientId()),
+                    entry("jwks_uri", "http://localhost:8080/uaa/token_keys")
+                ))))
+            .andExpect(status().isOk());
+
+        resultActions.andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("client_id").required().description(clientIdDescription)
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token containing `clients.trust`, `clients.admin` or `zones.{zone.id}.admin`"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestFields(clientJwtChangeFields)
             )
         );
     }

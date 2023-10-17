@@ -61,7 +61,9 @@ public enum AuditEventType {
     IdentityProviderAuthenticationSuccess(37),
     IdentityProviderAuthenticationFailure(38),
     MfaAuthenticationSuccess(39),
-    MfaAuthenticationFailure(40);
+    MfaAuthenticationFailure(40),
+    ClientJwtChangeSuccess(41),
+    ClientJwtChangeFailure(42);
 
     private final int code;
 

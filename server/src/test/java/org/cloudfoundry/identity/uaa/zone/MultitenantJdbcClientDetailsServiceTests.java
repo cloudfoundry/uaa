@@ -530,6 +530,39 @@ class MultitenantJdbcClientDetailsServiceTests {
     }
 
     @Test
+    void updateClientJwt() {
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("newClientIdWithNoDetails");
+        service.addClientDetails(clientDetails);
+        service.addClientJwtConfig(clientDetails.getClientId(), "http://localhost:8080/uaa/token_keys", currentZoneId, true);
+
+        Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
+            "newClientIdWithNoDetails");
+
+        assertEquals("newClientIdWithNoDetails", map.get("client_id"));
+        assertTrue(map.containsKey("client_jwt_config"));
+        assertEquals("{\"jwks_uri\":\"http://localhost:8080/uaa/token_keys\"}", (String) map.get("client_jwt_config"));
+    }
+
+    @Test
+    void deleteClientJwt() {
+        String clientId = "client_id_test_delete";
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(clientId);
+        service.addClientDetails(clientDetails);
+        service.addClientJwtConfig(clientDetails.getClientId(), "http://localhost:8080/uaa/token_keys", currentZoneId, true);
+
+        Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
+        assertTrue(map.containsKey("client_jwt_config"));
+        assertEquals("{\"jwks_uri\":\"http://localhost:8080/uaa/token_keys\"}", (String) map.get("client_jwt_config"));
+        service.deleteClientJwtConfig(clientId, "http://localhost:8080/uaa/token_keys", currentZoneId);
+
+        map = jdbcTemplate.queryForMap(SELECT_SQL, clientId);
+        assertNull(map.get("client_jwt_config"));
+        assertFalse(map.containsValue("client_jwt_config"));
+    }
+
+    @Test
     void deleteClientSecretForInvalidClient() {
         assertThrowsWithMessageThat(NoSuchClientException.class,
                 () -> service.deleteClientSecret("invalid_client_id", currentZoneId),
