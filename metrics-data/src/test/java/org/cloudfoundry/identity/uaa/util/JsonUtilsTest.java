@@ -10,8 +10,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class JsonUtilsTest {
   private static final String jsonTestObjectString = "{\"pattern\":\"/pattern\",\"group\":\"group\",\"limit\":1000,\"category\":\"category\"}";
@@ -68,14 +68,11 @@ class JsonUtilsTest {
   }
 
   @Test
-  void testSerializeExcludingPropertiesInnerCallFailed() {
-    Map<String, String> groupProperties = JsonUtils.readValue(jsonTestObjectString, new TypeReference<Map<String, String>>() {});
-    try {
-      JsonUtils.serializeExcludingProperties(groupProperties, "limit.unkonwn");
-      fail("not expected");
-    } catch (Exception e) {
-      assertTrue(e instanceof JsonUtils.JsonUtilException);
-    }
+  void testSerializeExcludingPropertiesInnerCallFails() {
+    Map<String, String> groupProperties = JsonUtils.readValue(jsonTestObjectString, new TypeReference<>() {});
+    assertThrows(JsonUtils.JsonUtilException.class, () -> {
+      JsonUtils.serializeExcludingProperties(groupProperties, "limit.unknown");
+    });
   }
 
   @Test

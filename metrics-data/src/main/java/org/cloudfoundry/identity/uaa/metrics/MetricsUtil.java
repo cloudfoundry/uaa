@@ -18,6 +18,11 @@ package org.cloudfoundry.identity.uaa.metrics;
 public class MetricsUtil {
     public static final String GLOBAL_GROUP = "uaa.global.metrics";
 
+    // Utility classes should not have public constructors
+    private MetricsUtil() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static double addAverages(double oldCount,
                                      double oldAverage,
                                      double newCount,

@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-java@v3
         with:
           distribution: 'liberica'
-          java-version: '11'
+          java-version: '17'
           cache: 'gradle'
       - name: Analyze with SonarCloud
         env:
@@ -28,5 +28,5 @@ jobs:
         if: env.SONAR_TOKEN != ''
         run: >- 
           ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport || true;
-          ./gradlew --no-daemon sonarqube;
+          ./gradlew --no-daemon sonar;
           ./gradlew --no-daemon jacocoTestReport;
