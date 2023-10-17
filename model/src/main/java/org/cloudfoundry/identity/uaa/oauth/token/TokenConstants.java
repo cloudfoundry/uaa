@@ -63,6 +63,7 @@ public class TokenConstants {
     public static final String GRANT_TYPE_IMPLICIT = "implicit";
 
     public static final String CLIENT_AUTH_NONE = "none";
+    public static final String CLIENT_AUTH_EMPTY = "empty";
     public static final String CLIENT_AUTH_PRIVATE_KEY_JWT = "private_key_jwt";
 
     public static final String ID_TOKEN_HINT_PROMPT = "prompt";

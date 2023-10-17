@@ -142,7 +142,7 @@ class UaaClientAuthenticationProviderTest {
         client = clientDetails;
         UsernamePasswordAuthenticationToken a = getAuthenticationToken("password");
         when(a.getCredentials()).thenReturn("");
-        authenticationProvider.additionalAuthenticationChecks(new UaaClient("cf", passwordEncoder.encode(""), Collections.emptyList(), client.getAdditionalInformation()), a);
+        authenticationProvider.additionalAuthenticationChecks(new UaaClient("cf", passwordEncoder.encode(""), Collections.emptyList(), client.getAdditionalInformation(), null), a);
         assertNotNull(a);
     }
 
