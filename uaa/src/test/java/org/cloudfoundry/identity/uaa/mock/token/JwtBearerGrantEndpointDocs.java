@@ -76,7 +76,9 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
         Snippet requestParameters = requestParameters(
             parameterWithName("assertion").type(STRING).required().description("JWT token identifying representing the user to be authenticated"),
             parameterWithName("client_id").type(STRING).required().description("Required, client with "),
-            parameterWithName("client_secret").type(STRING).required().description("Required unless a basic authorization header is used"),
+            parameterWithName("client_secret").type(STRING).optional(null).description("The [secret passphrase configured](#change-secret) for the OAuth client. Optional if it is passed as part of the Basic Authorization header or if client_assertion is sent as part of private_key_jwt authentication."),
+            parameterWithName("client_assertion").type(STRING).optional(null).description("<small><mark>UAA 76.23.0</mark></small> Client authentication using method [private_key_jwt](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication). Optional as replacement of methods client_secret_basic or client_secret_post using secrets. The client needs to have a valid [JWT confiuration](#change-client-jwt) for trust to JWT in client_assertion."),
+            parameterWithName("client_assertion_type").type(STRING).optional(null).description("<small><mark>UAA 76.23.0</mark></small> [RFC 7523](https://tools.ietf.org/html/rfc7523) describes the type. Must be set to `urn:ietf:params:oauth:client-assertion-type:jwt-bearer` if `client_assertion` parameter is present."),
             parameterWithName("grant_type").type(STRING).required().description("Must be set to `"+ GRANT_TYPE_JWT_BEARER+"`"),
             parameterWithName("scope").type(STRING).optional(null).description("Optional parameter to limit the number of scopes in the `scope` claim of the access token"),
             parameterWithName("response_type").type(STRING).optional(null).description("May be set to `token` or `token id_token` or `id_token`"),
