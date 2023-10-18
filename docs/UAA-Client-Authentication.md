@@ -70,6 +70,13 @@ oauth:
 ```
 The example config above with jwks_uri enables continues trust to a running uaa.
 
+### Developer implementation
+As deverloper you should use the [UAA documention](https://docs.cloudfoundry.org/api/uaa/version/76.23.0/index.html#token). There is a description
+about the new parameters client_assertion and client_assertion_type. In addition, you can check in the retrieved access_token tokens for the existence 
+of claim client_auth_method with value private_key_jwt, (client_auth_method=private_key). This claim should guarantee the used method of client 
+authentication. Tokens without this claim are authenticated with secrets. There might be use-cases where a stronger authentication mechanism is 
+required.
+
 ### Production use
 
 The introduction of private_key_jwt for production is planned with end of Q4/2023. The use for other purposes is given with a release of UAA starting.
