@@ -73,4 +73,4 @@ The example config above with jwks_uri enables continues trust to a running uaa.
 ### Production use
 
 The introduction of private_key_jwt for production is planned with end of Q4/2023. The use for other purposes is given with a release of UAA starting.
-from version 76.22.0 or higher.
+from version 76.23.0 or higher.
