@@ -22,6 +22,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -124,7 +125,9 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
             for (Map.Entry<AntPathRequestMatcher, UrlGroup> entry : urlGroups.entrySet()) {
                 if (entry.getKey().matches(request)) {
                     UrlGroup group = entry.getValue();
-                    logger.debug(String.format("Successfully matched URI: %s to a group: %s", uri, group.getGroup()));
+                    if (logger.isDebugEnabled()) {
+                        logger.debug(String.format("Successfully matched URI: %s to a group: %s", uri, group.getGroup()));
+                    }
                     return group;
                 }
             }
@@ -169,8 +172,10 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     public List<UrlGroup> getUrlGroups() throws IOException {
         ClassPathResource resource = new ClassPathResource("performance-url-groups.yml");
         Yaml yaml = UaaYamlUtils.createYaml();
-        List<Map<String, Object>> load = (List<Map<String, Object>>) yaml.load(resource.getInputStream());
-        return load.stream().map(map -> UrlGroup.from(map)).collect(Collectors.toList());
+        try (InputStream in = resource.getInputStream()) {
+            List<Map<String, Object>> load = (List<Map<String, Object>>) yaml.load(in);
+            return load.stream().map(UrlGroup::from).collect(Collectors.toList());
+        }
     }
 
     public void sendRequestTime(String urlGroup, long time) {

@@ -230,6 +230,29 @@
                             <entry key="redirect-uri" value="http://localhost/**"/>
                         </map>
                     </entry>
+                    <entry key="client_with_jwks_trust">
+                        <map>
+                            <entry key="authorized-grant-types"
+                                   value="authorization_code,client_credentials,refresh_token,password"/>
+                            <entry key="scope" value="openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write"/>
+                            <entry key="authorities" value="password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="redirect-uri" value="http://localhost/*,http://localhost:8080/**,http://localhost:7000/**"/>
+                            <entry key="jwks" value="{&quot;kty&quot;:&quot;RSA&quot;,&quot;e&quot;:&quot;AQAB&quot;,&quot;use&quot;:&quot;sig&quot;,&quot;kid&quot;:&quot;legacy-token-key&quot;,&quot;alg&quot;:&quot;RS256&quot;,&quot;n&quot;:&quot;qMClJXznycV2bQ1pFbN8W-AWSYhpS2MVAGhkWNlmxv2Ix0_-n6zjivjdoxcq7RJR4kVycoVeD07DiWElYSnQLdeQPgKAcBiwilR30UyyDTKcqDQQ5rkCg2ONlwV0aMsg74KaXeXsV653ASs3FYEtuS1aD_Db5-FyXF8HkHo8xy19NUnqsDWQnh1Hhklynxu2tvW0fw2oDE1pwNl-WLEVPtlcpCtf4VSv-GawtBiI6xmYsGBMC9w29ESHFqPw0NSCRhlyJf6rDBNH_766mzK_vEzA4rzGTBEUqDxTg_8JpRhh9D3qljSsmqCtpQoloOAaUKCqSJb_hKPspe-7r9cYmw&quot;}"/>
+                        </map>
+                    </entry>
+                    <entry key="client_with_allowpublic_and_jwks_uri_trust">
+                        <map>
+                            <entry key="authorized-grant-types"
+                                   value="authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer"/>
+                            <entry key="scope" value="openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write"/>
+                            <entry key="authorities" value="password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="allowpublic" value="true"/>
+                            <entry key="redirect-uri" value="http://localhost/*,http://localhost:8080/**,http://localhost:7000/**"/>
+                            <entry key="jwks_uri" value="http://localhost:8080/uaa/token_keys"/>
+                        </map>
+                    </entry>
                 </map>
             </constructor-arg>
         </bean>

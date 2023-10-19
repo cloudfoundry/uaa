@@ -156,9 +156,12 @@ _Response Headers_
 
 # Token
 
-The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as
-as part of the request authorization header, using basic authentication, or as part of the request parameters, using the `client_id` and `client_secret` parameter
-names.
+The `/oauth/token` endpoint requires client authentication to be accessed, except you allow the public usage. For more details about public usage see
+allowpublic flag in client details configuration. For confidential client usages, the client authentication can be passed as part of the request
+authorization header, using basic authentication, or as part of the request parameters, using the combination of `client_id` and `client_secret` or
+`client_assertion_type` and `client_assertion` parameter names. The client authentication methods are explained in the
+[OpenID Core specification](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication). UAA supports currently none, client_secret_basic,
+client_secret_post and private_key_jwt.
 
 ## Authorization Code Grant
 

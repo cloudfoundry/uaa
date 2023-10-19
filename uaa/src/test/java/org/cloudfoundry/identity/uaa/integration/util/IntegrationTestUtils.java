@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
 import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -1289,10 +1290,43 @@ public class IntegrationTestUtils {
         assertNotNull(tokenResponse.getBody().get("iss"));
     }
 
+    public static String getAuthorizationCodeToken(
+        ServerRunning serverRunning,
+        String clientId,
+        String clientAssertion,
+        String username,
+        String password,
+        String tokenResponseType,
+        String redirectUri,
+        String loginHint,
+        boolean callCheckToken)
+    {
+        return getAuthorizationCodeTokenMap(serverRunning, UaaTestAccounts.standard(serverRunning), clientId, null, clientAssertion,
+            username, password, tokenResponseType, null, redirectUri, loginHint, callCheckToken).get("access_token");
+    }
+
+    public static Map<String, String> getAuthorizationCodeTokenMap(
+        ServerRunning serverRunning,
+        UaaTestAccounts testAccounts,
+        String clientId,
+        String clientSecret,
+        String username,
+        String password,
+        String tokenResponseType,
+        String jSessionId,
+        String redirectUri,
+        String loginHint,
+        boolean callCheckToken)
+    {
+        return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, null, username, password,
+            tokenResponseType, jSessionId, redirectUri, loginHint, callCheckToken);
+    }
+
     public static Map<String, String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,
                                                                    UaaTestAccounts testAccounts,
                                                                    String clientId,
                                                                    String clientSecret,
+                                                                   String clientAssertion,
                                                                    String username,
                                                                    String password,
                                                                    String tokenResponseType,
@@ -1410,7 +1444,12 @@ public class IntegrationTestUtils {
         }
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
-        tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        if (clientSecret != null) {
+            tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        } else if (clientAssertion != null) {
+            formData.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
+            formData.add(JwtClientAuthentication.CLIENT_ASSERTION, clientAssertion);
+        }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
@@ -1421,7 +1460,12 @@ public class IntegrationTestUtils {
 
         formData = new LinkedMultiValueMap<>();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        if (clientSecret != null) {
+            headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        } else if (clientAssertion != null) {
+            formData.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
+            formData.add(JwtClientAuthentication.CLIENT_ASSERTION, clientAssertion);
+        }
         formData.add("token", accessToken.getValue());
 
         if (callCheckToken) {
