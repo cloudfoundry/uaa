@@ -33,7 +33,7 @@ The new parameters for UAA clients are:
 * jwks_uri
 * jwks
 
-This should allow a continues trust between a UAA to UAA communication, e.g. using own UAA instances or within a UAA using different zones.
+This should allow a continuous trust between a UAA to UAA communication, e.g. using own UAA instances or within a UAA using different zones.
 
 ### tls_client_auth (Planned Feature)
 Not yet defined a release date.
@@ -68,7 +68,7 @@ oauth:
           ]
         }
 ```
-The example config above with jwks_uri enables continues trust to a running uaa.
+The example config above with jwks_uri enables continuous trust to a running uaa.
 
 ### Developer implementation
 As deverloper you should use the [UAA documention](https://docs.cloudfoundry.org/api/uaa/version/76.23.0/index.html#token). There is a description
@@ -79,5 +79,5 @@ required.
 
 ### Production use
 
-The introduction of private_key_jwt for production is planned with end of Q4/2023. The use for other purposes is given with a release of UAA starting.
+The support of private_key_jwt for production is planned with end of Q4/2023. The use for other purposes is given with a release of UAA starting  
 from version 76.23.0 or higher.
