@@ -79,5 +79,5 @@ required.
 
 ### Production use
 
-The support of private_key_jwt for production is planned with end of Q4/2023. The use for other purposes is given with a release of UAA starting  
+The support of private_key_jwt for a production is planned with end of Q4/2023. The use for other purposes is given with a release of UAA starting  
 from version 76.23.0 or higher.
