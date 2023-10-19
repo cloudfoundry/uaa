@@ -13,6 +13,10 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assert;
 import org.springframework.http.HttpEntity;
@@ -26,6 +30,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.HtmlUtils;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -86,6 +92,20 @@ public class TestClient {
                         "}",
                 baseUrl + "/oauth/clients"
         );
+    }
+
+    public String createClientJwt(String clientId, String jwks) {
+        KeyInfoService keyInfoService = new KeyInfoService(baseUrl);
+        JwtClientAuthentication jwtClientAuthentication = new JwtClientAuthentication(keyInfoService);
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
+        config.setRelyingPartyId(clientId);
+        try {
+            config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
+        } catch (MalformedURLException e) {
+            return "";
+        }
+        LegacyTokenKey.setLegacySigningKey(jwks, baseUrl);
+        return jwtClientAuthentication.getClientAssertion(config);
     }
 
     public void createUser(String scimAccessToken, String userName, String email, String password, Boolean verified) {
