@@ -68,7 +68,7 @@ Requirements:
 
 ::
 
-    java >= 11
+    java >= 17
 
 Clone, build UAA server:
 
