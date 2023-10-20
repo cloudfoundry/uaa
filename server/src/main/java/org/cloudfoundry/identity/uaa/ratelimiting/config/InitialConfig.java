@@ -64,7 +64,6 @@ public class InitialConfig {
         }
     }
 
-    @SuppressWarnings("SameParameterValue")
     // packageFriendly for Testing
     static String[] getLocalConfigDirs( List<String> dirProxies, UnaryOperator<String> unProxyFunction ) {
         return dirProxies.stream()
@@ -83,10 +82,10 @@ public class InitialConfig {
         return str.isEmpty() ? null : new SourcedFile( str, sourcedFile.getSource() );
     }
 
-    @SuppressWarnings("SameParameterValue")
     // packageFriendly for Testing
     static InitialConfig create( SourcedFile localConfigFile, NanoTimeSupplier currentTimeSupplier ) {
-        if (localConfigFile == null) { // Leave everything disabled!
+        // Leave everything disabled!
+        if (localConfigFile == null) {
             return new InitialConfig( null, null, RateLimitingFactoriesSupplierWithStatus.NO_RATE_LIMITING );
         }
         String errorMsg = null;
@@ -99,8 +98,7 @@ public class InitialConfig {
         try {
             dto = parseFile( bindYaml, localConfigFile.getBody() );
             currentStatus = CurrentStatus.PENDING;
-        }
-        catch ( YamlRateLimitingConfigException e ) {
+        } catch ( YamlRateLimitingConfigException e ) {
             error = e;
             errorMsg = e.getMessage();
         }

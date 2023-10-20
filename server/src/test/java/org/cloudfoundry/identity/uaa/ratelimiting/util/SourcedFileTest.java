@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class SourcedFileTest {
     public static final String EFFECTIVELY_EMPTY_FILE_CONTENTS = "\n  \n";
@@ -29,6 +30,26 @@ class SourcedFileTest {
 
         check( EFFECTIVELY_EMPTY_FILE_CONTENTS, "test-1" );
         check( ODD_FILE_CONTENTS, "test-2" );
+    }
+
+    @Test
+    void loadStream() {
+        ByteArrayInputStream is = new ByteArrayInputStream(ODD_FILE_CONTENTS.getBytes());
+        assertNotNull( SourcedFile.loadFile( is, "test-0" ) );
+    }
+
+    @Test
+    void loadEnv() {
+        assertNotNull( SourcedFile.locateAndLoadLocalFile("uaa-ratelimit.yml", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", "")));
+        assertNull( SourcedFile.locateAndLoadLocalFile("", SourcedFileTest.class.getClassLoader().getResource("uaa-ratelimit.yml").getPath().replace("uaa-ratelimit.yml", "")));
+        assertNull( SourcedFile.locateAndLoadLocalFile("random", "/dev"));
+        assertNull( SourcedFile.locateAndLoadLocalFile("?", "/proc/1/fdinfo"));
+    }
+
+    @Test
+    void loadStreamException() {
+        InputStream in = mock(InputStream.class);
+        assertThrows(IllegalStateException.class, () -> SourcedFile.loadFile( in, "" ) );
     }
 
     private void check( String fileContents, String source ) {
