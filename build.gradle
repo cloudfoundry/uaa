@@ -81,8 +81,8 @@ subprojects {
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
 
-    sourceCompatibility = 1.17
-    targetCompatibility = 1.17
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 
     test {
         maxParallelForks = 1
