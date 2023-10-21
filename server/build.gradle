@@ -36,6 +36,7 @@ dependencies {
 
     implementation(libraries.bouncyCastleProv)
     implementation(libraries.bouncyCastlePkix)
+    implementation(libraries.bouncyCastleProvExt)
 
     implementation(libraries.guava)
 
