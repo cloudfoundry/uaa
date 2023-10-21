@@ -68,7 +68,7 @@ Requirements:
 
 ::
 
-    java >= 1.7
+    java >= 17
 
 Clone, build UAA server:
 
@@ -103,14 +103,15 @@ written as an environment variable. For a Cloud Foundry application this could l
     ---
       applications:
       - name: standalone-uaa-cf-war
-        memory: 512M
+        memory: 4096M
         instances: 1
         host: standalone-uaa
-        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        path: cloudfoundry-identity-uaa-0.0.0-SNAPSHOT.war
         env:
           JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
-          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 9.0.+ }}'
           SPRING_PROFILES_ACTIVE: hsqldb,default
+          JAVA_OPTS: '-Djava.security.egd=file:/dev/./urandom -Dlogging.config=/usr/local/tomcat/conf/log4j2.properties'
           UAA_CONFIG_YAML: |
             uaa.url: http://standalone-uaa.cfapps.io
             login.url: http://standalone-uaa.cfapps.io
@@ -145,19 +146,34 @@ database:
 Token signing
 -------------
 
-UAA can use either symmetric key encryption (shared secrets) or public
-key encryption.
+UAA supports either symmetric key encryption (shared secrets) or public
+key encryption, however it is strongly recommended to use public key encryption.
 
 .. code-block:: yaml
 
    jwt:
-      token:
-         signing-key: …
-         verification-key: …
+     token:
+       policy:
+         activeKeyId: key-id-1-or-better-a-UUID
+         keys:
+           key-id-1-or-better-a-UUID:
+             signingAlg: RS256
+             signingKey: …
+             signingCert: …
+           key-id-2-or-better-a-UUID:
+             signingAlg: RS512
+             signingKey: …
 
-If you want to use symmetric key encryption, signing and verification values should be the same.
+If you want to use symmetric key encryption, signing and verification values should be the same and the signingAlg can be from HS256 to HS512.
+The public or asymmetric key encryption requires at least a signingKey. This key must be compatible to the signingAlg. If no parameter signingAlg is
+specified the default either RS256 or HS256 is taken. The algorithm none is not supported. This default depends on the key and its format. For other
+algorithms, e.g. see the supported ones in RFC 7518 (https://datatracker.ietf.org/doc/html/rfc7518#section-3.1), the signingKey must be compatible,
+e.g. ES256. If you set signingCert, then the token_key endpoint contain the x5c claim with the PEM encoded X509 representation and x5t with its
+thumbprint in order to have a unique identitfier. The value of x5c can be used as trust anchor towards OIDC Identity Proviers, e.g. Azure AD
+from Microsoft and SAP Cloud Identity Service uses x509 as trust anchor for JWT client authentication.
+If no signingCert is defined, then both claims does not appear in token_key response.
 
-Generating new asymmetric key pairs
+Generating new asymmetric key pairs for RSA based algorithm
 
 ::
 
@@ -166,25 +182,48 @@ Generating new asymmetric key pairs
     openssl genrsa -out privkey.pem 2048
     openssl rsa -pubout -in privkey.pem -out pubkey.pem
 
+Generating new asymmetric key pairs for Elliptic Curve based algorithm, e.g. ES256
+
+::
+
+    openssl ecparam -genkey -name prime256v1 -noout -out ec256-key-pair.pem
+
 Aysmmetric key pairs can be set directly in the yaml file using block literals.
 Make sure the entire key is indented.
 
 .. code-block:: yaml
 
    jwt:
-      token:
-         signing-key: |
-            -----BEGIN RSA PRIVATE KEY-----
-            MIIEowIBAAKCAQEAyV3Ws3gLOvi169ZPx8v3t9UZpxcG0fqtQzC4X+Ff7dlx4w6P
-            ...
-            pYPYK4M+4Gwi7O49a63G+lzX7BqUWYBXR84iZG+vWz2F3ICjiOIz
-            -----END RSA PRIVATE KEY-----
-         verification-key: |
-            -----BEGIN PUBLIC KEY-----
-            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyV3Ws3gLOvi169ZPx8v3
-            ...
-            XwIDAQAB
-            -----END PUBLIC KEY-----
+     token:
+       policy:
+         activeKeyId: key-id-1-or-better-a-UUID
+         keys:
+           key-id-1-or-better-a-UUID:
+             signingAlg: RS256
+             signingKey: |
+               -----BEGIN RSA PRIVATE KEY-----
+               MIIEowIBAAKCAQEAyV3Ws3gLOvi169ZPx8v3t9UZpxcG0fqtQzC4X+Ff7dlx4w6P
+               ...
+               pYPYK4M+4Gwi7O49a63G+lzX7BqUWYBXR84iZG+vWz2F3ICjiOIz
+               -----END RSA PRIVATE KEY-----
+             signingCert: |
+               -----BEGIN CERTIFICATE-----
+               MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAyV3Ws3gLOvi169ZPx8v3
+               ...
+               XwIDAQAB
+               -----END PUBLIC KEY-----
+
+
+Token signing rotation
+----------------------
+
+The key rotation is a change of parameter jwt.token.policy.activeKeyId. The key identifier of each entry appears in token_key response with
+claim kid. It is the identifier for key resolution, therefore this definition should be unique. Parameter activeKeyId specifies the current active
+key, which is used for signing the JWT based tokens (id_token, access_token, refresh_token), see UAA-Tokens.md. After the change of activeKeyId
+the replaced key should not be removed but it should be kept some time in order to allow a signature verification for clients for a period of time.
+If you use UAA as proxy to other OIDC Providers, then this communication can be protected with JWT authentication and the key for this JWT signing
+can be different to the activeKeyId.
+
 
 Clients
 -------
