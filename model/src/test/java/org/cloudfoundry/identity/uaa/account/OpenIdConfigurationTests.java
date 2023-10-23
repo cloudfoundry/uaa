@@ -28,7 +28,7 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
         assertEquals("issuer", defaultConfig.getIssuer());
         assertEquals("/uaa/oauth/authorize", defaultConfig.getAuthUrl());
         assertEquals("/uaa/oauth/token", defaultConfig.getTokenUrl());
-        assertArrayEquals(new String[]{"client_secret_basic", "client_secret_post"}, defaultConfig.getTokenAMR());
+        assertArrayEquals(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"}, defaultConfig.getTokenAMR());
         assertArrayEquals(new String[]{"RS256", "HS256"}, defaultConfig.getTokenEndpointAuthSigningValues());
         assertEquals("/uaa/userinfo", defaultConfig.getUserInfoUrl());
         assertEquals("/uaa/token_keys", defaultConfig.getJwksUri());

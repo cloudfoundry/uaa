@@ -45,8 +45,8 @@ public class ApiController {
      * @param info the info to set
      */
     public void setInfo(Resource info) {
-        try {
-            this.infoResource = FileCopyUtils.copyToString(new InputStreamReader(info.getInputStream()));
+        try (InputStreamReader in = new InputStreamReader(info.getInputStream())){
+            this.infoResource = FileCopyUtils.copyToString(in);
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not load template", e);
         }
@@ -98,7 +98,7 @@ public class ApiController {
             if (response.getContentType() == null) {
                 response.setContentType(getContentType());
             }
-            Map<String, Object> map = new HashMap<String, Object>(model);
+            Map<String, Object> map = new HashMap<>(model);
             map.put("path", request.getContextPath());
             context.setRootObject(map);
             String result = helper.replacePlaceholders(template, resolver);

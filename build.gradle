@@ -81,8 +81,8 @@ subprojects {
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
 
-    sourceCompatibility = 1.11
-    targetCompatibility = 1.11
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
 
     test {
         maxParallelForks = 1
@@ -91,12 +91,13 @@ subprojects {
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
         retry {
-            def retryFailOnPassedAfterRetry = Boolean.parseBoolean(
+            def failOnPassedAfterRetrySystemProperty = Boolean.parseBoolean(
                     System.getProperty("failOnPassedAfterRetry", "false"));
-            if (!retryFailOnPassedAfterRetry)
-                logger.warn("retry: Failed tests are to be retried and considered as passed if the retry passes.")
+            if (!failOnPassedAfterRetrySystemProperty)
+                logger.warn("retry: Flaky tests will not make the test run fail because failOnPassedAfterRetry is false.")
 
-            failOnPassedAfterRetry = retryFailOnPassedAfterRetry
+            // Configure the retry extension
+            failOnPassedAfterRetry = failOnPassedAfterRetrySystemProperty
             maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
             maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
         }
@@ -158,8 +159,8 @@ cargo {
     containerId = "tomcat9x"
     port = applicationPort
 
-    if (JavaVersion.current() < JavaVersion.VERSION_11) {
-        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_11 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
+    if (JavaVersion.current() < JavaVersion.VERSION_17) {
+        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_17 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
     }
 
     deployable {

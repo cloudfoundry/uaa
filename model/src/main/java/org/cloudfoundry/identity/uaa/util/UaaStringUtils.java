@@ -310,4 +310,11 @@ public final class UaaStringUtils {
         }
         return CTRL_PATTERN.matcher(input).replaceAll("_");
     }
+
+    public static String getSafeParameterValue(String[] value) {
+        if (null == value || value.length < 1) {
+            return EMPTY_STRING;
+        }
+        return StringUtils.hasText(value[0]) ? value[0] : EMPTY_STRING;
+    }
 }

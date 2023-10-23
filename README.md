@@ -76,7 +76,7 @@ Security OAuth that can do the heavy lifting if your client is Java.
 ## Quick Start
 
 Requirements:
-* Java 11
+* Java 17
 
 If this works you are in business:
 

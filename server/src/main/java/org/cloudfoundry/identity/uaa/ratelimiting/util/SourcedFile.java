@@ -11,14 +11,17 @@ import java.nio.file.FileSystems;
 
 import org.apache.commons.lang3.StringUtils;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-@AllArgsConstructor
 @Getter
 public class SourcedFile {
     private final String body;
     private final String source;
+
+    public SourcedFile(String body, String source) {
+        this.body = body;
+        this.source = source;
+    }
 
     public static SourcedFile locateAndLoadLocalFile( String name, String... dirs ) {
         if ( (name == null) || name.isBlank() ) {
@@ -48,8 +51,7 @@ public class SourcedFile {
             for ( String line; (line = reader.readLine()) != null; ) {
                 sb.append( line ).append( '\n' );
             }
-        }
-        catch ( IOException e ) {
+        } catch ( IOException e ) {
             throw new IllegalStateException( "Unable to read " + source, e );
         }
         String str = sb.toString();
@@ -66,8 +68,7 @@ public class SourcedFile {
             if ( file.isFile() ) {
                 return new FileInputStream( file );
             }
-        }
-        catch ( IOException ignore ) {
+        } catch ( IOException ignore ) {
             // ignore!
         }
         return null;
