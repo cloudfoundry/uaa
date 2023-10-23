@@ -118,10 +118,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
             return emptySet();
         }
         IdentityZone currentZone = IdentityZoneHolder.get();
-        List<String> zoneDefaultGroups = currentZone.getConfig().getUserConfig().getDefaultGroups();
-        if (!zoneId.equals(currentZone.getId())) {
-            zoneDefaultGroups = zoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getDefaultGroups();
-        }
+        List<String> zoneDefaultGroups = (zoneId.equals(currentZone.getId())) ?
+                currentZone.getConfig().getUserConfig().getDefaultGroups() :
+                zoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getDefaultGroups();
         return zoneDefaultGroups
                 .stream()
                 .map(groupName -> createOrGetGroup(groupName, zoneId))
