@@ -429,4 +429,41 @@ public class ExternalOAuthAuthenticationManagerTest {
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
     }
+
+    @Test
+    public void getUser_doesNotThrowWhenIdTokenMappingIsArrayButAlsoOidcStandardClaims() {
+        Map<String, Object> header = map(
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+        );
+        Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
+        Map<String, Object> claims = map(
+            entry("family_name", "Foo"),
+            entry("given_name", "Bar"),
+            entry("email", "bar.foo@domain.org"),
+            entry("external_family_name", Arrays.asList("foo", "Foo")),
+            entry("external_given_name", Arrays.asList("bar", "Bar")),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        Map<String, Object> externalGroupMapping = map(
+            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name"),
+            entry(ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME, "external_given_name"),
+            entry(ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME, "external_email"),
+            entry(ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME, "external_phone")
+        );
+        oidcConfig.setAttributeMappings(externalGroupMapping);
+        provider.setConfig(oidcConfig);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        UaaUser uaaUser = authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
+        assertNotNull(uaaUser);
+        assertEquals("Bar", uaaUser.getGivenName());
+        assertEquals("Foo", uaaUser.getFamilyName());
+        assertEquals("bar.foo@domain.org", uaaUser.getEmail());
+    }
 }
