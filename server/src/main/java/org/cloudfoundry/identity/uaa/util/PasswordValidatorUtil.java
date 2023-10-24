@@ -51,8 +51,7 @@ public final class PasswordValidatorUtil {
                                               MessageResolver messageResolver) {
         List<Rule> rules = new ArrayList<>();
 
-        //length is always a rule
-        int minLength = Math.max(0, policy.getMinLength());
+        int minLength = policy.getMinLength()>0 ? policy.getMinLength() : 0;
         int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
         rules.add(new LengthRule(minLength, maxLength));
 
