@@ -134,6 +134,19 @@ class UaaClientAuthenticationProviderTest {
     }
 
     @Test
+    void provider_authenticate_client_with_empty_password_public_string() {
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
+        BaseClientDetails clientDetails = new BaseClientDetails(generator.generate(), "", "", "password", "uaa.resource");
+        clientDetails.setClientSecret("");
+        jdbcClientDetailsService.addClientDetails(clientDetails);
+        client = clientDetails;
+        UsernamePasswordAuthenticationToken a = getAuthenticationToken("password");
+        when(a.getCredentials()).thenReturn("");
+        authenticationProvider.additionalAuthenticationChecks(new UaaClient("cf", passwordEncoder.encode(""), Collections.emptyList(), client.getAdditionalInformation(), null), a);
+        assertNotNull(a);
+    }
+
+    @Test
     void provider_refresh_client_without_password_public_boolean() {
         client = createClient(ClientConstants.ALLOW_PUBLIC, true);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
