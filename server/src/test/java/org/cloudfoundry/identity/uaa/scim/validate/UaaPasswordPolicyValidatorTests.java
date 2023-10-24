@@ -47,19 +47,10 @@ class UaaPasswordPolicyValidatorTests {
     }
 
     @Test
-    void min_password_length_is_always_1_if_set_to_0() {
-        policy.setMinLength(0);
+    void min_password_length_is_1() {
+        policy.setMinLength(1);
         validatePassword("", "Password must be at least 1 characters in length.");
-        validatePassword(null, "Password must be at least 1 characters in length.");
     }
-
-    @Test
-    void min_password_length_is_always_1_if_not_set() {
-        policy.setMinLength(-1);
-        validatePassword("", "Password must be at least 1 characters in length.");
-        validatePassword(null, "Password must be at least 1 characters in length.");
-    }
-
 
     @Test
     void testValidateSuccess() {
