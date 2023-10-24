@@ -17,7 +17,7 @@ class ZoneAwareClientSecretPolicyValidatorTests {
     private ClientSecretPolicy defaultPolicy = new ClientSecretPolicy(0,255,0,0,0,0,6);
     private ClientSecretPolicy strictPolicy = new ClientSecretPolicy(6,10,1,1,1,1,6);
 
-    private static final String TEST_SECRET_1 = "";
+    private static final String TEST_EMPTY_SECRET = "";
     private static final String TEST_SECRET_2 = "testsecret";
     private static final String TEST_SECRET_3 = "VFNTTDEgMB4GA1UEAxMXZnNzLnN0YWdlLmdlY29tcGFueIb3DQEBAQUADDwDG6wkBY" +
             "sJSqbSYpw0c76bUB1x5e46eiroRZdU2BEWiQJ9yxV95gGNsdLH1105iubzc9dbxavGIYM9s/+qJRf6WfwDU7VQsURCqIN8eUtnPU808" +
@@ -39,13 +39,13 @@ class ZoneAwareClientSecretPolicyValidatorTests {
     @Test
     void testEmptyClientSecretAllowed() {
         zone.getConfig().setClientSecretPolicy(defaultPolicy);
-        validator.validate(TEST_SECRET_1);
+        validator.validate(TEST_EMPTY_SECRET);
     }
 
     @Test
     void testEmptyClientSecretForbidden() {
         zone.getConfig().setClientSecretPolicy(strictPolicy);
-        assertThrows(InvalidClientSecretException.class, () -> validator.validate(TEST_SECRET_1));
+        assertThrows(InvalidClientSecretException.class, () -> validator.validate(TEST_EMPTY_SECRET));
     }
 
     @Test
