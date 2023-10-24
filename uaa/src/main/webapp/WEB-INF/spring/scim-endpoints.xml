@@ -35,7 +35,7 @@
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
-        <constructor-arg name="minLength" value="${password.policy.global.minLength:1}"/>
+        <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
         <constructor-arg name="maxLength" value="${password.policy.global.maxLength:255}"/>
         <constructor-arg name="requireUpperCaseCharacter"
                          value="${password.policy.global.requireUpperCaseCharacter:0}"/>
