@@ -23,7 +23,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.messageResolver;
-import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator;
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.secretValidator;
 
 
 
@@ -82,8 +82,7 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
             clientSecretPolicy = zone.getConfig().getClientSecretPolicy();
         }
 
-        PasswordValidator clientSecretValidator = validator(clientSecretPolicy,
-                                                        messageResolver);
+        PasswordValidator clientSecretValidator = secretValidator(clientSecretPolicy, messageResolver);
         RuleResult result = clientSecretValidator.validate(new PasswordData(clientSecret));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>(clientSecretValidator.getMessages(result));

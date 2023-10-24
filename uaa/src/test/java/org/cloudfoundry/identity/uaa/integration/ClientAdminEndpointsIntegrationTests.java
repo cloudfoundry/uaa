@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -167,6 +168,21 @@ public class ClientAdminEndpointsIntegrationTests {
         ResponseEntity<Void> result = serverRunning.getRestTemplate()
                 .exchange(serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
                         new HttpEntity<>(client, headers), Void.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+    }
+
+    @Test
+    public void createClientWithEmptySecret() {
+        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.admin");
+        HttpHeaders headers = getAuthenticatedHeaders(token);
+        var client = new ClientDetailsCreation();
+        client.setClientId(new RandomValueStringGenerator().generate());
+        client.setClientSecret(UaaStringUtils.EMPTY_STRING);
+        client.setAuthorizedGrantTypes(List.of("password"));
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate()
+            .exchange(serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(client, headers), Void.class);
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
     }
 

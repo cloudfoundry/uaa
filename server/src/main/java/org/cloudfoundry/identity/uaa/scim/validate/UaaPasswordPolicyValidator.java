@@ -16,7 +16,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.messageResolver;
-import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator;
+import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.userValidator;
 
 /**
  * ****************************************************************************
@@ -62,7 +62,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             policy = idpDefinition.getPasswordPolicy();
         }
 
-        org.passay.PasswordValidator validator = validator(policy, messageResolver);
+        org.passay.PasswordValidator validator = userValidator(policy, messageResolver);
         RuleResult result = validator.validate(new PasswordData((password != null) ? password : ""));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>(validator.getMessages(result));

@@ -46,13 +46,23 @@ public final class PasswordValidatorUtil {
         }
     }
 
+    public static PasswordValidator secretValidator(GenericPasswordPolicy<?> policy,
+        MessageResolver messageResolver) {
+        return internalValidator(policy, 0, messageResolver);
+    }
 
-    public static PasswordValidator validator(GenericPasswordPolicy<?> policy,
+    public static PasswordValidator userValidator(GenericPasswordPolicy<?> policy,
+        MessageResolver messageResolver) {
+        return internalValidator(policy, 1, messageResolver);
+    }
+
+    private static PasswordValidator internalValidator(GenericPasswordPolicy<?> policy,
+                                              int minimumLength,
                                               MessageResolver messageResolver) {
         List<Rule> rules = new ArrayList<>();
 
-        //length is always a rule. We do not allow blank password
-        int minLength = Math.max(1, policy.getMinLength());
+        //length is always a rule. We do not allow blank password, but a blank secret
+        int minLength = Math.max(minimumLength, policy.getMinLength());
         int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
         rules.add(new LengthRule(minLength, maxLength));
 
