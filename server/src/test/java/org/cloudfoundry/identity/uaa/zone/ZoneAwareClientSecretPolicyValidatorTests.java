@@ -39,6 +39,8 @@ class ZoneAwareClientSecretPolicyValidatorTests {
     @Test
     void testEmptyClientSecret() {
         zone.getConfig().setClientSecretPolicy(defaultPolicy);
+        validator.validate(TEST_SECRET_1);
+        zone.getConfig().setClientSecretPolicy(strictPolicy);
         assertThrows(InvalidClientSecretException.class, () -> validator.validate(TEST_SECRET_1));
     }
 
