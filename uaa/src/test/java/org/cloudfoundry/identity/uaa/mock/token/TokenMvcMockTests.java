@@ -858,7 +858,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(
                         header()
                                 .stringValues("WWW-Authenticate",
-                                        "Basic realm=\"UAA/client\", error=\"unauthorized\", error_description=\"Bad credentials\"")
+                                        "Basic realm=\"UAA/client\"")
                 );
     }
 
@@ -3530,7 +3530,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.GRANT_TYPE, "password")
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isUnauthorized())
-                .andExpect(content().string("{\"error\":\"unauthorized\",\"error_description\":\"Bad credentials\"}"));
+                .andExpect(content().string("{\"error\":\"unauthorized_client\",\"error_description\":\"Bad credentials\"}"));
     }
 
     @Test

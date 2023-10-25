@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 
@@ -12,6 +13,8 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
     public ResponseEntity<OAuth2Exception> translate(Exception e) throws Exception {
         if (e instanceof AccountNotVerifiedException) {
             return handleOAuth2Exception(new ForbiddenException(e.getMessage(), e));
+        } else if (e instanceof BadCredentialsException) {
+            return handleOAuth2Exception(OAuth2Exception.create(OAuth2Exception.UNAUTHORIZED_CLIENT, e.getMessage()));
         }
 
         return super.translate(e);
