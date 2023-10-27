@@ -431,7 +431,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getUser_doesNotThrowWhenIdTokenMappingIsArrayButAlsoOidcStandardClaims() {
+    public void getUser_doesNotReturnNullWhenIdTokenMappingIsNotAvailableButAlsoOidcStandardClaims() {
         Map<String, Object> header = map(
             entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
@@ -441,8 +441,6 @@ public class ExternalOAuthAuthenticationManagerTest {
             entry("family_name", "Foo"),
             entry("given_name", "Bar"),
             entry("email", "bar.foo@domain.org"),
-            entry("external_family_name", Arrays.asList("foo", "Foo")),
-            entry("external_given_name", Arrays.asList("bar", "Bar")),
             entry(ISS, oidcConfig.getIssuer()),
             entry(AUD, "uaa-relying-party"),
             entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),

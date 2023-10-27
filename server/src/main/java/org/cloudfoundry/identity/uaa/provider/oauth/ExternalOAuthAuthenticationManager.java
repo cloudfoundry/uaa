@@ -406,43 +406,31 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private String getMappedClaim(String externalName, String oidcName, Map<String, Object> claims) {
-        String claimValue = null;
-        BadCredentialsException exception = null;
         String claimName = isNull(externalName) ? oidcName : externalName;
         Object claimObject = claims.get(claimName);
 
         if (isNull(claimObject)) {
-            Object oidcClaim = getOidcClaim(externalName, oidcName, claims, claimName);
-            if (isNull(oidcClaim)) {
+            claimObject = getOidcClaim(externalName, oidcName, claims, claimName);
+            if (isNull(claimObject)) {
                 return null;
             }
-            claimObject = oidcClaim;
         }
         if (claimObject instanceof String) {
-            claimValue = (String) claimObject;
-        } else if (claimObject instanceof Collection) {
+            return (String) claimObject;
+        }
+        if (claimObject instanceof Collection) {
             Set<String> entry = ((Collection<?>) claimObject).stream().map(String.class::cast).collect(Collectors.toSet());
-            if (entry.size() == 1) {
-                claimValue = entry.stream().collect(Collectors.toList()).get(0);
+            if (entry.size() == 1 ) {
+                return entry.stream().collect(Collectors.toList()).get(0);
             } else if (entry.isEmpty()) {
                 return null;
             } else {
                 logger.warn("Claim mapping for {} attribute is ambiguous. ({}) ", claimName, entry.size());
-                exception = new BadCredentialsException("Claim mapping for " + oidcName + " attribute is ambiguous");
+                throw new BadCredentialsException("Claim mapping for " + oidcName + " attribute is ambiguous");
             }
         }
-        if (isNull(claimValue)) {
-            Object oidcClaim = getOidcClaim(externalName, oidcName, claims, claimName);
-            if (oidcClaim instanceof String) {
-                claimValue = (String) oidcClaim;
-            } else {
-                logger.warn("Claim attribute {} cannot be mapped because of invalid type {} ", claimName,
-                    ofNullable(claimObject).map(Object::getClass).map(Class::getSimpleName).orElse("unknown"));
-                throw exception != null ? exception :
-                    new BadCredentialsException("External token attribute " + claimName + " cannot be mapped to user attribute " + oidcName);
-            }
-        }
-        return claimValue;
+        logger.warn("Claim attribute {} cannot be mapped because of invalid type {} ", claimName, claimObject.getClass().getSimpleName());
+        throw new BadCredentialsException("External token attribute " + claimName + " cannot be mapped to user attribute " + oidcName);
     }
 
     // OIDC standard claims, see https://openid.net/specs/openid-connect-core-1_0.html#StandardClaims
