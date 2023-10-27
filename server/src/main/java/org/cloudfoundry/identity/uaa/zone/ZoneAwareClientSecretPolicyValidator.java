@@ -18,6 +18,7 @@ import org.passay.PasswordData;
 import org.passay.PasswordValidator;
 import org.passay.PropertiesMessageResolver;
 import org.passay.RuleResult;
+import org.springframework.util.StringUtils;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -71,7 +72,7 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
 
     @Override
     public void validate(String clientSecret) throws InvalidClientSecretException {
-        if(clientSecret == null) {
+        if(!StringUtils.hasText(clientSecret)) {
             return;
         }
 

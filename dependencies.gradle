@@ -5,7 +5,7 @@ ext {
 
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
-versions.apacheDsVersion = "2.0.0.AM26"
+versions.apacheDsVersion = "2.0.0.AM27"
 versions.bouncyCastleVersion = "1.76"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.7.17"
@@ -41,7 +41,7 @@ libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-jdk18on:${versions.bouncyC
 libraries.bouncyCastleProv = "org.bouncycastle:bcprov-jdk18on:${versions.bouncyCastleVersion}"
 libraries.braveInstrumentationSpringWebmvc = "io.zipkin.brave:brave-instrumentation-spring-webmvc:${versions.braveVersion}"
 libraries.braveContextSlf4j = "io.zipkin.brave:brave-context-slf4j:${versions.braveVersion}"
-libraries.commonsIo = "commons-io:commons-io:2.14.0"
+libraries.commonsIo = "commons-io:commons-io:2.15.0"
 libraries.dumbster = "dumbster:dumbster:1.6"
 libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:6.7.0.202309050840-r"
 libraries.flywayCore = "org.flywaydb:flyway-core"
