@@ -17,7 +17,9 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.FaviconElement;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.HomePage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.LogoutDoEndpoint;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.PasscodePage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
@@ -102,6 +104,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -261,16 +264,13 @@ public class SamlLoginIT {
         String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
         BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
-
         String firstUrl = "/oauth/authorize?"
                 + "client_id=" + clientId
                 + "&response_type=code"
                 + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
-
         webDriver.get(baseUrl + firstUrl);
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
-
         assertThat(webDriver.getCurrentUrl(), containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
     }
 
@@ -317,12 +317,10 @@ public class SamlLoginIT {
 
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
-        webDriver.get(zoneUrl);
-        webDriver.findElement(By.linkText("Login with Simple SAML PHP(simplesamlphp)")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
-
-        assertEquals("No local entity found for alias invalid, verify your configuration.", webDriver.findElement(By.cssSelector("h2")).getText());
+        HomePage.goHome_redirectToLoginPage(webDriver, zoneUrl)
+                .clickSamlLink_goToSamlLoginPage()
+                .login_goToSamlErrorPage(testAccounts.getUserName(), testAccounts.getPassword())
+                .validatePageSource(containsString("No local entity found for alias invalid, verify your configuration"));
     }
 
     @Test
@@ -413,14 +411,12 @@ public class SamlLoginIT {
         provider.setConfig(providerDefinition);
         provider.setOriginKey(providerDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for uaa");
-        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
-        webDriver.get(zoneUrl + "/login");
-        Assert.assertTrue(webDriver.getTitle().contains("testzone2"));
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+        LoginPage loginPage = LoginPage.go(webDriver, zoneUrl);
+        loginPage.validateTitle(Matchers.containsString("testzone2"));
+        loginPage.clickSamlLink_goToSamlLoginPage()
+                .login_goToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         String redirectUrl = zoneUrl + "/login?test=test";
         BaseClientDetails clientDetails = new BaseClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
@@ -428,8 +424,8 @@ public class SamlLoginIT {
         clientDetails.setClientSecret("secret");
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
-        webDriver.get(zoneUrl + "/logout.do?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8) + "&client_id=test-logout-redirect");
-        assertEquals(redirectUrl, webDriver.getCurrentUrl());
+        LogoutDoEndpoint.logout_goToLoginPage(webDriver, zoneUrl, redirectUrl, "test-logout-redirect")
+                .validateUrl(equalTo(redirectUrl));
     }
 
     @Test

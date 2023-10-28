@@ -25,6 +25,11 @@ public class SamlLoginPage extends Page {
         return new PasscodePage(driver);
     }
 
+    public SamlErrorPage login_goToSamlErrorPage(String username, String password) {
+        sendLoginCredentials(username, password);
+        return new SamlErrorPage(driver);
+    }
+
     private void sendLoginCredentials(String username, String password) {
         final WebElement usernameElement = driver.findElement(By.name("username"));
         usernameElement.clear();
