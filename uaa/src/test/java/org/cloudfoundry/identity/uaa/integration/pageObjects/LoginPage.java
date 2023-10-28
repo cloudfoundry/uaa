@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.integration.pageObjects;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
-import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.matchesPattern;
 
 public class LoginPage extends Page {
 
@@ -11,7 +11,7 @@ public class LoginPage extends Page {
 
     public LoginPage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, endsWith(urlPath));
+        validateUrl(driver, matchesPattern(".*" + urlPath + "(\\?.*)?$"));
     }
 
     static public LoginPage go(WebDriver driver, String baseUrl) {
