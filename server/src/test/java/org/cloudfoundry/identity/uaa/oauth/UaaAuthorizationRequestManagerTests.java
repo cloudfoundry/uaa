@@ -148,6 +148,7 @@ class UaaAuthorizationRequestManagerTests {
         parameters.put("expires_in", "44000");
         parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // all groups allowed
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
         when(clientDetailsService.loadClientByClientId(recipient.getClientId(), "uaa")).thenReturn(recipient);
         ReflectionTestUtils.setField(factory, "uaaUserDatabase", null);
@@ -186,9 +187,21 @@ class UaaAuthorizationRequestManagerTests {
     }
 
     @Test
+    void testWildcardScopesIncludesAllowedAuthoritiesForUser() {
+        when(mockSecurityContextAccessor.isUser()).thenReturn(true);
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("space.1.developer,space.2.developer,space.1.admin"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid","space.1.developer"));
+        client.setScope(StringUtils.commaDelimitedListToSet("space.*.developer"));
+        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+        assertEquals(StringUtils.commaDelimitedListToSet("space.1.developer"), new TreeSet<String>(request.getScope()));
+        factory.validateParameters(request.getRequestParameters(), client);
+    }
+
+    @Test
     void testOpenidScopeIncludeIsAResourceId() {
         parameters.put("scope", "openid foo.bar");
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("openid"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid","foo.bar"));
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
         assertEquals(StringUtils.commaDelimitedListToSet("openid,foo.bar"), new TreeSet<String>(request.getScope()));

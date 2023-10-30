@@ -40,6 +40,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.ACCEPT;
@@ -74,6 +75,7 @@ public class IdentityZoneConfigurationTests {
             "user_attributes",
             "uaa.offline_token"
         ));
+        assertNull(definition.getUserConfig().getAllowedGroups());
         s = JsonUtils.writeValueAsString(definition);
         assertThat(s, containsString("userConfig"));
         assertThat(s, containsString("uaa.offline_token"));

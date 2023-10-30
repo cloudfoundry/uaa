@@ -249,7 +249,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         Set<String> allowed = new LinkedHashSet<>(AuthorityUtils.authorityListToSet(authorities));
         // Add in all default requestedScopes
         Collection<String> defaultScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups();
+        Collection<String> allowedScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getAllowedGroups();
         allowed.addAll(defaultScopes);
+        if (allowedScopes != null) {
+            allowed.retainAll(allowedScopes);
+        }
 
         // Find intersection of user authorities, default requestedScopes and client requestedScopes:
         Set<String> result = intersectScopes(new LinkedHashSet<>(requestedScopes), clientDetails.getScope(), allowed);

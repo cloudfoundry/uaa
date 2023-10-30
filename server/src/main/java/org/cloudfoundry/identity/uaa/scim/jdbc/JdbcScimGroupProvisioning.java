@@ -13,6 +13,9 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +69,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     private JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager;
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+    private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
 
     public JdbcScimGroupProvisioning(
             final JdbcTemplate jdbcTemplate,
@@ -74,6 +78,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
         this.jdbcTemplate = jdbcTemplate;
+        jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate); // TODO inject
 
         final String quotedGroupsTableName = dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
         updateGroupSql = String.format(
@@ -222,8 +227,29 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         }
     }
 
+    private List<String> getAllowedUserGroups(String zoneId) {
+        List<String> zoneAllowedGroups = null; // default: all groups allowed
+        if (!hasText(zoneId)) {
+            return zoneAllowedGroups;
+        }
+        IdentityZone currentZone = IdentityZoneHolder.get();
+        try {
+            zoneAllowedGroups = (zoneId.equals(currentZone.getId())) ?
+                currentZone.getConfig().getUserConfig().getAllowedGroups() :
+                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getAllowedGroups();
+        } catch (ZoneDoesNotExistsException e) {
+            logger.debug("could not retrieve identity zone with id: " + zoneId);
+        }
+        return zoneAllowedGroups;
+    }
+
     @Override
     public ScimGroup create(final ScimGroup group, final String zoneId) throws InvalidScimResourceException {
+        List<String> allowedGroups = getAllowedUserGroups(zoneId);
+        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
+            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
+                    + " is not allowed in Identity Zone " + zoneId);
+        }
         final String id = UUID.randomUUID().toString();
         logger.debug("creating new group with id: " + id);
         try {
@@ -248,6 +274,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup update(final String id, final ScimGroup group, final String zoneId) throws InvalidScimResourceException,
             ScimResourceNotFoundException {
+        List<String> allowedGroups = getAllowedUserGroups(zoneId);
+        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
+            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
+                    + " is not allowed in Identity Zone " + zoneId);
+        }
         try {
             validateGroup(group);
 

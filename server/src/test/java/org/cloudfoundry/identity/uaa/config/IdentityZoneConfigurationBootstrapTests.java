@@ -193,6 +193,16 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
+    public void testAllowedGroups() throws Exception {
+        String[] groups = {"group1", "group2", "group3"};
+        bootstrap.setDefaultUserGroups(Arrays.asList(groups));
+        bootstrap.setAllowedUserGroups(Arrays.asList(groups));
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
+        assertThat(uaa.getConfig().getUserConfig().getAllowedGroups(), containsInAnyOrder(groups));
+    }
+
+    @Test
     public void tokenPolicy_configured_fromValuesInYaml() throws Exception {
         TokenPolicy tokenPolicy = new TokenPolicy();
         Map<String, String> keys = new HashMap<>();

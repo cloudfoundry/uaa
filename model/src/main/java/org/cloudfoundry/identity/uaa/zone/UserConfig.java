@@ -27,4 +27,14 @@ public class UserConfig {
     public void setDefaultGroups(List<String> defaultGroups) {
         this.defaultGroups = defaultGroups;
     }
+
+    private List<String> allowedGroups = null;
+
+    public List<String> getAllowedGroups() {
+        return allowedGroups;
+    }
+
+    public void setAllowedGroups(List<String> allowedGroups) {
+        this.allowedGroups = allowedGroups;
+    }
 }
