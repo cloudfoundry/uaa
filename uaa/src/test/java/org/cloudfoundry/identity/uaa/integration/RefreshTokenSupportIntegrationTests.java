@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,12 +33,14 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.*;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
@@ -185,5 +188,40 @@ public class RefreshTokenSupportIntegrationTests {
         formData.add("refresh_token", "dummyrefreshtoken-r");
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap(serverRunning.getAccessTokenUri().replace("localhost", "testzoneinactive.localhost"), formData, new HttpHeaders());
         assertEquals(HttpStatus.NOT_FOUND, tokenResponse.getStatusCode());
+    }
+
+    @Test
+    public void testUserLoginViaPasswordGrantAndRefresh_usingClientWithEmptyClientSecret() {
+        ResponseEntity<String> responseEntity = PasswordGrantIntegrationTests.makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "cf", "", serverRunning.getAccessTokenUri());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        String refreshToken = PasswordGrantIntegrationTests.validateClientAuthenticationMethod(responseEntity, true);
+        responseEntity = makeRefreshGrantRequest(refreshToken, "cf", "", serverRunning.getAccessTokenUri());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        PasswordGrantIntegrationTests.validateClientAuthenticationMethod(responseEntity, true);
+    }
+
+    @Test
+    public void testUserLoginViaPasswordGrantAndRefresh_usingConfidentialClient() {
+        ResponseEntity<String> responseEntity = PasswordGrantIntegrationTests.makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), "app", "appclientsecret", serverRunning.getAccessTokenUri());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        String refreshToken = PasswordGrantIntegrationTests.validateClientAuthenticationMethod(responseEntity, false);
+        responseEntity = makeRefreshGrantRequest(refreshToken, "app", "appclientsecret", serverRunning.getAccessTokenUri());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        PasswordGrantIntegrationTests.validateClientAuthenticationMethod(responseEntity, false);
+    }
+
+    protected static ResponseEntity<String> makeRefreshGrantRequest(String refreshToken, String clientId, String clientSecret, String url) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(APPLICATION_JSON));
+        headers.add("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
+
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("grant_type", "refresh_token");
+        params.add("refresh_token", refreshToken);
+
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+
+        RestTemplate template = PasswordGrantIntegrationTests.getRestTemplate();
+        return template.postForEntity(url, request, String.class);
     }
 }

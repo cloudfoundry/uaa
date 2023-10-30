@@ -30,7 +30,6 @@ import org.springframework.security.oauth2.client.token.grant.password.ResourceO
 import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import java.net.URLEncoder;
@@ -137,7 +136,7 @@ public class UaaTestAccounts implements TestAccounts {
      * @param password client_secret
      * @return OAuth2 encoded client_id and client_secret, e.g. https://datatracker.ietf.org/doc/html/rfc2617#section-2
      */
-    public String getAuthorizationHeader(String username, String password) {
+    public static String getAuthorizationHeader(String username, String password) {
         String credentials =
             String.format("%s:%s", URLEncoder.encode(username, StandardCharsets.UTF_8), URLEncoder.encode(password, StandardCharsets.UTF_8));
         return String.format("Basic %s", new String(Base64.encode(credentials.getBytes())));

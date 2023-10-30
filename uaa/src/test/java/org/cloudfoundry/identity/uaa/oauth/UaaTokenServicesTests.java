@@ -518,6 +518,7 @@ class UaaTokenServicesTests {
 
         @BeforeEach
         void init() {
+            assumeTrue(waitForClient(clientId, 3), "Test client jku_test not up yet");
             refreshTokenRequestData = new RefreshTokenRequestData(
                     GRANT_TYPE_AUTHORIZATION_CODE,
                     Sets.newHashSet("openid", "user_attributes"),

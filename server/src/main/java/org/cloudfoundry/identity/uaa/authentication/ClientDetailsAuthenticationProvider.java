@@ -25,12 +25,14 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getSafeParameterValue;
@@ -74,6 +76,9 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         setAuthenticationMethod(authentication, CLIENT_AUTH_PRIVATE_KEY_JWT);
                         break;
                     }
+                } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
+                    // set internally empty as client_auth_method e.g. cf client
+                    setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
                 }
                 if (uaaClient.getPassword() == null) {
                     error = new BadCredentialsException("Missing credentials");
