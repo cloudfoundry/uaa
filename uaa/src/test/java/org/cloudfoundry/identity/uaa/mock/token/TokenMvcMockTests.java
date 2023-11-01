@@ -858,7 +858,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(
                         header()
                                 .stringValues("WWW-Authenticate",
-                                        "Basic realm=\"UAA/client\"")
+                                        "Basic realm=\"UAA/client\", error=\"unauthorized\", error_description=\"Bad credentials\"")
                 );
     }
 

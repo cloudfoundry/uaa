@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 
 public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslator {
@@ -26,7 +27,9 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
         HttpHeaders headers = new HttpHeaders();
         headers.set("Cache-Control", "no-store");
         headers.set("Pragma", "no-cache");
-
+        if (status == HttpStatus.UNAUTHORIZED.value() && (e instanceof UnauthorizedClientException)) {
+            headers.set("WWW-Authenticate", "Basic error=\"unauthorized\", error_description=\"Bad credentials\"");
+        }
         return new ResponseEntity<OAuth2Exception>(e, headers,
             HttpStatus.valueOf(status));
 
