@@ -9,7 +9,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 
 public class SamlLogoutAuthSourceEndpoint extends Page {
-    static final protected String urlPath = "/module.php/core/logout";
+    static final private String urlPath = "/module.php/core/logout";
 
     public SamlLogoutAuthSourceEndpoint(WebDriver driver) {
         super(driver);

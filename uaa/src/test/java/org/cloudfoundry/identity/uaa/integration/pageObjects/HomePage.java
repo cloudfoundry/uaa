@@ -8,7 +8,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 
 public class HomePage extends Page {
-    static final protected String urlPath = "/";
+    static final private String urlPath = "/";
 
     public HomePage(WebDriver driver) {
         super(driver);

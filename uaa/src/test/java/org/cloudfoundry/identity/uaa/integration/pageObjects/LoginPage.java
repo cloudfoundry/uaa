@@ -7,7 +7,7 @@ import static org.hamcrest.Matchers.matchesPattern;
 
 public class LoginPage extends Page {
 
-    static final protected String urlPath = "/login";
+    static final private String urlPath = "/login";
 
     public LoginPage(WebDriver driver) {
         super(driver);

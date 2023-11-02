@@ -6,7 +6,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 
 public class SamlErrorPage extends Page {
-    static final protected String urlPath = "/saml_error";
+    static final private String urlPath = "/saml_error";
 
     public SamlErrorPage(WebDriver driver) {
         super(driver);
