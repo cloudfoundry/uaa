@@ -8,7 +8,7 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertThat;
 
 public class PasscodePage extends Page {
-    static final protected String urlPath = "/passcode";
+    static final private String urlPath = "/passcode";
 
     public PasscodePage(WebDriver driver) {
         super(driver);

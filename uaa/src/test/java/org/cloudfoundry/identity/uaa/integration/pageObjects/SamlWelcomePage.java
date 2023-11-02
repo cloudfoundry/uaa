@@ -8,7 +8,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 
 public class SamlWelcomePage extends Page {
-    static final protected String urlPath = "module.php/core/welcome";
+    static final private String urlPath = "module.php/core/welcome";
 
     public SamlWelcomePage(WebDriver driver) {
         super(driver);

@@ -6,7 +6,7 @@ import java.nio.charset.StandardCharsets;
 import org.openqa.selenium.WebDriver;
 
 public class LogoutDoEndpoint extends Page {
-    static final protected String urlPath = "/logout.do";
+    static final private String urlPath = "/logout.do";
 
 
     public LogoutDoEndpoint(WebDriver driver) {
