@@ -1,3 +1,3 @@
 #@data/values
 ---
-image: "index.docker.io/cloudfoundry/uaa@sha256:1dffd343dde85b492e26b83df4d3dea3bdc23611870c801bdf7e9bda11f9fba4"
+image: "index.docker.io/cloudfoundry/uaa@sha256:130d87d20961ad62e9ee6994aae4570df5799a7b269effc538c06ac60e065d93"
