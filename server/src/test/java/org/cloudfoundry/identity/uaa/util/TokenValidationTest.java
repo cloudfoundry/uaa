@@ -41,6 +41,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -52,6 +53,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
+import org.springframework.util.ResourceUtils;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -117,7 +119,7 @@ public class TokenValidationTest {
     private AbstractAppender appender;
 
     @Before
-    public void setupLogger() {
+    public void setupLogger() throws Exception {
         logEvents = new ArrayList<>();
         appender = new AbstractAppender("", null, null) {
             @Override
@@ -128,6 +130,8 @@ public class TokenValidationTest {
         appender.start();
 
         LoggerContext context = (LoggerContext) LogManager.getContext(false);
+        context.setConfigLocation(ResourceUtils.toURI(
+                new ClassPathResource("log4j2-test.properties").getFile().getAbsolutePath()));
         context.getRootLogger().addAppender(appender);
     }
 
