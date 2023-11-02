@@ -15,8 +15,33 @@ UAA/logout.do as Front-channel logout URL, so that you also get SLO for your bro
    `http://{UAA_HOST}/login/callback/{origin}`. [Additional documentation for achieving this can be found here](https://learn.microsoft.com/en-us/entra/identity-platform/reply-url).
 
 3. In section Certificates and serets it is reommended to store your X509. You can get it from your UAA/token_keys from property x5c.
+   You can setup UAA with X509 certificates in JWT with your existing private key with following commands:
 
-4. Minimal OIDC configuration needs to be added in login.yml. Read configuration refer to '[https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)' for discoveryUrl and issuer
+
+      openssl req -x509 -sha256 -new -key <your-key-from-uaa-yaml> -out <server.csr>
+   
+      openssl x509 -sha256 -days 365 -in <server.csr> -signkey <your-key-from-uaa-yaml>
+
+
+4. Copy the received X509 certificate into your uaa.yml.
+
+        jwt:
+         token:
+           policy:
+             activeKeyId: legacy-token-key
+             keys:
+               legacy-token-key:
+                 signingAlg: RS256
+                 signingKey: |
+                   -----BEGIN PRIVATE KEY-----
+                   ... <your existing private key>
+                   -----END PRIVATE KEY-----
+                 signingCert:
+                   -----BEGIN CERTIFICATE-----
+                   ... <your generated X509>
+                   -----END CERTIFICATE-----
+
+5. Minimal OIDC configuration needs to be added in login.yml. Read configuration refer to '[https://login.microsoftonline.com/{tenant}/v2.0/.well-known/openid-configuration](https://learn.microsoft.com/en-us/entra/identity-platform/v2-protocols-oidc)' for discoveryUrl and issuer
 
         login:
           oauth:
@@ -36,9 +61,9 @@ UAA/logout.do as Front-channel logout URL, so that you also get SLO for your bro
                 relyingPartyId: 3feb7ecb-d106-4432-b335-aca2689ad123
                 jwtclientAuthentication: true
 
-5. Ensure that the scope `openid`, `email` and `profile` is included in the`scopes` property. Then UAA shadow user (if addShadowUserOnLogin=true) is 
+6. Ensure that the scope `openid`, `email` and `profile` is included in the`scopes` property. Then UAA shadow user (if addShadowUserOnLogin=true) is 
 created with most important properties like first and last name and the email. The UAA user name can be defined with a
 custom configuration as pointed out in the example. If the user_name mapping is not set, it will be an opaque id always.
 If you want use another attribute from your directory, define the claim in token configuration and map it here.
 
-6. Restart UAA. You will see `Login with Microsoft` link on your login page.
+7. Restart UAA. You will see `Login with Microsoft` link on your login page.
