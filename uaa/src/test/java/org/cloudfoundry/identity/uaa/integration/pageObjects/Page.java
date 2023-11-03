@@ -36,7 +36,7 @@ public class Page {
         assertThat(driver.getTitle(), matcher);
     }
 
-    public LoginPage logout_goToLoginPage() {
+    public LoginPage logout_goesToLoginPage() {
         clickLogout();
         return new LoginPage(driver);
     }

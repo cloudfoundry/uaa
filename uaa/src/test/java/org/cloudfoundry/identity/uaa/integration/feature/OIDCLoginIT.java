@@ -233,7 +233,7 @@ public class OIDCLoginIT {
     }
 
     private void doLogout(String zoneUrl) {
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         webDriver.manage().deleteAllCookies();
 
         for (String url : Arrays.asList(baseUrl + "/logout.do", zoneUrl + "/logout.do")) {

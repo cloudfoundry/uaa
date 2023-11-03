@@ -15,17 +15,17 @@ public class SamlLoginPage extends Page {
         validateUrl(driver, containsString(urlPath));
     }
 
-    public HomePage login_goToHomePage(String username, String password) {
+    public HomePage login_goesToHomePage(String username, String password) {
         sendLoginCredentials(username, password);
         return new HomePage(driver);
     }
 
-    public PasscodePage login_goToPasscodePage(String username, String password) {
+    public PasscodePage login_goesToPasscodePage(String username, String password) {
         sendLoginCredentials(username, password);
         return new PasscodePage(driver);
     }
 
-    public SamlErrorPage login_goToSamlErrorPage(String username, String password) {
+    public SamlErrorPage login_goesToSamlErrorPage(String username, String password) {
         sendLoginCredentials(username, password);
         return new SamlErrorPage(driver);
     }

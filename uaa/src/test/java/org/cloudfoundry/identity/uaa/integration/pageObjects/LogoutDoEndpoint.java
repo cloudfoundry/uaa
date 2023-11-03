@@ -13,7 +13,7 @@ public class LogoutDoEndpoint extends Page {
         super(driver);
     }
 
-    static public LoginPage logout_goToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
+    static public LoginPage logout_goesToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
         driver.get(
                 baseUrl
                 + urlPath
