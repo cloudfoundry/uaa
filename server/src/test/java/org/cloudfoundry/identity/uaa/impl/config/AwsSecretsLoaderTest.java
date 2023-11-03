@@ -4,10 +4,13 @@ import com.amazonaws.services.secretsmanager.AWSSecretsManager;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueRequest;
 import com.amazonaws.services.secretsmanager.model.GetSecretValueResult;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.MockedConstruction;
 import org.mockito.Mockito;
 import org.springframework.core.convert.TypeDescriptor;
@@ -20,8 +23,12 @@ import org.yaml.snakeyaml.Yaml;
 
 import javax.servlet.ServletContext;
 import java.util.*;
+import java.util.stream.Stream;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -32,7 +39,6 @@ class AwsSecretsLoaderTest {
     private AWSSecretsManager awsSecretsManager;
     private YamlServletProfileInitializer initializer;
     private ConfigurableWebApplicationContext context;
-    private ServletContext servletContext;
 
     private static final String TEST_SECRET_NAME_1 = "/dummy-non-existing-aws-secret-manager-secret/test-secret-1";
     private static final String TEST_SECRET_NAME_2 = "/dummy-non-existing-aws-secret-manager-secret/test-secret-2";
@@ -58,7 +64,7 @@ class AwsSecretsLoaderTest {
         awsSecretsManager = mock(AWSSecretsManager.class);
         initializer = spy(YamlServletProfileInitializer.class);
         context = mock(ConfigurableWebApplicationContext.class);
-        servletContext = mock(ServletContext.class);
+        ServletContext servletContext = mock(ServletContext.class);
 
         doReturn(servletContext).when(context).getServletContext();
         doReturn(environment).when(context).getEnvironment();
@@ -71,8 +77,8 @@ class AwsSecretsLoaderTest {
         System.clearProperty("AWS_SECRET_MANAGER_NAMES");
     }
 
-    String vaidYamlString() {
-        String yamlString = TEST_KEY_1 + ": " + TEST_VALUE_1 + "\n" +
+    private static String validYamlString() {
+        return TEST_KEY_1 + ": " + TEST_VALUE_1 + "\n" +
                 TEST_KEY_2 + ": " + TEST_VALUE_2 + "\n" +
                 TEST_KEY_3 + ": " + TEST_VALUE_3 + "\n" +
                 TEST_KEY_4 + ":\n" +
@@ -84,7 +90,15 @@ class AwsSecretsLoaderTest {
                 "      secret: " + TEST_VALUE_5_CLIENT_1_SECRET + "\n" +
                 "    " + TEST_VALUE_5_CLIENT_2 + ":\n" +
                 "      secret: " + TEST_VALUE_5_CLIENT_2_SECRET;
-        return yamlString;
+     }
+
+    private static String validJsonString() throws JsonProcessingException {
+        String yamlString = validYamlString();
+        Yaml yaml = new Yaml();
+        Map<String, Object> map = yaml.load(yamlString);
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode jsonNode = objectMapper.convertValue(map, JsonNode.class);
+        return objectMapper.writeValueAsString(jsonNode);
     }
 
     @Test
@@ -93,7 +107,7 @@ class AwsSecretsLoaderTest {
         mockSecretManagerCalls();
         List<Resource> resources = awsSecretsLoader.createResourcesFromSecrets(environment);
         assertNotNull(resources);
-        assertTrue(resources.size() == 1);
+        assertEquals(1, resources.size());
         assertTrue(resources.get(0).getDescription().contains(TEST_SECRET_NAME_1));
         verify(awsSecretsLoader, times(1)).awsSecretsManager();
     }
@@ -104,7 +118,7 @@ class AwsSecretsLoaderTest {
         mockSecretManagerCalls();
         List<Resource> resources = awsSecretsLoader.createResourcesFromSecrets(environment);
         assertNotNull(resources);
-        assertTrue(resources.size() == 2);
+        assertEquals(2, resources.size());
         assertTrue(resources.get(0).getDescription().contains(TEST_SECRET_NAME_1));
         assertTrue(resources.get(1).getDescription().contains(TEST_SECRET_NAME_2));
         verify(awsSecretsLoader, times(1)).awsSecretsManager();
@@ -137,8 +151,9 @@ class AwsSecretsLoaderTest {
         verify(awsSecretsLoader, times(0)).awsSecretsManager();
     }
 
-    @Test
-    void testEnvironmentVariablesLoadedFromSecretName() throws JsonProcessingException {
+    @ParameterizedTest(name = "testEnvironmentVariablesLoadedFromSecretNameWithValidContent(): {index}")
+    @MethodSource("getValidContent")
+    void testEnvironmentVariablesLoadedFromSecretNameWithValidContent(List<Resource> resources) throws JsonProcessingException {
 
         // Set aws secret manager secret names
         System.setProperty("AWS_SECRET_MANAGER_NAMES", TEST_SECRET_NAME_1 + ";" + TEST_SECRET_NAME_2);
@@ -151,10 +166,9 @@ class AwsSecretsLoaderTest {
         assertNull(environment.getProperty(TEST_KEY_5));
 
         // Mock AwsSecretsLoader constructor(new AwsSecretsLoader()) call and this mocking is limited to below try block
-        try (MockedConstruction<AwsSecretsLoader> myobjectMockedConstruction =
-                     Mockito.mockConstruction(AwsSecretsLoader.class, (mock, context) -> {
-                         doReturn(resources()).when(mock).createResourcesFromSecrets(environment);
-                     })) {
+        try (MockedConstruction<AwsSecretsLoader> mockedConstruction =
+                     Mockito.mockConstruction(AwsSecretsLoader.class, (mock, context) ->
+                             doReturn(resources).when(mock).createResourcesFromSecrets(environment))) {
 
             addConvertor(environment);
             initializer.initialize(context);
@@ -178,8 +192,8 @@ class AwsSecretsLoaderTest {
             assertTrue(key5Value.contains(TEST_VALUE_5_CLIENT_2));
 
             // Verify AwsSecretsLoader calls
-            assertTrue(myobjectMockedConstruction.constructed().size() > 0);
-            AwsSecretsLoader mock = myobjectMockedConstruction.constructed().get(0);
+            assertTrue(mockedConstruction.constructed().size() > 0);
+            AwsSecretsLoader mock = mockedConstruction.constructed().get(0);
             verify(mock, times(1)).createResourcesFromSecrets(environment);
         }
     }
@@ -198,10 +212,9 @@ class AwsSecretsLoaderTest {
         assertNull(environment.getProperty(TEST_KEY_5));
 
         // Mock AwsSecretsLoader constructor(new AwsSecretsLoader()) call and this mocking is limited to below try block
-        try (MockedConstruction<AwsSecretsLoader> myobjectMockedConstruction =
-                     Mockito.mockConstruction(AwsSecretsLoader.class, (mock, context) -> {
-                         doReturn(null).when(mock).createResourcesFromSecrets(environment);
-                     })) {
+        try (MockedConstruction<AwsSecretsLoader> mockedConstruction =
+                     Mockito.mockConstruction(AwsSecretsLoader.class, (mock, context)
+                             -> doReturn(null).when(mock).createResourcesFromSecrets(environment))) {
 
             addConvertor(environment);
             initializer.initialize(context);
@@ -214,16 +227,17 @@ class AwsSecretsLoaderTest {
             assertNull(environment.getProperty(TEST_KEY_5));
 
             // Verify AwsSecretsLoader calls
-            assertTrue(myobjectMockedConstruction.constructed().size() > 0);
-            AwsSecretsLoader mock = myobjectMockedConstruction.constructed().get(0);
+            assertTrue(mockedConstruction.constructed().size() > 0);
+            AwsSecretsLoader mock = mockedConstruction.constructed().get(0);
             verify(mock, times(1)).createResourcesFromSecrets(environment);
         }
     }
 
-    @Test
-    void testEnvironmentVariablesNotLoadedWithInvalidYamlContent() {
+    @ParameterizedTest(name = "testEnvironmentVariablesNotLoadedWithInvalidContent(): {index}")
+    @MethodSource("getInvalidContent")
+    void testEnvironmentVariablesNotLoadedWithInvalidContent(List<Resource> resources) {
 
-        // Set aws secret manager secret names with just empty spaces
+        // Set aws secret manager secret names
         System.setProperty("AWS_SECRET_MANAGER_NAMES", TEST_SECRET_NAME_1);
 
         // Assert test keys not present in environment
@@ -234,10 +248,9 @@ class AwsSecretsLoaderTest {
         assertNull(environment.getProperty(TEST_KEY_5));
 
         // Mock AwsSecretsLoader constructor(new AwsSecretsLoader()) call and this mocking is limited to below try block
-        try (MockedConstruction<AwsSecretsLoader> myobjectMockedConstruction =
-                     Mockito.mockConstruction(AwsSecretsLoader.class, (mock, context) -> {
-                         doReturn(resourcesWithInvalidYamlContent()).when(mock).createResourcesFromSecrets(environment);
-                     })) {
+        try (MockedConstruction<AwsSecretsLoader> mockedConstruction =
+                     Mockito.mockConstruction(AwsSecretsLoader.class, (mock, context) ->
+                             doReturn(resources).when(mock).createResourcesFromSecrets(environment))) {
 
             addConvertor(environment);
             initializer.initialize(context);
@@ -250,8 +263,8 @@ class AwsSecretsLoaderTest {
             assertNull(environment.getProperty(TEST_KEY_5));
 
             // Verify AwsSecretsLoader calls
-            assertTrue(myobjectMockedConstruction.constructed().size() > 0);
-            AwsSecretsLoader mock = myobjectMockedConstruction.constructed().get(0);
+            assertTrue(mockedConstruction.constructed().size() > 0);
+            AwsSecretsLoader mock = mockedConstruction.constructed().get(0);
             verify(mock, times(1)).createResourcesFromSecrets(environment);
         }
     }
@@ -260,7 +273,7 @@ class AwsSecretsLoaderTest {
         // Mock aws secret manager calls
         doReturn(awsSecretsManager).when(awsSecretsLoader).awsSecretsManager();
         GetSecretValueResult getSecretValueResult = new GetSecretValueResult();
-        getSecretValueResult.setSecretString(vaidYamlString());
+        getSecretValueResult.setSecretString(validYamlString());
         doReturn(getSecretValueResult).when(awsSecretsManager).getSecretValue(any(GetSecretValueRequest.class));
     }
 
@@ -296,20 +309,45 @@ class AwsSecretsLoaderTest {
         });
     }
 
-    private List<Resource> resources() {
+    private static List<Resource> resourcesWithValidYamlContent() {
         List<Resource> awsResources = new ArrayList<>();
-        Resource resource1 = new ByteArrayResource(vaidYamlString().getBytes(), TEST_SECRET_NAME_1);
+        Resource resource1 = new ByteArrayResource(validYamlString().getBytes(), TEST_SECRET_NAME_1);
         Resource resource2 = new ByteArrayResource("".getBytes(), TEST_SECRET_NAME_2);
         awsResources.add(resource1);
         awsResources.add(resource2);
         return awsResources;
     }
 
-    private List<Resource> resourcesWithInvalidYamlContent() {
+    private static List<Resource> resourcesWithInvalidYamlContent() {
         List<Resource> awsResources = new ArrayList<>();
         Resource resource1 = new ByteArrayResource(
-                (vaidYamlString() + "\n\nappend invalid yaml format string").getBytes(), TEST_SECRET_NAME_1);
+                (validYamlString() + "\n\nappend invalid yaml format string").getBytes(), TEST_SECRET_NAME_1);
         awsResources.add(resource1);
         return awsResources;
+    }
+
+    private static List<Resource> resourcesWithValidJsonContent() throws JsonProcessingException {
+        List<Resource> awsResources = new ArrayList<>();
+        Resource resource1 = new ByteArrayResource(validJsonString().getBytes(), TEST_SECRET_NAME_1);
+        Resource resource2 = new ByteArrayResource("{}".getBytes(), TEST_SECRET_NAME_2);
+        awsResources.add(resource1);
+        awsResources.add(resource2);
+        return awsResources;
+    }
+
+    private static List<Resource> resourcesWithInvalidJsonContent() throws JsonProcessingException {
+        List<Resource> awsResources = new ArrayList<>();
+        Resource resource1 = new ByteArrayResource(
+                (validJsonString() + "\n\nappend invalid json format string").getBytes(), TEST_SECRET_NAME_1);
+        awsResources.add(resource1);
+        return awsResources;
+    }
+
+    private static Stream<List<Resource>> getValidContent() throws JsonProcessingException {
+        return Stream.of(resourcesWithValidYamlContent(), resourcesWithValidJsonContent());
+    }
+
+    private static Stream<List<Resource>> getInvalidContent() throws JsonProcessingException {
+        return Stream.of(resourcesWithInvalidYamlContent(), resourcesWithInvalidJsonContent());
     }
 }
