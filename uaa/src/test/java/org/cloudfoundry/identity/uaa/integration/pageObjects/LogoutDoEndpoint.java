@@ -14,13 +14,16 @@ public class LogoutDoEndpoint extends Page {
     }
 
     static public LoginPage logout_goesToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
-        driver.get(
-                baseUrl
-                + urlPath
-                + "?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8)
-                + "&client_id=" + clientId
+        driver.get(buildLogoutDoUrl(baseUrl, redirectUrl, clientId)
         );
         return new LoginPage(driver);
+    }
+
+    private static String buildLogoutDoUrl(String baseUrl, String redirectUrl, String clientId) {
+        return baseUrl
+                + urlPath
+                + "?redirect=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8)
+                + "&client_id=" + clientId;
     }
 }
 
