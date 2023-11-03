@@ -16,7 +16,7 @@ public class HomePage extends Page {
         validatePageSource(driver, containsString("Where to?"));
     }
 
-    static public LoginPage goHome_redirectToLoginPage(WebDriver driver, String baseUrl) {
+    static public LoginPage goHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
         driver.get(baseUrl);
         return new LoginPage(driver);
     }

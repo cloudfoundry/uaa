@@ -21,7 +21,7 @@ public class LoginPage extends Page {
 
     // When there is a SAML integration, there is a link to go to a SAML login page instead. This assumes there is
     // only one SAML link.
-    public SamlLoginPage clickSamlLink_goToSamlLoginPage() {
+    public SamlLoginPage clickSamlLink_goesToSamlLoginPage() {
         clickFirstSamlLoginLink();
         return new SamlLoginPage(driver);
     }
@@ -29,7 +29,7 @@ public class LoginPage extends Page {
     // If the SAML IDP has no logout URL in the metadata, logging out of UAA will leave
     // the IDP still logged in, and when going back to the SAML login page, it will log
     // the app back in automatically and immediately redirect to the post-login page.
-    public HomePage clickSamlLink_goToHomePage() {
+    public HomePage clickSamlLink_goesToHomePage() {
         clickFirstSamlLoginLink();
         return new HomePage(driver);
     }
