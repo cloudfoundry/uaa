@@ -1,17 +1,14 @@
-package org.cloudfoundry.identity.uaa.integration.pageObjects;
+package org.cloudfoundry.identity.uaa.integration.endpoints;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.openqa.selenium.WebDriver;
 
-public class LogoutDoEndpoint extends Page {
+public class LogoutDoEndpoint {
     static final private String urlPath = "/logout.do";
-
-
-    public LogoutDoEndpoint(WebDriver driver) {
-        super(driver);
-    }
 
     static public LoginPage logout_goesToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
         driver.get(buildLogoutDoUrl(baseUrl, redirectUrl, clientId)
