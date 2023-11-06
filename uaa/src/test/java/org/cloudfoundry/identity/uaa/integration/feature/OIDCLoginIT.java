@@ -569,6 +569,18 @@ public class OIDCLoginIT {
         Assert.assertThat("URL validation failed", webDriver.getCurrentUrl(), endsWith("/login"));
     }
 
+    @Test
+    public void successfulUaaLogoutDoesNotTriggerExternalOIDCProviderLogout_whenConfiguredNotTo() {
+        identityProvider.getConfig().setPerformRpInitiatedLogout(false);
+        updateProvider();
+
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+
+        String externalOIDCProviderLoginPage = baseUrl;
+        webDriver.get(externalOIDCProviderLoginPage);
+        Assert.assertThat(webDriver.getPageSource(), containsString("Where to?"));
+    }
+
     private String getRefreshTokenResponse(ServerRunning serverRunning, String refreshToken) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("client_id", zoneClient.getClientId());

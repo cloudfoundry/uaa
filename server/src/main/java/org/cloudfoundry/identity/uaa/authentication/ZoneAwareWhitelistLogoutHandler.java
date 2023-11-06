@@ -47,11 +47,12 @@ public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         AbstractExternalOAuthIdentityProviderDefinition oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
         String logoutUrl = externalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
+        Boolean shouldPerformRpInitiatedLogout = externalOAuthLogoutHandler.getPerformRpInitiatedLogout(oauthConfig);
 
-        if (logoutUrl == null) {
-            getZoneHandler().onLogoutSuccess(request, response, authentication);
-        } else {
+        if (shouldPerformRpInitiatedLogout && logoutUrl != null) {
             externalOAuthLogoutHandler.onLogoutSuccess(request, response, authentication);
+        } else {
+            getZoneHandler().onLogoutSuccess(request, response, authentication);
         }
     }
 
