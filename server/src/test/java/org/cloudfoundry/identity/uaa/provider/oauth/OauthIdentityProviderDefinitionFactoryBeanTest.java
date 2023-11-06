@@ -234,4 +234,18 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
         assertEquals(0, receivedParameters.size());
     }
+
+    @Test
+    public void testPerformRpInitiatedLogoutTrue() {
+        idpDefinitionMap.put("performRpInitiatedLogout", true);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertTrue(providerDefinition.isPerformRpInitiatedLogout());
+    }
+
+    @Test
+    public void testPerformRpInitiatedLogoutFalse() {
+        idpDefinitionMap.put("performRpInitiatedLogout", false);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertFalse(providerDefinition.isPerformRpInitiatedLogout());
+    }
 }

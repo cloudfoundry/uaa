@@ -635,7 +635,7 @@ _Error Codes_
 ## Logout.do
 
 The logout endpoint is meant to be used by applications to log the user out of the UAA session. UAA will only log a user out of the UAA session if they also hit this endpoint, and may also perform Single Logout with SAML providers if configured to do so.
-UAA will also log users out of OIDC proxied authenticated sessions based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html).
+UAA may also log users out of OIDC proxied authenticated sessions based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html) if configured to do so.
 The recommendation for application authors is to:
 
 * provide a local logout feature specific to the client application

@@ -123,4 +123,11 @@ public class ExternalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     }
     return config.getLinks().getLogout().getRedirectUrl();
   }
+
+  public Boolean getPerformRpInitiatedLogout(AbstractExternalOAuthIdentityProviderDefinition oauthConfig) {
+    if (oauthConfig == null) {
+      return false;
+    }
+    return oauthConfig.isPerformRpInitiatedLogout();
+  }
 }
