@@ -148,7 +148,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
     private boolean exists(String clientId, String zoneId) {
         List<String> idResults = jdbcTemplate.queryForList(SINGLE_SELECT_STATEMENT, String.class, clientId, zoneId);
-        return idResults.size() == 1;
+        return idResults != null && idResults.size() == 1;
     }
 
     @Override
