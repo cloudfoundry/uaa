@@ -11,7 +11,13 @@ import java.net.URI;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
@@ -34,7 +40,10 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig.SignatureAlgorithm;
-import org.cloudfoundry.identity.uaa.zone.model.*;
+import org.cloudfoundry.identity.uaa.zone.model.ConnectionDetails;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneHeader;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneRequest;
+import org.cloudfoundry.identity.uaa.zone.model.OrchestratorZoneResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -211,6 +220,10 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     private OrchestratorZoneResponse importZone(OrchestratorZoneRequest zoneRequest) {
         String importedServiceInstanceGuid = zoneRequest.getParameters().getImportedServiceInstanceGuid();
         logger.info("Importing existing Identity Zone {}", importedServiceInstanceGuid);
+        // Retrieve native and orchestrator zone using LEFT JOIN,
+        // Case1: If response contains no record, native zone not available or invalid importServiceInstanceGuid
+        // Case2: If response contains native zone alone, zone can be imported
+        // Case3: If response contains both native and orchestrator, zone already imported.
         OrchestratorZoneEntity orchestratorZone = zoneProvisioning.retrieveOrchestratorZoneByIdentityZoneId(importedServiceInstanceGuid);
         if (!isZoneNotFoundOrAlreadyImported(orchestratorZone)) {
             zoneProvisioning.createOrchestratorZone(orchestratorZone.getIdentityZoneId(), zoneRequest.getName());
@@ -221,8 +234,8 @@ public class OrchestratorZoneService implements ApplicationEventPublisherAware {
     private boolean isZoneNotFoundOrAlreadyImported(OrchestratorZoneEntity orchestratorZone) {
 
         if (Objects.nonNull(orchestratorZone.getOrchestratorZoneName())) {
-            String errorMessage = String.format("Invalid Operation , Zone  " +
-                    "%s , already present in orchestrator zone, Import not needed ", orchestratorZone.getIdentityZoneId());
+            String errorMessage = String.format("Invalid Operation, Zone  " +
+                    "%s ,already present in orchestrator zone, Import not needed ", orchestratorZone.getIdentityZoneId());
             logger.error(errorMessage);
             throw new ZoneAlreadyExistsException(errorMessage);
         }
