@@ -561,7 +561,10 @@ public class OIDCLoginIT {
     }
 
     @Test
-    public void successfulUaaLogoutTriggersExternalOIDCProviderLogout() {
+    public void successfulUaaLogoutTriggersExternalOIDCProviderLogout_whenConfiguredTo() {
+        identityProvider.getConfig().setPerformRpInitiatedLogout(true);
+        updateProvider();
+
         validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
 
         String externalOIDCProviderLoginPage = baseUrl;
