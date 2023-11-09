@@ -569,7 +569,8 @@ public class OIDCLoginIT {
 
         String externalOIDCProviderLoginPage = baseUrl;
         webDriver.get(externalOIDCProviderLoginPage);
-        Assert.assertThat("URL validation failed", webDriver.getCurrentUrl(), endsWith("/login"));
+        Assert.assertThat("Did not land on the external OIDC provider login page (as an unauthenticated user).",
+                webDriver.getCurrentUrl(), endsWith("/login"));
     }
 
     @Test
@@ -581,7 +582,8 @@ public class OIDCLoginIT {
 
         String externalOIDCProviderLoginPage = baseUrl;
         webDriver.get(externalOIDCProviderLoginPage);
-        Assert.assertThat(webDriver.getPageSource(), containsString("Where to?"));
+        Assert.assertThat("Did not land on the external OIDC provider home page (as an authenticated user).",
+                webDriver.getPageSource(), containsString("Where to?"));
     }
 
     private String getRefreshTokenResponse(ServerRunning serverRunning, String refreshToken) {
