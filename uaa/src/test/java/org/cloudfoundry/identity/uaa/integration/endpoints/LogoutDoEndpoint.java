@@ -11,8 +11,7 @@ public class LogoutDoEndpoint {
     static final private String urlPath = "/logout.do";
 
     static public LoginPage logout_goesToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
-        driver.get(buildLogoutDoUrl(baseUrl, redirectUrl, clientId)
-        );
+        driver.get(buildLogoutDoUrl(baseUrl, redirectUrl, clientId));
         return new LoginPage(driver);
     }
 
