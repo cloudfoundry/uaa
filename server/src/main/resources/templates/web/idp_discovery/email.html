@@ -18,7 +18,7 @@
 
     <div class="form-group email_address_field">
         <div style="height: 42px">
-            <input class="form-control" id="email" name="email" autofocus="true" placeholder="Email or Username" style="width: 100%; float: left"/>
+            <input class="form-control" id="email" name="email" autofocus="true" placeholder="Email or Username" aria-label="Email or Username" style="width: 100%; float: left"/>
         </div>
         <input th:if="${param.login_hint}"
                th:unless="${login_hint}"
