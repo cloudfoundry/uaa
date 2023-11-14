@@ -88,7 +88,10 @@ dependencies {
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
     testImplementation(libraries.springSecurityLdap)
-    testImplementation(libraries.springSecuritySaml)
+    testImplementation(libraries.springSecuritySaml) {
+        exclude(module: "opensaml")
+    }
+    testImplementation(libraries.openSaml)
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
