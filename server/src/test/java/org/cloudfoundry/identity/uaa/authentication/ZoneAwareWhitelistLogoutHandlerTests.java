@@ -179,6 +179,14 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
+    public void test_does_not_external_logout_when_logout_url_is_null() throws ServletException, IOException {
+        when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn(null);
+        when(oAuthLogoutHandler.getPerformRpInitiatedLogout(null)).thenReturn(true);
+        handler.onLogoutSuccess(request, response, null);
+        verify(oAuthLogoutHandler, times(0)).onLogoutSuccess(request, response, null);
+    }
+
+    @Test
     public void test_logout() throws ServletException, IOException {
         handler.onLogoutSuccess(request, response, null);
         verify(oAuthLogoutHandler, times(0)).onLogoutSuccess(request, response, null);
