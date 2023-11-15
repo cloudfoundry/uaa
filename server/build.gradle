@@ -32,6 +32,7 @@ dependencies {
         exclude(module: "opensaml")
     }
     implementation(libraries.openSaml)
+    implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 

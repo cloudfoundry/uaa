@@ -90,14 +90,17 @@ dependencies {
     testImplementation(libraries.springSecurityLdap)
     testImplementation(libraries.springSecuritySaml) {
         exclude(module: "opensaml")
+        exclude(module: "commons-io")
     }
     testImplementation(libraries.openSaml)
+    testImplementation(libraries.springSecuritySamlServiceProvider)
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
     testImplementation(libraries.greenmail)
+    testImplementation(libraries.commonsIo)
 }
 
 ext {

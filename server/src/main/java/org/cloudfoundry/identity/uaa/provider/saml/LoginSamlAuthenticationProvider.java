@@ -49,10 +49,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.saml.SAMLAuthenticationProvider;
-import org.springframework.security.saml.SAMLAuthenticationToken;
+//import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
+
+import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
+
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -124,8 +127,8 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
         IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
         logger.debug(String.format("Initiating SAML authentication in zone '%s' domain '%s'", zone.getId(), zone.getSubdomain()));
-        SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
-        SAMLMessageContext context = token.getCredentials();
+        Saml2AuthenticationToken token = (Saml2AuthenticationToken) authentication;
+        SAMLMessageContext context = (SAMLMessageContext) token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
         String relayState = context.getRelayState();
         boolean addNew;

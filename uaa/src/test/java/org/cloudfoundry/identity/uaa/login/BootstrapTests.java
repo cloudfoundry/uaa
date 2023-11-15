@@ -29,7 +29,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
@@ -123,7 +122,6 @@ class BootstrapTests {
 
         context = getServletContext("default", "uaa.yml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertNotNull(findProvider(defs, "testIDPFile"));
@@ -156,7 +154,6 @@ class BootstrapTests {
 
         context = getServletContext("default", "uaa.yml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertNull(
@@ -176,7 +173,6 @@ class BootstrapTests {
 
         context = getServletContext("default", "uaa.yml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
         assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertFalse(

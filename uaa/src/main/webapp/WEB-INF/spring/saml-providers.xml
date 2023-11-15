@@ -28,9 +28,6 @@
         </security:filter-chain-map>
     </bean>
 
-    <!-- Logger for SAML messages and events -->
-    <bean id="samlLogger" class="org.springframework.security.saml.log.SAMLDefaultLogger"/>
-
     <!-- Entry point to initialize authentication, default values taken from
         properties file -->
     <bean id="samlEntryPoint" class="org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint">
