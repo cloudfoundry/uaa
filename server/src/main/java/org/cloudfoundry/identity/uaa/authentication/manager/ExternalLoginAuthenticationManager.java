@@ -115,11 +115,11 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
         logger.debug("Starting external authentication for:"+request);
-        logger.debug("TKGI-6915 100");
+        logger.info("TKGI-6915 100");
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
-        logger.debug("TKGI-6915 200");
+        logger.info("TKGI-6915 200");
         UaaUser userFromRequest = getUser(request, authenticationData);
-        logger.debug("TKGI-6915 300");
+        logger.info("TKGI-6915 300");
         if (userFromRequest == null) {
             return null;
         }
@@ -129,32 +129,38 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         try {
             logger.debug(String.format("Searching for user by (username:%s , origin:%s)", userFromRequest.getUsername(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
-            logger.debug("TKGI-6915 400");
+            logger.info("TKGI-6915 400");
         } catch (UsernameNotFoundException e) {
             logger.debug(String.format("Searching for user by (email:%s , origin:%s)", userFromRequest.getEmail(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), getOrigin());
-            logger.debug("TKGI-6915 500");
+            logger.info("TKGI-6915 500");
         }
 
         // Register new users automatically
         if (userFromDb == null) {
+            logger.info("TKGI-6915 510");
             if (!isAddNewShadowUser()) {
+                logger.info("TKGI-6915 520");
                 throw new AccountNotPreCreatedException("The user account must be pre-created. Please contact your system administrator.");
             }
+            logger.info("TKGI-6915 530");
             publish(new NewUserAuthenticatedEvent(userFromRequest));
+            logger.info("TKGI-6915 540");
             try {
                 userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
+                logger.info("TKGI-6915 550");
             } catch (UsernameNotFoundException ex) {
+                logger.info("TKGI-6915 560");
                 throw new BadCredentialsException("Unable to register user in internal UAA store.");
             }
         }
 
-        logger.debug("TKGI-6915 600");
+        logger.info("TKGI-6915 600");
 
         //user is authenticated and exists in UAA
         UaaUser user = userAuthenticated(request, userFromRequest, userFromDb);
 
-        logger.debug("TKGI-6915 700");
+        logger.info("TKGI-6915 700");
 
         UaaAuthenticationDetails uaaAuthenticationDetails;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
@@ -164,9 +170,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         populateAuthenticationAttributes(success, request, authenticationData);
-        logger.debug("TKGI-6915 800");
+        logger.info("TKGI-6915 800");
         publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
-        logger.debug("TKGI-6915 900");
+        logger.info("TKGI-6915 900");
         return success;
     }
 
