@@ -115,8 +115,11 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
         logger.debug("Starting external authentication for:"+request);
+        logger.debug("TKGI-6915 100");
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
+        logger.debug("TKGI-6915 200");
         UaaUser userFromRequest = getUser(request, authenticationData);
+        logger.debug("TKGI-6915 300");
         if (userFromRequest == null) {
             return null;
         }
@@ -126,9 +129,11 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         try {
             logger.debug(String.format("Searching for user by (username:%s , origin:%s)", userFromRequest.getUsername(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
+            logger.debug("TKGI-6915 400");
         } catch (UsernameNotFoundException e) {
             logger.debug(String.format("Searching for user by (email:%s , origin:%s)", userFromRequest.getEmail(), getOrigin()));
             userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), getOrigin());
+            logger.debug("TKGI-6915 500");
         }
 
         // Register new users automatically
@@ -144,8 +149,12 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             }
         }
 
+        logger.debug("TKGI-6915 600");
+
         //user is authenticated and exists in UAA
         UaaUser user = userAuthenticated(request, userFromRequest, userFromDb);
+
+        logger.debug("TKGI-6915 700");
 
         UaaAuthenticationDetails uaaAuthenticationDetails;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
@@ -155,7 +164,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         populateAuthenticationAttributes(success, request, authenticationData);
+        logger.debug("TKGI-6915 800");
         publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
+        logger.debug("TKGI-6915 900");
         return success;
     }
 
