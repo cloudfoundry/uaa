@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -45,13 +46,14 @@ public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
     @Override
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-        AbstractExternalOAuthIdentityProviderDefinition oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
+        AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
         String logoutUrl = externalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
+        boolean shouldPerformRpInitiatedLogout = externalOAuthLogoutHandler.getPerformRpInitiatedLogout(oauthConfig);
 
-        if (logoutUrl == null) {
-            getZoneHandler().onLogoutSuccess(request, response, authentication);
-        } else {
+        if (shouldPerformRpInitiatedLogout && logoutUrl != null) {
             externalOAuthLogoutHandler.onLogoutSuccess(request, response, authentication);
+        } else {
+            getZoneHandler().onLogoutSuccess(request, response, authentication);
         }
     }
 

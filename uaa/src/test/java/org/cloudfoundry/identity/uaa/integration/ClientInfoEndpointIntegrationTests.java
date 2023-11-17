@@ -84,7 +84,7 @@ public class ClientInfoEndpointIntegrationTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.getForObject("/clientinfo", Map.class, headers);
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("unauthorized", response.getBody().get("error"));
+        assertEquals("invalid_client", response.getBody().get("error"));
 
     }
 

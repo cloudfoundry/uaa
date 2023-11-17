@@ -88,6 +88,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -181,6 +182,7 @@ public class OIDCLoginIT {
         config.setTokenKeyUrl(new URL(urlBase + "/token_key"));
         config.setIssuer(urlBase + "/oauth/token");
         config.setUserInfoUrl(new URL(urlBase + "/userinfo"));
+        config.setLogoutUrl(new URL(urlBase + "/logout.do"));
 
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
@@ -556,6 +558,32 @@ public class OIDCLoginIT {
 
         assertThat(webDriver.getCurrentUrl(), containsString("error=invalid_request"));
         assertThat(webDriver.getCurrentUrl(), containsString("error_description=Missing%20response_type%20in%20authorization%20request"));
+    }
+
+    @Test
+    public void successfulUaaLogoutTriggersExternalOIDCProviderLogout_whenConfiguredTo() {
+        identityProvider.getConfig().setPerformRpInitiatedLogout(true);
+        updateProvider();
+
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+
+        String externalOIDCProviderLoginPage = baseUrl;
+        webDriver.get(externalOIDCProviderLoginPage);
+        Assert.assertThat("Did not land on the external OIDC provider login page (as an unauthenticated user).",
+                webDriver.getCurrentUrl(), endsWith("/login"));
+    }
+
+    @Test
+    public void successfulUaaLogoutDoesNotTriggerExternalOIDCProviderLogout_whenConfiguredNotTo() {
+        identityProvider.getConfig().setPerformRpInitiatedLogout(false);
+        updateProvider();
+
+        validateSuccessfulOIDCLogin(zoneUrl, testAccounts.getUserName(), testAccounts.getPassword());
+
+        String externalOIDCProviderLoginPage = baseUrl;
+        webDriver.get(externalOIDCProviderLoginPage);
+        Assert.assertThat("Did not land on the external OIDC provider home page (as an authenticated user).",
+                webDriver.getPageSource(), containsString("Where to?"));
     }
 
     private String getRefreshTokenResponse(ServerRunning serverRunning, String refreshToken) {

@@ -6,19 +6,19 @@ ext {
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM27"
-versions.bouncyCastleVersion = "1.76"
+versions.bouncyCastleVersion = "1.77"
 versions.hamcrestVersion = "2.2"
 versions.springBootVersion = "2.7.17"
 versions.springSecurityJwtVersion = "1.1.1.RELEASE"
 versions.springSecurityOAuthVersion = "2.5.2.RELEASE"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.tomcatCargoVersion = "9.0.82"
+versions.tomcatCargoVersion = "9.0.83"
 versions.guavaVersion = "32.1.3-jre"
 versions.seleniumVersion = "4.13.0"
 versions.braveVersion = "5.16.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
-ext["mariadb.version"] = "2.7.10" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
+ext["mariadb.version"] = "2.7.11" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
 ext["snakeyaml.version"] = "2.2" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 ext["jackson-bom.version"] = "2.15.3" // Bumping to latest version because of compatiblity to snakeyaml 2.0
@@ -122,7 +122,7 @@ libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.26"
 libraries.velocity = "org.apache.velocity:velocity-engine-core:2.3"
 libraries.xerces = "xerces:xercesImpl:2.12.2"
 libraries.zxing = "com.google.zxing:javase:3.5.2"
-libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.37"
+libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.37.1"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:4.0.0"
 libraries.orgJson = "org.json:json:20231013"
 libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.2.0"

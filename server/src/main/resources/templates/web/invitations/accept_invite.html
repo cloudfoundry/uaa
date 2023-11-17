@@ -18,8 +18,8 @@
           <th:block th:if="${provider == 'uaa'}">
             <form th:action="@{/invitations/accept.do}" method="post" novalidate="novalidate">
                 <input name="code" type="hidden" value="code" th:value="${code}"/>
-                <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
-                <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
+                <input name="password" type="password" placeholder="Password" aria-label="Password" autocomplete="off" class="form-control"/>
+                <input name="password_confirmation" type="password" placeholder="Confirm" aria-label="Confirm Password" autocomplete="off" class="form-control"/>
 
                 <label th:if="${consent_text}" style="margin-bottom: 20px">
                     <input name="does_user_consent" type="checkbox" style="display: inline">
@@ -36,8 +36,8 @@
                 <form th:action="@{/invitations/accept_enterprise.do}" method="post" novalidate="novalidate">
                     <input name="enterprise_email" type="hidden" th:value="${email}"/>
                     <input name="code" type="hidden" value="code" th:value="${code}"/>
-                    <input name="enterprise_username" type="text" placeholder="Username" autocomplete="off" class="form-control"/>
-                    <input name="enterprise_password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
+                    <input name="enterprise_username" type="text" placeholder="Username" aria-label="Username" autocomplete="off" class="form-control"/>
+                    <input name="enterprise_password" type="password" placeholder="Password" aria-label="Password" autocomplete="off" class="form-control"/>
                     <input type="submit" value="Sign in" class="island-button"/>
                 </form>
             </th:block>

@@ -134,4 +134,15 @@ class ExternalOAuthLogoutHandlerTest {
   void getNullOAuthProviderForAuthentication() {
     assertEquals(null, oAuthLogoutHandler.getOAuthProviderForAuthentication(null));
   }
+
+  @Test
+  void getPerformRpInitiatedLogout() {
+    oAuthIdentityProviderDefinition.setPerformRpInitiatedLogout(true);
+    assertEquals(true, oAuthLogoutHandler.getPerformRpInitiatedLogout(oAuthIdentityProviderDefinition));
+
+    oAuthIdentityProviderDefinition.setPerformRpInitiatedLogout(false);
+    assertEquals(false, oAuthLogoutHandler.getPerformRpInitiatedLogout(oAuthIdentityProviderDefinition));
+
+    assertEquals(false, oAuthLogoutHandler.getPerformRpInitiatedLogout(null));
+  }
 }
