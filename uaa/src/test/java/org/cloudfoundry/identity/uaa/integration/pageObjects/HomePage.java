@@ -7,6 +7,7 @@ import org.openqa.selenium.WebElement;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 
+// TODO extend LoggedInPage
 public class HomePage extends Page {
     static final private String urlPath = "/";
 
@@ -16,8 +17,8 @@ public class HomePage extends Page {
         validatePageSource(driver, containsString("Where to?"));
     }
 
-    static public LoginPage goHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl);
+    static public LoginPage tryToGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + urlPath);
         return new LoginPage(driver);
     }
 
