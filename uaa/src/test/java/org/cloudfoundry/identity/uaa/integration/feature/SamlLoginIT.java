@@ -317,7 +317,7 @@ public class SamlLoginIT {
 
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
-        HomePage.goHome_redirectsToLoginPage(webDriver, zoneUrl)
+        HomePage.tryToGoHome_redirectsToLoginPage(webDriver, zoneUrl)
                 .clickSamlLink_goesToSamlLoginPage()
                 .login_goesToSamlErrorPage(testAccounts.getUserName(), testAccounts.getPassword())
                 .validatePageSource(containsString("No local entity found for alias invalid, verify your configuration"));
