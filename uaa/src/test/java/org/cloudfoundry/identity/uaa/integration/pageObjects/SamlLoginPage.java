@@ -8,7 +8,7 @@ import static org.hamcrest.Matchers.containsString;
 
 public class SamlLoginPage extends Page {
     // This is on the saml server, not the UAA server
-    static final private String urlPath = "/module.php/core/loginuserpass";
+    static final public String urlPath = "/module.php/core/loginuserpass";
 
     public SamlLoginPage(WebDriver driver) {
         super(driver);

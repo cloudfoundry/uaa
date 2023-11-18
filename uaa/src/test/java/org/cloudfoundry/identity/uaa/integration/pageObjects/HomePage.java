@@ -9,7 +9,7 @@ import static org.hamcrest.Matchers.endsWith;
 
 // TODO extend LoggedInPage
 public class HomePage extends Page {
-    static final private String urlPath = "/";
+    static final public String urlPath = "/";
 
     public HomePage(WebDriver driver) {
         super(driver);

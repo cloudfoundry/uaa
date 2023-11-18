@@ -7,11 +7,12 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertThat;
 
 public class FaviconElement extends Page {
+    static final public String urlPath = "/favicon.ico";
 
     // The favicon.ico image is not present on the server because we specify a custom icon URL
     // in the headers, but browsers try to hit it and tests need to hit this default URL.
     static public FaviconElement getDefaultIcon(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + "/favicon.ico");
+        driver.get(baseUrl + urlPath);
         return new FaviconElement(driver);
     }
 

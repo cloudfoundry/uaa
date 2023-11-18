@@ -418,7 +418,7 @@ public class SamlLoginIT {
         loginPage.clickSamlLink_goesToSamlLoginPage()
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
-        String redirectUrl = zoneUrl + "/login?test=test";
+        String redirectUrl = zoneUrl + LoginPage.urlPath + "?test=test";
         BaseClientDetails clientDetails = new BaseClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
         clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
         clientDetails.setClientSecret("secret");
