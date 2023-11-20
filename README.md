@@ -1,6 +1,6 @@
 <link href="https://raw.github.com/clownfart/Markdown-CSS/master/markdown.css" rel="stylesheet"></link>
 
-[![slack.cloudfoundry.org](https://slack.cloudfoundry.org/badge.svg)](https://cloudfoundry.slack.com/archives/C03FXANBV)
+**Slack** [&#35;uaa](https://cloudfoundry.slack.com/archives/C03FXANBV)
 
 > **_Warning_**: _MFA feature in UAA is currently deprecated and will be removed in a future UAA version._
 
@@ -304,7 +304,7 @@ Of course, you can always abandon the default values altogether and provide your
 
 Here are some ways for you to get involved in the community:
 
-* Join uaa channel on [![slack.cloudfoundry.org](https://slack.cloudfoundry.org/badge.svg)](https://cloudfoundry.slack.com/archives/C03FXANBV)
+* Join uaa on slack [&#35;uaa](https://cloudfoundry.slack.com/archives/C03FXANBV)
 * Create [github](https://github.com/cloudfoundry/uaa/issues) tickets for bugs and new features and comment and
   vote on the ones that you are interested in.
 * Github is for social coding: if you want to write code, we encourage

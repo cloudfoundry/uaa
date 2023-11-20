@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import java.time.Duration;
+
 import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -11,17 +13,30 @@ public class Page {
 
     public Page(WebDriver driver) {
         this.driver = driver;
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
     }
 
     protected static void validateUrl(WebDriver driver, Matcher urlMatcher) {
         assertThat("URL validation failed", driver.getCurrentUrl(), urlMatcher);
     }
 
+    public void validateUrl(Matcher urlMatcher) {
+        validateUrl(driver, urlMatcher);
+    }
+
     protected static void validatePageSource(WebDriver driver, Matcher matcher) {
         assertThat(driver.getPageSource(), matcher);
     }
 
-    public LoginPage logout_goToLoginPage() {
+    public void validatePageSource(Matcher matcher) {
+        validatePageSource(driver, matcher);
+    }
+
+    public void validateTitle(Matcher matcher) {
+        assertThat(driver.getTitle(), matcher);
+    }
+
+    public LoginPage logout_goesToLoginPage() {
         clickLogout();
         return new LoginPage(driver);
     }

@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.integration.pageObjects.SamlLogoutAuthSourceEndpoint;
+import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
@@ -34,7 +34,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -142,7 +142,7 @@ public class InvitationsIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         webDriver.manage().deleteAllCookies();
 
         webDriver.get("http://localhost:8080/app/");

@@ -17,7 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.integration.pageObjects.SamlLogoutAuthSourceEndpoint;
+import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -235,7 +235,7 @@ public class OIDCLoginIT {
     }
 
     private void doLogout(String zoneUrl) {
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         webDriver.manage().deleteAllCookies();
 
         for (String url : Arrays.asList(baseUrl + "/logout.do", zoneUrl + "/logout.do")) {
