@@ -230,6 +230,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         }
     }
 
+    @SuppressWarnings("java:S1874")
     private List<String> getAllowedUserGroups(String zoneId) {
         List<String> zoneAllowedGroups = null; // default: all groups allowed
         if (!hasText(zoneId)) {
@@ -241,7 +242,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                 currentZone.getConfig().getUserConfig().getAllowedGroups() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getAllowedGroups();
         } catch (ZoneDoesNotExistsException e) {
-            logger.debug("could not retrieve identity zone with id: %s", zoneId);
+            logger.debug("could not retrieve identity zone with id: {}", zoneId);
         }
         return zoneAllowedGroups;
     }
