@@ -25,7 +25,9 @@ dependencies {
     implementation(libraries.spingSamlEsapiDependencyVersion) {
         transitive = false
     }
-    implementation(libraries.springSecuritySaml)
+    implementation(libraries.springSecuritySaml) {
+        exclude(module: "bcprov-ext-jdk15on")
+    }
     implementation(libraries.springSessionJdbc)
 
     implementation(libraries.springSecurityOauth) {
@@ -100,6 +102,7 @@ dependencies {
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
 }
 
 jar {
