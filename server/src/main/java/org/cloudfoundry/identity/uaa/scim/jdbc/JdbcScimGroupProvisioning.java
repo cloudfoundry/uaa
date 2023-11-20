@@ -69,6 +69,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     private JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager;
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+    private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
 
     public JdbcScimGroupProvisioning(
             final JdbcTemplate jdbcTemplate,
@@ -156,6 +157,10 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         this.jdbcScimGroupMembershipManager = jdbcScimGroupMembershipManager;
     }
 
+    public void setJdbcIdentityZoneProvisioning(JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning) {
+        this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
+    }
+
     void createAndIgnoreDuplicate(final String name, final String zoneId) {
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
@@ -231,7 +236,6 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
             return zoneAllowedGroups;
         }
         IdentityZone currentZone = IdentityZoneHolder.get();
-        JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         try {
             zoneAllowedGroups = (zoneId.equals(currentZone.getId())) ?
                 currentZone.getConfig().getUserConfig().getAllowedGroups() :

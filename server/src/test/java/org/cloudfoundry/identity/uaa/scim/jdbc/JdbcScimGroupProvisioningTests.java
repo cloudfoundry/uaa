@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
@@ -106,6 +107,7 @@ class JdbcScimGroupProvisioningTests {
                 new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
+        dao.setJdbcIdentityZoneProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
 
         g1Id = "g1";
         g2Id = "g2";
