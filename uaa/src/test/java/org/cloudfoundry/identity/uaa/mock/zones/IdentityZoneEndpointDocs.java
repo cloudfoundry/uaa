@@ -308,7 +308,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
                 fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
@@ -472,7 +472,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.corsPolicy.defaultConfiguration.maxAge").optional().description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("[].config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("[].config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
                 fieldWithPath("[].config.mfaConfig.enabled").optional().description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("[].config.mfaConfig.providerName").optional().description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
@@ -620,7 +620,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.corsPolicy.defaultConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")),
+                fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
                 fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
@@ -805,7 +805,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.corsPolicy.xhrConfiguration.maxAge").description(CORS_XHR_MAXAGE_DESC),
 
                 fieldWithPath("config.userConfig.defaultGroups").description(DEFAULT_ZONE_GROUPS_DESC),
-                fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC),
+                fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).optional().type(ARRAY),
 
                 fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC),
                 fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).optional().type(STRING),
