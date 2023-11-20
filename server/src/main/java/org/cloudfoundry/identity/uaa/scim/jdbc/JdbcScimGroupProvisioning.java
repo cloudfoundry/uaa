@@ -238,7 +238,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                 currentZone.getConfig().getUserConfig().getAllowedGroups() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getAllowedGroups();
         } catch (ZoneDoesNotExistsException e) {
-            logger.debug("could not retrieve identity zone with id: " + zoneId);
+            logger.debug("could not retrieve identity zone with id: %s", zoneId);
         }
         return zoneAllowedGroups;
     }
@@ -251,7 +251,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                     + " is not allowed in Identity Zone " + zoneId);
         }
         final String id = UUID.randomUUID().toString();
-        logger.debug("creating new group with id: " + id);
+        logger.debug("creating new group with id: %s", id);
         try {
             validateGroup(group);
             jdbcTemplate.update(addGroupSql, ps -> {

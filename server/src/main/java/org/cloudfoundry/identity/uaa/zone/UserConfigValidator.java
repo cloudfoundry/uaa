@@ -8,6 +8,10 @@ import org.slf4j.LoggerFactory;
 public class UserConfigValidator {
     private static Logger logger = LoggerFactory.getLogger(UserConfigValidator.class);
 
+    // add a private constructor to hide the implicit public one
+    private UserConfigValidator() {
+    }
+
     public static void validate(UserConfig config) throws InvalidIdentityZoneConfigurationException {
         List<String> defaultGroups = (config == null) ? null : config.getDefaultGroups();
         List<String> allowedGroups = (config == null) ? null : config.getAllowedGroups();
