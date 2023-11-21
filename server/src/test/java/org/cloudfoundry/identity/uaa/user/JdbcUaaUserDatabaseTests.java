@@ -116,7 +116,7 @@ class JdbcUaaUserDatabaseTests {
         when(mockIdentityZone.getConfig()).thenReturn(mockIdentityZoneConfiguration);
         when(mockIdentityZoneConfiguration.getUserConfig()).thenReturn(mockUserConfig);
         when(mockUserConfig.getDefaultGroups()).thenReturn(UserConfig.DEFAULT_ZONE_GROUPS);
-        when(mockUserConfig.getAllowedGroups()).thenReturn(null); // allow all groups
+        when(mockUserConfig.resultingAllowedGroups()).thenReturn(null); // allow all groups
     }
 
     @AfterEach

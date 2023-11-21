@@ -249,7 +249,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         Set<String> allowed = new LinkedHashSet<>(AuthorityUtils.authorityListToSet(authorities));
         // Add in all default requestedScopes
         Collection<String> defaultScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups();
-        Collection<String> allowedScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getAllowedGroups();
+        Collection<String> allowedScopes = IdentityZoneHolder.get().getConfig().getUserConfig().resultingAllowedGroups();
         allowed.addAll(defaultScopes);
         if (allowedScopes != null) {
             allowed.retainAll(allowedScopes);

@@ -124,14 +124,6 @@
         "uaa.offline_token"
       ],
       "allowedGroups": [
-        "openid",
-        "password.write",
-        "uaa.user",
-        "approvals.me",
-        "profile",
-        "roles",
-        "user_attributes",
-        "uaa.offline_token",
         "scim.me",
         "cloud_controller.user"
       ]

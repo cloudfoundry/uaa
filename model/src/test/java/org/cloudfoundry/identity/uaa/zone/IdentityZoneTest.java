@@ -11,6 +11,7 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
@@ -133,9 +134,9 @@ class IdentityZoneTest {
         assertEquals(List.of("openid", "password.write", "uaa.user", "approvals.me",
                             "profile", "roles", "user_attributes", "uaa.offline_token"),
                             sampleIdentityZone.getConfig().getUserConfig().getDefaultGroups());
-        assertEquals(List.of("openid", "password.write", "uaa.user", "approvals.me",
+        assertEquals(Set.of("openid", "password.write", "uaa.user", "approvals.me",
                             "profile", "roles", "user_attributes", "uaa.offline_token",
                             "scim.me", "cloud_controller.user"),
-                            sampleIdentityZone.getConfig().getUserConfig().getAllowedGroups());
+                            sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups());
     }
 }

@@ -265,7 +265,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             Set<String> authorities = new HashSet<>();
             getAuthorities(authorities, Collections.singletonList(userId));
             authorities.addAll(identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().getDefaultGroups());
-            List<String> allowedGroups = identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().getAllowedGroups();
+            Set<String> allowedGroups = identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().resultingAllowedGroups();
             if (allowedGroups != null) {
                 authorities.retainAll(allowedGroups);
             }

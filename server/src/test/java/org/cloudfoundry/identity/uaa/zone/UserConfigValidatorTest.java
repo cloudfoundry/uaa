@@ -3,14 +3,13 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.List;
 
 
 public class UserConfigValidatorTest {
 
     @Test
     public void testDefaultConfig() throws InvalidIdentityZoneConfigurationException {
-        UserConfigValidator.validate(new UserConfig());
+        UserConfigValidator.validate(new UserConfig()); // defaultGroups not empty, allowedGroups is null
     }
 
     @Test
@@ -18,7 +17,7 @@ public class UserConfigValidatorTest {
         UserConfigValidator.validate(null);
     }
 
-    @Test(expected = InvalidIdentityZoneConfigurationException.class)
+    @Test
     public void testAllowedGroupsEmpty() throws InvalidIdentityZoneConfigurationException {
         UserConfig userConfig = new UserConfig();
         userConfig.setAllowedGroups(Collections.emptyList());
@@ -26,10 +25,10 @@ public class UserConfigValidatorTest {
     }
 
     @Test(expected = InvalidIdentityZoneConfigurationException.class)
-    public void testDefaultGroupsNotAllowed() throws InvalidIdentityZoneConfigurationException {
+    public void testNoGroupsAllowed() throws InvalidIdentityZoneConfigurationException {
         UserConfig userConfig = new UserConfig();
-        userConfig.setDefaultGroups(List.of("openid","uaa.user"));
-        userConfig.setAllowedGroups(List.of("uaa.user")); // openid not allowed
+        userConfig.setDefaultGroups(Collections.emptyList());
+        userConfig.setAllowedGroups(Collections.emptyList()); // no groups allowed
         UserConfigValidator.validate(userConfig);
     }
 }

@@ -75,7 +75,7 @@ public class IdentityZoneConfigurationTests {
             "user_attributes",
             "uaa.offline_token"
         ));
-        assertNull(definition.getUserConfig().getAllowedGroups());
+        assertNull(definition.getUserConfig().resultingAllowedGroups());
         s = JsonUtils.writeValueAsString(definition);
         assertThat(s, containsString("userConfig"));
         assertThat(s, containsString("uaa.offline_token"));

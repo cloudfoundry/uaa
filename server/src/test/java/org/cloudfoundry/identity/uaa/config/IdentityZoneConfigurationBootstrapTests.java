@@ -199,7 +199,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         bootstrap.setAllowedUserGroups(Arrays.asList(groups));
         bootstrap.afterPropertiesSet();
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
-        assertThat(uaa.getConfig().getUserConfig().getAllowedGroups(), containsInAnyOrder(groups));
+        assertThat(uaa.getConfig().getUserConfig().resultingAllowedGroups(), containsInAnyOrder(groups));
     }
 
     @Test
