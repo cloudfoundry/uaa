@@ -91,10 +91,10 @@ dependencies {
     testImplementation(libraries.springSecurityLdap)
     testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)
+    testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
-    testImplementation(libraries.javaxMail)
     testImplementation(libraries.greenmail)
 }
 
