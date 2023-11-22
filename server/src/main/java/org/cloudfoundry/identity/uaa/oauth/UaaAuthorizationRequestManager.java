@@ -243,6 +243,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * @param authorities the users authorities
      * @return modified requested scopes adapted according to the rules specified
      */
+    @SuppressWarnings("java:S1874")
     private Set<String> checkUserScopes(Set<String> requestedScopes,
                                         Collection<? extends GrantedAuthority> authorities,
                                         ClientDetails clientDetails) {

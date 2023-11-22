@@ -256,7 +256,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                     + " is not allowed in Identity Zone " + zoneId);
         }
         final String id = UUID.randomUUID().toString();
-        logger.debug("creating new group with id: %s", id);
+        logger.debug("creating new group with id: {}", id);
         try {
             validateGroup(group);
             jdbcTemplate.update(addGroupSql, ps -> {

@@ -42,11 +42,12 @@ public class UserConfig {
     }
 
     // return defaultGroups plus allowedGroups
+    @SuppressWarnings("java:S1168")
     public Set<String> resultingAllowedGroups() {
         if (allowedGroups == null) {
-            return null; // all groups allowed
+            return null; // null = all groups allowed
         } else {
-            HashSet<String> allAllowedGroups = new HashSet<String>(allowedGroups);
+            HashSet<String> allAllowedGroups = new HashSet<>(allowedGroups);
             if (defaultGroups != null) allAllowedGroups.addAll(defaultGroups);
             return allAllowedGroups;
         }
