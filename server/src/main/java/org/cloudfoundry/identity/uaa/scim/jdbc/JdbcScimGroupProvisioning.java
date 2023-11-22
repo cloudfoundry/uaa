@@ -233,12 +233,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @SuppressWarnings("java:S1874")
     private Set<String> getAllowedUserGroups(String zoneId) {
-        Set<String> zoneAllowedGroups = null; // default: all groups allowed
-        if (!hasText(zoneId)) {
-            return zoneAllowedGroups;
+        if (zoneId == null) {
+            throw new IllegalArgumentException("zoneId is null");
         }
-        IdentityZone currentZone = IdentityZoneHolder.get();
+        Set<String> zoneAllowedGroups = null; // default: all groups allowed
         try {
+            IdentityZone currentZone = IdentityZoneHolder.get();
             zoneAllowedGroups = (zoneId.equals(currentZone.getId())) ?
                 currentZone.getConfig().getUserConfig().resultingAllowedGroups() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().resultingAllowedGroups();

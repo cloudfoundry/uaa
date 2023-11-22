@@ -316,6 +316,7 @@ class JdbcScimGroupProvisioningTests {
            dao.update(g1Id, g, zoneId);
            fail();
         } catch(InvalidScimResourceException e) {
+            assertTrue(e.getMessage().contains("is not allowed"));
         }
     }
 
