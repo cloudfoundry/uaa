@@ -177,6 +177,17 @@ class UaaAuthorizationRequestManagerTests {
     }
 
     @Test
+    void testScopesIncludesAllowedAuthoritiesForUser() {
+        when(mockSecurityContextAccessor.isUser()).thenReturn(true);
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid","foo.bar"));
+        client.setScope(StringUtils.commaDelimitedListToSet("foo.bar,spam.baz,space.1.developer"));
+        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+        assertEquals(StringUtils.commaDelimitedListToSet("foo.bar"), new TreeSet<String>(request.getScope()));
+        factory.validateParameters(request.getRequestParameters(), client);
+    }
+
+    @Test
     void testWildcardScopesIncludesAuthoritiesForUser() {
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("space.1.developer,space.2.developer,space.1.admin"));
