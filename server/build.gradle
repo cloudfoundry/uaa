@@ -8,7 +8,6 @@ dependencies {
 
     implementation(libraries.tomcatJdbc)
     providedCompile(libraries.tomcatEmbed)
-    implementation(libraries.javaxMail)
 
     implementation(libraries.jacksonDatabind)
     implementation(libraries.jsonPath) {
@@ -24,6 +23,7 @@ dependencies {
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityJwt)
     implementation(libraries.springSecurityWeb)
+    implementation(libraries.springBootStarterMail)
     implementation(libraries.spingSamlEsapiDependencyVersion) {
         transitive = false
     }
