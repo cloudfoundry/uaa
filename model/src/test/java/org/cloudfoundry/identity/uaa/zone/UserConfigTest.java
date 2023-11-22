@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -13,8 +15,8 @@ public class UserConfigTest {
     public void testDefaultConfig() {
         UserConfig userConfig = new UserConfig();
         assertTrue(userConfig.getDefaultGroups().contains("openid"));
-        assertTrue(userConfig.getAllowedGroups() == null);       // all groups allowed
-        assertTrue(userConfig.resultingAllowedGroups() == null); // all groups allowed
+        assertNull(userConfig.getAllowedGroups());       // all groups allowed
+        assertNull(userConfig.resultingAllowedGroups()); // all groups allowed
     }
 
     @Test
@@ -22,9 +24,9 @@ public class UserConfigTest {
         UserConfig userConfig = new UserConfig();
         userConfig.setDefaultGroups(List.of("openid"));
         userConfig.setAllowedGroups(List.of("uaa.user"));
-        assertTrue(userConfig.getDefaultGroups().equals(List.of("openid")));
-        assertTrue(userConfig.getAllowedGroups().equals(List.of("uaa.user")));
-        assertTrue(userConfig.resultingAllowedGroups().equals(Set.of("openid", "uaa.user")));
+        assertEquals(List.of("openid"), userConfig.getDefaultGroups());
+        assertEquals(List.of("uaa.user"), userConfig.getAllowedGroups());
+        assertEquals(Set.of("openid", "uaa.user"), userConfig.resultingAllowedGroups());
     }
 
     @Test
@@ -32,9 +34,9 @@ public class UserConfigTest {
         UserConfig userConfig = new UserConfig();
         userConfig.setDefaultGroups(null);
         userConfig.setAllowedGroups(List.of("uaa.user"));
-        assertTrue(userConfig.getDefaultGroups() == null);
-        assertTrue(userConfig.getAllowedGroups().equals(List.of("uaa.user")));
-        assertTrue(userConfig.resultingAllowedGroups().equals(Set.of("uaa.user")));
+        assertNull(userConfig.getDefaultGroups());
+        assertEquals(List.of("uaa.user"), userConfig.getAllowedGroups());
+        assertEquals(Set.of("uaa.user"), userConfig.resultingAllowedGroups());
     }
 
     @Test
@@ -42,8 +44,8 @@ public class UserConfigTest {
         UserConfig userConfig = new UserConfig();
         userConfig.setDefaultGroups(null);
         userConfig.setAllowedGroups(null);
-        assertTrue(userConfig.getDefaultGroups() == null);
-        assertTrue(userConfig.getAllowedGroups() == null);       // all groups allowed
-        assertTrue(userConfig.resultingAllowedGroups() == null); // all groups allowed
+        assertNull(userConfig.getDefaultGroups());
+        assertNull(userConfig.getAllowedGroups());       // all groups allowed
+        assertNull(userConfig.resultingAllowedGroups()); // all groups allowed
     }
 }
