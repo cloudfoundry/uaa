@@ -157,6 +157,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
         } catch (ScimResourceAlreadyExistsException ignore) {
+            // ignore
         }
     }
 
@@ -185,14 +186,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public void onApplicationEvent(AbstractUaaEvent event) {
-        if (event instanceof IdentityZoneModifiedEvent) {
-            IdentityZoneModifiedEvent zevent = (IdentityZoneModifiedEvent) event;
-            if (zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
-                final String zoneId = ((IdentityZone) event.getSource()).getId();
-                getSystemScopes().forEach(
-                        scope -> createAndIgnoreDuplicate(scope, zoneId)
-                );
-            }
+        if (event instanceof IdentityZoneModifiedEvent zevent && zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
+            final String zoneId = ((IdentityZone) event.getSource()).getId();
+            getSystemScopes().forEach(
+                    scope -> createAndIgnoreDuplicate(scope, zoneId)
+            );
         }
         SystemDeletable.super.onApplicationEvent(event);
     }
@@ -224,8 +222,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public ScimGroup create(final ScimGroup group, final String zoneId) throws InvalidScimResourceException {
+        validateZoneId(zoneId);
         final String id = UUID.randomUUID().toString();
-        logger.debug("creating new group with id: " + id);
+        logger.debug("creating new group with id: {}", id);
         try {
             validateGroup(group);
             jdbcTemplate.update(addGroupSql, ps -> {
@@ -249,6 +248,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     public ScimGroup update(final String id, final ScimGroup group, final String zoneId) throws InvalidScimResourceException,
             ScimResourceNotFoundException {
         try {
+            validateZoneId(zoneId);
             validateGroup(group);
 
             int updated = jdbcTemplate.update(updateGroupSql, ps -> {
@@ -273,6 +273,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public ScimGroup delete(String id, int version, String zoneId) throws ScimResourceNotFoundException {
+        validateZoneId(zoneId);
         ScimGroup group = retrieve(id, zoneId);
         jdbcScimGroupMembershipManager.removeMembersByGroupId(id, zoneId);
         jdbcScimGroupExternalMembershipManager.unmapAll(id, zoneId);
@@ -288,6 +289,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return group;
     }
 
+    @Override
     public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(deleteZoneAdminMembershipByZone, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
         jdbcTemplate.update(deleteZoneAdminGroupsByZone, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
@@ -296,6 +298,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return jdbcTemplate.update(deleteGroupByZone, zoneId);
     }
 
+    @Override
     public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(deleteExternalGroupByProvider, zoneId, origin);
         return jdbcTemplate.update(deleteGroupMembershipByProvider, zoneId, origin);
@@ -307,7 +310,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     }
 
     private void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
-        if (!hasText(group.getZoneId())) {
+        validateZoneId(group.getZoneId());
+    }
+
+    private void validateZoneId(String zoneId) throws ScimResourceConstraintFailedException {
+        if (!hasText(zoneId)) {
             throw new ScimResourceConstraintFailedException("zoneId is a required field");
         }
     }
