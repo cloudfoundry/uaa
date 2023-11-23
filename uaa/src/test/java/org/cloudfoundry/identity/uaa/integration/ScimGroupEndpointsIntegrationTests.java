@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -39,16 +41,20 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.core.Is.is;
@@ -93,7 +99,6 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private RestTemplate client;
     private List<ScimGroup> scimGroups;
-    private String zoneId;
 
     @Before
     public void createRestTemplate() {
@@ -109,9 +114,8 @@ public class ScimGroupEndpointsIntegrationTests {
             public void handleError(ClientHttpResponse response) {
             }
         });
-        ScimUser joelScimUser = createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d");
-        zoneId = joelScimUser.getZoneId();
-        JOEL = new ScimGroupMember(joelScimUser.getId());
+
+        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
         DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
         VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
     }
@@ -212,29 +216,89 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    public void createAllowedGroupSucceeds() {
+    public void createAllowedGroupSucceeds() throws URISyntaxException {
+        String testZoneId = "testzone1";
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getUserConfig().setAllowedGroups(allowedGroups);
+        String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
+        String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
+        ScimGroup g1 = new ScimGroup(null, CFID, testZoneId);
+        // Check we can GET the group
+        ScimGroup g2 = IntegrationTestUtils.createOrUpdateGroup(inZoneAdminToken, null, zoneUrl, g1);
+        assertEquals(g1.getDisplayName(), g2.getDisplayName());
+        assertEquals(g1.getDisplayName(), IntegrationTestUtils.getGroup(inZoneAdminToken, null, zoneUrl, g1.getDisplayName()).getDisplayName());
+    }
+
+    @Test
+    public void createNotAllowedGroupFailsCorrectly() throws URISyntaxException {
+        String testZoneId = "testzone1";
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
+        ScimGroup g1 = new ScimGroup(null, NOT_ALLOWED, testZoneId);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getUserConfig().setAllowedGroups(allowedGroups);
+        String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
+        String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
+        RestTemplate template = new RestTemplate();
+        HttpEntity entity = new HttpEntity<>(JsonUtils.writeValueAsBytes(g1), IntegrationTestUtils.getAuthenticatedHeaders(inZoneAdminToken));
         try {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, allowedGroups);
-            ScimGroup g1 = createGroup(CFID);
-            // Check we can GET the group
-            ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
-            assertEquals(g1, g2);
+            template.exchange(zoneUrl + "/Groups", HttpMethod.POST, entity, HashMap.class);
+            fail("must fail");
+        } catch (HttpClientErrorException e) {
+            assertTrue(e.getStatusCode().is4xxClientError());
+            assertEquals(400, e.getRawStatusCode());
+            assertThat(e.getMessage(),
+                containsString("The group with displayName: "+ g1.getDisplayName() +" is not allowed in Identity Zone " + testZoneId));
         } finally {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, null); // restore default
+            IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
         }
     }
 
     @Test
-    public void createNotAllowedGroupFailsCorrectly() {
-        final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
+    public void relyOnDefaultGroupsShouldAllowedGroupSucceed() throws URISyntaxException {
+        String testZoneId = "testzone1";
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getUserConfig().setAllowedGroups(List.of());
+        config.getUserConfig().setDefaultGroups(defaultGroups);
+        String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
+        String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
+        ScimGroup ccRead = new ScimGroup(null, "cloud_controller_service_permissions.read", testZoneId);
+        ScimGroup g1 = IntegrationTestUtils.createGroup(inZoneAdminToken, null, zoneUrl, ccRead);
+        // Check we can GET the group
+        ScimGroup g2 = IntegrationTestUtils.createOrUpdateGroup(inZoneAdminToken, null, zoneUrl, g1);
+        assertEquals("cloud_controller_service_permissions.read", g2.getDisplayName());
+        assertEquals("cloud_controller_service_permissions.read", IntegrationTestUtils.getGroup(inZoneAdminToken, null, zoneUrl, g1.getDisplayName()).getDisplayName());
+    }
+
+    @Test
+    public void changeDefaultGroupsAllowedGroupsUsageShouldFail() throws URISyntaxException {
+        String testZoneId = "testzone1";
+        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getUserConfig().setAllowedGroups(List.of());
+        config.getUserConfig().setDefaultGroups(defaultGroups.stream().filter(g -> !g.equals("cloud_controller_service_permissions.read")).collect(
+            Collectors.toList()));
+        String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
+        String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
+        RestTemplate template = new RestTemplate();
+        ScimGroup g1 = new ScimGroup(null,"cloud_controller_service_permissions.read", testZoneId);
+        HttpEntity entity = new HttpEntity<>(JsonUtils.writeValueAsBytes(g1), IntegrationTestUtils.getAuthenticatedHeaders(inZoneAdminToken));
         try {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, allowedGroups);
-            ScimGroup g1 = createGroup(NOT_ALLOWED);
-            // Check we cannot GET the group
-            ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
-            assertNull(g2);
+            template.exchange(zoneUrl + "/Groups", HttpMethod.POST, entity, HashMap.class);
+            fail("must fail");
+        } catch (HttpClientErrorException e) {
+            assertTrue(e.getStatusCode().is4xxClientError());
+            assertEquals(400, e.getRawStatusCode());
+            assertThat(e.getMessage(),
+                containsString("The group with displayName: "+ g1.getDisplayName() +" is not allowed in Identity Zone " + testZoneId));
         } finally {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, null); // restore default
+            IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
         }
     }
 

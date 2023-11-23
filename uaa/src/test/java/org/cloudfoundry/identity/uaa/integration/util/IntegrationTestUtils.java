@@ -676,16 +676,6 @@ public class IntegrationTestUtils {
         return createZoneOrUpdateSubdomain(client, url, id, subdomain, config, true);
     }
 
-    public static IdentityZone updateIdentityZoneAllowedGroups(RestTemplate client, String url, String id, List<String> allowedGroups) {
-        ResponseEntity<IdentityZone> zoneGet = client.getForEntity(url + "/identity-zones/{id}", IdentityZone.class);
-        if (!(zoneGet.getStatusCode() == HttpStatus.OK)) {
-            throw new RuntimeException("Could not get default zone.");
-        }
-        IdentityZone idz = zoneGet.getBody();
-        idz.getConfig().getUserConfig().setAllowedGroups(allowedGroups);
-        return createZoneOrUpdateSubdomain(client, url, idz.getId(), idz.getSubdomain(), idz.getConfig(), idz.isActive());
-    }
-
     public static void addMemberToGroup(RestTemplate client,
                                         String url,
                                         String userId,
@@ -1577,6 +1567,26 @@ public class IntegrationTestUtils {
         public StatelessRequestFactory() {
             super(true, true);
         }
+    }
+
+    public static HttpHeaders getAuthenticatedHeaders(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + token);
+        return headers;
+    }
+
+    public static String createClientAdminTokenInZone(String baseUrl, String uaaAdminToken, String zoneId, IdentityZoneConfiguration config) {
+        RestTemplate identityClient = getClientCredentialsTemplate(getClientCredentialsResource(baseUrl,
+                new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
+        createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+        BaseClientDetails zoneClient = new BaseClientDetails("admin-client-in-zone", null, "openid",
+            "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,zones.testzone1.admin ", zoneUrl);
+        zoneClient.setClientSecret("admin-secret-in-zone");
+        createOrUpdateClient(uaaAdminToken, baseUrl, zoneId, zoneClient);
+        return getClientCredentialsToken(zoneUrl, "admin-client-in-zone", "admin-secret-in-zone");
     }
 
 }
