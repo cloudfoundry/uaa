@@ -4,11 +4,11 @@ SAP IAS can be setup as an [OIDC provider](https://help.sap.com/viewer/6d6d63354
 In order to prevent storing a client secret in UAA configuration and all of it's successor problems like secret rotation and so on, register the
 external OIDC provider with a public client.
 
-1. Create an OIDC application and set it with [type public](https://help.sap.com/viewer/6d6d63354d1242d185ab4830fc04feb1/Cloud/en-US/a721157cd40544eb9bad40085cf8ec15.html).
+1. Create an OIDC application and set it with [type public](https://help.sap.com/viewer/6d6d63354d1242d185ab4830fc04feb1/Cloud/en-US/a721157cd40544eb9bad40085cf8ec15.html) (in Trust / OpenID Configuration / Grant Types / Authorization Code Flow / Enforce PKCE (S256)).
    Register the "Redirect URIs" in the application section "OpenID Connect Configuration"
 
    Add following URI in list field:
-   `http://{UAA_HOST}/login/callback/{origin}`. [Additional documentation for achieving this can be found here](https://help.sap.com/viewer/6d6d63354d1242d185ab4830fc04feb1/Cloud/en-US/1ae324ee3b2d4a728650eb022d5fd910.html).
+   `https://{UAA_HOST}/login/callback/{origin}`. [Additional documentation for achieving this can be found here](https://help.sap.com/viewer/6d6d63354d1242d185ab4830fc04feb1/Cloud/en-US/1ae324ee3b2d4a728650eb022d5fd910.html). E.g. for a UAA part of a CF-Deployment, this is `https://login.cf.<domain>/login/callback/{origin}`
    
 2. Copy client id.
 
