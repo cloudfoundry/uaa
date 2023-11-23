@@ -93,6 +93,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private RestTemplate client;
     private List<ScimGroup> scimGroups;
+    private String zoneId;
 
     @Before
     public void createRestTemplate() {
@@ -108,8 +109,9 @@ public class ScimGroupEndpointsIntegrationTests {
             public void handleError(ClientHttpResponse response) {
             }
         });
-
-        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        ScimUser joelScimUser = createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d");
+        zoneId = joelScimUser.getZoneId();
+        JOEL = new ScimGroupMember(joelScimUser.getId());
         DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
         VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
     }
@@ -212,13 +214,13 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void createAllowedGroupSucceeds() {
         try {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), allowedGroups);
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, allowedGroups);
             ScimGroup g1 = createGroup(CFID);
             // Check we can GET the group
             ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
             assertEquals(g1, g2);
         } finally {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), null); // restore default
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, null); // restore default
         }
     }
 
@@ -226,13 +228,13 @@ public class ScimGroupEndpointsIntegrationTests {
     public void createNotAllowedGroupFailsCorrectly() {
         final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         try {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), allowedGroups);
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, allowedGroups);
             ScimGroup g1 = createGroup(NOT_ALLOWED);
             // Check we cannot GET the group
             ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
             assertNull(g2);
         } finally {
-            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), null); // restore default
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), zoneId, null); // restore default
         }
     }
 
