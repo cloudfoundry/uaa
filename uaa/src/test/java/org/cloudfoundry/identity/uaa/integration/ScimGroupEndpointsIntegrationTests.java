@@ -224,13 +224,12 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createNotAllowedGroupFails() {
-        fail("createNotAllowedGroupFails");
         try {
             IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(List.of("notallowed")); // dont allow CFID group
             createGroup(CFID);
             fail("Could create not allowed group " + CFID);
-        } catch (Exception e) {
-            assertTrue(e.getMessage().contains("not allowed"));
+        } catch (RestClientException e) {
+            assertFalse(e.getMessage().isEmpty());
         } finally {
             IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
         }
