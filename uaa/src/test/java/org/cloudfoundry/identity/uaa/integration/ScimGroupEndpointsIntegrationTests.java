@@ -212,13 +212,13 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void createAllowedGroupSucceeds() {
         try {
-            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), allowedGroups);
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), allowedGroups);
             ScimGroup g1 = createGroup(CFID);
             // Check we can GET the group
             ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
             assertEquals(g1, g2);
         } finally {
-            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), null); // restore default
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), null); // restore default
         }
     }
 
@@ -226,13 +226,13 @@ public class ScimGroupEndpointsIntegrationTests {
     public void createNotAllowedGroupFailsCorrectly() {
         final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         try {
-            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), allowedGroups);
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), allowedGroups);
             ScimGroup g1 = createGroup(NOT_ALLOWED);
             // Check we cannot GET the group
             ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
             assertNull(g2);
         } finally {
-            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), null); // restore default
+            IntegrationTestUtils.updateIdentityZoneAllowedGroups(client, serverRunning.getBaseUrl(), IdentityZoneHolder.get().getId(), null); // restore default
         }
     }
 
