@@ -39,6 +39,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -205,6 +206,34 @@ public class ScimGroupEndpointsIntegrationTests {
         // Check we can GET the group
         ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
         assertEquals(g1, g2);
+    }
+
+    @Test
+    public void createAllowedGroupSucceeds() {
+        ScimGroup g1 = null;
+        try {
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(List.of(CFID)); // allow CFID group
+            g1 = createGroup(CFID);
+        } finally {
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
+        }
+        // Check we can GET the group
+        ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
+        assertEquals(g1, g2);
+    }
+
+    @Test
+    public void createNotAllowedGroupFails() {
+        fail("createNotAllowedGroupFails");
+        try {
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(List.of("notallowed")); // dont allow CFID group
+            createGroup(CFID);
+            fail("Could create not allowed group " + CFID);
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("not allowed"));
+        } finally {
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
+        }
     }
 
     @Test
