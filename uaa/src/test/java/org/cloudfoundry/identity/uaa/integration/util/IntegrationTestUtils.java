@@ -676,6 +676,16 @@ public class IntegrationTestUtils {
         return createZoneOrUpdateSubdomain(client, url, id, subdomain, config, true);
     }
 
+    public static IdentityZone updateDefaultZoneAllowedGroups(RestTemplate client, String url, List<String> allowedGroups) {
+        ResponseEntity<IdentityZone> zoneGet = client.getForEntity(url + "/identity-zones/uaa", IdentityZone.class);
+        if (!(zoneGet.getStatusCode() == HttpStatus.OK)) {
+            throw new RuntimeException("Could not get default zone.");
+        }
+        IdentityZone idz = zoneGet.getBody();
+        idz.getConfig().getUserConfig().setAllowedGroups(allowedGroups);
+        return createZoneOrUpdateSubdomain(client, url, idz.getId(), idz.getSubdomain(), idz.getConfig(), idz.isActive());
+    }
+
     public static void addMemberToGroup(RestTemplate client,
                                         String url,
                                         String userId,

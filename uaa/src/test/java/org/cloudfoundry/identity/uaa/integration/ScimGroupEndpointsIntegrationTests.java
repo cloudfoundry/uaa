@@ -39,7 +39,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -213,13 +212,13 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void createAllowedGroupSucceeds() {
         try {
-            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(allowedGroups);
+            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), allowedGroups);
             ScimGroup g1 = createGroup(CFID);
             // Check we can GET the group
             ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
             assertEquals(g1, g2);
         } finally {
-            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
+            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), null); // restore default
         }
     }
 
@@ -227,13 +226,13 @@ public class ScimGroupEndpointsIntegrationTests {
     public void createNotAllowedGroupFailsCorrectly() {
         final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         try {
-            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(allowedGroups);
+            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), allowedGroups);
             ScimGroup g1 = createGroup(NOT_ALLOWED);
             // Check we cannot GET the group
             ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
             assertNull(g2);
         } finally {
-            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
+            IntegrationTestUtils.updateDefaultZoneAllowedGroups(client, serverRunning.getBaseUrl(), null); // restore default
         }
     }
 
