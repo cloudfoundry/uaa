@@ -69,6 +69,8 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private final String CFID = "cfid_" + new RandomValueStringGenerator().generate().toLowerCase();
 
+    private final List<String> allowedGroups = List.of(DELETE_ME, CF_DEV, CF_MGR, CFID);
+
     private final String groupEndpoint = "/Groups";
 
     private final String userEndpoint = "/Users";
@@ -210,26 +212,26 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createAllowedGroupSucceeds() {
-        ScimGroup g1 = null;
         try {
-            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(List.of(CFID)); // allow CFID group
-            g1 = createGroup(CFID);
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(allowedGroups);
+            ScimGroup g1 = createGroup(CFID);
+            // Check we can GET the group
+            ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
+            assertEquals(g1, g2);
         } finally {
             IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
         }
-        // Check we can GET the group
-        ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
-        assertEquals(g1, g2);
     }
 
     @Test
-    public void createNotAllowedGroupFails() {
+    public void createNotAllowedGroupFailsCorrectly() {
+        final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         try {
-            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(List.of("notallowed")); // dont allow CFID group
-            createGroup(CFID);
-            fail("Could create not allowed group " + CFID);
-        } catch (RestClientException e) {
-            assertFalse(e.getMessage().isEmpty());
+            IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(allowedGroups);
+            ScimGroup g1 = createGroup(NOT_ALLOWED);
+            // Check we cannot GET the group
+            ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
+            assertNull(g2);
         } finally {
             IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // restore default
         }
