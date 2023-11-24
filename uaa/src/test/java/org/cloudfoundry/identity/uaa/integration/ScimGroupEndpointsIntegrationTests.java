@@ -229,6 +229,7 @@ public class ScimGroupEndpointsIntegrationTests {
         ScimGroup g2 = IntegrationTestUtils.createOrUpdateGroup(inZoneAdminToken, null, zoneUrl, g1);
         assertEquals(g1.getDisplayName(), g2.getDisplayName());
         assertEquals(g1.getDisplayName(), IntegrationTestUtils.getGroup(inZoneAdminToken, null, zoneUrl, g1.getDisplayName()).getDisplayName());
+        IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
     }
 
     @Test
@@ -273,6 +274,7 @@ public class ScimGroupEndpointsIntegrationTests {
         ScimGroup g2 = IntegrationTestUtils.createOrUpdateGroup(inZoneAdminToken, null, zoneUrl, g1);
         assertEquals("cloud_controller_service_permissions.read", g2.getDisplayName());
         assertEquals("cloud_controller_service_permissions.read", IntegrationTestUtils.getGroup(inZoneAdminToken, null, zoneUrl, g1.getDisplayName()).getDisplayName());
+        IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
     }
 
     @Test

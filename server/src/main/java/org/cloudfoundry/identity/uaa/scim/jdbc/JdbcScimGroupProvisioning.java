@@ -247,11 +247,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public ScimGroup create(final ScimGroup group, final String zoneId) throws InvalidScimResourceException {
-        Set<String> allowedGroups = getAllowedUserGroups(zoneId);
-        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
-            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
-                    + " is not allowed in Identity Zone " + zoneId);
-        }
+        validateAllowedUserGroups(zoneId, group);
         final String id = UUID.randomUUID().toString();
         logger.debug("creating new group with id: {}", id);
         try {
@@ -276,11 +272,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup update(final String id, final ScimGroup group, final String zoneId) throws InvalidScimResourceException,
             ScimResourceNotFoundException {
-        Set<String> allowedGroups = getAllowedUserGroups(zoneId);
-        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
-            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
-                    + " is not allowed in Identity Zone " + zoneId);
-        }
+        validateAllowedUserGroups(zoneId, group);
         try {
             validateGroup(group);
 
@@ -348,6 +340,14 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
         super.validateOrderBy(orderBy, GROUP_FIELDS);
+    }
+
+    private void validateAllowedUserGroups(String zoneId, ScimGroup group) {
+        Set<String> allowedGroups = getAllowedUserGroups(zoneId);
+        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
+            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
+                + " is not allowed in Identity Zone " + zoneId);
+        }
     }
 
 }
