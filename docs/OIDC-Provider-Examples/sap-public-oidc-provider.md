@@ -50,8 +50,5 @@ external OIDC provider with a public client.
    2. In `uaa.yml` append the following configuration, to the `login.oauth.providers.{origin}` section (at the same level as the other properties from the example above):
       ```
       attributeMappings:
-          given_name: "first_name"
-          family_name: "last_name"
-          email: "mail"
-          user_name: "mail"
+          user_name: "email"
       ```
