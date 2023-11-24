@@ -22,6 +22,9 @@ import java.net.URL;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -113,7 +116,7 @@ class ExternalOAuthLogoutHandlerTest {
   @Test
   void getNewFetchedLogoutUrl() throws OidcMetadataFetchingException {
     oAuthIdentityProviderDefinition.setLogoutUrl(null);
-    assertEquals(null, oAuthLogoutHandler.getLogoutUrl(oAuthIdentityProviderDefinition));
+    assertNull(oAuthLogoutHandler.getLogoutUrl(oAuthIdentityProviderDefinition));
     verify(oidcMetadataFetcher, times(1)).fetchMetadataAndUpdateDefinition(oAuthIdentityProviderDefinition);
   }
 
@@ -121,7 +124,7 @@ class ExternalOAuthLogoutHandlerTest {
   void getNewInvalidFetchedLogoutUrl() throws OidcMetadataFetchingException {
     oAuthIdentityProviderDefinition.setLogoutUrl(null);
     doThrow(new OidcMetadataFetchingException("")).when(oidcMetadataFetcher).fetchMetadataAndUpdateDefinition(oAuthIdentityProviderDefinition);
-    assertEquals(null, oAuthLogoutHandler.getLogoutUrl(oAuthIdentityProviderDefinition));
+    assertNull(oAuthLogoutHandler.getLogoutUrl(oAuthIdentityProviderDefinition));
     verify(oidcMetadataFetcher, times(1)).fetchMetadataAndUpdateDefinition(oAuthIdentityProviderDefinition);
   }
 
@@ -132,17 +135,17 @@ class ExternalOAuthLogoutHandlerTest {
 
   @Test
   void getNullOAuthProviderForAuthentication() {
-    assertEquals(null, oAuthLogoutHandler.getOAuthProviderForAuthentication(null));
+    assertNull(oAuthLogoutHandler.getOAuthProviderForAuthentication(null));
   }
 
   @Test
   void getPerformRpInitiatedLogout() {
     oAuthIdentityProviderDefinition.setPerformRpInitiatedLogout(true);
-    assertEquals(true, oAuthLogoutHandler.getPerformRpInitiatedLogout(oAuthIdentityProviderDefinition));
+    assertTrue(oAuthLogoutHandler.getPerformRpInitiatedLogout(oAuthIdentityProviderDefinition));
 
     oAuthIdentityProviderDefinition.setPerformRpInitiatedLogout(false);
-    assertEquals(false, oAuthLogoutHandler.getPerformRpInitiatedLogout(oAuthIdentityProviderDefinition));
+    assertFalse(oAuthLogoutHandler.getPerformRpInitiatedLogout(oAuthIdentityProviderDefinition));
 
-    assertEquals(false, oAuthLogoutHandler.getPerformRpInitiatedLogout(null));
+    assertFalse(oAuthLogoutHandler.getPerformRpInitiatedLogout(null));
   }
 }
