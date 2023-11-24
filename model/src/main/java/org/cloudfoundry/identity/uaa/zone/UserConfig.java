@@ -20,11 +20,21 @@ public class UserConfig {
 
     private List<String> defaultGroups = DEFAULT_ZONE_GROUPS;
 
+    private Integer maxUsers;
+
     public List<String> getDefaultGroups() {
         return defaultGroups;
     }
 
     public void setDefaultGroups(List<String> defaultGroups) {
         this.defaultGroups = defaultGroups;
+    }
+
+    public Integer getMaxUsers() {
+        return this.maxUsers;
+    }
+
+    public void setMaxUsers(final Integer maxUsers) {
+        this.maxUsers = maxUsers;
     }
 }

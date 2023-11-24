@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -42,6 +43,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1040,6 +1042,31 @@ class JdbcScimUserProvisioningTests {
         jdbcScimUserProvisioning.updateLastLogonTime(joeId, currentIdentityZoneId);
         user = jdbcScimUserProvisioning.retrieve(joeId, currentIdentityZoneId);
         assertNotNull(user.getLastLogonTime());
+    }
+
+    @Test
+    void cannotCreateMaxUserLimit() {
+        IdentityZoneHolder.get().getConfig().getUserConfig().setMaxUsers(10);
+        ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword("password");
+        scimUser.setOrigin(OriginKeys.UAA);
+        for (int i = 2; i < 12; i++) {
+            scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
+            scimUser.setId("user-id-" + 1);
+            scimUser.setUserName("user" +i+ "@example.com");
+            scimUser.setPassword("password");
+        }
+        scimUser.setPassword("password");
+        ScimUser finalScimUser = scimUser;
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> jdbcScimUserProvisioning.create(finalScimUser, IdentityZoneHolder.getCurrentZoneId()),
+            containsString("The maximum allowed numbers of users: 10 is reached already in Identity Zone")
+        );
+        IdentityZoneHolder.get().getConfig().getUserConfig().setMaxUsers(-1);
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
