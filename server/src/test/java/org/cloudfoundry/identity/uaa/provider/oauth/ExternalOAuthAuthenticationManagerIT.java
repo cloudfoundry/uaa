@@ -187,7 +187,7 @@ class ExternalOAuthAuthenticationManagerIT {
         IdentityZoneHolder.clear();
         String keyName = "testKey";
         header = map(
-                entry("alg", "HS256"),
+                entry("alg", "RS256"),
                 entry("kid", keyName),
                 entry("typ", "JWT")
         );

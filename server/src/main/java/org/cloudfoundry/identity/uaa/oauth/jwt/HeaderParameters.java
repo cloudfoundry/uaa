@@ -30,13 +30,13 @@ public class HeaderParameters {
     String cty;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
-    String jwk;
+    Object jwk;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
     String x5u;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
-    String x5c;
+    Object x5c;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
     String x5t;

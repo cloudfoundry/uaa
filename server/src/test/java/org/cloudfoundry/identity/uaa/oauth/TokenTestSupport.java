@@ -191,8 +191,8 @@ public class TokenTestSupport {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         tokenPolicy = new TokenPolicy(accessTokenValidity, refreshTokenValidity);
         Map<String, String> keys = new HashMap<>();
-        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6");
-        keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
+        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6210");
+        keys.put("otherKey", "unc0uf98gv89egh4v98749978hvy52oa");
         tokenPolicy.setKeys(keys);
         tokenPolicy.setActiveKeyId("testKey");
         config.setTokenPolicy(tokenPolicy);

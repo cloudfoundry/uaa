@@ -100,6 +100,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -4148,7 +4149,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()), iss);
         String sub = (String) result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
-        List<String> aud = (List<String>) result.get(ClaimConstants.AUD);
+        Object audObject = result.get(ClaimConstants.AUD);
+        List<String> aud = new ArrayList<>();
+        if (audObject instanceof Collection<?>) {
+            aud.addAll((List<String>) result.get(ClaimConstants.AUD));
+        } else if (audObject instanceof String audString) {
+            aud.add(audString);
+        }
         assertTrue(aud.contains(clientId));
         Integer exp = (Integer) result.get(ClaimConstants.EXPIRY_IN_SECONDS);
         assertNotNull(exp);

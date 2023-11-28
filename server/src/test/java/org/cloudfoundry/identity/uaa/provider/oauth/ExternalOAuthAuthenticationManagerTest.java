@@ -159,11 +159,14 @@ public class ExternalOAuthAuthenticationManagerTest {
         expectedException.expectMessage("Could not verify token signature.");
 
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
         Signer signer = new RsaSigner(changedOidcProviderTokenSigningKey);
         Map<String, Object> claims = map(
+                entry(EXPIRY_IN_SECONDS, 0),
+                entry(AUD, "uaa-relying-party"),
+                entry(ISS, oidcConfig.getIssuer()),
                 entry(EMAIL, "someuser@google.com")
         );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
@@ -180,7 +183,7 @@ public class ExternalOAuthAuthenticationManagerTest {
         expectedException.expectMessage("Could not verify token signature.");
 
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
         Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
@@ -197,7 +200,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     @Test
     public void getExternalAuthenticationDetails_doesNotThrowWhenIdTokenIsValid() {
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
         Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
@@ -220,7 +223,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     public void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
         Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
@@ -243,7 +246,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
         Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
@@ -274,7 +277,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
         Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
@@ -307,7 +310,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid_AndFilterManagerRolesOnly() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
         Signer signer = new RsaSigner(uaaIdentityZoneTokenSigningKey);
@@ -339,7 +342,7 @@ public class ExternalOAuthAuthenticationManagerTest {
   @Test
   public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
     Map<String, Object> header = map(
-        entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+        entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
         entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
     );
     Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
@@ -374,7 +377,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     @Test
     public void getUser_doesThrowWhenIdTokenMappingIsAmbiguous() {
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
         Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
@@ -402,7 +405,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     @Test
     public void getUser_doesThrowWhenIdTokenMappingIsWrongType() {
         Map<String, Object> header = map(
-            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.HS256.getName()),
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
         Signer signer = new RsaSigner(oidcProviderTokenSigningKey);
