@@ -2,6 +2,10 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.ECDSASigner;
+import com.nimbusds.jose.crypto.RSASSASigner;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
@@ -9,15 +13,11 @@ import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.X509CertUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.springframework.security.jwt.crypto.sign.EllipticCurveVerifier;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.crypto.SecretKey;
@@ -27,8 +27,7 @@ import java.security.PublicKey;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
-import java.security.interfaces.ECPublicKey;
-import java.security.interfaces.RSAPrivateKey;
+import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,14 +40,16 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 public class KeyInfo {
     private final boolean isAsymmetric;
-    private Signer signer;
-    private SignatureVerifier verifier;
+    private JWSSigner signer;
+    private CommonSignatureVerifier verifier;
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
     private final Optional<X509Certificate> verifierCertificate;
     private final JsonWebKey.KeyType type;
     private final JWK jwk;
+    private final String javaAlgorithm;
+    private final String algorithm;
 
     public KeyInfo(String keyId, String signingKey, String keyUrl) {
         this(keyId, signingKey, keyUrl, null, null);
@@ -57,7 +58,6 @@ public class KeyInfo {
         this.keyId = keyId;
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
         this.isAsymmetric = isAsymmetric(signingKey);
-        String algorithm;
         if (this.isAsymmetric) {
             String jwtAlg;
             KeyPair keyPair;
@@ -65,17 +65,19 @@ public class KeyInfo {
                 jwk = JWK.parseFromPEMEncodedObjects(signingKey);
                 jwtAlg = jwk.getKeyType().getValue();
                 if (jwtAlg.startsWith("RSA")) {
-                    algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_RSA);
+                    javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_RSA);
+                    algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.RS256.getName());
                     keyPair = jwk.toRSAKey().toKeyPair();
                     PublicKey rsaPublicKey = keyPair.getPublic();
-                    this.signer = new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
-                    this.verifier = new RsaVerifier((RSAPublicKey) rsaPublicKey, algorithm);
+                    this.signer = new RSASSASigner(keyPair.getPrivate(), true);// null;//new JWSSigner(null, null);//new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
+                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);//new RsaVerifier((RSAPublicKey) rsaPublicKey, algorithm);
                     this.type = RSA;
                 } else if (jwtAlg.startsWith("EC")) {
-                    algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_EC);
+                    javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_EC);
+                    algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.ES256.getName());
                     keyPair = jwk.toECKey().toKeyPair();
-                    this.signer = null;
-                    this.verifier = new EllipticCurveVerifier((ECPublicKey) keyPair.getPublic(), algorithm);
+                    this.signer = new ECDSASigner((ECPrivateKey) keyPair.getPrivate());
+                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);//new EllipticCurveVerifier((ECPublicKey) keyPair.getPublic(), algorithm);
                     this.type = EC;
                 } else {
                     throw new IllegalArgumentException("Invalid JWK");
@@ -87,21 +89,22 @@ public class KeyInfo {
             this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic()).orElse(null);
         } else {
             jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
-            algorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_HMAC);
+            javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_HMAC);
+            algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.HS256.getName());
             SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
-            this.signer = new MacSigner(algorithm, hmacKey);
-            this.verifier = new MacSigner(algorithm, hmacKey);
+            this.signer = new UaaMacSigner(hmacKey);//new MacSigner(algorithm, hmacKey);
+            this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);//new MacSigner(algorithm, hmacKey);
             this.verifierKey = signingKey;
             this.verifierCertificate = Optional.empty();
             this.type = MAC;
         }
     }
 
-    public SignatureVerifier getVerifier() {
+    public CommonSignatureVerifier getVerifier() {
         return this.verifier;
     }
 
-    public Signer getSigner() {
+    public JWSSigner getSigner() {
         return this.signer;
     }
 
@@ -166,7 +169,7 @@ public class KeyInfo {
     }
 
     public String algorithm()  {
-        return JwtAlgorithms.sigAlg(verifier.algorithm());
+        return algorithm;
     }
 
     private static String validateAndConstructTokenKeyUrl(String keyUrl) {

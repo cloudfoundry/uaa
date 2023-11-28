@@ -12,10 +12,10 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.JWSAlgorithm;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import org.springframework.security.jwt.crypto.cipher.CipherMetadata;
 
 /**
  * @author Luke Taylor
@@ -66,7 +66,7 @@ public class JwtAlgorithms {
     }
 
     public static String sigAlg(String javaName){
-        String alg = javaToSigAlgs.get(javaName);
+        String alg = JWSAlgorithm.parse(javaName).getName();
 
         if (alg == null) {
             throw new IllegalArgumentException("Invalid or unsupported signature algorithm: " + javaName);
@@ -85,10 +85,12 @@ public class JwtAlgorithms {
         return alg;
     }
 
-    static String enc(CipherMetadata cipher) {
-        if (!cipher.algorithm().equalsIgnoreCase("AES/CBC/PKCS5Padding")) {
+    static String enc(String cipher) {
+        if (!cipher.equalsIgnoreCase("AES/CBC/PKCS5Padding")) {
             throw new IllegalArgumentException("Unknown or unsupported algorithm");
         }
+        return cipher;
+        /*
         if (cipher.keySize() == 128) {
             return "A128CBC";
         } else if (cipher.keySize() == 256) {
@@ -96,5 +98,6 @@ public class JwtAlgorithms {
         } else {
             throw new IllegalArgumentException("Unsupported key size");
         }
+        */
     }
 }

@@ -55,7 +55,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -191,8 +190,8 @@ public class TokenTestSupport {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         tokenPolicy = new TokenPolicy(accessTokenValidity, refreshTokenValidity);
         Map<String, String> keys = new HashMap<>();
-        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6");
-        keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
+        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6210");
+        keys.put("otherKey", "unc0uf98gv89egh4v98749978hvy52oa");
         tokenPolicy.setKeys(keys);
         tokenPolicy.setActiveKeyId("testKey");
         config.setTokenPolicy(tokenPolicy);
@@ -340,7 +339,7 @@ public class TokenTestSupport {
     public Jwt getIdToken(List<String> scopes) {
         CompositeToken accessToken = getCompositeAccessToken(scopes);
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        SignatureVerifier verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
+        Object verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull("Token must not be null", tokenJwt);
 

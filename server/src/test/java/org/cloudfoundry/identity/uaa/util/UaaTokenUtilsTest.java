@@ -1,14 +1,15 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import com.nimbusds.jose.KeyLengthException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.StringUtils;
 
@@ -133,14 +134,14 @@ public class UaaTokenUtilsTest {
     }
     
     @Test
-    public void getClaims() {
+    public void getClaims() throws KeyLengthException {
         Map<String, Object> headers = new HashMap<>();
         headers.put("kid", "some-key");
         headers.put("alg", "HS256");
         Map<String, Object> content = new HashMap<>();
         content.put("cid", "openidclient");
         content.put("origin", "uaa");
-        String jwt = UaaTokenUtils.constructToken(headers, content, new MacSigner("foobar"));
+        String jwt = UaaTokenUtils.constructToken(headers, content, new UaaMacSigner("foobar"));
 
         Map<String, Object> claims = UaaTokenUtils.getClaims(jwt);
 
@@ -160,11 +161,11 @@ public class UaaTokenUtilsTest {
     }
 
     @Test
-    public void getClaims_WhenClaimsAreMissing_returnsEmptyMap() {
+    public void getClaims_WhenClaimsAreMissing_returnsEmptyMap() throws KeyLengthException {
         Map<String, Object> headers = new HashMap<>();
         headers.put("kid", "some-key");
         headers.put("alg", "HS256");
-        String tokenWithNoClaims = UaaTokenUtils.constructToken(headers, null, new MacSigner("foobar"));
+        String tokenWithNoClaims = UaaTokenUtils.constructToken(headers, new HashMap<>(), new UaaMacSigner("foobar"));
 
         Map<String, Object> claims = UaaTokenUtils.getClaims(tokenWithNoClaims);
 

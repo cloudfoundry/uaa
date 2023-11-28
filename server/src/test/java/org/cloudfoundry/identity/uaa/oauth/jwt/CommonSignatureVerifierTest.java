@@ -49,7 +49,7 @@ class CommonSignatureVerifierTest {
         JsonWebKey jsonWebKey = new JsonWebKey(key);
         CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
         assertNotNull(cs);
-        assertEquals("SHA256withRSA", cs.algorithm());
+        assertEquals("RS256", cs.algorithm());
     }
 
     @Test

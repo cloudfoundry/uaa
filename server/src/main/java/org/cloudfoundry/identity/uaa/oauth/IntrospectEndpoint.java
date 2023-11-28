@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -60,7 +61,7 @@ public class IntrospectEndpoint {
 
 
     private IntrospectionClaims getClaimsForToken(String token) {
-        org.springframework.security.jwt.Jwt tokenJwt;
+        Jwt tokenJwt;
         tokenJwt = JwtHelper.decode(token);
 
         IntrospectionClaims claims;

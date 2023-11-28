@@ -1,0 +1,64 @@
+package org.cloudfoundry.identity.uaa.oauth.jwt;
+
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.crypto.impl.HMAC;
+import com.nimbusds.jose.jca.JCAContext;
+import com.nimbusds.jose.util.Base64URL;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+
+public class UaaMacSigner implements JWSSigner {
+
+  public static final Set<JWSAlgorithm> SUPPORTED_ALGORITHMS;
+
+  static {
+    Set<JWSAlgorithm> algs = new LinkedHashSet<>();
+    algs.add(JWSAlgorithm.HS256);
+    algs.add(JWSAlgorithm.HS384);
+    algs.add(JWSAlgorithm.HS512);
+    SUPPORTED_ALGORITHMS = Collections.unmodifiableSet(algs);
+  }
+
+  private final SecretKey secretKey;
+
+  public UaaMacSigner(String secretKey) {
+    this(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HS256"));
+  }
+
+  public UaaMacSigner(SecretKey secretKey) {
+    this.secretKey = secretKey;
+  }
+
+  public byte[] getSecret() {
+    if(this.secretKey != null) {
+      return secretKey.getEncoded();
+    } else {
+      throw new IllegalStateException("Unexpected state");
+    }
+  }
+
+  @Override
+  public Base64URL sign(JWSHeader header, byte[] signingInput) throws JOSEException {
+    String jcaAlg = JwtAlgorithms.sigAlgJava(header.getAlgorithm().getName());
+    byte[] hmac = HMAC.compute(jcaAlg, getSecret(), signingInput, getJCAContext().getProvider());
+    return Base64URL.encode(hmac);
+  }
+
+  @Override
+  public Set<JWSAlgorithm> supportedJWSAlgorithms() {
+    return SUPPORTED_ALGORITHMS;
+  }
+
+  @Override
+  public JCAContext getJCAContext() {
+    return new JCAContext();
+  }
+}

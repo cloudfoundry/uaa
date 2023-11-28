@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -29,13 +30,13 @@ public class JwtHelperX5tTest {
 
   @Test
   public void jwtHeaderShouldContainX5tInTheHeader() {
-    Jwt jwt = JwtHelper.encodePlusX5t("testJwtContent", keyInfo, keyInfo.verifierCertificate().orElse(null));
+    Jwt jwt = JwtHelper.encodePlusX5t(JsonUtils.writeValueAsString(Map.of("sub", "testJwtContent")), keyInfo, keyInfo.verifierCertificate().orElse(null));
     assertThat(THUMBPRINT, is(jwt.getHeader().getX5t()));
   }
 
   @Test
   public void jwtHeaderMustNotContainJkuInTheHeader() {
-    Jwt jwt = JwtHelper.encodePlusX5t("testJwtContent", keyInfo, keyInfo.verifierCertificate().orElse(null));
+    Jwt jwt = JwtHelper.encodePlusX5t(JsonUtils.writeValueAsString(Map.of("sub", "testJwtContent")), keyInfo, keyInfo.verifierCertificate().orElse(null));
     assertThat(jwt.getHeader().getX5t(), is(THUMBPRINT));
     assertNull(jwt.getHeader().getJku());
   }
