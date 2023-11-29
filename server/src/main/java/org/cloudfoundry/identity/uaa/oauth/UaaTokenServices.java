@@ -41,6 +41,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -550,7 +551,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
-        claims.put(AUD, resourceIds);
+        claims.put(AUD, UaaStringUtils.getArrayDefaultValue(resourceIds, clientId));
 
         for (String excludedClaim : getExcludedClaims()) {
             claims.remove(excludedClaim);

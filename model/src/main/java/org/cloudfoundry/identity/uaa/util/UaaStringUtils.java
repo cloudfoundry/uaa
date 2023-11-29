@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.util;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
@@ -316,5 +317,13 @@ public final class UaaStringUtils {
             return EMPTY_STRING;
         }
         return StringUtils.hasText(value[0]) ? value[0] : EMPTY_STRING;
+    }
+
+    public static Set<String> getArrayDefaultValue(Set<String> values, String defaultValue) {
+        if (ObjectUtils.isEmpty(values)) {
+            return Set.of(defaultValue);
+        } else {
+            return values;
+        }
     }
 }

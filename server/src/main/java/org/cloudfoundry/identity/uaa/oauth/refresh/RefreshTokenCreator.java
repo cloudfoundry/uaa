@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
@@ -88,7 +89,7 @@ public class RefreshTokenCreator {
             claims.put(CLIENT_ID, tokenRequestData.clientId);
             claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
             claims.put(ZONE_ID, IdentityZoneHolder.get().getId());
-            claims.put(AUD, tokenRequestData.resourceIds);
+            claims.put(AUD, UaaStringUtils.getArrayDefaultValue(tokenRequestData.resourceIds, tokenRequestData.clientId));
             claims.put(GRANTED_SCOPES, tokenRequestData.scopes);
 
             if (null != tokenRequestData.authenticationMethods && !tokenRequestData.authenticationMethods.isEmpty()) {

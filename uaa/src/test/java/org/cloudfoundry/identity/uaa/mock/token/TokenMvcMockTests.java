@@ -100,6 +100,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -4150,7 +4151,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(userId, sub);
         Object audObject = result.get(ClaimConstants.AUD);
         List<String> aud = new ArrayList<>();
-        if (audObject instanceof Collections) {
+        if (audObject instanceof Collection<?>) {
             aud.addAll((List<String>) result.get(ClaimConstants.AUD));
         } else if (audObject instanceof String audString) {
             aud.add(audString);
