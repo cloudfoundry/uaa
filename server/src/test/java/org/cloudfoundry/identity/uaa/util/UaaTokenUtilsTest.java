@@ -170,7 +170,7 @@ public class UaaTokenUtilsTest {
     }
 
     @Test
-    public void getClaims_WhenClaimsAreMissing_returnsEmptyMap() throws KeyLengthException {
+    public void getClaims_WhenClaimsAreMissing_returnsEmptyMap() {
         Map<String, Object> headers = new HashMap<>();
         headers.put("kid", "some-key");
         headers.put("alg", "HS256");

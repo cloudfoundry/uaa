@@ -13,6 +13,7 @@ import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -79,12 +80,12 @@ public class UaaMacSigner implements JWSSigner {
       JWK jwKey = jwkSet.getKeys().stream().filter(e -> kid.equals(e.getKeyID())).findFirst().orElseThrow();
       UaaMacSigner internal = new UaaMacSigner((String)jwKey.toJSONObject().get(JWKParameterNames.OCT_KEY_VALUE));
       // symmetric signature check: create internal signature and compare if matches the signature from token
-      if (token.getSignature().equals(internal.sign(header, token.getSigningInput()))) {
+      if (token.getSignature().equals(internal.sign(header, token.getSigningInput())) && SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
         return token.getJWTClaimsSet();
       }
-      throw new IllegalArgumentException("HMAC not mached");
+      throw new InvalidSignatureException("HMAC not mached");
     } catch (ParseException | JOSEException e) {
-      throw new IllegalArgumentException(e);
+      throw new InvalidSignatureException("Invalid signed token", e);
     }
   }
 }

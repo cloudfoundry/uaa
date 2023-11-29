@@ -69,15 +69,15 @@ public class KeyInfo {
                     algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.RS256.getName());
                     keyPair = jwk.toRSAKey().toKeyPair();
                     PublicKey rsaPublicKey = keyPair.getPublic();
-                    this.signer = new RSASSASigner(keyPair.getPrivate(), true);// null;//new JWSSigner(null, null);//new RsaSigner((RSAPrivateKey) keyPair.getPrivate(), algorithm);
-                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);//new RsaVerifier((RSAPublicKey) rsaPublicKey, algorithm);
+                    this.signer = new RSASSASigner(keyPair.getPrivate(), true);
+                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
                     this.type = RSA;
                 } else if (jwtAlg.startsWith("EC")) {
                     javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_EC);
                     algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.ES256.getName());
                     keyPair = jwk.toECKey().toKeyPair();
                     this.signer = new ECDSASigner((ECPrivateKey) keyPair.getPrivate());
-                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);//new EllipticCurveVerifier((ECPublicKey) keyPair.getPublic(), algorithm);
+                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
                     this.type = EC;
                 } else {
                     throw new IllegalArgumentException("Invalid JWK");

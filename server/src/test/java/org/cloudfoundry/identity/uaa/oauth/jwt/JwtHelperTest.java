@@ -1,21 +1,25 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.jwk.JWKParameterNames;
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 public class JwtHelperTest {
     private KeyInfo keyInfo;
@@ -68,5 +72,31 @@ public class JwtHelperTest {
         Claims claimArrayThree = UaaTokenUtils.getClaimsFromTokenString(audArrayThree.getEncoded());
         assertNotNull(claimArrayThree);
         assertEquals(Arrays.asList("one", "two", "three"), claimArrayThree.getAud());
+    }
+
+    @Test
+    public void testLegacyHmacVerify() {
+        String kid = "legacy-token-key";
+        String keyValue = "tokenKey";
+        HashMap key = new HashMap();
+        key.put(JWKParameterNames.KEY_TYPE, "MAC");
+        key.put(JWKParameterNames.KEY_ID, kid);
+        key.put("value", keyValue);
+        JsonWebKey jsonWebKey = new JsonWebKey(key);
+        CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
+        KeyInfo hmacKeyInfo = new KeyInfo(kid, keyValue, "http://localhost:8080/uaa");
+        Jwt legacySignature = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", "single")), hmacKeyInfo);
+        assertNotNull(legacySignature);
+        Jwt legacyVerify = JwtHelper.decode(legacySignature.getEncoded());
+        assertNotNull(legacyVerify);
+        legacyVerify.verifySignature(cs);
+        assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(keyInfo.getVerifier()));
+        key.put("value", "wrong");
+        assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(new CommonSignatureVerifier(new JsonWebKey(key))));
+    }
+
+    @Test
+    public void testLegacyHmacFailed() {
+        assertThrows(InvalidSignatureException.class, () -> UaaMacSigner.verify("x", null));
     }
 }
