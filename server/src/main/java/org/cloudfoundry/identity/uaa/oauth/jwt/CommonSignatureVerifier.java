@@ -70,6 +70,7 @@ public class CommonSignatureVerifier {
             String keyId = verificationKey.getKid();
             if (keyId == null || algorithm == null) {
                 delegate = JsonWebKeyHelper.parseConfiguration(webKey.toJSONString()).getKeys().get(0);
+                jwk = new JWKSet(webKey);
             } else {
                 delegate = createJwkDelegate(verificationKey.getKid(), algorithm, webKey);
             }

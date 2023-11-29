@@ -26,6 +26,7 @@ import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 class CommonSignatureVerifierTest {
@@ -51,7 +52,7 @@ class CommonSignatureVerifierTest {
         assertNotNull(cs);
         assertEquals("RS256", cs.algorithm());
         assertEquals(1, cs.getJwkSet().size());
-        assertEquals("RS256", cs.getJwkSet().getKeys().get(0).getAlgorithm().getName());
+        assertNull(cs.getJwkSet().getKeys().get(0).getAlgorithm());
     }
 
     @Test
