@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -141,12 +142,20 @@ public class UaaTokenUtilsTest {
         Map<String, Object> content = new HashMap<>();
         content.put("cid", "openidclient");
         content.put("origin", "uaa");
+        content.put("aud", "openidclient");
         String jwt = UaaTokenUtils.constructToken(headers, content, new UaaMacSigner("foobar"));
 
         Map<String, Object> claims = UaaTokenUtils.getClaims(jwt);
 
-        assertEquals(claims.get("cid"), "openidclient");
-        assertEquals(claims.get("origin"), "uaa");
+        assertEquals("openidclient", claims.get("cid"));
+        assertEquals("uaa", claims.get("origin"));
+        assertEquals(Arrays.asList("openidclient"), claims.get("aud"));
+
+        Claims claimObject = UaaTokenUtils.getClaimsFromTokenString(jwt);
+
+        assertEquals(claims.get("cid"), claimObject.getCid());
+        assertEquals(claims.get("origin"), claimObject.getOrigin());
+        assertEquals(claims.get("aud"), claimObject.getAud());
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -170,7 +179,7 @@ public class UaaTokenUtilsTest {
         Map<String, Object> claims = UaaTokenUtils.getClaims(tokenWithNoClaims);
 
         assertNotNull(claims);
-        assertEquals(claims.size(), 0);
+        assertEquals(0, claims.size());
     }
 
 }

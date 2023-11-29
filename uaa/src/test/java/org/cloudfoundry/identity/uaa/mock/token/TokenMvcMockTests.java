@@ -3600,7 +3600,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andReturn();
         String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
-        Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
+        Claims claims = UaaTokenUtils.getClaimsFromTokenString(claimsJSON);
         assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
         assertThat(claims.getScope(), containsInAnyOrder("openid", "custom.default.group"));
     }
@@ -3622,7 +3622,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andReturn();
         String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
-        Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
+        Claims claims = UaaTokenUtils.getClaimsFromTokenString(claimsJSON);
         assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
     }
 

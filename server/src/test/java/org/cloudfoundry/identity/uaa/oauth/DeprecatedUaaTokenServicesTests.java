@@ -1909,7 +1909,7 @@ public class DeprecatedUaaTokenServicesTests {
         String refreshTokenString = accessToken.getRefreshToken().getValue();
         assertNotNull(refreshTokenString);
 
-        Claims refreshTokenClaims = getClaimsFromTokenString(refreshTokenString);
+        Claims refreshTokenClaims = UaaTokenUtils.getClaimsFromTokenString(refreshTokenString);
         assertNotNull(refreshTokenClaims);
         assertNull(refreshTokenClaims.getScope());
         // matcher below can't match list against set
@@ -2208,15 +2208,6 @@ public class DeprecatedUaaTokenServicesTests {
         Assert.assertEquals(expectedPrincipalId, auditEvent.getPrincipalId());
         Assert.assertEquals(expectedData, auditEvent.getData());
         Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
-    }
-
-    private Claims getClaimsFromTokenString(String token) {
-        Jwt jwt = JwtHelper.decode(token);
-        if (jwt == null) {
-            return null;
-        } else {
-            return JsonUtils.readValue(jwt.getClaims(), Claims.class);
-        }
     }
 
     private static void useIZMIforAccessToken(UaaTokenServices tokenServices) {

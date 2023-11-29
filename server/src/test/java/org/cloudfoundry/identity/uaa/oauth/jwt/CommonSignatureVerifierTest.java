@@ -50,6 +50,22 @@ class CommonSignatureVerifierTest {
         CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
         assertNotNull(cs);
         assertEquals("RS256", cs.algorithm());
+        assertEquals(1, cs.getJwkSet().size());
+        assertEquals("RS256", cs.getJwkSet().getKeys().get(0).getAlgorithm().getName());
+    }
+
+    @Test
+    void testGetHmacKeyFromConfig() {
+        HashMap key = new HashMap();
+        key.put(JWKParameterNames.KEY_TYPE, "MAC");
+        key.put(JWKParameterNames.KEY_ID, "legacy-token-key");
+        key.put("value", "tokenKey");
+        JsonWebKey jsonWebKey = new JsonWebKey(key);
+        CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
+        assertNotNull(cs);
+        assertEquals("HS256", cs.algorithm());
+        assertEquals(1, cs.getJwkSet().size());
+        assertEquals("HS256", cs.getJwkSet().getKeys().get(0).getAlgorithm().getName());
     }
 
     @Test

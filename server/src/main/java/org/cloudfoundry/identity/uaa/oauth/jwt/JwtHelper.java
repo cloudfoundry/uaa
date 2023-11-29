@@ -6,6 +6,7 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.KeyLengthException;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -283,6 +284,9 @@ class JwtImpl implements Jwt {
         } catch (BadJWSException | BadJWTException jwtException) { // signature failed
             throw new InvalidSignatureException("Unauthorized token", jwtException);
         } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
+            if (e instanceof KeyLengthException keyLengthException) {
+                return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);
+            }
             throw new InvalidSignatureException("Untrusted token", e);
         }
     }

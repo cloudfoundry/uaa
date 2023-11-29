@@ -341,8 +341,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     Claims getClaims(Map<String, Object> refreshTokenClaims) {
         try {
-            String s = JsonUtils.writeValueAsString(refreshTokenClaims);
-            return JsonUtils.readValue(s, Claims.class);
+            return JsonUtils.convertValue(refreshTokenClaims, Claims.class);
         } catch (JsonUtils.JsonUtilException e) {
             logger.error("Cannot read token claims", e);
             throw new InvalidTokenException("Cannot read token claims", e);
