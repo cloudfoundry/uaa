@@ -84,20 +84,4 @@ public class JwtAlgorithms {
 
         return alg;
     }
-
-    static String enc(String cipher) {
-        if (!cipher.equalsIgnoreCase("AES/CBC/PKCS5Padding")) {
-            throw new IllegalArgumentException("Unknown or unsupported algorithm");
-        }
-        return cipher;
-        /*
-        if (cipher.keySize() == 128) {
-            return "A128CBC";
-        } else if (cipher.keySize() == 256) {
-            return "A256CBC";
-        } else {
-            throw new IllegalArgumentException("Unsupported key size");
-        }
-        */
-    }
 }

@@ -14,7 +14,6 @@ import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.X509CertUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -23,7 +22,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.KeyPair;
-import java.security.PublicKey;
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.CertificateNotYetValidException;
 import java.security.cert.X509Certificate;
@@ -48,7 +46,6 @@ public class KeyInfo {
     private final Optional<X509Certificate> verifierCertificate;
     private final JsonWebKey.KeyType type;
     private final JWK jwk;
-    private final String javaAlgorithm;
     private final String algorithm;
 
     public KeyInfo(String keyId, String signingKey, String keyUrl) {
@@ -65,15 +62,12 @@ public class KeyInfo {
                 jwk = JWK.parseFromPEMEncodedObjects(signingKey);
                 jwtAlg = jwk.getKeyType().getValue();
                 if (jwtAlg.startsWith("RSA")) {
-                    javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_RSA);
                     algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.RS256.getName());
                     keyPair = jwk.toRSAKey().toKeyPair();
-                    PublicKey rsaPublicKey = keyPair.getPublic();
                     this.signer = new RSASSASigner(keyPair.getPrivate(), true);
                     this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
                     this.type = RSA;
                 } else if (jwtAlg.startsWith("EC")) {
-                    javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_EC);
                     algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.ES256.getName());
                     keyPair = jwk.toECKey().toKeyPair();
                     this.signer = new ECDSASigner((ECPrivateKey) keyPair.getPrivate());
@@ -89,11 +83,10 @@ public class KeyInfo {
             this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic()).orElse(null);
         } else {
             jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
-            javaAlgorithm = Optional.ofNullable(sigAlg).map(JwtAlgorithms::sigAlgJava).orElse(JwtAlgorithms.DEFAULT_HMAC);
             algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.HS256.getName());
             SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
-            this.signer = new UaaMacSigner(hmacKey);//new MacSigner(algorithm, hmacKey);
-            this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);//new MacSigner(algorithm, hmacKey);
+            this.signer = new UaaMacSigner(hmacKey);
+            this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
             this.verifierKey = signingKey;
             this.verifierCertificate = Optional.empty();
             this.type = MAC;
@@ -191,7 +184,9 @@ public class KeyInfo {
                 x509Certificate.checkValidity();
                 return Optional.of(x509Certificate);
             }
-        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) { } // ignore
+        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) {
+            // ignore
+        }
         return Optional.empty();
     }
 }

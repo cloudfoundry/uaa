@@ -249,7 +249,7 @@ public final class UaaTokenUtils {
     public static <T> T getClaims(String jwtToken, Class<T> toClazz) {
         Object claims;
         try {
-            JWTClaimsSetTransformer claimsTransformer = claimsSet -> {
+            JWTClaimsSetTransformer<T> claimsTransformer = claimsSet -> {
                 Map<String, Object> claimMap = claimsSet.toJSONObject();
                 Object audObject = claimsSet.getAudience();
                 if (isNotEmpty(audObject)) {

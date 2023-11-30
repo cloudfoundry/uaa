@@ -31,23 +31,21 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
-import java.util.Base64;
 import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
 public class JwtHelper {
-    static byte[] PERIOD = (".").getBytes(StandardCharsets.UTF_8);
-    private static final Base64.Decoder base64decoder = Base64.getUrlDecoder();
+    private JwtHelper() {
+
+    }
 
     /**
      * Creates a token from an encoded token string.
@@ -101,6 +99,10 @@ public class JwtHelper {
  * Handles the JSON parsing and serialization.
  */
 class JwtHeaderHelper {
+    private JwtHeaderHelper() {
+
+    }
+
     static JwtHeader create(String header) {
         Header jwtHeader;
         try {
@@ -108,7 +110,7 @@ class JwtHeaderHelper {
         } catch (ParseException e) {
           throw new IllegalArgumentException(e);
         }
-        return new JwtHeader(jwtHeader.toString(), JsonUtils.convertValue(jwtHeader.toJSONObject(), HeaderParameters.class));
+        return new JwtHeader(JsonUtils.convertValue(jwtHeader.toJSONObject(), HeaderParameters.class));
     }
 
     static JwtHeader create(String algorithm, String kid, String jku) {
@@ -118,7 +120,7 @@ class JwtHeaderHelper {
     }
 
     static JwtHeader create(HeaderParameters headerParameters) {
-        return new JwtHeader(JsonUtils.writeValueAsString(headerParameters), headerParameters);
+        return new JwtHeader(headerParameters);
     }
 }
 
@@ -126,26 +128,18 @@ class JwtHeaderHelper {
  * Header part of JWT
  */
 class JwtHeader {
-    private final String bytes;
-
     final HeaderParameters parameters;
 
     /**
-     * @param bytes      the decoded header
      * @param parameters the parameter values contained in the header
      */
-    JwtHeader(String bytes, HeaderParameters parameters) {
-        this.bytes = bytes;
+    JwtHeader(HeaderParameters parameters) {
         this.parameters = parameters;
-    }
-
-    public byte[] bytes() {
-        return bytes.getBytes();
     }
 
     @Override
     public String toString() {
-        return new String(bytes);
+        return parameters.toString();
     }
 }
 
@@ -173,7 +167,7 @@ class JwtImpl implements Jwt {
         this.crypto = crypto;
         try {
             this.claimsSet = JWTClaimsSet.parse(String.valueOf(content));
-            JWSHeader joseHeader = JWSHeader.parse((Map<String, Object>) JsonUtils.convertValue(header.parameters, HashMap.class));
+            JWSHeader joseHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
             if (crypto != null) {
                 SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
                 signedJWT.sign(crypto);
@@ -186,7 +180,6 @@ class JwtImpl implements Jwt {
         } catch (ParseException | JOSEException e) {
             throw new InvalidTokenException("Invalid token", e);
         }
-        //claims = utf8Decode(content);
     }
 
     JwtImpl(JwtHeader header, JWTClaimsSet claimsSet) {
@@ -205,7 +198,7 @@ class JwtImpl implements Jwt {
         try {
             this.interalJwt = JWTParser.parse(token);
             this.claimsSet = interalJwt.getJWTClaimsSet();
-            this.header = new JwtHeader(null, JsonUtils.convertValue(interalJwt.getHeader().toJSONObject(), HeaderParameters.class));
+            this.header = new JwtHeader(JsonUtils.convertValue(interalJwt.getHeader().toJSONObject(), HeaderParameters.class));
             this.orgJwt = token;
         } catch (ParseException e) {
             throw new InvalidTokenException("Invalid token", e);
@@ -239,14 +232,6 @@ class JwtImpl implements Jwt {
         throw new InvalidSignatureException("Signature validation failed");
     }
 
-    private byte[] signingInput() {
-        return null;
-    }
-
-    private byte[] safeB64UrlEncode(byte[] bytes) {
-        return null;
-    }
-
     public String getClaims() {
         return content != null ? String.valueOf(content) : claimsSet.toString();
     }
@@ -277,16 +262,15 @@ class JwtImpl implements Jwt {
         JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>((JWSAlgorithm) algorithm, keySource);
         ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
         jwtProcessor.setJWSKeySelector(keySelector);
-        jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier());
+        jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(null, null));
 
         try {
             return jwtProcessor.process(jwtAssertion, null);
         } catch (BadJWSException | BadJWTException jwtException) { // signature failed
             throw new InvalidSignatureException("Unauthorized token", jwtException);
+        } catch (KeyLengthException ke ) {
+            return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);
         } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
-            if (e instanceof KeyLengthException keyLengthException) {
-                return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);
-            }
             throw new InvalidSignatureException("Untrusted token", e);
         }
     }

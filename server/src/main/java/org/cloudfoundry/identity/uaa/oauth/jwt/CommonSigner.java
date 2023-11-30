@@ -45,12 +45,6 @@ public class CommonSigner implements Signer {
         this.algorithm = keyInfo.algorithm();
     }
 
-
-    private static boolean isAsymmetricKey(String key) {
-        return key.startsWith("-----BEGIN");
-    }
-
-
     public String keyId() {
         return keyId;
     }
@@ -58,11 +52,6 @@ public class CommonSigner implements Signer {
 
     public String keyURL() {
         return keyURL;
-    }
-
-
-    public byte[] sign(byte[] bytes) {
-        return null;//delegate.sign(bytes);
     }
 
     public String algorithm() {
@@ -80,7 +69,7 @@ public class CommonSigner implements Signer {
             claimsSet = JWTClaimsSet.parse(new String(signingInput));
             return new SignedJWT(header, claimsSet).getSignature();
         } catch (ParseException e) {
-            throw new RuntimeException(e);
+            throw new JOSEException(e);
         }
     }
 

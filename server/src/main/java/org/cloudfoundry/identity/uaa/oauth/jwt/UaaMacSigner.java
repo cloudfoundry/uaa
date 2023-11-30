@@ -56,7 +56,7 @@ public class UaaMacSigner implements JWSSigner {
   @Override
   public Base64URL sign(JWSHeader header, byte[] signingInput) throws JOSEException {
     String jcaAlg = JwtAlgorithms.sigAlgJava(header.getAlgorithm().getName());
-    byte[] hmac = HMAC.compute(jcaAlg, getSecret(), signingInput, getJCAContext().getProvider());
+    byte[] hmac = HMAC.compute(jcaAlg, secretKey, signingInput, getJCAContext().getProvider());
     return Base64URL.encode(hmac);
   }
 
