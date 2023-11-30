@@ -182,15 +182,6 @@ class JwtImpl implements Jwt {
         }
     }
 
-    JwtImpl(JwtHeader header, JWTClaimsSet claimsSet) {
-        this.header = header;
-        this.content = null;
-        this.crypto = null;
-        this.claimsSet = claimsSet;
-        this.interalJwt = null;
-        this.orgJwt = null;
-    }
-
     JwtImpl(String token) {
         if (!StringUtils.hasLength(token)) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");

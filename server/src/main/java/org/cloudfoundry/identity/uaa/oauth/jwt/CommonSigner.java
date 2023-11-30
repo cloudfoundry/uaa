@@ -20,11 +20,8 @@ import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jca.JCAContext;
 import com.nimbusds.jose.util.Base64URL;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 
-import java.text.ParseException;
 import java.util.Optional;
 import java.util.Set;
 
@@ -58,19 +55,9 @@ public class CommonSigner implements Signer {
         return JwtAlgorithms.sigAlg(algorithm);
     }
 
-    public String getJavaAlgorithm() {
-        return algorithm;
-    }
-
     @Override
     public Base64URL sign(JWSHeader header, byte[] signingInput) throws JOSEException {
-        JWTClaimsSet claimsSet;
-        try {
-            claimsSet = JWTClaimsSet.parse(new String(signingInput));
-            return new SignedJWT(header, claimsSet).getSignature();
-        } catch (ParseException e) {
-            throw new JOSEException(e);
-        }
+        return delegate.sign(header, signingInput);
     }
 
     @Override
