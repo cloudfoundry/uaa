@@ -50,7 +50,7 @@ public class JwtHelperTest {
     @Test
     public void jwtHeaderShouldNotContainJkuInTheHeaderIfCertificateDefined() {
         KeyInfo rsaKeyInfo = KeyInfoBuilder.build("key-id-1", privatekey, "http://localhost/uaa", "RS256", certificate);
-        Jwt jwt = JwtHelper.encodePlusX5t(JsonUtils.writeValueAsString(Map.of("sub", "testJwtContent")), rsaKeyInfo, rsaKeyInfo.verifierCertificate().orElse(null));
+        Jwt jwt = JwtHelper.encodePlusX5t(Map.of("sub", "testJwtContent"), rsaKeyInfo, rsaKeyInfo.verifierCertificate().orElse(null));
         assertNull(jwt.getHeader().getJku());
         assertEquals("RkckJulawIoaTm0iaziJBwFh7Nc", jwt.getHeader().getX5t());
     }
@@ -83,7 +83,7 @@ public class JwtHelperTest {
         key.put(JWKParameterNames.KEY_ID, kid);
         key.put("value", keyValue);
         JsonWebKey jsonWebKey = new JsonWebKey(key);
-        CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
+        SignatureVerifier cs = new SignatureVerifier(jsonWebKey);
         KeyInfo hmacKeyInfo = new KeyInfo(kid, keyValue, "http://localhost:8080/uaa");
         Jwt legacySignature = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", "single")), hmacKeyInfo);
         assertNotNull(legacySignature);
@@ -92,7 +92,7 @@ public class JwtHelperTest {
         legacyVerify.verifySignature(cs);
         assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(keyInfo.getVerifier()));
         key.put("value", "wrong");
-        assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(new CommonSignatureVerifier(new JsonWebKey(key))));
+        assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(new SignatureVerifier(new JsonWebKey(key))));
     }
 
     @Test

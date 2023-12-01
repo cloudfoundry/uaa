@@ -27,7 +27,7 @@ import javax.validation.constraints.NotNull;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -108,7 +108,7 @@ public abstract class JwtTokenSignedByThisUAA {
         this.keyInfoService = keyInfoService;
     }
 
-    private CommonSignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
+    private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {
         String kid = tokenJwt.getHeader().getKid();
         if (kid == null) {
             throw new InvalidTokenException("kid claim not found in JWT token header");

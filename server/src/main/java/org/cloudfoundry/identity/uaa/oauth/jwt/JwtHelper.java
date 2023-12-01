@@ -37,6 +37,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.util.HashMap;
+import java.util.Map;
 
 /**
  * @author Luke Taylor
@@ -57,12 +58,12 @@ public class JwtHelper {
         return new JwtImpl(token);
     }
 
-    public static Jwt encodePlusX5t(CharSequence content, KeyInfo keyInfo, X509Certificate x509Certificate) {
+    public static Jwt encodePlusX5t(Map<String, Object> payLoad, KeyInfo keyInfo, X509Certificate x509Certificate) {
         JwtHeader header;
         HeaderParameters headerParameters = new HeaderParameters(keyInfo.algorithm(), keyInfo.keyId(), null);
         headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(x509Certificate), "SHA-1"));
         header = JwtHeaderHelper.create(headerParameters);
-        return createJwt(content, keyInfo, header);
+        return createJwt(header, payLoad, keyInfo);
     }
 
     public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
@@ -73,6 +74,10 @@ public class JwtHelper {
 
     private static JwtImpl createJwt(CharSequence content, KeyInfo keyInfo, JwtHeader header) {
         return new JwtImpl(header, content, keyInfo.getSigner());
+    }
+
+    private static JwtImpl createJwt(JwtHeader header, Map<String, Object> payLoad, KeyInfo keyInfo) {
+        return new JwtImpl(header, payLoad, keyInfo.getSigner());
     }
 
     public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
@@ -144,38 +149,54 @@ class JwtHeader {
 }
 
 class JwtImpl implements Jwt {
-    private final String orgJwt;
-    private final JWT interalJwt;
+    private final String parsedJwtObject;
+    private final JWT signedJwtObject;
     private final JwtHeader header;
-
     private final CharSequence content;
-
-    private final JWSSigner crypto;
-
-    private String claims;
+    private final JWSSigner signature;
     private final JWTClaimsSet claimsSet;
 
     /**
      * @param header  the header, containing the JWS/JWE algorithm information.
      * @param content the base64-decoded "claims" segment (may be encrypted, depending on
      *                header information).
-     * @param crypto  the base64-decoded "crypto" segment.
+     * @param signature  the base64-decoded "signature" segment.
      */
-    JwtImpl(JwtHeader header, CharSequence content, JWSSigner crypto) {
+    JwtImpl(JwtHeader header, CharSequence content, JWSSigner signature) {
         this.header = header;
         this.content = content;
-        this.crypto = crypto;
+        this.signature = signature;
         try {
             this.claimsSet = JWTClaimsSet.parse(String.valueOf(content));
-            JWSHeader joseHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
-            if (crypto != null) {
-                SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
-                signedJWT.sign(crypto);
-                interalJwt = signedJWT;
-                orgJwt = null;
+            JWSHeader jwsHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
+            if (signature != null) {
+                SignedJWT signedJWT = new SignedJWT(jwsHeader, claimsSet);
+                signedJWT.sign(signature);
+                signedJwtObject = signedJWT;
+                parsedJwtObject = null;
             } else {
-                interalJwt = null;
-                orgJwt = null;
+                signedJwtObject = null;
+                parsedJwtObject = null;
+            }
+        } catch (ParseException | JOSEException e) {
+            throw new InvalidTokenException("Invalid token", e);
+        }
+    }
+
+    JwtImpl(JwtHeader header, Map<String, Object> payLoad, JWSSigner signature) {
+        this.header = header;
+        this.signature = signature;
+        this.parsedJwtObject = null;
+        this.content = null;
+        try {
+            this.claimsSet = JWTClaimsSet.parse(payLoad);
+            JWSHeader joseHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
+            if (signature != null) {
+                SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
+                signedJWT.sign(signature);
+                signedJwtObject = signedJWT;
+            } else {
+                signedJwtObject = null;
             }
         } catch (ParseException | JOSEException e) {
             throw new InvalidTokenException("Invalid token", e);
@@ -187,31 +208,31 @@ class JwtImpl implements Jwt {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
         try {
-            this.interalJwt = JWTParser.parse(token);
-            this.claimsSet = interalJwt.getJWTClaimsSet();
-            this.header = new JwtHeader(JsonUtils.convertValue(interalJwt.getHeader().toJSONObject(), HeaderParameters.class));
-            this.orgJwt = token;
+            this.signedJwtObject = JWTParser.parse(token);
+            this.claimsSet = signedJwtObject.getJWTClaimsSet();
+            this.header = new JwtHeader(JsonUtils.convertValue(signedJwtObject.getHeader().toJSONObject(), HeaderParameters.class));
+            this.parsedJwtObject = token;
         } catch (ParseException e) {
             throw new InvalidTokenException("Invalid token", e);
         }
         this.content = null;
-        this.crypto = null;
+        this.signature = null;
     }
     /**
-     * Validates a signature contained in the 'crypto' segment.
+     * Validates a signature contained in the 'signature' segment.
      *
      * @param verifier the signature verifier
      */
     @Override
     public void verifySignature(Object verifier) {
-        if (interalJwt != null && verifier instanceof CommonSignatureVerifier commonSignatureVerifier) {
-            validateClientJWToken(interalJwt, commonSignatureVerifier.getJwkSet());
+        if (signedJwtObject != null && verifier instanceof SignatureVerifier signatureVerifier) {
+            validateClientJWToken(signedJwtObject, signatureVerifier.getJwkSet());
             return;
-        } else if (interalJwt != null && verifier instanceof ChainedSignatureVerifier chainedSignatureVerifier) {
+        } else if (signedJwtObject != null && verifier instanceof ChainedSignatureVerifier chainedSignatureVerifier) {
             Exception last = new InvalidSignatureException("No matching keys found.");
-            for (CommonSignatureVerifier delegate : chainedSignatureVerifier.getDelegates()) {
+            for (SignatureVerifier delegate : chainedSignatureVerifier.getDelegates()) {
                 try {
-                    validateClientJWToken(interalJwt, delegate.getJwkSet(((JWSHeader) interalJwt.getHeader()).getKeyID()));
+                    validateClientJWToken(signedJwtObject, delegate.getJwkSet(((JWSHeader) signedJwtObject.getHeader()).getKeyID()));
                     //success
                     return;
                 } catch (Exception e) {
@@ -234,12 +255,20 @@ class JwtImpl implements Jwt {
 
     @Override
     public String getEncoded() {
-        return orgJwt != null ? orgJwt : crypto != null && interalJwt != null ? interalJwt.serialize() : "";
+        return isJwtParsedOrCreated() ? parsedJwtObject : getEncodedSignedJwt();
+    }
+
+    private boolean isJwtParsedOrCreated() {
+        return parsedJwtObject != null;
+    }
+
+    private String getEncodedSignedJwt() {
+        return signature != null && signedJwtObject != null ? signedJwtObject.serialize() : "";
     }
 
     @Override
     public String toString() {
-        return header + " " + claims;
+        return getClaims();
     }
 
 

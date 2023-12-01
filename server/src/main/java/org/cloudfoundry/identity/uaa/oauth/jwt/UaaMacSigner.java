@@ -23,6 +23,11 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * This class is a fork to nimbus-jose because
+ * UAA has legacy key and key sizes. Removing the support
+ * of this, would be a regression.
+ */
 public class UaaMacSigner implements JWSSigner {
 
   public static final Set<JWSAlgorithm> SUPPORTED_ALGORITHMS;

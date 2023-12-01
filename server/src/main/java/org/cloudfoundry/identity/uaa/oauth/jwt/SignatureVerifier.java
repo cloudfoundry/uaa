@@ -28,12 +28,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class CommonSignatureVerifier {
+public class SignatureVerifier {
     private final JsonWebKey delegate;
     private final String algorithm;
     private JWKSet jwk;
 
-    public CommonSignatureVerifier(String keyId, String alg, JWK verificationKey) {
+    public SignatureVerifier(String keyId, String alg, JWK verificationKey) {
         if (keyId == null || alg == null) {
             this.jwk = new JWKSet(verificationKey);
             this.delegate = JsonWebKeyHelper.parseConfiguration(verificationKey.toJSONString()).getKeys().get(0);
@@ -44,7 +44,7 @@ public class CommonSignatureVerifier {
         }
     }
 
-    public CommonSignatureVerifier(JsonWebKey verificationKey) {
+    public SignatureVerifier(JsonWebKey verificationKey) {
         if(verificationKey == null) {
             throw new IllegalArgumentException("verificationKey cannot be null");
         }

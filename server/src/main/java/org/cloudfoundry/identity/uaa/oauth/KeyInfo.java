@@ -13,7 +13,7 @@ import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.X509CertUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -39,7 +39,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 public class KeyInfo {
     private final boolean isAsymmetric;
     private JWSSigner signer;
-    private CommonSignatureVerifier verifier;
+    private SignatureVerifier verifier;
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
@@ -65,13 +65,13 @@ public class KeyInfo {
                     algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.RS256.getName());
                     keyPair = jwk.toRSAKey().toKeyPair();
                     this.signer = new RSASSASigner(keyPair.getPrivate(), true);
-                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
+                    this.verifier = new SignatureVerifier(keyId, algorithm, jwk);
                     this.type = RSA;
                 } else if (jwtAlg.startsWith("EC")) {
                     algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.ES256.getName());
                     keyPair = jwk.toECKey().toKeyPair();
                     this.signer = new ECDSASigner((ECPrivateKey) keyPair.getPrivate());
-                    this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
+                    this.verifier = new SignatureVerifier(keyId, algorithm, jwk);
                     this.type = EC;
                 } else {
                     throw new IllegalArgumentException("Invalid JWK");
@@ -86,14 +86,14 @@ public class KeyInfo {
             algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.HS256.getName());
             SecretKey hmacKey = new SecretKeySpec(signingKey.getBytes(), algorithm);
             this.signer = new UaaMacSigner(hmacKey);
-            this.verifier = new CommonSignatureVerifier(keyId, algorithm, jwk);
+            this.verifier = new SignatureVerifier(keyId, algorithm, jwk);
             this.verifierKey = signingKey;
             this.verifierCertificate = Optional.empty();
             this.type = MAC;
         }
     }
 
-    public CommonSignatureVerifier getVerifier() {
+    public SignatureVerifier getVerifier() {
         return this.verifier;
     }
 

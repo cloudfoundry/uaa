@@ -23,7 +23,7 @@ import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -102,7 +102,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 public class JwtTokenSignedByThisUAATest {
     public static final String CLIENT_ID = "app";
     public static final String USER_ID = "a7f07bf6-e720-4652-8999-e980189cef54";
-    private final CommonSignatureVerifier verifier = new KeyInfo("some-key-id", macSigningKeySecret, "http://localhost:8080/uaa", "HS256", null).getVerifier();
+    private final SignatureVerifier verifier = new KeyInfo("some-key-id", macSigningKeySecret, "http://localhost:8080/uaa", "HS256", null).getVerifier();
 
     private final Instant oneSecondAfterTheTokenExpires = Instant.ofEpochSecond(1458997132 + 1);
     private final Instant oneSecondBeforeTheTokenExpires = Instant.ofEpochSecond(1458997132 - 1);

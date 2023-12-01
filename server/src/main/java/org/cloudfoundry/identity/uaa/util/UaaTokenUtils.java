@@ -271,4 +271,8 @@ public final class UaaTokenUtils {
     public static Claims getClaimsFromTokenString(String jwtToken) {
         return getClaims(jwtToken, Claims.class);
     }
+
+    public static Map<String, Object> getMapFromClaims(Claims claims) {
+        return JsonUtils.convertValue(claims,  Map.class);
+    }
 }

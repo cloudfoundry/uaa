@@ -30,7 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -644,7 +644,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         JwtTokenSignedByThisUAA jwtToken;
 
         if (tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()).equals(config.getIssuer())) {
-            List<CommonSignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
+            List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
@@ -655,7 +655,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return jwtToken.checkExpiry();
     }
 
-    protected List<CommonSignatureVerifier> getTokenKeyForUaaOrigin() {
+    protected List<SignatureVerifier> getTokenKeyForUaaOrigin() {
         Map<String, KeyInfo> keys = keyInfoService.getKeys();
         return keys.values().stream()
           .map(i -> i.getVerifier())

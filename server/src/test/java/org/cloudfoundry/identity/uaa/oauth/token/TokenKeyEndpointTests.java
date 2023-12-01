@@ -5,7 +5,7 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -170,7 +170,7 @@ class TokenKeyEndpointTests {
 
         byte[] bytes = "Text for testing of private/public key match".getBytes();
         JWSSigner rsaSigner = new KeyInfo("RsaKey1", SIGNING_KEY_1, "http://localhost:8080/uaa").getSigner();
-        CommonSignatureVerifier rsaVerifier = new KeyInfo("RsaKey1", SIGNING_KEY_1, "http://localhost:8080/uaa").getVerifier();
+        SignatureVerifier rsaVerifier = new KeyInfo("RsaKey1", SIGNING_KEY_1, "http://localhost:8080/uaa").getVerifier();
 
         rsaSigner = new KeyInfo("RsaKey2", SIGNING_KEY_2, "http://localhost:8080/uaa").getSigner();
         rsaVerifier = new KeyInfo("RsaKey2", SIGNING_KEY_2, "http://localhost:8080/uaa").getVerifier();

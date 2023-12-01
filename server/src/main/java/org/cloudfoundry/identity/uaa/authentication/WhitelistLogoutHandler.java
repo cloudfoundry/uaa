@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
-import org.cloudfoundry.identity.uaa.oauth.jwt.CommonSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.slf4j.Logger;
@@ -71,7 +71,7 @@ public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler 
         if (idToken != null) {
             try {
                 Map<String, KeyInfo> keys = keyInfoService.getKeys();
-                List<CommonSignatureVerifier> signatureVerifiers = keys.values().stream().map(i -> i.getVerifier()).collect(Collectors.toList());
+                List<SignatureVerifier> signatureVerifiers = keys.values().stream().map(i -> i.getVerifier()).collect(Collectors.toList());
                 JwtTokenSignedByThisUAA jwtToken =buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
                 clientId = (String) jwtToken.getClaims().get(ClaimConstants.AZP);
             } catch (InvalidTokenException e) {

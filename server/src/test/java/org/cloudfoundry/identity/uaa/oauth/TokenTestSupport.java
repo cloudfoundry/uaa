@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
@@ -339,7 +340,7 @@ public class TokenTestSupport {
     public Jwt getIdToken(List<String> scopes) {
         CompositeToken accessToken = getCompositeAccessToken(scopes);
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        Object verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
+        SignatureVerifier verifier = keyInfoService.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull("Token must not be null", tokenJwt);
 

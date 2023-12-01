@@ -22,20 +22,20 @@ import java.util.Collections;
 import java.util.List;
 
 public class ChainedSignatureVerifier {
-    private final List<CommonSignatureVerifier> delegates;
+    private final List<SignatureVerifier> delegates;
 
     public ChainedSignatureVerifier(JsonWebKeySet<? extends JsonWebKey> keys) {
         if(keys == null || keys.getKeys() == null || keys.getKeys().isEmpty()) {
             throw new IllegalArgumentException("keys cannot be null or empty");
         }
-        List<CommonSignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
+        List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
-            ds.add(new CommonSignatureVerifier(key));
+            ds.add(new SignatureVerifier(key));
         }
         delegates = Collections.unmodifiableList(ds);
     }
 
-    public ChainedSignatureVerifier(List<CommonSignatureVerifier> delegates) {
+    public ChainedSignatureVerifier(List<SignatureVerifier> delegates) {
         this.delegates = delegates;
     }
 
@@ -43,7 +43,7 @@ public class ChainedSignatureVerifier {
         return null;
     }
 
-    public List<CommonSignatureVerifier> getDelegates() {
+    public List<SignatureVerifier> getDelegates() {
         return delegates;
     }
 }
