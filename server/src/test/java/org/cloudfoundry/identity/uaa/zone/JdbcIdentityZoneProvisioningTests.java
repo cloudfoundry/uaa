@@ -300,8 +300,8 @@ class JdbcIdentityZoneProvisioningTests {
 
     @Test
     void testIdentityZoneRetrieveZoneIdNull() {
-        assertThrows(EmptyResultDataAccessException.class, () -> jdbcIdentityZoneProvisioning.retrieve(null));
-        assertThrows(EmptyResultDataAccessException.class, () -> jdbcIdentityZoneProvisioning.retrieveIgnoreActiveFlag(null));
+        assertThrows(ZoneDoesNotExistsException.class, () -> jdbcIdentityZoneProvisioning.retrieve(null));
+        assertThrows(ZoneDoesNotExistsException.class, () -> jdbcIdentityZoneProvisioning.retrieveIgnoreActiveFlag(null));
     }
 
     @Test

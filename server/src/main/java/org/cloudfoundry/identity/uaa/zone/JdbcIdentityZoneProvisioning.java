@@ -51,7 +51,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     @Override
     public IdentityZone retrieve(String id) {
         if (id == null) {
-            throw new EmptyResultDataAccessException("Zone id cannot be null", 1);
+            throw new ZoneDoesNotExistsException("Zone id cannot be null");
         }
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
@@ -63,7 +63,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
     @Override
     public IdentityZone retrieveIgnoreActiveFlag(String id) {
         if (id == null) {
-            throw new EmptyResultDataAccessException("Zone id cannot be null", 1);
+            throw new ZoneDoesNotExistsException("Zone id cannot be null");
         }
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
