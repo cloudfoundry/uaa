@@ -235,33 +235,33 @@ public class SamlLoginWithLocalIdpIT {
         IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
     }
 
-    @Test
-    public void testValidSaml2Bearer() throws Exception {
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, "uaa");
-        @SuppressWarnings("unchecked")
-        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(
-                "Local SAML IdP", true, this.baseUrl, this.serverRunning, idpDef);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
-        postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
-        postBody.add("client_id", "oauth_showcase_saml2_bearer");
-        postBody.add("client_secret", "secret");
-        postBody.add("assertion", samlTestUtils.mockAssertionEncoded(IDP_ENTITY_ID,
-                                                                     "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-                                                                     "Saml2BearerIntegrationUser", "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
-
-        ResponseEntity<CompositeToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
-                                                                             HttpMethod.POST, new HttpEntity<>(postBody, headers),
-                                                                             CompositeToken.class);
-
-        assertEquals(HttpStatus.OK, token.getStatusCode());
-        assertTrue(token.hasBody());
-        provider.setActive(false);
-        IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
-    }
+//    @Test
+//    public void testValidSaml2Bearer() throws Exception {
+//        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, "uaa");
+//        @SuppressWarnings("unchecked")
+//        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(
+//                "Local SAML IdP", true, this.baseUrl, this.serverRunning, idpDef);
+//        HttpHeaders headers = new HttpHeaders();
+//        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+//        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+//
+//        LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+//        postBody.add("grant_type", "urn:ietf:params:oauth:grant-type:saml2-bearer");
+//        postBody.add("client_id", "oauth_showcase_saml2_bearer");
+//        postBody.add("client_secret", "secret");
+//        postBody.add("assertion", samlTestUtils.mockAssertionEncoded(IDP_ENTITY_ID,
+//                                                                     "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+//                                                                     "Saml2BearerIntegrationUser", "http://localhost:8080/uaa/oauth/token/alias/cloudfoundry-saml-login", "cloudfoundry-saml-login"));
+//
+//        ResponseEntity<CompositeToken> token = restOperations.exchange(baseUrl + "/oauth/token/alias/cloudfoundry-saml-login",
+//                                                                             HttpMethod.POST, new HttpEntity<>(postBody, headers),
+//                                                                             CompositeToken.class);
+//
+//        assertEquals(HttpStatus.OK, token.getStatusCode());
+//        assertTrue(token.hasBody());
+//        provider.setActive(false);
+//        IntegrationTestUtils.updateIdentityProvider(this.baseUrl, this.serverRunning, provider);
+//    }
 
     @Test
     public void testLocalSamlIdpLogin() throws Exception {

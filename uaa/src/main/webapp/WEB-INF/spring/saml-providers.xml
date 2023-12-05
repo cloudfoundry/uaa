@@ -19,7 +19,7 @@
             <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint"/>
             <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter"/>
             <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter"/>
-            <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter"/>
+<!--            <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter"/>-->
             <security:filter-chain pattern="/saml/SSO/**"
                                    filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter"/>
             <security:filter-chain pattern="/saml/SingleLogout/**"
