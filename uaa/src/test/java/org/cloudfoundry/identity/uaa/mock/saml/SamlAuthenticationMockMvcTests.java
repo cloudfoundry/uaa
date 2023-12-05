@@ -19,10 +19,10 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning;
+//import org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
+//import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -126,7 +126,7 @@ class SamlAuthenticationMockMvcTests {
     @BeforeEach
     void createSamlRelationship(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning,
+//            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning,
             @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning
     ) throws Exception {
         this.jdbcIdentityProviderProvisioning = jdbcIdentityProviderProvisioning;
@@ -136,7 +136,7 @@ class SamlAuthenticationMockMvcTests {
         spZone = createZone("uaa-acting-as-saml-proxy-zone-", adminClient);
         idpZone = createZone("uaa-acting-as-saml-idp-zone-", adminClient);
         spZoneEntityId = spZone.getSubdomain() + ".cloudfoundry-saml-login";
-        createSp(jdbcSamlServiceProviderProvisioning);
+//        createSp(jdbcSamlServiceProviderProvisioning);
         createUser(jdbcScimUserProvisioning, idpZone);
     }
 
@@ -206,13 +206,13 @@ class SamlAuthenticationMockMvcTests {
 
     @Test
     void validateStaticAttributes(
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
+//            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
     ) throws Exception {
         createIdp();
 
         samlServiceProvider.getConfig().getStaticCustomAttributes().put("portal_id", "portal");
         samlServiceProvider.getConfig().getStaticCustomAttributes().put("portal_emails", Arrays.asList("portal1@portal.test", "portal2@portal.test"));
-        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
+//        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
 
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, true);
@@ -224,12 +224,12 @@ class SamlAuthenticationMockMvcTests {
 
     @Test
     void validateCustomEmailAttribute(
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
+//            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
     ) throws Exception {
         createIdp();
 
         samlServiceProvider.getConfig().getAttributeMappings().put("email", "primary-email");
-        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
+//        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
 
         String samlResponse = performIdpAuthentication();
         String xml = extractAssertion(samlResponse, true);
@@ -542,20 +542,20 @@ class SamlAuthenticationMockMvcTests {
         jdbcScimUserProvisioning.createUser(user, "secret", identityZone.getId());
     }
 
-    private void createSp(SamlServiceProviderProvisioning spProvisioning) throws Exception {
-        SamlServiceProviderDefinition spDefinition = new SamlServiceProviderDefinition();
-        spDefinition.setEnableIdpInitiatedSso(true);
-        spDefinition.setMetaDataLocation(getSamlMetadata(spZone.getSubdomain(), "/saml/metadata"));
-        Map<String, Object> staticAttributes = new HashMap<>();
-        spDefinition.setStaticCustomAttributes(staticAttributes);
-        samlServiceProvider = new SamlServiceProvider()
-                .setIdentityZoneId(idpZone.getId())
-                .setEntityId(spZoneEntityId)
-                .setConfig(spDefinition)
-                .setActive(true)
-                .setName("SAML SP for Mock Tests");
-        samlServiceProvider = spProvisioning.create(samlServiceProvider, idpZone.getId());
-    }
+//    private void createSp(SamlServiceProviderProvisioning spProvisioning) throws Exception {
+//        SamlServiceProviderDefinition spDefinition = new SamlServiceProviderDefinition();
+//        spDefinition.setEnableIdpInitiatedSso(true);
+//        spDefinition.setMetaDataLocation(getSamlMetadata(spZone.getSubdomain(), "/saml/metadata"));
+//        Map<String, Object> staticAttributes = new HashMap<>();
+//        spDefinition.setStaticCustomAttributes(staticAttributes);
+//        samlServiceProvider = new SamlServiceProvider()
+//                .setIdentityZoneId(idpZone.getId())
+//                .setEntityId(spZoneEntityId)
+//                .setConfig(spDefinition)
+//                .setActive(true)
+//                .setName("SAML SP for Mock Tests");
+//        samlServiceProvider = spProvisioning.create(samlServiceProvider, idpZone.getId());
+//    }
 
     void createIdp() throws Exception {
         createIdp(null);

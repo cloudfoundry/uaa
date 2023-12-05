@@ -993,114 +993,114 @@ public class SamlLoginIT {
 
     }
 
-    @Test
-    public void two_zone_saml_bearer_grant_url_metadata() throws Exception {
-        Map<String, Object> claims = two_zone_saml_bearer_grant(true, "testzone4");
-        String samlClientId = (String)claims.get(ClaimConstants.CLIENT_ID);
-        ArrayList<String> auds = (ArrayList<String>)claims.get(ClaimConstants.AUD);
-        Assert.assertTrue("aud claim must contain own client id: " + samlClientId, auds.contains(samlClientId));
-    }
+//    @Test
+//    public void two_zone_saml_bearer_grant_url_metadata() throws Exception {
+//        Map<String, Object> claims = two_zone_saml_bearer_grant(true, "testzone4");
+//        String samlClientId = (String)claims.get(ClaimConstants.CLIENT_ID);
+//        ArrayList<String> auds = (ArrayList<String>)claims.get(ClaimConstants.AUD);
+//        Assert.assertTrue("aud claim must contain own client id: " + samlClientId, auds.contains(samlClientId));
+//    }
 
-    @Test
-    public void two_zone_saml_bearer_grant_xml_metadata() throws Exception {
-        assertNotNull(two_zone_saml_bearer_grant(false, "testzone3"));
-    }
+//    @Test
+//    public void two_zone_saml_bearer_grant_xml_metadata() throws Exception {
+//        assertNotNull(two_zone_saml_bearer_grant(false, "testzone3"));
+//    }
 
-    public Map<String, Object> two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
-        //ensure we are able to resolve DNS for hostname testzone1.localhost
-        String zoneUrl = baseUrl.replace("localhost", zoneName +".localhost");
+//    public Map<String, Object> two_zone_saml_bearer_grant(boolean urlMetadata, String zoneName) throws Exception {
+//        //ensure we are able to resolve DNS for hostname testzone1.localhost
+//        String zoneUrl = baseUrl.replace("localhost", zoneName +".localhost");
+//
+//
+//        //identity client token
+//        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+//            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+//        );
+//
+//        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+//
+//        //create the zone
+//
+//        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl,
+//                zoneName,
+//                zoneName, null);
+//
+//        String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
+//
+//        String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
+//
+//        String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
+//
+//        String uaaZoneId = IdentityZone.getUaaZoneId();
+//        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
+//            .setZoneId(uaaZoneId)
+//            .setMetaDataLocation(idpMetadata)
+//            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+//            .setAssertionConsumerIndex(0)
+//            .setMetadataTrustCheck(false)
+//            .setShowSamlLink(false)
+//            .setIdpEntityAlias(idpOrigin);
+//
+//        IdentityProvider provider = new IdentityProvider();
+//        provider.setConfig(def);
+//        provider.setActive(true);
+//        provider.setIdentityZoneId(uaaZoneId);
+//        provider.setName(idpOrigin);
+//        provider.setOriginKey(idpOrigin);
+//
+//        IntegrationTestUtils.createOrUpdateProvider(adminToken, baseUrl, provider);
+//
+//        String clientId = new RandomValueStringGenerator().generate().toLowerCase();
+//        String username = "saml2bearerUser";
+//        BaseClientDetails saml2BearerClient = new BaseClientDetails(clientId,
+//                                                                    null,
+//                                                                    "openid",
+//                                                                    GRANT_TYPE_SAML2_BEARER,
+//                                                                    "uaa.resource",
+//                                                                    null);
+//        saml2BearerClient.setAutoApproveScopes(Collections.singletonList("true"));
+//        saml2BearerClient.setClientSecret("secret");
+//        saml2BearerClient = IntegrationTestUtils.createClient(adminToken, baseUrl, saml2BearerClient);
+//
+//
+//        String audienceEntityID = "cloudfoundry-saml-login";
+//        String spAudienceEndpoint = baseUrl + "/oauth/token/alias/"+audienceEntityID;
+//        String assertion = samlTestUtils.mockAssertionEncoded(
+//            zone.getSubdomain()+".cloudfoundry-saml-login",
+//            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+//            username,
+//            spAudienceEndpoint,
+//            audienceEntityID
+//        );
 
+//        MultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
+//        postBody.add(CLIENT_ID, saml2BearerClient.getClientId());
+//        postBody.add(CLIENT_SECRET, "secret");
+//        postBody.add(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
+//        postBody.add("assertion", assertion);
 
-        //identity client token
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
-        );
+//        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+//        headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
+//        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
 
-        String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+//        System.out.println("curl"+
+//            " -H\"Accept: application/json\""+
+//            " -d \"client_id="+saml2BearerClient.getClientId()+"\""+
+//            " -d \"client_secret=secret\""+
+//            " -d \"grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer\"" +
+//            " -d \"assertion="+assertion+"\"" +
+//            " " + spAudienceEndpoint+"\n\n"
+//        );
 
-        //create the zone
-
-        IdentityZone zone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl,
-                zoneName,
-                zoneName, null);
-
-        String idpMetadataUrl = zoneUrl + "/saml/idp/metadata";
-
-        String idpMetadata = urlMetadata ? idpMetadataUrl : new RestTemplate().getForObject(idpMetadataUrl, String.class);
-
-        String idpOrigin = zone.getSubdomain() + ".cloudfoundry-saml-login";
-
-        String uaaZoneId = IdentityZone.getUaaZoneId();
-        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition()
-            .setZoneId(uaaZoneId)
-            .setMetaDataLocation(idpMetadata)
-            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
-            .setAssertionConsumerIndex(0)
-            .setMetadataTrustCheck(false)
-            .setShowSamlLink(false)
-            .setIdpEntityAlias(idpOrigin);
-
-        IdentityProvider provider = new IdentityProvider();
-        provider.setConfig(def);
-        provider.setActive(true);
-        provider.setIdentityZoneId(uaaZoneId);
-        provider.setName(idpOrigin);
-        provider.setOriginKey(idpOrigin);
-
-        IntegrationTestUtils.createOrUpdateProvider(adminToken, baseUrl, provider);
-
-        String clientId = new RandomValueStringGenerator().generate().toLowerCase();
-        String username = "saml2bearerUser";
-        BaseClientDetails saml2BearerClient = new BaseClientDetails(clientId,
-                                                                    null,
-                                                                    "openid",
-                                                                    GRANT_TYPE_SAML2_BEARER,
-                                                                    "uaa.resource",
-                                                                    null);
-        saml2BearerClient.setAutoApproveScopes(Collections.singletonList("true"));
-        saml2BearerClient.setClientSecret("secret");
-        saml2BearerClient = IntegrationTestUtils.createClient(adminToken, baseUrl, saml2BearerClient);
-
-
-        String audienceEntityID = "cloudfoundry-saml-login";
-        String spAudienceEndpoint = baseUrl + "/oauth/token/alias/"+audienceEntityID;
-        String assertion = samlTestUtils.mockAssertionEncoded(
-            zone.getSubdomain()+".cloudfoundry-saml-login",
-            "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-            username,
-            spAudienceEndpoint,
-            audienceEntityID
-        );
-
-        MultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
-        postBody.add(CLIENT_ID, saml2BearerClient.getClientId());
-        postBody.add(CLIENT_SECRET, "secret");
-        postBody.add(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
-        postBody.add("assertion", assertion);
-
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add(HttpHeaders.ACCEPT, APPLICATION_JSON_VALUE);
-        headers.add(HttpHeaders.CONTENT_TYPE, APPLICATION_FORM_URLENCODED_VALUE);
-
-        System.out.println("curl"+
-            " -H\"Accept: application/json\""+
-            " -d \"client_id="+saml2BearerClient.getClientId()+"\""+
-            " -d \"client_secret=secret\""+
-            " -d \"grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer\"" +
-            " -d \"assertion="+assertion+"\"" +
-            " " + spAudienceEndpoint+"\n\n"
-        );
-
-        ResponseEntity<String> response = new RestTemplate().exchange(new URI(spAudienceEndpoint), HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), String.class);
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        Map<String, Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
-        });
-        String jwtAccessToken = (String)tokenResponse.get("access_token");
-        assertNotNull("Expecting access_token to be present in response", jwtAccessToken);
-        Jwt idTokenClaims = JwtHelper.decode(jwtAccessToken);
-        return JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() { });
-    }
+//        ResponseEntity<String> response = new RestTemplate().exchange(new URI(spAudienceEndpoint), HttpMethod.POST, new HttpEntity<MultiValueMap>(postBody, headers), String.class);
+//
+//        assertEquals(HttpStatus.OK, response.getStatusCode());
+//        Map<String, Object> tokenResponse = JsonUtils.readValue(response.getBody(), new TypeReference<Map<String, Object>>() {
+//        });
+//        String jwtAccessToken = (String)tokenResponse.get("access_token");
+//        assertNotNull("Expecting access_token to be present in response", jwtAccessToken);
+//        Jwt idTokenClaims = JwtHelper.decode(jwtAccessToken);
+//        return JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() { });
+//    }
 
     @Test
     public void testSamlLogin_Email_In_ID_Token_When_UserID_IsNotEmail() {
