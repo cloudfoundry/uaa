@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
@@ -43,6 +44,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -444,6 +446,36 @@ class JdbcScimGroupProvisioningTests {
                 () -> dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
                         + " from groups where displayName='something''", zoneId)
         );
+    }
+
+    @Test
+    void createGroupNullZoneId() {
+        ScimGroup g = new ScimGroup(null, "null", null);
+        g.setDescription("description-create");
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
+        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
+        g.setMembers(Arrays.asList(m1, m2));
+        ScimGroup errorGroup = g;
+        assertThrows(ScimResourceConstraintFailedException.class, () -> dao.create(errorGroup, null));
+        g.setZoneId(zoneId);
+        assertThrows(ScimResourceConstraintFailedException.class, () -> dao.create(errorGroup, null));
+        g = dao.create(g, zoneId);
+        assertNotNull(g);
+        assertEquals(zoneId, g.getZoneId());
+    }
+
+    @Test
+    void deleteGroupByOrigin() {
+        ScimGroup g = new ScimGroup(UUID.randomUUID().toString(), "null", zoneId);
+        g.setDescription("description-create");
+        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.GROUP);
+        m1.setOrigin("custom-origin");
+        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.GROUP);
+        m2.setOrigin("custom-origin");
+        g.setMembers(Arrays.asList(m1, m2));
+        g = dao.create(g, zoneId);
+        dao.deleteByOrigin("custom-origin", zoneId);
+        assertEquals(0, memberships.getMembers(g.getId(), true, zoneId).size());
     }
 
     private void validateGroupCountInZone(int expected, String zoneId) {
