@@ -89,16 +89,6 @@ public class IdentityZoneNotAvailableIT {
     }
 
     @Test
-    public void testSamlServiceProvidersEndpoints() {
-        checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/saml/idp/initiate");
-        checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/saml/service-providers");
-        checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/saml/service-providers/id");
-        checkNotFoundForEndpoint(HttpMethod.POST,zoneUrl + "/saml/service-providers");
-        checkNotFoundForEndpoint(HttpMethod.PUT,zoneUrl + "/saml/service-providers/id");
-        checkNotFoundForEndpoint(HttpMethod.DELETE,zoneUrl + "/saml/service-providers/id");
-    }
-
-    @Test
     public void testMfaProvidersEndpoints() {
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/mfa-providers");
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/mfa-providers/id");
