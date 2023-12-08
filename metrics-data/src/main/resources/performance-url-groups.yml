@@ -62,10 +62,6 @@
   limit: 10000
   category: API
   group: /groups
-- pattern: /saml/service-providers/**
-  limit: 10000
-  category: API
-  group: /saml-sp
 - pattern: /oauth/token/list/**
   limit: 10000
   category: API

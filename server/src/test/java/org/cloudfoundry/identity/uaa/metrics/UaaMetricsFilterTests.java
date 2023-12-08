@@ -240,7 +240,6 @@ class UaaMetricsFilterTests {
         map.add("/login/callback", "/login/callback/some-value");
         map.add("/identity-providers", "/identity-providers");
         map.add("/identity-providers", "/identity-providers/some-value");
-        map.add("/saml/service-providers", "/saml/service-providers");
         map.add("/Groups/external", "/Groups/external");
         map.add("/Groups/external", "/Groups/external/some-value");
         map.add("/Groups/zones", "/Groups/zones");
