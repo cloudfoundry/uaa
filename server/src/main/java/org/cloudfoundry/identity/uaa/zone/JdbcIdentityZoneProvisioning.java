@@ -50,6 +50,9 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     @Override
     public IdentityZone retrieve(String id) {
+        if (id == null) {
+            throw new ZoneDoesNotExistsException("Zone id cannot be null");
+        }
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY_ACTIVE, mapper, id, true);
         } catch (EmptyResultDataAccessException x) {
@@ -59,6 +62,9 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
 
     @Override
     public IdentityZone retrieveIgnoreActiveFlag(String id) {
+        if (id == null) {
+            throw new ZoneDoesNotExistsException("Zone id cannot be null");
+        }
         try {
             return jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_ID_QUERY, mapper, id);
         } catch (EmptyResultDataAccessException x) {
@@ -91,11 +97,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 ps.setString(5, identityZone.getName());
                 ps.setString(6, identityZone.getSubdomain().toLowerCase());
                 ps.setString(7, identityZone.getDescription());
-                ps.setString(8,
-                        identityZone.getConfig() != null ?
-                                JsonUtils.writeValueAsString(identityZone.getConfig()) :
-                                null
-                );
+                ps.setString(8,identityZone.getConfig() != null ? JsonUtils.writeValueAsString(identityZone.getConfig()) : null);
                 ps.setBoolean(9, identityZone.isActive());
             });
         } catch (DuplicateKeyException e) {
@@ -115,11 +117,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 ps.setString(3, identityZone.getName());
                 ps.setString(4, identityZone.getSubdomain().toLowerCase());
                 ps.setString(5, identityZone.getDescription());
-                ps.setString(6,
-                        identityZone.getConfig() != null ?
-                                JsonUtils.writeValueAsString(identityZone.getConfig()) :
-                                null
-                );
+                ps.setString(6, identityZone.getConfig() != null ? JsonUtils.writeValueAsString(identityZone.getConfig()) : null);
                 ps.setBoolean(7, identityZone.isActive());
                 ps.setString(8, identityZone.getId().trim());
             });
@@ -163,8 +161,6 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 }
             }
             identityZone.setActive(rs.getBoolean(9));
-
-
             return identityZone;
         }
     }
