@@ -99,6 +99,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
+    private static final FieldDescriptor ALIAS_ZID = fieldWithPath("alias_zid").optional().type(STRING).description("The ID of the identity zone to which this IdP should be mirrored");
+    private static final FieldDescriptor ALIAS_ID = fieldWithPath("alias_id").optional().type(STRING).description("The ID of the mirrored IdP");
     private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("JSON Array containing the groups names which need to be populated in the user's `id_token` or response from `/userinfo` endpoint. If you don't specify the whitelist no groups will be populated in the `id_token` or `/userinfo` response." +
             "<br>Please note that regex is allowed. Acceptable patterns are" +
             "<ul><li>    `*` translates to all groups </li>" +
@@ -121,7 +123,9 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             EMAIL_DOMAIN,
             ACTIVE,
             ADD_SHADOW_USER,
-            STORE_CUSTOM_ATTRIBUTES
+            STORE_CUSTOM_ATTRIBUTES,
+            ALIAS_ID,
+            ALIAS_ZID
     };
 
     private FieldDescriptor[] attributeMappingFields = {
