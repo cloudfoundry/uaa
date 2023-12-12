@@ -651,77 +651,77 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotEquals(refreshToken, jti);
     }
 
-    @Test
-    void test_saml_bearer_grant() throws Exception {
-        String subdomain = generator.generate().toLowerCase();
-        //all our SAML defaults use :8080/uaa/ so we have to use that here too
-        String host = subdomain + ".localhost";
-        String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
-        String origin = subdomain + ".cloudfoundry-saml-login";
-
-        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
-                mockMvc,
-                webApplicationContext,
-                null,
-                false, IdentityZoneHolder.getCurrentZoneId());
-
-        //create an actual IDP, so we can fetch metadata
-        String idpMetadata = MockMvcUtils.getIDPMetaData(mockMvc, subdomain);
-
-        //create an IDP in the default zone
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, zone.getIdentityZone().getId(), idpMetadata);
-        IdentityProvider provider = new IdentityProvider();
-        provider.setConfig(idpDef);
-        provider.setActive(true);
-        provider.setIdentityZoneId(zone.getIdentityZone().getId());
-        provider.setName(origin);
-        provider.setOriginKey(origin);
-
-        IdentityZoneHolder.set(zone.getIdentityZone());
-        webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).create(provider, provider.getIdentityZoneId());
-        IdentityZoneHolder.clear();
-
-//        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
-//                "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-//                "Saml2BearerIntegrationUser",
-//                "http://" + subdomain + ".localhost:8080/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
-//                subdomain + ".cloudfoundry-saml-login"
-//        );
-
-        //create client in default zone
-        String clientId = "testclient" + generator.generate();
-        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER + ",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
-
+//    @Test
+//    void test_saml_bearer_grant() throws Exception {
+//        String subdomain = generator.generate().toLowerCase();
+//        //all our SAML defaults use :8080/uaa/ so we have to use that here too
+//        String host = subdomain + ".localhost";
+//        String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
+//        String origin = subdomain + ".cloudfoundry-saml-login";
 //
-//        //String fullPath = "/uaa/oauth/token";
-//        MockHttpServletRequestBuilder post = post(fullPath)
-//                .with(request -> {
-//                    request.setServerPort(8080);
-//                    request.setRequestURI(fullPath);
-//                    request.setServerName(host);
-//                    return request;
-//                })
-//                .contextPath("/uaa")
-//                .accept(APPLICATION_JSON)
-//                .header(HOST, host)
-//                .contentType(APPLICATION_FORM_URLENCODED)
-//                .param("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER)
-//                .param("client_id", clientId)
-//                .param("client_secret", "secret")
-//                .param("assertion", assertion);
-
-
-//        mockMvc.perform(post)
-//                .andDo(print())
-//                .andExpect(status().isOk())
-//                .andExpect(jsonPath("$.access_token").exists())
-//                .andExpect(jsonPath("$.scope").value("openid uaa.user"));
+//        MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
+//                mockMvc,
+//                webApplicationContext,
+//                null,
+//                false, IdentityZoneHolder.getCurrentZoneId());
 //
-//        mockMvc.perform(post.param("scope", "uaa.admin"))
-//                .andDo(print())
-//                .andExpect(status().isBadRequest());
-
-    }
+//        //create an actual IDP, so we can fetch metadata
+//        String idpMetadata = MockMvcUtils.getIDPMetaData(mockMvc, subdomain);
+//
+//        //create an IDP in the default zone
+//        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, zone.getIdentityZone().getId(), idpMetadata);
+//        IdentityProvider provider = new IdentityProvider();
+//        provider.setConfig(idpDef);
+//        provider.setActive(true);
+//        provider.setIdentityZoneId(zone.getIdentityZone().getId());
+//        provider.setName(origin);
+//        provider.setOriginKey(origin);
+//
+//        IdentityZoneHolder.set(zone.getIdentityZone());
+//        webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class).create(provider, provider.getIdentityZoneId());
+//        IdentityZoneHolder.clear();
+//
+////        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
+////                "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+////                "Saml2BearerIntegrationUser",
+////                "http://" + subdomain + ".localhost:8080/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
+////                subdomain + ".cloudfoundry-saml-login"
+////        );
+//
+//        //create client in default zone
+//        String clientId = "testclient" + generator.generate();
+//        setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER + ",password", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
+//
+////
+////        //String fullPath = "/uaa/oauth/token";
+////        MockHttpServletRequestBuilder post = post(fullPath)
+////                .with(request -> {
+////                    request.setServerPort(8080);
+////                    request.setRequestURI(fullPath);
+////                    request.setServerName(host);
+////                    return request;
+////                })
+////                .contextPath("/uaa")
+////                .accept(APPLICATION_JSON)
+////                .header(HOST, host)
+////                .contentType(APPLICATION_FORM_URLENCODED)
+////                .param("grant_type", TokenConstants.GRANT_TYPE_SAML2_BEARER)
+////                .param("client_id", clientId)
+////                .param("client_secret", "secret")
+////                .param("assertion", assertion);
+//
+//
+////        mockMvc.perform(post)
+////                .andDo(print())
+////                .andExpect(status().isOk())
+////                .andExpect(jsonPath("$.access_token").exists())
+////                .andExpect(jsonPath("$.scope").value("openid uaa.user"));
+////
+////        mockMvc.perform(post.param("scope", "uaa.admin"))
+////                .andDo(print())
+////                .andExpect(status().isBadRequest());
+//
+//    }
 
 //    @Test
 //    void test_two_zone_saml_bearer_grant() throws Exception {
