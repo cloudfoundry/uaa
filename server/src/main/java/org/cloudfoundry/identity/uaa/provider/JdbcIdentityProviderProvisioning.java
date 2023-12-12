@@ -26,15 +26,15 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     private static Logger logger = LoggerFactory.getLogger(JdbcIdentityProviderProvisioning.class);
 
-    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active";
+    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active,alias_id,alias_zid";
 
-    public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?)";
+    public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
     public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
-    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",", "=?,") + "=?";
+    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,alias_id,alias_zid".replace(",", "=?,") + "=?";
 
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=? and identity_zone_id=?";
 
@@ -101,7 +101,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 ps.setString(pos++, identityProvider.getType());
                 ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
                 ps.setString(pos++, zoneId);
-                ps.setBoolean(pos, identityProvider.isActive());
+                ps.setBoolean(pos++, identityProvider.isActive());
+                ps.setString(pos++, identityProvider.getAliasId());
+                ps.setString(pos, identityProvider.getAliasZid());
             });
         } catch (DuplicateKeyException e) {
             throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -121,7 +123,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
             ps.setBoolean(pos++, identityProvider.isActive());
             ps.setString(pos++, identityProvider.getId().trim());
-            ps.setString(pos, zoneId);
+            ps.setString(pos++, zoneId);
+            ps.setString(pos++, identityProvider.getAliasId());
+            ps.setString(pos, identityProvider.getAliasZid());
         });
         return retrieve(identityProvider.getId(), zoneId);
     }
@@ -200,7 +204,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 }
             }
             identityProvider.setIdentityZoneId(rs.getString(pos++));
-            identityProvider.setActive(rs.getBoolean(pos));
+            identityProvider.setActive(rs.getBoolean(pos++));
+            identityProvider.setAliasId(rs.getString(pos++));
+            identityProvider.setAliasZid(rs.getString(pos));
             return identityProvider;
         }
     }
