@@ -61,6 +61,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.requestF
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -99,8 +100,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
-    private static final FieldDescriptor ALIAS_ZID = fieldWithPath("alias_zid").optional().type(STRING).description("The ID of the identity zone to which this IdP should be mirrored");
-    private static final FieldDescriptor ALIAS_ID = fieldWithPath("alias_id").optional().type(STRING).description("The ID of the mirrored IdP");
+    private static final FieldDescriptor ALIAS_ZID = fieldWithPath("alias_zid").description("The ID of the identity zone to which this IdP should be mirrored").attributes(key("constraints").value("Optional")).optional().type(STRING);
+    private static final FieldDescriptor ALIAS_ID = fieldWithPath("alias_id").description("The ID of the mirrored IdP").attributes(key("constraints").value("Optional")).optional().type(STRING);
     private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("JSON Array containing the groups names which need to be populated in the user's `id_token` or response from `/userinfo` endpoint. If you don't specify the whitelist no groups will be populated in the `id_token` or `/userinfo` response." +
             "<br>Please note that regex is allowed. Acceptable patterns are" +
             "<ul><li>    `*` translates to all groups </li>" +
@@ -363,24 +364,30 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         IdentityProvider identityProvider = getSamlProvider("SAML");
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
-                fieldWithPath("type").required().description("`saml`"),
-                fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
-                SKIP_SSL_VALIDATION,
-                STORE_CUSTOM_ATTRIBUTES,
-                fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
-                fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\"."),
-                fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0"),
-                fieldWithPath("config.metadataTrustCheck").optional(null).type(BOOLEAN).description("Should metadata be validated, defaults to false"),
-                fieldWithPath("config.showSamlLink").optional(null).type(BOOLEAN).description("Should the SAML login link be displayed on the login page, defaults to false"),
-                fieldWithPath("config.linkText").constrained("Required if the ``showSamlLink`` is set to true").type(STRING).description("The link text for the SAML IDP on the login page"),
-                fieldWithPath("config.groupMappingMode").optional(ExternalGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external groups to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use SAML group names as scopes."),
-                fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
-                fieldWithPath("config.socketFactoryClassName").optional(null).description("Property is deprecated and value is ignored."),
-                fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
-                EXTERNAL_GROUPS_WHITELIST,
-                fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`."),
-        }, attributeMappingFields));
+        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(
+                commonProviderFields,
+                ArrayUtils.addAll(
+                        new FieldDescriptor[]{
+                                fieldWithPath("type").required().description("`saml`"),
+                                fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
+                                SKIP_SSL_VALIDATION,
+                                STORE_CUSTOM_ATTRIBUTES,
+                                fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
+                                fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\"."),
+                                fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0"),
+                                fieldWithPath("config.metadataTrustCheck").optional(null).type(BOOLEAN).description("Should metadata be validated, defaults to false"),
+                                fieldWithPath("config.showSamlLink").optional(null).type(BOOLEAN).description("Should the SAML login link be displayed on the login page, defaults to false"),
+                                fieldWithPath("config.linkText").constrained("Required if the ``showSamlLink`` is set to true").type(STRING).description("The link text for the SAML IDP on the login page"),
+                                fieldWithPath("config.groupMappingMode").optional(ExternalGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external groups to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use SAML group names as scopes."),
+                                fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
+                                fieldWithPath("config.socketFactoryClassName").optional(null).description("Property is deprecated and value is ignored."),
+                                fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
+                                EXTERNAL_GROUPS_WHITELIST,
+                                fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`."),
+                        },
+                        attributeMappingFields
+                )
+        );
 
         Snippet requestFields = requestFields(idempotentFields);
 
@@ -772,6 +779,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
                 fieldWithPath("[].name").description(NAME_DESC),
                 fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
+                fieldWithPath("[].alias_id").description("TODO"),
+                fieldWithPath("[].alias_zid").description("TODO"),
 
                 fieldWithPath("[].version").description(VERSION_DESC),
                 fieldWithPath("[].active").description(ACTIVE_DESC),
