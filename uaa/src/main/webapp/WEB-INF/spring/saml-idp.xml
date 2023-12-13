@@ -5,7 +5,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
               http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd">
 
-<!--    <bean id="samlIdpLoginFilter" class="org.springframework.security.web.FilterChainProxy">-->
+<!--TODO: delete dead code-->
 <!--        <security:filter-chain-map-->
 <!--                request-matcher="ant">-->
 <!--            <security:filter-chain pattern="/saml/idp/SSO/**"-->
