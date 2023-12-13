@@ -117,19 +117,19 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, ps -> {
             int pos = 1;
 
-            // placeholders in SELECT
-            ps.setInt(pos++, identityProvider.getVersion() + 1); // version
+            // placeholders in INSERT INTO
+            ps.setInt(pos++, identityProvider.getVersion() + 1);
             ps.setTimestamp(pos++, new Timestamp(new Date().getTime())); // lastmodified
-            ps.setString(pos++, identityProvider.getName()); // name
-            ps.setString(pos++, identityProvider.getType()); // type
-            ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig())); // config
-            ps.setBoolean(pos++, identityProvider.isActive()); // active
-            ps.setString(pos++, identityProvider.getAliasId()); // alias ID
-            ps.setString(pos++, identityProvider.getAliasZid()); // alias ZID
+            ps.setString(pos++, identityProvider.getName());
+            ps.setString(pos++, identityProvider.getType());
+            ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
+            ps.setBoolean(pos++, identityProvider.isActive());
+            ps.setString(pos++, identityProvider.getAliasId());
+            ps.setString(pos++, identityProvider.getAliasZid());
 
             // placeholders in WHERE
-            ps.setString(pos++, identityProvider.getId().trim()); // id
-            ps.setString(pos, zoneId); // identity_zone_id
+            ps.setString(pos++, identityProvider.getId().trim());
+            ps.setString(pos, zoneId);
         });
         return retrieve(identityProvider.getId(), zoneId);
     }
