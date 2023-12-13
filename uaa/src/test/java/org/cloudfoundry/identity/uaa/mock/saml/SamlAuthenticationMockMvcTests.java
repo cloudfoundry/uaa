@@ -19,10 +19,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-//import org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
-//import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -31,10 +28,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.Logger;
@@ -56,14 +50,7 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -76,12 +63,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurit
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -162,6 +144,7 @@ class SamlAuthenticationMockMvcTests {
         loggingAuditService.setLogger(originalAuditServiceLogger);
     }
 
+    @Disabled("The test depends on IDP endpoints, which was removed.")
     @Test
     void sendAuthnRequestToIdp() throws Exception {
         createIdp();
@@ -204,6 +187,7 @@ class SamlAuthenticationMockMvcTests {
                 .andExpect(redirectedUrl("http://" + idpZone.getSubdomain() + ".localhost:8080/uaa/login"));
     }
 
+    @Disabled("The test depends on IDP endpoints, which was removed.")
     @Test
     void validateStaticAttributes(
 //            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
@@ -222,6 +206,7 @@ class SamlAuthenticationMockMvcTests {
         assertThat(emails, containsString("portal2@portal.test"));
     }
 
+    @Disabled("The test depends on IDP endpoints, which was removed.")
     @Test
     void validateCustomEmailAttribute(
 //            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
@@ -238,6 +223,7 @@ class SamlAuthenticationMockMvcTests {
         assertThat(emails, equalTo("test@test.org"));
     }
 
+    @Disabled("The test depends on IDP endpoints, which was removed.")
     @Test
     void spIsAuthenticated() throws Exception {
         createIdp();
@@ -265,6 +251,7 @@ class SamlAuthenticationMockMvcTests {
     }
 
     // see also similar test for LDAP in AbstractLdapMockMvcTest.java
+    @Disabled("The test depends on IDP endpoints, which was removed.")
     @Test
     void passcodeGrantIdTokenContainsExternalGroupsAsRolesClaim() throws Exception {
         createIdp((idpDefinition) -> {
