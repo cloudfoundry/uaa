@@ -16,7 +16,7 @@ public class UserConfigValidator {
         Set<String> allowedGroups = (config == null) ? null : config.resultingAllowedGroups();
         if ((allowedGroups != null) && (allowedGroups.isEmpty())) {
             String message = "At least one group must be allowed";
-            logger.error(message);
+            logger.info(message);
             throw new InvalidIdentityZoneConfigurationException(message);
         }
     }
