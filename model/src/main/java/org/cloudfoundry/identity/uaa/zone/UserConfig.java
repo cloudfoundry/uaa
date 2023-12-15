@@ -41,10 +41,14 @@ public class UserConfig {
         this.allowedGroups = allowedGroups;
     }
 
+    public boolean allGroupsAllowed() {
+        return (allowedGroups == null);
+    }
+
     // return defaultGroups plus allowedGroups
     @SuppressWarnings("java:S1168")
     public Set<String> resultingAllowedGroups() {
-        if (allowedGroups == null) {
+        if (allGroupsAllowed()) {
             return null; // null = all groups allowed
         } else {
             HashSet<String> allAllowedGroups = new HashSet<>(allowedGroups);
