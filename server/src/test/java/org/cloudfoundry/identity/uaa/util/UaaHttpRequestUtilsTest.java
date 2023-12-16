@@ -99,6 +99,7 @@ public class UaaHttpRequestUtilsTest {
     @Test
     public void testHttpsProxy() throws Exception {
         String host = "localhost";
+        System.setProperty("https.protocols", " TLSv1.2, TLSv1.3 ");
         System.setProperty(HTTPS_HOST_PROPERTY, host);
         System.setProperty(HTTPS_PORT_PROPERTY, String.valueOf(httpServer.getAddress().getPort()));
         testHttpProxy("https://google.com:443/", httpServer.getAddress().getPort(), host, false);

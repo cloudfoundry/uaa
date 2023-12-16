@@ -8778,9 +8778,15 @@ input {
   color: #9faaad; }
 
 .dropdown-trigger {
+  background: transparent;
+  border: none;
+  color: inherit;
   cursor: pointer;
+  display: block;
   padding: 4px 24px 4px 8px;
-  position: relative; }
+  position: relative;
+  text-align: left;
+  width: 100%; }
 
 .dropdown-content {
   position: absolute;
