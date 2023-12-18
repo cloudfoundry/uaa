@@ -977,6 +977,10 @@ public final class MockMvcUtils {
         return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa(), status().isCreated());
     }
 
+    public static BaseClientDetails createClient(MockMvc mockMvc, IdentityZone identityZone, String accessToken, BaseClientDetails clientDetails) throws Exception {
+        return createClient(mockMvc, accessToken, clientDetails, identityZone, status().isCreated());
+    }
+
     public static void deleteClient(MockMvc mockMvc, String accessToken, String clientId, String zoneSubdomain) throws Exception {
         MockHttpServletRequestBuilder createClientDelete = delete("/oauth/clients/" + clientId)
           .header("Authorization", "Bearer " + accessToken)
