@@ -268,7 +268,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         // delete mirrored IdP if alias fields are set
-        if (existing != null && StringUtils.hasText(existing.getAliasZid()) && StringUtils.hasText(existing.getAliasId())) {
+        if (existing != null && hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
             IdentityProvider mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
             mirroredIdp.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(mirroredIdp, authentication, identityZoneId));
