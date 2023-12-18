@@ -278,27 +278,25 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     @Test
-    public void changeDefaultGroupsAllowedGroupsUsageShouldFail() throws URISyntaxException {
+    public void changeDefaultGroupsAllowedGroupsUsageShouldSucceed() throws URISyntaxException {
         String testZoneId = "testzone1";
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        final String ALLOWED = "allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
+        List<String> newDefaultGroups = new ArrayList<String>(defaultGroups);
+        newDefaultGroups.add(ALLOWED);
         config.getUserConfig().setAllowedGroups(List.of());
-        config.getUserConfig().setDefaultGroups(defaultGroups.stream().filter(g -> !g.equals("cloud_controller_service_permissions.read")).collect(
-            Collectors.toList()));
+        config.getUserConfig().setDefaultGroups(newDefaultGroups);
         String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
         String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
         RestTemplate template = new RestTemplate();
-        ScimGroup g1 = new ScimGroup(null,"cloud_controller_service_permissions.read", testZoneId);
+        ScimGroup g1 = new ScimGroup(null,ALLOWED, testZoneId);
         HttpEntity entity = new HttpEntity<>(JsonUtils.writeValueAsBytes(g1), IntegrationTestUtils.getAuthenticatedHeaders(inZoneAdminToken));
         try {
             template.exchange(zoneUrl + "/Groups", HttpMethod.POST, entity, HashMap.class);
-            fail("must fail");
-        } catch (HttpClientErrorException e) {
-            assertTrue(e.getStatusCode().is4xxClientError());
-            assertEquals(400, e.getRawStatusCode());
-            assertThat(e.getMessage(),
-                containsString("The group with displayName: "+ g1.getDisplayName() +" is not allowed in Identity Zone " + testZoneId));
+        } catch (Exception e) {
+            fail("must not fail");
         } finally {
             IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
         }
