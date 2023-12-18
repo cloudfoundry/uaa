@@ -13,9 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.providers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import org.apache.commons.lang.RandomStringUtils;
-import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -56,7 +54,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 
-import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.Matchers.containsString;
@@ -122,14 +119,14 @@ class IdentityProviderEndpointsMockMvcTests {
         IdentityProviderBootstrap bootstrap = webApplicationContext.getBean(IdentityProviderBootstrap.class);
         assertNotNull(identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaaZoneId()));
         try {
-            bootstrap.setOriginsToDelete(singletonList(origin));
+            bootstrap.setOriginsToDelete(Collections.singletonList(origin));
             bootstrap.onApplicationEvent(new ContextRefreshedEvent(webApplicationContext));
         } finally {
             bootstrap.setOriginsToDelete(null);
         }
         try {
             identityProviderProvisioning.retrieveByOrigin(origin, IdentityZone.getUaaZoneId());
-            Assertions.fail("Identity provider should have been deleted");
+            fail("Identity provider should have been deleted");
         } catch (EmptyResultDataAccessException ignored) {
         }
     }
@@ -237,7 +234,7 @@ class IdentityProviderEndpointsMockMvcTests {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setUserPropagationParameter("username");
-        definition.setExternalGroupsWhitelist(singletonList("uaa.user"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("uaa.user"));
         List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"),
                 new Prompt("password", "password", "Password"),
                 new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)"));
@@ -254,7 +251,7 @@ class IdentityProviderEndpointsMockMvcTests {
         MvcResult result = mockMvc.perform(requestBuilder).andExpect(status().isOk()).andReturn();
         IdentityProvider returnedIdentityProvider = JsonUtils.readValue(
                 result.getResponse().getContentAsString(), IdentityProvider.class);
-        assertNull(((AbstractExternalOAuthIdentityProviderDefinition) returnedIdentityProvider.getConfig())
+        assertNull(((AbstractExternalOAuthIdentityProviderDefinition)returnedIdentityProvider.getConfig())
                 .getRelyingPartySecret());
     }
 
@@ -323,7 +320,7 @@ class IdentityProviderEndpointsMockMvcTests {
             IdentityProvider returnedIdentityProvider = JsonUtils.readValue(
                     deleteResult.getResponse().getContentAsString(),
                     IdentityProvider.class);
-            assertNull(((LdapIdentityProviderDefinition) returnedIdentityProvider.
+            assertNull(((LdapIdentityProviderDefinition)returnedIdentityProvider.
                     getConfig()).getBindPassword());
         }
     }
