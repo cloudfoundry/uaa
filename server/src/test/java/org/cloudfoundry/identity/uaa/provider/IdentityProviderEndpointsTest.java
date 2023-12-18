@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -59,6 +61,12 @@ class IdentityProviderEndpointsTest {
 
     @Mock
     private IdentityZoneManager mockIdentityZoneManager;
+
+    @Mock
+    private PlatformTransactionManager mockPlatformTransactionManager;
+
+    @Mock
+    private IdentityZoneProvisioning mockIdentityZoneProvisioning;
 
     @InjectMocks
     private IdentityProviderEndpoints identityProviderEndpoints;
