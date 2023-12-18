@@ -191,7 +191,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      * alias ID and alias ZID set, the existing mirrored IdP is updated. If only the alias ZID is set, a new mirrored
      * IdP is created.
      * This method should be executed in a transaction together with the original create or update operation.
-     * The method assumes that
      *
      * @param originalIdp the original IdP; must be persisted, i.e., have an ID, already
      * @return the original IdP after the operation, with a potentially updated "aliasId" field
