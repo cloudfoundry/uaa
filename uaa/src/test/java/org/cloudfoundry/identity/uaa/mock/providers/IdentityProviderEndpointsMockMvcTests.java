@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.*;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
@@ -668,7 +669,8 @@ class IdentityProviderEndpointsMockMvcTests {
                     adminUser.getUserName(),
                     adminUser.getPassword(),
                     String.join(" ", scopesForZone),
-                    IdentityZone.getUaaZoneId()
+                    IdentityZone.getUaaZoneId(),
+                    TokenConstants.TokenFormat.JWT
             );
             eventListener.clearEvents();
 
