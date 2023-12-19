@@ -14,10 +14,10 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -132,17 +132,20 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private TimeService timeService = new TimeServiceImpl();
 
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
+    private final IdentityZoneManager identityZoneManager;
 
     public JdbcScimUserProvisioning(
             JdbcTemplate jdbcTemplate,
             JdbcPagingListFactory pagingListFactory,
-            final PasswordEncoder passwordEncoder) {
+            final PasswordEncoder passwordEncoder,
+            IdentityZoneManager identityZoneManager) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        this.identityZoneManager = identityZoneManager;
     }
 
     public void setTimeService(TimeService timeService) {
@@ -546,7 +549,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private int getAllowedUserLimit(String zoneId) {
         try {
             UserConfig userConfig;
-            IdentityZone currentZone = IdentityZoneHolder.get();
+            IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
             userConfig = (currentZone.getId().equals(zoneId)) ?
                 currentZone.getConfig().getUserConfig() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
