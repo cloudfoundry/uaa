@@ -46,7 +46,6 @@ public class UserConfig {
     }
 
     // return defaultGroups plus allowedGroups
-    @SuppressWarnings("java:S1168")
     public Set<String> resultingAllowedGroups() {
         if (allGroupsAllowed()) {
             return null; // null = all groups allowed
