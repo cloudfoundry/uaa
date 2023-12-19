@@ -157,15 +157,8 @@ public abstract class JwtTokenSignedByThisUAA {
     protected JwtTokenSignedByThisUAA checkExpiry(Instant asOf) {
         JWTClaimsSet jwtClaimsSet = getJwt().getClaimSet();
         Date expiry = jwtClaimsSet.getExpirationTime();
-        if (expiry == null) {
-            throw new InvalidTokenException("Token does not bear an EXP claim.", null);
-        }
-        try {
-            if (asOf.isAfter(expiry.toInstant())) {
-                throw new InvalidTokenException("Token expired at " + expiry, null);
-            }
-        } catch (ClassCastException ex) {
-            throw new InvalidTokenException("Token bears an invalid or unparseable EXP claim.", ex);
+        if (expiry == null || asOf == null || asOf.isAfter(expiry.toInstant())) {
+            throw new InvalidTokenException("Token does not bear a valid EXP claim.", null);
         }
         return this;
     }

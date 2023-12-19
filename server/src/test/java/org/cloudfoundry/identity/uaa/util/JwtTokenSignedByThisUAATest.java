@@ -231,7 +231,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expectMessage("kid claim not found in JWT token header");
 
-        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        assertThat(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")), notNullValue());
     }
 
     @Test
@@ -247,9 +247,15 @@ public class JwtTokenSignedByThisUAATest {
     @Test
     public void validation_succeeds_with_different_alg() {
         header.put("alg", "HS512");
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        JwtTokenSignedByThisUAA jwtTokenSignedByThisUAA = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
             .checkIssuer("http://localhost:8080/uaa/oauth/token")
             .checkSignature();
+        assertThat(jwtTokenSignedByThisUAA, notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getHeader().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getEncoded().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getHeader().getAlg(), containsString("HS512"));
     }
 
     @Test

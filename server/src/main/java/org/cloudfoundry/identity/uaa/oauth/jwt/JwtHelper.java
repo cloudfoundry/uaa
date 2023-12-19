@@ -149,6 +149,8 @@ class JwtHeader {
 }
 
 class JwtImpl implements Jwt {
+
+    private static final String INVALID_TOKEN = "Invalid token";
     private final String parsedJwtObject;
     private final JWT signedJwtObject;
     private final JwtHeader header;
@@ -179,7 +181,7 @@ class JwtImpl implements Jwt {
                 parsedJwtObject = null;
             }
         } catch (ParseException | JOSEException e) {
-            throw new InvalidTokenException("Invalid token", e);
+            throw new InvalidTokenException(INVALID_TOKEN, e);
         }
     }
 
@@ -199,7 +201,7 @@ class JwtImpl implements Jwt {
                 signedJwtObject = null;
             }
         } catch (ParseException | JOSEException e) {
-            throw new InvalidTokenException("Invalid token", e);
+            throw new InvalidTokenException(INVALID_TOKEN, e);
         }
     }
 
@@ -213,7 +215,7 @@ class JwtImpl implements Jwt {
             this.header = new JwtHeader(JsonUtils.convertValue(signedJwtObject.getHeader().toJSONObject(), HeaderParameters.class));
             this.parsedJwtObject = token;
         } catch (ParseException e) {
-            throw new InvalidTokenException("Invalid token", e);
+            throw new InvalidTokenException(INVALID_TOKEN, e);
         }
         this.content = null;
         this.signature = null;
