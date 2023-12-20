@@ -122,6 +122,10 @@
         "roles",
         "user_attributes",
         "uaa.offline_token"
+      ],
+      "allowedGroups": [
+        "scim.me",
+        "cloud_controller.user"
       ]
     }
   },

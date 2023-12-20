@@ -508,6 +508,26 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
+    void createZoneWithNoAllowedGroupsFailsWithUnprocessableEntity() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = this.createSimpleIdentityZone(id);
+        zone.getConfig().getUserConfig().setDefaultGroups(Collections.emptyList());
+        zone.getConfig().getUserConfig().setAllowedGroups(Collections.emptyList()); // no groups allowed
+
+        mockMvc.perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(zone)))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+                .andExpect(jsonPath("$.error_description").value("The identity zone details are invalid. " +
+                                                "The zone configuration is invalid. At least one group must be allowed"));
+
+        assertEquals(0, zoneModifiedEventListener.getEventCount());
+    }
+
+    @Test
     void testCreateZoneInsufficientScope() throws Exception {
         String id = new RandomValueStringGenerator().generate();
         createZone(id, HttpStatus.FORBIDDEN, lowPriviledgeToken, new IdentityZoneConfiguration());
