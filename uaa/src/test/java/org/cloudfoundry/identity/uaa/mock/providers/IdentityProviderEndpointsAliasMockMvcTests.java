@@ -169,7 +169,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             shouldReject(
                     zone2,
                     buildIdpWithAliasProperties(zone2.getId(), null, zone1.getId(), originKey),
-                    HttpStatus.INTERNAL_SERVER_ERROR
+                    HttpStatus.CONFLICT
             );
         }
 
