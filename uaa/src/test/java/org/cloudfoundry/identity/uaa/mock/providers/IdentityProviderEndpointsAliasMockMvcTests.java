@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -52,6 +53,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.web.context.WebApplicationContext;
 
 @DefaultTestContext
 class IdentityProviderEndpointsAliasMockMvcTests {
@@ -60,6 +62,9 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
     @Autowired
     private TestClient testClient;
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
 
     private IdentityZone customZone;
     private String adminToken;
@@ -257,6 +262,37 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(mirroredIdp).isPresent();
             assertIdpReferencesOtherIdp(mirroredIdp.get(), updatedOriginalIdp);
             assertThat(mirroredIdp.get().getName()).isNotBlank().isEqualTo(newName);
+        }
+
+        @Test
+        void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp_UaaToCustomZone() throws Exception {
+            shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp(IdentityZone.getUaa(), customZone);
+        }
+
+        @Test
+        void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp_CustomToUaaZone() throws Exception {
+            shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp(customZone, IdentityZone.getUaa());
+        }
+
+        private void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider idp = createMirroredIdp(zone1, zone2);
+
+            // delete the mirrored IdP directly in the DB -> after that, there is a dangling reference
+            final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class);
+            final int rowsDeleted = identityProviderProvisioning.deleteByOrigin(idp.getOriginKey(), zone2.getId());
+            assertThat(rowsDeleted).isEqualTo(1);
+
+            // update some other property on the original IdP
+            idp.setName("some-new-name");
+            final IdentityProvider updatedIdp = updateIdp(zone1, idp, getAccessTokenForZone(zone1));
+            assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
+            assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
+
+            // check if the new mirrored IdP is present and has the correct properties
+            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2, updatedIdp.getAliasId(), getAccessTokenForZone(zone2));
+            assertThat(mirroredIdp).isPresent();
+            assertIdpReferencesOtherIdp(updatedIdp, mirroredIdp.get());
+            assertOtherPropertiesAreEqual(updatedIdp, mirroredIdp.get());
         }
 
         @ParameterizedTest
