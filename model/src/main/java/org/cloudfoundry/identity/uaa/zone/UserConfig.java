@@ -34,7 +34,7 @@ public class UserConfig {
         return this.maxUsers;
     }
 
-    public void setMaxUsers(final int maxUsers) {
-        this.maxUsers = maxUsers > 0 && maxUsers < Integer.MAX_VALUE ? maxUsers : -1;
+    public void setMaxUsers(int maxUsers) {
+        this.maxUsers = maxUsers;
     }
 }
