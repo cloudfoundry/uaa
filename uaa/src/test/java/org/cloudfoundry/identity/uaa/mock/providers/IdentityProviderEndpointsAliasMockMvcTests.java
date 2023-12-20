@@ -11,10 +11,13 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +30,10 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -456,6 +462,69 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     accessTokenForZone2
             );
             assertThat(mirroredIdpAfterDeletionOfOriginalIdp).isNotPresent();
+        }
+    }
+
+    @Nested
+    class UpdateStatus {
+        @Test
+        void shouldAccept_MirroredIdpShouldAlsoBeUpdated_UaaToCustomZone() throws Exception {
+            shouldAccept_MirroredIdpShouldAlsoBeUpdated(IdentityZone.getUaa(), customZone);
+        }
+
+        @Test
+        void shouldAccept_MirroredIdpShouldAlsoBeUpdated_CustomToUaaZone() throws Exception {
+            shouldAccept_MirroredIdpShouldAlsoBeUpdated(customZone, IdentityZone.getUaa());
+        }
+
+        private void shouldAccept_MirroredIdpShouldAlsoBeUpdated(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            // create an IdP of type UAA
+            final IdentityProvider<UaaIdentityProviderDefinition> idp = new IdentityProvider<>();
+            idp.setType(OriginKeys.UAA);
+            idp.setName("some-name");
+            idp.setOriginKey(RandomStringUtils.randomAlphabetic(8));
+            final PasswordPolicy passwordPolicy = new PasswordPolicy();
+            passwordPolicy.setExpirePasswordInMonths(1);
+            passwordPolicy.setMaxLength(100);
+            passwordPolicy.setMinLength(10);
+            passwordPolicy.setRequireDigit(1);
+            passwordPolicy.setRequireUpperCaseCharacter(1);
+            passwordPolicy.setRequireLowerCaseCharacter(1);
+            passwordPolicy.setRequireSpecialCharacter(1);
+            passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
+            idp.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
+            idp.setAliasZid(zone2.getId());
+            final String accessTokenForZone1 = getAccessTokenForZone(zone1);
+            final IdentityProvider createdIdp = createIdp(zone1, idp, accessTokenForZone1);
+
+            final Date timestampBeforeUpdate = getPasswordNewerThanTimestamp(createdIdp);
+            assertThat(timestampBeforeUpdate).isNotNull();
+
+            final IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
+            identityProviderStatus.setRequirePasswordChange(true);
+            final MockHttpServletRequestBuilder updateRequestBuilder = patch("/identity-providers/" + createdIdp.getId() + "/status")
+                    .header("Authorization", "Bearer " + accessTokenForZone1)
+                    .header(IdentityZoneSwitchingFilter.HEADER, zone1.getId())
+                    .contentType(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(identityProviderStatus));
+            mockMvc.perform(updateRequestBuilder).andExpect(status().isOk()).andReturn();
+
+            // check if timestamp is updated in zone 1
+            final Optional<IdentityProvider> idpInZone1 = readIdpFromZoneIfExists(zone1, createdIdp.getId(), accessTokenForZone1);
+            assertThat(idpInZone1).isPresent();
+            final Date timestampAfterUpdate = getPasswordNewerThanTimestamp(idpInZone1.get());
+            assertThat(timestampAfterUpdate).isAfter(timestampBeforeUpdate);
+
+            // check if timestamp is updated in zone 2
+            final String accessTokenForZone2 = getAccessTokenForZone(zone2);
+            final Optional<IdentityProvider> idpInZone2 = readIdpFromZoneIfExists(zone2, createdIdp.getAliasId(), accessTokenForZone2);
+            assertThat(idpInZone2).isPresent();
+            final Date timestampAfterUpdateMirroredIdp = getPasswordNewerThanTimestamp(idpInZone2.get());
+            assertThat(timestampAfterUpdateMirroredIdp).isEqualTo(timestampAfterUpdate);
+        }
+
+        private Date getPasswordNewerThanTimestamp(final IdentityProvider idp) {
+            return ((UaaIdentityProviderDefinition) idp.getConfig()).getPasswordPolicy().getPasswordNewerThan();
         }
     }
 
