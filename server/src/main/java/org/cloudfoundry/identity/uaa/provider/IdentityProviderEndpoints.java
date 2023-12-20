@@ -213,20 +213,17 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                 .setIdentityZoneId(originalIdp.getAliasZid());
         mirroredIdp.setSerializeConfigRaw(originalIdp.isSerializeConfigRaw());
 
+        // get the referenced, mirrored IdP
+        final IdentityProvider existingMirroredIdp;
         if (hasText(originalIdp.getAliasId())) {
-            // retrieve and update existing mirrored IdP
-            final IdentityProvider existingMirroredIdp;
-            try {
-                existingMirroredIdp = identityProviderProvisioning.retrieve(
-                        originalIdp.getAliasId(),
-                        originalIdp.getAliasZid()
-                );
-            } catch (final EmptyResultDataAccessException e) {
-                throw new IdpMirroringFailedException(String.format(
-                        "The IdP referenced in the 'aliasId' and 'aliasZid' properties of IdP '%s' does not exist.",
-                        originalIdp.getId()
-                ), e);
-            }
+            // if the referenced IdP does not exist, we create a new one
+            existingMirroredIdp = retrieveMirroredIdp(originalIdp);
+        } else {
+            existingMirroredIdp = null;
+        }
+
+        // update the existing mirrored IdP
+        if (existingMirroredIdp != null) {
             mirroredIdp.setId(existingMirroredIdp.getId());
             identityProviderProvisioning.update(mirroredIdp, originalIdp.getAliasZid());
             return originalIdp;
@@ -252,6 +249,23 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         // update alias ID in original IdP
         originalIdp.setAliasId(persistedMirroredIdp.getId());
         return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
+    }
+
+    private IdentityProvider retrieveMirroredIdp(final IdentityProvider originalIdp) {
+        try {
+            return identityProviderProvisioning.retrieve(
+                    originalIdp.getAliasId(),
+                    originalIdp.getAliasZid()
+            );
+        } catch (final EmptyResultDataAccessException e) {
+            logger.warn(
+                    "The IdP referenced in the 'aliasId' ('{}') and 'aliasZid' ('{}') of the IdP '{}' does not exist.",
+                    originalIdp.getAliasId(),
+                    originalIdp.getAliasZid(),
+                    originalIdp.getId()
+            );
+            return null;
+        }
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
