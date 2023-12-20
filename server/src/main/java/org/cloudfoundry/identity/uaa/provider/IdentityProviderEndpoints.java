@@ -379,8 +379,31 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             logger.debug("IDP does not have an existing PasswordPolicy. Operation not supported");
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
-        uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(new Date(System.currentTimeMillis()));
-        identityProviderProvisioning.update(existing, zoneId);
+
+        final Date passwordNewerThanTimestamp = new Date(System.currentTimeMillis());
+        uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(passwordNewerThanTimestamp);
+
+        // update the property in the mirrored IdP if present
+        final IdentityProvider mirroredIdp;
+        if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
+            mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
+            final UaaIdentityProviderDefinition definitionMirroredIdp = ObjectUtils.castInstance(
+                    mirroredIdp.getConfig(),
+                    UaaIdentityProviderDefinition.class
+            );
+            definitionMirroredIdp.getPasswordPolicy().setPasswordNewerThan(passwordNewerThanTimestamp);
+        } else {
+            mirroredIdp = null;
+        }
+
+        // update both IdPs in a transaction
+        transactionTemplate.executeWithoutResult(txStatus -> {
+            identityProviderProvisioning.update(existing, zoneId);
+            if (mirroredIdp != null) {
+                identityProviderProvisioning.update(mirroredIdp, mirroredIdp.getIdentityZoneId());
+            }
+        });
+
         logger.info("PasswordChangeRequired property set for Identity Provider: " + existing.getId());
         return  new ResponseEntity<>(body, OK);
     }
