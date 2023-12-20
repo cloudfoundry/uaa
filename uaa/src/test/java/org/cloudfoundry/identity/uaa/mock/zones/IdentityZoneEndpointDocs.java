@@ -124,7 +124,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String SECRET_POLICY_DIGIT = "Minimum number of digits required for secret to be considered valid (defaults to 0).";
     private static final String SECRET_POLICY_SPECIAL_CHAR = "Minimum number of special characters required for secret to be considered valid (defaults to 0).";
     private static final String SECRET_POLICY_EXPIRE_MONTHS = "Number of months after which current secret expires (defaults to 0).";
-    private static final String USER_CONFIG_USER_LIMIT_DESCRIPTION = "Number of users in the zone. If set, it limits the amount of users in the zone. (defaults to -1, no limit).";
+    private static final String USER_CONFIG_USER_LIMIT_DESCRIPTION = "Number of users in the zone. If more than 0, it limits the amount of users in the zone. (defaults to -1, no limit).";
     private static final String USER_CONFIG_USER_LIMIT_CONSTRAINT = "Optional number, default -1, no limit.";
 
     private static final String SERVICE_PROVIDER_KEY =
