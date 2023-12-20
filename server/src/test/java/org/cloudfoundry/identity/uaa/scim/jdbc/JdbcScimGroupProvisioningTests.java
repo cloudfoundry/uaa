@@ -8,12 +8,14 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
@@ -87,6 +89,7 @@ class JdbcScimGroupProvisioningTests {
         zone.setId(zoneId);
         IdentityZoneHolder.set(zone);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(new ArrayList<>());
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null);
 
         validateGroupCountInZone(0, zoneId);
 
@@ -106,6 +109,7 @@ class JdbcScimGroupProvisioningTests {
                 new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         jdbcScimGroupExternalMembershipManager.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupExternalMembershipManager(jdbcScimGroupExternalMembershipManager);
+        dao.setJdbcIdentityZoneProvisioning(new JdbcIdentityZoneProvisioning(jdbcTemplate));
 
         g1Id = "g1";
         g2Id = "g2";
@@ -292,6 +296,30 @@ class JdbcScimGroupProvisioningTests {
         ScimGroup same = dao.getByName(nameWithQuotes, zoneId);
         assertNotNull(same);
         assertEquals(g.getId(), same.getId());
+    }
+
+    @Test
+    void cannotCreateNotAllowedGroup() {
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("allowedGroup"));
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> internalCreateGroup("notAllowedGroup"),
+            containsString("is not allowed")
+        );
+    }
+
+    @Test
+    void cannotUpdateNotAllowedGroup() {
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("allowedGroup"));
+        ScimGroup g = dao.retrieve(g1Id, zoneId);
+        g.setDisplayName("notAllowedGroup");
+        g.setDescription("description-update");
+        try {
+           dao.update(g1Id, g, zoneId);
+           fail();
+        } catch(InvalidScimResourceException e) {
+            assertTrue(e.getMessage().contains("is not allowed"));
+        }
     }
 
     @Test
