@@ -40,10 +40,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -174,11 +172,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
                 return ensureConsistencyOfMirroredIdp(createdOriginalIdp);
             });
-        } catch (final TransactionException e) {
-            if (e.getCause() instanceof IdpAlreadyExistsException) {
-                return new ResponseEntity<>(body, CONFLICT);
-            }
-
+        } catch (final IdpAlreadyExistsException e) {
+            return new ResponseEntity<>(body, CONFLICT);
+        } catch (final Exception e) {
             logger.error("Unable to create IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
@@ -187,9 +183,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     /**
-     * Ensure consistency with a mirrored IdP referenced in the original IdPs alias properties. If the IdP has both its
-     * alias ID and alias ZID set, the existing mirrored IdP is updated. If only the alias ZID is set, a new mirrored
-     * IdP is created.
+     * Ensure consistency during create or update operations with a mirrored IdP referenced in the original IdPs alias
+     * properties. If the IdP has both its alias ID and alias ZID set, the existing mirrored IdP is updated. If only
+     * the alias ZID is set, a new mirrored IdP is created.
      * This method should be executed in a transaction together with the original create or update operation.
      *
      * @param originalIdp the original IdP; must be persisted, i.e., have an ID, already
