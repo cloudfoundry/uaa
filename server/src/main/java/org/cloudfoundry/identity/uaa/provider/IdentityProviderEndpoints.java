@@ -34,6 +34,8 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
@@ -134,32 +136,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        // at this point, the alias ID must not be set
-        if (hasText(body.getAliasId())) {
-            logger.debug("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "] - Alias ID was not null.");
+        if (!aliasPropertiesAreValid(body, null)) {
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
-        }
-
-        if (hasText(body.getAliasZid())) {
-            // check if the zone exists
-            try {
-                identityZoneProvisioning.retrieve(body.getAliasZid());
-            } catch (final ZoneDoesNotExistsException e) {
-                logger.debug("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "] - Zone referenced in alias zone ID does not exist.");
-                return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
-            }
-
-            // mirroring is only allowed from or to the "uaa" zone
-            if (!zoneId.equals(UAA) && !body.getAliasZid().equals(UAA)) {
-                logger.debug("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "] - Invalid: Alias ZID set to custom zone, IdP created in custom zone.");
-                return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
-            }
-
-            // mirroring cannot be done to the same zone
-            if (body.getAliasZid().equals(zoneId)) {
-                logger.debug("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "] - Invalid: Alias ZID equal to current IdZ.");
-                return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
-            }
         }
 
         // persist IdP and mirror if necessary
@@ -180,92 +158,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         return new ResponseEntity<>(createdIdp, CREATED);
-    }
-
-    /**
-     * Ensure consistency during create or update operations with a mirrored IdP referenced in the original IdPs alias
-     * properties. If the IdP has both its alias ID and alias ZID set, the existing mirrored IdP is updated. If only
-     * the alias ZID is set, a new mirrored IdP is created.
-     * This method should be executed in a transaction together with the original create or update operation.
-     *
-     * @param originalIdp the original IdP; must be persisted, i.e., have an ID, already
-     * @return the original IdP after the operation, with a potentially updated "aliasId" field
-     * @throws IdpMirroringFailedException if a new mirrored IdP needs to be created, but the zone referenced in
-     *                                     'aliasZid' does not exist
-     * @throws IdpMirroringFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the referenced
-     *                                     mirrored IdP could not be found
-     */
-    private IdentityProvider ensureConsistencyOfMirroredIdp(final IdentityProvider originalIdp) throws IdpMirroringFailedException {
-        if (!hasText(originalIdp.getAliasZid())) {
-            // no mirroring is necessary
-            return originalIdp;
-        }
-
-        final IdentityProvider mirroredIdp = new IdentityProvider<>()
-                .setActive(originalIdp.isActive())
-                .setConfig(originalIdp.getConfig())
-                .setName(originalIdp.getName())
-                .setOriginKey(originalIdp.getOriginKey())
-                .setType(originalIdp.getType())
-                // reference the ID and zone ID of the initial IdP entry
-                .setAliasZid(originalIdp.getIdentityZoneId())
-                .setAliasId(originalIdp.getId())
-                .setIdentityZoneId(originalIdp.getAliasZid());
-        mirroredIdp.setSerializeConfigRaw(originalIdp.isSerializeConfigRaw());
-
-        // get the referenced, mirrored IdP
-        final IdentityProvider existingMirroredIdp;
-        if (hasText(originalIdp.getAliasId())) {
-            // if the referenced IdP does not exist, we create a new one
-            existingMirroredIdp = retrieveMirroredIdp(originalIdp);
-        } else {
-            existingMirroredIdp = null;
-        }
-
-        // update the existing mirrored IdP
-        if (existingMirroredIdp != null) {
-            mirroredIdp.setId(existingMirroredIdp.getId());
-            identityProviderProvisioning.update(mirroredIdp, originalIdp.getAliasZid());
-            return originalIdp;
-        }
-
-        // check if IdZ referenced in 'aliasZid' exists
-        try {
-            identityZoneProvisioning.retrieve(originalIdp.getAliasZid());
-        } catch (final ZoneDoesNotExistsException e) {
-            throw new IdpMirroringFailedException(String.format(
-                    "Could not mirror IdP '%s' to zone '%s', as zone does not exist.",
-                    originalIdp.getId(),
-                    originalIdp.getAliasZid()
-            ), e);
-        }
-
-        // create new mirrored IdP in alias zid
-        final IdentityProvider persistedMirroredIdp = identityProviderProvisioning.create(
-                mirroredIdp,
-                originalIdp.getAliasZid()
-        );
-
-        // update alias ID in original IdP
-        originalIdp.setAliasId(persistedMirroredIdp.getId());
-        return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
-    }
-
-    private IdentityProvider retrieveMirroredIdp(final IdentityProvider originalIdp) {
-        try {
-            return identityProviderProvisioning.retrieve(
-                    originalIdp.getAliasId(),
-                    originalIdp.getAliasZid()
-            );
-        } catch (final EmptyResultDataAccessException e) {
-            logger.warn(
-                    "The IdP referenced in the 'aliasId' ('{}') and 'aliasZid' ('{}') of the IdP '{}' does not exist.",
-                    originalIdp.getAliasId(),
-                    originalIdp.getAliasZid(),
-                    originalIdp.getId()
-            );
-            return null;
-        }
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
@@ -308,7 +200,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
-        if (!isValidAliasPropertyUpdate(body, existing)) {
+        if (!aliasPropertiesAreValid(body, existing)) {
             logger.error("IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"] - Alias ID and/or ZID changed during update of already mirrored IdP.");
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
@@ -330,46 +222,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         updatedIdp.setSerializeConfigRaw(rawConfig);
         redactSensitiveData(updatedIdp);
         return new ResponseEntity<>(updatedIdp, OK);
-    }
-
-    /**
-     * Checks whether an update operation is valid in regard to the alias properties.
-     *
-     * @param updatePayload the updated version of the IdP to be persisted
-     * @param existingIdp the existing version of the IdP
-     * @return whether the update of the alias properties is valid
-     */
-    private static boolean isValidAliasPropertyUpdate(
-            final IdentityProvider updatePayload,
-            final IdentityProvider existingIdp
-    ) {
-        if (!hasText(existingIdp.getAliasId()) && !hasText(existingIdp.getAliasZid())) {
-            // no alias properties set previously
-
-            if (hasText(updatePayload.getAliasId())) {
-                return false; // 'aliasId' must be empty
-            }
-
-            if (!hasText(updatePayload.getAliasZid())) {
-                return true; // no mirroring necessary
-            }
-
-            // one of the zones must be "uaa"
-            return updatePayload.getAliasZid().equals(UAA) || updatePayload.getIdentityZoneId().equals(UAA);
-        }
-
-        if (!hasText(existingIdp.getAliasId()) || !hasText(existingIdp.getAliasZid())) {
-            // at this point, we expect both properties to be set -> if not, the IdP is in an inconsistent state
-            throw new IllegalStateException(String.format(
-                    "Both alias ID and alias ZID expected to be set for IdP '%s' in zone '%s'.",
-                    existingIdp.getId(),
-                    existingIdp.getIdentityZoneId()
-            ));
-        }
-
-        // both properties must be equal in the update payload
-        return existingIdp.getAliasId().equals(updatePayload.getAliasId())
-                && existingIdp.getAliasZid().equals(updatePayload.getAliasZid());
     }
 
     @RequestMapping (value = "{id}/status", method = PATCH)
@@ -472,6 +324,143 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return new ResponseEntity<>(JsonUtils.writeValueAsString(exception), status);
     }
 
+    private boolean aliasPropertiesAreValid(
+            @NonNull final IdentityProvider requestBody,
+            @Nullable final IdentityProvider existingIdp
+    ) {
+        // if the IdP was already mirrored, the alias properties must not be changed
+        final boolean idpWasAlreadyMirrored = existingIdp != null && hasText(existingIdp.getAliasZid());
+        if (idpWasAlreadyMirrored) {
+            if (!hasText(existingIdp.getAliasId())) {
+                // at this point, we expect both properties to be set -> if not, the IdP is in an inconsistent state
+                throw new IllegalStateException(String.format(
+                        "Both alias ID and alias ZID expected to be set for IdP '%s' in zone '%s'.",
+                        existingIdp.getId(),
+                        existingIdp.getIdentityZoneId()
+                ));
+            }
+
+            // both alias properties must be equal in the update payload
+            return existingIdp.getAliasId().equals(requestBody.getAliasId())
+                    && existingIdp.getAliasZid().equals(requestBody.getAliasZid());
+        }
+
+        // if the IdP was not mirrored already, the aliasId must be empty
+        if (hasText(requestBody.getAliasId())) {
+            return false;
+        }
+
+        // check if mirroring is necessary
+        if (!hasText(requestBody.getAliasZid())) {
+            return true;
+        }
+
+        // the referenced zone must exist
+        try {
+            identityZoneProvisioning.retrieve(requestBody.getAliasZid());
+        } catch (final ZoneDoesNotExistsException e) {
+            logger.debug(
+                    "IdentityProvider[origin={}; zone={}] - Zone referenced in alias zone ID does not exist.",
+                    requestBody.getOriginKey(),
+                    requestBody.getIdentityZoneId()
+            );
+            return false;
+        }
+
+        // 'identityZoneId' and 'aliasZid' must not be equal
+        if (requestBody.getIdentityZoneId().equals(requestBody.getAliasZid())) {
+            return false;
+        }
+
+        // one of the zones must be 'uaa'
+        return requestBody.getIdentityZoneId().equals(UAA) || requestBody.getAliasZid().equals(UAA);
+    }
+
+    /**
+     * Ensure consistency during create or update operations with a mirrored IdP referenced in the original IdPs alias
+     * properties. If the IdP has both its alias ID and alias ZID set, the existing mirrored IdP is updated. If only
+     * the alias ZID is set, a new mirrored IdP is created.
+     * This method should be executed in a transaction together with the original create or update operation.
+     *
+     * @param originalIdp the original IdP; must be persisted, i.e., have an ID, already
+     * @return the original IdP after the operation, with a potentially updated "aliasId" field
+     * @throws IdpMirroringFailedException if a new mirrored IdP needs to be created, but the zone referenced in
+     *                                     'aliasZid' does not exist
+     * @throws IdpMirroringFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the referenced
+     *                                     mirrored IdP could not be found
+     */
+    private IdentityProvider ensureConsistencyOfMirroredIdp(final IdentityProvider originalIdp) throws IdpMirroringFailedException {
+        if (!hasText(originalIdp.getAliasZid())) {
+            // no mirroring is necessary
+            return originalIdp;
+        }
+
+        final IdentityProvider mirroredIdp = new IdentityProvider<>()
+                .setActive(originalIdp.isActive())
+                .setConfig(originalIdp.getConfig())
+                .setName(originalIdp.getName())
+                .setOriginKey(originalIdp.getOriginKey())
+                .setType(originalIdp.getType())
+                // reference the ID and zone ID of the initial IdP entry
+                .setAliasZid(originalIdp.getIdentityZoneId())
+                .setAliasId(originalIdp.getId())
+                .setIdentityZoneId(originalIdp.getAliasZid());
+        mirroredIdp.setSerializeConfigRaw(originalIdp.isSerializeConfigRaw());
+
+        // get the referenced, mirrored IdP
+        final IdentityProvider existingMirroredIdp;
+        if (hasText(originalIdp.getAliasId())) {
+            // if the referenced IdP does not exist, we create a new one
+            existingMirroredIdp = retrieveMirroredIdp(originalIdp);
+        } else {
+            existingMirroredIdp = null;
+        }
+
+        // update the existing mirrored IdP
+        if (existingMirroredIdp != null) {
+            mirroredIdp.setId(existingMirroredIdp.getId());
+            identityProviderProvisioning.update(mirroredIdp, originalIdp.getAliasZid());
+            return originalIdp;
+        }
+
+        // check if IdZ referenced in 'aliasZid' exists
+        try {
+            identityZoneProvisioning.retrieve(originalIdp.getAliasZid());
+        } catch (final ZoneDoesNotExistsException e) {
+            throw new IdpMirroringFailedException(String.format(
+                    "Could not mirror IdP '%s' to zone '%s', as zone does not exist.",
+                    originalIdp.getId(),
+                    originalIdp.getAliasZid()
+            ), e);
+        }
+
+        // create new mirrored IdP in alias zid
+        final IdentityProvider persistedMirroredIdp = identityProviderProvisioning.create(
+                mirroredIdp,
+                originalIdp.getAliasZid()
+        );
+
+        // update alias ID in original IdP
+        originalIdp.setAliasId(persistedMirroredIdp.getId());
+        return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
+    }
+
+    private IdentityProvider retrieveMirroredIdp(final IdentityProvider originalIdp) {
+        try {
+            return identityProviderProvisioning.retrieve(
+                    originalIdp.getAliasId(),
+                    originalIdp.getAliasZid()
+            );
+        } catch (final EmptyResultDataAccessException e) {
+            logger.warn(
+                    "The IdP referenced in the 'aliasId' ('{}') and 'aliasZid' ('{}') of the IdP '{}' does not exist.",
+                    originalIdp.getAliasId(),
+                    originalIdp.getAliasZid(),
+                    originalIdp.getId()
+            );
+            return null;
+        }
+    }
 
     @ExceptionHandler(MetadataProviderException.class)
     public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {

@@ -351,6 +351,26 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             shouldReject(customZone, idpInCustomZone, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
+        @Test
+        void shouldReject_AliasZidSetToSameZone_UaaZone() throws Exception {
+            shouldReject_AliasZidSetToSameZone(IdentityZone.getUaa());
+        }
+
+        @Test
+        void shouldReject_AliasZidSetToSameZone_CustomZone() throws Exception {
+            shouldReject_AliasZidSetToSameZone(customZone);
+        }
+
+        private void shouldReject_AliasZidSetToSameZone(final IdentityZone zone) throws Exception {
+            final IdentityProvider idp = createIdp(
+                    zone,
+                    buildIdpWithAliasProperties(zone.getId(), null, null),
+                    getAccessTokenForZone(zone)
+            );
+            idp.setAliasZid(zone.getId());
+            shouldReject(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
         private IdentityProvider updateIdp(
                 final IdentityZone zone,
                 final IdentityProvider updatePayload,
