@@ -20,7 +20,7 @@ public class UserConfig {
 
     private List<String> defaultGroups = DEFAULT_ZONE_GROUPS;
 
-    private Integer maxUsers;
+    private int maxUsers = -1;
 
     public List<String> getDefaultGroups() {
         return defaultGroups;
@@ -30,11 +30,11 @@ public class UserConfig {
         this.defaultGroups = defaultGroups;
     }
 
-    public Integer getMaxUsers() {
+    public int getMaxUsers() {
         return this.maxUsers;
     }
 
-    public void setMaxUsers(final Integer maxUsers) {
-        this.maxUsers = maxUsers;
+    public void setMaxUsers(final int maxUsers) {
+        this.maxUsers = maxUsers > 0 && maxUsers < Integer.MAX_VALUE ? maxUsers : -1;
     }
 }

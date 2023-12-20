@@ -59,7 +59,6 @@ import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -553,7 +552,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             userConfig = (currentZone.getId().equals(zoneId)) ?
                 currentZone.getConfig().getUserConfig() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
-            return Optional.ofNullable(userConfig.getMaxUsers()).orElse(-1).intValue();
+            return userConfig.getMaxUsers();
         } catch (ZoneDoesNotExistsException e) {
             logger.debug("could not retrieve identity zone with id: {}", zoneId);
         }
