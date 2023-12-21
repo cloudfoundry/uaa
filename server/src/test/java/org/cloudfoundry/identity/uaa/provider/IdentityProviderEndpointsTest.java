@@ -339,6 +339,55 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
+    void testUpdateIdentityProvider_AlreadyMirrored_InvalidAliasPropertyChange() throws MetadataProviderException {
+        final String existingIdpId = UUID.randomUUID().toString();
+        final String customZoneId = UUID.randomUUID().toString();
+        final String mirroredIdpId = UUID.randomUUID().toString();
+
+        final Supplier<IdentityProvider<?>> existingIdpProvider = () -> {
+            final IdentityProvider<?> idp = getExternalOAuthProvider();
+            idp.setId(existingIdpId);
+            idp.setAliasZid(customZoneId);
+            idp.setAliasId(mirroredIdpId);
+            return idp;
+        };
+
+        // original IdP with reference to a mirrored IdP
+        final IdentityProvider<?> existingIdp = existingIdpProvider.get();
+        when(mockIdentityProviderProvisioning.retrieve(existingIdpId, IdentityZone.getUaaZoneId()))
+                .thenReturn(existingIdp);
+
+        // (1) aliasId removed
+        IdentityProvider<?> requestBody = existingIdpProvider.get();
+        requestBody.setAliasId("");
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // (2) aliasId changed
+        requestBody = existingIdpProvider.get();
+        requestBody.setAliasId(UUID.randomUUID().toString());
+        response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // (3) aliasZid removed
+        requestBody = existingIdpProvider.get();
+        requestBody.setAliasZid("");
+        response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // (4) aliasZid changed
+        requestBody = existingIdpProvider.get();
+        requestBody.setAliasZid(UUID.randomUUID().toString());
+        response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    void testUpdateIdentityProvider_NotYetMirrored_InvalidAliasPropertyChange() {
+
+    }
+
+    @Test
     void create_ldap_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider<LdapIdentityProviderDefinition> ldapDefinition = getLdapDefinition();
