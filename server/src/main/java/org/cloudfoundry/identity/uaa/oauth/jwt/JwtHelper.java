@@ -226,7 +226,7 @@ class JwtImpl implements Jwt {
      * @param verifier the signature verifier
      */
     @Override
-    public void verifySignature(Object verifier) {
+    public void verifySignature(Verifier verifier) {
         if (signedJwtObject != null && verifier instanceof SignatureVerifier signatureVerifier) {
             validateClientJWToken(signedJwtObject, signatureVerifier.getJwkSet());
             return;

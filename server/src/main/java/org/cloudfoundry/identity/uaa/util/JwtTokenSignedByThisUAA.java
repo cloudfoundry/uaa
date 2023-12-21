@@ -28,6 +28,7 @@ import javax.validation.constraints.NotNull;
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Verifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -128,7 +129,7 @@ public abstract class JwtTokenSignedByThisUAA {
         return checkSignature(fetchSignatureVerifierFromToken(this.tokenJwt));
     }
 
-    public JwtTokenSignedByThisUAA checkSignature(Object verifier) {
+    public JwtTokenSignedByThisUAA checkSignature(Verifier verifier) {
         try {
             this.tokenJwt.verifySignature(verifier);
         } catch (RuntimeException ex) {

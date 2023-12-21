@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-public class SignatureVerifier {
+public class SignatureVerifier implements Verifier {
     private final JsonWebKey delegate;
     private final String algorithm;
     private JWKSet jwk;

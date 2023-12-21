@@ -18,6 +18,6 @@ public interface Jwt {
     String getClaims();
     JWTClaimsSet getClaimSet();
     String getEncoded();
-    void verifySignature(Object verifier);
+    void verifySignature(Verifier verifier);
     HeaderParameters getHeader();
 }

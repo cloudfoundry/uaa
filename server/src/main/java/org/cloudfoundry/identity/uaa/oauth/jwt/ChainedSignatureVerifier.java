@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ChainedSignatureVerifier {
+public class ChainedSignatureVerifier implements Verifier {
     private final List<SignatureVerifier> delegates;
 
     public ChainedSignatureVerifier(JsonWebKeySet<? extends JsonWebKey> keys) {
