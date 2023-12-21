@@ -168,21 +168,22 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
+        if (publisher == null || existing == null) {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+
+        existing.setSerializeConfigRaw(rawConfig);
+        publisher.publishEvent(new EntityDeletedEvent<>(existing, authentication, identityZoneId));
+        redactSensitiveData(existing);
+
         // delete mirrored IdP if alias fields are set
-        if (existing != null && hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
+        if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
             IdentityProvider<?> mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
             mirroredIdp.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(mirroredIdp, authentication, identityZoneId));
         }
 
-        if (publisher!=null && existing!=null) {
-            existing.setSerializeConfigRaw(rawConfig);
-            publisher.publishEvent(new EntityDeletedEvent<>(existing, authentication, identityZoneId));
-            redactSensitiveData(existing);
-            return new ResponseEntity<>(existing, OK);
-        } else {
-            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
-        }
+        return new ResponseEntity<>(existing, OK);
     }
 
     @RequestMapping(value = "{id}", method = PUT)

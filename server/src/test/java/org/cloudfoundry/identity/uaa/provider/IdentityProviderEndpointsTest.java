@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.assertj.core.api.Assertions;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -9,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -30,6 +33,7 @@ import java.util.function.Supplier;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -443,6 +448,47 @@ class IdentityProviderEndpointsTest {
                         identityProviderIdentifier, false);
         assertEquals(HttpStatus.OK, deleteResponse.getStatusCode());
         assertEquals(validIDP, deleteResponse.getBody());
+    }
+
+    @Test
+    void testDeleteIdentityProviderMirrored() {
+        final String idpId = UUID.randomUUID().toString();
+        final String mirroredIdpId = UUID.randomUUID().toString();
+        final String customZoneId = UUID.randomUUID().toString();
+
+        final IdentityProvider<?> idp = new IdentityProvider<>();
+        idp.setType(OIDC10);
+        idp.setId(idpId);
+        idp.setIdentityZoneId(UAA);
+        idp.setAliasId(mirroredIdpId);
+        idp.setAliasZid(customZoneId);
+        when(mockIdentityProviderProvisioning.retrieve(idpId, UAA)).thenReturn(idp);
+
+        final IdentityProvider<?> mirroredIdp = new IdentityProvider<>();
+        mirroredIdp.setType(OIDC10);
+        mirroredIdp.setId(mirroredIdpId);
+        mirroredIdp.setIdentityZoneId(customZoneId);
+        mirroredIdp.setAliasId(idpId);
+        mirroredIdp.setAliasZid(UAA);
+        when(mockIdentityProviderProvisioning.retrieve(mirroredIdpId, customZoneId)).thenReturn(mirroredIdp);
+
+        final ApplicationEventPublisher mockEventPublisher = mock(ApplicationEventPublisher.class);
+        identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
+        doNothing().when(mockEventPublisher).publishEvent(any());
+
+        identityProviderEndpoints.deleteIdentityProvider(idpId, true);
+        final ArgumentCaptor<EntityDeletedEvent<?>> entityDeletedEventCaptor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+        verify(mockEventPublisher, times(2)).publishEvent(entityDeletedEventCaptor.capture());
+
+        final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().get(0);
+        Assertions.assertThat(firstEvent).isNotNull();
+        Assertions.assertThat(firstEvent.getIdentityZoneId()).isEqualTo(UAA);
+        Assertions.assertThat(((IdentityProvider<?>) firstEvent.getSource()).getId()).isEqualTo(idpId);
+
+        final EntityDeletedEvent<?> secondEvent = entityDeletedEventCaptor.getAllValues().get(1);
+        Assertions.assertThat(secondEvent).isNotNull();
+        Assertions.assertThat(secondEvent.getIdentityZoneId()).isEqualTo(UAA);
+        Assertions.assertThat(((IdentityProvider<?>) secondEvent.getSource()).getId()).isEqualTo(mirroredIdpId);
     }
 
     @Test
