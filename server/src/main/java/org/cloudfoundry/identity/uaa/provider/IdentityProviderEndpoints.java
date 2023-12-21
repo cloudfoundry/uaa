@@ -227,8 +227,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         if (updatedIdp == null) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.",
-                    body.getOriginKey(),
-                    body.getIdentityZoneId()
+                    getCleanedUserControlString(body.getOriginKey()),
+                    getCleanedUserControlString(body.getIdentityZoneId())
             );
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
