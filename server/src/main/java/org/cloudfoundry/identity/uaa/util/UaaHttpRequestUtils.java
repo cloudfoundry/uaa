@@ -172,10 +172,11 @@ public abstract class UaaHttpRequestUtils {
         }
     }
 
+    @SuppressWarnings("java:S1168")
     private static String[] split(final String s) {
         if (TextUtils.isBlank(s)) {
             return null;
         }
-        return s.split(" *, *");
+        return stream(s.split(",")).map(String::trim).toList().toArray(String[]::new);
     }
 }
