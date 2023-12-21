@@ -145,6 +145,43 @@ public class IdentityZoneEndpointsIntegrationTests {
     }
 
     @Test
+    public void testUpdateZoneAllowedGroups() {
+        IdentityZone idZone = new IdentityZone();
+        String id = UUID.randomUUID().toString();
+        idZone.setId(id);
+        idZone.setSubdomain(id);
+        idZone.setName("testUpdateZone-"+id);
+        ResponseEntity<String> response = client.exchange(
+                serverRunning.getUrl("/identity-zones"),
+                HttpMethod.POST,
+                new HttpEntity<>(idZone),
+                new ParameterizedTypeReference<String>() {},
+                id);
+        assertEquals(response.getBody(), HttpStatus.CREATED, response.getStatusCode());
+
+        List<String> existingGroups = List.of("sps.write", "sps.read", "idps.write", "idps.read", "clients.admin", "clients.write", "clients.read",
+            "clients.secret", "scim.write", "scim.read", "scim.create", "scim.userids", "scim.zones", "groups.update", "password.write", "oauth.login", "uaa.admin");
+        idZone.getConfig().getUserConfig().setAllowedGroups(existingGroups);
+        response = client.exchange(
+                serverRunning.getUrl("/identity-zones/"+id),
+                HttpMethod.PUT,
+                new HttpEntity<>(idZone),
+                new ParameterizedTypeReference<String>() {},
+                id);
+        assertEquals(response.getBody() , HttpStatus.OK, response.getStatusCode());
+
+        List<String> notAllExistingGroups = List.of("clients.admin", "clients.write", "clients.read", "clients.secret");
+        idZone.getConfig().getUserConfig().setAllowedGroups(notAllExistingGroups);
+        response = client.exchange(
+            serverRunning.getUrl("/identity-zones/"+id),
+            HttpMethod.PUT,
+            new HttpEntity<>(idZone),
+            new ParameterizedTypeReference<String>() {},
+            id);
+        assertEquals(response.getBody() , HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+    }
+
+    @Test
     public void testCreateZoneWithClient() {
         IdentityZone idZone = new IdentityZone();
         String id = UUID.randomUUID().toString();
