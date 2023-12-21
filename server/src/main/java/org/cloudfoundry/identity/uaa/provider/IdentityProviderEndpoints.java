@@ -60,6 +60,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
@@ -204,8 +205,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         if (!aliasPropertiesAreValid(body, existing)) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of already mirrored IdP.",
-                    body.getOriginKey(),
-                    body.getIdentityZoneId()
+                    getCleanedUserControlString(body.getOriginKey()),
+                    getCleanedUserControlString(body.getIdentityZoneId())
             );
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
