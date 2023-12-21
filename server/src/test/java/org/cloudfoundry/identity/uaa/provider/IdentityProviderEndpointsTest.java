@@ -383,11 +383,6 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdentityProvider_NotYetMirrored_InvalidAliasPropertyChange() {
-
-    }
-
-    @Test
     void create_ldap_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider<LdapIdentityProviderDefinition> ldapDefinition = getLdapDefinition();
