@@ -16,6 +16,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -60,6 +61,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
  */
 @DefaultTestContext
 class IdentityProviderEndpointsAliasMockMvcTests {
+    private static final Map<String, String> ACCESS_TOKEN_CACHE = new HashMap<>();
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -103,21 +106,20 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final IdentityProvider provider = buildIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
 
             // create IdP in zone1
-            final IdentityProvider originalIdp = createIdp(zone1, provider, getAccessTokenForZone(zone1.getId()));
+            final IdentityProvider originalIdp = createIdp(zone1, provider);
             assertThat(originalIdp).isNotNull();
             assertThat(originalIdp.getAliasId()).isNotBlank();
             assertThat(originalIdp.getAliasZid()).isNotBlank().isEqualTo(zone2.getId());
 
             // read mirrored IdP from zone2
-            final String accessTokenZone2 = getAccessTokenForZone(zone2.getId());
             final String id = originalIdp.getAliasId();
-            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id, accessTokenZone2);
+            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id);
             assertThat(mirroredIdp).isPresent();
             assertIdpReferencesOtherIdp(mirroredIdp.get(), originalIdp);
             assertOtherPropertiesAreEqual(originalIdp, mirroredIdp.get());
 
             // check if aliasId in first IdP is equal to the ID of the mirrored one
-            assertThat(originalIdp.getAliasId()).isEqualTo(mirroredIdp.get().getId());
+            assertThat(mirroredIdp.get().getId()).isEqualTo(originalIdp.getAliasId());
         }
 
         @Test
@@ -175,8 +177,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             // create IdP with origin key in custom zone
             final IdentityProvider createdIdp1 = createIdp(
                     zone1,
-                    buildIdpWithAliasProperties(zone1.getId(), null, null, originKey),
-                    getAccessTokenForZone(zone1.getId())
+                    buildIdpWithAliasProperties(zone1.getId(), null, null, originKey)
             );
             assertThat(createdIdp1).isNotNull();
 
@@ -191,12 +192,11 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         private void shouldRejectCreation(final IdentityZone zone, final IdentityProvider idp, final HttpStatus expectedStatus) throws Exception {
             assertThat(expectedStatus.isError()).isTrue();
 
-            final String accessTokenForZone = getAccessTokenForZone(zone.getId());
-            final MvcResult result = createIdpAndReturnResult(zone, idp, accessTokenForZone);
+            final MvcResult result = createIdpAndReturnResult(zone, idp);
             assertThat(result.getResponse().getStatus()).isEqualTo(expectedStatus.value());
 
             // after the failed creation, the IdP must not exist
-            final List<IdentityProvider> idpsInZoneAfterFailedCreation = readAllIdpsInZone(zone, accessTokenForZone);
+            final List<IdentityProvider> idpsInZoneAfterFailedCreation = readAllIdpsInZone(zone);
             assertThat(idpsInZoneAfterFailedCreation.stream().map(IdentityProvider::getOriginKey).collect(toSet()))
                     .doesNotContain(idp.getOriginKey());
         }
@@ -215,28 +215,24 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldAccept_ShouldCreateMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final String accessTokenForZone1 = getAccessTokenForZone(zone1.getId());
-
             // create regular idp without alias properties in UAA zone
             final IdentityProvider existingIdpWithoutAlias = createIdp(
                     zone1,
-                    buildIdpWithAliasProperties(zone1.getId(), null, null),
-                    accessTokenForZone1
+                    buildIdpWithAliasProperties(zone1.getId(), null, null)
             );
             assertThat(existingIdpWithoutAlias).isNotNull();
             assertThat(existingIdpWithoutAlias.getId()).isNotBlank();
 
             // perform update: set Alias ZID
             existingIdpWithoutAlias.setAliasZid(zone2.getId());
-            final IdentityProvider idpAfterUpdate = updateIdp(zone1, existingIdpWithoutAlias, accessTokenForZone1);
+            final IdentityProvider idpAfterUpdate = updateIdp(zone1, existingIdpWithoutAlias);
             assertThat(idpAfterUpdate.getAliasId()).isNotBlank();
             assertThat(idpAfterUpdate.getAliasZid()).isNotBlank();
             assertThat(zone2.getId()).isEqualTo(idpAfterUpdate.getAliasZid());
 
             // read mirrored IdP through alias id in original IdP
-            final String accessTokenForZone2 = getAccessTokenForZone(zone2.getId());
             final String id = idpAfterUpdate.getAliasId();
-            final Optional<IdentityProvider> idp = readIdpFromZoneIfExists(zone2.getId(), id, accessTokenForZone2);
+            final Optional<IdentityProvider> idp = readIdpFromZoneIfExists(zone2.getId(), id);
             assertThat(idp).isPresent();
             final IdentityProvider mirroredIdp = idp.get();
             assertIdpReferencesOtherIdp(mirroredIdp, idpAfterUpdate);
@@ -260,7 +256,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             // update other property
             final String newName = "new name";
             originalIdp.setName(newName);
-            final IdentityProvider updatedOriginalIdp = updateIdp(zone1, originalIdp, getAccessTokenForZone(zone1.getId()));
+            final IdentityProvider updatedOriginalIdp = updateIdp(zone1, originalIdp);
             assertThat(updatedOriginalIdp).isNotNull();
             assertThat(updatedOriginalIdp.getAliasId()).isNotBlank();
             assertThat(updatedOriginalIdp.getAliasZid()).isNotBlank();
@@ -268,9 +264,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(updatedOriginalIdp.getName()).isNotBlank().isEqualTo(newName);
 
             // check if the change is propagated to the mirrored IdP
-            final String accessTokenZone2 = getAccessTokenForZone(zone2.getId());
             final String id = updatedOriginalIdp.getAliasId();
-            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id, accessTokenZone2);
+            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id);
             assertThat(mirroredIdp).isPresent();
             assertIdpReferencesOtherIdp(mirroredIdp.get(), updatedOriginalIdp);
             assertThat(mirroredIdp.get().getName()).isNotBlank().isEqualTo(newName);
@@ -296,14 +291,13 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
             // update some other property on the original IdP
             idp.setName("some-new-name");
-            final IdentityProvider updatedIdp = updateIdp(zone1, idp, getAccessTokenForZone(zone1.getId()));
+            final IdentityProvider updatedIdp = updateIdp(zone1, idp);
             assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
             assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
 
             // check if the new mirrored IdP is present and has the correct properties
             final String id = updatedIdp.getAliasId();
-            final String accessTokenForZone = getAccessTokenForZone(zone2.getId());
-            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id, accessTokenForZone);
+            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id);
             assertThat(mirroredIdp).isPresent();
             assertIdpReferencesOtherIdp(updatedIdp, mirroredIdp.get());
             assertOtherPropertiesAreEqual(updatedIdp, mirroredIdp.get());
@@ -352,7 +346,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
         private void shouldReject_OnlyAliasIdSet(final IdentityZone zone) throws Exception {
             final IdentityProvider idp = buildIdpWithAliasProperties(zone.getId(), null, null);
-            final IdentityProvider createdProvider = createIdp(zone, idp, getAccessTokenForZone(zone.getId()));
+            final IdentityProvider createdProvider = createIdp(zone, idp);
             assertThat(createdProvider.getAliasZid()).isBlank();
             createdProvider.setAliasId(UUID.randomUUID().toString());
             shouldRejectUpdate(zone, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -378,7 +372,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     null,
                     originKey
             );
-            createIdp(zone2, existingIdpInZone2, getAccessTokenForZone(zone2.getId()));
+            createIdp(zone2, existingIdpInZone2);
 
             // create IdP with same origin key in zone 1
             final IdentityProvider idp = buildIdpWithAliasProperties(
@@ -387,7 +381,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     null,
                     originKey // same origin key
             );
-            final IdentityProvider providerInZone1 = createIdp(zone1, idp, getAccessTokenForZone(zone1.getId()));
+            final IdentityProvider providerInZone1 = createIdp(zone1, idp);
 
             // update the alias ZID to zone 2, where an IdP with this origin already exists -> should fail
             providerInZone1.setAliasZid(zone2.getId());
@@ -398,8 +392,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         void shouldReject_IdpInCustomZoneMirroredToOtherCustomZone() throws Exception {
             final IdentityProvider idpInCustomZone = createIdp(
                     customZone,
-                    buildIdpWithAliasProperties(customZone.getId(), null, null),
-                    getAccessTokenForZone(customZone.getId())
+                    buildIdpWithAliasProperties(customZone.getId(), null, null)
             );
 
             // try to mirror it to another custom zone
@@ -420,20 +413,15 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         private void shouldReject_AliasZidSetToSameZone(final IdentityZone zone) throws Exception {
             final IdentityProvider idp = createIdp(
                     zone,
-                    buildIdpWithAliasProperties(zone.getId(), null, null),
-                    getAccessTokenForZone(zone.getId())
+                    buildIdpWithAliasProperties(zone.getId(), null, null)
             );
             idp.setAliasZid(zone.getId());
             shouldRejectUpdate(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        private IdentityProvider updateIdp(
-                final IdentityZone zone,
-                final IdentityProvider updatePayload,
-                final String accessTokenForZone
-        ) throws Exception {
+        private IdentityProvider updateIdp(final IdentityZone zone, final IdentityProvider updatePayload) throws Exception {
             updatePayload.setIdentityZoneId(zone.getId());
-            final MvcResult result = updateIdpAndReturnResult(zone, updatePayload, accessTokenForZone);
+            final MvcResult result = updateIdpAndReturnResult(zone, updatePayload);
             assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
 
             final IdentityProvider originalIdpAfterUpdate = JsonUtils.readValue(
@@ -446,16 +434,12 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             return originalIdpAfterUpdate;
         }
 
-        private MvcResult updateIdpAndReturnResult(
-                final IdentityZone zone,
-                final IdentityProvider updatePayload,
-                final String accessTokenForZone
-        ) throws Exception {
+        private MvcResult updateIdpAndReturnResult(final IdentityZone zone, final IdentityProvider updatePayload) throws Exception {
             final String id = updatePayload.getId();
             assertThat(id).isNotNull().isNotBlank();
 
             final MockHttpServletRequestBuilder updateRequestBuilder = put("/identity-providers/" + id)
-                    .header("Authorization", "Bearer " + accessTokenForZone)
+                    .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
                     .header(IdentityZoneSwitchingFilter.HEADER, zone.getId())
                     .contentType(APPLICATION_JSON)
                     .content(JsonUtils.writeValueAsString(updatePayload));
@@ -467,38 +451,32 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(expectedErrorStatus.isError()).isTrue();
 
             // read existing IdP before update
-            final String accessTokenForZone = getAccessTokenForZone(zone.getId());
             final String id = idp.getId();
-            final Optional<IdentityProvider> idpBeforeUpdateOpt = readIdpFromZoneIfExists(zone.getId(), id, accessTokenForZone);
+            final Optional<IdentityProvider> idpBeforeUpdateOpt = readIdpFromZoneIfExists(zone.getId(), id);
             assertThat(idpBeforeUpdateOpt).isPresent();
             final IdentityProvider idpBeforeUpdate = idpBeforeUpdateOpt.get();
 
             // if alias properties set: read mirrored IdP before update
-            final String accessTokenForAliasZone;
             final IdentityProvider mirroredIdpBeforeUpdate;
             if (hasText(idpBeforeUpdate.getAliasId()) && hasText(idpBeforeUpdate.getAliasZid())) {
-                accessTokenForAliasZone = getAccessTokenForZone(idpBeforeUpdate.getAliasZid());
                 final Optional<IdentityProvider> mirroredIdpBeforeUpdateOpt = readIdpFromZoneIfExists(
                         idpBeforeUpdate.getAliasZid(),
-                        idpBeforeUpdate.getAliasId(),
-                        accessTokenForAliasZone
+                        idpBeforeUpdate.getAliasId()
                 );
                 assertThat(mirroredIdpBeforeUpdateOpt).isPresent();
                 mirroredIdpBeforeUpdate = mirroredIdpBeforeUpdateOpt.get();
             } else {
-                accessTokenForAliasZone = null;
                 mirroredIdpBeforeUpdate = null;
             }
 
             // perform the update -> should fail
-            final MvcResult result = updateIdpAndReturnResult(zone, idp, accessTokenForZone);
+            final MvcResult result = updateIdpAndReturnResult(zone, idp);
             assertThat(result.getResponse().getStatus()).isEqualTo(expectedErrorStatus.value());
 
             // read again: original IdP should remain unchanged
             final Optional<IdentityProvider> idpAfterFailedUpdateOpt = readIdpFromZoneIfExists(
                     zone.getId(),
-                    idp.getId(),
-                    accessTokenForZone
+                    idp.getId()
             );
             assertThat(idpAfterFailedUpdateOpt).isPresent().contains(idpBeforeUpdate);
 
@@ -506,8 +484,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             if (mirroredIdpBeforeUpdate != null) {
                 final Optional<IdentityProvider> mirroredIdpAfterFailedUpdateOpt = readIdpFromZoneIfExists(
                         idpBeforeUpdate.getAliasZid(),
-                        idpBeforeUpdate.getAliasId(),
-                        accessTokenForAliasZone
+                        idpBeforeUpdate.getAliasId()
                 );
                 assertThat(mirroredIdpAfterFailedUpdateOpt).isPresent().contains(mirroredIdpBeforeUpdate);
             }
@@ -536,8 +513,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(aliasZid).isNotBlank().isEqualTo(zone2.getId());
 
             // check if mirrored IdP is available in zone 2
-            final String accessTokenForZone2 = getAccessTokenForZone(zone2.getId());
-            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId, accessTokenForZone2);
+            final Optional<IdentityProvider> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
             assertThat(mirroredIdp).isPresent();
             assertThat(mirroredIdp.get().getAliasId()).isNotBlank().isEqualTo(id);
             assertThat(mirroredIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
@@ -547,12 +523,12 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final MockHttpServletRequestBuilder deleteRequestBuilder = delete("/identity-providers/" + id)
                     .header("Authorization", "Bearer " + accessTokenForZone1)
                     .header(IdentityZoneSwitchingFilter.HEADER, zone1.getId());
-            final var response = mockMvc.perform(deleteRequestBuilder).andReturn();
+            final MvcResult response = mockMvc.perform(deleteRequestBuilder).andReturn();
 
             assertThat(response.getResponse().getStatus()).isEqualTo(200);
 
             // check if IdP is no longer available in zone 2
-            final Optional<IdentityProvider> mirroredIdpAfterDeletionOfOriginalIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId, accessTokenForZone2);
+            final Optional<IdentityProvider> mirroredIdpAfterDeletionOfOriginalIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
             assertThat(mirroredIdpAfterDeletionOfOriginalIdp).isNotPresent();
         }
     }
@@ -587,7 +563,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             idp.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
             idp.setAliasZid(zone2.getId());
             final String accessTokenForZone1 = getAccessTokenForZone(zone1.getId());
-            final IdentityProvider createdIdp = createIdp(zone1, idp, accessTokenForZone1);
+            final IdentityProvider createdIdp = createIdp(zone1, idp);
 
             final Date timestampBeforeUpdate = getPasswordNewerThanTimestamp(createdIdp);
             assertThat(timestampBeforeUpdate).isNotNull();
@@ -603,15 +579,14 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
             // check if timestamp is updated in zone 1
             final String id1 = createdIdp.getId();
-            final Optional<IdentityProvider> idpInZone1 = readIdpFromZoneIfExists(zone1.getId(), id1, accessTokenForZone1);
+            final Optional<IdentityProvider> idpInZone1 = readIdpFromZoneIfExists(zone1.getId(), id1);
             assertThat(idpInZone1).isPresent();
             final Date timestampAfterUpdate = getPasswordNewerThanTimestamp(idpInZone1.get());
             assertThat(timestampAfterUpdate).isAfter(timestampBeforeUpdate);
 
             // check if timestamp is updated in zone 2
-            final String accessTokenForZone2 = getAccessTokenForZone(zone2.getId());
             final String id = createdIdp.getAliasId();
-            final Optional<IdentityProvider> idpInZone2 = readIdpFromZoneIfExists(zone2.getId(), id, accessTokenForZone2);
+            final Optional<IdentityProvider> idpInZone2 = readIdpFromZoneIfExists(zone2.getId(), id);
             assertThat(idpInZone2).isPresent();
             final Date timestampAfterUpdateMirroredIdp = getPasswordNewerThanTimestamp(idpInZone2.get());
             assertThat(timestampAfterUpdateMirroredIdp).isEqualTo(timestampAfterUpdate);
@@ -645,19 +620,19 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
     private IdentityProvider createMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
         final IdentityProvider provider = buildIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
-        return createIdp(zone1, provider, getAccessTokenForZone(zone1.getId()));
+        return createIdp(zone1, provider);
     }
 
-    private IdentityProvider createIdp(final IdentityZone zone, final IdentityProvider idp, final String accessTokenForZone) throws Exception {
-        final MvcResult createResult = createIdpAndReturnResult(zone, idp, accessTokenForZone);
+    private IdentityProvider createIdp(final IdentityZone zone, final IdentityProvider idp) throws Exception {
+        final MvcResult createResult = createIdpAndReturnResult(zone, idp);
         assertThat(createResult.getResponse().getStatus()).isEqualTo(HttpStatus.CREATED.value());
         return JsonUtils.readValue(createResult.getResponse().getContentAsString(), IdentityProvider.class);
     }
 
-    private MvcResult createIdpAndReturnResult(final IdentityZone zone, final IdentityProvider idp, final String accessTokenForZone) throws Exception {
+    private MvcResult createIdpAndReturnResult(final IdentityZone zone, final IdentityProvider idp) throws Exception {
         final MockHttpServletRequestBuilder createRequestBuilder = post("/identity-providers")
                 .param("rawConfig", "true")
-                .header("Authorization", "Bearer " + accessTokenForZone)
+                .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
                 .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getSubdomain())
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(idp));
@@ -665,6 +640,11 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     }
 
     private String getAccessTokenForZone(final String zoneId) throws Exception {
+        final String cacheLookupResult = ACCESS_TOKEN_CACHE.get(zoneId);
+        if (cacheLookupResult != null) {
+            return cacheLookupResult;
+        }
+
         final List<String> scopesForZone = getScopesForZone(zoneId, "admin");
 
         final ScimUser adminUser = MockMvcUtils.createAdminForZone(
@@ -692,18 +672,17 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         final List<String> resultingScopes = (List<String>) claims.get("scope");
         assertThat(resultingScopes).hasSameElementsAs(scopesForZone);
 
+        // cache the access token
+        ACCESS_TOKEN_CACHE.put(zoneId, accessToken);
+
         return accessToken;
     }
 
-    private Optional<IdentityProvider> readIdpFromZoneIfExists(
-            final String zoneId,
-            final String id,
-            final String accessTokenForZone
-    ) throws Exception {
+    private Optional<IdentityProvider> readIdpFromZoneIfExists(final String zoneId, final String id) throws Exception {
         final MockHttpServletRequestBuilder getRequestBuilder = get("/identity-providers/" + id)
                 .param("rawConfig", "true")
                 .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
-                .header("Authorization", "Bearer " + accessTokenForZone);
+                .header("Authorization", "Bearer " + getAccessTokenForZone(zoneId));
         final MvcResult getResult = mockMvc.perform(getRequestBuilder).andReturn();
         final int responseStatus = getResult.getResponse().getStatus();
         assertThat(responseStatus).isIn(404, 200);
@@ -723,11 +702,11 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
     }
 
-    private List<IdentityProvider> readAllIdpsInZone(final IdentityZone zone, final String accessTokenForZone) throws Exception {
+    private List<IdentityProvider> readAllIdpsInZone(final IdentityZone zone) throws Exception {
         final MockHttpServletRequestBuilder getRequestBuilder = get("/identity-providers")
                 .param("rawConfig", "true")
                 .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getSubdomain())
-                .header("Authorization", "Bearer " + accessTokenForZone);
+                .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()));
         final MvcResult getResult = mockMvc.perform(getRequestBuilder).andExpect(status().isOk()).andReturn();
         return JsonUtils.readValue(getResult.getResponse().getContentAsString(), new TypeReference<>() {
         });
