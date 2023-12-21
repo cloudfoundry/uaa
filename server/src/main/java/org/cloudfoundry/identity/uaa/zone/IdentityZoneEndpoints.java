@@ -268,15 +268,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
 
-            // check for groups which would be not allowed after the update
             UserConfig userConfig = body.getConfig().getUserConfig();
             if (!userConfig.allGroupsAllowed()) {
-                List<ScimGroup> existingGroups = groupProvisioning.retrieveAll(body.getId());
                 Set<String> allowedGroups = userConfig.resultingAllowedGroups();
-                for (ScimGroup g: existingGroups) {
-                    if (!allowedGroups.contains(g.getDisplayName())) {
-                        throw new UnprocessableEntityException("The identity zone contains a not-allowed group: "+g.getDisplayName());
-                    }
+                // check for groups which would be not allowed after the update
+                if(groupProvisioning.retrieveAll(body.getId()).stream().anyMatch(g -> !allowedGroups.contains(g.getDisplayName()))) {
+                    throw new UnprocessableEntityException("The identity zone user configuration contains not-allowed groups.");
                 }
             }
 
