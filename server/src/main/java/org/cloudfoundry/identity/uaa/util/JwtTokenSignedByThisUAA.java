@@ -61,7 +61,6 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRE
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
@@ -150,7 +149,7 @@ public abstract class JwtTokenSignedByThisUAA {
         }
 
         if (!equals(issuer, jwtClaimsSet.getIssuer())) {
-            throw new InvalidTokenException("Invalid issuer (" + claims.get(ISS) + ") for token did not match expected: " + issuer, null);
+            throw new InvalidTokenException("Invalid issuer (" + jwtClaimsSet.getIssuer() + ") for token did not match expected: " + issuer, null);
         }
         return this;
     }
