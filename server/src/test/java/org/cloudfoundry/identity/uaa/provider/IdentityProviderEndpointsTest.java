@@ -13,6 +13,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
@@ -29,6 +30,7 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -45,6 +47,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -431,6 +434,83 @@ class IdentityProviderEndpointsTest {
         idp.setAliasZid(zoneId2);
         response = identityProviderEndpoints.createIdentityProvider(idp, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    void testCreateIdentityProvider_ValidAliasProperties() throws MetadataProviderException {
+        // arrange custom zone exists
+        final String customZoneId = UUID.randomUUID().toString();
+        final IdentityZone customZone = new IdentityZone();
+        customZone.setId(customZoneId);
+        when(mockIdentityZoneProvisioning.retrieve(customZoneId)).thenReturn(customZone);
+
+        final Supplier<IdentityProvider<?>> requestBodyProvider = () -> {
+            final IdentityProvider<?> requestBody = getExternalOAuthProvider();
+            requestBody.setId(null);
+            requestBody.setAliasZid(customZoneId);
+            return requestBody;
+        };
+
+        // idpProvisioning.create should return request body with new ID
+        final IdentityProvider<?> createdOriginalIdp = requestBodyProvider.get();
+        final String originalIdpId = UUID.randomUUID().toString();
+        createdOriginalIdp.setId(originalIdpId);
+        final IdpWithAliasMatcher requestBodyMatcher = new IdpWithAliasMatcher(UAA, null, null, customZoneId);
+
+        // idpProvisioning.create should add ID to mirrored IdP
+        final IdentityProvider<?> persistedMirroredIdp = requestBodyProvider.get();
+        final String mirroredIdpId = UUID.randomUUID().toString();
+        persistedMirroredIdp.setAliasId(originalIdpId);
+        persistedMirroredIdp.setAliasZid(UAA);
+        persistedMirroredIdp.setIdentityZoneId(customZoneId);
+        persistedMirroredIdp.setId(mirroredIdpId);
+        final IdpWithAliasMatcher mirroredIdpMatcher = new IdpWithAliasMatcher(customZoneId, null, originalIdpId, UAA);
+        when(mockIdentityProviderProvisioning.create(any(), anyString())).thenAnswer(invocation -> {
+            final IdentityProvider<?> idp = invocation.getArgument(0);
+            final String idzId = invocation.getArgument(1);
+            if (requestBodyMatcher.matches(idp) && idzId.equals(UAA)) {
+                return createdOriginalIdp;
+            }
+            if (mirroredIdpMatcher.matches(idp) && idzId.equals(customZoneId)) {
+                return persistedMirroredIdp;
+            }
+            return null;
+        });
+
+        // mock idpProvisioning.update
+        final IdentityProvider<?> createdOriginalIdpWithAliasId = requestBodyProvider.get();
+        createdOriginalIdpWithAliasId.setId(originalIdpId);
+        createdOriginalIdpWithAliasId.setAliasId(mirroredIdpId);
+        when(mockIdentityProviderProvisioning.update(
+                argThat(new IdpWithAliasMatcher(UAA, originalIdpId, mirroredIdpId, customZoneId)),
+                eq(UAA)
+        )).thenReturn(createdOriginalIdpWithAliasId);
+
+        // perform the endpoint call
+        final IdentityProvider<?> requestBody = requestBodyProvider.get();
+        final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(requestBody, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        Assertions.assertThat(response.getBody()).isEqualTo(createdOriginalIdpWithAliasId);
+    }
+
+    private static class IdpWithAliasMatcher implements ArgumentMatcher<IdentityProvider<?>> {
+        private final String identityZoneId;
+        private final String id;
+        private final String aliasId;
+        private final String aliasZid;
+
+        public IdpWithAliasMatcher(final String identityZoneId, final String id, final String aliasId, final String aliasZid) {
+            this.identityZoneId = identityZoneId;
+            this.id = id;
+            this.aliasId = aliasId;
+            this.aliasZid = aliasZid;
+        }
+
+        @Override
+        public boolean matches(final IdentityProvider<?> argument) {
+            return Objects.equals(id, argument.getId()) && Objects.equals(identityZoneId, argument.getIdentityZoneId())
+                    && Objects.equals(aliasId, argument.getAliasId()) && Objects.equals(aliasZid, argument.getAliasZid());
+        }
     }
 
     @Test
