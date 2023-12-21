@@ -1569,4 +1569,24 @@ public class IntegrationTestUtils {
         }
     }
 
+    public static HttpHeaders getAuthenticatedHeaders(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + token);
+        return headers;
+    }
+
+    public static String createClientAdminTokenInZone(String baseUrl, String uaaAdminToken, String zoneId, IdentityZoneConfiguration config) {
+        RestTemplate identityClient = getClientCredentialsTemplate(getClientCredentialsResource(baseUrl,
+                new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
+        createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+        BaseClientDetails zoneClient = new BaseClientDetails("admin-client-in-zone", null, "openid",
+            "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,zones.testzone1.admin ", zoneUrl);
+        zoneClient.setClientSecret("admin-secret-in-zone");
+        createOrUpdateClient(uaaAdminToken, baseUrl, zoneId, zoneClient);
+        return getClientCredentialsToken(zoneUrl, "admin-client-in-zone", "admin-secret-in-zone");
+    }
+
 }

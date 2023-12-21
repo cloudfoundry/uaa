@@ -243,13 +243,18 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * @param authorities the users authorities
      * @return modified requested scopes adapted according to the rules specified
      */
+    @SuppressWarnings("java:S1874")
     private Set<String> checkUserScopes(Set<String> requestedScopes,
                                         Collection<? extends GrantedAuthority> authorities,
                                         ClientDetails clientDetails) {
         Set<String> allowed = new LinkedHashSet<>(AuthorityUtils.authorityListToSet(authorities));
         // Add in all default requestedScopes
         Collection<String> defaultScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups();
+        Collection<String> allowedScopes = IdentityZoneHolder.get().getConfig().getUserConfig().resultingAllowedGroups();
         allowed.addAll(defaultScopes);
+        if (allowedScopes != null) {
+            allowed.retainAll(allowedScopes);
+        }
 
         // Find intersection of user authorities, default requestedScopes and client requestedScopes:
         Set<String> result = intersectScopes(new LinkedHashSet<>(requestedScopes), clientDetails.getScope(), allowed);

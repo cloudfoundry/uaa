@@ -67,6 +67,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private Collection<String> defaultUserGroups;
 
+    private Collection<String> allowedUserGroups;
+
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
 
@@ -133,6 +135,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
             definition.getUserConfig().setDefaultGroups(new LinkedList<>(defaultUserGroups));
         }
 
+        if (allowedUserGroups!=null) {
+            definition.getUserConfig().setAllowedGroups(new LinkedList<>(allowedUserGroups));
+        }
 
         identityZone.setConfig(definition);
 
@@ -252,6 +257,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setDefaultUserGroups(Collection<String> defaultUserGroups) {
         this.defaultUserGroups = defaultUserGroups;
+    }
+
+    public void setAllowedUserGroups(Collection<String> allowedUserGroups) {
+        this.allowedUserGroups = allowedUserGroups;
     }
 
     public boolean isDisableSamlInResponseToCheck() {
