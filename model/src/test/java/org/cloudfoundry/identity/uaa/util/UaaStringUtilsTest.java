@@ -434,9 +434,9 @@ class UaaStringUtilsTest {
 
     @Test
     void getArrayDefaultValue() {
-        assertEquals(Set.of("1", "2"), UaaStringUtils.getArrayDefaultValue(Set.of("1", "2"), "1"));
-        assertEquals(Set.of("1"), UaaStringUtils.getArrayDefaultValue(Set.of(), "1"));
-        assertEquals(Set.of("1"), UaaStringUtils.getArrayDefaultValue(null, "1"));
+        assertEquals(Set.of("1", "2"), UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1"));
+        assertEquals(Set.of("1"), UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1"));
+        assertEquals(Set.of("1"), UaaStringUtils.getValuesOrDefaultValue(null, "1"));
     }
 
     private static void replaceZoneVariables(IdentityZone zone) {

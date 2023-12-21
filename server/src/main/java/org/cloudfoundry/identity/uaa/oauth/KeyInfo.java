@@ -184,9 +184,7 @@ public class KeyInfo {
                 x509Certificate.checkValidity();
                 return Optional.of(x509Certificate);
             }
-        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) {
-            // ignore
-        }
+        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) { } // ignore
         return Optional.empty();
     }
 }

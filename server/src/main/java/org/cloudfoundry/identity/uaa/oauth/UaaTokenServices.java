@@ -550,7 +550,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
-        claims.put(AUD, UaaStringUtils.getArrayDefaultValue(resourceIds, clientId));
+        claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(resourceIds, clientId));
 
         for (String excludedClaim : getExcludedClaims()) {
             claims.remove(excludedClaim);

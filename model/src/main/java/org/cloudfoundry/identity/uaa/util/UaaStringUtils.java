@@ -319,7 +319,7 @@ public final class UaaStringUtils {
         return StringUtils.hasText(value[0]) ? value[0] : EMPTY_STRING;
     }
 
-    public static Set<String> getArrayDefaultValue(Set<String> values, String defaultValue) {
+    public static Set<String> getValuesOrDefaultValue(Set<String> values, String defaultValue) {
         if (ObjectUtils.isEmpty(values)) {
             return Set.of(defaultValue);
         } else {
