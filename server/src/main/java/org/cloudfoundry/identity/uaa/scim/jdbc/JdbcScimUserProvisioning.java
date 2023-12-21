@@ -116,7 +116,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String HARD_DELETE_BY_PROVIDER = "delete from users where identity_zone_id = ? and origin = ?";
 
-    public static final String USER_COUNT_BY_ZONE = "select count(*) from users where identity_zone_id = ? limit ?";
+    public static final String USER_COUNT_BY_ZONE = "select count(*) from users where identity_zone_id = ?";
 
     protected final JdbcTemplate jdbcTemplate;
 
@@ -527,8 +527,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return count;
     }
 
-    public long getUsersCountForZone(String zoneId, long maxLimit) {
-        Long count = jdbcTemplate.queryForObject(USER_COUNT_BY_ZONE, Long.class, zoneId, maxLimit);
+    public int getUsersCountForZone(String zoneId) {
+        Integer count = jdbcTemplate.queryForObject(USER_COUNT_BY_ZONE, Integer.class, zoneId);
         return (count != null) ? count : 0;
     }
 
@@ -542,7 +542,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
     }
 
-    private long getAllowedUserLimit(String zoneId) {
+    private int getAllowedUserLimit(String zoneId) {
         try {
             UserConfig userConfig;
             IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
@@ -560,7 +560,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         // get current limit of allowed users
         long maxAllowedUsers = getAllowedUserLimit(zoneId);
         // check, if there is a limit (>0), that the limit is not reached with one user more (getUsersCountForZone + 1)
-        if (maxAllowedUsers > 0 && maxAllowedUsers < (getUsersCountForZone(zoneId, maxAllowedUsers) + 1)) {
+        if (maxAllowedUsers > 0 && maxAllowedUsers < (getUsersCountForZone(zoneId) + 1)) {
             throw new InvalidScimResourceException("The maximum allowed numbers of users: " + maxAllowedUsers
                 + " is reached already in Identity Zone " + zoneId);
         }

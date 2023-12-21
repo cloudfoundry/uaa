@@ -385,7 +385,7 @@ class JdbcScimUserProvisioningTests {
     @Test
     void countUsersAcrossAllZones() {
         createRandomUserInZone(jdbcTemplate, generator, IdentityZone.getUaaZoneId());
-        int beginningCount = jdbcScimUserProvisioning.getTotalCount();
+        long beginningCount = jdbcScimUserProvisioning.getTotalCount();
         createRandomUserInZone(jdbcTemplate, generator, "zone1");
         assertEquals(beginningCount + 1, jdbcScimUserProvisioning.getTotalCount());
         createRandomUserInZone(jdbcTemplate, generator, "zone2");
