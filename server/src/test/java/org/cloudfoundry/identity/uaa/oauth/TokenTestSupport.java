@@ -306,6 +306,9 @@ public class TokenTestSupport {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(
             new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
         );
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(
+            new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
+        );
     }
 
     public UaaTokenServices getUaaTokenServices() {
