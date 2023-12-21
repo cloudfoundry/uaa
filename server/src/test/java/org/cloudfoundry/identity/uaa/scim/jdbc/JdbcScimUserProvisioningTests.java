@@ -107,6 +107,7 @@ class JdbcScimUserProvisioningTests {
 
     @AfterEach
     void tearDown() {
+        IdentityZoneHolder.get().getConfig().getUserConfig().setMaxUsers(-1);
         jdbcTemplate.execute("delete from users");
     }
 
@@ -1056,7 +1057,7 @@ class JdbcScimUserProvisioningTests {
         scimUser.setOrigin(OriginKeys.UAA);
         for (int i = 2; i < 12; i++) {
             scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
-            scimUser.setId("user-id-" + 1);
+            scimUser.setId("user-id-" + i);
             scimUser.setUserName("user" +i+ "@example.com");
             scimUser.setPassword("password");
         }
@@ -1067,7 +1068,6 @@ class JdbcScimUserProvisioningTests {
             () -> jdbcScimUserProvisioning.create(finalScimUser, IdentityZoneHolder.getCurrentZoneId()),
             containsString("The maximum allowed numbers of users: 10 is reached already in Identity Zone")
         );
-        IdentityZoneHolder.get().getConfig().getUserConfig().setMaxUsers(-1);
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {

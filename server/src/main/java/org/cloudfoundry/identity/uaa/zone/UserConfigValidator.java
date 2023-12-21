@@ -19,9 +19,9 @@ public class UserConfigValidator {
             throw new InvalidIdentityZoneConfigurationException(message);
         }
 
-        int maxUsers = config.getMaxUsers();
-        if (maxUsers < -1 || maxUsers == 0 || maxUsers > Integer.MAX_VALUE) {
-            throw new InvalidIdentityZoneConfigurationException("Maximum numbers of users in the zone in invalid, allowed numbers are between 1 and 2147483647");
+        long maxUsers = config.getMaxUsers();
+        if (maxUsers < -1 || maxUsers == 0) {
+            throw new InvalidIdentityZoneConfigurationException("Maximum number of users in the zone is invalid, either use -1 or a value more than 0.");
         }
     }
 }

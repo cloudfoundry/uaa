@@ -527,12 +527,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return count;
     }
 
-    public int getZoneCount(String zoneId, int maxLimit) {
-        Integer count = jdbcTemplate.queryForObject(USER_COUNT_BY_ZONE, Integer.class, zoneId, maxLimit);
-        if (count == null) {
-            return 0;
-        }
-        return count;
+    public long getUsersCountForZone(String zoneId, long maxLimit) {
+        Long count = jdbcTemplate.queryForObject(USER_COUNT_BY_ZONE, Long.class, zoneId, maxLimit);
+        return (count != null) ? count : 0;
     }
 
     @Override
@@ -545,7 +542,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
     }
 
-    private int getAllowedUserLimit(String zoneId) {
+    private long getAllowedUserLimit(String zoneId) {
         try {
             UserConfig userConfig;
             IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
@@ -560,8 +557,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     private void validateUserLimit(String zoneId) {
-        int maxAllowedUsers = getAllowedUserLimit(zoneId);
-        if (maxAllowedUsers > 0 && getZoneCount(zoneId, maxAllowedUsers) > (maxAllowedUsers -1)) {
+        // get current limit of allowed users
+        long maxAllowedUsers = getAllowedUserLimit(zoneId);
+        // check, if there is a limit (>0), that the limit is not reached with one user more (getUsersCountForZone + 1)
+        if (maxAllowedUsers > 0 && maxAllowedUsers < (getUsersCountForZone(zoneId, maxAllowedUsers) + 1)) {
             throw new InvalidScimResourceException("The maximum allowed numbers of users: " + maxAllowedUsers
                 + " is reached already in Identity Zone " + zoneId);
         }
