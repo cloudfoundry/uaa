@@ -1,35 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.assertj.core.api.Assertions;
-import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.PlatformTransactionManager;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
-
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -53,6 +23,37 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import org.assertj.core.api.Assertions;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.PlatformTransactionManager;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
@@ -350,6 +351,42 @@ class IdentityProviderEndpointsTest {
         assertNotNull(created.getConfig());
         assertTrue(created.getConfig() instanceof LdapIdentityProviderDefinition);
         assertNull(((LdapIdentityProviderDefinition) created.getConfig()).getBindPassword());
+    }
+
+    @Test
+    void testCreateIdentityProvider_AliasPropertiesInvalid() throws MetadataProviderException {
+        // (1) aliasId is not empty
+        IdentityProvider<?> idp = getExternalOAuthProvider();
+        idp.setAliasId(UUID.randomUUID().toString());
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // (2) aliasZid set, but referenced zone does not exist
+        idp = getExternalOAuthProvider();
+        final String notExistingZoneId = UUID.randomUUID().toString();
+        idp.setAliasZid(notExistingZoneId);
+        when(mockIdentityZoneProvisioning.retrieve(notExistingZoneId)).thenThrow(ZoneDoesNotExistsException.class);
+        response = identityProviderEndpoints.createIdentityProvider(idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // (3) aliasZid and IdZ equal
+        idp = getExternalOAuthProvider();
+        idp.setAliasZid(idp.getIdentityZoneId());
+        response = identityProviderEndpoints.createIdentityProvider(idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+
+        // (4) neither IdZ nor aliasZid are "uaa"
+        idp = getExternalOAuthProvider();
+        final String zoneId1 = UUID.randomUUID().toString();
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId1);
+        final String zoneId2 = UUID.randomUUID().toString();
+        final IdentityZone zone2 = new IdentityZone();
+        zone2.setId(zoneId2);
+        when(mockIdentityZoneProvisioning.retrieve(zoneId2)).thenReturn(zone2);
+        idp.setIdentityZoneId(zoneId1);
+        idp.setAliasZid(zoneId2);
+        response = identityProviderEndpoints.createIdentityProvider(idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Test
