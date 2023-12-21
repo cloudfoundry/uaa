@@ -46,8 +46,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -268,15 +268,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
 
-            // check for groups which would be not allowed after the update
             UserConfig userConfig = body.getConfig().getUserConfig();
             if (!userConfig.allGroupsAllowed()) {
-                List<String> existingGroupNames = groupProvisioning.retrieveAll(body.getId())
-                                                    .stream()
-                                                    .map(ScimGroup::getDescription)
-                                                    .collect(Collectors.toList());
-                if (!userConfig.resultingAllowedGroups().containsAll(existingGroupNames)) {
-                    throw new UnprocessableEntityException("The identity zone details contains not-allowed groups.");
+                Set<String> allowedGroups = userConfig.resultingAllowedGroups();
+                // check for groups which would be not allowed after the update
+                if(groupProvisioning.retrieveAll(body.getId()).stream().anyMatch(g -> !allowedGroups.contains(g.getDisplayName()))) {
+                    throw new UnprocessableEntityException("The identity zone user configuration contains not-allowed groups.");
                 }
             }
 
