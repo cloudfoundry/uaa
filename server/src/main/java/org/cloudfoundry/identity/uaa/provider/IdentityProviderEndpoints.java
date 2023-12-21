@@ -141,10 +141,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         // persist IdP and mirror if necessary
-        final IdentityProvider createdIdp;
+        final IdentityProvider<?> createdIdp;
         try {
             createdIdp = transactionTemplate.execute(txStatus -> {
-                final IdentityProvider createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
+                final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
                 createdOriginalIdp.setSerializeConfigRaw(rawConfig);
                 redactSensitiveData(createdOriginalIdp);
 
@@ -164,13 +164,13 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @Transactional
     public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         String identityZoneId = identityZoneManager.getCurrentIdentityZoneId();
-        IdentityProvider existing = identityProviderProvisioning.retrieve(id, identityZoneId);
+        IdentityProvider<?> existing = identityProviderProvisioning.retrieve(id, identityZoneId);
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         // delete mirrored IdP if alias fields are set
         if (existing != null && hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
-            IdentityProvider mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
+            IdentityProvider<?> mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
             mirroredIdp.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(mirroredIdp, authentication, identityZoneId));
         }
@@ -201,7 +201,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         if (!aliasPropertiesAreValid(body, existing)) {
-            logger.error("IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"] - Alias ID and/or ZID changed during update of already mirrored IdP.");
+            logger.error(
+                    "IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of already mirrored IdP.",
+                    body.getOriginKey(),
+                    body.getIdentityZoneId()
+            );
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
@@ -219,7 +223,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return ensureConsistencyOfMirroredIdp(updatedOriginalIdp);
         });
         if (updatedIdp == null) {
-            logger.error("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.");
+            logger.error(
+                    "IdentityProvider[origin={}; zone={}] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.",
+                    body.getOriginKey(),
+                    body.getIdentityZoneId()
+            );
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         updatedIdp.setSerializeConfigRaw(rawConfig);
@@ -250,7 +258,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(passwordNewerThanTimestamp);
 
         // update the property in the mirrored IdP if present
-        final IdentityProvider mirroredIdp;
+        final IdentityProvider<?> mirroredIdp;
         if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
             mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
             final UaaIdentityProviderDefinition definitionMirroredIdp = ObjectUtils.castInstance(
@@ -270,7 +278,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
         });
 
-        logger.info("PasswordChangeRequired property set for Identity Provider: " + existing.getId());
+        logger.info("PasswordChangeRequired property set for Identity Provider: {}", existing.getId());
         return  new ResponseEntity<>(body, OK);
     }
 
