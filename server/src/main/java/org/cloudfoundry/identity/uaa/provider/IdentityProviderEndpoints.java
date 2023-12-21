@@ -153,7 +153,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (final Exception e) {
-            logger.error("Unable to create IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
+            logger.warn("Unable to create IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
 
@@ -202,7 +202,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         if (!aliasPropertiesAreValid(body, existing)) {
-            logger.error(
+            logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of already mirrored IdP.",
                     body.getOriginKey(),
                     body.getIdentityZoneId()
@@ -224,7 +224,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return ensureConsistencyOfMirroredIdp(updatedOriginalIdp);
         });
         if (updatedIdp == null) {
-            logger.error(
+            logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.",
                     body.getOriginKey(),
                     body.getIdentityZoneId()
@@ -326,7 +326,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             status = BAD_REQUEST;
             exception = getExceptionString(x);
         } catch (Exception x) {
-            logger.error("Identity provider validation failed.", x);
+            logger.warn("Identity provider validation failed.", x);
             status = INTERNAL_SERVER_ERROR;
             exception = "check server logs";
         }finally {
