@@ -218,9 +218,13 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final IdentityProvider updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
             return ensureConsistencyOfMirroredIdp(updatedOriginalIdp);
         });
-
+        if (updatedIdp == null) {
+            logger.error("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.");
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+        }
         updatedIdp.setSerializeConfigRaw(rawConfig);
         redactSensitiveData(updatedIdp);
+
         return new ResponseEntity<>(updatedIdp, OK);
     }
 
