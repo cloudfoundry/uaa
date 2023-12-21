@@ -214,8 +214,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        final IdentityProvider updatedIdp = transactionTemplate.execute(txStatus -> {
-            final IdentityProvider updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
+        final IdentityProvider<?> updatedIdp = transactionTemplate.execute(txStatus -> {
+            final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
             return ensureConsistencyOfMirroredIdp(updatedOriginalIdp);
         });
         if (updatedIdp == null) {
@@ -329,8 +329,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     private boolean aliasPropertiesAreValid(
-            @NonNull final IdentityProvider requestBody,
-            @Nullable final IdentityProvider existingIdp
+            @NonNull final IdentityProvider<?> requestBody,
+            @Nullable final IdentityProvider<?> existingIdp
     ) {
         // if the IdP was already mirrored, the alias properties must not be changed
         final boolean idpWasAlreadyMirrored = existingIdp != null && hasText(existingIdp.getAliasZid());
@@ -393,26 +393,28 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      * @throws IdpMirroringFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the referenced
      *                                     mirrored IdP could not be found
      */
-    private IdentityProvider ensureConsistencyOfMirroredIdp(final IdentityProvider originalIdp) throws IdpMirroringFailedException {
+    private <T extends AbstractIdentityProviderDefinition> IdentityProvider<?> ensureConsistencyOfMirroredIdp(
+            final IdentityProvider<T> originalIdp
+    ) throws IdpMirroringFailedException {
         if (!hasText(originalIdp.getAliasZid())) {
             // no mirroring is necessary
             return originalIdp;
         }
 
-        final IdentityProvider mirroredIdp = new IdentityProvider<>()
-                .setActive(originalIdp.isActive())
-                .setConfig(originalIdp.getConfig())
-                .setName(originalIdp.getName())
-                .setOriginKey(originalIdp.getOriginKey())
-                .setType(originalIdp.getType())
-                // reference the ID and zone ID of the initial IdP entry
-                .setAliasZid(originalIdp.getIdentityZoneId())
-                .setAliasId(originalIdp.getId())
-                .setIdentityZoneId(originalIdp.getAliasZid());
+        final IdentityProvider<T> mirroredIdp = new IdentityProvider<>();
+        mirroredIdp.setActive(originalIdp.isActive());
+        mirroredIdp.setName(originalIdp.getName());
+        mirroredIdp.setOriginKey(originalIdp.getOriginKey());
+        mirroredIdp.setType(originalIdp.getType());
+        mirroredIdp.setConfig(originalIdp.getConfig());
         mirroredIdp.setSerializeConfigRaw(originalIdp.isSerializeConfigRaw());
+        // reference the ID and zone ID of the initial IdP entry
+        mirroredIdp.setAliasZid(originalIdp.getIdentityZoneId());
+        mirroredIdp.setAliasId(originalIdp.getId());
+        mirroredIdp.setIdentityZoneId(originalIdp.getAliasZid());
 
         // get the referenced, mirrored IdP
-        final IdentityProvider existingMirroredIdp;
+        final IdentityProvider<?> existingMirroredIdp;
         if (hasText(originalIdp.getAliasId())) {
             // if the referenced IdP does not exist, we create a new one
             existingMirroredIdp = retrieveMirroredIdp(originalIdp);
@@ -439,7 +441,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         // create new mirrored IdP in alias zid
-        final IdentityProvider persistedMirroredIdp = identityProviderProvisioning.create(
+        final IdentityProvider<?> persistedMirroredIdp = identityProviderProvisioning.create(
                 mirroredIdp,
                 originalIdp.getAliasZid()
         );
@@ -449,7 +451,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
     }
 
-    private IdentityProvider retrieveMirroredIdp(final IdentityProvider originalIdp) {
+    private IdentityProvider<?> retrieveMirroredIdp(final IdentityProvider<?> originalIdp) {
         try {
             return identityProviderProvisioning.retrieve(
                     originalIdp.getAliasId(),

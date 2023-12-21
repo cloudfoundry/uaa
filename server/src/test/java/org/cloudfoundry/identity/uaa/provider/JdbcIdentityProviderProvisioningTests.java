@@ -107,9 +107,9 @@ class JdbcIdentityProviderProvisioningTests {
         jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(mockIdentityZone, null, otherZoneId1));
 
         // check if all three entries are gone
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp1.getId()}, Integer.class)).isEqualTo(0);
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp2.getId()}, Integer.class)).isEqualTo(0);
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{uaaZoneId, createdIdp2Mirrored.getId()}, Integer.class)).isEqualTo(0);
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp1.getId()}, Integer.class)).isZero();
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp2.getId()}, Integer.class)).isZero();
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{uaaZoneId, createdIdp2Mirrored.getId()}, Integer.class)).isZero();
     }
 
     @Test
