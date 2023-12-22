@@ -350,7 +350,7 @@ class IdentityProviderEndpointsTest {
         final String customZoneId = UUID.randomUUID().toString();
         final String mirroredIdpId = UUID.randomUUID().toString();
 
-        final Supplier<IdentityProvider<?>> existingIdpProvider = () -> {
+        final Supplier<IdentityProvider<?>> existingIdpSupplier = () -> {
             final IdentityProvider<?> idp = getExternalOAuthProvider();
             idp.setId(existingIdpId);
             idp.setAliasZid(customZoneId);
@@ -359,33 +359,86 @@ class IdentityProviderEndpointsTest {
         };
 
         // original IdP with reference to a mirrored IdP
-        final IdentityProvider<?> existingIdp = existingIdpProvider.get();
+        final IdentityProvider<?> existingIdp = existingIdpSupplier.get();
         when(mockIdentityProviderProvisioning.retrieve(existingIdpId, IdentityZone.getUaaZoneId()))
                 .thenReturn(existingIdp);
 
         // (1) aliasId removed
-        IdentityProvider<?> requestBody = existingIdpProvider.get();
+        IdentityProvider<?> requestBody = existingIdpSupplier.get();
         requestBody.setAliasId("");
         ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
 
         // (2) aliasId changed
-        requestBody = existingIdpProvider.get();
+        requestBody = existingIdpSupplier.get();
         requestBody.setAliasId(UUID.randomUUID().toString());
         response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
 
         // (3) aliasZid removed
-        requestBody = existingIdpProvider.get();
+        requestBody = existingIdpSupplier.get();
         requestBody.setAliasZid("");
         response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
 
         // (4) aliasZid changed
-        requestBody = existingIdpProvider.get();
+        requestBody = existingIdpSupplier.get();
         requestBody.setAliasZid(UUID.randomUUID().toString());
         response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    void testUpdateIdentityProvider_AlreadyMirrored_ValidChange() throws MetadataProviderException {
+        final String existingIdpId = UUID.randomUUID().toString();
+        final String customZoneId = UUID.randomUUID().toString();
+        final String mirroredIdpId = UUID.randomUUID().toString();
+
+        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(UAA);
+
+        final Supplier<IdentityProvider<?>> existingIdpSupplier = () -> {
+            final IdentityProvider<?> idp = getExternalOAuthProvider();
+            idp.setId(existingIdpId);
+            idp.setAliasZid(customZoneId);
+            idp.setAliasId(mirroredIdpId);
+            return idp;
+        };
+
+        final IdentityProvider<?> existingIdp = existingIdpSupplier.get();
+        when(mockIdentityProviderProvisioning.retrieve(existingIdpId, UAA)).thenReturn(existingIdp);
+        final IdentityProvider<?> mirroredIdp = getExternalOAuthProvider();
+        mirroredIdp.setId(mirroredIdpId);
+        mirroredIdp.setIdentityZoneId(customZoneId);
+        mirroredIdp.setAliasId(existingIdp.getId());
+        mirroredIdp.setAliasZid(UAA);
+        when(mockIdentityProviderProvisioning.retrieve(mirroredIdpId, customZoneId)).thenReturn(mirroredIdp);
+
+        when(mockIdentityProviderProvisioning.update(any(), anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        final IdentityProvider<?> requestBody = existingIdpSupplier.get();
+        final String newName = "new name";
+        requestBody.setName(newName);
+        final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        final IdentityProvider responseBody = response.getBody();
+        Assertions.assertThat(responseBody).isNotNull();
+        Assertions.assertThat(responseBody.getName()).isNotNull().isEqualTo(newName);
+
+        final ArgumentCaptor<IdentityProvider> idpArgumentCaptor = ArgumentCaptor.forClass(IdentityProvider.class);
+        verify(mockIdentityProviderProvisioning, times(2)).update(idpArgumentCaptor.capture(), anyString());
+
+        // expecting original IdP with the new name
+        final IdentityProvider firstIdp = idpArgumentCaptor.getAllValues().get(0);
+        Assertions.assertThat(firstIdp).isNotNull();
+        Assertions.assertThat(firstIdp.getId()).isEqualTo(existingIdpId);
+        Assertions.assertThat(firstIdp.getName()).isEqualTo(newName);
+
+        // expecting mirrored IdP with the new name
+        final IdentityProvider secondIdp = idpArgumentCaptor.getAllValues().get(1);
+        Assertions.assertThat(secondIdp).isNotNull();
+        Assertions.assertThat(secondIdp.getId()).isEqualTo(mirroredIdpId);
+        Assertions.assertThat(secondIdp.getName()).isEqualTo(newName);
     }
 
     @Test
