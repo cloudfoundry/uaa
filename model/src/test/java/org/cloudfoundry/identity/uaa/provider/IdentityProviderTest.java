@@ -3,16 +3,13 @@ package org.cloudfoundry.identity.uaa.provider;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 class IdentityProviderTest {
 
-    private static IdentityProvider<OIDCIdentityProviderDefinition> idp;
-
-    @BeforeAll
-    static void beforeAll() {
-        idp = new IdentityProvider<>();
+    @Test
+    void testToString_ShouldContainAliasProperties() {
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp = new IdentityProvider<>();
         idp.setId("12345");
         idp.setName("some-name");
         idp.setOriginKey("some-origin");
@@ -23,39 +20,56 @@ class IdentityProviderTest {
         final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.setIssuer("issuer");
         idp.setConfig(config);
-    }
 
-    @Test
-    void testToString_ShouldContainAliasProperties() {
         assertThat(idp).hasToString("IdentityProvider{id='12345', originKey='some-origin', name='some-name', type='oidc1.0', active=true, aliasId='id-of-mirrored-idp', aliasZid='custom-zone'}");
     }
 
     @Test
     void testEqualsAndHashCode() {
+        final String customZoneId = "custom-zone";
+        final String mirroredIdpId = "id-of-mirrored-idp";
+
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp1 = new IdentityProvider<>();
+        idp1.setId("12345");
+        idp1.setName("some-name");
+        idp1.setOriginKey("some-origin");
+        idp1.setAliasZid(customZoneId);
+        idp1.setAliasId(mirroredIdpId);
+        idp1.setActive(true);
+        idp1.setIdentityZoneId(UAA);
+        final OIDCIdentityProviderDefinition config1 = new OIDCIdentityProviderDefinition();
+        config1.setIssuer("issuer");
+        idp1.setConfig(config1);
+
         final IdentityProvider<OIDCIdentityProviderDefinition> idp2 = new IdentityProvider<>();
         idp2.setId("12345");
         idp2.setName("some-name");
         idp2.setOriginKey("some-origin");
-        idp2.setAliasZid("custom-zone");
-        idp2.setAliasId("id-of-mirrored-idp");
+        idp2.setAliasZid(customZoneId);
+        idp2.setAliasId(mirroredIdpId);
         idp2.setActive(true);
         idp2.setIdentityZoneId(UAA);
-        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
-        config.setIssuer("issuer");
-        idp2.setConfig(config);
+        final OIDCIdentityProviderDefinition config2 = new OIDCIdentityProviderDefinition();
+        config2.setIssuer("issuer");
+        idp2.setConfig(config2);
 
-        idp2.setCreated(idp.getCreated());
-        idp2.setLastModified(idp.getLastModified());
+        idp2.setCreated(idp1.getCreated());
+        idp2.setLastModified(idp1.getLastModified());
 
-        assertThat(idp.equals(idp2)).isTrue();
-        assertThat(idp).hasSameHashCodeAs(idp2);
+        // initially, the tow IdPs should be equal
+        assertThat(idp1.equals(idp2)).isTrue();
+        assertThat(idp1).hasSameHashCodeAs(idp2);
 
+        // remove aliasZid
         idp2.setAliasZid(null);
-        assertThat(idp.equals(idp2)).isFalse();
+        assertThat(idp1.equals(idp2)).isFalse();
+        assertThat(idp2.equals(idp1)).isFalse();
+        idp2.setAliasZid(customZoneId);
 
-        idp2.setAliasZid("custom-zone");
+        // remove aliasId
         idp2.setAliasId(null);
-        assertThat(idp.equals(idp2)).isFalse();
+        assertThat(idp1.equals(idp2)).isFalse();
+        assertThat(idp2.equals(idp1)).isFalse();
     }
 
 }
