@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.integration.pageObjects.FaviconElement;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.HomePage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
 import org.cloudfoundry.identity.uaa.integration.endpoints.LogoutDoEndpoint;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.PasscodePage;
 import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
@@ -211,8 +212,8 @@ public class SamlLoginIT {
     public void clearWebDriverOfCookies() {
         screenShootRule.setWebDriver(webDriver);
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
-            webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
-            webDriver.manage().deleteAllCookies();
+            LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
+            new Page(webDriver).clearCookies();
         }
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
     }
