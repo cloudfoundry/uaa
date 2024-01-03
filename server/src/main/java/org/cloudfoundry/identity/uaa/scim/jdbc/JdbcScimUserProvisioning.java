@@ -370,6 +370,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired, String zoneId) throws ScimResourceNotFoundException {
+        final ScimUser user = retrieve(userId, zoneId);
         int updated = jdbcTemplate.update(UPDATE_PASSWORD_CHANGE_REQUIRED_SQL, ps -> {
             ps.setBoolean(1, passwordChangeRequired);
             ps.setString(2, userId);
@@ -379,6 +380,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         });
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + userId + " does not exist");
+        }
+        if (user.hasMirroredUser() && updated != 2) {
+            throw new ScimResourceConstraintFailedException("User " + userId + " has mirrored user, but not both records were updated");
         }
     }
 
