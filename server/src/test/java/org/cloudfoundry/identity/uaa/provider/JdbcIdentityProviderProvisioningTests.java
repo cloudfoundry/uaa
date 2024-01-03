@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.apache.commons.lang.RandomStringUtils;
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -16,6 +18,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaaZoneId;
@@ -61,6 +64,52 @@ class JdbcIdentityProviderProvisioningTests {
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{otherZoneId1}, Integer.class), is(1));
         jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(mockIdentityZone, null, otherZoneId1));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{otherZoneId1}, Integer.class), is(0));
+    }
+
+    @Test
+    void deleteProvidersInUaaZone_Mirrored() {
+        final IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        when(mockIdentityZone.getId()).thenReturn(otherZoneId1);
+
+        final String originSuffix = RandomStringUtils.randomAlphabetic(5);
+
+        // IdP 1: not mirrored
+        final IdentityProvider idp1 = MultitenancyFixture.identityProvider("origin1-" + originSuffix, otherZoneId1);
+        final IdentityProvider createdIdp1 = jdbcIdentityProviderProvisioning.create(idp1, otherZoneId1);
+        Assertions.assertThat(createdIdp1).isNotNull();
+        Assertions.assertThat(createdIdp1.getId()).isNotBlank();
+
+        // IdP 2: mirrored to UAA zone
+        final String idp2Id = UUID.randomUUID().toString();
+        final String idp2MirroredId = UUID.randomUUID().toString();
+        final String origin2 = "origin2-" + originSuffix;
+        final IdentityProvider idp2 = MultitenancyFixture.identityProvider(origin2, otherZoneId1);
+        idp2.setId(idp2Id);
+        idp2.setAliasZid(uaaZoneId);
+        idp2.setAliasId(idp2MirroredId);
+        final IdentityProvider createdIdp2 = jdbcIdentityProviderProvisioning.create(idp2, otherZoneId1);
+        Assertions.assertThat(createdIdp2).isNotNull();
+        Assertions.assertThat(createdIdp2.getId()).isNotBlank();
+        final IdentityProvider idp2Mirrored = MultitenancyFixture.identityProvider(origin2, uaaZoneId);
+        idp2Mirrored.setId(idp2MirroredId);
+        idp2Mirrored.setAliasZid(otherZoneId1);
+        idp2Mirrored.setAliasId(idp2Id);
+        final IdentityProvider createdIdp2Mirrored = jdbcIdentityProviderProvisioning.create(idp2Mirrored, uaaZoneId);
+        Assertions.assertThat(createdIdp2Mirrored).isNotNull();
+        Assertions.assertThat(createdIdp2Mirrored.getId()).isNotBlank();
+
+        // check if all three entries are present in the DB
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp1.getId()}, Integer.class)).isEqualTo(1);
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp2.getId()}, Integer.class)).isEqualTo(1);
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{uaaZoneId, createdIdp2Mirrored.getId()}, Integer.class)).isEqualTo(1);
+
+        // emit custom zone deleted event
+        jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(mockIdentityZone, null, otherZoneId1));
+
+        // check if all three entries are gone
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp1.getId()}, Integer.class)).isZero();
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp2.getId()}, Integer.class)).isZero();
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{uaaZoneId, createdIdp2Mirrored.getId()}, Integer.class)).isZero();
     }
 
     @Test

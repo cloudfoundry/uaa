@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
 import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -977,6 +978,10 @@ public final class MockMvcUtils {
         return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa(), status().isCreated());
     }
 
+    public static BaseClientDetails createClient(MockMvc mockMvc, IdentityZone identityZone, String accessToken, BaseClientDetails clientDetails) throws Exception {
+        return createClient(mockMvc, accessToken, clientDetails, identityZone, status().isCreated());
+    }
+
     public static void deleteClient(MockMvc mockMvc, String accessToken, String clientId, String zoneSubdomain) throws Exception {
         MockHttpServletRequestBuilder createClientDelete = delete("/oauth/clients/" + clientId)
           .header("Authorization", "Bearer " + accessToken)
@@ -1187,6 +1192,10 @@ public final class MockMvcUtils {
     }
 
     public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId) throws Exception {
+        return getUserOAuthAccessTokenAuthCode(mockMvc, clientId, clientSecret, userId, username, password, scope, zoneId, OPAQUE);
+    }
+
+    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId, TokenFormat tokenFormat) throws Exception {
         String basicDigestHeaderValue = "Basic "
           + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
           .getBytes()));
@@ -1208,7 +1217,7 @@ public final class MockMvcUtils {
           .session(session)
           .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
           .param(OAuth2Utils.RESPONSE_TYPE, "code")
-          .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+          .param(TokenConstants.REQUEST_TOKEN_FORMAT, tokenFormat.getStringValue())
           .param(OAuth2Utils.STATE, state)
           .param(OAuth2Utils.CLIENT_ID, clientId)
           .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");

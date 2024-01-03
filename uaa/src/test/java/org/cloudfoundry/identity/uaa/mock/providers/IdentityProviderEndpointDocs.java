@@ -61,6 +61,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.requestF
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -78,6 +79,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final String FAMILY_NAME_DESC = "Map `family_name` to the attribute for family name in the provider assertion or token.";
     private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion or token.";
     private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion or token.";
+    private static final String ALIAS_ID_DESC = "The ID of the mirrored IdP";
+    private static final String ALIAS_ZID_DESC = "The ID of the identity zone to which this IdP should be mirrored";
 
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
@@ -99,6 +102,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
+    private static final FieldDescriptor ALIAS_ID = fieldWithPath("alias_id").description(ALIAS_ID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING);
+    private static final FieldDescriptor ALIAS_ZID = fieldWithPath("alias_zid").description(ALIAS_ZID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING);
     private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("JSON Array containing the groups names which need to be populated in the user's `id_token` or response from `/userinfo` endpoint. If you don't specify the whitelist no groups will be populated in the `id_token` or `/userinfo` response." +
             "<br>Please note that regex is allowed. Acceptable patterns are" +
             "<ul><li>    `*` translates to all groups </li>" +
@@ -121,7 +126,9 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             EMAIL_DOMAIN,
             ACTIVE,
             ADD_SHADOW_USER,
-            STORE_CUSTOM_ATTRIBUTES
+            STORE_CUSTOM_ATTRIBUTES,
+            ALIAS_ID,
+            ALIAS_ZID
     };
 
     private FieldDescriptor[] attributeMappingFields = {
@@ -768,6 +775,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
                 fieldWithPath("[].name").description(NAME_DESC),
                 fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
+                fieldWithPath("[].alias_id").description(ALIAS_ID_DESC),
+                fieldWithPath("[].alias_zid").description(ALIAS_ZID),
 
                 fieldWithPath("[].version").description(VERSION_DESC),
                 fieldWithPath("[].active").description(ACTIVE_DESC),
