@@ -27,6 +27,9 @@ import java.util.*;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
  *
@@ -341,6 +344,14 @@ public class ScimUser extends ScimCore<ScimUser> {
     private String externalId = "";
 
     private String zoneId = null;
+
+    @Getter
+    @Setter
+    private String aliasZid = null;
+
+    @Getter
+    @Setter
+    private String aliasId = null;
 
     private String salt = null;
 
