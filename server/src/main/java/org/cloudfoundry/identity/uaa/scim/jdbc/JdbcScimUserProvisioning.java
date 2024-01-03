@@ -75,10 +75,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return logger;
     }
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified,last_logon_success_time,previous_logon_success_time";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,alias_id,alias_zid,salt,passwd_lastmodified,last_logon_success_time,previous_logon_success_time";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=? and identity_zone_id=?";
 
@@ -207,15 +207,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 Timestamp t = new Timestamp(new Date().getTime());
                 ps.setString(1, id);
                 ps.setInt(2, user.getVersion());
-                ps.setTimestamp(3, t);
-                ps.setTimestamp(4, t);
+                ps.setTimestamp(3, t); // created
+                ps.setTimestamp(4, t); // lastModified
                 ps.setString(5, user.getUserName());
                 ps.setString(6, user.getPrimaryEmail());
                 if (user.getName() == null) {
-                    ps.setString(7, null);
-                    ps.setString(8, null);
-                }
-                else {
+                    ps.setString(7, null); // givenName
+                    ps.setString(8, null); // familyName
+                } else {
                     ps.setString(7, user.getName().getGivenName());
                     ps.setString(8, user.getName().getFamilyName());
                 }
@@ -226,12 +225,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setString(12, origin);
                 ps.setString(13, hasText(user.getExternalId())?user.getExternalId():null);
                 ps.setString(14, identityZoneId);
-                ps.setString(15, user.getSalt());
+                ps.setString(15, hasText(user.getAliasId()) ? user.getAliasId() : null);
+                ps.setString(16, hasText(user.getAliasZid()) ? user.getAliasZid() : null);
+                ps.setString(17, user.getSalt());
 
-                ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
-                ps.setNull(17, Types.BIGINT);
-                ps.setNull(18, Types.BIGINT);
-                ps.setString(19, user.getPassword());
+                ps.setTimestamp(18, getPasswordLastModifiedTimestamp(t));
+                ps.setNull(19, Types.BIGINT); // last_logon_success_time
+                ps.setNull(20, Types.BIGINT); // previous_logon_success_time
+                ps.setString(21, user.getPassword());
             });
         } catch (DuplicateKeyException e) {
             String userOrigin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
@@ -485,6 +486,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             String origin = rs.getString("origin");
             String externalId = rs.getString("external_id");
             String zoneId = rs.getString("identity_zone_id");
+            String aliasId = rs.getString("alias_id");
+            String aliasZid = rs.getString("alias_zid");
             String salt = rs.getString("salt");
             Date passwordLastModified = rs.getTimestamp("passwd_lastmodified");
             Long lastLogonTime = (Long) rs.getObject("last_logon_success_time");
@@ -510,6 +513,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             user.setOrigin(origin);
             user.setExternalId(externalId);
             user.setZoneId(zoneId);
+            user.setAliasId(aliasId);
+            user.setAliasZid(aliasZid);
             user.setSalt(salt);
             user.setPasswordLastModified(passwordLastModified);
             user.setLastLogonTime(lastLogonTime);
