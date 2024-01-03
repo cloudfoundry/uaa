@@ -42,6 +42,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
@@ -1315,7 +1316,7 @@ class JdbcScimUserProvisioningTests {
             final String aliasZid
     ) {
         String addUserSql = String.format(
-                "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id, alias_id, alias_zid) values ('%s','%s','%s','%s','%s','%s','%s','%s', '%s', '%s')",
+                "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id, alias_id, alias_zid) values ('%s','%s','%s','%s','%s','%s','%s','%s', %s, %s)",
                 id,
                 username,
                 password,
@@ -1324,8 +1325,8 @@ class JdbcScimUserProvisioningTests {
                 familyName,
                 phoneNumber,
                 identityZoneId,
-                aliasId,
-                aliasZid
+                Optional.ofNullable(aliasId).map(it -> "'" + it + "'").orElse("null"),
+                Optional.ofNullable(aliasZid).map(it -> "'" + it + "'").orElse("null")
         );
         jdbcTemplate.execute(addUserSql);
     }
