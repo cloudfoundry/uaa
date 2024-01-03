@@ -82,11 +82,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=?, alias_id=?, alias_zid=? where id=? and version=? and identity_zone_id=?";
 
-    public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=? and identity_zone_id=?";
+    public static final String DEACTIVATE_USER_SQL = "update users set active=? where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
 
     public static final String VERIFY_USER_SQL = "update users set verified=? where id=? and identity_zone_id=?";
 
-    public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
+    public static final String DELETE_USER_SQL = "delete from users where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
 
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
 
@@ -377,22 +377,25 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return deactivateOnDelete ? deactivateUser(user, version, zoneId) : deleteUser(user, version, zoneId);
     }
 
+    /**
+     * Deactivate a user as well as its mirrored user, if present.
+     */
     private ScimUser deactivateUser(ScimUser user, int version, String zoneId) {
         logger.debug("Deactivating user: " + user.getId());
         int updated;
         if (version < 0) {
             // Ignore
-            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, false, user.getId(), zoneId);
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, false, user.getId(), zoneId, user.getId(), zoneId);
         } else {
-            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL + " and version=?", false, user.getId(), zoneId, version);
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL + " and version=?", false, user.getId(), zoneId, user.getId(), zoneId, version);
         }
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
                             user.getVersion(), version));
         }
-        if (updated > 1) {
-            throw new IncorrectResultSizeDataAccessException(1);
+        if (updated > 2) {
+            throw new IncorrectResultSizeDataAccessException(2);
         }
         user.setActive(false);
         return user;
@@ -432,15 +435,18 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return user;
     }
 
+    /**
+     * Delete a user as well as its mirrored user, if present.
+     */
     protected int deleteUser(String userId, int version, String zoneId) {
         logger.debug("Deleting user: " + userId);
         int updated;
 
         if (version < 0) {
-            updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId);
+            updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId, userId, zoneId);
         }
         else {
-            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, version);
+            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, userId, zoneId, version);
         }
         return updated;
 
