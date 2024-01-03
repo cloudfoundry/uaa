@@ -322,6 +322,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (checkPasswordMatches(id, newPassword, zoneId)) {
             return; //we don't want to update the same password
         }
+        final ScimUser user = retrieve(id, zoneId);
         final String encNewPassword = passwordEncoder.encode(newPassword);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, ps -> {
             Timestamp t = new Timestamp(System.currentTimeMillis());
@@ -336,8 +337,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
-        if (updated != 1 && updated != 2) {
+        if (!user.hasMirroredUser() && updated != 1) {
             throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
+        }
+        if (user.hasMirroredUser() && updated != 2) {
+            throw new ScimResourceConstraintFailedException("User " + id + " has mirrored user, but its record was not updated");
         }
     }
 
