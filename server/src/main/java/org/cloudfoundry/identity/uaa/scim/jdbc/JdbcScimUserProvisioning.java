@@ -92,7 +92,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
 
-    public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
+    public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
 
     public static final String UPDATE_LAST_LOGON_TIME_SQL = JdbcUaaUserDatabase.DEFAULT_UPDATE_USER_LAST_LOGON;
 
@@ -367,6 +367,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             ps.setBoolean(1, passwordChangeRequired);
             ps.setString(2, userId);
             ps.setString(3, zoneId);
+            ps.setString(4, userId); // alias_id
+            ps.setString(5, zoneId); // alias_zid
         });
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + userId + " does not exist");
