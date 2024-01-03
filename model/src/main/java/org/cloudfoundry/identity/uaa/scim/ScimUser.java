@@ -17,6 +17,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import org.cloudfoundry.identity.uaa.MirroredEntity;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
@@ -27,7 +29,6 @@ import java.util.*;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
-import lombok.Getter;
 import lombok.Setter;
 
 /**
@@ -41,7 +42,7 @@ import lombok.Setter;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public class ScimUser extends ScimCore<ScimUser> {
+public class ScimUser extends ScimCore<ScimUser> implements MirroredEntity {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -345,11 +346,9 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private String zoneId = null;
 
-    @Getter
     @Setter
     private String aliasZid = null;
 
-    @Getter
     @Setter
     private String aliasId = null;
 
@@ -542,6 +541,16 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     public void setZoneId(String zoneId) {
         this.zoneId = zoneId;
+    }
+
+    @Override
+    public String getAliasId() {
+        return aliasId;
+    }
+
+    @Override
+    public String getAliasZid() {
+        return null;
     }
 
     public String getSalt() {

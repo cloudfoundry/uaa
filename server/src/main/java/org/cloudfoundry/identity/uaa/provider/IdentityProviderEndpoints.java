@@ -13,6 +13,7 @@
  */
 package org.cloudfoundry.identity.uaa.provider;
 
+import org.cloudfoundry.identity.uaa.MirroredEntityValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -34,8 +35,6 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
@@ -88,6 +87,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     private final SamlIdentityProviderConfigurator samlConfigurator;
     private final IdentityProviderConfigValidator configValidator;
     private final IdentityZoneManager identityZoneManager;
+    private final MirroredEntityValidator mirroredEntityValidator;
     private final IdentityZoneProvisioning identityZoneProvisioning;
     private final TransactionTemplate transactionTemplate;
 
@@ -106,6 +106,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
             final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
+            final MirroredEntityValidator mirroredEntityValidator,
             final @Qualifier("transactionManager") PlatformTransactionManager transactionManager
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -115,6 +116,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         this.configValidator = configValidator;
         this.identityZoneManager = identityZoneManager;
         this.identityZoneProvisioning = identityZoneProvisioning;
+        this.mirroredEntityValidator = mirroredEntityValidator;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -137,7 +139,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        if (!aliasPropertiesAreValid(body, null)) {
+        if (!mirroredEntityValidator.aliasPropertiesAreValid(body, null)) {
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
@@ -202,7 +204,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
-        if (!aliasPropertiesAreValid(body, existing)) {
+        if (!mirroredEntityValidator.aliasPropertiesAreValid(body, existing)) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of already mirrored IdP.",
                     getCleanedUserControlString(body.getOriginKey()),
@@ -336,58 +338,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
         //return results
         return new ResponseEntity<>(JsonUtils.writeValueAsString(exception), status);
-    }
-
-    private boolean aliasPropertiesAreValid(
-            @NonNull final IdentityProvider<?> requestBody,
-            @Nullable final IdentityProvider<?> existingIdp
-    ) {
-        // if the IdP was already mirrored, the alias properties must not be changed
-        final boolean idpWasAlreadyMirrored = existingIdp != null && hasText(existingIdp.getAliasZid());
-        if (idpWasAlreadyMirrored) {
-            if (!hasText(existingIdp.getAliasId())) {
-                // at this point, we expect both properties to be set -> if not, the IdP is in an inconsistent state
-                throw new IllegalStateException(String.format(
-                        "Both alias ID and alias ZID expected to be set for IdP '%s' in zone '%s'.",
-                        existingIdp.getId(),
-                        existingIdp.getIdentityZoneId()
-                ));
-            }
-
-            // both alias properties must be equal in the update payload
-            return existingIdp.getAliasId().equals(requestBody.getAliasId())
-                    && existingIdp.getAliasZid().equals(requestBody.getAliasZid());
-        }
-
-        // if the IdP was not mirrored already, the aliasId must be empty
-        if (hasText(requestBody.getAliasId())) {
-            return false;
-        }
-
-        // check if mirroring is necessary
-        if (!hasText(requestBody.getAliasZid())) {
-            return true;
-        }
-
-        // the referenced zone must exist
-        try {
-            identityZoneProvisioning.retrieve(requestBody.getAliasZid());
-        } catch (final ZoneDoesNotExistsException e) {
-            logger.debug(
-                    "IdentityProvider[origin={}; zone={}] - Zone referenced in alias zone ID does not exist.",
-                    requestBody.getOriginKey(),
-                    requestBody.getIdentityZoneId()
-            );
-            return false;
-        }
-
-        // 'identityZoneId' and 'aliasZid' must not be equal
-        if (requestBody.getIdentityZoneId().equals(requestBody.getAliasZid())) {
-            return false;
-        }
-
-        // one of the zones must be 'uaa'
-        return requestBody.getIdentityZoneId().equals(UAA) || requestBody.getAliasZid().equals(UAA);
     }
 
     /**
