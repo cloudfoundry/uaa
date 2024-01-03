@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -22,6 +23,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -39,7 +43,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
+import static java.sql.Types.VARCHAR;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
@@ -301,6 +307,211 @@ class JdbcScimUserProvisioningTests {
             assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, currentIdentityZoneId}, Integer.class), is(1));
         }
 
+    }
+
+    @WithDatabaseContext
+    @Nested
+    class WithAliasProperties {
+        private static final String CUSTOM_ZONE_ID = UUID.randomUUID().toString();
+        private static final String PASSWORD = "some-password";
+        private static final String ENCODED_PASSWORD = "{noop}" + PASSWORD;
+
+        @ParameterizedTest
+        @MethodSource("fromUaaToCustomZoneAndViceVersa")
+        void testCreateUser_ShouldPersistAliasProperties(final String zone1, final String zone2) {
+            final String aliasId = UUID.randomUUID().toString();
+
+            final ScimUser userToCreate = new ScimUser(null, "some-user", "John", "Doe");
+            final ScimUser.Email email = new ScimUser.Email();
+            email.setPrimary(true);
+            email.setValue("john.doe@example.com");
+            userToCreate.setEmails(Collections.singletonList(email));
+            userToCreate.setAliasId(aliasId);
+            userToCreate.setAliasZid(zone2);
+
+            final ScimUser createdUser = jdbcScimUserProvisioning.createUser(userToCreate, PASSWORD, zone1);
+            final String userId = createdUser.getId();
+            Assertions.assertThat(userId).isNotBlank();
+
+            final ScimUser retrievedUser = jdbcScimUserProvisioning.retrieve(userId, zone1);
+            Assertions.assertThat(retrievedUser.getAliasId()).isNotBlank().isEqualTo(aliasId);
+            Assertions.assertThat(retrievedUser.getAliasZid()).isNotBlank().isEqualTo(zone2);
+
+            // the mirrored user should not be persisted by this method
+            assertUserDoesNotExist(aliasId, zone2);
+        }
+
+        @ParameterizedTest
+        @MethodSource("fromUaaToCustomZoneAndViceVersa")
+        void testChangePassword_ShouldUpdatePasswordForBothUsers(final String zone1, final String zone2) {
+            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+
+            // read password before update
+            final String passwordBeforeUpdate = readPasswordFromDb(userIds.originalUserId, zone1);
+            Assertions.assertThat(passwordBeforeUpdate).isNotBlank();
+
+            jdbcScimUserProvisioning.changePassword(
+                    userIds.originalUserId,
+                    PASSWORD,
+                    "some-new-password",
+                    zone1
+            );
+
+            // the password should be updated
+            final String passwordAfterUpdate = readPasswordFromDb(userIds.originalUserId, zone1);
+            Assertions.assertThat(passwordAfterUpdate).isNotBlank().isNotEqualTo(passwordBeforeUpdate);
+
+            // the password should also be updated in the mirrored user
+            final String passwordMirroredUserAfterUpdate = readPasswordFromDb(userIds.mirroredUserId, zone2);
+            Assertions.assertThat(passwordMirroredUserAfterUpdate).isNotBlank().isEqualTo(passwordAfterUpdate);
+        }
+
+        @ParameterizedTest
+        @MethodSource("fromUaaToCustomZoneAndViceVersa")
+        void testUpdatePasswordChangeRequired_ShouldPropagateUpdateToMirroredUser(final String zone1, final String zone2) {
+            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+
+            // check if password change required field is equal for both users
+            final boolean pwChangeRequiredBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
+                    userIds.originalUserId,
+                    zone1
+            );
+            final boolean pwChangeRequiredMirroredUserBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
+                    userIds.mirroredUserId,
+                    zone2
+            );
+            Assertions.assertThat(pwChangeRequiredBeforeUpdate).isEqualTo(pwChangeRequiredMirroredUserBeforeUpdate);
+
+            // update to opposite value
+            jdbcScimUserProvisioning.updatePasswordChangeRequired(
+                    userIds.originalUserId,
+                    !pwChangeRequiredBeforeUpdate,
+                    zone1
+            );
+
+            // check if password change required field is still equal for both users and the opposite value
+            final boolean pwChangeRequiredAfterUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
+                    userIds.originalUserId,
+                    zone1
+            );
+            final boolean pwChangeRequiredMirroredUserAfterUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
+                    userIds.mirroredUserId,
+                    zone2
+            );
+            Assertions.assertThat(pwChangeRequiredAfterUpdate)
+                    .isEqualTo(!pwChangeRequiredBeforeUpdate)
+                    .isEqualTo(pwChangeRequiredMirroredUserAfterUpdate);
+        }
+
+        @ParameterizedTest
+        @MethodSource("fromUaaToCustomZoneAndViceVersa")
+        void testUpdate_ShouldNotUpdateMirroredUser(final String zone1, final String zone2) {
+            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+
+            final ScimUser updatePayload = jdbcScimUserProvisioning.retrieve(userIds.originalUserId, zone1);
+            updatePayload.getName().setGivenName("some-new-name");
+            final ScimUser.Email email = new ScimUser.Email();
+            email.setPrimary(true);
+            email.setValue("john.doe.new@example.com");
+            updatePayload.setEmails(Collections.singletonList(email));
+
+            final ScimUser updatedUser = jdbcScimUserProvisioning.update(userIds.originalUserId, updatePayload, zone1);
+            Assertions.assertThat(updatedUser.getName().getGivenName()).isEqualTo("some-new-name");
+            Assertions.assertThat(updatedUser.getPrimaryEmail()).isEqualTo("john.doe.new@example.com");
+
+            // the mirrored user should NOT be updated
+            final ScimUser mirroredUser = jdbcScimUserProvisioning.retrieve(userIds.mirroredUserId, zone2);
+            Assertions.assertThat(mirroredUser.getName().getGivenName()).isNotEqualTo(updatedUser.getDisplayName());
+            Assertions.assertThat(mirroredUser.getPrimaryEmail()).isNotEqualTo(updatedUser.getPrimaryEmail());
+        }
+
+        @ParameterizedTest
+        @MethodSource("fromUaaToCustomZoneAndViceVersa")
+        void testDelete_ShouldPropagateToMirroredUser_DeactivateOnDeleteFalse(final String zone1, final String zone2) {
+            jdbcScimUserProvisioning.setDeactivateOnDelete(false);
+            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+
+            // delete original user
+            jdbcScimUserProvisioning.delete(userIds.originalUserId, -1, zone1);
+
+            // mirrored user should no longer be present
+            assertUserDoesNotExist(userIds.mirroredUserId, zone2);
+        }
+
+        @ParameterizedTest
+        @MethodSource("fromUaaToCustomZoneAndViceVersa")
+        void testDelete_ShouldPropagateToMirroredUser_DeactivateOnDeleteTrue(final String zone1, final String zone2) {
+            jdbcScimUserProvisioning.setDeactivateOnDelete(true);
+            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+
+            // both users should be active
+            assertUserIsActive(userIds.originalUserId, zone1, true);
+            assertUserIsActive(userIds.mirroredUserId, zone2, true);
+
+            // delete original user
+            jdbcScimUserProvisioning.delete(userIds.originalUserId, -1, zone1);
+
+            // both users should be inactive
+            assertUserIsActive(userIds.originalUserId, zone1, false);
+            assertUserIsActive(userIds.mirroredUserId, zone2, false);
+        }
+
+        private UserIds arrangeUserAndMirroredUserExist(final String zone1, final String zone2) {
+            final String idInZone1 = UUID.randomUUID().toString();
+            final String idInZone2 = UUID.randomUUID().toString();
+            addUser(
+                    jdbcTemplate,
+                    idInZone1,
+                    "johndoe",
+                    ENCODED_PASSWORD,
+                    "john.doe@example.com",
+                    "John",
+                    "Doe",
+                    "12345",
+                    zone1,
+                    idInZone2,
+                    zone2
+            );
+            addUser(
+                    jdbcTemplate,
+                    idInZone2,
+                    "johndoe",
+                    ENCODED_PASSWORD,
+                    "john.doe@example.com",
+                    "John",
+                    "Doe",
+                    "12345",
+                    zone2,
+                    idInZone1,
+                    zone1
+            );
+            return new UserIds(idInZone1, idInZone2);
+        }
+
+        private void assertUserDoesNotExist(final String userId, final String zoneId) {
+            Assertions.assertThatExceptionOfType(ScimResourceNotFoundException.class)
+                    .isThrownBy(() -> jdbcScimUserProvisioning.retrieve(userId, zoneId));
+        }
+
+        private void assertUserIsActive(final String userId, final String zoneId, final boolean expected) {
+            final ScimUser originalUser = jdbcScimUserProvisioning.retrieve(userId, zoneId);
+            Assertions.assertThat(originalUser.isActive()).isEqualTo(expected);
+        }
+
+        private String readPasswordFromDb(final String userId, final String zoneId) {
+            return jdbcTemplate.queryForObject(
+                    JdbcScimUserProvisioning.READ_PASSWORD_SQL,
+                    new Object[]{userId, zoneId},
+                    new int[]{VARCHAR, VARCHAR},
+                    String.class
+            );
+        }
+
+        private static Stream<Arguments> fromUaaToCustomZoneAndViceVersa() {
+            return Stream.of(Arguments.of(UAA, CUSTOM_ZONE_ID), Arguments.of(CUSTOM_ZONE_ID, UAA));
+        }
+
+        private record UserIds(String originalUserId, String mirroredUserId) {}
     }
 
     @Test
@@ -1076,17 +1287,35 @@ class JdbcScimUserProvisioningTests {
         return randomUserId;
     }
 
-    private static void addUser(final JdbcTemplate jdbcTemplate,
-                                final String id,
-                                final String username,
-                                final String password,
-                                final String email,
-                                final String givenName,
-                                final String familyName,
-                                final String phoneNumber,
-                                final String identityZoneId) {
+    private static void addUser(
+            final JdbcTemplate jdbcTemplate,
+            final String id,
+            final String username,
+            final String password,
+            final String email,
+            final String givenName,
+            final String familyName,
+            final String phoneNumber,
+            final String identityZoneId
+    ) {
+        addUser(jdbcTemplate, id, username, password, email, givenName, familyName, phoneNumber, identityZoneId, null, null);
+    }
+
+    private static void addUser(
+            final JdbcTemplate jdbcTemplate,
+            final String id,
+            final String username,
+            final String password,
+            final String email,
+            final String givenName,
+            final String familyName,
+            final String phoneNumber,
+            final String identityZoneId,
+            final String aliasId,
+            final String aliasZid
+    ) {
         String addUserSql = String.format(
-                "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id) values ('%s','%s','%s','%s','%s','%s','%s','%s')",
+                "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id, alias_id, alias_zid) values ('%s','%s','%s','%s','%s','%s','%s','%s', '%s', '%s')",
                 id,
                 username,
                 password,
@@ -1094,7 +1323,10 @@ class JdbcScimUserProvisioningTests {
                 givenName,
                 familyName,
                 phoneNumber,
-                identityZoneId);
+                identityZoneId,
+                aliasId,
+                aliasZid
+        );
         jdbcTemplate.execute(addUserSql);
     }
 
