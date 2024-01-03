@@ -88,7 +88,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String DELETE_USER_SQL = "delete from users where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
 
-    public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
+    public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
 
@@ -327,11 +327,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             ps.setTimestamp(3, getPasswordLastModifiedTimestamp(t));
             ps.setString(4, id);
             ps.setString(5, zoneId);
+            ps.setString(6, id); // alias_id
+            ps.setString(7, zoneId); // alias_zid
         });
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
-        if (updated != 1) {
+        if (updated != 1 && updated != 2) {
             throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
         }
     }
