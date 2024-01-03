@@ -642,6 +642,13 @@ public class ScimUser extends ScimCore<ScimUser> {
     }
 
     /**
+     * Determine whether this user references a mirrored user in another IdZ.
+     */
+    public boolean hasMirroredUser() {
+        return hasText(aliasId) && hasText(aliasZid);
+    }
+
+    /**
      * Adds a new email address, ignoring "type" and "primary" fields, which we
      * don't need yet
      */
