@@ -225,9 +225,9 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return aliasZid;
     }
 
-    public IdentityProvider<T> setAliasZid(String aliasZid) {
+    @Override
+    public void setAliasZid(String aliasZid) {
         this.aliasZid = aliasZid;
-        return this;
     }
 
     @Override

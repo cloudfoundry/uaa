@@ -24,12 +24,17 @@ public class IdentityProviderMirroringHandler extends EntityMirroringHandler<Ide
     }
 
     @Override
-    protected void setId(final IdentityProvider<?> entity, final String newId) {
-        entity.setId(newId);
+    protected void setId(final IdentityProvider<?> entity, final String id) {
+        entity.setId(id);
     }
 
     @Override
-    protected IdentityProvider<?> buildMirroredEntity(final IdentityProvider<?> originalEntity) {
+    protected void setZoneId(final IdentityProvider<?> entity, final String zoneId) {
+        entity.setIdentityZoneId(zoneId);
+    }
+
+    @Override
+    protected IdentityProvider<?> cloneEntity(final IdentityProvider<?> originalEntity) {
         final IdentityProvider mirroredIdp = new IdentityProvider<>();
         mirroredIdp.setActive(originalEntity.isActive());
         mirroredIdp.setName(originalEntity.getName());

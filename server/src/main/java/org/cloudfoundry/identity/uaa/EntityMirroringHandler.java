@@ -125,13 +125,28 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         final T persistedMirroredEntity = createEntity(mirroredEntity, originalEntity.getAliasZid());
 
         // update alias ID in original entity
-        setId(originalEntity, persistedMirroredEntity.getId());
+        originalEntity.setAliasId(persistedMirroredEntity.getId());
         return updateEntity(originalEntity, originalEntity.getZoneId());
     }
 
-    protected abstract void setId(final T entity, final String newId);
+    private T buildMirroredEntity(final T originalEntity) {
+        final T mirroredEntity = cloneEntity(originalEntity);
+        mirroredEntity.setAliasId(originalEntity.getId());
+        mirroredEntity.setAliasZid(originalEntity.getZoneId());
+        setZoneId(mirroredEntity, originalEntity.getAliasZid());
+        setId(mirroredEntity, null); // will be set later
+        return mirroredEntity;
+    }
 
-    protected abstract T buildMirroredEntity(final T originalEntity);
+    protected abstract void setId(final T entity, final String id);
+
+    protected abstract void setZoneId(final T entity, final String zoneId);
+
+    /**
+     * Build a clone of the given entity. The properties 'aliasId', 'aliasZid', 'id' and 'zoneId' are not required to be
+     * cloned, since they will be adjusted afterward anyway.
+     */
+    protected abstract T cloneEntity(final T originalEntity);
 
     private Optional<T> retrieveMirroredEntity(final T originalEntity) {
         return retrieveEntity(originalEntity.getAliasId(), originalEntity.getAliasZid());

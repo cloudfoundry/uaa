@@ -17,4 +17,6 @@ public interface MirroredEntity {
 
     @Nullable
     String getAliasZid();
+
+    void setAliasZid(String aliasZid);
 }

@@ -535,6 +535,7 @@ public class ScimUser extends ScimCore<ScimUser> implements MirroredEntity {
         return this;
     }
 
+    @Override
     public String getZoneId() {
         return zoneId;
     }
