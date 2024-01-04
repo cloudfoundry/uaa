@@ -13,6 +13,8 @@ public interface MirroredEntity {
     @Nullable
     String getAliasId();
 
+    void setAliasId(String aliasId);
+
     @Nullable
     String getAliasZid();
 }

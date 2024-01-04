@@ -215,9 +215,9 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return aliasId;
     }
 
-    public IdentityProvider<T> setAliasId(String aliasId) {
+    @Override
+    public void setAliasId(String aliasId) {
         this.aliasId = aliasId;
-        return this;
     }
 
     @Override
