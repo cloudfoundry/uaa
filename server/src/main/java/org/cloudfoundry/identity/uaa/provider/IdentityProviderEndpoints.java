@@ -143,8 +143,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             createdIdp = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
                 createdOriginalIdp.setSerializeConfigRaw(rawConfig);
-                redactSensitiveData(createdOriginalIdp);
-
                 return mirroringHandler.ensureConsistencyOfMirroredEntity(createdOriginalIdp);
             });
         } catch (final IdpAlreadyExistsException e) {
@@ -154,6 +152,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
 
+        redactSensitiveData(createdIdp);
         return new ResponseEntity<>(createdIdp, CREATED);
     }
 
