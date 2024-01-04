@@ -5,7 +5,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 import java.util.Optional;
 
-import org.cloudfoundry.identity.uaa.provider.IdpMirroringFailedException;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.slf4j.Logger;
@@ -71,9 +71,21 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         return requestBody.getZoneId().equals(UAA) || requestBody.getAliasZid().equals(UAA);
     }
 
-    // TODO validate method expected to be true
-    // TODO comment: original entity must already be created, i.e., have an ID
-    // TODO must be executed in a transaction with the original creation/update
+    /**
+     * Ensure consistency during create or update operations with a mirrored entity referenced in the original entity's
+     * alias properties. If the entity has both its alias ID and alias ZID set, the existing mirrored entity is updated.
+     * If only the alias ZID is set, a new mirrored entity is created.
+     * This method should be executed in a transaction together with the original create or update operation. Before
+     * executing this method, check if the alias properties are valid by calling
+     * {@link EntityMirroringHandler#aliasPropertiesAreValid(MirroredEntity, MirroredEntity)}.
+     *
+     * @param originalEntity the original entity; must be persisted, i.e., have an ID, already
+     * @return the original entity after the operation, with a potentially updated "aliasId" field
+     * @throws EntityMirroringFailedException if a new mirrored entity needs to be created, but the zone referenced in
+     *                                        'aliasZid' does not exist
+     * @throws EntityMirroringFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the
+     *                                        referenced mirrored entity could not be found
+     */
     public T ensureConsistencyOfMirroredEntity(final T originalEntity) {
         if (!hasText(originalEntity.getAliasZid())) {
             // no mirroring is necessary
@@ -102,7 +114,7 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         try {
             identityZoneProvisioning.retrieve(originalEntity.getAliasZid());
         } catch (final ZoneDoesNotExistsException e) {
-            throw new IdpMirroringFailedException(String.format(
+            throw new EntityMirroringFailedException(String.format(
                     "Could not mirror user '%s' to zone '%s', as zone does not exist.",
                     originalEntity.getId(),
                     originalEntity.getAliasZid()
@@ -130,4 +142,10 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
     protected abstract T updateEntity(final T entity, final String zoneId);
 
     protected abstract T createEntity(final T entity, final String zoneId);
+
+    public static class EntityMirroringFailedException extends UaaException {
+        public EntityMirroringFailedException(final String msg, final Throwable t) {
+            super(msg, t);
+        }
+    }
 }
