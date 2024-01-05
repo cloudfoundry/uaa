@@ -480,11 +480,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         this.usernamePattern = Pattern.compile(usernamePattern);
     }
 
+    @Override
     public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE, zoneId);
         return jdbcTemplate.update(HARD_DELETE_BY_ZONE, zoneId);
     }
 
+    @Override
     public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(HARD_DELETE_BY_PROVIDER, zoneId, origin);
