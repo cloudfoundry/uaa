@@ -428,8 +428,6 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void malformedSamlRequestLogsQueryStringAndContentMetadata() throws Exception {
-            performIdpAuthentication();
-
             postSamlResponse(null, "?bogus=query", "someKey=someVal&otherKey=otherVal&emptyKey=", "vcap_request_id_abc123");
 
             assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
@@ -438,8 +436,6 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void malformedSamlRequestWithNoQueryStringAndNoContentMetadata() throws Exception {
-            performIdpAuthentication();
-
             postSamlResponse(null, "", "", "");
 
             assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
@@ -448,8 +444,6 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void malformedSamlRequestWithRepeatedParams() throws Exception {
-            performIdpAuthentication();
-
             postSamlResponse(null, "?foo=a&foo=ab&foo=aaabbbccc", "", "");
 
             assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
