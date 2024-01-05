@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
+import org.cloudfoundry.identity.uaa.EntityMirroringHandler;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -526,7 +527,10 @@ class IdentityProviderEndpointsTest {
         persistedOriginalIdpWithAliasId.setId(originalIdpId);
         persistedOriginalIdpWithAliasId.setAliasId(UUID.randomUUID().toString());
         when(mockIdentityProviderMirroringHandler.ensureConsistencyOfMirroredEntity(persistedOriginalIdp))
-                .thenReturn(persistedOriginalIdpWithAliasId);
+                .thenReturn(new EntityMirroringHandler.EntityMirroringResult<>(
+                        persistedOriginalIdpWithAliasId,
+                        null // mirrored entity can be ignored here
+                ));
 
         final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(requestBody, true);
 

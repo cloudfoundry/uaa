@@ -37,6 +37,7 @@ import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
 
+import org.cloudfoundry.identity.uaa.EntityMirroringHandler.EntityMirroringResult;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
@@ -138,9 +139,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         // persist IdP and mirror if necessary
-        final IdentityProvider<?> createdIdp;
+        final EntityMirroringResult<IdentityProvider<?>> mirroringResult;
         try {
-            createdIdp = transactionTemplate.execute(txStatus -> {
+            mirroringResult = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
                 createdOriginalIdp.setSerializeConfigRaw(rawConfig);
                 return mirroringHandler.ensureConsistencyOfMirroredEntity(createdOriginalIdp);
@@ -152,8 +153,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
 
-        redactSensitiveData(createdIdp);
-        return new ResponseEntity<>(createdIdp, CREATED);
+        redactSensitiveData(mirroringResult.originalEntity());
+        return new ResponseEntity<>(mirroringResult.originalEntity(), CREATED);
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
@@ -215,10 +216,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        final IdentityProvider<?> updatedIdp = transactionTemplate.execute(txStatus -> {
+        final EntityMirroringResult<IdentityProvider<?>> mirroringResult = transactionTemplate.execute(txStatus -> {
             final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
             return mirroringHandler.ensureConsistencyOfMirroredEntity(updatedOriginalIdp);
         });
+        final IdentityProvider<?> updatedIdp = mirroringResult.originalEntity();
         if (updatedIdp == null) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.",

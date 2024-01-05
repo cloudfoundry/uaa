@@ -94,17 +94,17 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
      * The original entity or the update to it must be persisted prior to calling this method, as we expect that its ID
      * is already set.
      *
-     * @param originalEntity the original entity; must be persisted, i.e., have an ID, already
-     * @return the original entity after the operation, with a potentially updated "aliasId" field
+     * @param originalEntity the original entity
+     * @return the original entity as well as the mirrored entity (if applicable) after the operation
      * @throws EntityMirroringFailedException if a new mirrored entity needs to be created, but the zone referenced in
      *                                        'aliasZid' does not exist
      * @throws EntityMirroringFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the
      *                                        referenced mirrored entity could not be found
      */
-    public T ensureConsistencyOfMirroredEntity(final T originalEntity) {
+    public EntityMirroringResult<T> ensureConsistencyOfMirroredEntity(final T originalEntity) {
         if (!hasText(originalEntity.getAliasZid())) {
             // no mirroring is necessary
-            return originalEntity;
+            return new EntityMirroringResult<>(originalEntity, null);
         }
 
         final T mirroredEntity = buildMirroredEntity(originalEntity);
@@ -121,8 +121,8 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         // update the existing mirrored entity
         if (existingMirroredEntity != null) {
             setId(mirroredEntity, existingMirroredEntity.getId());
-            updateEntity(mirroredEntity, originalEntity.getAliasZid());
-            return originalEntity;
+            final T updatedMirroredEntity = updateEntity(mirroredEntity, originalEntity.getAliasZid());
+            return new EntityMirroringResult<>(originalEntity, updatedMirroredEntity);
         }
 
         // check if IdZ referenced in 'aliasZid' exists
@@ -141,7 +141,9 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
 
         // update alias ID in original entity
         originalEntity.setAliasId(persistedMirroredEntity.getId());
-        return updateEntity(originalEntity, originalEntity.getZoneId());
+        final T updatedOriginalEntity = updateEntity(originalEntity, originalEntity.getZoneId());
+
+        return new EntityMirroringResult<>(updatedOriginalEntity, persistedMirroredEntity);
     }
 
     private T buildMirroredEntity(final T originalEntity) {
