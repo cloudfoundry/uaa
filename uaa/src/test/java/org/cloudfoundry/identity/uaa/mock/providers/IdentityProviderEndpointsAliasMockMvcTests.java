@@ -71,7 +71,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
-    private static final Map<String, String> accessTokenCache = new HashMap<>();
+    private final Map<String, String> accessTokenCache = new HashMap<>();
     private IdentityZone customZone;
     private String adminToken;
     private String identityToken;
