@@ -44,12 +44,12 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
                     && existingEntity.getAliasZid().equals(requestBody.getAliasZid());
         }
 
-        // alias ID must not be set when a new mirroring is to be set up
+        // alias ID must not be set when no mirroring existed already
         if (hasText(requestBody.getAliasId())) {
             return false;
         }
 
-        // check if mirroring is necessary
+        // exit early if no mirroring is necessary
         if (!hasText(requestBody.getAliasZid())) {
             return true;
         }
@@ -68,8 +68,21 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         }
 
         // one of the zones must be 'uaa'
-        return requestBody.getZoneId().equals(UAA) || requestBody.getAliasZid().equals(UAA);
+        final boolean oneOfTheZonesIsUaaZone = requestBody.getZoneId().equals(UAA)
+                || requestBody.getAliasZid().equals(UAA);
+        if (!oneOfTheZonesIsUaaZone) {
+            return false;
+        }
+
+        // perform additional checks
+        return additionalValidationChecksForNewMirroring(requestBody);
     }
+
+    /**
+     * Perform additional validation checks specific for the entity. This method is only executed if a new mirrored
+     * entity is created in the alias zone.
+     */
+    protected abstract boolean additionalValidationChecksForNewMirroring(@NonNull final T requestBody);
 
     /**
      * Ensure consistency during create or update operations with a mirrored entity referenced in the original entity's
@@ -78,6 +91,8 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
      * This method should be executed in a transaction together with the original create or update operation. Before
      * executing this method, check if the alias properties are valid by calling
      * {@link EntityMirroringHandler#aliasPropertiesAreValid(MirroredEntity, MirroredEntity)}.
+     * The original entity or the update to it must be persisted prior to calling this method, as we expect that its ID
+     * is already set.
      *
      * @param originalEntity the original entity; must be persisted, i.e., have an ID, already
      * @return the original entity after the operation, with a potentially updated "aliasId" field
@@ -157,6 +172,22 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
     protected abstract T updateEntity(final T entity, final String zoneId);
 
     protected abstract T createEntity(final T entity, final String zoneId);
+
+    protected static <T extends MirroredEntity> boolean isCorrectlyMirroredPair(final T entity1, final T entity2) {
+        // check if both entities are mirrored at all
+        final boolean entity1IsMirrored = hasText(entity1.getAliasId()) && hasText(entity1.getAliasZid());
+        final boolean entity2IsMirrored = hasText(entity2.getAliasId()) && hasText(entity2.getAliasZid());
+        if (!entity1IsMirrored || !entity2IsMirrored) {
+            return false;
+        }
+
+        // check if they reference each other
+        final boolean entity1ReferencesEntity2 = entity1.getAliasId().equals(entity2.getId())
+                && entity1.getAliasZid().equals(entity2.getZoneId());
+        final boolean entity2ReferencesEntity1 = entity2.getAliasId().equals(entity1.getId())
+                && entity2.getAliasZid().equals(entity1.getZoneId());
+        return entity1ReferencesEntity2 && entity2ReferencesEntity1;
+    }
 
     public static class EntityMirroringFailedException extends UaaException {
         public EntityMirroringFailedException(final String msg, final Throwable t) {

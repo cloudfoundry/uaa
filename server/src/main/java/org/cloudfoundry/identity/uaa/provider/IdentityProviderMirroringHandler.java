@@ -24,6 +24,12 @@ public class IdentityProviderMirroringHandler extends EntityMirroringHandler<Ide
     }
 
     @Override
+    protected boolean additionalValidationChecksForNewMirroring(final IdentityProvider<?> requestBody) {
+        // no additional validation checks necessary
+        return true;
+    }
+
+    @Override
     protected void setId(final IdentityProvider<?> entity, final String id) {
         entity.setId(id);
     }

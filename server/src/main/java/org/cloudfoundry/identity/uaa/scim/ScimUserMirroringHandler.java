@@ -3,24 +3,56 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.EntityMirroringHandler;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.DataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ScimUserMirroringHandler extends EntityMirroringHandler<ScimUser> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(ScimUserMirroringHandler.class);
     private final ScimUserProvisioning scimUserProvisioning;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+    private final IdentityZoneManager identityZoneManager;
 
     protected ScimUserMirroringHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
-            final ScimUserProvisioning scimUserProvisioning
+            final ScimUserProvisioning scimUserProvisioning,
+            final IdentityProviderProvisioning identityProviderProvisioning,
+            final IdentityZoneManager identityZoneManager
     ) {
         super(identityZoneProvisioning);
         this.scimUserProvisioning = scimUserProvisioning;
+        this.identityProviderProvisioning = identityProviderProvisioning;
+        this.identityZoneManager = identityZoneManager;
+    }
+
+    @Override
+    protected boolean additionalValidationChecksForNewMirroring(final ScimUser requestBody) {
+        // check if the IdP also exists as a mirrored IdP in the alias zone
+        final IdentityProvider<?> idpInAliasZone;
+        try {
+            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(
+                    requestBody.getOrigin(),
+                    requestBody.getAliasZid()
+            );
+        } catch (final DataAccessException e) {
+            throw new ScimException(
+                    String.format("No IdP with the origin '%s' exists in the alias zone.", requestBody.getOrigin()),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+
+        final IdentityProvider<?> idpInCurrentZone = identityProviderProvisioning.retrieveByOrigin(
+                requestBody.getOrigin(),
+                identityZoneManager.getCurrentIdentityZoneId()
+        );
+        return EntityMirroringHandler.isCorrectlyMirroredPair(idpInCurrentZone, idpInAliasZone);
     }
 
     @Override
