@@ -107,7 +107,11 @@ class ScimUserBootstrapTests {
                 null,
                 null,
                 null,
-                jdbcScimGroupMembershipManager, 5);
+                jdbcScimGroupMembershipManager,
+                null,
+                null,
+                5
+        );
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
     }
 

@@ -1,6 +1,24 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.jayway.jsonpath.JsonPathException;
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.springframework.util.StringUtils.isEmpty;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import org.cloudfoundry.identity.uaa.EntityMirroringHandler.EntityMirroringResult;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -25,6 +43,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserMirroringHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -62,6 +81,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -76,22 +97,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
-import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
-import static org.springframework.util.StringUtils.isEmpty;
+import com.jayway.jsonpath.JsonPathException;
 
 /**
  * User provisioning and query endpoints. Implements the core API from the
@@ -225,16 +231,47 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             passwordValidator.validate(user.getPassword());
         }
 
-        ScimUser scimUser = scimUserProvisioning.createUser(user, user.getPassword(), identityZoneManager.getCurrentIdentityZoneId());
+        if (!mirroredEntityHandler.aliasPropertiesAreValid(user, null)) {
+            throw new ScimException("Alias ID and/or alias ZID are invalid.", HttpStatus.BAD_REQUEST);
+        }
+
+        // create the user and mirror it if necessary
+        final EntityMirroringResult<ScimUser> mirroringResult = transactionTemplate.execute(txStatus -> {
+            final ScimUser originalScimUser = scimUserProvisioning.createUser(
+                    user,
+                    user.getPassword(),
+                    identityZoneManager.getCurrentIdentityZoneId()
+            );
+            return mirroredEntityHandler.ensureConsistencyOfMirroredEntity(
+                    originalScimUser
+            );
+        });
+
+        // sync approvals and groups for original user
+        ScimUser persistedUser = mirroringResult.originalEntity();
         if (user.getApprovals() != null) {
-            for (Approval approval : user.getApprovals()) {
-                approval.setUserId(scimUser.getId());
+            for (final Approval approval : user.getApprovals()) {
+                approval.setUserId(persistedUser.getId());
                 approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
             }
         }
-        scimUser = syncApprovals(syncGroups(scimUser));
-        addETagHeader(response, scimUser);
-        return scimUser;
+        persistedUser = syncApprovals(syncGroups(persistedUser));
+
+        // if present, sync approvals and groups for mirrored user
+        final ScimUser mirroredScimUser = mirroringResult.mirroredEntity();
+        if (mirroredScimUser != null) {
+            if (user.getApprovals() != null) {
+                for (final Approval approval : user.getApprovals()) {
+                    final Approval clonedApproval = Approval.clone(approval);
+                    clonedApproval.setUserId(mirroredScimUser.getId());
+                    approvalStore.addApproval(clonedApproval, mirroredScimUser.getZoneId());
+                }
+            }
+            syncApprovals(syncGroups(mirroredScimUser));
+        }
+
+        addETagHeader(response, persistedUser);
+        return persistedUser;
     }
 
     private boolean isUaaUser(@RequestBody ScimUser user) {

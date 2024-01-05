@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserMirroringHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -61,6 +62,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
@@ -140,6 +142,13 @@ class ScimUserEndpointsTests {
     @Autowired
     private IdentityZoneManager identityZoneManager;
 
+    @Autowired
+    private ScimUserMirroringHandler scimUserMirroringHandler;
+
+    @Autowired
+    @Qualifier("transactionManager")
+    private PlatformTransactionManager platformTransactionManager;
+
     private ScimUser joel;
     private ScimUser dale;
 
@@ -213,7 +222,10 @@ class ScimUserEndpointsTests {
                 mockJdbcUserGoogleMfaCredentialsProvisioning,
                 mockApprovalStore,
                 spiedScimGroupMembershipManager,
-                5);
+                scimUserMirroringHandler,
+                platformTransactionManager,
+                5
+        );
     }
 
     @Test
@@ -703,7 +715,7 @@ class ScimUserEndpointsTests {
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, 0),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, null, 0),
                 containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
@@ -711,7 +723,7 @@ class ScimUserEndpointsTests {
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, -1),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, null,-1),
                 containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
