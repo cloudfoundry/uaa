@@ -61,7 +61,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
  */
 @DefaultTestContext
 class IdentityProviderEndpointsAliasMockMvcTests {
-    private static final Map<String, String> ACCESS_TOKEN_CACHE = new HashMap<>();
 
     @Autowired
     private MockMvc mockMvc;
@@ -72,6 +71,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
+    private static final Map<String, String> accessTokenCache = new HashMap<>();
     private IdentityZone customZone;
     private String adminToken;
     private String identityToken;
@@ -640,7 +640,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     }
 
     private String getAccessTokenForZone(final String zoneId) throws Exception {
-        final String cacheLookupResult = ACCESS_TOKEN_CACHE.get(zoneId);
+        final String cacheLookupResult = accessTokenCache.get(zoneId);
         if (cacheLookupResult != null) {
             return cacheLookupResult;
         }
@@ -673,7 +673,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         assertThat(resultingScopes).hasSameElementsAs(scopesForZone);
 
         // cache the access token
-        ACCESS_TOKEN_CACHE.put(zoneId, accessToken);
+        accessTokenCache.put(zoneId, accessToken);
 
         return accessToken;
     }
