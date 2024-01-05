@@ -163,4 +163,9 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
             super(msg, t);
         }
     }
+
+    public record EntityMirroringResult<T extends MirroredEntity>(
+            @NonNull T originalEntity,
+            @Nullable T mirroredEntity
+    ) {}
 }
