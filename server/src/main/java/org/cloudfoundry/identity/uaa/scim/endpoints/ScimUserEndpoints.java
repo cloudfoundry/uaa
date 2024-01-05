@@ -133,6 +133,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private final AtomicInteger scimUpdates;
     private final AtomicInteger scimDeletes;
     private final Map<String, AtomicInteger> errorCounts;
+    private final ScimUserMirroringHandler mirroredEntityHandler;
+    private final TransactionTemplate transactionTemplate;
 
     private ApplicationEventPublisher publisher;
 
@@ -151,7 +153,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final UserMfaCredentialsProvisioning mfaCredentialsProvisioning,
             final ApprovalStore approvalStore,
             final ScimGroupMembershipManager membershipManager,
-            final @Value("${userMaxCount:500}") int userMaxCount) {
+            final ScimUserMirroringHandler mirroredEntityHandler,
+            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
+            final @Value("${userMaxCount:500}") int userMaxCount
+    ) {
         if (userMaxCount <= 0) {
             throw new IllegalArgumentException(
                     String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
@@ -173,6 +178,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
         };
+        this.mirroredEntityHandler = mirroredEntityHandler;
+        this.transactionTemplate = new TransactionTemplate(transactionManager);
         scimUpdates = new AtomicInteger();
         scimDeletes = new AtomicInteger();
         errorCounts = new ConcurrentHashMap<>();
