@@ -41,7 +41,7 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
 
             // both properties must be left unchanged in the operation
             return existingEntity.getAliasId().equals(requestBody.getAliasId())
-                    && existingEntity.getAliasZid().equals(requestBody.getAliasId());
+                    && existingEntity.getAliasZid().equals(requestBody.getAliasZid());
         }
 
         // alias ID must not be set when a new mirroring is to be set up
