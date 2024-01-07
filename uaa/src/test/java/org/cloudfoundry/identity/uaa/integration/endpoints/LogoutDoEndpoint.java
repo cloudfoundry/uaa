@@ -15,6 +15,10 @@ public class LogoutDoEndpoint {
         return new LoginPage(driver);
     }
 
+    static public void logout(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + urlPath);
+    }
+
     private static String buildLogoutDoUrl(String baseUrl, String redirectUrl, String clientId) {
         return baseUrl
                 + urlPath

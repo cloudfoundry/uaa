@@ -9,10 +9,19 @@ public class UserConfigValidator {
     }
 
     public static void validate(UserConfig config) throws InvalidIdentityZoneConfigurationException {
-        Set<String> allowedGroups = (config == null) ? null : config.resultingAllowedGroups();
-        if ((allowedGroups != null) && (allowedGroups.isEmpty())) {
+        if (config == null) {
+            return;
+        }
+
+        Set<String> allowedGroups = config.resultingAllowedGroups();
+        if (allowedGroups != null && allowedGroups.isEmpty()) {
             String message = "At least one group must be allowed";
             throw new InvalidIdentityZoneConfigurationException(message);
+        }
+
+        long maxUsers = config.getMaxUsers();
+        if (maxUsers < -1 || maxUsers == 0) {
+            throw new InvalidIdentityZoneConfigurationException("Maximum number of users in the zone is invalid, either use -1 or a value more than 0.");
         }
     }
 }

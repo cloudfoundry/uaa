@@ -12,16 +12,48 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.jwt.Jwt;
+import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.integration.endpoints.LogoutDoEndpoint;
+import org.cloudfoundry.identity.uaa.integration.endpoints.OauthAuthorizeEndpoint;
+import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.FaviconElement;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.HomePage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
-import org.cloudfoundry.identity.uaa.integration.endpoints.LogoutDoEndpoint;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.PasscodePage;
-import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -59,35 +91,6 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.opensaml.saml2.core.AuthnContext;
 import org.opensaml.xml.ConfigurationException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestOperations;
-import org.springframework.web.client.RestTemplate;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter.CLIENT_SECRET;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
@@ -211,8 +214,8 @@ public class SamlLoginIT {
     public void clearWebDriverOfCookies() {
         screenShootRule.setWebDriver(webDriver);
         for (String domain : Arrays.asList("localhost", "testzone1.localhost", "testzone2.localhost", "testzone3.localhost", "testzone4.localhost")) {
-            webDriver.get(baseUrl.replace("localhost", domain) + "/logout.do");
-            webDriver.manage().deleteAllCookies();
+            LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
+            new Page(webDriver).clearCookies();
         }
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
     }
@@ -263,15 +266,14 @@ public class SamlLoginIT {
         IdentityProvider provider = IntegrationTestUtils.createIdentityProvider(SAML_ORIGIN, false, baseUrl, serverRunning);
         String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
-        BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
-        String firstUrl = "/oauth/authorize?"
-                + "client_id=" + clientId
-                + "&response_type=code"
-                + "&redirect_uri=" + URLEncoder.encode(redirectUri, StandardCharsets.UTF_8);
-        webDriver.get(baseUrl + firstUrl);
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
-        assertThat(webDriver.getCurrentUrl(), containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
+        createClientAndSpecifyProvider(clientId, provider, redirectUri);
+
+        OauthAuthorizeEndpoint
+                .authorize_goesToSamlLoginPage(webDriver, baseUrl, redirectUri, clientId, "code")
+                .login_goesToCustomErrorPage(
+                        testAccounts.getUserName(),
+                        testAccounts.getPassword(),
+                        containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
     }
 
     @Test

@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -71,8 +72,7 @@ public class TokenRevocationEndpointTests {
         ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(
                 jdbcTemplate,
                 new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-                passwordEncoder
-        );
+                passwordEncoder, new IdentityZoneManagerImpl());
         JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, new TimeServiceImpl()));
         endpoint = spy(new TokenRevocationEndpoint(clientService, userProvisioning, provisioning));
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);
