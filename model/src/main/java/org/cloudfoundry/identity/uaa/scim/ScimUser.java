@@ -551,7 +551,7 @@ public class ScimUser extends ScimCore<ScimUser> implements MirroredEntity {
 
     @Override
     public String getAliasZid() {
-        return null;
+        return aliasZid;
     }
 
     public String getSalt() {
