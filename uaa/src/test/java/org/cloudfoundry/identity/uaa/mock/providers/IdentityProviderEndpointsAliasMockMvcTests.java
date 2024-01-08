@@ -285,9 +285,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final IdentityProvider<?> idp = createMirroredIdp(zone1, zone2);
 
             // delete the mirrored IdP directly in the DB -> after that, there is a dangling reference
-            final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext.getBean(JdbcIdentityProviderProvisioning.class);
-            final int rowsDeleted = identityProviderProvisioning.deleteByOrigin(idp.getOriginKey(), zone2.getId());
-            assertThat(rowsDeleted).isEqualTo(1);
+            deleteIdpViaDb(idp.getOriginKey(), zone2.getId());
 
             // update some other property on the original IdP
             idp.setName("some-new-name");
@@ -491,19 +489,26 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
     }
 
+    private void deleteIdpViaDb(final String originKey, final String zoneId) {
+        final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext
+                .getBean(JdbcIdentityProviderProvisioning.class);
+        final int rowsDeleted = identityProviderProvisioning.deleteByOrigin(originKey, zoneId);
+        assertThat(rowsDeleted).isEqualTo(1);
+    }
+
     @Nested
     class Delete {
         @Test
-        void shouldDeleteMirroredIdp_UaaToCustomZone() throws Exception {
-            shouldDeleteMirroredIdp(IdentityZone.getUaa(), customZone);
+        void shouldAlsoDeleteMirroredIdp_UaaToCustomZone() throws Exception {
+            shouldAlsoDeleteMirroredIdp(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldDeleteMirroredIdp_CustomToUaaZone() throws Exception {
-            shouldDeleteMirroredIdp(customZone, IdentityZone.getUaa());
+        void shouldAlsoDeleteMirroredIdp_CustomToUaaZone() throws Exception {
+            shouldAlsoDeleteMirroredIdp(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldDeleteMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+        private void shouldAlsoDeleteMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
             final IdentityProvider<?> idpInZone1 = createMirroredIdp(zone1, zone2);
             final String id = idpInZone1.getId();
             assertThat(id).isNotBlank();
@@ -519,17 +524,48 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(mirroredIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
 
             // delete IdP in zone 1
-            final String accessTokenForZone1 = getAccessTokenForZone(zone1.getId());
-            final MockHttpServletRequestBuilder deleteRequestBuilder = delete("/identity-providers/" + id)
-                    .header("Authorization", "Bearer " + accessTokenForZone1)
-                    .header(IdentityZoneSwitchingFilter.HEADER, zone1.getId());
-            final MvcResult response = mockMvc.perform(deleteRequestBuilder).andReturn();
-
-            assertThat(response.getResponse().getStatus()).isEqualTo(200);
+            final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
+            assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
 
             // check if IdP is no longer available in zone 2
-            final Optional<IdentityProvider<?>> mirroredIdpAfterDeletionOfOriginalIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
-            assertThat(mirroredIdpAfterDeletionOfOriginalIdp).isNotPresent();
+            assertIdpDoesNotExist(zone2, aliasId);
+        }
+
+        @Test
+        void shouldIgnoreDanglingReferenceToMirroredIdp_UaaToCustomZone() throws Exception {
+            shouldIgnoreDanglingReferenceToMirroredIdp(IdentityZone.getUaa(), customZone);
+        }
+
+        @Test
+        void shouldIgnoreDanglingReferenceToMirroredIdp_CustomToUaaZone() throws Exception {
+            shouldIgnoreDanglingReferenceToMirroredIdp(customZone, IdentityZone.getUaa());
+        }
+
+        private void shouldIgnoreDanglingReferenceToMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider<?> originalIdp = createMirroredIdp(zone1, zone2);
+
+            // create a dangling reference by deleting the mirrored IdP directly in the DB
+            deleteIdpViaDb(originalIdp.getOriginKey(), zone2.getId());
+
+            // delete the original IdP -> dangling reference should be ignored
+            final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, originalIdp.getId());
+            assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
+
+            // original IdP should no longer exist
+            assertIdpDoesNotExist(zone1, originalIdp.getId());
+        }
+
+        private MvcResult deleteIdpAndReturnResult(final IdentityZone zone, final String id) throws Exception {
+            final String accessTokenForZone1 = getAccessTokenForZone(zone.getId());
+            final MockHttpServletRequestBuilder deleteRequestBuilder = delete("/identity-providers/" + id)
+                    .header("Authorization", "Bearer " + accessTokenForZone1)
+                    .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+            return mockMvc.perform(deleteRequestBuilder).andReturn();
+        }
+
+        private void assertIdpDoesNotExist(final IdentityZone zone, final String id) throws Exception {
+            final Optional<IdentityProvider<?>> idp = readIdpFromZoneIfExists(zone.getId(), id);
+            assertThat(idp).isNotPresent();
         }
     }
 
@@ -620,7 +656,10 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
     private IdentityProvider<?> createMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
         final IdentityProvider<?> provider = buildIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
-        return createIdp(zone1, provider);
+        final IdentityProvider<?> createdOriginalIdp = createIdp(zone1, provider);
+        assertThat(createdOriginalIdp.getAliasId()).isNotBlank();
+        assertThat(createdOriginalIdp.getAliasZid()).isNotBlank();
+        return createdOriginalIdp;
     }
 
     private IdentityProvider<?> createIdp(final IdentityZone zone, final IdentityProvider<?> idp) throws Exception {
