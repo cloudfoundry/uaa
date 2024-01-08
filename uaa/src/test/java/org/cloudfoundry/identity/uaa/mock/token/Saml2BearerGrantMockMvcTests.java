@@ -32,7 +32,7 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 ".cloudfoundry-saml-login";
         final String origin = subdomain + ".cloudfoundry-saml-login";
 
-        MockMvcUtils.IdentityZoneCreationResult zone =
+        MockMvcUtils.IdentityZoneCreationResult testZone =
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                     subdomain, mockMvc, this.webApplicationContext, null,
                         IdentityZoneHolder.getCurrentZoneId());
@@ -134,19 +134,19 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 "    </md:IDPSSODescriptor>\n" +
                 "</md:EntityDescriptor>";
 
-        //create an IDP in the default zone
+        //create an IDP in the test zone
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(
-                origin, zone.getIdentityZone().getId(), idpMetadata);
+                origin, testZone.getIdentityZone().getId(), idpMetadata);
         IdentityProvider provider = new IdentityProvider();
         provider.setConfig(idpDef);
         provider.setActive(true);
-        provider.setIdentityZoneId(zone.getIdentityZone().getId());
+        provider.setIdentityZoneId(testZone.getIdentityZone().getId());
         provider.setName(origin);
         provider.setOriginKey(origin);
 
-        IdentityZoneHolder.set(zone.getIdentityZone());
+        IdentityZoneHolder.set(testZone.getIdentityZone());
         identityProviderProvisioning.create(provider,
-                zone.getIdentityZone().getId());
+                testZone.getIdentityZone().getId());
         IdentityZoneHolder.clear();
 
         String assertion = samlTestUtils.mockAssertionEncoded(
@@ -156,11 +156,11 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 "http://" + host + ":8080/uaa/oauth/token/alias/" + origin,
                 origin);
 
-        //create client in default zone
+        //create client in test zone
         String clientId = "testclient" + generator.generate();
         setUpClients(clientId, "uaa.none", "uaa.user,openid",
                 GRANT_TYPE_SAML2_BEARER + ",password,refresh_token", true,
-                TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
+                TEST_REDIRECT_URI, null, 600, testZone.getIdentityZone());
 
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
                 .with(request -> {
