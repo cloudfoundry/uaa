@@ -44,6 +44,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -156,7 +157,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenProviderHasSigningKey_throwsWhenIdTokenCannotBeValidated() throws ParseException, JOSEException {
+    public void getExternalAuthenticationDetails_whenProviderHasSigningKey_throwsWhenIdTokenCannotBeValidated() {
         expectedException.expect(InvalidTokenException.class);
         expectedException.expectMessage("Could not verify token signature.");
 
@@ -164,7 +165,7 @@ public class ExternalOAuthAuthenticationManagerTest {
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Map<String, Object> claims = map(
                 entry(EXPIRY_IN_SECONDS, 0),
                 entry(AUD, "uaa-relying-party"),
@@ -189,7 +190,7 @@ public class ExternalOAuthAuthenticationManagerTest {
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        JWSSigner signer = new KeyInfo("uaa-key", oidcProviderTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo("uaa-key", oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com")
         );
@@ -201,12 +202,12 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_doesNotThrowWhenIdTokenIsValid() throws ParseException, JOSEException {
+    public void getExternalAuthenticationDetails_doesNotThrowWhenIdTokenIsValid() {
         Map<String, Object> header = map(
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
@@ -223,13 +224,13 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() throws ParseException, JOSEException {
+    public void getExternalAuthenticationDetails_whenUaaToken_doesNotThrowWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Map<String, Object> claims = map(
                 entry(EMAIL, "someuser@google.com"),
                 entry(ISS, oidcConfig.getIssuer()),
@@ -246,13 +247,13 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() throws ParseException, JOSEException {
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsExplicitToScopeWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
             entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         List<String> roles = Arrays.asList("manager.us", "manager.eu");
         Map<String, Object> claims = map(
             entry(EMAIL, "someuser@google.com"),
@@ -277,13 +278,13 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid() throws ParseException, JOSEException {
+    public void getExternalAuthenticationDetails_whenUaaToken_mapRoleAsScopeToScopeWhenIdTokenIsValid() {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         Map<String, Object> header = map(
             entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Set<String> roles = new HashSet<>(Arrays.asList("manager.us", "manager.eu"));
         Map<String, Object> claims = map(
             entry(EMAIL, "someuser@google.com"),
@@ -317,7 +318,7 @@ public class ExternalOAuthAuthenticationManagerTest {
             entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, "uaa-key")
         );
-        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo("uaa-key", uaaIdentityZoneTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Set<String> roles = new HashSet<>(Arrays.asList("manager.us", "manager.eu", "uaa.admin", "uaa.user", "idp.write", "employee.us"));
         Map<String, Object> claims = map(
             entry(EMAIL, "someuser@google.com"),
@@ -344,12 +345,12 @@ public class ExternalOAuthAuthenticationManagerTest {
         // no exception expected, but same array content in authority list
     }
   @Test
-  public void getUser_doesNotThrowWhenIdTokenMappingIsArray() throws ParseException, JOSEException {
+  public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
     Map<String, Object> header = map(
         entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
         entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
     );
-    JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+    JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
     Map<String, Object> claims = map(
         entry("external_family_name", Collections.emptyList()),
         entry("external_given_name", Arrays.asList("bar", "bar")),
@@ -379,12 +380,12 @@ public class ExternalOAuthAuthenticationManagerTest {
   }
 
     @Test
-    public void getUser_doesThrowWhenIdTokenMappingIsAmbiguous() throws ParseException, JOSEException {
+    public void getUser_doesThrowWhenIdTokenMappingIsAmbiguous() {
         Map<String, Object> header = map(
             entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Map<String, Object> claims = map(
             entry("external_family_name", Arrays.asList("bar", "baz")),
             entry(ISS, oidcConfig.getIssuer()),
@@ -407,12 +408,12 @@ public class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getUser_doesThrowWhenIdTokenMappingIsWrongType() throws ParseException, JOSEException {
+    public void getUser_doesThrowWhenIdTokenMappingIsWrongType() {
         Map<String, Object> header = map(
             entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
             entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
         );
-        JWSSigner signer = new KeyInfo("uaa-key", oidcProviderTokenSigningKey, "http://localhost:8080/uaa").getSigner();
+        JWSSigner signer = new KeyInfo("uaa-key", oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
         Map<String, Object> entryMap = map(
             entry("external_map_name", Arrays.asList("bar", "baz"))
         );

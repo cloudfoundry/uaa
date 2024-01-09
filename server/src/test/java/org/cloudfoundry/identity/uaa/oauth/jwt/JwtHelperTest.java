@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -84,7 +85,7 @@ public class JwtHelperTest {
         key.put("value", keyValue);
         JsonWebKey jsonWebKey = new JsonWebKey(key);
         SignatureVerifier cs = new SignatureVerifier(jsonWebKey);
-        KeyInfo hmacKeyInfo = new KeyInfo(kid, keyValue, "http://localhost:8080/uaa");
+        KeyInfo hmacKeyInfo = new KeyInfo(kid, keyValue, DEFAULT_UAA_URL);
         Jwt legacySignature = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", "single")), hmacKeyInfo);
         assertNotNull(legacySignature);
         Jwt legacyVerify = JwtHelper.decode(legacySignature.getEncoded());

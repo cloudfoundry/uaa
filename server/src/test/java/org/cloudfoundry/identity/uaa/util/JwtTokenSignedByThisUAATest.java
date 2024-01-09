@@ -81,6 +81,7 @@ import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildId
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildRefreshTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -102,7 +103,7 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 public class JwtTokenSignedByThisUAATest {
     public static final String CLIENT_ID = "app";
     public static final String USER_ID = "a7f07bf6-e720-4652-8999-e980189cef54";
-    private final SignatureVerifier verifier = new KeyInfo("some-key-id", macSigningKeySecret, "http://localhost:8080/uaa", "HS256", null).getVerifier();
+    private final SignatureVerifier verifier = new KeyInfo("some-key-id", macSigningKeySecret, DEFAULT_UAA_URL, "HS256", null).getVerifier();
 
     private final Instant oneSecondAfterTheTokenExpires = Instant.ofEpochSecond(1458997132 + 1);
     private final Instant oneSecondBeforeTheTokenExpires = Instant.ofEpochSecond(1458997132 - 1);

@@ -29,6 +29,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -88,7 +89,7 @@ public class CommonSignerTest {
     @Test
     public void test_mac_signing() throws JOSEException, ParseException {
         final String jwtFromIo = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJuYW1lIjoiSm9obiBEb2UiLCJzdWIiOiIxMjM0NTY3ODkwIn0.hUTNPTwAP4RQFr_d_GOwXrVOJsX1-PWAvHSsg-CSQPk";
-        CommonSigner signer = new CommonSigner(null, macSigningKey, "http://localhost/uaa");
+        CommonSigner signer = new CommonSigner(null, macSigningKey, DEFAULT_UAA_URL);
         assertEquals("HS256", signer.algorithm());
         assertNull(signer.keyId());
         SignedJWT inJwt = SignedJWT.parse(jwtFromIo);

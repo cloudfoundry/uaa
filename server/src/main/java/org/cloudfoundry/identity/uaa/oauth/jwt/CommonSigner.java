@@ -25,7 +25,10 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
+
 public class CommonSigner implements Signer {
+
     private final JWSSigner delegate;
     private final String algorithm;
     private final String keyId;
@@ -35,7 +38,7 @@ public class CommonSigner implements Signer {
         if (signingKey == null) {
             throw new IllegalArgumentException(signingKey);
         }
-        KeyInfo keyInfo = new KeyInfo(keyId, signingKey, Optional.ofNullable(keyURL).orElse("http://localhost:8080/uaa"));
+        KeyInfo keyInfo = new KeyInfo(keyId, signingKey, Optional.ofNullable(keyURL).orElse(DEFAULT_UAA_URL));
         this.delegate = keyInfo.getSigner();
         this.keyId = keyId;
         this.keyURL = keyURL;

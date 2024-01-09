@@ -93,6 +93,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -190,7 +191,7 @@ class ExternalOAuthAuthenticationManagerIT {
                 entry("kid", keyName),
                 entry("typ", "JWT")
         );
-        signer = new KeyInfo(keyName, PRIVATE_KEY, "http://localhost:8080/uaa").getSigner();
+        signer = new KeyInfo(keyName, PRIVATE_KEY, DEFAULT_UAA_URL).getSigner();
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(keyName, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);

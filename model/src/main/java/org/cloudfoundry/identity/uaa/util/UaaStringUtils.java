@@ -49,6 +49,8 @@ public final class UaaStringUtils {
 
     public static final String EMPTY_STRING = "";
 
+    public static final String DEFAULT_UAA_URL = "http://localhost:8080/uaa";
+
     private UaaStringUtils() {
     }
 

@@ -40,6 +40,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest.CERTIFICATE_1;
 import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest.SIGNING_KEY_1;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -169,14 +170,14 @@ class TokenKeyEndpointTests {
         VerificationKeyResponse key3Response = keysMap.get("RsaKey3");
 
         byte[] bytes = "Text for testing of private/public key match".getBytes();
-        JWSSigner rsaSigner = new KeyInfo("RsaKey1", SIGNING_KEY_1, "http://localhost:8080/uaa").getSigner();
-        SignatureVerifier rsaVerifier = new KeyInfo("RsaKey1", SIGNING_KEY_1, "http://localhost:8080/uaa").getVerifier();
+        JWSSigner rsaSigner = new KeyInfo("RsaKey1", SIGNING_KEY_1, DEFAULT_UAA_URL).getSigner();
+        SignatureVerifier rsaVerifier = new KeyInfo("RsaKey1", SIGNING_KEY_1, DEFAULT_UAA_URL).getVerifier();
 
-        rsaSigner = new KeyInfo("RsaKey2", SIGNING_KEY_2, "http://localhost:8080/uaa").getSigner();
-        rsaVerifier = new KeyInfo("RsaKey2", SIGNING_KEY_2, "http://localhost:8080/uaa").getVerifier();
+        rsaSigner = new KeyInfo("RsaKey2", SIGNING_KEY_2, DEFAULT_UAA_URL).getSigner();
+        rsaVerifier = new KeyInfo("RsaKey2", SIGNING_KEY_2, DEFAULT_UAA_URL).getVerifier();
 
-        rsaSigner = new KeyInfo("RsaKey3", SIGNING_KEY_3, "http://localhost:8080/uaa").getSigner();
-        rsaVerifier = new KeyInfo("RsaKey3", SIGNING_KEY_3, "http://localhost:8080/uaa").getVerifier();
+        rsaSigner = new KeyInfo("RsaKey3", SIGNING_KEY_3, DEFAULT_UAA_URL).getSigner();
+        rsaVerifier = new KeyInfo("RsaKey3", SIGNING_KEY_3, DEFAULT_UAA_URL).getVerifier();
 
         //ensure that none of the keys are padded
         keys.forEach(

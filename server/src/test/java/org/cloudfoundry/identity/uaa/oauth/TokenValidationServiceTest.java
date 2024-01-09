@@ -28,6 +28,7 @@ import static org.cloudfoundry.identity.uaa.config.IdentityZoneConfigurationBoot
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +60,7 @@ public class TokenValidationServiceTest {
                 entry(CID, clientId),
                 entry(SCOPE, Lists.newArrayList("foo.bar"))
         );
-        signer = new KeyInfo(null, PRIVATE_KEY, "http://localhost:8080/uaa").getSigner();
+        signer = new KeyInfo(null, PRIVATE_KEY, DEFAULT_UAA_URL).getSigner();
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("key1", PRIVATE_KEY));
 
         userDatabase = mock(UaaUserDatabase.class);
@@ -76,7 +77,7 @@ public class TokenValidationServiceTest {
                 tokenEndpointBuilder,
                 userDatabase,
                 mockMultitenantClientServices,
-                new KeyInfoService("http://localhost:8080/uaa")
+                new KeyInfoService(DEFAULT_UAA_URL)
         );
     }
 
