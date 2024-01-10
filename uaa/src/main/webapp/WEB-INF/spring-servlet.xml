@@ -385,7 +385,6 @@
     </bean>
 
     <import resource="spring/saml-providers.xml"/>
-    <import resource="spring/saml-idp.xml"/>
     <import resource="classpath:spring/login-ui.xml"/>
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint"/>

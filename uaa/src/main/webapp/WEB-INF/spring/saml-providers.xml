@@ -299,6 +299,8 @@
         <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
     </bean>
 
+    <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
+
     <beans profile="fileMetadata">
         <bean id="metaDataUrl" class="java.lang.String">
             <constructor-arg value="${login.idpMetadataFile:null}"/>
