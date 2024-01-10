@@ -13,21 +13,46 @@
  */
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import static org.springframework.web.bind.annotation.RequestMethod.PUT;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -51,35 +76,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.Date;
-import java.util.List;
-
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
-import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
-import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.PATCH;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import static org.springframework.web.bind.annotation.RequestMethod.PUT;
-
 @RequestMapping("/identity-providers")
 @RestController
 public class IdentityProviderEndpoints implements ApplicationEventPublisherAware {
 
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
+
+    /**
+     * The IdP types for which mirroring via 'alias_id' and 'alias_zid' is supported.
+     */
+    private static final Set<String> IDP_TYPES_MIRRORING_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
@@ -129,7 +135,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             logger.debug("IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"] - Configuration validation error.", e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
-        if (OriginKeys.SAML.equals(body.getType())) {
+        if (SAML.equals(body.getType())) {
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
@@ -219,7 +225,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
-        if (OriginKeys.SAML.equals(body.getType())) {
+        if (SAML.equals(body.getType())) {
             body.setOriginKey(existing.getOriginKey()); //we do not allow origin to change for a SAML provider, since that can cause clashes
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
@@ -263,30 +269,12 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             logger.debug("IDP does not have an existing PasswordPolicy. Operation not supported");
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
+        uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(new Date(System.currentTimeMillis()));
+        identityProviderProvisioning.update(existing, zoneId);
+        logger.info("PasswordChangeRequired property set for Identity Provider: " + existing.getId());
 
-        final Date passwordNewerThanTimestamp = new Date(System.currentTimeMillis());
-        uaaIdentityProviderDefinition.getPasswordPolicy().setPasswordNewerThan(passwordNewerThanTimestamp);
-
-        // update the property in the mirrored IdP if present
-        final IdentityProvider<?> mirroredIdp;
-        if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
-            mirroredIdp = identityProviderProvisioning.retrieve(existing.getAliasId(), existing.getAliasZid());
-            final UaaIdentityProviderDefinition definitionMirroredIdp = ObjectUtils.castInstance(
-                    mirroredIdp.getConfig(),
-                    UaaIdentityProviderDefinition.class
-            );
-            definitionMirroredIdp.getPasswordPolicy().setPasswordNewerThan(passwordNewerThanTimestamp);
-        } else {
-            mirroredIdp = null;
-        }
-
-        // update both IdPs in a transaction
-        transactionTemplate.executeWithoutResult(txStatus -> {
-            identityProviderProvisioning.update(existing, zoneId);
-            if (mirroredIdp != null) {
-                identityProviderProvisioning.update(mirroredIdp, mirroredIdp.getIdentityZoneId());
-            }
-        });
+        /* since this operation is only allowed for IdPs of type "UAA" and mirroring is not supported for "UAA" IdPs,
+         * we do not need to propagate the changes to a mirrored IdP here. */
 
         logger.info("PasswordChangeRequired property set for Identity Provider: {}", existing.getId());
         return  new ResponseEntity<>(body, OK);
@@ -375,6 +363,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         // check if mirroring is necessary
         if (!hasText(requestBody.getAliasZid())) {
             return true;
+        }
+
+        // check if mirroring is supported for this IdP type
+        if (!IDP_TYPES_MIRRORING_SUPPORTED.contains(requestBody.getType())) {
+            return false;
         }
 
         // the referenced zone must exist

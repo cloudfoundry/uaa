@@ -5,10 +5,11 @@ import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -24,11 +25,10 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -104,7 +104,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
         private void shouldAccept_MirrorIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
             // build IdP in zone1 with aliasZid set to zone2
-            final IdentityProvider<?> provider = buildIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
+            final IdentityProvider<?> provider = buildSamlIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
 
             // create IdP in zone1
             final IdentityProvider<?> originalIdp = createIdp(zone1, provider);
@@ -134,27 +134,42 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_IdzAndAliasZidAreEqual(final IdentityZone zone) throws Exception {
-            final IdentityProvider<?> idp = buildIdpWithAliasProperties(zone.getId(), null, zone.getId());
+            final IdentityProvider<?> idp = buildSamlIdpWithAliasProperties(zone.getId(), null, zone.getId());
             shouldRejectCreation(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        @Test
+        void shouldReject_MirroringNotSupportedForIdpType_UaaToCustomZone() throws Exception {
+            shouldReject_MirroringNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
+        }
+
+        @Test
+        void shouldReject_MirroringNotSupportedForIdpType_CustomToUaaZone() throws Exception {
+            shouldReject_MirroringNotSupportedForIdpType(customZone, IdentityZone.getUaa());
+        }
+
+        private void shouldReject_MirroringNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
+            shouldRejectCreation(zone1, uaaIdp, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         @Test
         void shouldReject_NeitherIdzNorAliasZidIsUaa() throws Exception {
             final IdentityZone otherCustomZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
-            final IdentityProvider<?> idp = buildIdpWithAliasProperties(customZone.getId(), null, otherCustomZone.getId());
+            final IdentityProvider<?> idp = buildSamlIdpWithAliasProperties(customZone.getId(), null, otherCustomZone.getId());
             shouldRejectCreation(customZone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         @Test
         void shouldReject_AliasIdIsSet() throws Exception {
             final String aliasId = UUID.randomUUID().toString();
-            final IdentityProvider<?> idp = buildIdpWithAliasProperties(customZone.getId(), aliasId, IdentityZone.getUaaZoneId());
+            final IdentityProvider<?> idp = buildSamlIdpWithAliasProperties(customZone.getId(), aliasId, IdentityZone.getUaaZoneId());
             shouldRejectCreation(customZone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         @Test
         void shouldReject_IdzReferencedInAliasZidDoesNotExist() throws Exception {
-            final IdentityProvider<?> provider = buildIdpWithAliasProperties(
+            final IdentityProvider<?> provider = buildSamlIdpWithAliasProperties(
                     IdentityZone.getUaaZoneId(),
                     null,
                     UUID.randomUUID().toString() // does not exist
@@ -173,19 +188,17 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_IdpWithOriginAlreadyExistsInAliasZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final String originKey = RANDOM_STRING_GENERATOR.generate();
-
             // create IdP with origin key in custom zone
             final IdentityProvider<?> createdIdp1 = createIdp(
                     zone1,
-                    buildIdpWithAliasProperties(zone1.getId(), null, null, originKey)
+                    buildSamlIdpWithAliasProperties(zone1.getId(), null, null)
             );
             assertThat(createdIdp1).isNotNull();
 
             // then, create an IdP in the "uaa" zone with the same origin key that should be mirrored to the custom zone
             shouldRejectCreation(
                     zone2,
-                    buildIdpWithAliasProperties(zone2.getId(), null, zone1.getId(), originKey),
+                    buildIdpWithAliasProperties(zone2.getId(), null, zone1.getId(), createdIdp1.getOriginKey(), SAML),
                     HttpStatus.CONFLICT
             );
         }
@@ -219,7 +232,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             // create regular idp without alias properties in UAA zone
             final IdentityProvider<?> existingIdpWithoutAlias = createIdp(
                     zone1,
-                    buildIdpWithAliasProperties(zone1.getId(), null, null)
+                    buildSamlIdpWithAliasProperties(zone1.getId(), null, null)
             );
             assertThat(existingIdpWithoutAlias).isNotNull();
             assertThat(existingIdpWithoutAlias.getId()).isNotBlank();
@@ -344,11 +357,31 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_OnlyAliasIdSet(final IdentityZone zone) throws Exception {
-            final IdentityProvider<?> idp = buildIdpWithAliasProperties(zone.getId(), null, null);
+            final IdentityProvider<?> idp = buildSamlIdpWithAliasProperties(zone.getId(), null, null);
             final IdentityProvider<?> createdProvider = createIdp(zone, idp);
             assertThat(createdProvider.getAliasZid()).isBlank();
             createdProvider.setAliasId(UUID.randomUUID().toString());
             shouldRejectUpdate(zone, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
+        }
+
+        @Test
+        void shouldReject_MirroringNotSupportedForIdpType_UaaToCustomZone() throws Exception {
+            shouldReject_MirroringNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
+        }
+
+        @Test
+        void shouldReject_MirroringNotSupportedForIdpType_CustomZone() throws Exception {
+            shouldReject_MirroringNotSupportedForIdpType(customZone, IdentityZone.getUaa());
+        }
+
+        private void shouldReject_MirroringNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, null);
+            final IdentityProvider<?> createdProvider = createIdp(zone1, uaaIdp);
+            assertThat(createdProvider.getAliasZid()).isBlank();
+
+            // try to mirror the IdP -> should fail because of the IdP's type
+            createdProvider.setAliasZid(zone2.getId());
+            shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         @Test
@@ -362,15 +395,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final String originKey = RANDOM_STRING_GENERATOR.generate();
-
             // create IdP with origin key in zone 2
-            final IdentityProvider<?> existingIdpInZone2 = buildIdpWithAliasProperties(
-                    zone2.getId(),
-                    null,
-                    null,
-                    originKey
-            );
+            final IdentityProvider<?> existingIdpInZone2 = buildSamlIdpWithAliasProperties(zone2.getId(), null, null);
             createIdp(zone2, existingIdpInZone2);
 
             // create IdP with same origin key in zone 1
@@ -378,7 +404,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     zone1.getId(),
                     null,
                     null,
-                    originKey // same origin key
+                    existingIdpInZone2.getOriginKey(), // same origin key
+                    SAML
             );
             final IdentityProvider<?> providerInZone1 = createIdp(zone1, idp);
 
@@ -391,7 +418,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         void shouldReject_IdpInCustomZoneMirroredToOtherCustomZone() throws Exception {
             final IdentityProvider<?> idpInCustomZone = createIdp(
                     customZone,
-                    buildIdpWithAliasProperties(customZone.getId(), null, null)
+                    buildSamlIdpWithAliasProperties(customZone.getId(), null, null)
             );
 
             // try to mirror it to another custom zone
@@ -412,7 +439,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         private void shouldReject_AliasZidSetToSameZone(final IdentityZone zone) throws Exception {
             final IdentityProvider<?> idp = createIdp(
                     zone,
-                    buildIdpWithAliasProperties(zone.getId(), null, null)
+                    buildSamlIdpWithAliasProperties(zone.getId(), null, null)
             );
             idp.setAliasZid(zone.getId());
             shouldRejectUpdate(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -570,70 +597,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
     }
 
-    @Nested
-    class UpdateStatus {
-        @Test
-        void shouldAccept_MirroredIdpShouldAlsoBeUpdated_UaaToCustomZone() throws Exception {
-            shouldAccept_MirroredIdpShouldAlsoBeUpdated(IdentityZone.getUaa(), customZone);
-        }
-
-        @Test
-        void shouldAccept_MirroredIdpShouldAlsoBeUpdated_CustomToUaaZone() throws Exception {
-            shouldAccept_MirroredIdpShouldAlsoBeUpdated(customZone, IdentityZone.getUaa());
-        }
-
-        private void shouldAccept_MirroredIdpShouldAlsoBeUpdated(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            // create an IdP of type UAA
-            final IdentityProvider<UaaIdentityProviderDefinition> idp = new IdentityProvider<>();
-            idp.setType(OriginKeys.UAA);
-            idp.setName("some-name");
-            idp.setOriginKey(RANDOM_STRING_GENERATOR.generate());
-            final PasswordPolicy passwordPolicy = new PasswordPolicy();
-            passwordPolicy.setExpirePasswordInMonths(1);
-            passwordPolicy.setMaxLength(100);
-            passwordPolicy.setMinLength(10);
-            passwordPolicy.setRequireDigit(1);
-            passwordPolicy.setRequireUpperCaseCharacter(1);
-            passwordPolicy.setRequireLowerCaseCharacter(1);
-            passwordPolicy.setRequireSpecialCharacter(1);
-            passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
-            idp.setConfig(new UaaIdentityProviderDefinition(passwordPolicy, null));
-            idp.setAliasZid(zone2.getId());
-            final String accessTokenForZone1 = getAccessTokenForZone(zone1.getId());
-            final IdentityProvider<?> createdIdp = createIdp(zone1, idp);
-
-            final Date timestampBeforeUpdate = getPasswordNewerThanTimestamp(createdIdp);
-            assertThat(timestampBeforeUpdate).isNotNull();
-
-            final IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
-            identityProviderStatus.setRequirePasswordChange(true);
-            final MockHttpServletRequestBuilder updateRequestBuilder = patch("/identity-providers/" + createdIdp.getId() + "/status")
-                    .header("Authorization", "Bearer " + accessTokenForZone1)
-                    .header(IdentityZoneSwitchingFilter.HEADER, zone1.getId())
-                    .contentType(APPLICATION_JSON)
-                    .content(JsonUtils.writeValueAsString(identityProviderStatus));
-            mockMvc.perform(updateRequestBuilder).andExpect(status().isOk()).andReturn();
-
-            // check if timestamp is updated in zone 1
-            final String id1 = createdIdp.getId();
-            final Optional<IdentityProvider<?>> idpInZone1 = readIdpFromZoneIfExists(zone1.getId(), id1);
-            assertThat(idpInZone1).isPresent();
-            final Date timestampAfterUpdate = getPasswordNewerThanTimestamp(idpInZone1.get());
-            assertThat(timestampAfterUpdate).isAfter(timestampBeforeUpdate);
-
-            // check if timestamp is updated in zone 2
-            final String id = createdIdp.getAliasId();
-            final Optional<IdentityProvider<?>> idpInZone2 = readIdpFromZoneIfExists(zone2.getId(), id);
-            assertThat(idpInZone2).isPresent();
-            final Date timestampAfterUpdateMirroredIdp = getPasswordNewerThanTimestamp(idpInZone2.get());
-            assertThat(timestampAfterUpdateMirroredIdp).isEqualTo(timestampAfterUpdate);
-        }
-
-        private Date getPasswordNewerThanTimestamp(final IdentityProvider<?> idp) {
-            return ((UaaIdentityProviderDefinition) idp.getConfig()).getPasswordPolicy().getPasswordNewerThan();
-        }
-    }
-
     private void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {
         assertThat(idp).isNotNull();
         assertThat(referencedIdp).isNotNull();
@@ -656,7 +619,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     }
 
     private IdentityProvider<?> createMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-        final IdentityProvider<?> provider = buildIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
+        final IdentityProvider<?> provider = buildSamlIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
         final IdentityProvider<?> createdOriginalIdp = createIdp(zone1, provider);
         assertThat(createdOriginalIdp.getAliasId()).isNotBlank();
         assertThat(createdOriginalIdp.getAliasZid()).isNotBlank();
@@ -756,32 +719,76 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         return Stream.of(scopes).map(scope -> String.format("zones.%s.%s", zoneId, scope)).collect(toList());
     }
 
-    private static IdentityProvider<?> buildIdpWithAliasProperties(final String idzId, final String aliasId, final String aliasZid) {
+    private static IdentityProvider<?> buildSamlIdpWithAliasProperties(
+            final String idzId,
+            final String aliasId,
+            final String aliasZid
+    ) {
         final String originKey = RANDOM_STRING_GENERATOR.generate();
-        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey);
+        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, SAML);
     }
 
-    private static IdentityProvider<?> buildIdpWithAliasProperties(final String idzId, final String aliasId, final String aliasZid, final String originKey) {
-        final String metadata = String.format(
-                BootstrapSamlIdentityProviderDataTests.xmlWithoutID,
-                "http://localhost:9999/metadata/" + originKey
-        );
-        final SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(metadata)
-                .setLinkText("Test SAML Provider");
-        samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
-        samlDefinition.setExternalGroupsWhitelist(singletonList("value"));
-        samlDefinition.setAttributeMappings(singletonMap("given_name", "first_name"));
+    private IdentityProvider<?> buildUaaIdpWithAliasProperties(
+            final String idzId,
+            final String aliasId,
+            final String aliasZid
+    ) {
+        final String originKey = RANDOM_STRING_GENERATOR.generate();
+        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, UAA);
+    }
 
-        final IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
-        provider.setActive(true);
-        provider.setName(originKey);
+    private static IdentityProvider<?> buildIdpWithAliasProperties(
+            final String idzId,
+            final String aliasId,
+            final String aliasZid,
+            final String originKey,
+            final String type
+    ) {
+        final AbstractIdentityProviderDefinition definition = buildIdpDefinition(originKey, type);
+
+        final IdentityProvider<AbstractIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(idzId);
-        provider.setType(OriginKeys.SAML);
-        provider.setOriginKey(originKey);
-        provider.setConfig(samlDefinition);
         provider.setAliasId(aliasId);
         provider.setAliasZid(aliasZid);
+        provider.setName(originKey);
+        provider.setOriginKey(originKey);
+        provider.setType(type);
+        provider.setConfig(definition);
+        provider.setActive(true);
         return provider;
+    }
+
+    private static AbstractIdentityProviderDefinition buildIdpDefinition(final String originKey, final String type) {
+        switch (type) {
+            case SAML:
+                final String metadata = String.format(
+                        BootstrapSamlIdentityProviderDataTests.xmlWithoutID,
+                        "http://localhost:9999/metadata/" + originKey
+                );
+                final SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition()
+                        .setMetaDataLocation(metadata)
+                        .setLinkText("Test SAML Provider");
+                samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
+                samlDefinition.setExternalGroupsWhitelist(singletonList("value"));
+                samlDefinition.setAttributeMappings(singletonMap("given_name", "first_name"));
+
+                return samlDefinition;
+            case UAA:
+                final PasswordPolicy passwordPolicy = new PasswordPolicy();
+                passwordPolicy.setExpirePasswordInMonths(1);
+                passwordPolicy.setMaxLength(100);
+                passwordPolicy.setMinLength(10);
+                passwordPolicy.setRequireDigit(1);
+                passwordPolicy.setRequireUpperCaseCharacter(1);
+                passwordPolicy.setRequireLowerCaseCharacter(1);
+                passwordPolicy.setRequireSpecialCharacter(1);
+                passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
+                final UaaIdentityProviderDefinition uaaDefinition = new UaaIdentityProviderDefinition();
+                uaaDefinition.setPasswordPolicy(new PasswordPolicy());
+
+                return uaaDefinition;
+            default:
+                throw new IllegalArgumentException("IdP type not supported.");
+        }
     }
 }
