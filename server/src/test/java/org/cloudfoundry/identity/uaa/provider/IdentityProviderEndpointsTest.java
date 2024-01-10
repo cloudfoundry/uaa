@@ -56,7 +56,6 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.PlatformTransactionManager;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
@@ -70,9 +69,6 @@ class IdentityProviderEndpointsTest {
 
     @Mock
     private IdentityZoneManager mockIdentityZoneManager;
-
-    @Mock
-    private PlatformTransactionManager mockPlatformTransactionManager;
 
     @Mock
     private IdentityZoneProvisioning mockIdentityZoneProvisioning;

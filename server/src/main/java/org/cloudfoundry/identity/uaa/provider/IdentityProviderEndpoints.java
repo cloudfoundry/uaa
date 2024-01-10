@@ -66,9 +66,7 @@ import org.springframework.security.authentication.InternalAuthenticationService
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -95,7 +93,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     private final IdentityProviderConfigValidator configValidator;
     private final IdentityZoneManager identityZoneManager;
     private final IdentityZoneProvisioning identityZoneProvisioning;
-    private final TransactionTemplate transactionTemplate;
 
     private ApplicationEventPublisher publisher = null;
 
@@ -111,8 +108,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator,
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
-            final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
-            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager
+            final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -121,10 +117,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         this.configValidator = configValidator;
         this.identityZoneManager = identityZoneManager;
         this.identityZoneProvisioning = identityZoneProvisioning;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
     @RequestMapping(method = POST)
+    @Transactional
     public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException{
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
@@ -148,15 +144,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
 
         // persist IdP and mirror if necessary
-        final IdentityProvider<?> createdIdp;
+        final IdentityProvider<?> createdIdpAfterMirrorHandling;
         try {
-            createdIdp = transactionTemplate.execute(txStatus -> {
-                final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
-                createdOriginalIdp.setSerializeConfigRaw(rawConfig);
-                redactSensitiveData(createdOriginalIdp);
-
-                return ensureConsistencyOfMirroredIdp(createdOriginalIdp);
-            });
+            final IdentityProvider<?> createdIdp = identityProviderProvisioning.create(body, zoneId);
+            createdIdpAfterMirrorHandling = ensureConsistencyOfMirroredIdp(createdIdp);
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (final Exception e) {
@@ -164,7 +155,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
 
-        return new ResponseEntity<>(createdIdp, CREATED);
+        createdIdpAfterMirrorHandling.setSerializeConfigRaw(rawConfig);
+        redactSensitiveData(createdIdpAfterMirrorHandling);
+        return new ResponseEntity<>(createdIdpAfterMirrorHandling, CREATED);
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
@@ -202,6 +195,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @RequestMapping(value = "{id}", method = PUT)
+    @Transactional
     public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
@@ -234,11 +228,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        final IdentityProvider<?> updatedIdp = transactionTemplate.execute(txStatus -> {
-            final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
-            return ensureConsistencyOfMirroredIdp(updatedOriginalIdp);
-        });
-        if (updatedIdp == null) {
+        final IdentityProvider<?> updatedIdp = identityProviderProvisioning.update(body, zoneId);
+
+        // propagate the change to the mirrored IdP if necessary
+        final IdentityProvider<?> updatedIdpAfterMirrorHandling = ensureConsistencyOfMirroredIdp(updatedIdp);
+        if (updatedIdpAfterMirrorHandling == null) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction updating IdP and mirrored IdP was not successful, but no exception was thrown.",
                     getCleanedUserControlString(body.getOriginKey()),
@@ -246,10 +240,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             );
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
-        updatedIdp.setSerializeConfigRaw(rawConfig);
-        redactSensitiveData(updatedIdp);
+        updatedIdpAfterMirrorHandling.setSerializeConfigRaw(rawConfig);
+        redactSensitiveData(updatedIdpAfterMirrorHandling);
 
-        return new ResponseEntity<>(updatedIdp, OK);
+        return new ResponseEntity<>(updatedIdpAfterMirrorHandling, OK);
     }
 
     @RequestMapping (value = "{id}/status", method = PATCH)
