@@ -100,6 +100,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -110,6 +111,7 @@ import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -851,7 +853,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testSamlLogin_Custom_User_Attributes_In_ID_Token() throws Exception {
+    public void testSamlLogin_Custom_User_Attributes_And_Roles_In_ID_Token() throws Exception {
 
         final String COST_CENTER = "costCenter";
         final String COST_CENTERS = "costCenters";
@@ -894,10 +896,15 @@ public class SamlLoginIT {
                                                            email,
                                                            "secr3T");
 
+        // create a SAML external IDP
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
         samlIdentityProviderDefinition.setStoreCustomAttributes(true);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
+          // External groups will only appear as roles if they are whitelisted
+        samlIdentityProviderDefinition.setExternalGroupsWhitelist(List.of("*"));
+          // External groups will only be found when there is a configured attribute name for them
+        samlIdentityProviderDefinition.addAttributeMapping("external_groups", Collections.singletonList("groups"));
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
@@ -912,8 +919,9 @@ public class SamlLoginIT {
 
         List<String> idps = Collections.singletonList(provider.getOriginKey());
 
+        // set up a test client
         String adminClientInZone = new RandomValueStringGenerator().generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
+        BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -954,6 +962,15 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(zoneUrl + "/logout.do");
 
+        //validate access token
+        String accessToken = (String) authCodeTokenResponse.get(ACCESS_TOKEN);
+        Jwt accessTokenJwt = JwtHelper.decode(accessToken);
+        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        });
+        List<String> accessTokenScopes = (List<String>) accessTokenClaims.get(ClaimConstants.SCOPE);
+          // Check that the user had the roles scope, which is a pre-requisite for getting roles returned in the id_token
+        assertThat(accessTokenScopes, hasItem(ClaimConstants.ROLES));
+
         //validate that we have an ID token, and that it contains costCenter and manager values
 
         String idToken = authCodeTokenResponse.get("id_token");
@@ -968,11 +985,12 @@ public class SamlLoginIT {
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
-        assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
-        Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
-        assertNotNull("acr claim should contain values attribute", acr.get("values"));
-        assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+        //validate that ID token contains the correct roles
+        String[] expectedRoles = new String[]{"saml.user", "saml.admin"};
+        List<String> idTokenRoles = (List<String>) claims.get(ClaimConstants.ROLES);
+        assertThat(idTokenRoles, containsInAnyOrder(expectedRoles));
 
+        //validate user info
         UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 
         Map<String,List<String>> userAttributeMap = userInfo.getUserAttributes();
@@ -981,6 +999,9 @@ public class SamlLoginIT {
         assertThat(costCenterData, containsInAnyOrder(DENVER_CO));
         assertThat(managerData, containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
+          // user info should contain the user's roles
+        List<String> userInfoRoles = (List<String>) userInfo.getRoles();
+        assertThat(userInfoRoles, containsInAnyOrder(expectedRoles));
     }
 
     @Test
