@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -37,6 +36,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -61,6 +61,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
  */
 @DefaultTestContext
 class IdentityProviderEndpointsAliasMockMvcTests {
+    private static final AlphanumericRandomValueStringGenerator RANDOM_STRING_GENERATOR = new AlphanumericRandomValueStringGenerator(8);
 
     @Autowired
     private MockMvc mockMvc;
@@ -172,7 +173,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_IdpWithOriginAlreadyExistsInAliasZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final String originKey = RandomStringUtils.randomAlphabetic(10);
+            final String originKey = RANDOM_STRING_GENERATOR.generate();
 
             // create IdP with origin key in custom zone
             final IdentityProvider<?> createdIdp1 = createIdp(
@@ -361,7 +362,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final String originKey = RandomStringUtils.randomAlphabetic(10);
+            final String originKey = RANDOM_STRING_GENERATOR.generate();
 
             // create IdP with origin key in zone 2
             final IdentityProvider<?> existingIdpInZone2 = buildIdpWithAliasProperties(
@@ -586,7 +587,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final IdentityProvider<UaaIdentityProviderDefinition> idp = new IdentityProvider<>();
             idp.setType(OriginKeys.UAA);
             idp.setName("some-name");
-            idp.setOriginKey(RandomStringUtils.randomAlphabetic(8));
+            idp.setOriginKey(RANDOM_STRING_GENERATOR.generate());
             final PasswordPolicy passwordPolicy = new PasswordPolicy();
             passwordPolicy.setExpirePasswordInMonths(1);
             passwordPolicy.setMaxLength(100);
@@ -756,7 +757,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     }
 
     private static IdentityProvider<?> buildIdpWithAliasProperties(final String idzId, final String aliasId, final String aliasZid) {
-        final String originKey = RandomStringUtils.randomAlphabetic(8);
+        final String originKey = RANDOM_STRING_GENERATOR.generate();
         return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey);
     }
 
