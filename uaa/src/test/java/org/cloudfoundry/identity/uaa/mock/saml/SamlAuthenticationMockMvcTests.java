@@ -208,23 +208,6 @@ class SamlAuthenticationMockMvcTests {
 
     @Disabled("The test depends on IDP endpoints, which was removed.")
     @Test
-    void validateCustomEmailAttribute(
-//            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
-    ) throws Exception {
-        createIdp();
-
-        samlServiceProvider.getConfig().getAttributeMappings().put("email", "primary-email");
-//        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
-
-        String samlResponse = performIdpAuthentication();
-        String xml = extractAssertion(samlResponse, true);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String emails = (String) xpath.evaluate("//*[local-name()='Attribute'][@*[local-name()='Name' and .='primary-email']]", new InputSource(new StringReader(xml)), XPathConstants.STRING);
-        assertThat(emails, equalTo("test@test.org"));
-    }
-
-    @Disabled("The test depends on IDP endpoints, which was removed.")
-    @Test
     void spIsAuthenticated() throws Exception {
         createIdp();
 
