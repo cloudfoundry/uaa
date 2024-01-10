@@ -783,10 +783,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 passwordPolicy.setRequireLowerCaseCharacter(1);
                 passwordPolicy.setRequireSpecialCharacter(1);
                 passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
-                final UaaIdentityProviderDefinition uaaDefinition = new UaaIdentityProviderDefinition();
-                uaaDefinition.setPasswordPolicy(new PasswordPolicy());
-
-                return uaaDefinition;
+                return new UaaIdentityProviderDefinition(passwordPolicy, null);
             default:
                 throw new IllegalArgumentException("IdP type not supported.");
         }
