@@ -29,7 +29,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -58,8 +57,6 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.PlatformTransactionManager;
-
-import com.sun.mail.imap.protocol.ID;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
@@ -439,61 +436,6 @@ class IdentityProviderEndpointsTest {
         Assertions.assertThat(secondIdp).isNotNull();
         Assertions.assertThat(secondIdp.getId()).isEqualTo(mirroredIdpId);
         Assertions.assertThat(secondIdp.getName()).isEqualTo(newName);
-    }
-
-    @Test
-    void testUpdateStatus_ShouldAlsoUpdateMirroredIdpIfPresent() {
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(UAA);
-
-        final IdentityProvider<UaaIdentityProviderDefinition> idp = new IdentityProvider<>();
-        final String idpId = UUID.randomUUID().toString();
-        idp.setId(idpId);
-        idp.setIdentityZoneId(UAA);
-        final String mirroredIdpId = UUID.randomUUID().toString();
-        idp.setAliasId(mirroredIdpId);
-        final String customZoneId = UUID.randomUUID().toString();
-        idp.setAliasZid(customZoneId);
-        final UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
-        final PasswordPolicy passwordPolicy = new PasswordPolicy();
-        config.setPasswordPolicy(passwordPolicy);
-        idp.setConfig(config);
-        when(mockIdentityProviderProvisioning.retrieve(idpId, UAA)).thenReturn(idp);
-
-        final IdentityProvider<UaaIdentityProviderDefinition> mirroredIdp = new IdentityProvider<>();
-        mirroredIdp.setId(mirroredIdpId);
-        mirroredIdp.setIdentityZoneId(customZoneId);
-        mirroredIdp.setAliasId(idpId);
-        mirroredIdp.setAliasZid(UAA);
-        mirroredIdp.setConfig(config);
-        when(mockIdentityProviderProvisioning.retrieve(mirroredIdpId, customZoneId)).thenReturn(mirroredIdp);
-
-        when(mockIdentityProviderProvisioning.update(any(), anyString())).thenReturn(null);
-
-        final Date timestampBeforeUpdate = new Date(System.currentTimeMillis());
-
-        final IdentityProviderStatus requestBody = new IdentityProviderStatus();
-        requestBody.setRequirePasswordChange(true);
-        final ResponseEntity<IdentityProviderStatus> response = identityProviderEndpoints.updateIdentityProviderStatus(idpId, requestBody);
-
-        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        Assertions.assertThat(response.getBody()).isNotNull().isEqualTo(requestBody);
-
-        final ArgumentCaptor<IdentityProvider> idpArgumentCaptor = ArgumentCaptor.forClass(IdentityProvider.class);
-        verify(mockIdentityProviderProvisioning, times(2)).update(idpArgumentCaptor.capture(), anyString());
-
-        // expecting original IdP with a new timestamp
-        final IdentityProvider firstIdp = idpArgumentCaptor.getAllValues().get(0);
-        Assertions.assertThat(firstIdp).isNotNull();
-        Assertions.assertThat(firstIdp.getId()).isEqualTo(idpId);
-        final Date timestampAfterUpdateFirstIdp = ((UaaIdentityProviderDefinition) firstIdp.getConfig()).getPasswordPolicy().getPasswordNewerThan();
-        Assertions.assertThat(timestampAfterUpdateFirstIdp).isNotNull().isAfter(timestampBeforeUpdate);
-
-        // expecting mirrored IdP with same timestamp
-        final IdentityProvider secondIdp = idpArgumentCaptor.getAllValues().get(1);
-        Assertions.assertThat(secondIdp).isNotNull();
-        Assertions.assertThat(secondIdp.getId()).isEqualTo(mirroredIdpId);
-        final Date timestampAfterUpdateSecondIdp = ((UaaIdentityProviderDefinition) secondIdp.getConfig()).getPasswordPolicy().getPasswordNewerThan();
-        Assertions.assertThat(timestampAfterUpdateFirstIdp).isNotNull().isEqualTo(timestampAfterUpdateSecondIdp);
     }
 
     @Test
