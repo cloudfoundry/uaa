@@ -305,6 +305,14 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     public String toString() {
         final StringBuffer sb = new StringBuffer("IdentityProvider{");
         sb.append("id='").append(id).append('\'');
+
+        sb.append(", identityZoneId=");
+        if (identityZoneId != null) {
+            sb.append('\'').append(identityZoneId).append('\'');
+        } else {
+            sb.append("null");
+        }
+
         sb.append(", originKey='").append(originKey).append('\'');
         sb.append(", name='").append(name).append('\'');
         sb.append(", type='").append(type).append('\'');

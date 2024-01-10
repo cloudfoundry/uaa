@@ -21,7 +21,7 @@ class IdentityProviderTest {
         config.setIssuer("issuer");
         idp.setConfig(config);
 
-        assertThat(idp).hasToString("IdentityProvider{id='12345', originKey='some-origin', name='some-name', type='oidc1.0', active=true, aliasId='id-of-mirrored-idp', aliasZid='custom-zone'}");
+        assertThat(idp).hasToString("IdentityProvider{id='12345', identityZoneId='uaa', originKey='some-origin', name='some-name', type='oidc1.0', active=true, aliasId='id-of-mirrored-idp', aliasZid='custom-zone'}");
     }
 
     @Test
