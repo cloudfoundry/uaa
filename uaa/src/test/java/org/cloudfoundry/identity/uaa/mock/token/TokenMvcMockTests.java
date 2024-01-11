@@ -100,6 +100,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -3598,8 +3599,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk())
                 .andReturn();
-        String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
-        Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
+        Claims claims = UaaTokenUtils.getClaimsFromTokenString(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken);
         assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
         assertThat(claims.getScope(), containsInAnyOrder("openid", "custom.default.group"));
     }
@@ -3620,8 +3620,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .param(OAuth2Utils.CLIENT_ID, clientId))
                 .andExpect(status().isOk())
                 .andReturn();
-        String claimsJSON = JwtHelper.decode(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken).getClaims();
-        Claims claims = JsonUtils.readValue(claimsJSON, Claims.class);
+        Claims claims = UaaTokenUtils.getClaimsFromTokenString(JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class).accessToken);
         assertEquals(claims.getIss(), "http://" + subdomain.toLowerCase() + ".localhost:8080/uaa/oauth/token");
     }
 
@@ -4148,7 +4147,13 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertEquals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()), iss);
         String sub = (String) result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
-        List<String> aud = (List<String>) result.get(ClaimConstants.AUD);
+        Object audObject = result.get(ClaimConstants.AUD);
+        List<String> aud = new ArrayList<>();
+        if (audObject instanceof Collection<?>) {
+            aud.addAll((List<String>) result.get(ClaimConstants.AUD));
+        } else if (audObject instanceof String audString) {
+            aud.add(audString);
+        }
         assertTrue(aud.contains(clientId));
         Integer exp = (Integer) result.get(ClaimConstants.EXPIRY_IN_SECONDS);
         assertNotNull(exp);

@@ -14,15 +14,19 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.codec.binary.Base64;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTClaimsSetTransformer;
+import com.nimbusds.jwt.SignedJWT;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -31,8 +35,8 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.text.ParseException;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -48,6 +52,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.uaa.util.ObjectUtils.isNotEmpty;
 import static org.springframework.util.StringUtils.hasText;
 
 public final class UaaTokenUtils {
@@ -185,18 +190,16 @@ public final class UaaTokenUtils {
         return getRevocationHash(saltlist);
     }
 
-    public static String constructToken(Map<String, Object> header, Map<String, Object> claims, Signer signer) {
-        byte[] headerJson = header == null ? new byte[0] : JsonUtils.writeValueAsBytes(header);
-        byte[] claimsJson = claims == null ? new byte[0] : JsonUtils.writeValueAsBytes(claims);
-
-        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
-        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
-        String headerAndClaims = headerBase64 + "." + claimsBase64;
-        byte[] signature = signer.sign(headerAndClaims.getBytes());
-
-        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
-
-        return headerAndClaims + "." + signatureBase64;
+    public static String constructToken(Map<String, Object> header, Map<String, Object> claims, JWSSigner signer) {
+        try {
+            JWSHeader joseHeader = JWSHeader.parse(header);
+            JWTClaimsSet claimsSet = JWTClaimsSet.parse(claims);
+            SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
+            signedJWT.sign(signer);
+            return signedJWT.serialize();
+        } catch (ParseException | JOSEException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     public static boolean isJwtToken(String token) {
@@ -243,22 +246,33 @@ public final class UaaTokenUtils {
             .containsAll(ofNullable(requiredGroups).orElse(emptySet()));
     }
 
-    public static Map<String, Object> getClaims(String jwtToken) {
-        Jwt jwt;
+    public static <T> T getClaims(String jwtToken, Class<T> toClazz) {
+        Object claims;
         try {
-            jwt = JwtHelper.decode(jwtToken);
+            JWTClaimsSetTransformer<T> claimsTransformer = claimsSet -> {
+                Map<String, Object> claimMap = claimsSet.toJSONObject();
+                Object audObject = claimsSet.getAudience();
+                if (isNotEmpty(audObject)) {
+                    claimMap.put(ClaimConstants.AUD, claimsSet.getAudience());
+                }
+                return JsonUtils.convertValue(claimMap, toClazz);
+            };
+            claims = JwtHelper.decode(jwtToken).getClaimSet().toType(claimsTransformer);
         } catch (Exception ex) {
             throw new InvalidTokenException("Invalid token (could not decode): " + jwtToken, ex);
         }
+        return claims != null ? (T) claims : (T) new Object();
+    }
 
-        Map<String, Object> claims;
-        try {
-            claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-        } catch (JsonUtils.JsonUtilException ex) {
-            throw new InvalidTokenException("Invalid token (cannot read token claims): " + jwtToken, ex);
-        }
+    public static Map<String, Object> getClaims(String jwtToken) {
+        return getClaims(jwtToken, Map.class);
+    }
 
-        return claims != null ? claims : new HashMap<>();
+    public static Claims getClaimsFromTokenString(String jwtToken) {
+        return getClaims(jwtToken, Claims.class);
+    }
+
+    public static Map<String, Object> getMapFromClaims(Claims claims) {
+        return JsonUtils.convertValue(claims,  Map.class);
     }
 }

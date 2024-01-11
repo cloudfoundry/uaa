@@ -54,4 +54,8 @@ public class ObjectUtils {
         }
         return count;
     }
+
+    public static boolean isNotEmpty(Object object) {
+        return !org.springframework.util.ObjectUtils.isEmpty(object);
+    }
 }

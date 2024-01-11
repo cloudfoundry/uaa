@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,13 +25,16 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 
+import com.nimbusds.jwt.JWTClaimsSet;
+import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Verifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 
@@ -57,8 +61,6 @@ import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRE
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
@@ -85,7 +87,7 @@ public abstract class JwtTokenSignedByThisUAA {
         return refreshTokenValidation;
     }
 
-    public static JwtTokenSignedByThisUAA buildIdTokenValidator(String tokenJwtValue, SignatureVerifier verifier, KeyInfoService keyInfoService) {
+    public static JwtTokenSignedByThisUAA buildIdTokenValidator(String tokenJwtValue, ChainedSignatureVerifier verifier, KeyInfoService keyInfoService) {
         IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, keyInfoService);
         idTokenValidation.checkSignature(verifier);
         return idTokenValidation;
@@ -126,12 +128,12 @@ public abstract class JwtTokenSignedByThisUAA {
         return checkSignature(fetchSignatureVerifierFromToken(this.tokenJwt));
     }
 
-    public JwtTokenSignedByThisUAA checkSignature(SignatureVerifier verifier) {
+    public JwtTokenSignedByThisUAA checkSignature(Verifier verifier) {
         try {
             this.tokenJwt.verifySignature(verifier);
         } catch (RuntimeException ex) {
             logger.debug("Invalid token (could not verify signature)", ex);
-            throw new InvalidTokenException("Could not verify token signature.", new InvalidSignatureException(token));
+            throw new InvalidTokenException("Could not verify token signature.", new UnauthorizedClientException(token));
         }
         return this;
     }
@@ -141,30 +143,22 @@ public abstract class JwtTokenSignedByThisUAA {
             return this;
         }
 
-        if (!claims.containsKey(ISS)) {
+        JWTClaimsSet jwtClaimsSet = getJwt().getClaimSet();
+        if (jwtClaimsSet.getIssuer() == null) {
             throw new InvalidTokenException("Token does not bear an ISS claim.", null);
         }
 
-        if (!equals(issuer, claims.get(ISS))) {
-            throw new InvalidTokenException("Invalid issuer (" + claims.get(ISS) + ") for token did not match expected: " + issuer, null);
+        if (!equals(issuer, jwtClaimsSet.getIssuer())) {
+            throw new InvalidTokenException("Invalid issuer (" + jwtClaimsSet.getIssuer() + ") for token did not match expected: " + issuer, null);
         }
         return this;
     }
 
     protected JwtTokenSignedByThisUAA checkExpiry(Instant asOf) {
-        if (!claims.containsKey(EXPIRY_IN_SECONDS)) {
-            throw new InvalidTokenException("Token does not bear an EXP claim.", null);
-        }
-
-        Object expClaim = claims.get(EXPIRY_IN_SECONDS);
-        long expiry;
-        try {
-            expiry = (int) expClaim;
-            if (asOf.getEpochSecond() > expiry) {
-                throw new InvalidTokenException("Token expired at " + expiry, null);
-            }
-        } catch (ClassCastException ex) {
-            throw new InvalidTokenException("Token bears an invalid or unparseable EXP claim.", ex);
+        JWTClaimsSet jwtClaimsSet = getJwt().getClaimSet();
+        Date expiry = jwtClaimsSet.getExpirationTime();
+        if (expiry == null || asOf == null || asOf.isAfter(expiry.toInstant())) {
+            throw new InvalidTokenException("Token does not bear a valid EXP claim.", null);
         }
         return this;
     }

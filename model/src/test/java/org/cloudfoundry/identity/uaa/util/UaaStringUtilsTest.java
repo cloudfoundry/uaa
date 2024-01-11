@@ -432,6 +432,13 @@ class UaaStringUtilsTest {
         assertEquals("", UaaStringUtils.getSafeParameterValue(null));
     }
 
+    @Test
+    void getArrayDefaultValue() {
+        assertEquals(Set.of("1", "2"), UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1"));
+        assertEquals(Set.of("1"), UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1"));
+        assertEquals(Set.of("1"), UaaStringUtils.getValuesOrDefaultValue(null, "1"));
+    }
+
     private static void replaceZoneVariables(IdentityZone zone) {
         String s = "https://{zone.subdomain}.domain.com/z/{zone.id}?id={zone.id}&domain={zone.subdomain}";
         String expect = String.format("https://%s.domain.com/z/%s?id=%s&domain=%s", zone.getSubdomain(), zone.getId(), zone.getId(), zone.getSubdomain());
