@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.collections.map.HashedMap;
@@ -493,23 +494,30 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                 EXTERNAL_GROUPS_WHITELIST,
                                 fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`.")
                         ),
-                        Stream.of(ALIAS_FIELDS_CREATE),
                         Stream.of(attributeMappingFields)
                 ).flatMap(identity())
                 .toArray(FieldDescriptor[]::new);
 
-        Snippet requestFields = requestFields(idempotentFields);
+        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, ALIAS_FIELDS_CREATE));
 
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
-                VERSION,
-                ID,
-                ADDITIONAL_CONFIGURATION,
-                IDENTITY_ZONE_ID,
-                CREATED,
-                LAST_MODIFIED,
-                fieldWithPath("config.idpEntityAlias").type(STRING).description("This will be set to ``originKey``"),
-                fieldWithPath("config.zoneId").type(STRING).description("This will be set to the ID of the zone where the provider is being created")
-        }));
+        Snippet responseFields = responseFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        idempotentFields,
+                        ArrayUtils.addAll(
+                                new FieldDescriptor[]{
+                                        VERSION,
+                                        ID,
+                                        ADDITIONAL_CONFIGURATION,
+                                        IDENTITY_ZONE_ID,
+                                        CREATED,
+                                        LAST_MODIFIED,
+                                        fieldWithPath("config.idpEntityAlias").type(STRING).description("This will be set to ``originKey``"),
+                                        fieldWithPath("config.zoneId").type(STRING).description("This will be set to the ID of the zone where the provider is being created")
+                                },
+                                ALIAS_FIELDS_GET
+                        )
+                )
+        );
 
         ResultActions resultActionsMetadata = mockMvc.perform(post("/identity-providers")
                 .param("rawConfig", "true")
@@ -607,21 +615,36 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
                                 fieldWithPath("config.groupMappingMode").optional(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external claim values to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use claim values names as scopes. You need to define also ``external_groups`` for the mapping in order to use this feature.")
                         ),
-                        Stream.of(ALIAS_FIELDS_CREATE),
                         Stream.of(attributeMappingFields)
                 ).flatMap(identity())
                 .toArray(FieldDescriptor[]::new);
 
-        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relyingPartySecret));
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
-                VERSION,
-                ID,
-                ADDITIONAL_CONFIGURATION,
-                IDENTITY_ZONE_ID,
-                CREATED,
-                LAST_MODIFIED,
-                fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
-        }));
+        Snippet requestFields = requestFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        idempotentFields,
+                        ArrayUtils.add(
+                                ALIAS_FIELDS_CREATE,
+                                relyingPartySecret
+                        )
+                )
+        );
+        Snippet responseFields = responseFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        idempotentFields,
+                        ArrayUtils.addAll(
+                                new FieldDescriptor[]{
+                                        VERSION,
+                                        ID,
+                                        ADDITIONAL_CONFIGURATION,
+                                        IDENTITY_ZONE_ID,
+                                        CREATED,
+                                        LAST_MODIFIED,
+                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
+                                },
+                                ALIAS_FIELDS_GET
+                        )
+                )
+        );
 
         ResultActions resultActions = mockMvc.perform(post("/identity-providers")
                 .param("rawConfig", "true")
@@ -708,20 +731,35 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                 fieldWithPath("config.prompts[].type").optional(null).type(STRING).description("What kind of field this is (e.g. text or password)"),
                                 fieldWithPath("config.prompts[].text").optional(null).type(STRING).description("Actual text displayed on prompt for field")
                         ),
-                        Stream.of(ALIAS_FIELDS_CREATE),
                         Stream.of(attributeMappingFields)
                 ).flatMap(identity())
                 .toArray(FieldDescriptor[]::new);
 
-        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relyingPartySecret));
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
-                VERSION,
-                ID,
-                ADDITIONAL_CONFIGURATION,
-                IDENTITY_ZONE_ID,
-                CREATED,
-                LAST_MODIFIED,
-        }));
+        Snippet requestFields = requestFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        idempotentFields,
+                        ArrayUtils.add(
+                                ALIAS_FIELDS_CREATE,
+                                relyingPartySecret
+                        )
+                )
+        );
+        Snippet responseFields = responseFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        idempotentFields,
+                        ArrayUtils.addAll(
+                                new FieldDescriptor[]{
+                                        VERSION,
+                                        ID,
+                                        ADDITIONAL_CONFIGURATION,
+                                        IDENTITY_ZONE_ID,
+                                        CREATED,
+                                        LAST_MODIFIED,
+                                },
+                                ALIAS_FIELDS_GET
+                        )
+                )
+        );
 
         ResultActions resultActions = mockMvc.perform(post("/identity-providers")
                 .param("rawConfig", "true")
@@ -853,20 +891,20 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         Snippet requestFields = requestFields(fields);
 
         Snippet responseFields = responseFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
-                        ldapAllFields,
-                        ArrayUtils.addAll(
-                                new FieldDescriptor[]{
+                Stream.of(
+                                Stream.of(ldapAllFields),
+                                Stream.of(
                                         VERSION,
                                         ID,
                                         ADDITIONAL_CONFIGURATION,
                                         IDENTITY_ZONE_ID,
                                         CREATED,
                                         LAST_MODIFIED
-                                },
-                                ALIAS_FIELDS_GET
+                                ),
+                                Stream.of(ALIAS_FIELDS_GET)
                         )
-                )
+                        .flatMap(identity())
+                        .collect(Collectors.toList())
         );
 
         ResultActions resultActions = mockMvc.perform(post("/identity-providers")
@@ -996,21 +1034,28 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                 fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
                                 fieldWithPath("config.lockoutPolicy.countFailuresWithin").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).").optional(),
                                 fieldWithPath("config.disableInternalUserManagement").optional(null).type(BOOLEAN).description("When set to true, user management is disabled for this provider, defaults to false").optional()
-                        ),
-                        Stream.of(ALIAS_FIELDS_UPDATE)
+                        )
                 ).flatMap(identity())
                 .toArray(FieldDescriptor[]::new);
 
-        Snippet requestFields = requestFields(idempotentFields);
+        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, ALIAS_FIELDS_UPDATE));
 
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
-                VERSION,
-                ID,
-                ADDITIONAL_CONFIGURATION,
-                IDENTITY_ZONE_ID,
-                CREATED,
-                LAST_MODIFIED,
-        }));
+        Snippet responseFields = responseFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        idempotentFields,
+                        ArrayUtils.addAll(
+                                new FieldDescriptor[]{
+                                        VERSION,
+                                        ID,
+                                        ADDITIONAL_CONFIGURATION,
+                                        IDENTITY_ZONE_ID,
+                                        CREATED,
+                                        LAST_MODIFIED,
+                                },
+                                ALIAS_FIELDS_GET
+                        )
+                )
+        );
 
         mockMvc.perform(put("/identity-providers/{id}", identityProvider.getId())
                 .param("rawConfig", "true")
