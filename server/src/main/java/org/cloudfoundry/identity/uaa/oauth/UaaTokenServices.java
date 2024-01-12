@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
@@ -451,8 +452,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         compositeToken.setAdditionalInformation(info);
 
-        String content;
-        Map<String, ?> jwtAccessToken = createJWTAccessToken(
+        Map<String, Object> jwtAccessToken = createJWTAccessToken(
                 compositeToken,
                 user,
                 userAuthenticationTime,
@@ -464,23 +464,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 revocableHashSignature,
                 isRevocable,
                 additionalRootClaims);
-        try {
-            content = JsonUtils.writeValueAsString(jwtAccessToken);
-        } catch (JsonUtils.JsonUtilException e) {
-            throw new IllegalStateException("Cannot convert access token to JSON", e);
-        }
-        String token = JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
+        String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
         BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
-            String idTokenContent;
+            IdToken idTokenContent;
             try {
-                idTokenContent = JsonUtils.writeValueAsString(idTokenCreator.create(clientDetails, user, userAuthenticationData));
+                idTokenContent = idTokenCreator.create(clientDetails, user, userAuthenticationData);
             } catch (RuntimeException | IdTokenCreationException ignored) {
                 throw new IllegalStateException("Cannot convert id token to JSON");
             }
-            String encodedIdTokenContent = JwtHelper.encode(idTokenContent, keyInfoService.getActiveKey()).getEncoded();
+            String encodedIdTokenContent = JwtHelper.encode(idTokenContent.getClaimObject(), keyInfoService.getActiveKey()).getEncoded();
             compositeToken.setIdTokenValue(encodedIdTokenContent);
         }
 
@@ -501,7 +496,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
     }
 
-    private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token,
+    private Map<String, Object> createJWTAccessToken(OAuth2AccessToken token,
                                                 UaaUser user,
                                                 Date userAuthenticationTime,
                                                 Collection<GrantedAuthority> clientScopes,

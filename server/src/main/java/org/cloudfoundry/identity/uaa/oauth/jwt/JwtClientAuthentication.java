@@ -26,7 +26,6 @@ import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.util.MultiValueMap;
@@ -83,7 +82,7 @@ public class JwtClientAuthentication {
     KeyInfo signingKeyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
     return signingKeyInfo.verifierCertificate().isPresent() ?
         JwtHelper.encodePlusX5t(getMapFromClaims(claims), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
-        JwtHelper.encode(JsonUtils.writeValueAsString(claims), signingKeyInfo).getEncoded();
+        JwtHelper.encode(claims.getClaimObject(), signingKeyInfo).getEncoded();
   }
 
   public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {

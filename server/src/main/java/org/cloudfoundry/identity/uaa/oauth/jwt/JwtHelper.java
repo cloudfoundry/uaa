@@ -66,14 +66,10 @@ public class JwtHelper {
         return createJwt(header, payLoad, keyInfo);
     }
 
-    public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
+    public static Jwt encode(Map<String, Object> payLoad, KeyInfo keyInfo) {
         JwtHeader header;
         header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
-        return createJwt(content, keyInfo, header);
-    }
-
-    private static JwtImpl createJwt(CharSequence content, KeyInfo keyInfo, JwtHeader header) {
-        return new JwtImpl(header, content, keyInfo.getSigner());
+        return new JwtImpl(header, payLoad, keyInfo.getSigner());
     }
 
     private static JwtImpl createJwt(JwtHeader header, Map<String, Object> payLoad, KeyInfo keyInfo) {
@@ -160,31 +156,10 @@ class JwtImpl implements Jwt {
 
     /**
      * @param header  the header, containing the JWS/JWE algorithm information.
-     * @param content the base64-decoded "claims" segment (may be encrypted, depending on
+     * @param payLoad the "claims" segment (may be encrypted, depending on
      *                header information).
      * @param signature  the base64-decoded "signature" segment.
      */
-    JwtImpl(JwtHeader header, CharSequence content, JWSSigner signature) {
-        this.header = header;
-        this.content = content;
-        this.signature = signature;
-        try {
-            this.claimsSet = JWTClaimsSet.parse(String.valueOf(content));
-            JWSHeader jwsHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
-            if (signature != null) {
-                SignedJWT signedJWT = new SignedJWT(jwsHeader, claimsSet);
-                signedJWT.sign(signature);
-                signedJwtObject = signedJWT;
-                parsedJwtObject = null;
-            } else {
-                signedJwtObject = null;
-                parsedJwtObject = null;
-            }
-        } catch (ParseException | JOSEException e) {
-            throw new InvalidTokenException(INVALID_TOKEN, e);
-        }
-    }
-
     JwtImpl(JwtHeader header, Map<String, Object> payLoad, JWSSigner signature) {
         this.header = header;
         this.signature = signature;

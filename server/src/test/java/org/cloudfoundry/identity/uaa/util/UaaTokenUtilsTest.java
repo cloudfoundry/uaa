@@ -1,9 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.nimbusds.jose.KeyLengthException;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -161,12 +158,6 @@ public class UaaTokenUtilsTest {
     @Test(expected = InvalidTokenException.class)
     public void getClaims_throwsExceptionWhenJwtIsMalformed() {
         UaaTokenUtils.getClaims("not.a.jwt");
-    }
-
-    @Test(expected = InvalidTokenException.class)
-    public void getClaims_throwsExceptionWhenClaimsCannotBeRead() {
-        Jwt encoded = JwtHelper.encode("great content", KeyInfoBuilder.build("foo", "bar", "https://localhost/uaa"));
-        UaaTokenUtils.getClaims(encoded.getEncoded());
     }
 
     @Test
