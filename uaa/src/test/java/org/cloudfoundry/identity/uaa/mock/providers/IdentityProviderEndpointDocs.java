@@ -194,7 +194,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             fieldWithPath(FIELD_ALIAS_ZID)
                     .attributes(key("constraints").value("Optional"))
                     .optional().type(STRING)
-                    .description(ALIAS_ZID_DESC_CREATE + " If set, an alias identity provider is created in the referenced zone and `\" + FIELD_ALIAS_ID + \"` is set accordingly.")
+                    .description(ALIAS_ZID_DESC_CREATE + " If set, an alias identity provider is created in the referenced zone and `" + FIELD_ALIAS_ID + "` is set accordingly.")
     };
 
     private static final FieldDescriptor[] ALIAS_FIELDS_LDAP_CREATE = {
@@ -216,7 +216,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             fieldWithPath(FIELD_ALIAS_ZID)
                     .attributes(key("constraints").value("Optional"))
                     .optional().type(STRING)
-                    .description(ALIAS_ZID_DESC_CREATE + " If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `\" + FIELD_ALIAS_ID + \"` is set accordingly. " +
+                    .description(ALIAS_ZID_DESC_CREATE + " If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `" + FIELD_ALIAS_ID + "` is set accordingly. " +
                     "If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
     };
 
