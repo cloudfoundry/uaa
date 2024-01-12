@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.providers;
 
+import static java.util.function.Function.identity;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -20,7 +21,6 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_ALIAS_ID;
 import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_ALIAS_ZID;
 import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_IDENTITY_ZONE_ID;
-import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_TYPE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
@@ -65,6 +65,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.commons.lang.ArrayUtils;
@@ -122,15 +123,14 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final String FAMILY_NAME_DESC = "Map `family_name` to the attribute for family name in the provider assertion or token.";
     private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion or token.";
     private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion or token.";
-    private static final String ALIAS_ID_DESC = "The ID of the alias IdP. This field may only be set for update operations on identity providers that already referenced an alias before. " +
-            "Otherwise, the field must be set to `null`.";
-    private static final String ALIAS_ZID_DESC = "The ID of the identity zone in which an alias of this IdP should be maintained. Defaults to `null`. " +
-            "If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `" + FIELD_ALIAS_ID + "` is set accordingly. " +
-            "Since alias identity providers are only supported for identity providers of type \"" + SAML + "\", \"" + OIDC10 + "\" and \"" + OAUTH20 + "\", this field must be set to `null` if `" + FIELD_TYPE + "` is not any of these values. " +
-            "Alias identity providers can only be created from or to the \"uaa\" identity zone, i.e., one of `" + FIELD_IDENTITY_ZONE_ID + "` or `" + FIELD_ALIAS_ZID + "` must be set to \"uaa\". " +
+    private static final String ALIAS_ID_DESC = "The ID of the alias IdP.";
+    private static final String ALIAS_ZID_DESC = "The ID of the identity zone in which an alias of this IdP is maintained.";
+    private static final String ALIAS_ZID_DESC_CREATE = ALIAS_ZID_DESC +
+            " Defaults to `null`. " +
+            "Only supported for identity providers of type \"" + SAML + "\", \"" + OIDC10 + "\" and \"" + OAUTH20 + "\". " +
             "If set, the field must reference an existing identity zone that is different to the one referenced in `" + FIELD_IDENTITY_ZONE_ID + "`. " +
-            "For updating an identity provider that already references an alias identity provider, this field must be left unchanged.";
-
+            "Alias identity providers can only be created from or to the \"uaa\" identity zone, i.e., one of `" + FIELD_IDENTITY_ZONE_ID + "` or `" + FIELD_ALIAS_ZID + "` must be set to \"uaa\". " +
+            "If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `" + FIELD_ALIAS_ID + "` is set accordingly. ";
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
@@ -151,8 +151,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
-    private static final FieldDescriptor ALIAS_ID = fieldWithPath(FIELD_ALIAS_ID).description(ALIAS_ID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING);
-    private static final FieldDescriptor ALIAS_ZID = fieldWithPath(FIELD_ALIAS_ZID).description(ALIAS_ZID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING);
+    private static final FieldDescriptor ALIAS_ID = fieldWithPath(FIELD_ALIAS_ID).attributes(key("constraints").value("Optional")).optional().type(STRING);
+    private static final FieldDescriptor ALIAS_ZID = fieldWithPath(FIELD_ALIAS_ZID).attributes(key("constraints").value("Optional")).optional().type(STRING);
     private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("JSON Array containing the groups names which need to be populated in the user's `id_token` or response from `/userinfo` endpoint. If you don't specify the whitelist no groups will be populated in the `id_token` or `/userinfo` response." +
             "<br>Please note that regex is allowed. Acceptable patterns are" +
             "<ul><li>    `*` translates to all groups </li>" +
@@ -175,9 +175,27 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             EMAIL_DOMAIN,
             ACTIVE,
             ADD_SHADOW_USER,
-            STORE_CUSTOM_ATTRIBUTES,
-            ALIAS_ID,
-            ALIAS_ZID
+            STORE_CUSTOM_ATTRIBUTES
+    };
+
+    private static final FieldDescriptor[] ALIAS_FIELDS_GET = {
+            ALIAS_ID.description(ALIAS_ID_DESC),
+            ALIAS_ZID.description(ALIAS_ZID_DESC)
+    };
+
+    private static final FieldDescriptor[] ALIAS_FIELDS_CREATE = {
+            ALIAS_ID.description(ALIAS_ID_DESC + " Must be set to `null`."),
+            ALIAS_ZID.description(ALIAS_ZID_DESC_CREATE)
+    };
+
+    private static final FieldDescriptor[] ALIAS_FIELDS_LDAP_CREATE = {
+            ALIAS_ID.description(ALIAS_ID_DESC + " Must be set to `null`, since alias identity providers are not supported for LDAP."),
+            ALIAS_ZID.description(ALIAS_ZID_DESC + " Must be set to `null`, since alias identity providers are not supported for LDAP.")
+    };
+
+    private static final FieldDescriptor[] ALIAS_FIELDS_UPDATE = {
+            ALIAS_ID.description(ALIAS_ID_DESC + " The `" + FIELD_ALIAS_ID + "` value of the existing identity provider must be left unchanged."),
+            ALIAS_ZID.description(ALIAS_ZID_DESC_CREATE + " If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
     };
 
     private FieldDescriptor[] attributeMappingFields = {
@@ -284,116 +302,134 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     });
 
 
-    private FieldDescriptor[] ldap_SearchAndCompare_GroupsAsScopes = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-            LDAP_TYPE,
-            LDAP_ORIGIN_KEY,
-            LDAP_PROFILE_FILE,
-            LDAP_GROUP_FILE,
-            LDAP_URL,
-            LDAP_BIND_USER_DN,
-            LDAP_BIND_PASSWORD,
-            LDAP_USER_SEARCH_BASE,
-            LDAP_USER_SEARCH_FILTER,
-            LDAP_GROUP_SEARCH_BASE,
-            LDAP_GROUP_SEARCH_FILTER,
-            LDAP_GROUP_AUTO_ADD,
-            LDAP_GROUP_SEARCH_SUBTREE,
-            LDAP_GROUP_MAX_SEARCH_DEPTH,
-            LDAP_USER_MAIL_ATTRIBUTE,
-            LDAP_USER_MAIL_SUBSTITUTE,
-            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-            LDAP_SSL_SKIP_VERIFICATION,
-            LDAP_SSL_TLS,
-            LDAP_REFERRAL,
-            LDAP_GROUPS_IGNORE_PARTIAL,
-            LDAP_USER_DN_PATTERN.ignored(),
-            LDAP_USER_DN_PATTERN_DELIM.ignored(),
-            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
-            LDAP_USER_COMPARE_ENCODER,
-            LDAP_USER_COMPARE_LOCAL,
-            LDAP_GROUP_ROLE_ATTRIBUTE,
-            ATTRIBUTE_MAPPING,
-            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-            LDAP_ATTRIBUTE_MAPPING_PHONE,
-            ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
-            EXTERNAL_GROUPS_WHITELIST
-    });
+    private FieldDescriptor[] ldap_SearchAndCompare_GroupsAsScopes = (FieldDescriptor[]) ArrayUtils.addAll(
+            commonProviderFields,
+            ArrayUtils.addAll(
+                    new FieldDescriptor[]{
+                            LDAP_TYPE,
+                            LDAP_ORIGIN_KEY,
+                            LDAP_PROFILE_FILE,
+                            LDAP_GROUP_FILE,
+                            LDAP_URL,
+                            LDAP_BIND_USER_DN,
+                            LDAP_BIND_PASSWORD,
+                            LDAP_USER_SEARCH_BASE,
+                            LDAP_USER_SEARCH_FILTER,
+                            LDAP_GROUP_SEARCH_BASE,
+                            LDAP_GROUP_SEARCH_FILTER,
+                            LDAP_GROUP_AUTO_ADD,
+                            LDAP_GROUP_SEARCH_SUBTREE,
+                            LDAP_GROUP_MAX_SEARCH_DEPTH,
+                            LDAP_USER_MAIL_ATTRIBUTE,
+                            LDAP_USER_MAIL_SUBSTITUTE,
+                            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+                            LDAP_SSL_SKIP_VERIFICATION,
+                            LDAP_SSL_TLS,
+                            LDAP_REFERRAL,
+                            LDAP_GROUPS_IGNORE_PARTIAL,
+                            LDAP_USER_DN_PATTERN.ignored(),
+                            LDAP_USER_DN_PATTERN_DELIM.ignored(),
+                            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
+                            LDAP_USER_COMPARE_ENCODER,
+                            LDAP_USER_COMPARE_LOCAL,
+                            LDAP_GROUP_ROLE_ATTRIBUTE,
+                            ATTRIBUTE_MAPPING,
+                            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
+                            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+                            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+                            LDAP_ATTRIBUTE_MAPPING_PHONE,
+                            ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
+                            EXTERNAL_GROUPS_WHITELIST
+                    },
+                    ALIAS_FIELDS_LDAP_CREATE
+            )
+    );
 
-    private FieldDescriptor[] ldapSimpleBindFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-            LDAP_TYPE,
-            LDAP_ORIGIN_KEY,
-            LDAP_PROFILE_FILE,
-            LDAP_GROUP_FILE,
-            LDAP_URL,
-            LDAP_USER_MAIL_ATTRIBUTE,
-            LDAP_USER_MAIL_SUBSTITUTE,
-            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-            LDAP_SSL_SKIP_VERIFICATION,
-            LDAP_SSL_TLS,
-            LDAP_REFERRAL,
-            LDAP_USER_DN_PATTERN,
-            LDAP_USER_DN_PATTERN_DELIM,
-            ATTRIBUTE_MAPPING,
-            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-            LDAP_ATTRIBUTE_MAPPING_PHONE,
-            ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
-            LDAP_BIND_USER_DN.ignored(),
-            LDAP_USER_SEARCH_BASE.ignored(),
-            LDAP_USER_SEARCH_FILTER.ignored(),
-            LDAP_GROUP_SEARCH_BASE.ignored(),
-            LDAP_GROUP_SEARCH_FILTER.ignored(),
-            LDAP_GROUP_AUTO_ADD.ignored(),
-            LDAP_GROUP_SEARCH_SUBTREE.ignored(),
-            LDAP_GROUP_MAX_SEARCH_DEPTH.ignored(),
-            LDAP_GROUPS_IGNORE_PARTIAL.ignored(),
-            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
-            LDAP_USER_COMPARE_ENCODER.ignored(),
-            LDAP_USER_COMPARE_LOCAL.ignored(),
-            LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
-            EXTERNAL_GROUPS_WHITELIST.ignored()
-    });
+    private FieldDescriptor[] ldapSimpleBindFields = (FieldDescriptor[]) ArrayUtils.addAll(
+            commonProviderFields,
+            ArrayUtils.addAll(
+                    new FieldDescriptor[]{
+                            LDAP_TYPE,
+                            LDAP_ORIGIN_KEY,
+                            LDAP_PROFILE_FILE,
+                            LDAP_GROUP_FILE,
+                            LDAP_URL,
+                            LDAP_USER_MAIL_ATTRIBUTE,
+                            LDAP_USER_MAIL_SUBSTITUTE,
+                            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+                            LDAP_SSL_SKIP_VERIFICATION,
+                            LDAP_SSL_TLS,
+                            LDAP_REFERRAL,
+                            LDAP_USER_DN_PATTERN,
+                            LDAP_USER_DN_PATTERN_DELIM,
+                            ATTRIBUTE_MAPPING,
+                            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
+                            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+                            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+                            LDAP_ATTRIBUTE_MAPPING_PHONE,
+                            ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
+                            LDAP_BIND_USER_DN.ignored(),
+                            LDAP_USER_SEARCH_BASE.ignored(),
+                            LDAP_USER_SEARCH_FILTER.ignored(),
+                            LDAP_GROUP_SEARCH_BASE.ignored(),
+                            LDAP_GROUP_SEARCH_FILTER.ignored(),
+                            LDAP_GROUP_AUTO_ADD.ignored(),
+                            LDAP_GROUP_SEARCH_SUBTREE.ignored(),
+                            LDAP_GROUP_MAX_SEARCH_DEPTH.ignored(),
+                            LDAP_GROUPS_IGNORE_PARTIAL.ignored(),
+                            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
+                            LDAP_USER_COMPARE_ENCODER.ignored(),
+                            LDAP_USER_COMPARE_LOCAL.ignored(),
+                            LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
+                            EXTERNAL_GROUPS_WHITELIST.ignored()
+                    },
+                    ALIAS_FIELDS_LDAP_CREATE
+            )
+    );
 
 
-    private FieldDescriptor[] ldapSearchAndBind_GroupsToScopes = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-            LDAP_TYPE,
-            LDAP_ORIGIN_KEY,
-            LDAP_PROFILE_FILE,
-            LDAP_GROUP_FILE,
-            LDAP_URL,
-            LDAP_BIND_USER_DN,
-            LDAP_BIND_PASSWORD,
-            LDAP_USER_SEARCH_BASE,
-            LDAP_USER_SEARCH_FILTER,
-            LDAP_GROUP_SEARCH_BASE,
-            LDAP_GROUP_SEARCH_FILTER,
-            LDAP_GROUP_AUTO_ADD.ignored(),
-            LDAP_GROUP_SEARCH_SUBTREE,
-            LDAP_GROUP_MAX_SEARCH_DEPTH,
-            LDAP_USER_MAIL_ATTRIBUTE,
-            LDAP_USER_MAIL_SUBSTITUTE,
-            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-            LDAP_SSL_SKIP_VERIFICATION,
-            LDAP_SSL_TLS,
-            LDAP_REFERRAL,
-            LDAP_GROUPS_IGNORE_PARTIAL,
-            LDAP_USER_DN_PATTERN.ignored(),
-            LDAP_USER_DN_PATTERN_DELIM.ignored(),
-            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
-            LDAP_USER_COMPARE_ENCODER.ignored(),
-            LDAP_USER_COMPARE_LOCAL.ignored(),
-            LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
-            ATTRIBUTE_MAPPING,
-            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-            LDAP_ATTRIBUTE_MAPPING_PHONE,
-            ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
-            EXTERNAL_GROUPS_WHITELIST
-    });
+    private FieldDescriptor[] ldapSearchAndBind_GroupsToScopes = (FieldDescriptor[]) ArrayUtils.addAll(
+            commonProviderFields,
+            ArrayUtils.addAll(
+                    new FieldDescriptor[]{
+                            LDAP_TYPE,
+                            LDAP_ORIGIN_KEY,
+                            LDAP_PROFILE_FILE,
+                            LDAP_GROUP_FILE,
+                            LDAP_URL,
+                            LDAP_BIND_USER_DN,
+                            LDAP_BIND_PASSWORD,
+                            LDAP_USER_SEARCH_BASE,
+                            LDAP_USER_SEARCH_FILTER,
+                            LDAP_GROUP_SEARCH_BASE,
+                            LDAP_GROUP_SEARCH_FILTER,
+                            LDAP_GROUP_AUTO_ADD.ignored(),
+                            LDAP_GROUP_SEARCH_SUBTREE,
+                            LDAP_GROUP_MAX_SEARCH_DEPTH,
+                            LDAP_USER_MAIL_ATTRIBUTE,
+                            LDAP_USER_MAIL_SUBSTITUTE,
+                            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+                            LDAP_SSL_SKIP_VERIFICATION,
+                            LDAP_SSL_TLS,
+                            LDAP_REFERRAL,
+                            LDAP_GROUPS_IGNORE_PARTIAL,
+                            LDAP_USER_DN_PATTERN.ignored(),
+                            LDAP_USER_DN_PATTERN_DELIM.ignored(),
+                            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
+                            LDAP_USER_COMPARE_ENCODER.ignored(),
+                            LDAP_USER_COMPARE_LOCAL.ignored(),
+                            LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
+                            ATTRIBUTE_MAPPING,
+                            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
+                            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+                            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+                            LDAP_ATTRIBUTE_MAPPING_PHONE,
+                            ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
+                            EXTERNAL_GROUPS_WHITELIST
+                    },
+                    ALIAS_FIELDS_LDAP_CREATE
+            )
+    );
 
     @BeforeEach
     void setUp() throws Exception {
@@ -415,24 +451,30 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         IdentityProvider identityProvider = getSamlProvider("SAML");
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
-                fieldWithPath("type").required().description("`saml`"),
-                fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
-                SKIP_SSL_VALIDATION,
-                STORE_CUSTOM_ATTRIBUTES,
-                fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
-                fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\"."),
-                fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0"),
-                fieldWithPath("config.metadataTrustCheck").optional(null).type(BOOLEAN).description("Should metadata be validated, defaults to false"),
-                fieldWithPath("config.showSamlLink").optional(null).type(BOOLEAN).description("Should the SAML login link be displayed on the login page, defaults to false"),
-                fieldWithPath("config.linkText").constrained("Required if the ``showSamlLink`` is set to true").type(STRING).description("The link text for the SAML IDP on the login page"),
-                fieldWithPath("config.groupMappingMode").optional(ExternalGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external groups to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use SAML group names as scopes."),
-                fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
-                fieldWithPath("config.socketFactoryClassName").optional(null).description("Property is deprecated and value is ignored."),
-                fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
-                EXTERNAL_GROUPS_WHITELIST,
-                fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`."),
-        }, attributeMappingFields));
+        FieldDescriptor[] idempotentFields = Stream.of(
+                        Stream.of(commonProviderFields),
+                        Stream.of(
+                                fieldWithPath("type").required().description("`saml`"),
+                                fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
+                                SKIP_SSL_VALIDATION,
+                                STORE_CUSTOM_ATTRIBUTES,
+                                fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
+                                fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\"."),
+                                fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0"),
+                                fieldWithPath("config.metadataTrustCheck").optional(null).type(BOOLEAN).description("Should metadata be validated, defaults to false"),
+                                fieldWithPath("config.showSamlLink").optional(null).type(BOOLEAN).description("Should the SAML login link be displayed on the login page, defaults to false"),
+                                fieldWithPath("config.linkText").constrained("Required if the ``showSamlLink`` is set to true").type(STRING).description("The link text for the SAML IDP on the login page"),
+                                fieldWithPath("config.groupMappingMode").optional(ExternalGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external groups to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use SAML group names as scopes."),
+                                fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
+                                fieldWithPath("config.socketFactoryClassName").optional(null).description("Property is deprecated and value is ignored."),
+                                fieldWithPath("config.authnContext").optional(null).type(ARRAY).description("List of AuthnContextClassRef to include in the SAMLRequest. If not specified no AuthnContext will be requested."),
+                                EXTERNAL_GROUPS_WHITELIST,
+                                fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`.")
+                        ),
+                        Stream.of(ALIAS_FIELDS_CREATE),
+                        Stream.of(attributeMappingFields)
+                ).flatMap(identity())
+                .toArray(FieldDescriptor[]::new);
 
         Snippet requestFields = requestFields(idempotentFields);
 
@@ -517,30 +559,37 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
-                fieldWithPath("type").required().description("`\"" + OAUTH20 + "\"`"),
-                fieldWithPath("originKey").required().description("A unique alias for a OAuth provider"),
-                fieldWithPath("config.authUrl").required().type(STRING).description("The OAuth 2.0 authorization endpoint URL"),
-                fieldWithPath("config.tokenUrl").required().type(STRING).description("The OAuth 2.0 token endpoint URL"),
-                fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures"),
-                fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures, set to null if a `tokenKeyUrl` is provided."),
-                fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
-                fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
-                fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
-                fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
-                fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
-                fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
-                fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
-                fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OAuth 2.0 logout endpoint."),
-                fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
-                fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
-                fieldWithPath("config.pkce").optional(true).type(BOOLEAN).description("A flag controlling whether PKCE (RFC 7636) is active in authorization code flow when requesting tokens from the external provider."),
-                fieldWithPath("config.performRpInitiatedLogout").optional(true).type(BOOLEAN).description("A flag controlling whether to log out of the external provider after a successful UAA logout per [OIDC RP-Initiated Logout](https://openid.net/specs/openid-connect-rpinitiated-1_0.html)"),
-                fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
-                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
-                fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
-                fieldWithPath("config.groupMappingMode").optional(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external claim values to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use claim values names as scopes. You need to define also ``external_groups`` for the mapping in order to use this feature."),
-        }, attributeMappingFields));
+        FieldDescriptor[] idempotentFields = Stream.of(
+                        Stream.of(commonProviderFields),
+                        Stream.of(
+                                fieldWithPath("type").required().description("`\"" + OAUTH20 + "\"`"),
+                                fieldWithPath("originKey").required().description("A unique alias for a OAuth provider"),
+                                fieldWithPath("config.authUrl").required().type(STRING).description("The OAuth 2.0 authorization endpoint URL"),
+                                fieldWithPath("config.tokenUrl").required().type(STRING).description("The OAuth 2.0 token endpoint URL"),
+                                fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures"),
+                                fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures, set to null if a `tokenKeyUrl` is provided."),
+                                fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
+                                fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
+                                fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
+                                fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
+                                fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
+                                fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
+                                fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth use."),
+                                fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OAuth 2.0 logout endpoint."),
+                                fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, will be sent to OAuth server, defaults to `code`"),
+                                fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header."),
+                                fieldWithPath("config.pkce").optional(true).type(BOOLEAN).description("A flag controlling whether PKCE (RFC 7636) is active in authorization code flow when requesting tokens from the external provider."),
+                                fieldWithPath("config.performRpInitiatedLogout").optional(true).type(BOOLEAN).description("A flag controlling whether to log out of the external provider after a successful UAA logout per [OIDC RP-Initiated Logout](https://openid.net/specs/openid-connect-rpinitiated-1_0.html)"),
+                                fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
+                                fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
+                                fieldWithPath("config.groupMappingMode").optional(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external claim values to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use claim values names as scopes. You need to define also ``external_groups`` for the mapping in order to use this feature.")
+                        ),
+                        Stream.of(ALIAS_FIELDS_CREATE),
+                        Stream.of(attributeMappingFields)
+                ).flatMap(identity())
+                .toArray(FieldDescriptor[]::new);
+
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relyingPartySecret));
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
                 VERSION,
@@ -597,44 +646,51 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
-                fieldWithPath("type").required().description("`\"" + OIDC10 + "\"`"),
-                fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
-                fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with /.well-known/openid-configurationmit "),
-                fieldWithPath("config.authUrl").optional().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
-                fieldWithPath("config.tokenUrl").optional().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
-                fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
-                fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
-                fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
-                fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
-                fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
-                fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
-                fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
-                        "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
-                fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
-                fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Only effective if relyingPartySecret is defined. Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header. It is recommended to set `jwtClientAuthentication:true` instead."),
-                fieldWithPath("config.pkce").optional(true).type(BOOLEAN).description("A flag controlling whether PKCE (RFC 7636) is active in authorization code flow when requesting tokens from the external provider."),
-                fieldWithPath("config.performRpInitiatedLogout").optional(true).type(BOOLEAN).description("A flag controlling whether to log out of the external provider after a successful UAA logout per [OIDC RP-Initiated Logout](https://openid.net/specs/openid-connect-rpinitiated-1_0.html)"),
-                fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
-                fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OIDC logout endpoint. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
-                fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
-                fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
-                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
-                GROUP_WHITELIST,
-                fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
-                fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
-                fieldWithPath("config.jwtClientAuthentication").optional(null).type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
-                    "<br>Please note that you can precise the created JWT for client authentication, e.g. if your IdP follows OAuth2 standard according to RFC 7523. For standard OIDC compliance, set true without any further sub-parameters. The supported sub-parameters are " +
-                    "<ul><li>    `kid` <small><mark>UAA 76.18.0</mark></small> Custom key from your defined keys, defaults to `activeKeyId` </li>" +
-                    "<li>        `iss` Custom issuer, see RFC 7523, defaults to `relyingPartyId` </li>" +
-                    "<li>        `aud` Custom audience, see RFC 7523, defaults to `tokenUrl` </li></ul>"),
-                fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
-                fieldWithPath("config.additionalAuthzParameters").optional(null).type(OBJECT).description("<small><mark>UAA 76.17.0</mark></small>Map of key-value pairs that are added as additional parameters for grant type `authorization_code`. For example, configure an entry with key `token_format` and value `jwt`."),
-                fieldWithPath("config.prompts[]").optional(null).type(ARRAY).description("List of fields that users are prompted on to the OIDC provider through the password grant flow. Defaults to username, password, and passcode. Any additional prompts beyond username, password, and passcode will be forwarded on to the OIDC provider."),
-                fieldWithPath("config.prompts[].name").optional(null).type(STRING).description("Name of field"),
-                fieldWithPath("config.prompts[].type").optional(null).type(STRING).description("What kind of field this is (e.g. text or password)"),
-                fieldWithPath("config.prompts[].text").optional(null).type(STRING).description("Actual text displayed on prompt for field")
-        }, attributeMappingFields));
+        FieldDescriptor[] idempotentFields = Stream.of(
+                        Stream.of(commonProviderFields),
+                        Stream.of(
+                                fieldWithPath("type").required().description("`\"" + OIDC10 + "\"`"),
+                                fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
+                                fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with /.well-known/openid-configurationmit "),
+                                fieldWithPath("config.authUrl").optional().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+                                fieldWithPath("config.tokenUrl").optional().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+                                fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+                                fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+                                fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
+                                fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
+                                fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
+                                fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
+                                fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
+                                        "`openid`, `roles`, or `profile` to request ID token, scopes populated in the ID token external groups attribute mappings, or the user profile information, respectively."),
+                                fieldWithPath("config.checkTokenUrl").optional(null).type(OBJECT).description("Reserved for future OAuth/OIDC use."),
+                                fieldWithPath("config.clientAuthInBody").optional(false).type(BOOLEAN).description("Only effective if relyingPartySecret is defined. Sends the client credentials in the token retrieval call as body parameters instead of a Basic Authorization header. It is recommended to set `jwtClientAuthentication:true` instead."),
+                                fieldWithPath("config.pkce").optional(true).type(BOOLEAN).description("A flag controlling whether PKCE (RFC 7636) is active in authorization code flow when requesting tokens from the external provider."),
+                                fieldWithPath("config.performRpInitiatedLogout").optional(true).type(BOOLEAN).description("A flag controlling whether to log out of the external provider after a successful UAA logout per [OIDC RP-Initiated Logout](https://openid.net/specs/openid-connect-rpinitiated-1_0.html)"),
+                                fieldWithPath("config.userInfoUrl").optional(null).type(OBJECT).description("Reserved for future OIDC use.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+                                fieldWithPath("config.logoutUrl").optional(null).type(OBJECT).description("OIDC logout endpoint. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL."),
+                                fieldWithPath("config.responseType").optional("code").type(STRING).description("Response type for the authorize request, defaults to `code`, but can be `code id_token` if the OIDC server can return an id_token as a query parameter in the redirect."),
+                                fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token."),
+                                fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
+                                GROUP_WHITELIST,
+                                fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
+                                fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
+                                fieldWithPath("config.jwtClientAuthentication").optional(null).type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. " +
+                                        "<br>Please note that you can precise the created JWT for client authentication, e.g. if your IdP follows OAuth2 standard according to RFC 7523. For standard OIDC compliance, set true without any further sub-parameters. The supported sub-parameters are " +
+                                        "<ul><li>    `kid` <small><mark>UAA 76.18.0</mark></small> Custom key from your defined keys, defaults to `activeKeyId` </li>" +
+                                        "<li>        `iss` Custom issuer, see RFC 7523, defaults to `relyingPartyId` </li>" +
+                                        "<li>        `aud` Custom audience, see RFC 7523, defaults to `tokenUrl` </li></ul>"),
+                                fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
+                                fieldWithPath("config.additionalAuthzParameters").optional(null).type(OBJECT).description("<small><mark>UAA 76.17.0</mark></small>Map of key-value pairs that are added as additional parameters for grant type `authorization_code`. For example, configure an entry with key `token_format` and value `jwt`."),
+                                fieldWithPath("config.prompts[]").optional(null).type(ARRAY).description("List of fields that users are prompted on to the OIDC provider through the password grant flow. Defaults to username, password, and passcode. Any additional prompts beyond username, password, and passcode will be forwarded on to the OIDC provider."),
+                                fieldWithPath("config.prompts[].name").optional(null).type(STRING).description("Name of field"),
+                                fieldWithPath("config.prompts[].type").optional(null).type(STRING).description("What kind of field this is (e.g. text or password)"),
+                                fieldWithPath("config.prompts[].text").optional(null).type(STRING).description("Actual text displayed on prompt for field")
+                        ),
+                        Stream.of(ALIAS_FIELDS_CREATE),
+                        Stream.of(attributeMappingFields)
+                ).flatMap(identity())
+                .toArray(FieldDescriptor[]::new);
+
         Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.add(idempotentFields, relyingPartySecret));
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
                 VERSION,
@@ -774,14 +830,22 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
         Snippet requestFields = requestFields(fields);
 
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(ldapAllFields, new FieldDescriptor[]{
-                VERSION,
-                ID,
-                ADDITIONAL_CONFIGURATION,
-                IDENTITY_ZONE_ID,
-                CREATED,
-                LAST_MODIFIED
-        }));
+        Snippet responseFields = responseFields(
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        ldapAllFields,
+                        ArrayUtils.addAll(
+                                new FieldDescriptor[]{
+                                        VERSION,
+                                        ID,
+                                        ADDITIONAL_CONFIGURATION,
+                                        IDENTITY_ZONE_ID,
+                                        CREATED,
+                                        LAST_MODIFIED
+                                },
+                                ALIAS_FIELDS_GET
+                        )
+                )
+        );
 
         ResultActions resultActions = mockMvc.perform(post("/identity-providers")
                 .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getIdentityZone().getSubdomain())
@@ -891,24 +955,30 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(config);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-                fieldWithPath("type").required().description("`uaa`"),
-                fieldWithPath("originKey").required().description("A unique identifier for the IDP. Cannot be updated."),
-                VERSION.required(),
-                fieldWithPath("config.passwordPolicy").ignored(),
-                fieldWithPath("config.passwordPolicy.minLength").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of characters required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.maxLength").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Maximum number of characters required for password to be considered valid (defaults to 255).").optional(),
-                fieldWithPath("config.passwordPolicy.requireUpperCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of uppercase characters required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.requireLowerCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of lowercase characters required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
-                fieldWithPath("config.passwordPolicy.passwordNewerThan").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("This timestamp value can be used to force change password for every user. If the user's passwordLastModified is older than this value, the password is expired (defaults to null)."),
-                fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
-                fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
-                fieldWithPath("config.lockoutPolicy.countFailuresWithin").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).").optional(),
-                fieldWithPath("config.disableInternalUserManagement").optional(null).type(BOOLEAN).description("When set to true, user management is disabled for this provider, defaults to false").optional()
-        });
+        FieldDescriptor[] idempotentFields = Stream.of(
+                        Stream.of(commonProviderFields),
+                        Stream.of(
+                                fieldWithPath("type").required().description("`uaa`"),
+                                fieldWithPath("originKey").required().description("A unique identifier for the IDP. Cannot be updated."),
+                                VERSION.required(),
+                                fieldWithPath("config.passwordPolicy").ignored(),
+                                fieldWithPath("config.passwordPolicy.minLength").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of characters required for password to be considered valid (defaults to 0).").optional(),
+                                fieldWithPath("config.passwordPolicy.maxLength").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Maximum number of characters required for password to be considered valid (defaults to 255).").optional(),
+                                fieldWithPath("config.passwordPolicy.requireUpperCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of uppercase characters required for password to be considered valid (defaults to 0).").optional(),
+                                fieldWithPath("config.passwordPolicy.requireLowerCaseCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of lowercase characters required for password to be considered valid (defaults to 0).").optional(),
+                                fieldWithPath("config.passwordPolicy.requireDigit").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of digits required for password to be considered valid (defaults to 0).").optional(),
+                                fieldWithPath("config.passwordPolicy.requireSpecialCharacter").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Minimum number of special characters required for password to be considered valid (defaults to 0).").optional(),
+                                fieldWithPath("config.passwordPolicy.expirePasswordInMonths").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("Number of months after which current password expires (defaults to 0).").optional(),
+                                fieldWithPath("config.passwordPolicy.passwordNewerThan").constrained("Required when `passwordPolicy` in the config is not null").type(NUMBER).description("This timestamp value can be used to force change password for every user. If the user's passwordLastModified is older than this value, the password is expired (defaults to null)."),
+                                fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
+                                fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
+                                fieldWithPath("config.lockoutPolicy.countFailuresWithin").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).").optional(),
+                                fieldWithPath("config.disableInternalUserManagement").optional(null).type(BOOLEAN).description("When set to true, user management is disabled for this provider, defaults to false").optional()
+                        ),
+                        Stream.of(ALIAS_FIELDS_UPDATE)
+                ).flatMap(identity())
+                .toArray(FieldDescriptor[]::new);
+
         Snippet requestFields = requestFields(idempotentFields);
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
@@ -1011,17 +1081,23 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     private FieldDescriptor[] getCommonProviderFieldsAnyType() {
-        return (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-                fieldWithPath("type").required().description("Type of the identity provider."),
-                fieldWithPath("originKey").required().description("Unique identifier for the identity provider."),
-                CONFIG,
-                ADDITIONAL_CONFIGURATION,
-                VERSION,
-                ID,
-                IDENTITY_ZONE_ID,
-                CREATED,
-                LAST_MODIFIED
-        });
+        return (FieldDescriptor[]) ArrayUtils.addAll(
+                commonProviderFields,
+                ArrayUtils.addAll(
+                        new FieldDescriptor[]{
+                                fieldWithPath("type").required().description("Type of the identity provider."),
+                                fieldWithPath("originKey").required().description("Unique identifier for the identity provider."),
+                                CONFIG,
+                                ADDITIONAL_CONFIGURATION,
+                                VERSION,
+                                ID,
+                                IDENTITY_ZONE_ID,
+                                CREATED,
+                                LAST_MODIFIED
+                        },
+                        ALIAS_FIELDS_GET
+                )
+        );
     }
 
 
