@@ -56,8 +56,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     public static final String FIELD_IDENTITY_ZONE_ID = "identityZoneId";
     public static final String FIELD_CONFIG = "config";
     public static final String FIELD_TYPE = "type";
-    public static final String FIELD_ALIAS_ID = "alias_id";
-    public static final String FIELD_ALIAS_ZID = "alias_zid";
+    public static final String FIELD_ALIAS_ID = "aliasId";
+    public static final String FIELD_ALIAS_ZID = "aliasZid";
     //see deserializer at the bottom
 
     private String id;
@@ -74,9 +74,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     private Date lastModified = new Date();
     private boolean active = true;
     private String identityZoneId;
-    @JsonProperty("alias_id")
     private String aliasId;
-    @JsonProperty("alias_zid")
     private String aliasZid;
     public Date getCreated() {
         return created;

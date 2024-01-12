@@ -83,7 +83,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
 
     /**
-     * The IdP types for which alias IdPs (via 'alias_id' and 'alias_zid') are supported.
+     * The IdP types for which alias IdPs (via 'aliasId' and 'aliasZid') are supported.
      */
     private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
 
