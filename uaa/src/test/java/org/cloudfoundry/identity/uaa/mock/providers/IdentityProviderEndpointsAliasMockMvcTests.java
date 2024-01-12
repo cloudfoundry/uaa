@@ -93,16 +93,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     @Nested
     class Create {
         @Test
-        void shouldAccept_MirrorIdp_UaaToCustomZone() throws Exception {
-            shouldAccept_MirrorIdp(IdentityZone.getUaa(), customZone);
+        void shouldAccept_CreateAliasIdp_UaaToCustomZone() throws Exception {
+            shouldAccept_CreateAliasIdp(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldAccept_MirrorIdp_CustomToUaaZone() throws Exception {
-            shouldAccept_MirrorIdp(customZone, IdentityZone.getUaa());
+        void shouldAccept_CreateAliasIdp_CustomToUaaZone() throws Exception {
+            shouldAccept_CreateAliasIdp(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldAccept_MirrorIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+        private void shouldAccept_CreateAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
             // build IdP in zone1 with aliasZid set to zone2
             final IdentityProvider<?> provider = buildSamlIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
 
@@ -112,15 +112,15 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(originalIdp.getAliasId()).isNotBlank();
             assertThat(originalIdp.getAliasZid()).isNotBlank().isEqualTo(zone2.getId());
 
-            // read mirrored IdP from zone2
+            // read alias IdP from zone2
             final String id = originalIdp.getAliasId();
-            final Optional<IdentityProvider<?>> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id);
-            assertThat(mirroredIdp).isPresent();
-            assertIdpReferencesOtherIdp(mirroredIdp.get(), originalIdp);
-            assertOtherPropertiesAreEqual(originalIdp, mirroredIdp.get());
+            final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
+            assertThat(aliasIdp).isPresent();
+            assertIdpReferencesOtherIdp(aliasIdp.get(), originalIdp);
+            assertOtherPropertiesAreEqual(originalIdp, aliasIdp.get());
 
-            // check if aliasId in first IdP is equal to the ID of the mirrored one
-            assertThat(mirroredIdp.get().getId()).isEqualTo(originalIdp.getAliasId());
+            // check if aliasId in first IdP is equal to the ID of the alias IdP
+            assertThat(aliasIdp.get().getId()).isEqualTo(originalIdp.getAliasId());
         }
 
         @Test
@@ -139,16 +139,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         @Test
-        void shouldReject_MirroringNotSupportedForIdpType_UaaToCustomZone() throws Exception {
-            shouldReject_MirroringNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
+        void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
+            shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldReject_MirroringNotSupportedForIdpType_CustomToUaaZone() throws Exception {
-            shouldReject_MirroringNotSupportedForIdpType(customZone, IdentityZone.getUaa());
+        void shouldReject_AliasNotSupportedForIdpType_CustomToUaaZone() throws Exception {
+            shouldReject_AliasNotSupportedForIdpType(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldReject_MirroringNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+        private void shouldReject_AliasNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
             final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
             shouldRejectCreation(zone1, uaaIdp, HttpStatus.UNPROCESSABLE_ENTITY);
         }
@@ -195,7 +195,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             );
             assertThat(createdIdp1).isNotNull();
 
-            // then, create an IdP in zone 2 with the same origin key that should be mirrored to zone 1 -> should fail
+            // then, create an IdP in zone 2 with the same origin key for which an alias in zone 1 should be created -> should fail
             shouldRejectCreation(
                     zone2,
                     buildIdpWithAliasProperties(zone2.getId(), null, zone1.getId(), createdIdp1.getOriginKey(), SAML),
@@ -219,16 +219,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     @Nested
     class Update {
         @Test
-        void shouldAccept_ShouldCreateMirroredIdp_UaaToCustomZone() throws Exception {
-            shouldAccept_ShouldCreateMirroredIdp(IdentityZone.getUaa(), customZone);
+        void shouldAccept_ShouldCreateAliasIdp_UaaToCustomZone() throws Exception {
+            shouldAccept_ShouldCreateAliasIdp(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldAccept_ShouldCreateMirroredIdp_CustomToUaaZone() throws Exception {
-            shouldAccept_ShouldCreateMirroredIdp(customZone, IdentityZone.getUaa());
+        void shouldAccept_ShouldCreateAliasIdp_CustomToUaaZone() throws Exception {
+            shouldAccept_ShouldCreateAliasIdp(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldAccept_ShouldCreateMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+        private void shouldAccept_ShouldCreateAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
             // create regular idp without alias properties in zone 1
             final IdentityProvider<?> existingIdpWithoutAlias = createIdp(
                     zone1,
@@ -244,28 +244,28 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(idpAfterUpdate.getAliasZid()).isNotBlank();
             assertThat(zone2.getId()).isEqualTo(idpAfterUpdate.getAliasZid());
 
-            // read mirrored IdP through alias id in original IdP
+            // read alias IdP through alias id in original IdP
             final String id = idpAfterUpdate.getAliasId();
             final Optional<IdentityProvider<?>> idp = readIdpFromZoneIfExists(zone2.getId(), id);
             assertThat(idp).isPresent();
-            final IdentityProvider<?> mirroredIdp = idp.get();
-            assertIdpReferencesOtherIdp(mirroredIdp, idpAfterUpdate);
-            assertOtherPropertiesAreEqual(idpAfterUpdate, mirroredIdp);
+            final IdentityProvider<?> aliasIdp = idp.get();
+            assertIdpReferencesOtherIdp(aliasIdp, idpAfterUpdate);
+            assertOtherPropertiesAreEqual(idpAfterUpdate, aliasIdp);
         }
 
         @Test
-        void shouldAccept_OtherPropertiesOfAlreadyMirroredIdpAreChanged_UaaToCustomZone() throws Exception {
-            shouldAccept_OtherPropertiesOfAlreadyMirroredIdpAreChanged(IdentityZone.getUaa(), customZone);
+        void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_UaaToCustomZone() throws Exception {
+            shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldAccept_OtherPropertiesOfAlreadyMirroredIdpAreChanged_CustomToUaaZone() throws Exception {
-            shouldAccept_OtherPropertiesOfAlreadyMirroredIdpAreChanged(customZone, IdentityZone.getUaa());
+        void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_CustomToUaaZone() throws Exception {
+            shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldAccept_OtherPropertiesOfAlreadyMirroredIdpAreChanged(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            // create a mirrored IdP
-            final IdentityProvider<?> originalIdp = createMirroredIdp(zone1, zone2);
+        private void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            // create an IdP with an alias
+            final IdentityProvider<?> originalIdp = createIdpWithAlias(zone1, zone2);
 
             // update other property
             final String newName = "new name";
@@ -277,28 +277,28 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(updatedOriginalIdp.getAliasZid()).isEqualTo(zone2.getId());
             assertThat(updatedOriginalIdp.getName()).isNotBlank().isEqualTo(newName);
 
-            // check if the change is propagated to the mirrored IdP
+            // check if the change is propagated to the alias IdP
             final String id = updatedOriginalIdp.getAliasId();
-            final Optional<IdentityProvider<?>> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id);
-            assertThat(mirroredIdp).isPresent();
-            assertIdpReferencesOtherIdp(mirroredIdp.get(), updatedOriginalIdp);
-            assertThat(mirroredIdp.get().getName()).isNotBlank().isEqualTo(newName);
+            final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
+            assertThat(aliasIdp).isPresent();
+            assertIdpReferencesOtherIdp(aliasIdp.get(), updatedOriginalIdp);
+            assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(newName);
         }
 
         @Test
-        void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp_UaaToCustomZone() throws Exception {
-            shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp(IdentityZone.getUaa(), customZone);
+        void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp_UaaToCustomZone() throws Exception {
+            shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp_CustomToUaaZone() throws Exception {
-            shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp(customZone, IdentityZone.getUaa());
+        void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp_CustomToUaaZone() throws Exception {
+            shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final IdentityProvider<?> idp = createMirroredIdp(zone1, zone2);
+        private void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
 
-            // delete the mirrored IdP directly in the DB -> after that, there is a dangling reference
+            // delete the alias IdP directly in the DB -> after that, there is a dangling reference
             deleteIdpViaDb(idp.getOriginKey(), zone2.getId());
 
             // update some other property on the original IdP
@@ -307,39 +307,39 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
             assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
 
-            // check if the new mirrored IdP is present and has the correct properties
+            // check if the new alias IdP is present and has the correct properties
             final String id = updatedIdp.getAliasId();
-            final Optional<IdentityProvider<?>> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), id);
-            assertThat(mirroredIdp).isPresent();
-            assertIdpReferencesOtherIdp(updatedIdp, mirroredIdp.get());
-            assertOtherPropertiesAreEqual(updatedIdp, mirroredIdp.get());
+            final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
+            assertThat(aliasIdp).isPresent();
+            assertIdpReferencesOtherIdp(updatedIdp, aliasIdp.get());
+            assertOtherPropertiesAreEqual(updatedIdp, aliasIdp.get());
         }
 
         @ParameterizedTest
-        @MethodSource("shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp")
-        void shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp_UaaToCustomZone(final String newAliasId, final String newAliasZid) throws Exception {
-            shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp(newAliasId, newAliasZid, IdentityZone.getUaa(), customZone);
+        @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
+        void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_UaaToCustomZone(final String newAliasId, final String newAliasZid) throws Exception {
+            shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, IdentityZone.getUaa(), customZone);
         }
 
         @ParameterizedTest
-        @MethodSource("shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp")
-        void shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp_CustomToUaaZone(final String newAliasId, final String newAliasZid) throws Exception {
-            shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp(newAliasId, newAliasZid, customZone, IdentityZone.getUaa());
+        @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
+        void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_CustomToUaaZone(final String newAliasId, final String newAliasZid) throws Exception {
+            shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, customZone, IdentityZone.getUaa());
         }
 
-        private void shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp(
+        private void shouldReject_ChangingAliasPropertiesOfIdpWithAlias(
                 final String newAliasId,
                 final String newAliasZid,
                 final IdentityZone zone1,
                 final IdentityZone zone2
         ) throws Exception {
-            final IdentityProvider<?> originalIdp = createMirroredIdp(zone1, zone2);
+            final IdentityProvider<?> originalIdp = createIdpWithAlias(zone1, zone2);
             originalIdp.setAliasId(newAliasId);
             originalIdp.setAliasZid(newAliasZid);
             shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
-        private static Stream<Arguments> shouldReject_ChangingAliasPropertiesOfAlreadyMirroredIdp() {
+        private static Stream<Arguments> shouldReject_ChangingAliasPropertiesOfIdpWithAlias() {
             return Stream.of(null, "", "other").flatMap(aliasIdValue ->
                     Stream.of(null, "", "other").map(aliasZidValue ->
                             Arguments.of(aliasIdValue, aliasZidValue)
@@ -365,21 +365,21 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         @Test
-        void shouldReject_MirroringNotSupportedForIdpType_UaaToCustomZone() throws Exception {
-            shouldReject_MirroringNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
+        void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
+            shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldReject_MirroringNotSupportedForIdpType_CustomZone() throws Exception {
-            shouldReject_MirroringNotSupportedForIdpType(customZone, IdentityZone.getUaa());
+        void shouldReject_AliasNotSupportedForIdpType_CustomZone() throws Exception {
+            shouldReject_AliasNotSupportedForIdpType(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldReject_MirroringNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+        private void shouldReject_AliasNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
             final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, null);
             final IdentityProvider<?> createdProvider = createIdp(zone1, uaaIdp);
             assertThat(createdProvider.getAliasZid()).isBlank();
 
-            // try to mirror the IdP -> should fail because of the IdP's type
+            // try to create an alias for the IdP -> should fail because of the IdP's type
             createdProvider.setAliasZid(zone2.getId());
             shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
         }
@@ -415,13 +415,13 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         @Test
-        void shouldReject_IdpInCustomZoneMirroredToOtherCustomZone() throws Exception {
+        void shouldReject_IdpInCustomZone_AliasToOtherCustomZone() throws Exception {
             final IdentityProvider<?> idpInCustomZone = createIdp(
                     customZone,
                     buildSamlIdpWithAliasProperties(customZone.getId(), null, null)
             );
 
-            // try to mirror it to another custom zone
+            // try to create an alias in another custom zone -> should fail
             idpInCustomZone.setAliasZid("not-uaa");
             shouldRejectUpdate(customZone, idpInCustomZone, HttpStatus.UNPROCESSABLE_ENTITY);
         }
@@ -482,17 +482,17 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(idpBeforeUpdateOpt).isPresent();
             final IdentityProvider<?> idpBeforeUpdate = idpBeforeUpdateOpt.get();
 
-            // if alias properties set: read mirrored IdP before update
-            final IdentityProvider<?> mirroredIdpBeforeUpdate;
+            // if alias properties set: read alias IdP before update
+            final IdentityProvider<?> aliasIdpBeforeUpdate;
             if (hasText(idpBeforeUpdate.getAliasId()) && hasText(idpBeforeUpdate.getAliasZid())) {
-                final Optional<IdentityProvider<?>> mirroredIdpBeforeUpdateOpt = readIdpFromZoneIfExists(
+                final Optional<IdentityProvider<?>> aliasIdpBeforeUpdateOpt = readIdpFromZoneIfExists(
                         idpBeforeUpdate.getAliasZid(),
                         idpBeforeUpdate.getAliasId()
                 );
-                assertThat(mirroredIdpBeforeUpdateOpt).isPresent();
-                mirroredIdpBeforeUpdate = mirroredIdpBeforeUpdateOpt.get();
+                assertThat(aliasIdpBeforeUpdateOpt).isPresent();
+                aliasIdpBeforeUpdate = aliasIdpBeforeUpdateOpt.get();
             } else {
-                mirroredIdpBeforeUpdate = null;
+                aliasIdpBeforeUpdate = null;
             }
 
             // perform the update -> should fail
@@ -506,13 +506,13 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             );
             assertThat(idpAfterFailedUpdateOpt).isPresent().contains(idpBeforeUpdate);
 
-            // if a mirrored IdP was present before update, check if it also remains unchanged
-            if (mirroredIdpBeforeUpdate != null) {
-                final Optional<IdentityProvider<?>> mirroredIdpAfterFailedUpdateOpt = readIdpFromZoneIfExists(
+            // if an alias IdP was present before update, check if it also remains unchanged
+            if (aliasIdpBeforeUpdate != null) {
+                final Optional<IdentityProvider<?>> aliasIdpAfterFailedUpdateOpt = readIdpFromZoneIfExists(
                         idpBeforeUpdate.getAliasZid(),
                         idpBeforeUpdate.getAliasId()
                 );
-                assertThat(mirroredIdpAfterFailedUpdateOpt).isPresent().contains(mirroredIdpBeforeUpdate);
+                assertThat(aliasIdpAfterFailedUpdateOpt).isPresent().contains(aliasIdpBeforeUpdate);
             }
         }
     }
@@ -527,17 +527,17 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     @Nested
     class Delete {
         @Test
-        void shouldAlsoDeleteMirroredIdp_UaaToCustomZone() throws Exception {
-            shouldAlsoDeleteMirroredIdp(IdentityZone.getUaa(), customZone);
+        void shouldAlsoDeleteAliasIdp_UaaToCustomZone() throws Exception {
+            shouldAlsoDeleteAliasIdp(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldAlsoDeleteMirroredIdp_CustomToUaaZone() throws Exception {
-            shouldAlsoDeleteMirroredIdp(customZone, IdentityZone.getUaa());
+        void shouldAlsoDeleteAliasIdp_CustomToUaaZone() throws Exception {
+            shouldAlsoDeleteAliasIdp(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldAlsoDeleteMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final IdentityProvider<?> idpInZone1 = createMirroredIdp(zone1, zone2);
+        private void shouldAlsoDeleteAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider<?> idpInZone1 = createIdpWithAlias(zone1, zone2);
             final String id = idpInZone1.getId();
             assertThat(id).isNotBlank();
             final String aliasId = idpInZone1.getAliasId();
@@ -545,11 +545,11 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final String aliasZid = idpInZone1.getAliasZid();
             assertThat(aliasZid).isNotBlank().isEqualTo(zone2.getId());
 
-            // check if mirrored IdP is available in zone 2
-            final Optional<IdentityProvider<?>> mirroredIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
-            assertThat(mirroredIdp).isPresent();
-            assertThat(mirroredIdp.get().getAliasId()).isNotBlank().isEqualTo(id);
-            assertThat(mirroredIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
+            // check if alias IdP is available in zone 2
+            final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
+            assertThat(aliasIdp).isPresent();
+            assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(id);
+            assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
 
             // delete IdP in zone 1
             final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
@@ -560,19 +560,19 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         @Test
-        void shouldIgnoreDanglingReferenceToMirroredIdp_UaaToCustomZone() throws Exception {
-            shouldIgnoreDanglingReferenceToMirroredIdp(IdentityZone.getUaa(), customZone);
+        void shouldIgnoreDanglingReferenceToAliasIdp_UaaToCustomZone() throws Exception {
+            shouldIgnoreDanglingReferenceToAliasIdp(IdentityZone.getUaa(), customZone);
         }
 
         @Test
-        void shouldIgnoreDanglingReferenceToMirroredIdp_CustomToUaaZone() throws Exception {
-            shouldIgnoreDanglingReferenceToMirroredIdp(customZone, IdentityZone.getUaa());
+        void shouldIgnoreDanglingReferenceToAliasIdp_CustomToUaaZone() throws Exception {
+            shouldIgnoreDanglingReferenceToAliasIdp(customZone, IdentityZone.getUaa());
         }
 
-        private void shouldIgnoreDanglingReferenceToMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            final IdentityProvider<?> originalIdp = createMirroredIdp(zone1, zone2);
+        private void shouldIgnoreDanglingReferenceToAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            final IdentityProvider<?> originalIdp = createIdpWithAlias(zone1, zone2);
 
-            // create a dangling reference by deleting the mirrored IdP directly in the DB
+            // create a dangling reference by deleting the alias IdP directly in the DB
             deleteIdpViaDb(originalIdp.getOriginKey(), zone2.getId());
 
             // delete the original IdP -> dangling reference should be ignored
@@ -604,21 +604,21 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         assertThat(referencedIdp.getIdentityZoneId()).isNotBlank().isEqualTo(idp.getAliasZid());
     }
 
-    private void assertOtherPropertiesAreEqual(final IdentityProvider<?> idp, final IdentityProvider<?> mirroredIdp) {
+    private void assertOtherPropertiesAreEqual(final IdentityProvider<?> idp, final IdentityProvider<?> aliasIdp) {
         // apart from the zone ID, the configs should be identical
         final SamlIdentityProviderDefinition originalIdpConfig = (SamlIdentityProviderDefinition) idp.getConfig();
         originalIdpConfig.setZoneId(null);
-        final SamlIdentityProviderDefinition mirroredIdpConfig = (SamlIdentityProviderDefinition) mirroredIdp.getConfig();
-        mirroredIdpConfig.setZoneId(null);
-        assertThat(mirroredIdpConfig).isEqualTo(originalIdpConfig);
+        final SamlIdentityProviderDefinition aliasIdpConfig = (SamlIdentityProviderDefinition) aliasIdp.getConfig();
+        aliasIdpConfig.setZoneId(null);
+        assertThat(aliasIdpConfig).isEqualTo(originalIdpConfig);
 
         // check if remaining properties are equal
-        assertThat(mirroredIdp.getOriginKey()).isEqualTo(idp.getOriginKey());
-        assertThat(mirroredIdp.getName()).isEqualTo(idp.getName());
-        assertThat(mirroredIdp.getType()).isEqualTo(idp.getType());
+        assertThat(aliasIdp.getOriginKey()).isEqualTo(idp.getOriginKey());
+        assertThat(aliasIdp.getName()).isEqualTo(idp.getName());
+        assertThat(aliasIdp.getType()).isEqualTo(idp.getType());
     }
 
-    private IdentityProvider<?> createMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+    private IdentityProvider<?> createIdpWithAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
         final IdentityProvider<?> provider = buildSamlIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
         final IdentityProvider<?> createdOriginalIdp = createIdp(zone1, provider);
         assertThat(createdOriginalIdp.getAliasId()).isNotBlank();
