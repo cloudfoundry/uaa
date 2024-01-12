@@ -129,8 +129,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             " Defaults to `null`. " +
             "Only supported for identity providers of type \"" + SAML + "\", \"" + OIDC10 + "\" and \"" + OAUTH20 + "\". " +
             "If set, the field must reference an existing identity zone that is different to the one referenced in `" + FIELD_IDENTITY_ZONE_ID + "`. " +
-            "Alias identity providers can only be created from or to the \"uaa\" identity zone, i.e., one of `" + FIELD_IDENTITY_ZONE_ID + "` or `" + FIELD_ALIAS_ZID + "` must be set to \"uaa\". " +
-            "If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `" + FIELD_ALIAS_ID + "` is set accordingly. ";
+            "Alias identity providers can only be created from or to the \"uaa\" identity zone, i.e., one of `" + FIELD_IDENTITY_ZONE_ID + "` or `" + FIELD_ALIAS_ZID + "` must be set to \"uaa\".";
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
     private static final FieldDescriptor ATTRIBUTE_MAPPING = fieldWithPath("config.attributeMappings").optional(null).type(OBJECT).description("Map external attribute to UAA recognized mappings.");
@@ -195,7 +194,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             fieldWithPath(FIELD_ALIAS_ZID)
                     .attributes(key("constraints").value("Optional"))
                     .optional().type(STRING)
-                    .description(ALIAS_ZID_DESC_CREATE)
+                    .description(ALIAS_ZID_DESC_CREATE + " If set, an alias identity provider is created in the referenced zone and `\" + FIELD_ALIAS_ID + \"` is set accordingly.")
     };
 
     private static final FieldDescriptor[] ALIAS_FIELDS_LDAP_CREATE = {
@@ -217,7 +216,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             fieldWithPath(FIELD_ALIAS_ZID)
                     .attributes(key("constraints").value("Optional"))
                     .optional().type(STRING)
-                    .description(ALIAS_ZID_DESC_CREATE + " If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
+                    .description(ALIAS_ZID_DESC_CREATE + " If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `\" + FIELD_ALIAS_ID + \"` is set accordingly. " +
+                    "If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
     };
 
     private FieldDescriptor[] attributeMappingFields = {
