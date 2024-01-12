@@ -79,8 +79,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final String FAMILY_NAME_DESC = "Map `family_name` to the attribute for family name in the provider assertion or token.";
     private static final String PHONE_NUMBER_DESC = "Map `phone_number` to the attribute for phone number in the provider assertion or token.";
     private static final String GIVEN_NAME_DESC = "Map `given_name` to the attribute for given name in the provider assertion or token.";
-    private static final String ALIAS_ID_DESC = "The ID of the mirrored IdP";
-    private static final String ALIAS_ZID_DESC = "The ID of the identity zone to which this IdP should be mirrored";
+    private static final String ALIAS_ID_DESC = "The ID of the alias IdP";
+    private static final String ALIAS_ZID_DESC = "The ID of the identity zone in which an alias of this IdP should be maintained";
 
     private static final FieldDescriptor STORE_CUSTOM_ATTRIBUTES = fieldWithPath("config.storeCustomAttributes").optional(true).type(BOOLEAN).description("Set to true, to store custom user attributes to be fetched from the /userinfo endpoint");
     private static final FieldDescriptor SKIP_SSL_VALIDATION = fieldWithPath("config.skipSslValidation").optional(false).type(BOOLEAN).description("Set to true, to skip SSL validation when fetching metadata.");
