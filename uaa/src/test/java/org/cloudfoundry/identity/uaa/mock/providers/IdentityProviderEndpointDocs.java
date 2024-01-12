@@ -151,8 +151,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final FieldDescriptor ID = fieldWithPath("id").type(STRING).description(ID_DESC);
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
-    private static final FieldDescriptor ALIAS_ID = fieldWithPath(FIELD_ALIAS_ID).attributes(key("constraints").value("Optional")).optional().type(STRING);
-    private static final FieldDescriptor ALIAS_ZID = fieldWithPath(FIELD_ALIAS_ZID).attributes(key("constraints").value("Optional")).optional().type(STRING);
     private static final FieldDescriptor GROUP_WHITELIST = fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("JSON Array containing the groups names which need to be populated in the user's `id_token` or response from `/userinfo` endpoint. If you don't specify the whitelist no groups will be populated in the `id_token` or `/userinfo` response." +
             "<br>Please note that regex is allowed. Acceptable patterns are" +
             "<ul><li>    `*` translates to all groups </li>" +
@@ -179,23 +177,47 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     };
 
     private static final FieldDescriptor[] ALIAS_FIELDS_GET = {
-            ALIAS_ID.description(ALIAS_ID_DESC),
-            ALIAS_ZID.description(ALIAS_ZID_DESC)
+            fieldWithPath(FIELD_ALIAS_ID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ID_DESC),
+            fieldWithPath(FIELD_ALIAS_ZID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ZID_DESC)
     };
 
     private static final FieldDescriptor[] ALIAS_FIELDS_CREATE = {
-            ALIAS_ID.description(ALIAS_ID_DESC + " Must be set to `null`."),
-            ALIAS_ZID.description(ALIAS_ZID_DESC_CREATE)
+            fieldWithPath(FIELD_ALIAS_ID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ID_DESC + " Must be set to `null`."),
+            fieldWithPath(FIELD_ALIAS_ZID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ZID_DESC_CREATE)
     };
 
     private static final FieldDescriptor[] ALIAS_FIELDS_LDAP_CREATE = {
-            ALIAS_ID.description(ALIAS_ID_DESC + " Must be set to `null`, since alias identity providers are not supported for LDAP."),
-            ALIAS_ZID.description(ALIAS_ZID_DESC + " Must be set to `null`, since alias identity providers are not supported for LDAP.")
+            fieldWithPath(FIELD_ALIAS_ID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ID_DESC + " Must be set to `null`, since alias identity providers are not supported for LDAP."),
+            fieldWithPath(FIELD_ALIAS_ZID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ZID_DESC + " Must be set to `null`, since alias identity providers are not supported for LDAP.")
     };
 
     private static final FieldDescriptor[] ALIAS_FIELDS_UPDATE = {
-            ALIAS_ID.description(ALIAS_ID_DESC + " The `" + FIELD_ALIAS_ID + "` value of the existing identity provider must be left unchanged."),
-            ALIAS_ZID.description(ALIAS_ZID_DESC_CREATE + " If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
+            fieldWithPath(FIELD_ALIAS_ID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ID_DESC + " The `" + FIELD_ALIAS_ID + "` value of the existing identity provider must be left unchanged."),
+            fieldWithPath(FIELD_ALIAS_ZID)
+                    .attributes(key("constraints").value("Optional"))
+                    .optional().type(STRING)
+                    .description(ALIAS_ZID_DESC_CREATE + " If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
     };
 
     private FieldDescriptor[] attributeMappingFields = {
@@ -889,7 +911,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].name").description(NAME_DESC),
                 fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
                 fieldWithPath("[]." + FIELD_ALIAS_ID).description(ALIAS_ID_DESC),
-                fieldWithPath("[]." + FIELD_ALIAS_ZID).description(ALIAS_ZID),
+                fieldWithPath("[]." + FIELD_ALIAS_ZID).description(fieldWithPath(FIELD_ALIAS_ZID).attributes(key("constraints").value("Optional")).optional().type(STRING)),
 
                 fieldWithPath("[].version").description(VERSION_DESC),
                 fieldWithPath("[].active").description(ACTIVE_DESC),
