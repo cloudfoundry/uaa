@@ -188,14 +188,14 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldReject_IdpWithOriginAlreadyExistsInAliasZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            // create IdP with origin key in custom zone
+            // create IdP with origin key in zone 1
             final IdentityProvider<?> createdIdp1 = createIdp(
                     zone1,
                     buildSamlIdpWithAliasProperties(zone1.getId(), null, null)
             );
             assertThat(createdIdp1).isNotNull();
 
-            // then, create an IdP in the "uaa" zone with the same origin key that should be mirrored to the custom zone
+            // then, create an IdP in zone 2 with the same origin key that should be mirrored to zone 1 -> should fail
             shouldRejectCreation(
                     zone2,
                     buildIdpWithAliasProperties(zone2.getId(), null, zone1.getId(), createdIdp1.getOriginKey(), SAML),
@@ -229,7 +229,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
 
         private void shouldAccept_ShouldCreateMirroredIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-            // create regular idp without alias properties in UAA zone
+            // create regular idp without alias properties in zone 1
             final IdentityProvider<?> existingIdpWithoutAlias = createIdp(
                     zone1,
                     buildSamlIdpWithAliasProperties(zone1.getId(), null, null)

@@ -152,9 +152,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             createdIdp = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
-                createdOriginalIdp.setSerializeConfigRaw(rawConfig);
-                redactSensitiveData(createdOriginalIdp);
-
                 return ensureConsistencyOfMirroredIdp(createdOriginalIdp);
             });
         } catch (final IdpAlreadyExistsException e) {
@@ -163,6 +160,16 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             logger.warn("Unable to create IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
+        if (createdIdp == null) {
+            logger.warn(
+                    "IdentityProvider[origin={}; zone={}] - Transaction creating IdP and mirrored IdP was not successful, but no exception was thrown.",
+                    getCleanedUserControlString(body.getOriginKey()),
+                    getCleanedUserControlString(body.getIdentityZoneId())
+            );
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+        }
+        createdIdp.setSerializeConfigRaw(rawConfig);
+        redactSensitiveData(createdIdp);
 
         return new ResponseEntity<>(createdIdp, CREATED);
     }
