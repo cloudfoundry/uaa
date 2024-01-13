@@ -169,7 +169,7 @@ public class RefreshTokenCreator {
         return getActiveTokenPolicy().isRefreshTokenRotate();
     }
 
-    private HashMap<String, Object> getRefreshedTokenMap(Claims claims) {
+    private Map<String, Object> getRefreshedTokenMap(Claims claims) {
         claims.setJti(UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
         return claims.getClaimObject();
     }

@@ -368,7 +368,7 @@ public class Claims {
     }
 
     @JsonIgnore
-    public HashMap<String, Object> getClaimObject() {
+    public Map<String, Object> getClaimObject() {
         return JsonUtils.convertValue(this, HashMap.class);
     }
 }
