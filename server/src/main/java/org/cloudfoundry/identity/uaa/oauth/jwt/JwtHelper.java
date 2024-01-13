@@ -38,6 +38,7 @@ import java.security.cert.X509Certificate;
 import java.text.ParseException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Luke Taylor
@@ -166,15 +167,11 @@ class JwtImpl implements Jwt {
         this.parsedJwtObject = null;
         this.content = null;
         try {
-            this.claimsSet = JWTClaimsSet.parse(payLoad);
+            this.claimsSet = JWTClaimsSet.parse(Optional.ofNullable(payLoad).orElseThrow(() -> new JOSEException("Payload null")));
             JWSHeader joseHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
-            if (signature != null) {
-                SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
-                signedJWT.sign(signature);
-                signedJwtObject = signedJWT;
-            } else {
-                signedJwtObject = null;
-            }
+            SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
+            signedJWT.sign(signature);
+            signedJwtObject = signedJWT;
         } catch (ParseException | JOSEException e) {
             throw new InvalidTokenException(INVALID_TOKEN, e);
         }

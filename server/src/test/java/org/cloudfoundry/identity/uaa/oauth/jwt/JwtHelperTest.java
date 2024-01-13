@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -98,5 +100,16 @@ public class JwtHelperTest {
     @Test
     public void testLegacyHmacFailed() {
         assertThrows(InvalidSignatureException.class, () -> UaaMacSigner.verify("x", null));
+    }
+
+    @Test
+    public void testJwtInvalidPayload() {
+        assertThrows(InvalidTokenException.class, () -> JwtHelper.encode(null, keyInfo));
+    }
+
+    @Test
+    public void testJwtInvalidContent() {
+        assertThrows(InvalidTokenException.class, () -> JwtHelper.decode("invalid"));
+        assertThrows(InsufficientAuthenticationException.class, () -> JwtHelper.decode(""));
     }
 }

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.text.ParseException;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IntrospectionClaimsTest {
@@ -36,5 +37,6 @@ class IntrospectionClaimsTest {
   @Test
   void testSerialize() {
     assertTrue(JsonUtils.writeValueAsString(INTROSPECTION_PAYLOAD).contains(TokenConstants.CLIENT_AUTH_NONE));
+    assertNotNull(INTROSPECTION_PAYLOAD.getClaimObject());
   }
 }
