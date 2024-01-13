@@ -3955,7 +3955,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         body = doRefreshGrant(refreshToken, clientId, SECRET, status().isOk()).getResponse().getContentAsString();
         CompositeToken tokenResponse = JsonUtils.readValue(body, CompositeToken.class);
-        Map<String, Object> claims = UaaTokenUtils.getClaims(tokenResponse.getValue());
+        Map<String, Object> claims = UaaTokenUtils.getClaims(tokenResponse.getValue(), Map.class);
 
         assertThat(claims.get(JTI).toString(), not(endsWith("-r")));
     }

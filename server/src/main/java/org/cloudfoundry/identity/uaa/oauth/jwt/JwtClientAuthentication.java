@@ -41,8 +41,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getMapFromClaims;
-
 public class JwtClientAuthentication {
 
   public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
@@ -81,7 +79,7 @@ public class JwtClientAuthentication {
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
     KeyInfo signingKeyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
     return signingKeyInfo.verifierCertificate().isPresent() ?
-        JwtHelper.encodePlusX5t(getMapFromClaims(claims), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
+        JwtHelper.encodePlusX5t(claims.getClaimObject(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
         JwtHelper.encode(claims.getClaimObject(), signingKeyInfo).getEncoded();
   }
 
