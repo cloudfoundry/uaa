@@ -46,6 +46,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Optional.ofNullable;
@@ -266,6 +267,15 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             //validator require id to be present
             body.setId(id);
             body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
+
+            UserConfig userConfig = body.getConfig().getUserConfig();
+            if (!userConfig.allGroupsAllowed()) {
+                Set<String> allowedGroups = userConfig.resultingAllowedGroups();
+                // check for groups which would be not allowed after the update
+                if(groupProvisioning.retrieveAll(body.getId()).stream().anyMatch(g -> !allowedGroups.contains(g.getDisplayName()))) {
+                    throw new UnprocessableEntityException("The identity zone user configuration contains not-allowed groups.");
+                }
+            }
 
             logger.debug("Zone - updating id[{}] subdomain[{}]",
                 UaaStringUtils.getCleanedUserControlString(id),

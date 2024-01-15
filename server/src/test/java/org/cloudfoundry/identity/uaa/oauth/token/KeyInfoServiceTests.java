@@ -65,9 +65,6 @@ class KeyInfoServiceTests {
         KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
-
-        byte[] signedValue = key.getSigner().sign("joel".getBytes());
-        key.getVerifier().verify("joel".getBytes(), signedValue);
     }
 
     @Test
@@ -92,9 +89,6 @@ class KeyInfoServiceTests {
         KeyInfo key = keyInfoService.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
-
-        byte[] signedValue = key.getSigner().sign("joel".getBytes());
-        key.getVerifier().verify("joel".getBytes(), signedValue);
     }
 
     @Test

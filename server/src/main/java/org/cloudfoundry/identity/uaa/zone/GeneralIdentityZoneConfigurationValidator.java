@@ -74,6 +74,8 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedOrigins(), "config.corsPolicy.xhrConfiguration.allowedOrigins");
             validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedUris(), "config.corsPolicy.defaultConfiguration.allowedUris");
             validateRegexStrings(config.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins(), "config.corsPolicy.defaultConfiguration.allowedOrigins");
+
+            UserConfigValidator.validate(config.getUserConfig());
         }
 
         if (config.getBranding() != null && config.getBranding().getConsent() != null) {

@@ -112,6 +112,7 @@
     <bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
         <property name="jdbcScimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <property name="jdbcScimGroupMembershipManager" ref="groupMembershipManager"/>
+        <property name="jdbcIdentityZoneProvisioning" ref="identityZoneProvisioning"/>
     </bean>
 
     <bean id="groupMembershipManager"

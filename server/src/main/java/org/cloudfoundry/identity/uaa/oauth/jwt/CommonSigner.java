@@ -14,53 +14,62 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.jca.JCAContext;
+import com.nimbusds.jose.util.Base64URL;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+
+import java.util.Optional;
+import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 
 public class CommonSigner implements Signer {
-    private final org.springframework.security.jwt.crypto.sign.Signer delegate;
+
+    private final JWSSigner delegate;
+    private final String algorithm;
     private final String keyId;
     private String keyURL;
 
     public CommonSigner(String keyId, String signingKey, String keyURL) {
         if (signingKey == null) {
             throw new IllegalArgumentException(signingKey);
-        } else if (isAsymmetricKey(signingKey)) {
-            delegate = new RsaSigner(signingKey);
-        } else {
-            delegate = new MacSigner(signingKey);
         }
-
+        KeyInfo keyInfo = new KeyInfo(keyId, signingKey, Optional.ofNullable(keyURL).orElse(DEFAULT_UAA_URL));
+        this.delegate = keyInfo.getSigner();
         this.keyId = keyId;
         this.keyURL = keyURL;
+        this.algorithm = keyInfo.algorithm();
     }
 
-
-    private static boolean isAsymmetricKey(String key) {
-        return key.startsWith("-----BEGIN");
-    }
-
-    @Override
     public String keyId() {
         return keyId;
     }
 
-    @Override
+
     public String keyURL() {
         return keyURL;
     }
 
-    @Override
-    public byte[] sign(byte[] bytes) {
-        return delegate.sign(bytes);
-    }
-
-    @Override
     public String algorithm() {
-        return JwtAlgorithms.sigAlg(delegate.algorithm());
+        return JwtAlgorithms.sigAlg(algorithm);
     }
 
-    public String getJavaAlgorithm() {
-        return delegate.algorithm();
+    @Override
+    public Base64URL sign(JWSHeader header, byte[] signingInput) throws JOSEException {
+        return delegate.sign(header, signingInput);
+    }
+
+    @Override
+    public Set<JWSAlgorithm> supportedJWSAlgorithms() {
+        return delegate.supportedJWSAlgorithms();
+    }
+
+    @Override
+    public JCAContext getJCAContext() {
+        return delegate.getJCAContext();
     }
 }

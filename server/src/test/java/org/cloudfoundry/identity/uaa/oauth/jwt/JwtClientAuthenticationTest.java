@@ -1,7 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.jwk.JWK;
+import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.X509CertUtils;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
@@ -26,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,7 +54,7 @@ class JwtClientAuthenticationTest {
   private JwtClientAuthentication jwtClientAuthentication;
 
   @BeforeEach
-  void setup() throws MalformedURLException {
+  void setup() throws MalformedURLException, JOSEException {
     jwtClientAuthentication = new JwtClientAuthentication(keyInfoService);
     config = new OIDCIdentityProviderDefinition();
     config.setTokenUrl(new URL("http://localhost:8080/uaa/oauth/token"));
@@ -159,7 +164,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionCustomSingingKey() throws ParseException {
+  void testGetClientAssertionCustomSingingKey() throws ParseException, JOSEException {
     // Given
     mockKeyInfoService("myKey", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
@@ -179,7 +184,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionCustomSingingKeyButNoCertificate() throws ParseException {
+  void testGetClientAssertionCustomSingingKeyButNoCertificate() throws ParseException, JOSEException {
     // Given
     mockKeyInfoService("myKey", null);
     HashMap customClaims = new HashMap<>();
@@ -287,9 +292,9 @@ class JwtClientAuthenticationTest {
     assertThrows(BadCredentialsException.class, () -> jwtClientAuthentication.getClientId("eyXXX"));
   }
 
-  private void mockKeyInfoService(String keyId, String x509Certificate) {
+  private void mockKeyInfoService(String keyId, String x509Certificate) throws JOSEException {
     KeyInfo keyInfo = mock(KeyInfo.class);
-    Signer signer = mock(Signer.class);
+    JWSSigner signer = mock(JWSSigner.class);
     if (keyId != null) {
       KeyInfo customKeyInfo = mock(KeyInfo.class);
       when(customKeyInfo.keyId()).thenReturn(keyId);
@@ -306,7 +311,8 @@ class JwtClientAuthenticationTest {
     when(keyInfo.keyURL()).thenReturn("http://localhost:8080/uaa/token_key");
     when(keyInfo.getSigner()).thenReturn(signer);
     when(keyInfo.verifierCertificate()).thenReturn(x509Certificate != null ? Optional.of(X509CertUtils.parse(x509Certificate)): Optional.of(X509CertUtils.parse(JwtHelperX5tTest.CERTIFICATE_1)));
-    when(signer.sign(any())).thenReturn("dummy".getBytes());
+    when(signer.supportedJWSAlgorithms()).thenReturn(Set.of(JWSAlgorithm.RS256));
+    when(signer.sign(any(), any())).thenReturn(new Base64URL("dummy"));
   }
 
   private static JWSHeader getJwtHeader(String jwtString) throws ParseException {

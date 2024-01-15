@@ -10,11 +10,14 @@ import org.junit.jupiter.params.provider.ArgumentsSource;
 
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 
 class IdentityZoneTest {
 
@@ -124,8 +127,16 @@ class IdentityZoneTest {
 
     @Test
     void deserialize() {
-        final String sampleIdentityZone = getResourceAsString(getClass(), "SampleIdentityZone.json");
-
-        JsonUtils.readValue(sampleIdentityZone, IdentityZone.class);
+        final String sampleIdentityZoneJson = getResourceAsString(getClass(), "SampleIdentityZone.json");
+        IdentityZone sampleIdentityZone = JsonUtils.readValue(sampleIdentityZoneJson, IdentityZone.class);
+        assertEquals("f7758816-ab47-48d9-9d24-25b10b92d4cc", sampleIdentityZone.getId());
+        assertEquals("demo", sampleIdentityZone.getSubdomain());
+        assertEquals(List.of("openid", "password.write", "uaa.user", "approvals.me",
+                            "profile", "roles", "user_attributes", "uaa.offline_token"),
+                            sampleIdentityZone.getConfig().getUserConfig().getDefaultGroups());
+        assertEquals(Set.of("openid", "password.write", "uaa.user", "approvals.me",
+                            "profile", "roles", "user_attributes", "uaa.offline_token",
+                            "scim.me", "cloud_controller.user"),
+                            sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups());
     }
 }

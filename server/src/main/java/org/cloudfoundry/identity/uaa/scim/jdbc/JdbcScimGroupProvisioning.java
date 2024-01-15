@@ -13,6 +13,9 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.getSystemScopes;
@@ -66,6 +70,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     private JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager;
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+    private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
 
     public JdbcScimGroupProvisioning(
             final JdbcTemplate jdbcTemplate,
@@ -153,10 +158,15 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         this.jdbcScimGroupMembershipManager = jdbcScimGroupMembershipManager;
     }
 
+    public void setJdbcIdentityZoneProvisioning(JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning) {
+        this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
+    }
+
     void createAndIgnoreDuplicate(final String name, final String zoneId) {
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
         } catch (ScimResourceAlreadyExistsException ignore) {
+            // ignore
         }
     }
 
@@ -185,14 +195,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public void onApplicationEvent(AbstractUaaEvent event) {
-        if (event instanceof IdentityZoneModifiedEvent) {
-            IdentityZoneModifiedEvent zevent = (IdentityZoneModifiedEvent) event;
-            if (zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
-                final String zoneId = ((IdentityZone) event.getSource()).getId();
-                getSystemScopes().forEach(
-                        scope -> createAndIgnoreDuplicate(scope, zoneId)
-                );
-            }
+        if (event instanceof IdentityZoneModifiedEvent zevent && zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
+            final String zoneId = ((IdentityZone) event.getSource()).getId();
+            getSystemScopes().forEach(
+                    scope -> createAndIgnoreDuplicate(scope, zoneId)
+            );
         }
         SystemDeletable.super.onApplicationEvent(event);
     }
@@ -222,10 +229,26 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         }
     }
 
+    @SuppressWarnings("java:S1874")
+    private Set<String> getAllowedUserGroups(String zoneId) {
+        Set<String> zoneAllowedGroups = null; // default: all groups allowed
+        try {
+            IdentityZone currentZone = IdentityZoneHolder.get();
+            zoneAllowedGroups = (currentZone.getId().equals(zoneId)) ?
+                currentZone.getConfig().getUserConfig().resultingAllowedGroups() :
+                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().resultingAllowedGroups();
+        } catch (ZoneDoesNotExistsException e) {
+            logger.debug("could not retrieve identity zone with id: {}", zoneId);
+        }
+        return zoneAllowedGroups;
+    }
+
     @Override
     public ScimGroup create(final ScimGroup group, final String zoneId) throws InvalidScimResourceException {
+        validateZoneId(zoneId);
+        validateAllowedUserGroups(zoneId, group);
         final String id = UUID.randomUUID().toString();
-        logger.debug("creating new group with id: " + id);
+        logger.debug("creating new group with id: {}", id);
         try {
             validateGroup(group);
             jdbcTemplate.update(addGroupSql, ps -> {
@@ -248,7 +271,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup update(final String id, final ScimGroup group, final String zoneId) throws InvalidScimResourceException,
             ScimResourceNotFoundException {
+        validateAllowedUserGroups(zoneId, group);
         try {
+            validateZoneId(zoneId);
             validateGroup(group);
 
             int updated = jdbcTemplate.update(updateGroupSql, ps -> {
@@ -273,6 +298,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public ScimGroup delete(String id, int version, String zoneId) throws ScimResourceNotFoundException {
+        validateZoneId(zoneId);
         ScimGroup group = retrieve(id, zoneId);
         jdbcScimGroupMembershipManager.removeMembersByGroupId(id, zoneId);
         jdbcScimGroupExternalMembershipManager.unmapAll(id, zoneId);
@@ -288,6 +314,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return group;
     }
 
+    @Override
     public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(deleteZoneAdminMembershipByZone, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
         jdbcTemplate.update(deleteZoneAdminGroupsByZone, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
@@ -296,6 +323,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return jdbcTemplate.update(deleteGroupByZone, zoneId);
     }
 
+    @Override
     public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(deleteExternalGroupByProvider, zoneId, origin);
         return jdbcTemplate.update(deleteGroupMembershipByProvider, zoneId, origin);
@@ -307,7 +335,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     }
 
     private void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
-        if (!hasText(group.getZoneId())) {
+        validateZoneId(group.getZoneId());
+    }
+
+    private void validateZoneId(String zoneId) throws ScimResourceConstraintFailedException {
+        if (!hasText(zoneId)) {
             throw new ScimResourceConstraintFailedException("zoneId is a required field");
         }
     }
@@ -315,6 +347,14 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
         super.validateOrderBy(orderBy, GROUP_FIELDS);
+    }
+
+    private void validateAllowedUserGroups(String zoneId, ScimGroup group) {
+        Set<String> allowedGroups = getAllowedUserGroups(zoneId);
+        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
+            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
+                + " is not allowed in Identity Zone " + zoneId);
+        }
     }
 
 }

@@ -26,13 +26,14 @@ import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
-class CommonSignatureVerifierTest {
+class SignatureVerifierTest {
 
     @Test
     void null_is_not_an_acceptable_key() {
-        assertThrows(IllegalArgumentException.class, () -> new CommonSignatureVerifier(null));
+        assertThrows(IllegalArgumentException.class, () -> new SignatureVerifier(null));
     }
 
     @ParameterizedTest
@@ -47,9 +48,25 @@ class CommonSignatureVerifierTest {
         key.put(JWKParameterNames.KEY_TYPE, "RSA");
         key.put("value", value);
         JsonWebKey jsonWebKey = new JsonWebKey(key);
-        CommonSignatureVerifier cs = new CommonSignatureVerifier(jsonWebKey);
+        SignatureVerifier cs = new SignatureVerifier(jsonWebKey);
         assertNotNull(cs);
-        assertEquals("SHA256withRSA", cs.algorithm());
+        assertEquals("RS256", cs.algorithm());
+        assertEquals(1, cs.getJwkSet().size());
+        assertNull(cs.getJwkSet().getKeys().get(0).getAlgorithm());
+    }
+
+    @Test
+    void testGetHmacKeyFromConfig() {
+        HashMap key = new HashMap();
+        key.put(JWKParameterNames.KEY_TYPE, "MAC");
+        key.put(JWKParameterNames.KEY_ID, "legacy-token-key");
+        key.put("value", "tokenKey");
+        JsonWebKey jsonWebKey = new JsonWebKey(key);
+        SignatureVerifier cs = new SignatureVerifier(jsonWebKey);
+        assertNotNull(cs);
+        assertEquals("HS256", cs.algorithm());
+        assertEquals(1, cs.getJwkSet().size());
+        assertEquals("HS256", cs.getJwkSet().getKeys().get(0).getAlgorithm().getName());
     }
 
     @Test
@@ -58,6 +75,6 @@ class CommonSignatureVerifierTest {
         key.put(JWKParameterNames.KEY_TYPE, "RSA");
         key.put("value", "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxMi4Z4");
         JsonWebKey jsonWebKey = new JsonWebKey(key);
-        assertThrows(IllegalArgumentException.class, () -> new CommonSignatureVerifier(jsonWebKey));
+        assertThrows(IllegalArgumentException.class, () -> new SignatureVerifier(jsonWebKey));
     }
 }

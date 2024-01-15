@@ -6,8 +6,13 @@ import org.junit.jupiter.api.Test;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 class ObjectUtilsTest {
 
@@ -32,5 +37,12 @@ class ObjectUtilsTest {
     assertEquals(false, builder.isValidating());
     assertEquals(true, builder.isNamespaceAware());
     assertEquals(false, builder.isXIncludeAware());
+  }
+
+  @Test
+  void isNotExmpty() {
+    assertTrue(ObjectUtils.isNotEmpty(Arrays.asList("1")));
+    assertFalse(ObjectUtils.isNotEmpty(new ArrayList<>()));
+    assertFalse(ObjectUtils.isNotEmpty(null));
   }
 }

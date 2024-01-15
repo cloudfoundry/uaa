@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
@@ -55,7 +56,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -191,8 +191,8 @@ public class TokenTestSupport {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         tokenPolicy = new TokenPolicy(accessTokenValidity, refreshTokenValidity);
         Map<String, String> keys = new HashMap<>();
-        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6");
-        keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
+        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6210");
+        keys.put("otherKey", "unc0uf98gv89egh4v98749978hvy52oa");
         tokenPolicy.setKeys(keys);
         tokenPolicy.setActiveKeyId("testKey");
         config.setTokenPolicy(tokenPolicy);
@@ -304,6 +304,9 @@ public class TokenTestSupport {
         tokenServices.setUaaTokenEnhancer(tokenEnhancer);
 
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(
+            new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
+        );
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(
             new LinkedList<>(AuthorityUtils.authorityListToSet(USER_AUTHORITIES))
         );
     }

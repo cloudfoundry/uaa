@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
+import com.nimbusds.jose.util.Base64URL;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
-import org.springframework.security.jwt.codec.Codecs;
 
 public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
     protected enum Section {
@@ -116,8 +116,7 @@ public abstract class CredentialIdTypeAbstractJWT implements CredentialIdType {
     @SuppressWarnings("deprecation")
     static String decodeSection( String section, Object toStringForException ) {
         try {
-            byte[] bytes = Codecs.b64UrlDecode( section );
-            return Codecs.utf8Decode( bytes );
+            return new Base64URL( section ).decodeToString();
         }
         catch ( RuntimeException e ) {
             throw new RateLimitingConfigException(

@@ -12,6 +12,12 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-public interface Jwt extends org.springframework.security.jwt.Jwt {
+import com.nimbusds.jwt.JWTClaimsSet;
+
+public interface Jwt {
+    String getClaims();
+    JWTClaimsSet getClaimSet();
+    String getEncoded();
+    void verifySignature(Verifier verifier);
     HeaderParameters getHeader();
 }

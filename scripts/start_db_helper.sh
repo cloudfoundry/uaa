@@ -18,7 +18,7 @@ function bootDB {
   if [[ "${db}" = "postgresql" ]]; then
     bootLogLocation="/var/log/postgres-boot.log"
     launchDB="(POSTGRES_HOST_AUTH_METHOD=trust docker-entrypoint.sh postgres -c 'max_connections=250' &> ${bootLogLocation}) &"
-    testConnection="(! ps aux | grep docker-entrypoint | grep -v 'grep') && psql -h localhost -U postgres -c '\conninfo' &>/dev/null"
+    testConnection="psql -h localhost -U postgres -c '\conninfo' &>/dev/null"
     initDB="psql -c 'drop database if exists uaa;' -U postgres; psql -c 'create database uaa;' -U postgres; psql -c 'drop user if exists root;' --dbname=uaa -U postgres; psql -c \"create user root with superuser password 'changeme';\" --dbname=uaa -U postgres; psql -c 'show max_connections;' --dbname=uaa -U postgres;"
 
     function createDB() {

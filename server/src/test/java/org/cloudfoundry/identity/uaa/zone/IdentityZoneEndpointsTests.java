@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
@@ -15,9 +16,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.validation.BindingResult;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -131,6 +135,38 @@ class IdentityZoneEndpointsTests {
             assertNotNull(value.getPassphrase());
         });
 
+    }
+
+    @Test
+    void extend_zone_allowed_groups_on_update() throws InvalidIdentityZoneDetailsException {
+        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
+
+        IdentityZoneEndpoints spy = Mockito.spy(endpoints);
+        identityZone = createZone();
+        identityZone.getConfig().getUserConfig().setAllowedGroups(List.of("sps.write", "sps.read", "idps.write", "idps.read"));
+        when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(identityZone.getId())).thenReturn(identityZone);
+        when(mockIdentityZoneProvisioning.update(same(identityZone))).thenReturn(identityZone);
+        List<ScimGroup> existingScimGroups = List.of("sps.write", "sps.read").stream().
+            map(e -> new ScimGroup(e, e, identityZone.getId())).collect(Collectors.toList());
+        when(mockScimGroupProvisioning.retrieveAll(identityZone.getId())).thenReturn(existingScimGroups);
+        spy.updateIdentityZone(identityZone, identityZone.getId());
+        verify(spy, times(1)).createUserGroups(same(identityZone));
+    }
+
+    @Test
+    void reduce_zone_allowed_groups_on_update_should_fail() throws InvalidIdentityZoneDetailsException {
+        when(mockIdentityZoneValidator.validate(any(), any())).then(invocation -> invocation.getArgument(0));
+
+        identityZone = createZone();
+        identityZone.getConfig().getUserConfig().setAllowedGroups(List.of("clients.admin", "clients.write", "clients.read", "clients.secret"));
+        when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(identityZone.getId())).thenReturn(identityZone);
+        List<ScimGroup> existingScimGroups = List.of("sps.write", "sps.read", "idps.write", "idps.read",
+            "clients.admin", "clients.write", "clients.read", "clients.secret", "scim.write", "scim.read", "scim.create", "scim.userids",
+            "scim.zones", "groups.update", "password.write", "oauth.login", "uaa.admin").stream().
+            map(e -> new ScimGroup(e, e, identityZone.getId())).collect(Collectors.toList());
+        when(mockScimGroupProvisioning.retrieveAll(identityZone.getId())).thenReturn(existingScimGroups);
+        assertThrowsWithMessageThat(UaaException.class, () -> endpoints.updateIdentityZone(identityZone, identityZone.getId()),
+            is("The identity zone user configuration contains not-allowed groups."));
     }
 
     private static IdentityZone createZone() {
