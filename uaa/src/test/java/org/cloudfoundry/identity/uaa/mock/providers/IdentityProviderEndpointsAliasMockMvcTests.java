@@ -411,7 +411,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
             // update the alias ZID to zone 2, where an IdP with this origin already exists -> should fail
             providerInZone1.setAliasZid(zone2.getId());
-            shouldRejectUpdate(zone1, providerInZone1, HttpStatus.INTERNAL_SERVER_ERROR);
+            shouldRejectUpdate(zone1, providerInZone1, HttpStatus.CONFLICT);
         }
 
         @Test

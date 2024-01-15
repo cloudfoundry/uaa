@@ -18,6 +18,8 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.provider.IdpAliasFailedException.Reason.ALIAS_ZONE_DOES_NOT_EXIST;
+import static org.cloudfoundry.identity.uaa.provider.IdpAliasFailedException.Reason.ORIGIN_KEY_ALREADY_USED_IN_ALIAS_ZONE;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -156,6 +158,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             });
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
+        } catch (final IdpAliasFailedException e) {
+            logger.warn("Could not create alias for {}", e.getMessage());
+            return new ResponseEntity<>(body, e.getResponseCode());
         } catch (final Exception e) {
             logger.warn("Unable to create IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
@@ -241,10 +246,16 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        final IdentityProvider<?> updatedIdp = transactionTemplate.execute(txStatus -> {
-            final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
-            return ensureConsistencyOfAliasIdp(updatedOriginalIdp);
-        });
+        final IdentityProvider<?> updatedIdp;
+        try {
+            updatedIdp = transactionTemplate.execute(txStatus -> {
+                final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
+                return ensureConsistencyOfAliasIdp(updatedOriginalIdp);
+            });
+        } catch (final IdpAliasFailedException e) {
+            logger.warn("Could not create alias for {}", e.getMessage());
+            return new ResponseEntity<>(body, e.getResponseCode());
+        }
         if (updatedIdp == null) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction updating IdP (and alias IdP, if applicable) was not successful, but no exception was thrown.",
@@ -451,18 +462,19 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             identityZoneProvisioning.retrieve(originalIdp.getAliasZid());
         } catch (final ZoneDoesNotExistsException e) {
-            throw new IdpAliasFailedException(String.format(
-                    "Could not create alias for IdP '%s' in zone '%s', as zone does not exist.",
-                    originalIdp.getId(),
-                    originalIdp.getAliasZid()
-            ), e);
+            throw new IdpAliasFailedException(originalIdp, ALIAS_ZONE_DOES_NOT_EXIST, e);
         }
 
         // create new alias IdP in alias zid
-        final IdentityProvider<?> persistedAliasIdp = identityProviderProvisioning.create(
-                aliasIdp,
-                originalIdp.getAliasZid()
-        );
+        final IdentityProvider<?> persistedAliasIdp;
+        try {
+            persistedAliasIdp = identityProviderProvisioning.create(
+                    aliasIdp,
+                    originalIdp.getAliasZid()
+            );
+        } catch (final IdpAlreadyExistsException e) {
+            throw new IdpAliasFailedException(originalIdp, ORIGIN_KEY_ALREADY_USED_IN_ALIAS_ZONE, e);
+        }
 
         // update alias ID in original IdP
         originalIdp.setAliasId(persistedAliasIdp.getId());
