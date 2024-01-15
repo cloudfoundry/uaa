@@ -26,6 +26,7 @@ import java.util.stream.Stream;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -119,6 +120,12 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
             // check if aliasId in first IdP is equal to the ID of the alias IdP
             assertThat(aliasIdp.get().getId()).isEqualTo(originalIdp.getAliasId());
+
+            // check if both have the same non-empty relying party secret
+            assertIdpAndAliasHaveSameRelyingPartySecretInDb(originalIdp);
+
+            // check if the returned IdP has a redacted relying party secret
+            assertRelyingPartySecretIsRedacted(originalIdp);
         }
 
         @Test
@@ -281,6 +288,12 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(aliasIdp).isPresent();
             assertIdpReferencesOtherIdp(aliasIdp.get(), updatedOriginalIdp);
             assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(newName);
+
+            // check if both have the same non-empty relying party secret in the DB
+            assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedOriginalIdp);
+
+            // check if the returned IdP has a redacted relying party secret
+            assertRelyingPartySecretIsRedacted(updatedOriginalIdp);
         }
 
         @Test
@@ -311,6 +324,12 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             assertThat(aliasIdp).isPresent();
             assertIdpReferencesOtherIdp(updatedIdp, aliasIdp.get());
             assertOtherPropertiesAreEqual(updatedIdp, aliasIdp.get());
+
+            // check if both have the same non-empty relying party secret
+            assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedIdp);
+
+            // check if the returned IdP has a redacted relying party secret
+            assertRelyingPartySecretIsRedacted(updatedIdp);
         }
 
         @ParameterizedTest
@@ -515,15 +534,9 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
     }
 
-    private void deleteIdpViaDb(final String originKey, final String zoneId) {
-        final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext
-                .getBean(JdbcIdentityProviderProvisioning.class);
-        final int rowsDeleted = identityProviderProvisioning.deleteByOrigin(originKey, zoneId);
-        assertThat(rowsDeleted).isEqualTo(1);
-    }
-
     @Nested
     class Delete {
+
         @Test
         void shouldAlsoDeleteAliasIdp_UaaToCustomZone() throws Exception {
             shouldAlsoDeleteAliasIdp(IdentityZone.getUaa(), customZone);
@@ -593,6 +606,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final Optional<IdentityProvider<?>> idp = readIdpFromZoneIfExists(zone.getId(), id);
             assertThat(idp).isNotPresent();
         }
+
     }
 
     private void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {
@@ -709,6 +723,57 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         final MvcResult getResult = mockMvc.perform(getRequestBuilder).andExpect(status().isOk()).andReturn();
         return JsonUtils.readValue(getResult.getResponse().getContentAsString(), new TypeReference<>() {
         });
+    }
+
+    private void deleteIdpViaDb(final String originKey, final String zoneId) {
+        final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext
+                .getBean(JdbcIdentityProviderProvisioning.class);
+        final int rowsDeleted = identityProviderProvisioning.deleteByOrigin(originKey, zoneId);
+        assertThat(rowsDeleted).isEqualTo(1);
+    }
+
+    private void assertIdpAndAliasHaveSameRelyingPartySecretInDb(final IdentityProvider<?> originalIdp) {
+        assertThat(originalIdp.getType()).isEqualTo(OIDC10);
+        assertThat(originalIdp.getAliasId()).isNotNull().isNotBlank();
+        assertThat(originalIdp.getAliasZid()).isNotNull().isNotBlank();
+
+        final Optional<String> relyingPartySecretOriginalIdpOpt = readIdpViaDb(originalIdp.getId(), originalIdp.getIdentityZoneId())
+                .map(IdentityProvider::getConfig)
+                .map(it -> (AbstractExternalOAuthIdentityProviderDefinition<?>) it)
+                .map(AbstractExternalOAuthIdentityProviderDefinition::getRelyingPartySecret);
+        assertThat(relyingPartySecretOriginalIdpOpt).isPresent();
+        final String relyingPartySecretOriginalIdp = relyingPartySecretOriginalIdpOpt.get();
+        assertThat(relyingPartySecretOriginalIdp).isNotBlank();
+
+        final Optional<String> relyingPartySecretAliasIdpOpt = readIdpViaDb(originalIdp.getAliasId(), originalIdp.getAliasZid())
+                .map(IdentityProvider::getConfig)
+                .map(it -> (AbstractExternalOAuthIdentityProviderDefinition<?>) it)
+                .map(AbstractExternalOAuthIdentityProviderDefinition::getRelyingPartySecret);
+        assertThat(relyingPartySecretAliasIdpOpt).isPresent();
+        final String relyingPartySecretAliasIdp = relyingPartySecretAliasIdpOpt.get();
+        assertThat(relyingPartySecretAliasIdp).isNotBlank();
+
+        assertThat(relyingPartySecretOriginalIdp).isEqualTo(relyingPartySecretAliasIdp);
+    }
+
+    private Optional<IdentityProvider<?>> readIdpViaDb(final String id, final String zoneId) {
+        final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext
+                .getBean(JdbcIdentityProviderProvisioning.class);
+        final IdentityProvider<?> idp;
+        try {
+            idp = identityProviderProvisioning.retrieve(id, zoneId);
+        } catch (final Exception e) {
+            return Optional.empty();
+        }
+        return Optional.of(idp);
+    }
+
+    private void assertRelyingPartySecretIsRedacted(final IdentityProvider<?> identityProvider) {
+        assertThat(identityProvider.getType()).isEqualTo(OIDC10);
+        final Optional<AbstractExternalOAuthIdentityProviderDefinition<?>> config = Optional.ofNullable(identityProvider.getConfig())
+                .map(it -> (AbstractExternalOAuthIdentityProviderDefinition<?>) it);
+        assertThat(config).isPresent();
+        assertThat(config.get().getRelyingPartySecret()).isBlank();
     }
 
     private static List<String> getScopesForZone(final String zoneId, final String... scopes) {
