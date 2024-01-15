@@ -39,6 +39,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -160,7 +161,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, CONFLICT);
         } catch (final IdpAliasFailedException e) {
             logger.warn("Could not create alias for {}", e.getMessage());
-            return new ResponseEntity<>(body, e.getResponseCode());
+            final HttpStatus responseCode = Optional.ofNullable(HttpStatus.resolve(e.getHttpStatus())).orElse(INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(body, responseCode);
         } catch (final Exception e) {
             logger.warn("Unable to create IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
@@ -254,7 +256,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             });
         } catch (final IdpAliasFailedException e) {
             logger.warn("Could not create alias for {}", e.getMessage());
-            return new ResponseEntity<>(body, e.getResponseCode());
+            final HttpStatus responseCode = Optional.ofNullable(HttpStatus.resolve(e.getHttpStatus())).orElse(INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(body, responseCode);
         }
         if (updatedIdp == null) {
             logger.warn(

@@ -8,20 +8,14 @@ import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
 public class IdpAliasFailedException extends UaaException {
-    @NonNull
-    private final Reason reason;
+    private static final String ERROR = "alias_creation_failed";
 
     public IdpAliasFailedException(
             @NonNull final IdentityProvider<?> identityProvider,
             @NonNull final Reason reason,
             @Nullable final Throwable cause
     ) {
-        super(buildMessage(identityProvider, reason), cause);
-        this.reason = reason;
-    }
-
-    public HttpStatus getResponseCode() {
-        return this.reason.responseCode;
+        super(cause, ERROR, buildMessage(identityProvider, reason), reason.responseCode.value());
     }
 
     private static String buildMessagePrefix(@NonNull final IdentityProvider<?> idp) {
