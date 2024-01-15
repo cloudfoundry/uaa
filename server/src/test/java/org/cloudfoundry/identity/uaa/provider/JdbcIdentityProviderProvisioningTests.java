@@ -1,6 +1,21 @@
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.apache.commons.lang.RandomStringUtils;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaaZoneId;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.sql.Timestamp;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -14,19 +29,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-
-import java.sql.Timestamp;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaaZoneId;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
 class JdbcIdentityProviderProvisioningTests {
@@ -67,19 +69,16 @@ class JdbcIdentityProviderProvisioningTests {
     }
 
     @Test
-    void deleteProvidersInUaaZone_WithAlias() {
-        final IdentityZone mockIdentityZone = mock(IdentityZone.class);
-        when(mockIdentityZone.getId()).thenReturn(otherZoneId1);
+    void deleteByIdentityZone_ShouldAlsoDeleteAliasIdentityProviders() {
+        final String originSuffix = generator.generate();
 
-        final String originSuffix = RandomStringUtils.randomAlphabetic(5);
-
-        // IdP 1: no alias
+        // IdP 1: created in custom zone, no alias
         final IdentityProvider idp1 = MultitenancyFixture.identityProvider("origin1-" + originSuffix, otherZoneId1);
         final IdentityProvider createdIdp1 = jdbcIdentityProviderProvisioning.create(idp1, otherZoneId1);
         Assertions.assertThat(createdIdp1).isNotNull();
         Assertions.assertThat(createdIdp1.getId()).isNotBlank();
 
-        // IdP 2: alias in UAA zone
+        // IdP 2: created in custom zone, alias in UAA zone
         final String idp2Id = UUID.randomUUID().toString();
         final String idp2AliasId = UUID.randomUUID().toString();
         final String origin2 = "origin2-" + originSuffix;
@@ -99,17 +98,28 @@ class JdbcIdentityProviderProvisioningTests {
         Assertions.assertThat(createdIdp2Alias.getId()).isNotBlank();
 
         // check if all three entries are present in the DB
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp1.getId()}, Integer.class)).isEqualTo(1);
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp2.getId()}, Integer.class)).isEqualTo(1);
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{uaaZoneId, createdIdp2Alias.getId()}, Integer.class)).isEqualTo(1);
+        assertIdentityProviderExists(createdIdp1.getId(), otherZoneId1);
+        assertIdentityProviderExists(createdIdp2.getId(), otherZoneId1);
+        assertIdentityProviderExists(createdIdp2Alias.getId(), uaaZoneId);
 
-        // emit custom zone deleted event
-        jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(mockIdentityZone, null, otherZoneId1));
+        // delete by zone
+        final int rowsDeleted = jdbcIdentityProviderProvisioning.deleteByIdentityZone(otherZoneId1);
+
+        // number should also include the alias IdP
+        Assertions.assertThat(rowsDeleted).isEqualTo(3);
 
         // check if all three entries are gone
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp1.getId()}, Integer.class)).isZero();
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{otherZoneId1, createdIdp2.getId()}, Integer.class)).isZero();
-        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{uaaZoneId, createdIdp2Alias.getId()}, Integer.class)).isZero();
+        assertIdentityProviderDoesNotExist(createdIdp1.getId(), otherZoneId1);
+        assertIdentityProviderDoesNotExist(createdIdp2.getId(), otherZoneId1);
+        assertIdentityProviderDoesNotExist(createdIdp2Alias.getId(), uaaZoneId);
+    }
+
+    private void assertIdentityProviderExists(final String id, final String zoneId) {
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{zoneId, id}, Integer.class)).isEqualTo(1);
+    }
+
+    private void assertIdentityProviderDoesNotExist(final String id, final String zoneId) {
+        Assertions.assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{zoneId, id}, Integer.class)).isZero();
     }
 
     @Test
