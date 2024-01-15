@@ -386,6 +386,28 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
+    void testUpdateIdentityProvider_ShouldRejectInvalidReferenceToAliasInExistingIdp() {
+        final String customZoneId = UUID.randomUUID().toString();
+
+        // arrange existing IdP with invalid reference to alias IdP: alias ZID, but alias ID not
+        final String existingIdpId = UUID.randomUUID().toString();
+        final IdentityProvider<?> existingIdp = getLdapDefinition();
+        existingIdp.setId(existingIdpId);
+        existingIdp.setAliasZid(customZoneId);
+        when(mockIdentityProviderProvisioning.retrieve(existingIdpId, IdentityZone.getUaaZoneId()))
+                .thenReturn(existingIdp);
+
+        final IdentityProvider<?> requestBody = getLdapDefinition();
+        requestBody.setId(existingIdpId);
+        requestBody.setAliasZid(customZoneId);
+        requestBody.setName("new-name");
+
+        Assertions.assertThatIllegalStateException().isThrownBy(() ->
+                identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true)
+        );
+    }
+
+    @Test
     void testUpdateIdpWithExistingAlias_ValidChange() throws MetadataProviderException {
         final String existingIdpId = UUID.randomUUID().toString();
         final String customZoneId = UUID.randomUUID().toString();
@@ -486,6 +508,18 @@ class IdentityProviderEndpointsTest {
         idp.setIdentityZoneId(zoneId1);
         idp.setAliasZid(zoneId2);
         response = identityProviderEndpoints.createIdentityProvider(idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    void testCreateIdentityProvider_AliasNotSupportedForType() throws MetadataProviderException {
+        final String customZoneId = UUID.randomUUID().toString();
+
+        // alias IdP not supported for IdPs of type LDAP
+        final IdentityProvider<LdapIdentityProviderDefinition> idp = getLdapDefinition();
+        idp.setAliasZid(customZoneId);
+
+        final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(idp, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
