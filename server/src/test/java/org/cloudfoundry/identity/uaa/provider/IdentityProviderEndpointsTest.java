@@ -740,6 +740,38 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
+    void testDeleteIdpWithAlias_DanglingReference() {
+        final String idpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
+        final String customZoneId = UUID.randomUUID().toString();
+
+        final IdentityProvider<?> idp = new IdentityProvider<>();
+        idp.setType(OIDC10);
+        idp.setId(idpId);
+        idp.setIdentityZoneId(UAA);
+        idp.setAliasId(aliasIdpId);
+        idp.setAliasZid(customZoneId);
+        when(mockIdentityProviderProvisioning.retrieve(idpId, UAA)).thenReturn(idp);
+
+        // alias IdP is not present -> dangling reference
+
+        final ApplicationEventPublisher mockEventPublisher = mock(ApplicationEventPublisher.class);
+        identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
+        doNothing().when(mockEventPublisher).publishEvent(any());
+
+        identityProviderEndpoints.deleteIdentityProvider(idpId, true);
+        final ArgumentCaptor<EntityDeletedEvent<?>> entityDeletedEventCaptor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+
+        // should only be called for the original IdP
+        verify(mockEventPublisher, times(1)).publishEvent(entityDeletedEventCaptor.capture());
+
+        final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().get(0);
+        Assertions.assertThat(firstEvent).isNotNull();
+        Assertions.assertThat(firstEvent.getIdentityZoneId()).isEqualTo(UAA);
+        Assertions.assertThat(((IdentityProvider<?>) firstEvent.getSource()).getId()).isEqualTo(idpId);
+    }
+
+    @Test
     void testDeleteIdentityProviderNotExisting() {
         String zoneId = IdentityZone.getUaaZoneId();
         String identityProviderIdentifier = UUID.randomUUID().toString();

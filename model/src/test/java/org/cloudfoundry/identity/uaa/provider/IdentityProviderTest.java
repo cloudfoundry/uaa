@@ -27,6 +27,23 @@ class IdentityProviderTest {
     }
 
     @Test
+    void testToString_AliasPropertiesAndIdzIdNull() {
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setId("12345");
+        idp.setName("some-name");
+        idp.setOriginKey("some-origin");
+        idp.setAliasZid(null);
+        idp.setAliasId(null);
+        idp.setActive(true);
+        idp.setIdentityZoneId(null);
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
+        config.setIssuer("issuer");
+        idp.setConfig(config);
+
+        assertThat(idp).hasToString("IdentityProvider{id='12345', identityZoneId=null, originKey='some-origin', name='some-name', type='oidc1.0', active=true, aliasId=null, aliasZid=null}");
+    }
+
+    @Test
     void testEqualsAndHashCode() {
         final String customZoneId = "custom-zone";
         final String aliasIdpId = "id-of-alias-idp";
