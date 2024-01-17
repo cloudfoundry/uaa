@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -24,7 +25,10 @@ public class SamlLoginPage extends Page {
         sendLoginCredentials(username, password);
         return new PasscodePage(driver);
     }
-
+    public CustomErrorPage login_goesToCustomErrorPage(String username, String password, Matcher urlMatcher) {
+        sendLoginCredentials(username, password);
+        return new CustomErrorPage(driver, urlMatcher);
+    }
     public SamlErrorPage login_goesToSamlErrorPage(String username, String password) {
         sendLoginCredentials(username, password);
         return new SamlErrorPage(driver);

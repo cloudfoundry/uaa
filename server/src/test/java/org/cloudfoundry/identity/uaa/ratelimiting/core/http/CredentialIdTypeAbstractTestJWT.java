@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
+import com.nimbusds.jose.util.Base64URL;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.springframework.security.jwt.codec.Codecs;
 
 import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT.JWTparts;
 import static org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdTypeJWT.decodeSection;
@@ -129,7 +129,7 @@ public abstract class CredentialIdTypeAbstractTestJWT<CitJWT extends CredentialI
     // Pulled out so could Suppress "deprecation" Warnings
     @SuppressWarnings("deprecation")
     static String encodeSection( String section ) {
-        return Codecs.utf8Decode( Codecs.b64UrlEncode( section ) );
+        return Base64URL.encode(section).toString();
     }
 
     // 24 Sample "simple and valid format" emails

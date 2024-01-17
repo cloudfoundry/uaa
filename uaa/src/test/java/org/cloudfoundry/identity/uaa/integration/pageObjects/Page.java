@@ -45,4 +45,8 @@ public class Page {
         driver.findElement(By.cssSelector(".dropdown-trigger")).click();
         driver.findElement(By.linkText("Sign Out")).click();
     }
+
+    public void clearCookies() {
+        driver.manage().deleteAllCookies();
+    }
 }

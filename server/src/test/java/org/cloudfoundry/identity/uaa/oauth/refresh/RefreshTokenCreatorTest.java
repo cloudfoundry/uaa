@@ -97,7 +97,7 @@ public class RefreshTokenCreatorTest {
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
         Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue());
-        assertThat(refreshClaims.get(AUTH_TIME), is(1));
+        assertThat(refreshClaims.get(AUTH_TIME), is(1L));
         assertThat((List<String>) refreshClaims.get(AMR), hasItem("pwd"));
         assertThat((Map<String, List<String>>) refreshClaims.get(ACR), hasKey("values"));
         assertThat(((Map<String, List<String>>) refreshClaims.get(ACR)).get("values"), hasItem("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"));

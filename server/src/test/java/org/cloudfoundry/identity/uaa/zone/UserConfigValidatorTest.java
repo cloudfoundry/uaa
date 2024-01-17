@@ -31,4 +31,11 @@ public class UserConfigValidatorTest {
         userConfig.setAllowedGroups(Collections.emptyList()); // no groups allowed
         UserConfigValidator.validate(userConfig);
     }
+
+    @Test(expected = InvalidIdentityZoneConfigurationException.class)
+    public void testNoUsersAllowed() throws InvalidIdentityZoneConfigurationException {
+        UserConfig userConfig = new UserConfig();
+        userConfig.setMaxUsers(0);
+        UserConfigValidator.validate(userConfig);
+    }
 }

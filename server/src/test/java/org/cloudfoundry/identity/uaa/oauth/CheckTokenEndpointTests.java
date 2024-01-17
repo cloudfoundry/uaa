@@ -65,6 +65,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -223,7 +224,7 @@ public class CheckTokenEndpointTests {
 
         nowMillis = 10000L;
         timeService = mock(TimeService.class);
-        when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis);
+        when(timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(nowMillis);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
@@ -611,10 +612,12 @@ public class CheckTokenEndpointTests {
         String firstClientSecret = "oldsecret";
         String secondClientSecret = "newsecret";
         defaultClient.setClientSecret(firstClientSecret);
+        when(timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(1000L);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         defaultClient.setClientSecret(firstClientSecret + " " + secondClientSecret);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
+        when(timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(1000L);
         accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
@@ -625,10 +628,12 @@ public class CheckTokenEndpointTests {
         String secondClientSecret = "newsecret";
 
         defaultClient.setClientSecret(firstClientSecret + " " + secondClientSecret);
+        when(timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(1000L);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
 
         defaultClient.setClientSecret(secondClientSecret);
+        when(timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(1000L);
         accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
     }
@@ -914,7 +919,7 @@ public class CheckTokenEndpointTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList(), request);
         int expiresIn = 60 * 60 * 12;
-        assertTrue(expiresIn + nowMillis / 1000 >= result.getExp());
+        assertTrue(expiresIn + Instant.now().toEpochMilli() / 1000 >= result.getExp());
     }
 
     @Test
@@ -940,6 +945,7 @@ public class CheckTokenEndpointTests {
         Map<String, BaseClientDetails> clientDetailsStore = Collections.singletonMap("client", clientDetails);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
+        when(timeService.getCurrentTimeMillis()).thenReturn(1000L);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         when(timeService.getCurrentTimeMillis()).thenReturn(nowMillis + validitySeconds.longValue() * 1000 + 1L);

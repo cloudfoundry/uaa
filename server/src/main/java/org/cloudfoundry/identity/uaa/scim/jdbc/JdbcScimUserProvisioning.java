@@ -13,6 +13,11 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -111,6 +116,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String HARD_DELETE_BY_PROVIDER = "delete from users where identity_zone_id = ? and origin = ?";
 
+    public static final String USER_COUNT_BY_ZONE = "select count(*) from users where identity_zone_id = ?";
+
     protected final JdbcTemplate jdbcTemplate;
 
     private final PasswordEncoder passwordEncoder;
@@ -123,15 +130,21 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private TimeService timeService = new TimeServiceImpl();
 
+    private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
+    private final IdentityZoneManager identityZoneManager;
+
     public JdbcScimUserProvisioning(
             JdbcTemplate jdbcTemplate,
             JdbcPagingListFactory pagingListFactory,
-            final PasswordEncoder passwordEncoder) {
+            final PasswordEncoder passwordEncoder,
+            IdentityZoneManager identityZoneManager) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
+        this.jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        this.identityZoneManager = identityZoneManager;
     }
 
     public void setTimeService(TimeService timeService) {
@@ -179,6 +192,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user, String zoneId) {
+        validateUserLimit(zoneId);
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
@@ -513,6 +527,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return count;
     }
 
+    public int getUsersCountForZone(String zoneId) {
+        Integer count = jdbcTemplate.queryForObject(USER_COUNT_BY_ZONE, Integer.class, zoneId);
+        return (count != null) ? count : 0;
+    }
+
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
         super.validateOrderBy(orderBy, USER_FIELDS.replace(",salt", ""));
@@ -521,5 +540,29 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public void updateLastLogonTime(String id, String zoneId) {
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
+    }
+
+    private int getAllowedUserLimit(String zoneId) {
+        try {
+            UserConfig userConfig;
+            IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
+            userConfig = (currentZone.getId().equals(zoneId)) ?
+                currentZone.getConfig().getUserConfig() :
+                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
+            return userConfig.getMaxUsers();
+        } catch (ZoneDoesNotExistsException e) {
+            logger.debug("could not retrieve identity zone with id: {}", zoneId);
+        }
+        return -1;
+    }
+
+    private void validateUserLimit(String zoneId) {
+        // get current limit of allowed users
+        long maxAllowedUsers = getAllowedUserLimit(zoneId);
+        // check, if there is a limit (>0), that the limit is not reached with one user more (getUsersCountForZone + 1)
+        if (maxAllowedUsers > 0 && maxAllowedUsers < (getUsersCountForZone(zoneId) + 1)) {
+            throw new InvalidScimResourceException("The maximum allowed numbers of users: " + maxAllowedUsers
+                + " is reached already in Identity Zone " + zoneId);
+        }
     }
 }
