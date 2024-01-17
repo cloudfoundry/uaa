@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserMirroringHandler;
+import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -143,7 +143,7 @@ class ScimUserEndpointsTests {
     private IdentityZoneManager identityZoneManager;
 
     @Autowired
-    private ScimUserMirroringHandler scimUserMirroringHandler;
+    private ScimUserAliasHandler scimUserAliasHandler;
 
     @Autowired
     @Qualifier("transactionManager")
@@ -222,7 +222,7 @@ class ScimUserEndpointsTests {
                 mockJdbcUserGoogleMfaCredentialsProvisioning,
                 mockApprovalStore,
                 spiedScimGroupMembershipManager,
-                scimUserMirroringHandler,
+                scimUserAliasHandler,
                 platformTransactionManager,
                 5
         );

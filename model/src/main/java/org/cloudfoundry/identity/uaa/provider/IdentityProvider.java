@@ -24,7 +24,7 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import org.cloudfoundry.identity.uaa.MirroredEntity;
+import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
 
@@ -46,7 +46,7 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
-public class IdentityProvider<T extends AbstractIdentityProviderDefinition> implements MirroredEntity {
+public class IdentityProvider<T extends AbstractIdentityProviderDefinition> implements EntityWithAlias {
 
     public static final String FIELD_ID = "id";
     public static final String FIELD_ORIGIN_KEY = "originKey";

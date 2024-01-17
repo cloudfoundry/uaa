@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
-public abstract class EntityMirroringHandler<T extends MirroredEntity> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(EntityMirroringHandler.class);
+public abstract class EntityAliasHandler<T extends EntityWithAlias> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(EntityAliasHandler.class);
 
     private final IdentityZoneProvisioning identityZoneProvisioning;
 
-    protected EntityMirroringHandler(final IdentityZoneProvisioning identityZoneProvisioning) {
+    protected EntityAliasHandler(final IdentityZoneProvisioning identityZoneProvisioning) {
         this.identityZoneProvisioning = identityZoneProvisioning;
     }
 
@@ -26,9 +26,9 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
             @NonNull final T requestBody,
             @Nullable final T existingEntity
     ) {
-        final boolean entityWasAlreadyMirrored = existingEntity != null && hasText(existingEntity.getAliasZid());
+        final boolean entityAlreadyHasAlias = existingEntity != null && hasText(existingEntity.getAliasZid());
 
-        if (entityWasAlreadyMirrored) {
+        if (entityAlreadyHasAlias) {
             if (!hasText(existingEntity.getAliasId())) {
                 // at this point, we expect both properties to be set -> if not, the entity is in an inconsistent state
                 throw new IllegalStateException(String.format(
@@ -44,12 +44,12 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
                     && existingEntity.getAliasZid().equals(requestBody.getAliasZid());
         }
 
-        // alias ID must not be set when no mirroring existed already
+        // alias ID must not be set when no alias existed already
         if (hasText(requestBody.getAliasId())) {
             return false;
         }
 
-        // exit early if no mirroring is necessary
+        // exit early if no alias creation is necessary
         if (!hasText(requestBody.getAliasZid())) {
             return true;
         }
@@ -75,84 +75,85 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         }
 
         // perform additional checks
-        return additionalValidationChecksForNewMirroring(requestBody);
+        return additionalValidationChecksForNewAlias(requestBody);
     }
 
     /**
-     * Perform additional validation checks specific for the entity. This method is only executed if a new mirrored
+     * Perform additional validation checks specific for the entity. This method is only executed if a new alias
      * entity is created in the alias zone.
      */
-    protected abstract boolean additionalValidationChecksForNewMirroring(@NonNull final T requestBody);
+    protected abstract boolean additionalValidationChecksForNewAlias(@NonNull final T requestBody);
 
     /**
-     * Ensure consistency during create or update operations with a mirrored entity referenced in the original entity's
-     * alias properties. If the entity has both its alias ID and alias ZID set, the existing mirrored entity is updated.
-     * If only the alias ZID is set, a new mirrored entity is created.
+     * Ensure consistency during create or update operations with an alias entity referenced in the original entity's
+     * alias properties. If the entity has both its alias ID and alias ZID set, the existing alias entity is updated.
+     * If only the alias ZID is set, a new alias entity is created.
      * This method should be executed in a transaction together with the original create or update operation. Before
      * executing this method, check if the alias properties are valid by calling
-     * {@link EntityMirroringHandler#aliasPropertiesAreValid(MirroredEntity, MirroredEntity)}.
+     * {@link EntityAliasHandler#aliasPropertiesAreValid(EntityWithAlias, EntityWithAlias)}.
      * The original entity or the update to it must be persisted prior to calling this method, as we expect that its ID
      * is already set.
      *
      * @param originalEntity the original entity
-     * @return the original entity as well as the mirrored entity (if applicable) after the operation
-     * @throws EntityMirroringFailedException if a new mirrored entity needs to be created, but the zone referenced in
-     *                                        'aliasZid' does not exist
-     * @throws EntityMirroringFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the
-     *                                        referenced mirrored entity could not be found
+     * @return the original entity as well as the alias entity (if applicable) after the operation
+     * @throws EntityAliasFailedException if a new alias entity needs to be created, but the zone referenced in
+     *                                    'aliasZid' does not exist
+     * @throws EntityAliasFailedException if 'aliasId' and 'aliasZid' are set in the original IdP, but the
+     *                                    referenced alias entity could not be found
      */
-    public EntityMirroringResult<T> ensureConsistencyOfMirroredEntity(final T originalEntity) {
+    public EntityAliasResult<T> ensureConsistencyOfAliasEntity(final T originalEntity) {
         if (!hasText(originalEntity.getAliasZid())) {
-            // no mirroring is necessary
-            return new EntityMirroringResult<>(originalEntity, null);
+            // no alias handling is necessary
+            return new EntityAliasResult<>(originalEntity, null);
         }
 
-        final T mirroredEntity = buildMirroredEntity(originalEntity);
+        final T aliasEntity = buildAliasEntity(originalEntity);
 
-        // get the existing mirrored entity, if present
-        final T existingMirroredEntity;
+        // get the existing alias entity, if present
+        final T existingAliasEntity;
         if (hasText(originalEntity.getAliasId())) {
-            // if the referenced mirrored entity cannot be retrieved, we create a new one later
-            existingMirroredEntity = retrieveMirroredEntity(originalEntity).orElse(null);
+            // if the referenced alias entity cannot be retrieved, we create a new one later
+            existingAliasEntity = retrieveAliasEntity(originalEntity).orElse(null);
         } else {
-            existingMirroredEntity = null;
+            existingAliasEntity = null;
         }
 
-        // update the existing mirrored entity
-        if (existingMirroredEntity != null) {
-            setId(mirroredEntity, existingMirroredEntity.getId());
-            final T updatedMirroredEntity = updateEntity(mirroredEntity, originalEntity.getAliasZid());
-            return new EntityMirroringResult<>(originalEntity, updatedMirroredEntity);
+        // update the existing alias entity
+        if (existingAliasEntity != null) {
+            setId(aliasEntity, existingAliasEntity.getId());
+            final T updatedAliasEntity = updateEntity(aliasEntity, originalEntity.getAliasZid());
+            return new EntityAliasResult<>(originalEntity, updatedAliasEntity);
         }
 
         // check if IdZ referenced in 'aliasZid' exists
         try {
             identityZoneProvisioning.retrieve(originalEntity.getAliasZid());
         } catch (final ZoneDoesNotExistsException e) {
-            throw new EntityMirroringFailedException(String.format(
-                    "Could not mirror user '%s' to zone '%s', as zone does not exist.",
+            throw new EntityAliasFailedException(String.format(
+                    "Could not create alias for entity (type: %s; ID: '%s') in alias zone '%s', as zone does not exist.",
+                    originalEntity.getClass().getSimpleName(),
                     originalEntity.getId(),
                     originalEntity.getAliasZid()
             ), e);
         }
 
-        // create new mirrored entity in alias zid
-        final T persistedMirroredEntity = createEntity(mirroredEntity, originalEntity.getAliasZid());
+        // create new alias entity in alias zid
+        final T persistedAliasEntity = createEntity(aliasEntity, originalEntity.getAliasZid());
 
         // update alias ID in original entity
-        originalEntity.setAliasId(persistedMirroredEntity.getId());
+        originalEntity.setAliasId(persistedAliasEntity.getId());
         final T updatedOriginalEntity = updateEntity(originalEntity, originalEntity.getZoneId());
 
-        return new EntityMirroringResult<>(updatedOriginalEntity, persistedMirroredEntity);
+        return new EntityAliasResult<>(updatedOriginalEntity, persistedAliasEntity);
     }
 
-    private T buildMirroredEntity(final T originalEntity) {
-        final T mirroredEntity = cloneEntity(originalEntity);
-        mirroredEntity.setAliasId(originalEntity.getId());
-        mirroredEntity.setAliasZid(originalEntity.getZoneId());
-        setZoneId(mirroredEntity, originalEntity.getAliasZid());
-        setId(mirroredEntity, null); // will be set later
-        return mirroredEntity;
+    private T buildAliasEntity(final T originalEntity) {
+        final T aliasEntity = cloneEntity(originalEntity);
+        aliasEntity.setAliasId(originalEntity.getId());
+        aliasEntity.setAliasZid(originalEntity.getZoneId());
+        setZoneId(aliasEntity, originalEntity.getAliasZid());
+        setId(aliasEntity, null); // will be set later
+        return aliasEntity;
     }
 
     protected abstract void setId(final T entity, final String id);
@@ -165,7 +166,7 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
      */
     protected abstract T cloneEntity(final T originalEntity);
 
-    private Optional<T> retrieveMirroredEntity(final T originalEntity) {
+    private Optional<T> retrieveAliasEntity(final T originalEntity) {
         return retrieveEntity(originalEntity.getAliasId(), originalEntity.getAliasZid());
     }
 
@@ -175,11 +176,11 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
 
     protected abstract T createEntity(final T entity, final String zoneId);
 
-    protected static <T extends MirroredEntity> boolean isCorrectlyMirroredPair(final T entity1, final T entity2) {
-        // check if both entities are mirrored at all
-        final boolean entity1IsMirrored = hasText(entity1.getAliasId()) && hasText(entity1.getAliasZid());
-        final boolean entity2IsMirrored = hasText(entity2.getAliasId()) && hasText(entity2.getAliasZid());
-        if (!entity1IsMirrored || !entity2IsMirrored) {
+    protected static <T extends EntityWithAlias> boolean isCorrectAliasPair(final T entity1, final T entity2) {
+        // check if both entities have an alias
+        final boolean entity1HasAlias = hasText(entity1.getAliasId()) && hasText(entity1.getAliasZid());
+        final boolean entity2HasAlias = hasText(entity2.getAliasId()) && hasText(entity2.getAliasZid());
+        if (!entity1HasAlias || !entity2HasAlias) {
             return false;
         }
 
@@ -191,14 +192,15 @@ public abstract class EntityMirroringHandler<T extends MirroredEntity> {
         return entity1ReferencesEntity2 && entity2ReferencesEntity1;
     }
 
-    public static class EntityMirroringFailedException extends UaaException {
-        public EntityMirroringFailedException(final String msg, final Throwable t) {
+    public static class EntityAliasFailedException extends UaaException {
+        public EntityAliasFailedException(final String msg, final Throwable t) {
             super(msg, t);
         }
     }
 
-    public record EntityMirroringResult<T extends MirroredEntity>(
+    public record EntityAliasResult<T extends EntityWithAlias>(
             @NonNull T originalEntity,
-            @Nullable T mirroredEntity
-    ) {}
+            @Nullable T aliasEntity
+    ) {
+    }
 }

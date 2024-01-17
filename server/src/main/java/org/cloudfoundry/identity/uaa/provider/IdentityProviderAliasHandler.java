@@ -1,8 +1,13 @@
 package org.cloudfoundry.identity.uaa.provider;
 
-import java.util.Optional;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 
-import org.cloudfoundry.identity.uaa.EntityMirroringHandler;
+import java.util.Optional;
+import java.util.Set;
+
+import org.cloudfoundry.identity.uaa.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,11 +16,17 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.stereotype.Component;
 
 @Component
-public class IdentityProviderMirroringHandler extends EntityMirroringHandler<IdentityProvider<?>> {
-    private static final Logger LOGGER = LoggerFactory.getLogger(IdentityProviderMirroringHandler.class);
+public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityProvider<?>> {
+    private static final Logger LOGGER = LoggerFactory.getLogger(IdentityProviderAliasHandler.class);
+
+    /**
+     * The IdP types for which alias IdPs (via 'aliasId' and 'aliasZid') are supported.
+     */
+    private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
+
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    protected IdentityProviderMirroringHandler(
+    protected IdentityProviderAliasHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning
     ) {
@@ -24,9 +35,9 @@ public class IdentityProviderMirroringHandler extends EntityMirroringHandler<Ide
     }
 
     @Override
-    protected boolean additionalValidationChecksForNewMirroring(final IdentityProvider<?> requestBody) {
-        // no additional validation checks necessary
-        return true;
+    protected boolean additionalValidationChecksForNewAlias(final IdentityProvider<?> requestBody) {
+        // check if aliases are supported for this IdP type
+        return IDP_TYPES_ALIAS_SUPPORTED.contains(requestBody.getType());
     }
 
     @Override
@@ -41,18 +52,18 @@ public class IdentityProviderMirroringHandler extends EntityMirroringHandler<Ide
 
     @Override
     protected IdentityProvider<?> cloneEntity(final IdentityProvider<?> originalEntity) {
-        final IdentityProvider mirroredIdp = new IdentityProvider<>();
-        mirroredIdp.setActive(originalEntity.isActive());
-        mirroredIdp.setName(originalEntity.getName());
-        mirroredIdp.setOriginKey(originalEntity.getOriginKey());
-        mirroredIdp.setType(originalEntity.getType());
-        mirroredIdp.setConfig(originalEntity.getConfig());
-        mirroredIdp.setSerializeConfigRaw(originalEntity.isSerializeConfigRaw());
+        final IdentityProvider aliasIdp = new IdentityProvider<>();
+        aliasIdp.setActive(originalEntity.isActive());
+        aliasIdp.setName(originalEntity.getName());
+        aliasIdp.setOriginKey(originalEntity.getOriginKey());
+        aliasIdp.setType(originalEntity.getType());
+        aliasIdp.setConfig(originalEntity.getConfig());
+        aliasIdp.setSerializeConfigRaw(originalEntity.isSerializeConfigRaw());
         // reference the ID and zone ID of the initial IdP entry
-        mirroredIdp.setAliasZid(originalEntity.getIdentityZoneId());
-        mirroredIdp.setAliasId(originalEntity.getId());
-        mirroredIdp.setIdentityZoneId(originalEntity.getAliasZid());
-        return mirroredIdp;
+        aliasIdp.setAliasZid(originalEntity.getIdentityZoneId());
+        aliasIdp.setAliasId(originalEntity.getId());
+        aliasIdp.setIdentityZoneId(originalEntity.getAliasZid());
+        return aliasIdp;
     }
 
     @Override

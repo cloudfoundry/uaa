@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.Optional;
 
-import org.cloudfoundry.identity.uaa.EntityMirroringHandler;
+import org.cloudfoundry.identity.uaa.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -15,12 +15,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-public class ScimUserMirroringHandler extends EntityMirroringHandler<ScimUser> {
+public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     private final ScimUserProvisioning scimUserProvisioning;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final IdentityZoneManager identityZoneManager;
 
-    protected ScimUserMirroringHandler(
+    protected ScimUserAliasHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
             final ScimUserProvisioning scimUserProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
@@ -33,8 +33,8 @@ public class ScimUserMirroringHandler extends EntityMirroringHandler<ScimUser> {
     }
 
     @Override
-    protected boolean additionalValidationChecksForNewMirroring(final ScimUser requestBody) {
-        // check if the IdP also exists as a mirrored IdP in the alias zone
+    protected boolean additionalValidationChecksForNewAlias(final ScimUser requestBody) {
+        // check if the IdP also exists as an alias IdP in the alias zone
         final IdentityProvider<?> idpInAliasZone;
         try {
             idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(
@@ -52,7 +52,7 @@ public class ScimUserMirroringHandler extends EntityMirroringHandler<ScimUser> {
                 requestBody.getOrigin(),
                 identityZoneManager.getCurrentIdentityZoneId()
         );
-        return EntityMirroringHandler.isCorrectlyMirroredPair(idpInCurrentZone, idpInAliasZone);
+        return EntityAliasHandler.isCorrectAliasPair(idpInCurrentZone, idpInAliasZone);
     }
 
     @Override
@@ -67,40 +67,40 @@ public class ScimUserMirroringHandler extends EntityMirroringHandler<ScimUser> {
 
     @Override
     protected ScimUser cloneEntity(final ScimUser originalEntity) {
-        final ScimUser mirroredUser = new ScimUser();
+        final ScimUser aliasUser = new ScimUser();
 
-        mirroredUser.setTitle(originalEntity.getTitle());
-        mirroredUser.setDisplayName(originalEntity.getDisplayName());
-        mirroredUser.setName(originalEntity.getName());
-        mirroredUser.setNickName(originalEntity.getNickName());
-        mirroredUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
-        mirroredUser.setEmails(originalEntity.getEmails());
-        mirroredUser.setPrimaryEmail(originalEntity.getPrimaryEmail());
-        mirroredUser.setLocale(originalEntity.getLocale());
-        mirroredUser.setTimezone(originalEntity.getTimezone());
-        mirroredUser.setProfileUrl(originalEntity.getProfileUrl());
+        aliasUser.setTitle(originalEntity.getTitle());
+        aliasUser.setDisplayName(originalEntity.getDisplayName());
+        aliasUser.setName(originalEntity.getName());
+        aliasUser.setNickName(originalEntity.getNickName());
+        aliasUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
+        aliasUser.setEmails(originalEntity.getEmails());
+        aliasUser.setPrimaryEmail(originalEntity.getPrimaryEmail());
+        aliasUser.setLocale(originalEntity.getLocale());
+        aliasUser.setTimezone(originalEntity.getTimezone());
+        aliasUser.setProfileUrl(originalEntity.getProfileUrl());
 
-        mirroredUser.setPassword(originalEntity.getPassword());
-        mirroredUser.setSalt(originalEntity.getSalt());
-        mirroredUser.setPasswordLastModified(originalEntity.getPasswordLastModified());
-        mirroredUser.setLastLogonTime(originalEntity.getLastLogonTime());
+        aliasUser.setPassword(originalEntity.getPassword());
+        aliasUser.setSalt(originalEntity.getSalt());
+        aliasUser.setPasswordLastModified(originalEntity.getPasswordLastModified());
+        aliasUser.setLastLogonTime(originalEntity.getLastLogonTime());
 
-        mirroredUser.setActive(originalEntity.isActive());
-        mirroredUser.setVerified(originalEntity.isVerified());
+        aliasUser.setActive(originalEntity.isActive());
+        aliasUser.setVerified(originalEntity.isVerified());
 
-        mirroredUser.setApprovals(originalEntity.getApprovals());
-        mirroredUser.setGroups(originalEntity.getGroups());
+        aliasUser.setApprovals(originalEntity.getApprovals());
+        aliasUser.setGroups(originalEntity.getGroups());
 
-        mirroredUser.setOrigin(originalEntity.getOrigin());
-        mirroredUser.setExternalId(originalEntity.getExternalId());
-        mirroredUser.setUserType(originalEntity.getUserType());
+        aliasUser.setOrigin(originalEntity.getOrigin());
+        aliasUser.setExternalId(originalEntity.getExternalId());
+        aliasUser.setUserType(originalEntity.getUserType());
 
-        mirroredUser.setMeta(originalEntity.getMeta());
-        mirroredUser.setSchemas(originalEntity.getSchemas());
+        aliasUser.setMeta(originalEntity.getMeta());
+        aliasUser.setSchemas(originalEntity.getSchemas());
 
         // aliasId, aliasZid, id and zoneId are set in the parent class
 
-        return mirroredUser;
+        return aliasUser;
     }
 
     @Override

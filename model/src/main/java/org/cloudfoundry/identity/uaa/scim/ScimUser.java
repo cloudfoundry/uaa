@@ -18,7 +18,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
-import org.cloudfoundry.identity.uaa.MirroredEntity;
+import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
@@ -42,7 +42,7 @@ import lombok.Setter;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public class ScimUser extends ScimCore<ScimUser> implements MirroredEntity {
+public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -652,9 +652,9 @@ public class ScimUser extends ScimCore<ScimUser> implements MirroredEntity {
     }
 
     /**
-     * Determine whether this user references a mirrored user in another IdZ.
+     * Determine whether this user references an alias user in another IdZ.
      */
-    public boolean hasMirroredUser() {
+    public boolean hasAliasUser() {
         return hasText(aliasId) && hasText(aliasZid);
     }
 

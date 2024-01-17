@@ -337,11 +337,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
-        if (!user.hasMirroredUser() && updated != 1) {
+        if (!user.hasAliasUser() && updated != 1) {
             throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
         }
-        if (user.hasMirroredUser() && updated != 2) {
-            throw new ScimResourceConstraintFailedException("User " + id + " has mirrored user, but its record was not updated");
+        if (user.hasAliasUser() && updated != 2) {
+            throw new ScimResourceConstraintFailedException("User " + id + " has alias user, but its record was not updated");
         }
     }
 
@@ -381,8 +381,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + userId + " does not exist");
         }
-        if (user.hasMirroredUser() && updated != 2) {
-            throw new ScimResourceConstraintFailedException("User " + userId + " has mirrored user, but not both records were updated");
+        if (user.hasAliasUser() && updated != 2) {
+            throw new ScimResourceConstraintFailedException("User " + userId + " has alias user, but not both records were updated");
         }
     }
 
@@ -393,7 +393,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     /**
-     * Deactivate a user as well as its mirrored user, if present.
+     * Deactivate a user as well as its alias user, if present.
      */
     private ScimUser deactivateUser(ScimUser user, int version, String zoneId) {
         logger.debug("Deactivating user: " + user.getId());
@@ -409,7 +409,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
                             user.getVersion(), version));
         }
-        final int expectedNumberOfUpdatedUsers = user.hasMirroredUser() ? 2 : 1;
+        final int expectedNumberOfUpdatedUsers = user.hasAliasUser() ? 2 : 1;
         if (updated != expectedNumberOfUpdatedUsers) {
             throw new IncorrectResultSizeDataAccessException(expectedNumberOfUpdatedUsers);
         }
@@ -452,7 +452,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     /**
-     * Delete a user as well as its mirrored user, if present.
+     * Delete a user as well as its alias user, if present.
      */
     protected int deleteUser(String userId, int version, String zoneId) {
         logger.debug("Deleting user: " + userId);

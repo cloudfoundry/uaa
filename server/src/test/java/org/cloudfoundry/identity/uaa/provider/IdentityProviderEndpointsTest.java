@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
-import org.cloudfoundry.identity.uaa.EntityMirroringHandler;
+import org.cloudfoundry.identity.uaa.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -71,7 +71,7 @@ class IdentityProviderEndpointsTest {
     private PlatformTransactionManager mockPlatformTransactionManager;
 
     @Mock
-    private IdentityProviderMirroringHandler mockIdentityProviderMirroringHandler;
+    private IdentityProviderAliasHandler mockIdentityProviderAliasHandler;
 
     @InjectMocks
     private IdentityProviderEndpoints identityProviderEndpoints;
@@ -79,10 +79,13 @@ class IdentityProviderEndpointsTest {
     @BeforeEach
     void setup() {
         lenient().when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-        lenient().when(mockIdentityProviderMirroringHandler.aliasPropertiesAreValid(any(), any()))
+        lenient().when(mockIdentityProviderAliasHandler.aliasPropertiesAreValid(any(), any()))
                 .thenReturn(true);
-        lenient().when(mockIdentityProviderMirroringHandler.ensureConsistencyOfMirroredEntity(any()))
-                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+        lenient().when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(any()))
+                .then(invocationOnMock -> {
+                    final IdentityProvider<?> idp = invocationOnMock.getArgument(0);
+                    return new EntityAliasResult<IdentityProvider<?>>(idp, null);
+                });
     }
 
     IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
@@ -389,7 +392,7 @@ class IdentityProviderEndpointsTest {
     void testUpdateIdentityProvider_ShouldRejectInvalidReferenceToAliasInExistingIdp() {
         final String customZoneId = UUID.randomUUID().toString();
 
-        // arrange existing IdP with invalid reference to alias IdP: alias ZID, but alias ID not
+        // arrange existing IdP with invalid reference to alias IdP: alias ZID set, but alias ID not
         final String existingIdpId = UUID.randomUUID().toString();
         final IdentityProvider<?> existingIdp = getLdapDefinition();
         existingIdp.setId(existingIdpId);
@@ -433,7 +436,7 @@ class IdentityProviderEndpointsTest {
         when(mockIdentityProviderProvisioning.update(eq(requestBody), anyString()))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        when(mockIdentityProviderMirroringHandler.ensureConsistencyOfMirroredEntity(requestBody))
+        when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(requestBody))
                 .then(invocation -> invocation.getArgument(0));
 
         final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);
@@ -463,7 +466,7 @@ class IdentityProviderEndpointsTest {
         final IdentityProvider<?> idp = getExternalOAuthProvider();
         idp.setAliasId(UUID.randomUUID().toString());
 
-        when(mockIdentityProviderMirroringHandler.aliasPropertiesAreValid(idp, null)).thenReturn(false);
+        when(mockIdentityProviderAliasHandler.aliasPropertiesAreValid(idp, null)).thenReturn(false);
         final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(idp, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -492,7 +495,7 @@ class IdentityProviderEndpointsTest {
         };
 
         final IdentityProvider<?> requestBody = requestBodyProvider.get();
-        when(mockIdentityProviderMirroringHandler.aliasPropertiesAreValid(requestBody, null)).thenReturn(true);
+        when(mockIdentityProviderAliasHandler.aliasPropertiesAreValid(requestBody, null)).thenReturn(true);
 
         // mock creation
         final IdentityProvider<?> persistedOriginalIdp = requestBodyProvider.get();
@@ -500,14 +503,14 @@ class IdentityProviderEndpointsTest {
         persistedOriginalIdp.setId(originalIdpId);
         when(mockIdentityProviderProvisioning.create(requestBody, UAA)).thenReturn(persistedOriginalIdp);
 
-        // mock mirroring handling
+        // mock alias handling
         final IdentityProvider persistedOriginalIdpWithAliasId = requestBodyProvider.get();
         persistedOriginalIdpWithAliasId.setId(originalIdpId);
         persistedOriginalIdpWithAliasId.setAliasId(UUID.randomUUID().toString());
-        when(mockIdentityProviderMirroringHandler.ensureConsistencyOfMirroredEntity(persistedOriginalIdp))
-                .thenReturn(new EntityMirroringHandler.EntityMirroringResult<>(
+        when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(persistedOriginalIdp))
+                .thenReturn(new EntityAliasResult<>(
                         persistedOriginalIdpWithAliasId,
-                        null // mirrored entity can be ignored here
+                        null // alias entity can be ignored here
                 ));
 
         final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(requestBody, true);
@@ -520,11 +523,11 @@ class IdentityProviderEndpointsTest {
     void create_oauth_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
-            IdentityProvider externalOAuthDefinition = getExternalOAuthProvider();
-            assertNotNull(((AbstractExternalOAuthIdentityProviderDefinition) externalOAuthDefinition.getConfig()).getRelyingPartySecret());
-            externalOAuthDefinition.setType(type);
-            when(mockIdentityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(externalOAuthDefinition);
-            ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(externalOAuthDefinition, true);
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> externalOAuthIdp = getExternalOAuthProvider();
+            assertNotNull((externalOAuthIdp.getConfig()).getRelyingPartySecret());
+            externalOAuthIdp.setType(type);
+            when(mockIdentityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(externalOAuthIdp);
+            ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(externalOAuthIdp, true);
             IdentityProvider created = response.getBody();
             assertNotNull(created);
             assertEquals(type, created.getType());

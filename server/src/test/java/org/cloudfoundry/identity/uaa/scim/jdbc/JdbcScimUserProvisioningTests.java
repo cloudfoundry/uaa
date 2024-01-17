@@ -338,14 +338,14 @@ class JdbcScimUserProvisioningTests {
             Assertions.assertThat(retrievedUser.getAliasId()).isNotBlank().isEqualTo(aliasId);
             Assertions.assertThat(retrievedUser.getAliasZid()).isNotBlank().isEqualTo(zone2);
 
-            // the mirrored user should not be persisted by this method
+            // the alias user should not be persisted by this method
             assertUserDoesNotExist(aliasId, zone2);
         }
 
         @ParameterizedTest
         @MethodSource("fromUaaToCustomZoneAndViceVersa")
         void testChangePassword_ShouldUpdatePasswordForBothUsers(final String zone1, final String zone2) {
-            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
 
             // read password before update
             final String passwordBeforeUpdate = readPasswordFromDb(userIds.originalUserId, zone1);
@@ -362,26 +362,26 @@ class JdbcScimUserProvisioningTests {
             final String passwordAfterUpdate = readPasswordFromDb(userIds.originalUserId, zone1);
             Assertions.assertThat(passwordAfterUpdate).isNotBlank().isNotEqualTo(passwordBeforeUpdate);
 
-            // the password should also be updated in the mirrored user
-            final String passwordMirroredUserAfterUpdate = readPasswordFromDb(userIds.mirroredUserId, zone2);
-            Assertions.assertThat(passwordMirroredUserAfterUpdate).isNotBlank().isEqualTo(passwordAfterUpdate);
+            // the password should also be updated in the alias user
+            final String passwordAliasUserAfterUpdate = readPasswordFromDb(userIds.aliasUserId, zone2);
+            Assertions.assertThat(passwordAliasUserAfterUpdate).isNotBlank().isEqualTo(passwordAfterUpdate);
         }
 
         @ParameterizedTest
         @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        void testUpdatePasswordChangeRequired_ShouldPropagateUpdateToMirroredUser(final String zone1, final String zone2) {
-            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+        void testUpdatePasswordChangeRequired_ShouldPropagateUpdateToAliasUser(final String zone1, final String zone2) {
+            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
 
             // check if password change required field is equal for both users
             final boolean pwChangeRequiredBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
                     userIds.originalUserId,
                     zone1
             );
-            final boolean pwChangeRequiredMirroredUserBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
-                    userIds.mirroredUserId,
+            final boolean pwChangeRequiredAliasUserBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
+                    userIds.aliasUserId,
                     zone2
             );
-            Assertions.assertThat(pwChangeRequiredBeforeUpdate).isEqualTo(pwChangeRequiredMirroredUserBeforeUpdate);
+            Assertions.assertThat(pwChangeRequiredBeforeUpdate).isEqualTo(pwChangeRequiredAliasUserBeforeUpdate);
 
             // update to opposite value
             jdbcScimUserProvisioning.updatePasswordChangeRequired(
@@ -395,19 +395,19 @@ class JdbcScimUserProvisioningTests {
                     userIds.originalUserId,
                     zone1
             );
-            final boolean pwChangeRequiredMirroredUserAfterUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
-                    userIds.mirroredUserId,
+            final boolean pwChangeRequiredAliasUserAfterUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
+                    userIds.aliasUserId,
                     zone2
             );
             Assertions.assertThat(pwChangeRequiredAfterUpdate)
                     .isEqualTo(!pwChangeRequiredBeforeUpdate)
-                    .isEqualTo(pwChangeRequiredMirroredUserAfterUpdate);
+                    .isEqualTo(pwChangeRequiredAliasUserAfterUpdate);
         }
 
         @ParameterizedTest
         @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        void testUpdate_ShouldNotUpdateMirroredUser(final String zone1, final String zone2) {
-            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+        void testUpdate_ShouldNotUpdateAliasUser(final String zone1, final String zone2) {
+            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
 
             final ScimUser updatePayload = jdbcScimUserProvisioning.retrieve(userIds.originalUserId, zone1);
             updatePayload.getName().setGivenName("some-new-name");
@@ -420,44 +420,44 @@ class JdbcScimUserProvisioningTests {
             Assertions.assertThat(updatedUser.getName().getGivenName()).isEqualTo("some-new-name");
             Assertions.assertThat(updatedUser.getPrimaryEmail()).isEqualTo("john.doe.new@example.com");
 
-            // the mirrored user should NOT be updated
-            final ScimUser mirroredUser = jdbcScimUserProvisioning.retrieve(userIds.mirroredUserId, zone2);
-            Assertions.assertThat(mirroredUser.getName().getGivenName()).isNotEqualTo(updatedUser.getDisplayName());
-            Assertions.assertThat(mirroredUser.getPrimaryEmail()).isNotEqualTo(updatedUser.getPrimaryEmail());
+            // the alias user should NOT be updated
+            final ScimUser aliasUser = jdbcScimUserProvisioning.retrieve(userIds.aliasUserId, zone2);
+            Assertions.assertThat(aliasUser.getName().getGivenName()).isNotEqualTo(updatedUser.getDisplayName());
+            Assertions.assertThat(aliasUser.getPrimaryEmail()).isNotEqualTo(updatedUser.getPrimaryEmail());
         }
 
         @ParameterizedTest
         @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        void testDelete_ShouldPropagateToMirroredUser_DeactivateOnDeleteFalse(final String zone1, final String zone2) {
+        void testDelete_ShouldPropagateToAliasUser_DeactivateOnDeleteFalse(final String zone1, final String zone2) {
             jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
 
             // delete original user
             jdbcScimUserProvisioning.delete(userIds.originalUserId, -1, zone1);
 
-            // mirrored user should no longer be present
-            assertUserDoesNotExist(userIds.mirroredUserId, zone2);
+            // alias user should no longer be present
+            assertUserDoesNotExist(userIds.aliasUserId, zone2);
         }
 
         @ParameterizedTest
         @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        void testDelete_ShouldPropagateToMirroredUser_DeactivateOnDeleteTrue(final String zone1, final String zone2) {
+        void testDelete_ShouldPropagateToAliasUser_DeactivateOnDeleteTrue(final String zone1, final String zone2) {
             jdbcScimUserProvisioning.setDeactivateOnDelete(true);
-            final UserIds userIds = arrangeUserAndMirroredUserExist(zone1, zone2);
+            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
 
             // both users should be active
             assertUserIsActive(userIds.originalUserId, zone1, true);
-            assertUserIsActive(userIds.mirroredUserId, zone2, true);
+            assertUserIsActive(userIds.aliasUserId, zone2, true);
 
             // delete original user
             jdbcScimUserProvisioning.delete(userIds.originalUserId, -1, zone1);
 
             // both users should be inactive
             assertUserIsActive(userIds.originalUserId, zone1, false);
-            assertUserIsActive(userIds.mirroredUserId, zone2, false);
+            assertUserIsActive(userIds.aliasUserId, zone2, false);
         }
 
-        private UserIds arrangeUserAndMirroredUserExist(final String zone1, final String zone2) {
+        private UserIds arrangeUserAndAliasExist(final String zone1, final String zone2) {
             final String idInZone1 = UUID.randomUUID().toString();
             final String idInZone2 = UUID.randomUUID().toString();
             addUser(
@@ -512,7 +512,7 @@ class JdbcScimUserProvisioningTests {
             return Stream.of(Arguments.of(UAA, CUSTOM_ZONE_ID), Arguments.of(CUSTOM_ZONE_ID, UAA));
         }
 
-        private record UserIds(String originalUserId, String mirroredUserId) {}
+        private record UserIds(String originalUserId, String aliasUserId) {}
     }
 
     @Test

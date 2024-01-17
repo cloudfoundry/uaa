@@ -38,9 +38,8 @@ import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.EntityMirroringHandler.EntityMirroringResult;
+import org.cloudfoundry.identity.uaa.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
@@ -80,11 +79,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
 
-    /**
-     * The IdP types for which alias IdPs (via 'aliasId' and 'aliasZid') are supported.
-     */
-    private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
-
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
@@ -92,7 +86,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     private final SamlIdentityProviderConfigurator samlConfigurator;
     private final IdentityProviderConfigValidator configValidator;
     private final IdentityZoneManager identityZoneManager;
-    private final IdentityProviderMirroringHandler mirroringHandler;
+    private final IdentityProviderAliasHandler aliasHandler;
     private final TransactionTemplate transactionTemplate;
 
     private ApplicationEventPublisher publisher = null;
@@ -109,7 +103,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator,
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
-            final IdentityProviderMirroringHandler mirroringHandler,
+            final IdentityProviderAliasHandler aliasHandler,
             final @Qualifier("transactionManager") PlatformTransactionManager transactionManager
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -118,7 +112,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         this.samlConfigurator = samlConfigurator;
         this.configValidator = configValidator;
         this.identityZoneManager = identityZoneManager;
-        this.mirroringHandler = mirroringHandler;
+        this.aliasHandler = aliasHandler;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
     }
 
@@ -141,16 +135,16 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        if (!mirroringHandler.aliasPropertiesAreValid(body, null)) {
+        if (!aliasHandler.aliasPropertiesAreValid(body, null)) {
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
         // persist IdP and create alias if necessary
-        final EntityMirroringResult<IdentityProvider<?>> mirroringResult;
+        final EntityAliasResult<IdentityProvider<?>> aliasResult;
         try {
-            mirroringResult = transactionTemplate.execute(txStatus -> {
+            aliasResult = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
-                return mirroringHandler.ensureConsistencyOfMirroredEntity(createdOriginalIdp);
+                return aliasHandler.ensureConsistencyOfAliasEntity(createdOriginalIdp);
             });
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
@@ -163,7 +157,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
 
-        final IdentityProvider<?> originalIdp = mirroringResult.originalEntity();
+        final IdentityProvider<?> originalIdp = aliasResult.originalEntity();
         if (originalIdp == null) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction creating IdP (and alias IdP, if applicable) was not successful, but no exception was thrown.",
@@ -212,6 +206,23 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return new ResponseEntity<>(existing, OK);
     }
 
+    private IdentityProvider<?> retrieveAliasIdp(final IdentityProvider<?> originalIdp) {
+        try {
+            return identityProviderProvisioning.retrieve(
+                    originalIdp.getAliasId(),
+                    originalIdp.getAliasZid()
+            );
+        } catch (final EmptyResultDataAccessException e) {
+            logger.warn(
+                    "The IdP referenced in the 'aliasId' ('{}') and 'aliasZid' ('{}') of the IdP '{}' does not exist.",
+                    originalIdp.getAliasId(),
+                    originalIdp.getAliasZid(),
+                    originalIdp.getId()
+            );
+            return null;
+        }
+    }
+
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
         body.setSerializeConfigRaw(rawConfig);
@@ -227,7 +238,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
-        if (!mirroringHandler.aliasPropertiesAreValid(body, existing)) {
+        if (!aliasHandler.aliasPropertiesAreValid(body, existing)) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of IdP with alias.",
                     getCleanedUserControlString(body.getOriginKey()),
@@ -245,11 +256,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        final EntityMirroringResult<IdentityProvider<?>> mirroringResult;
+        final EntityAliasResult<IdentityProvider<?>> aliasResult;
         try {
-            mirroringResult = transactionTemplate.execute(txStatus -> {
+            aliasResult = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
-                return mirroringHandler.ensureConsistencyOfMirroredEntity(updatedOriginalIdp);
+                return aliasHandler.ensureConsistencyOfAliasEntity(updatedOriginalIdp);
             });
         } catch (final IdpAliasFailedException e) {
             logger.warn("Could not create alias for {}", e.getMessage());
@@ -257,7 +268,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, responseCode);
         }
 
-        final IdentityProvider<?> originalIdp = mirroringResult.originalEntity();
+        final IdentityProvider<?> originalIdp = aliasResult.originalEntity();
         if (originalIdp == null) {
             logger.warn(
                     "IdentityProvider[origin={}; zone={}] - Transaction updating IdP (and alias IdP, if applicable) was not successful, but no exception was thrown.",

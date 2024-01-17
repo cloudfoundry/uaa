@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa;
 import org.springframework.lang.Nullable;
 
 /**
- * An entity that can be mirrored from the UAA zone to a custom zone or vice-versa.
+ * An entity that can have an alias in another identity zone.
  */
-public interface MirroredEntity {
+public interface EntityWithAlias {
     String getId();
 
     String getZoneId();

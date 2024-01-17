@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.cloudfoundry.identity.uaa.EntityMirroringHandler.EntityMirroringResult;
+import org.cloudfoundry.identity.uaa.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -43,7 +43,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserMirroringHandler;
+import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -133,7 +133,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private final AtomicInteger scimUpdates;
     private final AtomicInteger scimDeletes;
     private final Map<String, AtomicInteger> errorCounts;
-    private final ScimUserMirroringHandler mirroredEntityHandler;
+    private final ScimUserAliasHandler aliasHandler;
     private final TransactionTemplate transactionTemplate;
 
     private ApplicationEventPublisher publisher;
@@ -153,7 +153,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final UserMfaCredentialsProvisioning mfaCredentialsProvisioning,
             final ApprovalStore approvalStore,
             final ScimGroupMembershipManager membershipManager,
-            final ScimUserMirroringHandler mirroredEntityHandler,
+            final ScimUserAliasHandler aliasHandler,
             final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
             final @Value("${userMaxCount:500}") int userMaxCount
     ) {
@@ -178,7 +178,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
         };
-        this.mirroredEntityHandler = mirroredEntityHandler;
+        this.aliasHandler = aliasHandler;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         scimUpdates = new AtomicInteger();
         scimDeletes = new AtomicInteger();
@@ -238,24 +238,24 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             passwordValidator.validate(user.getPassword());
         }
 
-        if (!mirroredEntityHandler.aliasPropertiesAreValid(user, null)) {
+        if (!aliasHandler.aliasPropertiesAreValid(user, null)) {
             throw new ScimException("Alias ID and/or alias ZID are invalid.", HttpStatus.BAD_REQUEST);
         }
 
-        // create the user and mirror it if necessary
-        final EntityMirroringResult<ScimUser> mirroringResult = transactionTemplate.execute(txStatus -> {
+        // create the user and an alias for it if necessary
+        final EntityAliasResult<ScimUser> aliasResult = transactionTemplate.execute(txStatus -> {
             final ScimUser originalScimUser = scimUserProvisioning.createUser(
                     user,
                     user.getPassword(),
                     identityZoneManager.getCurrentIdentityZoneId()
             );
-            return mirroredEntityHandler.ensureConsistencyOfMirroredEntity(
+            return aliasHandler.ensureConsistencyOfAliasEntity(
                     originalScimUser
             );
         });
 
         // sync approvals and groups for original user
-        ScimUser persistedUser = mirroringResult.originalEntity();
+        ScimUser persistedUser = aliasResult.originalEntity();
         if (user.getApprovals() != null) {
             for (final Approval approval : user.getApprovals()) {
                 approval.setUserId(persistedUser.getId());
@@ -264,17 +264,17 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
         persistedUser = syncApprovals(syncGroups(persistedUser));
 
-        // if present, sync approvals and groups for mirrored user
-        final ScimUser mirroredScimUser = mirroringResult.mirroredEntity();
-        if (mirroredScimUser != null) {
+        // if present, sync approvals and groups for alias user
+        final ScimUser aliasScimUser = aliasResult.aliasEntity();
+        if (aliasScimUser != null) {
             if (user.getApprovals() != null) {
                 for (final Approval approval : user.getApprovals()) {
                     final Approval clonedApproval = Approval.clone(approval);
-                    clonedApproval.setUserId(mirroredScimUser.getId());
-                    approvalStore.addApproval(clonedApproval, mirroredScimUser.getZoneId());
+                    clonedApproval.setUserId(aliasScimUser.getId());
+                    approvalStore.addApproval(clonedApproval, aliasScimUser.getZoneId());
                 }
             }
-            syncApprovals(syncGroups(mirroredScimUser));
+            syncApprovals(syncGroups(aliasScimUser));
         }
 
         addETagHeader(response, persistedUser);
