@@ -138,6 +138,6 @@ class IdentityZoneTest {
                             "profile", "roles", "user_attributes", "uaa.offline_token",
                             "scim.me", "cloud_controller.user"),
                             sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups());
-        assertEquals(16, sampleIdentityZone.getConfig().getUserConfig().getMaxUsers());
+        assertEquals(1000, sampleIdentityZone.getConfig().getUserConfig().getMaxUsers());
     }
 }
