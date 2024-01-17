@@ -87,7 +87,6 @@ dependencies {
     testImplementation(libraries.springContextSupport)
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
-    testImplementation(libraries.springSecurityJwt)
     testImplementation(libraries.springSecurityLdap)
     testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)

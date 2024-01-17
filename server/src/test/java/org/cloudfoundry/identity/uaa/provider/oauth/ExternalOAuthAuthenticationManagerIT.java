@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.testing.FakeTicker;
+import com.nimbusds.jose.JWSSigner;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
@@ -56,8 +57,6 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.util.LinkedMultiValueMap;
@@ -94,6 +93,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -151,7 +151,7 @@ class ExternalOAuthAuthenticationManagerIT {
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
     private OIDCIdentityProviderDefinition config;
-    private RsaSigner signer;
+    private JWSSigner signer;
     private Map<String, Object> header;
     private String invalidRsaSigningKey;
     private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
@@ -187,11 +187,11 @@ class ExternalOAuthAuthenticationManagerIT {
         IdentityZoneHolder.clear();
         String keyName = "testKey";
         header = map(
-                entry("alg", "HS256"),
+                entry("alg", "RS256"),
                 entry("kid", keyName),
                 entry("typ", "JWT")
         );
-        signer = new RsaSigner(PRIVATE_KEY);
+        signer = new KeyInfo(keyName, PRIVATE_KEY, DEFAULT_UAA_URL).getSigner();
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(keyName, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
@@ -763,7 +763,7 @@ class ExternalOAuthAuthenticationManagerIT {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
             fail("not expected");
         } catch (Exception e) {
-            assertTrue(e.getCause() instanceof InvalidSignatureException);
+            assertTrue(e instanceof RuntimeException);
         }
     }
 

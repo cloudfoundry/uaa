@@ -14,12 +14,17 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.google.common.collect.Lists;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.KeyLengthException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
+import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -45,14 +50,14 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -76,6 +81,7 @@ import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildId
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildRefreshTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -85,7 +91,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.not;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -98,13 +103,13 @@ import static org.mockito.hamcrest.MockitoHamcrest.argThat;
 public class JwtTokenSignedByThisUAATest {
     public static final String CLIENT_ID = "app";
     public static final String USER_ID = "a7f07bf6-e720-4652-8999-e980189cef54";
-    private final SignatureVerifier verifier = new MacSigner("foobar");
+    private final SignatureVerifier verifier = new KeyInfo("some-key-id", macSigningKeySecret, DEFAULT_UAA_URL, "HS256", null).getVerifier();
 
     private final Instant oneSecondAfterTheTokenExpires = Instant.ofEpochSecond(1458997132 + 1);
     private final Instant oneSecondBeforeTheTokenExpires = Instant.ofEpochSecond(1458997132 - 1);
     private Map<String, Object> header;
     private Map<String, Object> content;
-    private Signer signer;
+    private JWSSigner signer;
     private RevocableTokenProvisioning revocableTokenProvisioning;
     private InMemoryMultitenantClientServices inMemoryMultitenantClientServices;
     private UaaUserDatabase userDb;
@@ -115,7 +120,10 @@ public class JwtTokenSignedByThisUAATest {
     private List<String> logEvents;
     private AbstractAppender appender;
 
-    @Before
+  public JwtTokenSignedByThisUAATest() throws ParseException {
+  }
+
+  @Before
     public void setupLogger() {
         logEvents = new ArrayList<>();
         appender = new AbstractAppender("", null, null) {
@@ -148,10 +156,10 @@ public class JwtTokenSignedByThisUAATest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private static final String macSigningKeySecret = "foobar";
+    private static final String macSigningKeySecret = "foobarfoobarfoobarfoobarfoobarfoo";
 
     @Before
-    public void setup() {
+    public void setup() throws KeyLengthException {
         String defaultKeyId = "some-key-id";
 
         IdentityZone uaaZone = IdentityZone.getUaa();
@@ -184,15 +192,15 @@ public class JwtTokenSignedByThisUAATest {
                 entry("email", "marissa@test.org"),
                 entry("auth_time", 1458953554),
                 entry("rev_sig", "fa1c787d"),
-                entry("iat", 1458953932),
-                entry("exp", 1458997132),
+                entry("iat", Instant.now().minusSeconds(30).toEpochMilli()),
+                entry("exp", Instant.now().plusSeconds(600).toEpochMilli()),
                 entry("iss", "http://localhost:8080/uaa/oauth/token"),
                 entry("zid", "uaa"),
                 entry("aud", Arrays.asList("app", "acme")),
                 entry("revocable", true)
         );
 
-        signer = new MacSigner(macSigningKeySecret);
+        signer = new UaaMacSigner(new SecretKeySpec(macSigningKeySecret.getBytes(StandardCharsets.UTF_8), "HS256"));
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
@@ -224,7 +232,7 @@ public class JwtTokenSignedByThisUAATest {
 
         expectedException.expectMessage("kid claim not found in JWT token header");
 
-        JwtTokenSignedByThisUAA.buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
+        assertThat(buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost")), notNullValue());
     }
 
     @Test
@@ -238,12 +246,17 @@ public class JwtTokenSignedByThisUAATest {
     }
 
     @Test
-    public void validation_must_fail_with_wrong_alg() {
+    public void validation_succeeds_with_different_alg() {
         header.put("alg", "HS512");
-        expectedException.expectMessage("Could not verify token signature.");
-        buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
+        JwtTokenSignedByThisUAA jwtTokenSignedByThisUAA = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
             .checkIssuer("http://localhost:8080/uaa/oauth/token")
             .checkSignature();
+        assertThat(jwtTokenSignedByThisUAA, notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getHeader().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getEncoded().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getHeader().getAlg(), containsString("HS512"));
     }
 
     @Test
@@ -488,9 +501,10 @@ public class JwtTokenSignedByThisUAATest {
     @Test
     public void buildIdTokenValidator_performsSignatureValidation() {
         ChainedSignatureVerifier signatureVerifier = mock(ChainedSignatureVerifier.class);
+        when(signatureVerifier.getDelegates()).thenReturn(Arrays.asList(verifier));
         buildIdTokenValidator(getToken(), signatureVerifier, new KeyInfoService("https://localhost"));
 
-        verify(signatureVerifier).verify(any(), any());
+        verify(signatureVerifier).getDelegates();
     }
 
     @Test
@@ -505,14 +519,16 @@ public class JwtTokenSignedByThisUAATest {
     public void idTokenValidator_findsScopesFromScopeClaim() {
         content.put(SCOPE, Lists.newArrayList("openid"));
         content.put(GRANTED_SCOPES, Lists.newArrayList("foo.read"));
+        ChainedSignatureVerifier validator = mock(ChainedSignatureVerifier.class);
+        when(validator.getDelegates()).thenReturn(Arrays.asList(verifier));
 
-        List<String> scopes = buildIdTokenValidator(getToken(), mock(ChainedSignatureVerifier.class), new KeyInfoService("https://localhost")).requestedScopes();
+        List<String> scopes = buildIdTokenValidator(getToken(), validator, new KeyInfoService("https://localhost")).requestedScopes();
         assertThat(scopes, equalTo(Lists.newArrayList("openid")));
     }
 
     @Test
-    public void tokenSignedWithDifferentKey() {
-        signer = new MacSigner("some_other_key");
+    public void tokenSignedWithDifferentKey() throws KeyLengthException {
+        signer = new UaaMacSigner(new SecretKeySpec("some_other_key".getBytes(), "HS256"));
 
         expectedException.expect(InvalidTokenException.class);
 
@@ -536,7 +552,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void emptyBodyJwt_failsCheckingIssuer() {
-        content = null;
+        content.remove("iss");
         JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
@@ -545,7 +561,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void emptyBodyJwt_failsCheckingExpiry() {
-        content = null;
+        content.remove("exp");
         JwtTokenSignedByThisUAA jwtToken = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"));
 
         expectedException.expect(InvalidTokenException.class);
@@ -554,6 +570,8 @@ public class JwtTokenSignedByThisUAATest {
 
     @Test
     public void expiredToken() {
+        content.put("iat", 1458997132);
+        content.put("exp", 1458997132);
         expectedException.expect(InvalidTokenException.class);
 
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))

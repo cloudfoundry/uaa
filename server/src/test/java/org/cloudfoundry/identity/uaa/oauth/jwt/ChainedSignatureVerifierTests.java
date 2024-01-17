@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -23,9 +24,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -78,7 +76,7 @@ public class ChainedSignatureVerifierTests {
 
         invalidSigner = new CommonSigner("invalid", invalidRsaSigningKey, "http://localhost/uaa");
 
-        content = new RandomValueStringGenerator(1024 * 4).generate();
+        content = "{\"sub\": \"" + new RandomValueStringGenerator(1024 * 4).generate() + "\"}";
         keyInfo = KeyInfoBuilder.build("valid", rsaSigningKey, "http://localhost/uaa");
 
         signedValidContent = JwtHelper.encode(content, keyInfo);
@@ -130,7 +128,7 @@ public class ChainedSignatureVerifierTests {
         assertEquals(3, delegates.size());
         int pos = 0;
         for (SignatureVerifier v : delegates) {
-            assertTrue("Checking " + (pos++), v instanceof CommonSignatureVerifier);
+            assertTrue("Checking " + (pos++), v instanceof SignatureVerifier);
         }
     }
 
@@ -153,7 +151,7 @@ public class ChainedSignatureVerifierTests {
         assertEquals(1, delegates.size());
         int pos = 0;
         for (SignatureVerifier v : delegates) {
-            assertTrue("Checking " + (pos++), v instanceof CommonSignatureVerifier);
+            assertTrue("Checking " + (pos++), v instanceof SignatureVerifier);
         }
     }
 
@@ -184,7 +182,7 @@ public class ChainedSignatureVerifierTests {
         List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertNotNull(delegates);
         assertEquals(1, delegates.size());
-        assertEquals("HMACSHA256", delegates.get(0).algorithm());
+        assertEquals("HS256", delegates.get(0).algorithm());
     }
 
     @Test
@@ -201,7 +199,7 @@ public class ChainedSignatureVerifierTests {
         assertNotNull(delegates);
         assertEquals(1, delegates.size());
         assertNotNull(delegates.get(0));
-        assertEquals("SHA256withECDSA", delegates.get(0).algorithm());
+        assertEquals("ES256", delegates.get(0).algorithm());
     }
 
     @Test
@@ -216,11 +214,11 @@ public class ChainedSignatureVerifierTests {
         List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertNotNull(delegates);
         assertEquals(2, delegates.size());
-        assertEquals("HMACSHA256", delegates.get(1).algorithm());
+        assertEquals("HS256", delegates.get(1).algorithm());
 
         //ensure the second signer never gets invoked upon success
         delegates.remove(1);
-        MacSigner macSigner = mock(MacSigner.class);
+        SignatureVerifier macSigner = mock(SignatureVerifier.class);
         delegates.add(macSigner);
         ReflectionTestUtils.setField(verifier, "delegates", delegates);
         signedValidContent.verifySignature(verifier);

@@ -27,15 +27,12 @@ updates:
   ignore:
   - dependency-name: "org.apache.tomcat:*"
     update-types: ["version-update:semver-major"] # Stay in Tomcat 9 because it is still supported, likely until 2027 (https://endoflife.date/tomcat), and bumping to Tomcat 10 requires some major code changes
-  - dependency-name: org.apache.directory.api:api-ldap-model
-    versions:
-    - ">= 3"
   - dependency-name: org.flywaydb:flyway-core
     versions:
     - ">= 8" # Version 8+ no longer supports MySQL 5.7, we're not ready to drop MySQL 5.7 support yet. Tracker story: https://www.pivotaltracker.com/story/show/180879913.
   - dependency-name: com.icegreen:greenmail
     versions:
-    - ">= 2" # Version 2+ was causing test flakiness, wait for it to stabilize. See https://github.com/cloudfoundry/uaa/pull/2314.
+    - ">= 2" # Version 2+ was causing test flakiness, wait for it to stabilize. See https://github.com/cloudfoundry/uaa/pull/2314. Tracking: https://github.com/cloudfoundry/uaa/issues/2673.
 - package-ecosystem: gradle
   directory: "/model"
   schedule:

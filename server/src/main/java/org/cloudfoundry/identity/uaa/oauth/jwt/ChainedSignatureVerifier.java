@@ -16,14 +16,12 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class ChainedSignatureVerifier implements SignatureVerifier {
+public class ChainedSignatureVerifier implements Verifier {
     private final List<SignatureVerifier> delegates;
 
     public ChainedSignatureVerifier(JsonWebKeySet<? extends JsonWebKey> keys) {
@@ -32,7 +30,7 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
         }
         List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());
         for (JsonWebKey key : keys.getKeys()) {
-            ds.add(new CommonSignatureVerifier(key));
+            ds.add(new SignatureVerifier(key));
         }
         delegates = Collections.unmodifiableList(ds);
     }
@@ -41,23 +39,11 @@ public class ChainedSignatureVerifier implements SignatureVerifier {
         this.delegates = delegates;
     }
 
-    @Override
-    public void verify(byte[] content, byte[] signature) {
-        Exception last = new InvalidSignatureException("No matching keys found.");
-        for (SignatureVerifier delegate : delegates) {
-            try {
-                delegate.verify(content, signature);
-                //success
-                return;
-            } catch (Exception e) {
-                last = e;
-            }
-        }
-        throw (last instanceof RuntimeException) ? (RuntimeException) last : new RuntimeException(last);
-    }
-
-    @Override
     public String algorithm() {
         return null;
+    }
+
+    public List<SignatureVerifier> getDelegates() {
+        return delegates;
     }
 }

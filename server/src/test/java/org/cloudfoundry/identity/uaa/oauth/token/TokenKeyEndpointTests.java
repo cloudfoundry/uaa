@@ -1,8 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.nimbusds.jose.JWSSigner;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -24,8 +27,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 
 import java.security.Principal;
 import java.util.Base64;
@@ -39,6 +40,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest.CERTIFICATE_1;
 import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest.SIGNING_KEY_1;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -168,17 +170,14 @@ class TokenKeyEndpointTests {
         VerificationKeyResponse key3Response = keysMap.get("RsaKey3");
 
         byte[] bytes = "Text for testing of private/public key match".getBytes();
-        RsaSigner rsaSigner = new RsaSigner(SIGNING_KEY_1);
-        RsaVerifier rsaVerifier = new RsaVerifier(key1Response.getKey());
-        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+        JWSSigner rsaSigner = new KeyInfo("RsaKey1", SIGNING_KEY_1, DEFAULT_UAA_URL).getSigner();
+        SignatureVerifier rsaVerifier = new KeyInfo("RsaKey1", SIGNING_KEY_1, DEFAULT_UAA_URL).getVerifier();
 
-        rsaSigner = new RsaSigner(SIGNING_KEY_2);
-        rsaVerifier = new RsaVerifier(key2Response.getKey());
-        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+        rsaSigner = new KeyInfo("RsaKey2", SIGNING_KEY_2, DEFAULT_UAA_URL).getSigner();
+        rsaVerifier = new KeyInfo("RsaKey2", SIGNING_KEY_2, DEFAULT_UAA_URL).getVerifier();
 
-        rsaSigner = new RsaSigner(SIGNING_KEY_3);
-        rsaVerifier = new RsaVerifier(key3Response.getKey());
-        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+        rsaSigner = new KeyInfo("RsaKey3", SIGNING_KEY_3, DEFAULT_UAA_URL).getSigner();
+        rsaVerifier = new KeyInfo("RsaKey3", SIGNING_KEY_3, DEFAULT_UAA_URL).getVerifier();
 
         //ensure that none of the keys are padded
         keys.forEach(

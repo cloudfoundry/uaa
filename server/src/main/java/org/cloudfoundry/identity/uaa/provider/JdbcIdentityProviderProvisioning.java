@@ -141,7 +141,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
-        //ensure that SAML IDPs have reduntant fields synchronized
+        //ensure that SAML IDPs have redundant fields synchronized
         if (OriginKeys.SAML.equals(provider.getType()) && provider.getConfig() != null) {
             SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
@@ -150,6 +150,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         }
     }
 
+    /**
+     * Delete all identity providers in the given zone as well as all alias identity providers of them.
+     */
     @Override
     public int deleteByIdentityZone(String zoneId) {
         return jdbcTemplate.update(DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL, zoneId, zoneId);

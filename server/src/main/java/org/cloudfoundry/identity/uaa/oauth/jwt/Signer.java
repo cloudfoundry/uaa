@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-public interface Signer extends org.springframework.security.jwt.crypto.sign.Signer {
+import com.nimbusds.jose.JWSSigner;
+
+public interface Signer extends JWSSigner {
     String keyId();
     String keyURL();
 }

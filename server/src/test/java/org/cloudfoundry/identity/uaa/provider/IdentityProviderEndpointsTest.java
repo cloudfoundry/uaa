@@ -28,7 +28,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -343,20 +342,20 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdentityProvider_AlreadyMirrored_InvalidAliasPropertyChange() throws MetadataProviderException {
+    void testUpdateIdpWithExistingAlias_InvalidAliasPropertyChange() throws MetadataProviderException {
         final String existingIdpId = UUID.randomUUID().toString();
         final String customZoneId = UUID.randomUUID().toString();
-        final String mirroredIdpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
 
         final Supplier<IdentityProvider<?>> existingIdpSupplier = () -> {
             final IdentityProvider<?> idp = getExternalOAuthProvider();
             idp.setId(existingIdpId);
             idp.setAliasZid(customZoneId);
-            idp.setAliasId(mirroredIdpId);
+            idp.setAliasId(aliasIdpId);
             return idp;
         };
 
-        // original IdP with reference to a mirrored IdP
+        // original IdP with reference to an alias IdP
         final IdentityProvider<?> existingIdp = existingIdpSupplier.get();
         when(mockIdentityProviderProvisioning.retrieve(existingIdpId, IdentityZone.getUaaZoneId()))
                 .thenReturn(existingIdp);
@@ -387,10 +386,32 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdentityProvider_AlreadyMirrored_ValidChange() throws MetadataProviderException {
+    void testUpdateIdentityProvider_ShouldRejectInvalidReferenceToAliasInExistingIdp() {
+        final String customZoneId = UUID.randomUUID().toString();
+
+        // arrange existing IdP with invalid reference to alias IdP: alias ZID, but alias ID not
+        final String existingIdpId = UUID.randomUUID().toString();
+        final IdentityProvider<?> existingIdp = getLdapDefinition();
+        existingIdp.setId(existingIdpId);
+        existingIdp.setAliasZid(customZoneId);
+        when(mockIdentityProviderProvisioning.retrieve(existingIdpId, IdentityZone.getUaaZoneId()))
+                .thenReturn(existingIdp);
+
+        final IdentityProvider<?> requestBody = getLdapDefinition();
+        requestBody.setId(existingIdpId);
+        requestBody.setAliasZid(customZoneId);
+        requestBody.setName("new-name");
+
+        Assertions.assertThatIllegalStateException().isThrownBy(() ->
+                identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true)
+        );
+    }
+
+    @Test
+    void testUpdateIdpWithExistingAlias_ValidChange() throws MetadataProviderException {
         final String existingIdpId = UUID.randomUUID().toString();
         final String customZoneId = UUID.randomUUID().toString();
-        final String mirroredIdpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
 
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(UAA);
 
@@ -398,7 +419,7 @@ class IdentityProviderEndpointsTest {
             final IdentityProvider<?> idp = getExternalOAuthProvider();
             idp.setId(existingIdpId);
             idp.setAliasZid(customZoneId);
-            idp.setAliasId(mirroredIdpId);
+            idp.setAliasId(aliasIdpId);
             return idp;
         };
 
@@ -423,61 +444,6 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateStatus_ShouldAlsoUpdateMirroredIdpIfPresent() {
-        when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(UAA);
-
-        final IdentityProvider<UaaIdentityProviderDefinition> idp = new IdentityProvider<>();
-        final String idpId = UUID.randomUUID().toString();
-        idp.setId(idpId);
-        idp.setIdentityZoneId(UAA);
-        final String mirroredIdpId = UUID.randomUUID().toString();
-        idp.setAliasId(mirroredIdpId);
-        final String customZoneId = UUID.randomUUID().toString();
-        idp.setAliasZid(customZoneId);
-        final UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
-        final PasswordPolicy passwordPolicy = new PasswordPolicy();
-        config.setPasswordPolicy(passwordPolicy);
-        idp.setConfig(config);
-        when(mockIdentityProviderProvisioning.retrieve(idpId, UAA)).thenReturn(idp);
-
-        final IdentityProvider<UaaIdentityProviderDefinition> mirroredIdp = new IdentityProvider<>();
-        mirroredIdp.setId(mirroredIdpId);
-        mirroredIdp.setIdentityZoneId(customZoneId);
-        mirroredIdp.setAliasId(idpId);
-        mirroredIdp.setAliasZid(UAA);
-        mirroredIdp.setConfig(config);
-        when(mockIdentityProviderProvisioning.retrieve(mirroredIdpId, customZoneId)).thenReturn(mirroredIdp);
-
-        when(mockIdentityProviderProvisioning.update(any(), anyString())).thenReturn(null);
-
-        final Date timestampBeforeUpdate = new Date(System.currentTimeMillis() - 60 * 1000 /* one minute earlier*/);
-
-        final IdentityProviderStatus requestBody = new IdentityProviderStatus();
-        requestBody.setRequirePasswordChange(true);
-        final ResponseEntity<IdentityProviderStatus> response = identityProviderEndpoints.updateIdentityProviderStatus(idpId, requestBody);
-
-        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        Assertions.assertThat(response.getBody()).isNotNull().isEqualTo(requestBody);
-
-        final ArgumentCaptor<IdentityProvider> idpArgumentCaptor = ArgumentCaptor.forClass(IdentityProvider.class);
-        verify(mockIdentityProviderProvisioning, times(2)).update(idpArgumentCaptor.capture(), anyString());
-
-        // expecting original IdP with a new timestamp
-        final IdentityProvider firstIdp = idpArgumentCaptor.getAllValues().get(0);
-        Assertions.assertThat(firstIdp).isNotNull();
-        Assertions.assertThat(firstIdp.getId()).isEqualTo(idpId);
-        final Date timestampAfterUpdateFirstIdp = ((UaaIdentityProviderDefinition) firstIdp.getConfig()).getPasswordPolicy().getPasswordNewerThan();
-        Assertions.assertThat(timestampAfterUpdateFirstIdp).isNotNull().isAfter(timestampBeforeUpdate);
-
-        // expecting mirrored IdP with same timestamp
-        final IdentityProvider secondIdp = idpArgumentCaptor.getAllValues().get(1);
-        Assertions.assertThat(secondIdp).isNotNull();
-        Assertions.assertThat(secondIdp.getId()).isEqualTo(mirroredIdpId);
-        final Date timestampAfterUpdateSecondIdp = ((UaaIdentityProviderDefinition) secondIdp.getConfig()).getPasswordPolicy().getPasswordNewerThan();
-        Assertions.assertThat(timestampAfterUpdateFirstIdp).isNotNull().isEqualTo(timestampAfterUpdateSecondIdp);
-    }
-
-    @Test
     void create_ldap_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider<LdapIdentityProviderDefinition> ldapDefinition = getLdapDefinition();
@@ -498,6 +464,18 @@ class IdentityProviderEndpointsTest {
         idp.setAliasId(UUID.randomUUID().toString());
 
         when(mockIdentityProviderMirroringHandler.aliasPropertiesAreValid(idp, null)).thenReturn(false);
+        final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Test
+    void testCreateIdentityProvider_AliasNotSupportedForType() throws MetadataProviderException {
+        final String customZoneId = UUID.randomUUID().toString();
+
+        // alias IdP not supported for IdPs of type LDAP
+        final IdentityProvider<LdapIdentityProviderDefinition> idp = getLdapDefinition();
+        idp.setAliasZid(customZoneId);
+
         final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(idp, true);
         Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -637,26 +615,26 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testDeleteIdentityProviderMirrored() {
+    void testDeleteIdpWithAlias() {
         final String idpId = UUID.randomUUID().toString();
-        final String mirroredIdpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
         final String customZoneId = UUID.randomUUID().toString();
 
         final IdentityProvider<?> idp = new IdentityProvider<>();
         idp.setType(OIDC10);
         idp.setId(idpId);
         idp.setIdentityZoneId(UAA);
-        idp.setAliasId(mirroredIdpId);
+        idp.setAliasId(aliasIdpId);
         idp.setAliasZid(customZoneId);
         when(mockIdentityProviderProvisioning.retrieve(idpId, UAA)).thenReturn(idp);
 
-        final IdentityProvider<?> mirroredIdp = new IdentityProvider<>();
-        mirroredIdp.setType(OIDC10);
-        mirroredIdp.setId(mirroredIdpId);
-        mirroredIdp.setIdentityZoneId(customZoneId);
-        mirroredIdp.setAliasId(idpId);
-        mirroredIdp.setAliasZid(UAA);
-        when(mockIdentityProviderProvisioning.retrieve(mirroredIdpId, customZoneId)).thenReturn(mirroredIdp);
+        final IdentityProvider<?> aliasIdp = new IdentityProvider<>();
+        aliasIdp.setType(OIDC10);
+        aliasIdp.setId(aliasIdpId);
+        aliasIdp.setIdentityZoneId(customZoneId);
+        aliasIdp.setAliasId(idpId);
+        aliasIdp.setAliasZid(UAA);
+        when(mockIdentityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(aliasIdp);
 
         final ApplicationEventPublisher mockEventPublisher = mock(ApplicationEventPublisher.class);
         identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
@@ -674,7 +652,39 @@ class IdentityProviderEndpointsTest {
         final EntityDeletedEvent<?> secondEvent = entityDeletedEventCaptor.getAllValues().get(1);
         Assertions.assertThat(secondEvent).isNotNull();
         Assertions.assertThat(secondEvent.getIdentityZoneId()).isEqualTo(UAA);
-        Assertions.assertThat(((IdentityProvider<?>) secondEvent.getSource()).getId()).isEqualTo(mirroredIdpId);
+        Assertions.assertThat(((IdentityProvider<?>) secondEvent.getSource()).getId()).isEqualTo(aliasIdpId);
+    }
+
+    @Test
+    void testDeleteIdpWithAlias_DanglingReference() {
+        final String idpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
+        final String customZoneId = UUID.randomUUID().toString();
+
+        final IdentityProvider<?> idp = new IdentityProvider<>();
+        idp.setType(OIDC10);
+        idp.setId(idpId);
+        idp.setIdentityZoneId(UAA);
+        idp.setAliasId(aliasIdpId);
+        idp.setAliasZid(customZoneId);
+        when(mockIdentityProviderProvisioning.retrieve(idpId, UAA)).thenReturn(idp);
+
+        // alias IdP is not present -> dangling reference
+
+        final ApplicationEventPublisher mockEventPublisher = mock(ApplicationEventPublisher.class);
+        identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
+        doNothing().when(mockEventPublisher).publishEvent(any());
+
+        identityProviderEndpoints.deleteIdentityProvider(idpId, true);
+        final ArgumentCaptor<EntityDeletedEvent<?>> entityDeletedEventCaptor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+
+        // should only be called for the original IdP
+        verify(mockEventPublisher, times(1)).publishEvent(entityDeletedEventCaptor.capture());
+
+        final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().get(0);
+        Assertions.assertThat(firstEvent).isNotNull();
+        Assertions.assertThat(firstEvent.getIdentityZoneId()).isEqualTo(UAA);
+        Assertions.assertThat(((IdentityProvider<?>) firstEvent.getSource()).getId()).isEqualTo(idpId);
     }
 
     @Test

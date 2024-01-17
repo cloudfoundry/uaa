@@ -10,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Arrays;
+
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
 
@@ -115,6 +117,7 @@ class JwtHeaderHelperTest {
             @ParameterizedTest
             @ValueSource(strings = {"JWT", "jwt"})
             void shouldAllowTypHeader(String validTyp) {
+                objectNode.put("alg", "RS256");
                 objectNode.put("typ", validTyp);
 
                 JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
@@ -135,30 +138,34 @@ class JwtHeaderHelperTest {
 
             @Test
             void shouldAllowJwkHeader() {
-                objectNode.put("jwk", "key");
+                objectNode.put("alg", "RS256");
+                objectNode.putObject("jwk").put("kty", "RSA").put("e", "e").put("n", "n");
 
                 JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
-                assertThat(header.parameters.jwk, is("key"));
+                assertThat(header.parameters.jwk.toString(), containsString("RSA"));
             }
 
             @Test
             void shouldAllowX509Headers() {
+                objectNode.put("alg", "RS256");
+                objectNode.put("alg", "RS256");
                 objectNode.put("x5u", "x509_url");
-                objectNode.put("x5c", "x509_cert");
+                objectNode.putArray("x5c").add("x509_cert");
                 objectNode.put("x5t", "x509_thumbprint_sha1");
                 objectNode.put("x5t#S256", "x509_sha256");
 
                 JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
                 assertThat(header.parameters.x5u, is("x509_url"));
-                assertThat(header.parameters.x5c, is("x509_cert"));
+                assertThat(header.parameters.x5c, is(Arrays.asList("x509_cert")));
                 assertThat(header.parameters.x5t, is("x509_thumbprint_sha1"));
                 assertThat(header.parameters.x5tS256, is("x509_sha256"));
             }
 
             @Test
             void shouldAllowCritHeader() {
+                objectNode.put("alg", "RS256");
                 objectNode.putArray("crit")
                         .add("first-val")
                         .add("value-2");

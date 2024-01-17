@@ -58,8 +58,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     public static final String FIELD_IDENTITY_ZONE_ID = "identityZoneId";
     public static final String FIELD_CONFIG = "config";
     public static final String FIELD_TYPE = "type";
-    public static final String FIELD_ALIAS_ID = "alias_id";
-    public static final String FIELD_ALIAS_ZID = "alias_zid";
+    public static final String FIELD_ALIAS_ID = "aliasId";
+    public static final String FIELD_ALIAS_ZID = "aliasZid";
     //see deserializer at the bottom
 
     private String id;
@@ -76,9 +76,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     private Date lastModified = new Date();
     private boolean active = true;
     private String identityZoneId;
-    @JsonProperty("alias_id")
     private String aliasId;
-    @JsonProperty("alias_zid")
     private String aliasZid;
     public Date getCreated() {
         return created;
@@ -314,6 +312,14 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     public String toString() {
         final StringBuffer sb = new StringBuffer("IdentityProvider{");
         sb.append("id='").append(id).append('\'');
+
+        sb.append(", identityZoneId=");
+        if (identityZoneId != null) {
+            sb.append('\'').append(identityZoneId).append('\'');
+        } else {
+            sb.append("null");
+        }
+
         sb.append(", originKey='").append(originKey).append('\'');
         sb.append(", name='").append(name).append('\'');
         sb.append(", type='").append(type).append('\'');
