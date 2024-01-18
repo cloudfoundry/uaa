@@ -30,6 +30,8 @@ dependencies {
         exclude(module: "bcprov-ext-jdk15on")
         exclude(module: "xalan")
     }
+    implementation(libraries.jodaTime)
+    implementation 'commons-httpclient:commons-httpclient:3.1'
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 

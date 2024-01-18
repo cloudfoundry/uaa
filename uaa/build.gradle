@@ -95,6 +95,7 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
     testImplementation(libraries.greenmail)
+    testImplementation(libraries.jodaTime)
 }
 
 ext {
