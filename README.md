@@ -337,8 +337,3 @@ To debug UAA and LDAP integrations, we use an OpenLdap docker image from [VMWare
 
 Use below command to clean-up container and volume:
 - `docker-compose down --volumes`
-
-# UAA's functionality as a SAML identity provider (IdP)
-As announced in previous deprecation notices, this functionality is now removed.
-UAA's ability to be a service provider (SP) that integrates with an
-external SAML-based IdP is still supported.
