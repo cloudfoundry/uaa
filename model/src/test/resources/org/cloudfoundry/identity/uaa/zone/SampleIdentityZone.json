@@ -126,7 +126,8 @@
       "allowedGroups": [
         "scim.me",
         "cloud_controller.user"
-      ]
+      ],
+      "maxUsers": 1000
     }
   },
   "name": "Demo Login Page",
