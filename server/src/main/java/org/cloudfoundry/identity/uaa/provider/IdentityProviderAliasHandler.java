@@ -22,7 +22,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
     /**
      * The IdP types for which alias IdPs (via 'aliasId' and 'aliasZid') are supported.
      */
-    private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
+    public static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
