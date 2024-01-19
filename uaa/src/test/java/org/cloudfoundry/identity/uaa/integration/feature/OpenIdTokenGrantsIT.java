@@ -170,7 +170,7 @@ public class OpenIdTokenGrantsIT {
     }
 
     private void validateToken(String paramName, Map params, String[] scopes, String[] aud) {
-        Map<String, Object> claims = UaaTokenUtils.getClaims((String)params.get(paramName));
+        Map<String, Object> claims = UaaTokenUtils.getClaims((String)params.get(paramName), Map.class);
 
         assertThat(claims.get("jti"), is(params.get("jti")));
         assertThat(claims.get("client_id"), is("cf"));

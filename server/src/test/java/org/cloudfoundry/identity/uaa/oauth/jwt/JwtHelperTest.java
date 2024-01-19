@@ -6,10 +6,11 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,7 +36,7 @@ public class JwtHelperTest {
 
     @Test
     public void testKidInHeader() {
-        Jwt jwt = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "testJwtContent")), keyInfo);
+        Jwt jwt = JwtHelper.encode(Map.of("sub", "testJwtContent"), keyInfo);
         assertEquals("testKid", jwt.getHeader().getKid());
 
         jwt = JwtHelper.decode(jwt.getEncoded());
@@ -44,7 +45,7 @@ public class JwtHelperTest {
 
     @Test
     public void jwtHeaderShouldContainJkuInTheHeader() {
-        Jwt jwt = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "testJwtContent")), keyInfo);
+        Jwt jwt = JwtHelper.encode(Map.of("sub", "testJwtContent"), keyInfo);
         assertEquals("https://localhost/uaa/token_keys", jwt.getHeader().getJku());
     }
 
@@ -58,9 +59,9 @@ public class JwtHelperTest {
 
     @Test
     public void testAudClaimTypes() {
-        Jwt audSingle = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", "single")), keyInfo);
-        Jwt audArray = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", Arrays.asList("one"))), keyInfo);
-        Jwt audArrayThree = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", Arrays.asList("one", "two", "three"))), keyInfo);
+        Jwt audSingle = JwtHelper.encode(Map.of("sub", "subject", "aud", "single"), keyInfo);
+        Jwt audArray = JwtHelper.encode(Map.of("sub", "subject", "aud", Arrays.asList("one")), keyInfo);
+        Jwt audArrayThree = JwtHelper.encode(Map.of("sub", "subject", "aud", Arrays.asList("one", "two", "three")), keyInfo);
 
         Claims claimSingle = UaaTokenUtils.getClaimsFromTokenString(audSingle.getEncoded());
         assertNotNull(claimSingle);
@@ -86,7 +87,7 @@ public class JwtHelperTest {
         JsonWebKey jsonWebKey = new JsonWebKey(key);
         SignatureVerifier cs = new SignatureVerifier(jsonWebKey);
         KeyInfo hmacKeyInfo = new KeyInfo(kid, keyValue, DEFAULT_UAA_URL);
-        Jwt legacySignature = JwtHelper.encode(JsonUtils.writeValueAsString(Map.of("sub", "subject", "aud", "single")), hmacKeyInfo);
+        Jwt legacySignature = JwtHelper.encode(Map.of("sub", "subject", "aud", "single"), hmacKeyInfo);
         assertNotNull(legacySignature);
         Jwt legacyVerify = JwtHelper.decode(legacySignature.getEncoded());
         assertNotNull(legacyVerify);
@@ -99,5 +100,16 @@ public class JwtHelperTest {
     @Test
     public void testLegacyHmacFailed() {
         assertThrows(InvalidSignatureException.class, () -> UaaMacSigner.verify("x", null));
+    }
+
+    @Test
+    public void testJwtInvalidPayload() {
+        assertThrows(InvalidTokenException.class, () -> JwtHelper.encode(null, keyInfo));
+    }
+
+    @Test
+    public void testJwtInvalidContent() {
+        assertThrows(InvalidTokenException.class, () -> JwtHelper.decode("invalid"));
+        assertThrows(InsufficientAuthenticationException.class, () -> JwtHelper.decode(""));
     }
 }

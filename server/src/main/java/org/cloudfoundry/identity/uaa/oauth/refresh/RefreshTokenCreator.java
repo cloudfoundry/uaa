@@ -3,10 +3,8 @@ package org.cloudfoundry.identity.uaa.oauth.refresh;
 import com.google.common.collect.Maps;
 import org.cloudfoundry.identity.uaa.oauth.*;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -77,60 +75,54 @@ public class RefreshTokenCreator {
                                  Map<String, String> additionalAuthorizationAttributes,
                                  Date expirationDate,
                                  String tokenId) {
-        String content;
-        try {
-            Map<String, Object> claims = new LinkedHashMap<>();
 
-            claims.put(JTI, tokenId);
-            claims.put(SUB, user.getId());
-            claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
-            claims.put(EXPIRY_IN_SECONDS, expirationDate.getTime() / 1000);
-            claims.put(CID, tokenRequestData.clientId);
-            claims.put(CLIENT_ID, tokenRequestData.clientId);
-            claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
-            claims.put(ZONE_ID, IdentityZoneHolder.get().getId());
-            claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(tokenRequestData.resourceIds, tokenRequestData.clientId));
-            claims.put(GRANTED_SCOPES, tokenRequestData.scopes);
+        Map<String, Object> claims = new LinkedHashMap<>();
+        claims.put(JTI, tokenId);
+        claims.put(SUB, user.getId());
+        claims.put(IAT, timeService.getCurrentTimeMillis() / 1000);
+        claims.put(EXPIRY_IN_SECONDS, expirationDate.getTime() / 1000);
+        claims.put(CID, tokenRequestData.clientId);
+        claims.put(CLIENT_ID, tokenRequestData.clientId);
+        claims.put(ISS, tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
+        claims.put(ZONE_ID, IdentityZoneHolder.get().getId());
+        claims.put(AUD, UaaStringUtils.getValuesOrDefaultValue(tokenRequestData.resourceIds, tokenRequestData.clientId));
+        claims.put(GRANTED_SCOPES, tokenRequestData.scopes);
 
-            if (null != tokenRequestData.authenticationMethods && !tokenRequestData.authenticationMethods.isEmpty()) {
-                claims.put(AMR, tokenRequestData.authenticationMethods);
-            }
-            if (null != tokenRequestData.authTime) {
-                claims.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
-            }
-            if (null != tokenRequestData.acr && !tokenRequestData.acr.isEmpty()) {
-                HashMap<Object, Object> acrMap = Maps.newHashMap();
-                acrMap.put(ACR_VALUES_KEY, tokenRequestData.acr);
-                claims.put(ACR, acrMap);
-            }
-            if (null != additionalAuthorizationAttributes) {
-                claims.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
-            }
-            if (null != tokenRequestData.externalAttributes) {
-                claims.putAll(tokenRequestData.externalAttributes);
-            }
-            if (null != grantType) {
-                claims.put(GRANT_TYPE, grantType);
-            }
-            if (null != user) {
-                claims.put(USER_NAME, user.getUsername());
-                claims.put(ORIGIN, user.getOrigin());
-                claims.put(USER_ID, user.getId());
-            }
-
-            if (tokenRequestData.revocable) {
-                claims.put(ClaimConstants.REVOCABLE, true);
-            }
-
-            if (hasText(revocableHashSignature)) {
-                claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
-            }
-
-            content = JsonUtils.writeValueAsString(claims);
-        } catch (JsonUtils.JsonUtilException e) {
-            throw new IllegalStateException("Cannot convert access token to JSON", e);
+        if (null != tokenRequestData.authenticationMethods && !tokenRequestData.authenticationMethods.isEmpty()) {
+            claims.put(AMR, tokenRequestData.authenticationMethods);
         }
-        return JwtHelper.encode(content, getActiveKeyInfo()).getEncoded();
+        if (null != tokenRequestData.authTime) {
+            claims.put(AUTH_TIME, AuthTimeDateConverter.dateToAuthTime(tokenRequestData.authTime));
+        }
+        if (null != tokenRequestData.acr && !tokenRequestData.acr.isEmpty()) {
+            HashMap<Object, Object> acrMap = Maps.newHashMap();
+            acrMap.put(ACR_VALUES_KEY, tokenRequestData.acr);
+            claims.put(ACR, acrMap);
+        }
+        if (null != additionalAuthorizationAttributes) {
+            claims.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+        }
+        if (null != tokenRequestData.externalAttributes) {
+            claims.putAll(tokenRequestData.externalAttributes);
+        }
+        if (null != grantType) {
+            claims.put(GRANT_TYPE, grantType);
+        }
+        if (null != user) {
+            claims.put(USER_NAME, user.getUsername());
+            claims.put(ORIGIN, user.getOrigin());
+            claims.put(USER_ID, user.getId());
+        }
+
+        if (tokenRequestData.revocable) {
+            claims.put(REVOCABLE, true);
+        }
+
+        if (hasText(revocableHashSignature)) {
+            claims.put(REVOCATION_SIGNATURE, revocableHashSignature);
+        }
+
+        return JwtHelper.encode(claims, getActiveKeyInfo()).getEncoded();
     }
 
     private KeyInfo getActiveKeyInfo() {
@@ -177,16 +169,15 @@ public class RefreshTokenCreator {
         return getActiveTokenPolicy().isRefreshTokenRotate();
     }
 
-    private String getRefreshedTokenString(Claims claims) {
+    private Map<String, Object> getRefreshedTokenMap(Claims claims) {
         claims.setJti(UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
-        return JsonUtils.writeValueAsString(claims);
+        return claims.getClaimMap();
     }
 
     public String createRefreshTokenValue(JwtTokenSignedByThisUAA jwtToken, Claims claims) {
         String refreshTokenValue;
         if (shouldRotateRefreshTokens()) {
-            String refreshTokenString = getRefreshedTokenString(claims);
-            refreshTokenValue = JwtHelper.encode(refreshTokenString, getActiveKeyInfo()).getEncoded();
+            refreshTokenValue = JwtHelper.encode(getRefreshedTokenMap(claims), getActiveKeyInfo()).getEncoded();
         } else {
             refreshTokenValue = jwtToken.getJwt().getEncoded();
         }

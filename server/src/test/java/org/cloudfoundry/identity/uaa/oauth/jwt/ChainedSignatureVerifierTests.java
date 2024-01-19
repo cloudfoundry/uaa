@@ -79,7 +79,7 @@ public class ChainedSignatureVerifierTests {
         content = "{\"sub\": \"" + new RandomValueStringGenerator(1024 * 4).generate() + "\"}";
         keyInfo = KeyInfoBuilder.build("valid", rsaSigningKey, "http://localhost/uaa");
 
-        signedValidContent = JwtHelper.encode(content, keyInfo);
+        signedValidContent = JwtHelper.encode(JsonUtils.readValue(content, HashMap.class), keyInfo);
 
         validKey = new JsonWebKey(KeyInfoBuilder.build(null, rsaSigningKey, "http://localhost/uaa").getJwkMap());
         invalidKey = new JsonWebKey(KeyInfoBuilder.build(null, invalidRsaSigningKey, "http://localhost/uaa").getJwkMap());

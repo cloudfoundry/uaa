@@ -21,6 +21,7 @@ import org.springframework.util.StringUtils;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -321,11 +322,11 @@ public final class UaaStringUtils {
         return StringUtils.hasText(value[0]) ? value[0] : EMPTY_STRING;
     }
 
-    public static Set<String> getValuesOrDefaultValue(Set<String> values, String defaultValue) {
+    public static List<String> getValuesOrDefaultValue(Set<String> values, String defaultValue) {
         if (ObjectUtils.isEmpty(values)) {
-            return Set.of(defaultValue);
+            return List.of(defaultValue);
         } else {
-            return values;
+            return new ArrayList<>(values);
         }
     }
 }

@@ -157,7 +157,7 @@ public class PasswordGrantIntegrationTests {
         Map<String, Object> jsonBody = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
         String accessToken = (String) jsonBody.get("access_token");
         assertThat(accessToken, is(notNullValue()));
-        Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken);
+        Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken, Map.class);
         if (isNone) {
             assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
         } else {

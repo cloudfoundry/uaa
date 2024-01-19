@@ -321,7 +321,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         String tokenId = getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone));
         IdentityZoneHolder.set(zone);
         String token = revocableTokenProvisioning.retrieve(tokenId, IdentityZoneHolder.get().getId()).getValue();
-        Map<String, Object> claims = UaaTokenUtils.getClaims(token);
+        Map<String, Object> claims = UaaTokenUtils.getClaims(token, Map.class);
         assertNotNull(claims.get(ClaimConstants.REVOCABLE));
         assertTrue((Boolean) claims.get(ClaimConstants.REVOCABLE));
     }
@@ -341,8 +341,8 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     private void assertRefreshIdTokenCorrect(String originalIdTokenJwt, String idTokenJwtFromRefreshGrant) {
         assertNotNull(idTokenJwtFromRefreshGrant);
-        Map<String, Object> originalIdClaims = getClaims(originalIdTokenJwt);
-        Map<String, Object> idClaims = getClaims(idTokenJwtFromRefreshGrant);
+        Map<String, Object> originalIdClaims = getClaims(originalIdTokenJwt, Map.class);
+        Map<String, Object> idClaims = getClaims(idTokenJwtFromRefreshGrant, Map.class);
 
         // These claims should be the same in the old and new id tokens: auth_time, iss, sub, azp
         // http://openid.net/specs/openid-connect-core-1_0.html#RefreshTokenResponse
@@ -431,13 +431,13 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
         CompositeToken compositeToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class);
         String refreshTokenJwt = compositeToken.getRefreshToken().getValue();
-        assertThat(getClaims(refreshTokenJwt).get(EXPIRY_IN_SECONDS), equalTo(getClaims(refreshToken).get(EXPIRY_IN_SECONDS)));
+        assertThat(getClaims(refreshTokenJwt, Map.class).get(EXPIRY_IN_SECONDS), equalTo(getClaims(refreshToken, Map.class).get(EXPIRY_IN_SECONDS)));
 
         CompositeToken newTokenResponse = getTokensWithPasswordGrant(client.getClientId(), SECRET, user.getUserName(), SECRET, getZoneHostUrl(zone), "jwt");
         String newRefreshToken = newTokenResponse.getRefreshToken().getValue();
 
-        assertThat(getClaims(newRefreshToken).get(EXPIRY_IN_SECONDS), not(nullValue()));
-        assertThat(getClaims(newRefreshToken).get(EXPIRY_IN_SECONDS), not(equalTo(getClaims(refreshToken).get(EXPIRY_IN_SECONDS))));
+        assertThat(getClaims(newRefreshToken, Map.class).get(EXPIRY_IN_SECONDS), not(nullValue()));
+        assertThat(getClaims(newRefreshToken, Map.class).get(EXPIRY_IN_SECONDS), not(equalTo(getClaims(refreshToken, Map.class).get(EXPIRY_IN_SECONDS))));
     }
 
     @Test

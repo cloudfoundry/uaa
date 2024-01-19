@@ -96,7 +96,7 @@ public class RefreshTokenCreatorTest {
 
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
-        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue());
+        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class);
         assertThat(refreshClaims.get(AUTH_TIME), is(1L));
         assertThat((List<String>) refreshClaims.get(AMR), hasItem("pwd"));
         assertThat((Map<String, List<String>>) refreshClaims.get(ACR), hasKey("values"));
@@ -131,7 +131,7 @@ public class RefreshTokenCreatorTest {
 
         ExpiringOAuth2RefreshToken refreshToken = refreshTokenCreator.createRefreshToken(user, refreshTokenRequestData, "abcdef");
 
-        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue());
+        Map<String, Object> refreshClaims = UaaTokenUtils.getClaims(refreshToken.getValue(), Map.class);
         assertFalse(refreshClaims.containsKey(AUTH_TIME));
         assertFalse(refreshClaims.containsKey(AMR));
         assertFalse(refreshClaims.containsKey(ACR));

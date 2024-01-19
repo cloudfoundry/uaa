@@ -1,9 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.nimbusds.jose.KeyLengthException;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -145,7 +142,7 @@ public class UaaTokenUtilsTest {
         content.put("aud", "openidclient");
         String jwt = UaaTokenUtils.constructToken(headers, content, new UaaMacSigner("foobar"));
 
-        Map<String, Object> claims = UaaTokenUtils.getClaims(jwt);
+        Map<String, Object> claims = UaaTokenUtils.getClaims(jwt, Map.class);
 
         assertEquals("openidclient", claims.get("cid"));
         assertEquals("uaa", claims.get("origin"));
@@ -160,13 +157,7 @@ public class UaaTokenUtilsTest {
 
     @Test(expected = InvalidTokenException.class)
     public void getClaims_throwsExceptionWhenJwtIsMalformed() {
-        UaaTokenUtils.getClaims("not.a.jwt");
-    }
-
-    @Test(expected = InvalidTokenException.class)
-    public void getClaims_throwsExceptionWhenClaimsCannotBeRead() {
-        Jwt encoded = JwtHelper.encode("great content", KeyInfoBuilder.build("foo", "bar", "https://localhost/uaa"));
-        UaaTokenUtils.getClaims(encoded.getEncoded());
+        UaaTokenUtils.getClaims("not.a.jwt", Map.class);
     }
 
     @Test
@@ -176,7 +167,7 @@ public class UaaTokenUtilsTest {
         headers.put("alg", "HS256");
         String tokenWithNoClaims = UaaTokenUtils.constructToken(headers, new HashMap<>(), new UaaMacSigner("foobar"));
 
-        Map<String, Object> claims = UaaTokenUtils.getClaims(tokenWithNoClaims);
+        Map<String, Object> claims = UaaTokenUtils.getClaims(tokenWithNoClaims, Map.class);
 
         assertNotNull(claims);
         assertEquals(0, claims.size());

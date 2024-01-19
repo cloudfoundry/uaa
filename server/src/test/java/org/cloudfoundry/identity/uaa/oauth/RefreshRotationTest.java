@@ -127,7 +127,7 @@ class RefreshRotationTest {
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(accessToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
@@ -135,11 +135,11 @@ class RefreshRotationTest {
     OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertThat(refreshedToken, is(notNullValue()));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
 
     refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
   }
 
   @Test
@@ -159,7 +159,7 @@ class RefreshRotationTest {
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(accessToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
@@ -168,11 +168,11 @@ class RefreshRotationTest {
     OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertThat(refreshedToken, is(notNullValue()));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
 
     refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
     assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
-    assertThat(UaaTokenUtils.getClaims(refreshedToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
   }
 
   @Test
@@ -191,7 +191,7 @@ class RefreshRotationTest {
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(accessToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
@@ -218,7 +218,7 @@ class RefreshRotationTest {
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat(UaaTokenUtils.getClaims(accessToken.getValue()), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(accessToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
