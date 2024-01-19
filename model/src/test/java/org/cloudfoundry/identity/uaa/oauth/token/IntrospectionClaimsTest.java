@@ -40,10 +40,10 @@ class IntrospectionClaimsTest {
   @Test
   void testSerialize() {
     assertTrue(JsonUtils.writeValueAsString(INTROSPECTION_PAYLOAD).contains(TokenConstants.CLIENT_AUTH_NONE));
-    assertNotNull(INTROSPECTION_PAYLOAD.getClaimObject());
-    assertThat(INTROSPECTION_PAYLOAD.getClaimObject(), hasEntry("grant_type", "authorization_code"));
-    assertThat(INTROSPECTION_PAYLOAD.getClaimObject(), hasEntry("client_id", "login"));
-    assertThat(INTROSPECTION_PAYLOAD.getClaimObject(), hasEntry("aud", Arrays.asList("openid", "login")));
-    assertThat(INTROSPECTION_PAYLOAD.getClaimObject(), hasEntry("scope", Arrays.asList("openid")));
+    assertNotNull(INTROSPECTION_PAYLOAD.getClaimMap());
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("grant_type", "authorization_code"));
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("client_id", "login"));
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("aud", Arrays.asList("openid", "login")));
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("scope", Arrays.asList("openid")));
   }
 }

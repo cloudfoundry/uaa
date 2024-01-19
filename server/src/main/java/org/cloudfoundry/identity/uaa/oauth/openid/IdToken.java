@@ -159,7 +159,7 @@ public class IdToken {
     }
 
     @JsonIgnore
-    public Map<String, Object> getClaimObject() {
+    public Map<String, Object> getClaimMap() {
         return JsonUtils.convertValue(this, HashMap.class);
     }
 }

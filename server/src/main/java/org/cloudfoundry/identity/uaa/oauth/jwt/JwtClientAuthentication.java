@@ -79,8 +79,8 @@ public class JwtClientAuthentication {
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
     KeyInfo signingKeyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
     return signingKeyInfo.verifierCertificate().isPresent() ?
-        JwtHelper.encodePlusX5t(claims.getClaimObject(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
-        JwtHelper.encode(claims.getClaimObject(), signingKeyInfo).getEncoded();
+        JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
+        JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
   }
 
   public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {

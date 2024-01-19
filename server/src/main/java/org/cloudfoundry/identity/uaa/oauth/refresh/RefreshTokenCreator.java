@@ -171,7 +171,7 @@ public class RefreshTokenCreator {
 
     private Map<String, Object> getRefreshedTokenMap(Claims claims) {
         claims.setJti(UUID.randomUUID().toString().replace("-", "") + REFRESH_TOKEN_SUFFIX);
-        return claims.getClaimObject();
+        return claims.getClaimMap();
     }
 
     public String createRefreshTokenValue(JwtTokenSignedByThisUAA jwtToken, Claims claims) {
