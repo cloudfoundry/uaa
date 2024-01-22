@@ -196,6 +196,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
+        if (isCheckOriginEnabled(zoneId)) {
+            checkOrigin(user.getOrigin(), zoneId);
+        }
         logger.debug("Creating new user: {}", UaaStringUtils.getCleanedUserControlString(user.getUserName()));
 
         final String id = UUID.randomUUID().toString();
@@ -271,6 +274,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         user.setOrigin(origin);
+        if (isCheckOriginEnabled(zoneId)) {
+            checkOrigin(origin, zoneId);
+        }
         ScimUtils.validate(user);
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, ps -> {
             int pos = 1;
@@ -563,6 +569,27 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (maxAllowedUsers > 0 && maxAllowedUsers < (getUsersCountForZone(zoneId) + 1)) {
             throw new InvalidScimResourceException("The maximum allowed numbers of users: " + maxAllowedUsers
                 + " is reached already in Identity Zone " + zoneId);
+        }
+    }
+
+    private boolean isCheckOriginEnabled(String zoneId) {
+        try {
+            UserConfig userConfig;
+            IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
+            userConfig = (currentZone.getId().equals(zoneId)) ?
+                currentZone.getConfig().getUserConfig() :
+                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
+            return userConfig.isCheckOriginEnabled();
+        } catch (ZoneDoesNotExistsException e) {
+            logger.debug("could not retrieve identity zone with id: {}", zoneId);
+        }
+        return false;
+    }
+
+    private void checkOrigin(String origin, String zoneId) {
+        Integer count = jdbcTemplate.queryForObject("select count(*) from identity_provider where origin_key=? and identity_zone_id=? ", Integer.class, origin, zoneId);
+        if (count == 0) {
+            throw new InvalidScimResourceException("Invalid origin " + origin + " in Identity Zone " + zoneId);
         }
     }
 }
