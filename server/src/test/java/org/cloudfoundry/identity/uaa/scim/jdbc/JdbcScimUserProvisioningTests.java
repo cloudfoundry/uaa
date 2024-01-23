@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,7 +45,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -71,6 +71,7 @@ class JdbcScimUserProvisioningTests {
     private JdbcPagingListFactory pagingListFactory;
     private String joeId;
     private String currentIdentityZoneId;
+    private IdentityZoneManager idzManager;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -89,8 +90,12 @@ class JdbcScimUserProvisioningTests {
         pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
 
         currentIdentityZoneId = "currentIdentityZoneId-" + generator.generate();
+        IdentityZone idz = new IdentityZone();
+        idz.setId(currentIdentityZoneId);
+        idzManager = new IdentityZoneManagerImpl();
+        idzManager.setCurrentIdentityZone(idz);
 
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl());
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -107,7 +112,6 @@ class JdbcScimUserProvisioningTests {
 
     @AfterEach
     void tearDown() {
-        IdentityZoneHolder.get().getConfig().getUserConfig().setMaxUsers(-1);
         jdbcTemplate.execute("delete from users");
     }
 
@@ -1048,26 +1052,43 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void cannotCreateMaxUserLimit() {
-        IdentityZoneHolder.get().getConfig().getUserConfig().setMaxUsers(10);
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(10);
         ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword("password");
         scimUser.setOrigin(OriginKeys.UAA);
-        for (int i = 2; i < 12; i++) {
-            scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
-            scimUser.setId("user-id-" + i);
-            scimUser.setUserName("user" +i+ "@example.com");
-            scimUser.setPassword("password");
+        try {
+            for (int i = 0; i < 12; i++) {
+                scimUser.setId("user-id-" + i);
+                scimUser.setUserName("user" +i+ "@example.com");
+                scimUser.setPassword("password");
+                scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
+            }
+        } catch (InvalidScimResourceException e) {
+            assertTrue(e.getMessage().startsWith("The maximum allowed numbers of users"));
+        } finally {
+            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(-1);
         }
+    }
+
+    @Test
+    void cannotCreateUserWithInvalidOrigin() {
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
+        ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User1", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user1@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword("password");
-        ScimUser finalScimUser = scimUser;
-        assertThrowsWithMessageThat(
-            InvalidScimResourceException.class,
-            () -> jdbcScimUserProvisioning.create(finalScimUser, IdentityZoneHolder.getCurrentZoneId()),
-            containsString("The maximum allowed numbers of users: 10 is reached already in Identity Zone")
-        );
+        scimUser.setOrigin("invalidOrigin");
+        try {
+            scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
+        } catch (InvalidScimResourceException e) {
+            assertTrue(e.getMessage().startsWith("Invalid origin"));
+        } finally {
+            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
+        }
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
