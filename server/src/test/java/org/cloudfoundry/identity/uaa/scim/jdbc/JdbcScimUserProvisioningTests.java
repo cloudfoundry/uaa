@@ -1053,18 +1053,18 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void cannotCreateMaxUserLimit() {
-        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(10);
         ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("user@example.com");
         scimUser.setEmails(Collections.singletonList(email));
-        scimUser.setPassword("password");
+        scimUser.setPassword(generator.generate());
         scimUser.setOrigin(OriginKeys.UAA);
         try {
-            for (int i = 0; i < 12; i++) {
+            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(10);
+            for (int i = 1; i < 12; i++) {
                 scimUser.setId("user-id-" + i);
                 scimUser.setUserName("user" +i+ "@example.com");
-                scimUser.setPassword("password");
+                scimUser.setPassword(generator.generate());
                 scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
             }
         } catch (InvalidScimResourceException e) {
@@ -1078,14 +1078,15 @@ class JdbcScimUserProvisioningTests {
     void canCreateUserWithValidOrigin() {
         String validOrigin = "validOrigin";
         addIdentityProvider(jdbcTemplate, currentIdentityZoneId, validOrigin);
-        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
-        ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User1", "Example");
+        String randomId = generator.generate();
+        ScimUser scimUser = new ScimUser("user-id-"+randomId, "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
-        email.setValue("user1@example.com");
+        email.setValue("user-"+randomId+"@example.com");
         scimUser.setEmails(Collections.singletonList(email));
-        scimUser.setPassword("password");
+        scimUser.setPassword(generator.generate());
         scimUser.setOrigin(validOrigin);
         try {
+            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
             scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
         } catch (InvalidScimResourceException e) {
             fail("Can't create user with valid origin when origin is checked");
@@ -1096,14 +1097,15 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void cannotCreateUserWithInvalidOrigin() {
-        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
-        ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User1", "Example");
+        String randomId = generator.generate();
+        ScimUser scimUser = new ScimUser("user-id-"+randomId, "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
-        email.setValue("user1@example.com");
+        email.setValue("user-"+randomId+"@example.com");
         scimUser.setEmails(Collections.singletonList(email));
-        scimUser.setPassword("password");
+        scimUser.setPassword(generator.generate());
         scimUser.setOrigin("invalidOrigin");
         try {
+            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
             scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
         } catch (InvalidScimResourceException e) {
             assertTrue(e.getMessage().startsWith("Invalid origin"));
