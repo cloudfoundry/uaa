@@ -46,6 +46,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -399,7 +400,7 @@ class JdbcScimUserProvisioningTests {
     @Test
     void validateOriginAndExternalIDDuringCreateAndUpdate() {
         String origin = "test";
-        addIdentityProvider(jdbcTemplate, origin);
+        addIdentityProvider(jdbcTemplate, IdentityZone.getUaaZoneId(), origin);
         String externalId = "testId";
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.setOrigin(origin);
@@ -416,7 +417,7 @@ class JdbcScimUserProvisioningTests {
         assertEquals(origin, created.getOrigin());
         assertEquals(externalId, created.getExternalId());
         String origin2 = "test2";
-        addIdentityProvider(jdbcTemplate, origin2);
+        addIdentityProvider(jdbcTemplate, IdentityZone.getUaaZoneId(), origin2);
         String externalId2 = "testId2";
         created.setOrigin(origin2);
         created.setExternalId(externalId2);
@@ -1074,6 +1075,26 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
+    void canCreateUserWithValidOrigin() {
+        String validOrigin = "validOrigin";
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, validOrigin);
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
+        ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User1", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user1@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword("password");
+        scimUser.setOrigin(validOrigin);
+        try {
+            scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
+        } catch (InvalidScimResourceException e) {
+            fail("Can't create user with valid origin when origin is checked");
+        } finally {
+            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
+        }
+    }
+
+    @Test
     void cannotCreateUserWithInvalidOrigin() {
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
         ScimUser scimUser = new ScimUser("user-id-1", "user1@example.com", "User1", "Example");
@@ -1142,8 +1163,8 @@ class JdbcScimUserProvisioningTests {
         jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin, zoneId);
     }
 
-    private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
-        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')", UUID.randomUUID().toString(), originKey, originKey);
+    private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String idzId, String originKey) {
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,?,?,?,'UNKNOWN')", UUID.randomUUID().toString(), idzId, originKey, originKey);
     }
 
 }
