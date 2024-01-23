@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
