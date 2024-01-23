@@ -45,6 +45,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -1059,19 +1060,20 @@ class JdbcScimUserProvisioningTests {
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setOrigin(OriginKeys.UAA);
-        try {
-            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(10);
-            for (int i = 1; i < 12; i++) {
-                scimUser.setId("user-id-" + i);
-                scimUser.setUserName("user" +i+ "@example.com");
-                scimUser.setPassword(randomString());
-                scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
-            }
-        } catch (InvalidScimResourceException e) {
-            assertTrue(e.getMessage().startsWith("The maximum allowed numbers of users"));
-        } finally {
-            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(-1);
-        }
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(10);
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> {
+                for (int i = 1; i < 12; i++) {
+                    scimUser.setId("user-id-" + i);
+                    scimUser.setUserName("user" +i+ "@example.com");
+                    scimUser.setPassword(randomString());
+                    jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
+                }
+            },
+            containsString("The maximum allowed numbers of users: 10 is reached already in Identity Zone")
+        );
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setMaxUsers(-1);
     }
 
     @Test
@@ -1108,6 +1110,7 @@ class JdbcScimUserProvisioningTests {
         try {
             idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
             scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
+            fail("User with invalid origin has been created");
         } catch (InvalidScimResourceException e) {
             assertTrue(e.getMessage().startsWith("Invalid origin"));
         } finally {
