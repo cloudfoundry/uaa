@@ -31,7 +31,7 @@ dependencies {
         exclude(module: "xalan")
     }
     implementation(libraries.jodaTime)
-    implementation 'commons-httpclient:commons-httpclient:3.1'
+    implementation(libraries.commonsHttpClient)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
