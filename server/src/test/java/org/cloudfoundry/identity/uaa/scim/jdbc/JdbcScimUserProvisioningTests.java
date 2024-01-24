@@ -1107,15 +1107,13 @@ class JdbcScimUserProvisioningTests {
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setOrigin(invalidOrigin);
-        try {
-            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
-            scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
-            fail("User with invalid origin has been created");
-        } catch (InvalidScimResourceException e) {
-            assertTrue(e.getMessage().startsWith("Invalid origin"));
-        } finally {
-            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
-        }
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId()),
+            containsString("Invalid origin")
+        );
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
