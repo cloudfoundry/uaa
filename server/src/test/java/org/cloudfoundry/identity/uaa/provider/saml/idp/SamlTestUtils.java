@@ -20,13 +20,13 @@ import javax.xml.xpath.XPathFactory;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.security.saml.key.KeyManager;
-import org.springframework.security.saml.metadata.ExtendedMetadata;
-import org.springframework.security.saml.metadata.MetadataGenerator;
+//import org.springframework.security.saml.context.SAMLMessageContext;
+//import org.springframework.security.saml.key.KeyManager;
+//import org.springframework.security.saml.metadata.ExtendedMetadata;
+//import org.springframework.security.saml.metadata.MetadataGenerator;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -38,36 +38,36 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
-import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
-import org.opensaml.common.SAMLObject;
-import org.opensaml.common.SAMLObjectBuilder;
-import org.opensaml.common.SAMLVersion;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.Audience;
-import org.opensaml.saml2.core.AudienceRestriction;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.saml2.core.AuthnContextClassRef;
-import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.saml2.core.AuthnStatement;
-import org.opensaml.saml2.core.Conditions;
-import org.opensaml.saml2.core.Issuer;
-import org.opensaml.saml2.core.NameID;
-import org.opensaml.saml2.core.Subject;
-import org.opensaml.saml2.core.SubjectConfirmation;
-import org.opensaml.saml2.core.SubjectConfirmationData;
-import org.opensaml.saml2.core.impl.AssertionMarshaller;
-import org.opensaml.saml2.metadata.EntityDescriptor;
-import org.opensaml.saml2.metadata.SPSSODescriptor;
-import org.opensaml.xml.ConfigurationException;
-import org.opensaml.xml.XMLObjectBuilderFactory;
-import org.opensaml.xml.io.Marshaller;
-import org.opensaml.xml.security.SecurityHelper;
-import org.opensaml.xml.security.credential.Credential;
-import org.opensaml.xml.signature.Signature;
-import org.opensaml.xml.signature.Signer;
-import org.opensaml.xml.signature.impl.SignatureBuilder;
-import org.opensaml.xml.util.XMLHelper;
+//import org.opensaml.Configuration;
+//import org.opensaml.DefaultBootstrap;
+//import org.opensaml.common.SAMLObject;
+//import org.opensaml.common.SAMLObjectBuilder;
+//import org.opensaml.common.SAMLVersion;
+//import org.opensaml.saml2.core.Assertion;
+//import org.opensaml.saml2.core.Audience;
+//import org.opensaml.saml2.core.AudienceRestriction;
+//import org.opensaml.saml2.core.AuthnContext;
+//import org.opensaml.saml2.core.AuthnContextClassRef;
+//import org.opensaml.saml2.core.AuthnRequest;
+//import org.opensaml.saml2.core.AuthnStatement;
+//import org.opensaml.saml2.core.Conditions;
+//import org.opensaml.saml2.core.Issuer;
+//import org.opensaml.saml2.core.NameID;
+//import org.opensaml.saml2.core.Subject;
+//import org.opensaml.saml2.core.SubjectConfirmation;
+//import org.opensaml.saml2.core.SubjectConfirmationData;
+//import org.opensaml.saml2.core.impl.AssertionMarshaller;
+//import org.opensaml.saml2.metadata.EntityDescriptor;
+//import org.opensaml.saml2.metadata.SPSSODescriptor;
+//import org.opensaml.xml.ConfigurationException;
+//import org.opensaml.xml.XMLObjectBuilderFactory;
+//import org.opensaml.xml.io.Marshaller;
+//import org.opensaml.xml.security.SecurityHelper;
+//import org.opensaml.xml.security.credential.Credential;
+//import org.opensaml.xml.signature.Signature;
+//import org.opensaml.xml.signature.Signer;
+//import org.opensaml.xml.signature.impl.SignatureBuilder;
+//import org.opensaml.xml.util.XMLHelper;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
@@ -78,7 +78,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
+//import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
 // TODO this class seems to be used more broadly than what its location indicates (uaa as saml idp); need to move it
 // also remove unused code in here
@@ -268,19 +268,19 @@ public class SamlTestUtils {
             "<md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"http://testzone1.localhost:8080/uaa/saml/idp/SSO/alias/testzone1.cloudfoundry-saml-login\"/>" +
             "</md:IDPSSODescriptor></md:EntityDescriptor>";
 
-    private XMLObjectBuilderFactory builderFactory;
+//    private XMLObjectBuilderFactory builderFactory;
 
-    public void initializeSimple() {
-        builderFactory = Configuration.getBuilderFactory();
-    }
+//    public void initializeSimple() {
+//        builderFactory = Configuration.getBuilderFactory();
+//    }
 
-    public void initialize() throws ConfigurationException {
+    public void initialize() /* throws ConfigurationException */ {
         IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKey(PROVIDER_PRIVATE_KEY);
         IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
         IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(PROVIDER_CERTIFICATE);
         AddBcProvider.noop();
-        DefaultBootstrap.bootstrap();
-        initializeSimple();
+//        DefaultBootstrap.bootstrap();
+//        initializeSimple();
     }
 
     void setupZoneWithSamlConfig(IdentityZone zone) {
@@ -308,215 +308,215 @@ public class SamlTestUtils {
         return def;
     }
 
-    @SuppressWarnings("unchecked")
-    SAMLMessageContext mockSamlMessageContext() {
-        return mockSamlMessageContext(mockAuthnRequest());
-    }
+//    @SuppressWarnings("unchecked")
+//    SAMLMessageContext mockSamlMessageContext() {
+//        return mockSamlMessageContext(mockAuthnRequest());
+//    }
 
-    @SuppressWarnings("unchecked")
-    SAMLMessageContext mockSamlMessageContext(AuthnRequest authnRequest) {
-        SAMLMessageContext context = new SAMLMessageContext();
+//    @SuppressWarnings("unchecked")
+//    SAMLMessageContext mockSamlMessageContext(AuthnRequest authnRequest) {
+//        SAMLMessageContext context = new SAMLMessageContext();
+//
+//        context.setPeerEntityId(SP_ENTITY_ID);
+//        context.setPeerEntityRole(SPSSODescriptor.DEFAULT_ELEMENT_NAME);
+//        EntityDescriptor spMetadata = mockSpMetadata();
+//        context.setPeerEntityMetadata(spMetadata);
+//        SPSSODescriptor spDescriptor = spMetadata.getSPSSODescriptor(SAML20P_NS);
+//        context.setPeerEntityRoleMetadata(spDescriptor);
+//        context.setInboundSAMLMessage(authnRequest);
+//
+//        SamlConfig config = new SamlConfig();
+//        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
+//        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+//        config.setCertificate(PROVIDER_CERTIFICATE);
+//        KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
+//        context.setLocalSigningCredential(keyManager.getDefaultCredential());
+//        return context;
+//    }
 
-        context.setPeerEntityId(SP_ENTITY_ID);
-        context.setPeerEntityRole(SPSSODescriptor.DEFAULT_ELEMENT_NAME);
-        EntityDescriptor spMetadata = mockSpMetadata();
-        context.setPeerEntityMetadata(spMetadata);
-        SPSSODescriptor spDescriptor = spMetadata.getSPSSODescriptor(SAML20P_NS);
-        context.setPeerEntityRoleMetadata(spDescriptor);
-        context.setInboundSAMLMessage(authnRequest);
+//    private EntityDescriptor mockSpMetadata() {
+//        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+//
+//        MetadataGenerator metadataGenerator = new MetadataGenerator();
+//        metadataGenerator.setExtendedMetadata(extendedMetadata);
+//        metadataGenerator.setEntityId(SP_ENTITY_ID);
+//        metadataGenerator.setEntityBaseURL("http://localhost:8080/uaa/saml");
+//        metadataGenerator.setWantAssertionSigned(false);
+//
+//        KeyManager keyManager = mock(KeyManager.class);
+//        when(keyManager.getDefaultCredentialName()).thenReturn(null);
+//        metadataGenerator.setKeyManager(keyManager);
+//        return metadataGenerator.generateMetadata();
+//    }
 
-        SamlConfig config = new SamlConfig();
-        config.setPrivateKey(PROVIDER_PRIVATE_KEY);
-        config.setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
-        config.setCertificate(PROVIDER_CERTIFICATE);
-        KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-        context.setLocalSigningCredential(keyManager.getDefaultCredential());
-        return context;
-    }
+//    private AuthnRequest mockAuthnRequest() {
+//        return mockAuthnRequest(null);
+//    }
 
-    private EntityDescriptor mockSpMetadata() {
-        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+//    public String mockAssertionEncoded(Assertion assertion) throws Exception {
+//        AssertionMarshaller marshaller = new AssertionMarshaller();
+//        Element plaintextElement = marshaller.marshall(assertion);
+//        String serializedElement = XMLHelper.nodeToString(plaintextElement);
+//        return Base64.encodeBase64URLSafeString(serializedElement.getBytes(StandardCharsets.UTF_8));
+//    }
 
-        MetadataGenerator metadataGenerator = new MetadataGenerator();
-        metadataGenerator.setExtendedMetadata(extendedMetadata);
-        metadataGenerator.setEntityId(SP_ENTITY_ID);
-        metadataGenerator.setEntityBaseURL("http://localhost:8080/uaa/saml");
-        metadataGenerator.setWantAssertionSigned(false);
+//    public String mockAssertionEncoded(
+//            String issuerEntityId,
+//            String format,
+//            String username,
+//            String spEndpoint,
+//            String audienceEntityID) throws Exception {
+//        final Assertion assertion = mockAssertion(issuerEntityId, format, username, spEndpoint, audienceEntityID);
+//        signAssertion(assertion, PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+//        return mockAssertionEncoded(assertion);
+//    }
 
-        KeyManager keyManager = mock(KeyManager.class);
-        when(keyManager.getDefaultCredentialName()).thenReturn(null);
-        metadataGenerator.setKeyManager(keyManager);
-        return metadataGenerator.generateMetadata();
-    }
+//    private Assertion mockAssertion(
+//            String issuerEntityId,
+//            String format,
+//            String username,
+//            String spEndpoint,
+//            String audienceEntityID) {
+//        final DateTime now = new DateTime();
+//        final DateTime until = now.plusHours(1);
+//
+//        Assertion assertion = (Assertion) buildSamlObject(Assertion.DEFAULT_ELEMENT_NAME);
+//
+//        {
+//            assertion.setIssueInstant(now);
+//        }
+//
+//        {
+//            final Issuer issuer = (Issuer) buildSamlObject(Issuer.DEFAULT_ELEMENT_NAME);
+//            issuer.setValue(issuerEntityId);
+//            assertion.setIssuer(issuer);
+//        }
+//
+//        {
+//            final NameID nameId = (NameID) buildSamlObject(NameID.DEFAULT_ELEMENT_NAME);
+//            nameId.setValue(username);
+//            nameId.setNameQualifier(NameID.UNSPECIFIED);
+//            nameId.setFormat(format);
+//
+//            final SubjectConfirmationData confirmationMethod = (SubjectConfirmationData) buildSamlObject(SubjectConfirmationData.DEFAULT_ELEMENT_NAME);
+//            confirmationMethod.setNotOnOrAfter(until);
+//            confirmationMethod.setRecipient(spEndpoint);
+//
+//            final SubjectConfirmation subjectConfirmation = (SubjectConfirmation) buildSamlObject(SubjectConfirmation.DEFAULT_ELEMENT_NAME);
+//            subjectConfirmation.setSubjectConfirmationData(confirmationMethod);
+//            subjectConfirmation.setMethod("urn:oasis:names:tc:SAML:2.0:cm:bearer");
+//
+//            final Subject subject = (Subject) buildSamlObject(Subject.DEFAULT_ELEMENT_NAME);
+//            subject.setNameID(nameId);
+//            subject.getSubjectConfirmations().add(subjectConfirmation);
+//
+//            subject.getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
+//            subject.getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
+//
+//            assertion.setSubject(subject);
+//        }
+//
+//        {
+//            final Audience audience = (Audience) buildSamlObject(Audience.DEFAULT_ELEMENT_NAME);
+//            audience.setAudienceURI(audienceEntityID);
+//
+//            final AudienceRestriction audienceRestriction = (AudienceRestriction) buildSamlObject(AudienceRestriction.DEFAULT_ELEMENT_NAME);
+//            audienceRestriction.getAudiences().add(audience);
+//
+//            final Conditions conditions = (Conditions) buildSamlObject(Conditions.DEFAULT_ELEMENT_NAME);
+//            conditions.getAudienceRestrictions().add(audienceRestriction);
+//            conditions.setNotBefore(new DateTime().minusSeconds(2));
+//            conditions.setNotOnOrAfter(until);
+//
+//            assertion.setConditions(conditions);
+//        }
+//
+//        {
+//            final AuthnContextClassRef authnContextClassRef = (AuthnContextClassRef) buildSamlObject(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
+//            authnContextClassRef.setAuthnContextClassRef("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
+//
+//            final AuthnContext authnContext = (AuthnContext) buildSamlObject(AuthnContext.DEFAULT_ELEMENT_NAME);
+//            authnContext.setAuthnContextClassRef(authnContextClassRef);
+//
+//            final AuthnStatement authnStatement = (AuthnStatement) buildSamlObject(AuthnStatement.DEFAULT_ELEMENT_NAME);
+//            authnStatement.setAuthnInstant(now);
+//            authnStatement.setSessionIndex("a358a06c15ja8d7a1idjaj07jb52gdi");
+//            authnStatement.setSessionNotOnOrAfter(until);
+//            authnStatement.setAuthnContext(authnContext);
+//
+//            assertion.getAuthnStatements().add(authnStatement);
+//        }
+//
+//        return assertion;
+//    }
 
-    private AuthnRequest mockAuthnRequest() {
-        return mockAuthnRequest(null);
-    }
+//    private SAMLObject buildSamlObject(QName elementName) {
+//        SAMLObjectBuilder issuerBuilder = (SAMLObjectBuilder) builderFactory.getBuilder(elementName);
+//        return issuerBuilder.buildObject();
+//    }
 
-    public String mockAssertionEncoded(Assertion assertion) throws Exception {
-        AssertionMarshaller marshaller = new AssertionMarshaller();
-        Element plaintextElement = marshaller.marshall(assertion);
-        String serializedElement = XMLHelper.nodeToString(plaintextElement);
-        return Base64.encodeBase64URLSafeString(serializedElement.getBytes(StandardCharsets.UTF_8));
-    }
+//    public void signAssertion(
+//            Assertion assertion,
+//            String privateKey,
+//            String keyPassword,
+//            String certificate)
+//            throws Exception {
+//
+//        final Signature signature = generateSignature(privateKey, keyPassword, certificate);
+//        assertion.setSignature(signature);
+//        Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
+//        marshaller.marshall(assertion);
+//        Signer.signObject(signature);
+//    }
 
-    public String mockAssertionEncoded(
-            String issuerEntityId,
-            String format,
-            String username,
-            String spEndpoint,
-            String audienceEntityID) throws Exception {
-        final Assertion assertion = mockAssertion(issuerEntityId, format, username, spEndpoint, audienceEntityID);
-        signAssertion(assertion, PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
-        return mockAssertionEncoded(assertion);
-    }
+//    private Signature generateSignature(String privateKey, String keyPassword, String certificate)
+//            throws org.opensaml.xml.security.SecurityException {
+//        SamlConfig config = new SamlConfig();
+//        config.addAndActivateKey("active-key", new SamlKey(privateKey, keyPassword, certificate));
+//        KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
+//        SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
+//        Signature signature = signatureBuilder.buildObject();
+//        final Credential defaultCredential = keyManager.getDefaultCredential();
+//        signature.setSigningCredential(defaultCredential);
+//        SecurityHelper.prepareSignatureParams(signature, defaultCredential, null, null);
+//        return signature;
+//    }
 
-    private Assertion mockAssertion(
-            String issuerEntityId,
-            String format,
-            String username,
-            String spEndpoint,
-            String audienceEntityID) {
-        final DateTime now = new DateTime();
-        final DateTime until = now.plusHours(1);
-
-        Assertion assertion = (Assertion) buildSamlObject(Assertion.DEFAULT_ELEMENT_NAME);
-
-        {
-            assertion.setIssueInstant(now);
-        }
-
-        {
-            final Issuer issuer = (Issuer) buildSamlObject(Issuer.DEFAULT_ELEMENT_NAME);
-            issuer.setValue(issuerEntityId);
-            assertion.setIssuer(issuer);
-        }
-
-        {
-            final NameID nameId = (NameID) buildSamlObject(NameID.DEFAULT_ELEMENT_NAME);
-            nameId.setValue(username);
-            nameId.setNameQualifier(NameID.UNSPECIFIED);
-            nameId.setFormat(format);
-
-            final SubjectConfirmationData confirmationMethod = (SubjectConfirmationData) buildSamlObject(SubjectConfirmationData.DEFAULT_ELEMENT_NAME);
-            confirmationMethod.setNotOnOrAfter(until);
-            confirmationMethod.setRecipient(spEndpoint);
-
-            final SubjectConfirmation subjectConfirmation = (SubjectConfirmation) buildSamlObject(SubjectConfirmation.DEFAULT_ELEMENT_NAME);
-            subjectConfirmation.setSubjectConfirmationData(confirmationMethod);
-            subjectConfirmation.setMethod("urn:oasis:names:tc:SAML:2.0:cm:bearer");
-
-            final Subject subject = (Subject) buildSamlObject(Subject.DEFAULT_ELEMENT_NAME);
-            subject.setNameID(nameId);
-            subject.getSubjectConfirmations().add(subjectConfirmation);
-
-            subject.getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
-            subject.getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
-
-            assertion.setSubject(subject);
-        }
-
-        {
-            final Audience audience = (Audience) buildSamlObject(Audience.DEFAULT_ELEMENT_NAME);
-            audience.setAudienceURI(audienceEntityID);
-
-            final AudienceRestriction audienceRestriction = (AudienceRestriction) buildSamlObject(AudienceRestriction.DEFAULT_ELEMENT_NAME);
-            audienceRestriction.getAudiences().add(audience);
-
-            final Conditions conditions = (Conditions) buildSamlObject(Conditions.DEFAULT_ELEMENT_NAME);
-            conditions.getAudienceRestrictions().add(audienceRestriction);
-            conditions.setNotBefore(new DateTime().minusSeconds(2));
-            conditions.setNotOnOrAfter(until);
-
-            assertion.setConditions(conditions);
-        }
-
-        {
-            final AuthnContextClassRef authnContextClassRef = (AuthnContextClassRef) buildSamlObject(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
-            authnContextClassRef.setAuthnContextClassRef("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
-
-            final AuthnContext authnContext = (AuthnContext) buildSamlObject(AuthnContext.DEFAULT_ELEMENT_NAME);
-            authnContext.setAuthnContextClassRef(authnContextClassRef);
-
-            final AuthnStatement authnStatement = (AuthnStatement) buildSamlObject(AuthnStatement.DEFAULT_ELEMENT_NAME);
-            authnStatement.setAuthnInstant(now);
-            authnStatement.setSessionIndex("a358a06c15ja8d7a1idjaj07jb52gdi");
-            authnStatement.setSessionNotOnOrAfter(until);
-            authnStatement.setAuthnContext(authnContext);
-
-            assertion.getAuthnStatements().add(authnStatement);
-        }
-
-        return assertion;
-    }
-
-    private SAMLObject buildSamlObject(QName elementName) {
-        SAMLObjectBuilder issuerBuilder = (SAMLObjectBuilder) builderFactory.getBuilder(elementName);
-        return issuerBuilder.buildObject();
-    }
-
-    public void signAssertion(
-            Assertion assertion,
-            String privateKey,
-            String keyPassword,
-            String certificate)
-            throws Exception {
-
-        final Signature signature = generateSignature(privateKey, keyPassword, certificate);
-        assertion.setSignature(signature);
-        Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
-        marshaller.marshall(assertion);
-        Signer.signObject(signature);
-    }
-
-    private Signature generateSignature(String privateKey, String keyPassword, String certificate)
-            throws org.opensaml.xml.security.SecurityException {
-        SamlConfig config = new SamlConfig();
-        config.addAndActivateKey("active-key", new SamlKey(privateKey, keyPassword, certificate));
-        KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-        SignatureBuilder signatureBuilder = (SignatureBuilder) builderFactory.getBuilder(Signature.DEFAULT_ELEMENT_NAME);
-        Signature signature = signatureBuilder.buildObject();
-        final Credential defaultCredential = keyManager.getDefaultCredential();
-        signature.setSigningCredential(defaultCredential);
-        SecurityHelper.prepareSignatureParams(signature, defaultCredential, null, null);
-        return signature;
-    }
-
-    AuthnRequest mockAuthnRequest(String nameIDFormat) {
-        @SuppressWarnings("unchecked")
-        SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
-                .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
-        AuthnRequest request = builder.buildObject();
-        request.setVersion(SAMLVersion.VERSION_20);
-        request.setID(generateID());
-        request.setIssuer(getIssuer(SP_ENTITY_ID));
-        request.setVersion(SAMLVersion.VERSION_20);
-        request.setIssueInstant(new DateTime());
-        if (null != nameIDFormat) {
-            NameID nameID = ((SAMLObjectBuilder<NameID>) builderFactory.getBuilder(NameID.DEFAULT_ELEMENT_NAME))
-                    .buildObject();
-            nameID.setFormat(nameIDFormat);
-            Subject subject = ((SAMLObjectBuilder<Subject>) builderFactory.getBuilder(Subject.DEFAULT_ELEMENT_NAME))
-                    .buildObject();
-            subject.setNameID(nameID);
-            request.setSubject(subject);
-        }
-        return request;
-    }
+//    AuthnRequest mockAuthnRequest(String nameIDFormat) {
+//        @SuppressWarnings("unchecked")
+//        SAMLObjectBuilder<AuthnRequest> builder = (SAMLObjectBuilder<AuthnRequest>) builderFactory
+//                .getBuilder(AuthnRequest.DEFAULT_ELEMENT_NAME);
+//        AuthnRequest request = builder.buildObject();
+//        request.setVersion(SAMLVersion.VERSION_20);
+//        request.setID(generateID());
+//        request.setIssuer(getIssuer(SP_ENTITY_ID));
+//        request.setVersion(SAMLVersion.VERSION_20);
+//        request.setIssueInstant(new DateTime());
+//        if (null != nameIDFormat) {
+//            NameID nameID = ((SAMLObjectBuilder<NameID>) builderFactory.getBuilder(NameID.DEFAULT_ELEMENT_NAME))
+//                    .buildObject();
+//            nameID.setFormat(nameIDFormat);
+//            Subject subject = ((SAMLObjectBuilder<Subject>) builderFactory.getBuilder(Subject.DEFAULT_ELEMENT_NAME))
+//                    .buildObject();
+//            subject.setNameID(nameID);
+//            request.setSubject(subject);
+//        }
+//        return request;
+//    }
 
     private String generateID() {
         Random r = new Random();
         return 'a' + Long.toString(Math.abs(r.nextLong()), 20) + Long.toString(Math.abs(r.nextLong()), 20);
     }
 
-    public Issuer getIssuer(String localEntityId) {
-        @SuppressWarnings("unchecked")
-        SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
-                .getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
-        Issuer issuer = issuerBuilder.buildObject();
-        issuer.setValue(localEntityId);
-        return issuer;
-    }
+//    public Issuer getIssuer(String localEntityId) {
+//        @SuppressWarnings("unchecked")
+//        SAMLObjectBuilder<Issuer> issuerBuilder = (SAMLObjectBuilder<Issuer>) builderFactory
+//                .getBuilder(Issuer.DEFAULT_ELEMENT_NAME);
+//        Issuer issuer = issuerBuilder.buildObject();
+//        issuer.setValue(localEntityId);
+//        return issuer;
+//    }
 
     private UaaAuthentication mockUaaAuthentication() {
         return mockUaaAuthentication(UUID.randomUUID().toString());

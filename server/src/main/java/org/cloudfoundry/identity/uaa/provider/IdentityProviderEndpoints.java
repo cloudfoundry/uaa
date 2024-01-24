@@ -48,7 +48,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -123,7 +123,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @PostMapping()
-    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException{
+    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         body.setIdentityZoneId(zoneId);
@@ -195,7 +195,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @PutMapping(value = "{id}")
-    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         body.setSerializeConfigRaw(rawConfig);
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
@@ -357,14 +357,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return new ResponseEntity<>(JsonUtils.writeValueAsString(exception), status);
     }
 
-    @ExceptionHandler(MetadataProviderException.class)
-    public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
-        if (e.getMessage().contains("Duplicate")) {
-            return new ResponseEntity<>(e.getMessage(), CONFLICT);
-        } else {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
-    }
+//    @ExceptionHandler(MetadataProviderException.class)
+//    public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
+//        if (e.getMessage().contains("Duplicate")) {
+//            return new ResponseEntity<>(e.getMessage(), CONFLICT);
+//        } else {
+//            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+//        }
+//    }
 
     @ExceptionHandler(JsonUtils.JsonUtilException.class)
     public ResponseEntity<String> handleMetadataProviderException() {
