@@ -1086,9 +1086,9 @@ class JdbcScimUserProvisioningTests {
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setOrigin(validOrigin);
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
         try {
-            idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
-            scimUser = jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
+            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
         } catch (InvalidScimResourceException e) {
             fail("Can't create user with valid origin when origin is checked");
         } finally {

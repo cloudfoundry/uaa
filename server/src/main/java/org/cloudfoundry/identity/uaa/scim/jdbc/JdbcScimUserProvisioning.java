@@ -588,7 +588,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private void checkOrigin(String origin, String zoneId) {
         Integer count = jdbcTemplate.queryForObject("select count(*) from identity_provider where origin_key=? and identity_zone_id=? ", Integer.class, origin, zoneId);
-        if (count == 0) {
+        int c = (count == null) ? 0 : count;
+        if (c == 0) {
             throw new InvalidScimResourceException("Invalid origin " + origin + " in Identity Zone " + zoneId);
         }
     }
