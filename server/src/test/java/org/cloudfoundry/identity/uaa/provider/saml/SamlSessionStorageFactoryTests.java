@@ -7,8 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.*;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class SamlSessionStorageFactoryTests {
@@ -26,15 +25,17 @@ class SamlSessionStorageFactoryTests {
 
     @Test
     void get_storage_creates_session() {
-        assertNull(request.getSession(false));
-        factory.getMessageStorage(request);
-        assertNotNull(request.getSession(false));
+        fail();
+//        assertNull(request.getSession(false));
+//        factory.getMessageStorage(request);
+//        assertNotNull(request.getSession(false));
     }
 
     @Test
     void disable_message_storage() {
-        IdentityZoneHolder.get().getConfig().getSamlConfig().setDisableInResponseToCheck(true);
-        assertNull(factory.getMessageStorage(request));
+        fail();
+//        IdentityZoneHolder.get().getConfig().getSamlConfig().setDisableInResponseToCheck(true);
+//        assertNull(factory.getMessageStorage(request));
     }
 
 }
