@@ -23,8 +23,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
-import org.opensaml.common.SAMLException;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.common.SAMLException;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -129,13 +129,13 @@ public class HomeController {
         logger.error("Internal error", genericException);
 
         // check for common SAML related exceptions and redirect these to bad_request
-        if (nonNull(genericException) &&
-            (genericException.getCause() instanceof SAMLException || genericException.getCause() instanceof MetadataProviderException)) {
-            Exception samlException = (Exception) genericException.getCause();
-            model.addAttribute("saml_error", samlException.getMessage());
-            response.setStatus(400);
-            return EXTERNAL_AUTH_ERROR;
-        }
+//        if (nonNull(genericException) &&
+//            (genericException.getCause() instanceof SAMLException || genericException.getCause() instanceof MetadataProviderException)) {
+//            Exception samlException = (Exception) genericException.getCause();
+//            model.addAttribute("saml_error", samlException.getMessage());
+//            response.setStatus(400);
+//            return EXTERNAL_AUTH_ERROR;
+//        }
 
         populateBuildAndLinkInfo(model);
         return ERROR;
