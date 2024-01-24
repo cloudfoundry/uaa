@@ -130,7 +130,7 @@ libraries.zxing = "com.google.zxing:javase:3.5.2"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.37.3"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:4.0.1"
 libraries.orgJson = "org.json:json:20231013"
-libraries.spingSamlEsapiDependencyVersion = "org.owasp.esapi:esapi:2.5.3.1"
+libraries.owaspEsapi = "org.owasp.esapi:esapi:2.5.3.1"
 libraries.jodaTime = "joda-time:joda-time:2.12.6"
 libraries.commonsHttpClient = "commons-httpclient:commons-httpclient:3.1"
 
