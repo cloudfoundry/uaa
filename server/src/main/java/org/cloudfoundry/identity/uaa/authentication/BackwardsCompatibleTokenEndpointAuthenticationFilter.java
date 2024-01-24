@@ -36,7 +36,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
-import org.springframework.security.saml.SAMLProcessingFilter;
+//import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
@@ -75,25 +75,25 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final OAuth2RequestFactory oAuth2RequestFactory;
 
-    private final SAMLProcessingFilter samlAuthenticationFilter;
+//    private final SAMLProcessingFilter samlAuthenticationFilter;
 
     private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
 
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
-        this(authenticationManager, oAuth2RequestFactory, null, null);
+        this(authenticationManager, oAuth2RequestFactory, null);
     }
     /**
      * @param authenticationManager an AuthenticationManager for the incoming request
      */
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
-                                                                SAMLProcessingFilter samlAuthenticationFilter,
+//                                                                SAMLProcessingFilter samlAuthenticationFilter,
                                                                 ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
         super();
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
-        this.samlAuthenticationFilter = samlAuthenticationFilter;
+//        this.samlAuthenticationFilter = samlAuthenticationFilter;
         this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
     }
 
@@ -226,15 +226,15 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
             return authResult;
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
-            logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
-            String assertion = request.getParameter("assertion");
-            if (assertion != null && samlAuthenticationFilter != null) {
-                logger.debug("Attempting SAML authentication for token endpoint.");
-                authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
-            } else {
-                logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
-                throw new InsufficientAuthenticationException("SAML Assertion is missing");
-            }
+//            logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
+//            String assertion = request.getParameter("assertion");
+//            if (assertion != null && samlAuthenticationFilter != null) {
+//                logger.debug("Attempting SAML authentication for token endpoint.");
+//                authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
+//            } else {
+//                logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
+//                throw new InsufficientAuthenticationException("SAML Assertion is missing");
+//            }
         } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
             logger.debug(GRANT_TYPE_JWT_BEARER +" found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");

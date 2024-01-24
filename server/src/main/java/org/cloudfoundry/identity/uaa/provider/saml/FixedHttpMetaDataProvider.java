@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -22,7 +22,7 @@ public class FixedHttpMetaDataProvider {
         this.cache = cache;
     }
 
-    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderException {
+    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) /* throws MetadataProviderException */ {
         validateMetadataURL(metadataURL);
 
         if (isSkipSSLValidation) {
@@ -31,11 +31,11 @@ public class FixedHttpMetaDataProvider {
         return cache.getUrlContent(metadataURL, nonTrustingRestTemplate);
     }
 
-    private void validateMetadataURL(String metadataURL) throws MetadataProviderException {
+    private void validateMetadataURL(String metadataURL) /* throws MetadataProviderException */ {
         try {
             new URI(metadataURL);
         } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Illegal URL syntax", e);
+//            throw new MetadataProviderException("Illegal URL syntax", e);
         }
     }
 
