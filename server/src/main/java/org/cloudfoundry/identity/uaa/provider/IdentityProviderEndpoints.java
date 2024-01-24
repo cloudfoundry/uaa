@@ -57,6 +57,7 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -90,6 +91,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      */
     private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
 
+    private final boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
@@ -115,7 +117,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
             final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
-            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager
+            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
+            final @Value("${uaa.features.aliasEntitiesEnabled:false}") boolean aliasEntitiesEnabled
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -125,6 +128,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         this.identityZoneManager = identityZoneManager;
         this.identityZoneProvisioning = identityZoneProvisioning;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.aliasEntitiesEnabled = aliasEntitiesEnabled;
     }
 
     @RequestMapping(method = POST)
@@ -484,18 +488,16 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
     }
 
-    private IdentityProvider<?> retrieveAliasIdp(final IdentityProvider<?> originalIdp) {
+    @Nullable
+    private IdentityProvider<?> retrieveAliasIdp(final IdentityProvider<?> idp) {
         try {
-            return identityProviderProvisioning.retrieve(
-                    originalIdp.getAliasId(),
-                    originalIdp.getAliasZid()
-            );
+            return identityProviderProvisioning.retrieve(idp.getAliasId(), idp.getAliasZid());
         } catch (final EmptyResultDataAccessException e) {
             logger.warn(
                     "The IdP referenced in the 'aliasId' ('{}') and 'aliasZid' ('{}') of the IdP '{}' does not exist.",
-                    originalIdp.getAliasId(),
-                    originalIdp.getAliasZid(),
-                    originalIdp.getId()
+                    idp.getAliasId(),
+                    idp.getAliasZid(),
+                    idp.getId()
             );
             return null;
         }
