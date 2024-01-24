@@ -201,19 +201,29 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         publisher.publishEvent(new EntityDeletedEvent<>(existing, authentication, identityZoneId));
         redactSensitiveData(existing);
 
-        // delete alias IdP if alias fields are set
         if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
             final IdentityProvider<?> aliasIdp = retrieveAliasIdp(existing);
-            if (aliasIdp != null) {
-                aliasIdp.setSerializeConfigRaw(rawConfig);
-                publisher.publishEvent(new EntityDeletedEvent<>(aliasIdp, authentication, identityZoneId));
-            } else {
+            if (aliasIdp == null) {
                 logger.warn(
                         "Alias IdP referenced in IdentityProvider[origin={}; zone={}}] not found, skipping deletion of alias IdP.",
                         existing.getOriginKey(),
                         existing.getIdentityZoneId()
                 );
+                return new ResponseEntity<>(existing, OK);
             }
+
+            if (!aliasEntitiesEnabled) {
+                // if alias entities are not enabled, just break the reference
+                aliasIdp.setAliasId(null);
+                aliasIdp.setAliasZid(null);
+                identityProviderProvisioning.update(aliasIdp, aliasIdp.getIdentityZoneId());
+
+                return new ResponseEntity<>(existing, OK);
+            }
+
+            // also delete the alias IdP
+            aliasIdp.setSerializeConfigRaw(rawConfig);
+            publisher.publishEvent(new EntityDeletedEvent<>(aliasIdp, authentication, identityZoneId));
         }
 
         return new ResponseEntity<>(existing, OK);
