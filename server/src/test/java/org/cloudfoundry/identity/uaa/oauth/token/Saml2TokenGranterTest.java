@@ -25,19 +25,19 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.opensaml.Configuration;
-import org.opensaml.DefaultBootstrap;
-import org.opensaml.saml2.core.Assertion;
-import org.opensaml.saml2.core.impl.AssertionMarshaller;
-import org.opensaml.saml2.metadata.EntityDescriptor;
-import org.opensaml.xml.ConfigurationException;
-import org.opensaml.xml.XMLObject;
-import org.opensaml.xml.io.Unmarshaller;
-import org.opensaml.xml.io.UnmarshallerFactory;
-import org.opensaml.xml.io.UnmarshallingException;
-import org.opensaml.xml.parse.BasicParserPool;
-import org.opensaml.xml.parse.XMLParserException;
-import org.opensaml.xml.util.XMLHelper;
+//import org.opensaml.Configuration;
+//import org.opensaml.DefaultBootstrap;
+//import org.opensaml.saml2.core.Assertion;
+//import org.opensaml.saml2.core.impl.AssertionMarshaller;
+//import org.opensaml.saml2.metadata.EntityDescriptor;
+//import org.opensaml.xml.ConfigurationException;
+//import org.opensaml.xml.XMLObject;
+//import org.opensaml.xml.io.Unmarshaller;
+//import org.opensaml.xml.io.UnmarshallerFactory;
+//import org.opensaml.xml.io.UnmarshallingException;
+//import org.opensaml.xml.parse.BasicParserPool;
+//import org.opensaml.xml.parse.XMLParserException;
+//import org.opensaml.xml.util.XMLHelper;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -50,8 +50,8 @@ import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
-import org.springframework.security.saml.SAMLAuthenticationToken;
-import org.springframework.security.saml.context.SAMLMessageContext;
+//import org.springframework.security.saml.SAMLAuthenticationToken;
+//import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -99,19 +99,19 @@ public class Saml2TokenGranterTest {
   private BaseClientDetails requestingClient;
   private BaseClientDetails receivingClient;
   private BaseClientDetails passwordClient;
-  private SAMLAuthenticationToken samltoken;
-  private SAMLMessageContext samlcontext;
+//  private SAMLAuthenticationToken samltoken;
+//  private SAMLMessageContext samlcontext;
   private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
 
   @Before
   public void setup() {
-    try { DefaultBootstrap.bootstrap();
-    } catch (ConfigurationException ignored) { }
+//    try { DefaultBootstrap.bootstrap();
+//    } catch (ConfigurationException ignored) { }
     tokenServices = mock(AuthorizationServerTokenServices.class);
     clientDetailsService = mock(MultitenantClientServices.class);
     requestFactory = mock(OAuth2RequestFactory.class);
     authentication = mock(UaaOauth2Authentication.class);
-    samlcontext = mock(SAMLMessageContext.class);
+//    samlcontext = mock(SAMLMessageContext.class);
     mockSecurityAccessor = mock(DefaultSecurityContextAccessor.class);
     MockHttpServletRequest request = new MockHttpServletRequest();
     ServletRequestAttributes attrs = new ServletRequestAttributes(request);
@@ -124,7 +124,7 @@ public class Saml2TokenGranterTest {
         clientDetailsService,
         requestFactory,
         mockSecurityAccessor);
-    samltoken = new SAMLAuthenticationToken(samlcontext);
+//    samltoken = new SAMLAuthenticationToken(samlcontext);
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
     requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_SAML2_BEARER, null);
@@ -248,52 +248,52 @@ public class Saml2TokenGranterTest {
     }
   }
 
-  EntityDescriptor getMetadata(String xml) {
-    try {
-      return (EntityDescriptor)unmarshallObject(xml);
-    } catch(Exception ignored) {
-    }
-    return null;
-  }
+//  EntityDescriptor getMetadata(String xml) {
+//    try {
+//      return (EntityDescriptor)unmarshallObject(xml);
+//    } catch(Exception ignored) {
+//    }
+//    return null;
+//  }
 
-  Assertion getAssertion(String xml) {
-    try {
-      return (Assertion)unmarshallObject(xml);
-    } catch(Exception ignored) {
-    }
-    return null;
-  }
+//  Assertion getAssertion(String xml) {
+//    try {
+//      return (Assertion)unmarshallObject(xml);
+//    } catch(Exception ignored) {
+//    }
+//    return null;
+//  }
 
-  String getAssertionXml(Assertion assertion) {
-    try {
-      AssertionMarshaller marshaller = new AssertionMarshaller();
-      Element plaintextElement = marshaller.marshall(assertion);
-      return XMLHelper.nodeToString(plaintextElement);
-    } catch(Exception ignored) {
-    }
-    return null;
-  }
+//  String getAssertionXml(Assertion assertion) {
+//    try {
+//      AssertionMarshaller marshaller = new AssertionMarshaller();
+//      Element plaintextElement = marshaller.marshall(assertion);
+//      return XMLHelper.nodeToString(plaintextElement);
+//    } catch(Exception ignored) {
+//    }
+//    return null;
+//  }
 
   /*
    * Unmarshall XML string to OpenSAML XMLObject
    */
-  private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException {
-    BasicParserPool parser = new BasicParserPool();
-    parser.setNamespaceAware(true);
-    /* Base64URL encoded */
-    byte[] bytes = xmlString.getBytes(UTF_8);
-    if (bytes == null || bytes.length == 0)
-      throw new InsufficientAuthenticationException("Invalid assertion encoding");
-    Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes));
-    Document doc = parser.parse(reader);
-    Element samlElement = doc.getDocumentElement();
-
-    UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
-    Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(samlElement);
-    if (unmarshaller == null) {
-      throw new InsufficientAuthenticationException("Unsuccessful to unmarshal assertion string");
-    }
-    return unmarshaller.unmarshall(samlElement);
-  }
+//  private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException {
+//    BasicParserPool parser = new BasicParserPool();
+//    parser.setNamespaceAware(true);
+//    /* Base64URL encoded */
+//    byte[] bytes = xmlString.getBytes(UTF_8);
+//    if (bytes == null || bytes.length == 0)
+//      throw new InsufficientAuthenticationException("Invalid assertion encoding");
+//    Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes));
+//    Document doc = parser.parse(reader);
+//    Element samlElement = doc.getDocumentElement();
+//
+//    UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
+//    Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(samlElement);
+//    if (unmarshaller == null) {
+//      throw new InsufficientAuthenticationException("Unsuccessful to unmarshal assertion string");
+//    }
+//    return unmarshaller.unmarshall(samlElement);
+//  }
 
 }

@@ -43,7 +43,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
+//import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
@@ -83,12 +83,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -627,24 +622,26 @@ class LoginInfoEndpointTests {
 
     @Test
     void generatePasscodeForKnownUaaPrincipal() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-        assertEquals("passcode", endpoint.generatePasscode(model, marissa));
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
-        assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
-        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa, "");
-        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
-        assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
-        //token with a UaaPrincipal should always work
-        assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
+        fail();
+//        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+//        Map<String, Object> model = new HashMap<>();
+//        assertEquals("passcode", endpoint.generatePasscode(model, marissa));
+//        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
+//        assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
+//        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa, "");
+//        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
+//        assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
+//        //token with a UaaPrincipal should always work
+//        assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
     }
 
     @Test
     void generatePasscodeForUnknownUaaPrincipal() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-        ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
-        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
+        fail();
+//        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+//        Map<String, Object> model = new HashMap<>();
+//        ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
+//        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
     }
 
     @Test

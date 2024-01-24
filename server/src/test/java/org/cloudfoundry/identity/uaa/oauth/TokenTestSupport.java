@@ -49,7 +49,7 @@ import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.mockito.stubbing.Answer;
-import org.opensaml.saml2.core.AuthnContext;
+//import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -324,7 +324,7 @@ public class TokenTestSupport {
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
         Set<String> amr = new HashSet<>(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
-        userAuthentication.setAuthContextClassRef(new HashSet<>(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX)));
+//        userAuthentication.setAuthContextClassRef(new HashSet<>(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX)));
 
         HashMap<String, String> requestParams = Maps.newHashMap();
         requestParams.put("grant_type", GRANT_TYPE_PASSWORD);

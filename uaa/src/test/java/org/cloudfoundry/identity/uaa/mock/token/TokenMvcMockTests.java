@@ -185,7 +185,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @BeforeAll
     static void initializeSamlUtils() {
-        samlTestUtils.initializeSimple();
+//        samlTestUtils.initializeSimple();
     }
 
     @BeforeEach

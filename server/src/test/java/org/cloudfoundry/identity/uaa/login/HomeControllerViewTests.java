@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.opensaml.common.SAMLException;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.common.SAMLException;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -165,18 +166,19 @@ class HomeControllerViewTests extends TestClassNullifier {
 
     @Test
     void error500WithClassException() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception("bad")))
-            .andExpect(status().isOk())
-            .andExpect(content().string(containsString(customFooterText)))
-            .andExpect(content().string(containsString(base64ProductLogo)));
-        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new SAMLException("bad"))))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().string(containsString(customFooterText)))
-            .andExpect(content().string(containsString(base64ProductLogo)));
-        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new MetadataProviderException("bad"))))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().string(containsString(customFooterText)))
-            .andExpect(content().string(containsString(base64ProductLogo)));
+        fail();
+//        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception("bad")))
+//            .andExpect(status().isOk())
+//            .andExpect(content().string(containsString(customFooterText)))
+//            .andExpect(content().string(containsString(base64ProductLogo)));
+//        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new SAMLException("bad"))))
+//            .andExpect(status().isBadRequest())
+//            .andExpect(content().string(containsString(customFooterText)))
+//            .andExpect(content().string(containsString(base64ProductLogo)));
+//        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new MetadataProviderException("bad"))))
+//            .andExpect(status().isBadRequest())
+//            .andExpect(content().string(containsString(customFooterText)))
+//            .andExpect(content().string(containsString(base64ProductLogo)));
     }
 
     @ParameterizedTest

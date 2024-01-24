@@ -931,10 +931,10 @@ public class LoginInfoEndpoint {
             username = uaaPrincipal.getName();
             origin = uaaPrincipal.getOrigin();
             userId = uaaPrincipal.getId();
-        } else if (principal instanceof LoginSamlAuthenticationToken) {
-            username = principal.getName();
-            origin = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getOrigin();
-            userId = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getId();
+//        } else if (principal instanceof LoginSamlAuthenticationToken) {
+//            username = principal.getName();
+//            origin = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getOrigin();
+//            userId = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getId();
         } else if (principal instanceof Authentication && ((Authentication) principal).getPrincipal() instanceof UaaPrincipal) {
             UaaPrincipal uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
             username = uaaPrincipal.getName();

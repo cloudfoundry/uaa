@@ -83,8 +83,8 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.xml.ConfigurationException;
+//import org.opensaml.saml2.core.AuthnContext;
+//import org.opensaml.xml.ConfigurationException;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
@@ -156,11 +156,11 @@ public class SamlLoginIT {
     public static void setupSamlUtils() {
         assertTrue("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         samlTestUtils = new SamlTestUtils();
-        try {
+//        try {
             samlTestUtils.initialize();
-        } catch (ConfigurationException e) {
-            samlTestUtils.initializeSimple();
-        }
+//        } catch (ConfigurationException e) {
+//            samlTestUtils.initializeSimple();
+//        }
     }
 
     @Before
