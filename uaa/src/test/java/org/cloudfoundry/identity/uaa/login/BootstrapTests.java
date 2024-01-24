@@ -29,7 +29,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.saml.log.SAMLDefaultLogger;
+//import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -117,23 +118,24 @@ class BootstrapTests {
 
     @Test
     void legacySamlIdpAsTopLevelElement() {
-        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
-        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
-        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
-
-        context = getServletContext("default", "uaa.yml");
-        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
-        assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
-        List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
-        assertNotNull(findProvider(defs, "testIDPFile"));
-        assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                findProvider(defs, "testIDPFile").getType());
-        assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                defs.get(defs.size() - 1).getType()
-        );
+        fail();
+//        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
+//        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
+//        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
+//
+//        context = getServletContext("default", "uaa.yml");
+//        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
+//        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
+//        assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
+//        List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
+//        assertNotNull(findProvider(defs, "testIDPFile"));
+//        assertEquals(
+//                SamlIdentityProviderDefinition.MetadataLocation.URL,
+//                findProvider(defs, "testIDPFile").getType());
+//        assertEquals(
+//                SamlIdentityProviderDefinition.MetadataLocation.URL,
+//                defs.get(defs.size() - 1).getType()
+//        );
     }
 
     @Test
@@ -150,45 +152,47 @@ class BootstrapTests {
 
     @Test
     void legacySamlMetadataAsUrl() {
-        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
-        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
-        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
-
-        context = getServletContext("default", "uaa.yml");
-        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
-        assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
-        List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
-        assertNull(
-                defs.get(defs.size() - 1).getSocketFactoryClassName()
-        );
-        assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                defs.get(defs.size() - 1).getType()
-        );
+        fail();
+//        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
+//        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com:80/saml2/idp/metadata.php");
+//        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
+//
+//        context = getServletContext("default", "uaa.yml");
+//        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
+//        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
+//        assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
+//        List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
+//        assertNull(
+//                defs.get(defs.size() - 1).getSocketFactoryClassName()
+//        );
+//        assertEquals(
+//                SamlIdentityProviderDefinition.MetadataLocation.URL,
+//                defs.get(defs.size() - 1).getType()
+//        );
     }
 
     @Test
     void legacySamlUrlWithoutPort() {
-        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
-        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
-        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
-
-        context = getServletContext("default", "uaa.yml");
-        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
-        assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
-        List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
-        assertFalse(
-                context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions().isEmpty()
-        );
-        assertNull(
-                defs.get(defs.size() - 1).getSocketFactoryClassName()
-        );
-        assertEquals(
-                SamlIdentityProviderDefinition.MetadataLocation.URL,
-                defs.get(defs.size() - 1).getType()
-        );
+        fail();
+//        System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
+//        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
+//        System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
+//
+//        context = getServletContext("default", "uaa.yml");
+//        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
+//        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
+//        assertFalse(context.getBean(BootstrapSamlIdentityProviderData.class).isLegacyMetadataTrustCheck());
+//        List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
+//        assertFalse(
+//                context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions().isEmpty()
+//        );
+//        assertNull(
+//                defs.get(defs.size() - 1).getSocketFactoryClassName()
+//        );
+//        assertEquals(
+//                SamlIdentityProviderDefinition.MetadataLocation.URL,
+//                defs.get(defs.size() - 1).getType()
+//        );
     }
 
     private static SamlIdentityProviderDefinition findProvider(
