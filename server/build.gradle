@@ -23,7 +23,7 @@ dependencies {
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityWeb)
     implementation(libraries.springBootStarterMail)
-    implementation(libraries.spingSamlEsapiDependencyVersion) {
+    implementation(libraries.owaspEsapi) {
         transitive = false
     }
     implementation(libraries.springSecuritySaml) {
