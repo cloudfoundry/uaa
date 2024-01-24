@@ -366,6 +366,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         // if the IdP already has an alias, the alias properties must not be changed
         final boolean idpAlreadyHasAlias = existingIdp != null && hasText(existingIdp.getAliasZid());
         if (idpAlreadyHasAlias) {
+            if (!aliasEntitiesEnabled) {
+                // if the feature is disabled, we only allow setting both alias properties to null
+                return !hasText(requestBody.getAliasId()) && !hasText(requestBody.getAliasZid());
+            }
+
             if (!hasText(existingIdp.getAliasId())) {
                 // at this point, we expect both properties to be set -> if not, the IdP is in an inconsistent state
                 throw new IllegalStateException(String.format(
@@ -388,6 +393,12 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         // check if the creation of an alias is necessary
         if (!hasText(requestBody.getAliasZid())) {
             return true;
+        }
+
+        /* At this point, we know that a new alias entity should be created.
+         * -> check if the creation of alias entities is enabled */
+        if (!aliasEntitiesEnabled) {
+            return false;
         }
 
         // check if aliases are supported for this IdP type
