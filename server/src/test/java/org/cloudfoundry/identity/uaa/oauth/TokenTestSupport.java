@@ -49,7 +49,7 @@ import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.mockito.stubbing.Answer;
-import org.opensaml.saml2.core.AuthnContext;
+//import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;

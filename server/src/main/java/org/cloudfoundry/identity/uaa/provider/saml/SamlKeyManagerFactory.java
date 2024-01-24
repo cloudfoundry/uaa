@@ -17,8 +17,8 @@ import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.saml.key.JKSKeyManager;
-import org.springframework.security.saml.key.KeyManager;
+//import org.springframework.security.saml.key.JKSKeyManager;
+//import org.springframework.security.saml.key.KeyManager;
 
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -37,49 +37,49 @@ public final class SamlKeyManagerFactory {
     public SamlKeyManagerFactory() {
     }
 
-    public KeyManager getKeyManager(SamlConfig config) {
-        return getKeyManager(config.getKeys(), config.getActiveKeyId());
-    }
+//    public KeyManager getKeyManager(SamlConfig config) {
+//        return getKeyManager(config.getKeys(), config.getActiveKeyId());
+//    }
 
-    private KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
-        SamlKey activeKey = keys.get(activeKeyId);
-
-        if (activeKey == null) {
-            return null;
-        }
-
-        try {
-            KeyStore keystore = KeyStore.getInstance("JKS");
-            keystore.load(null);
-            Map<String, String> aliasPasswordMap = new HashMap<>();
-            for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
-                Supplier<String> passProvider = () -> ofNullable(entry.getValue().getPassphrase()).orElse("");
-                KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
-                        new KeyWithCert(entry.getValue().getCertificate()) :
-                        new KeyWithCert(entry.getValue().getKey(), passProvider.get(), entry.getValue().getCertificate());
-
-                X509Certificate certificate = keyWithCert.getCertificate();
-
-                String alias = entry.getKey();
-                keystore.setCertificateEntry(alias, certificate);
-
-                PrivateKey privateKey = keyWithCert.getPrivateKey();
-                if (privateKey != null) {
-                    keystore.setKeyEntry(alias, privateKey, passProvider.get().toCharArray(), new Certificate[]{certificate});
-                    aliasPasswordMap.put(alias, passProvider.get());
-                }
-            }
-
-            JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
-
-            logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
-
-            return keyManager;
-        } catch (Throwable t) {
-            logger.error("Could not load certificate", t);
-            throw new IllegalArgumentException(
-                    "Could not load service provider certificate. Check serviceProviderKey and certificate parameters",
-                    t);
-        }
-    }
+//    private KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
+//        SamlKey activeKey = keys.get(activeKeyId);
+//
+//        if (activeKey == null) {
+//            return null;
+//        }
+//
+//        try {
+//            KeyStore keystore = KeyStore.getInstance("JKS");
+//            keystore.load(null);
+//            Map<String, String> aliasPasswordMap = new HashMap<>();
+//            for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
+//                Supplier<String> passProvider = () -> ofNullable(entry.getValue().getPassphrase()).orElse("");
+//                KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
+//                        new KeyWithCert(entry.getValue().getCertificate()) :
+//                        new KeyWithCert(entry.getValue().getKey(), passProvider.get(), entry.getValue().getCertificate());
+//
+//                X509Certificate certificate = keyWithCert.getCertificate();
+//
+//                String alias = entry.getKey();
+//                keystore.setCertificateEntry(alias, certificate);
+//
+//                PrivateKey privateKey = keyWithCert.getPrivateKey();
+//                if (privateKey != null) {
+//                    keystore.setKeyEntry(alias, privateKey, passProvider.get().toCharArray(), new Certificate[]{certificate});
+//                    aliasPasswordMap.put(alias, passProvider.get());
+//                }
+//            }
+//
+//            JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
+//
+//            logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
+//
+//            return keyManager;
+//        } catch (Throwable t) {
+//            logger.error("Could not load certificate", t);
+//            throw new IllegalArgumentException(
+//                    "Could not load service provider certificate. Check serviceProviderKey and certificate parameters",
+//                    t);
+//        }
+//    }
 }

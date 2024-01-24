@@ -86,7 +86,7 @@ dependencies {
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
     testImplementation(libraries.springSecurityLdap)
-    testImplementation(libraries.springSecuritySaml)
+//    testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
