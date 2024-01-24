@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
@@ -1089,7 +1088,7 @@ class JdbcScimUserProvisioningTests {
         scimUser.setOrigin(validOrigin);
         try {
             idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
-            scimUser = jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId());
+            scimUser = jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
         } catch (InvalidScimResourceException e) {
             fail("Can't create user with valid origin when origin is checked");
         } finally {
@@ -1110,7 +1109,7 @@ class JdbcScimUserProvisioningTests {
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
         assertThrowsWithMessageThat(
             InvalidScimResourceException.class,
-            () -> jdbcScimUserProvisioning.create(scimUser, IdentityZoneHolder.getCurrentZoneId()),
+            () -> jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId),
             containsString("Invalid origin")
         );
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
