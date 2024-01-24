@@ -28,15 +28,15 @@ import static org.springframework.util.StringUtils.hasText;
 public class SamlIdentityProviderConfigurator {
 //    private final BasicParserPool parserPool;
     private final IdentityProviderProvisioning providerProvisioning;
-    private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
+//    private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
 
     public SamlIdentityProviderConfigurator(
 //            final BasicParserPool parserPool,
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
-            final FixedHttpMetaDataProvider fixedHttpMetaDataProvider) {
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning
+           /* final FixedHttpMetaDataProvider fixedHttpMetaDataProvider*/) {
 //        this.parserPool = parserPool;
         this.providerProvisioning = providerProvisioning;
-        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
+//        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {

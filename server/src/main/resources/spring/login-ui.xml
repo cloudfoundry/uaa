@@ -143,7 +143,7 @@
         <constructor-arg>
             <util:list>
                 <ref bean="uaaAuthenticationFailureHandler"/>
-                <ref bean="samlLogoutHandler"/>
+<!--                <ref bean="samlLogoutHandler"/>-->
             </util:list>
         </constructor-arg>
     </bean>
@@ -236,9 +236,10 @@
         <constructor-arg>
             <util:list>
                 <security:filter-chain pattern="/**" filters="
-                    httpsHeaderFilter,
-                    metadataGeneratorFilter,
-                    samlFilter"/>
+                    httpsHeaderFilter"/>
+<!--                    httpsHeaderFilter,-->
+<!--                    metadataGeneratorFilter,-->
+<!--                    samlFilter"/>-->
             </util:list>
         </constructor-arg>
     </bean>
@@ -272,9 +273,9 @@
         <intercept-url pattern="/origin-chooser" access="isAnonymous()"/>
         <intercept-url pattern="/login**" access="isAnonymous() or isFullyAuthenticated()"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
-        <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
+<!--        <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>-->
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
-        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
+<!--        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>-->
         <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
@@ -288,7 +289,7 @@
         <custom-filter ref="mfaUiRequiredFilter" after="CSRF_FILTER"/>
         <custom-filter ref="passwordChangeUiRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
-        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
+<!--        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>-->
         <csrf disabled="false"
               token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
