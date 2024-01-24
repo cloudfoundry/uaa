@@ -62,7 +62,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -461,7 +461,7 @@ class IdentityProviderEndpointsTest {
         @Nested
         class Create {
             @Test
-            void shouldReturnOriginalIdpWithAliasId_WhenAliasPropertiesAreValid() throws MetadataProviderException {
+            void shouldReturnOriginalIdpWithAliasId_WhenAliasPropertiesAreValid() /* throws MetadataProviderException */ {
                 arrangeCurrentIdentityZone(UAA);
 
                 final IdentityProvider<?> requestBody = getExternalOAuthProvider();
@@ -496,7 +496,7 @@ class IdentityProviderEndpointsTest {
             }
 
             @Test
-            void shouldRespondWith422_WhenAliasPropertiesAreNotValid() throws MetadataProviderException {
+            void shouldRespondWith422_WhenAliasPropertiesAreNotValid() /* throws MetadataProviderException */ {
                 arrangeCurrentIdentityZone(UAA);
 
                 final IdentityProvider<?> requestBody = getExternalOAuthProvider();
@@ -521,7 +521,7 @@ class IdentityProviderEndpointsTest {
             void shouldRespondWithErrorCode_WhenExceptionIsThrownDuringAliasCreation(
                     final Exception thrownException,
                     final HttpStatus expectedStatusCode
-            ) throws MetadataProviderException {
+            ) /* throws MetadataProviderException */ {
                 arrangeCurrentIdentityZone(UAA);
 
                 final IdentityProvider<?> requestBody = getExternalOAuthProvider();
@@ -563,7 +563,7 @@ class IdentityProviderEndpointsTest {
         @Nested
         class Update {
             @Test
-            void shouldReturnOriginalIdpWithAliasId_WhenAliasPropertiesAreValid() throws MetadataProviderException {
+            void shouldReturnOriginalIdpWithAliasId_WhenAliasPropertiesAreValid() /* throws MetadataProviderException */ {
                 arrangeCurrentIdentityZone(UAA);
 
                 final String originalIdpId = UUID.randomUUID().toString();
@@ -605,7 +605,7 @@ class IdentityProviderEndpointsTest {
             }
 
             @Test
-            void shouldRespondWith422_WhenAliasPropertiesAreNotValid() throws MetadataProviderException {
+            void shouldRespondWith422_WhenAliasPropertiesAreNotValid() /* throws MetadataProviderException */ {
                 arrangeCurrentIdentityZone(UAA);
 
                 final String originalIdpId = UUID.randomUUID().toString();
@@ -637,7 +637,7 @@ class IdentityProviderEndpointsTest {
             void shouldRespondWithErrorCode_WhenExceptionIsThrownDuringAliasCreation(
                     final Exception thrownException,
                     final HttpStatus expectedException
-            ) throws MetadataProviderException {
+            ) /* throws MetadataProviderException */ {
                 arrangeCurrentIdentityZone(UAA);
 
                 final String originalIdpId = UUID.randomUUID().toString();
