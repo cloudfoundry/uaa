@@ -53,7 +53,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -346,7 +346,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdpWithExistingAlias_InvalidAliasPropertyChange() throws MetadataProviderException {
+    void testUpdateIdpWithExistingAlias_InvalidAliasPropertyChange() /* throws MetadataProviderException */ {
         final String existingIdpId = UUID.randomUUID().toString();
         final String customZoneId = UUID.randomUUID().toString();
         final String aliasIdpId = UUID.randomUUID().toString();
@@ -412,7 +412,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdpWithExistingAlias_ShouldBreakReferenceIfAliasFeatureDisabled() throws MetadataProviderException {
+    void testUpdateIdpWithExistingAlias_ShouldBreakReferenceIfAliasFeatureDisabled() /* throws MetadataProviderException */ {
         arrangeAliasEntitiesEnabled(false);
 
         final String zone1Id = UAA;
@@ -454,7 +454,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdpWithExistingAlias_AliasFeatureDisabled_ShouldIgnoreMissingAliasId() throws MetadataProviderException {
+    void testUpdateIdpWithExistingAlias_AliasFeatureDisabled_ShouldIgnoreMissingAliasId() /* throws MetadataProviderException */ {
         final String zone1Id = UAA;
         final String zone2Id = UUID.randomUUID().toString();
 
@@ -492,7 +492,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdpWithExistingAlias_AliasFeatureDisabled_ShouldIgnoreMissingAlias() throws MetadataProviderException {
+    void testUpdateIdpWithExistingAlias_AliasFeatureDisabled_ShouldIgnoreMissingAlias() /* throws MetadataProviderException */ {
         final String zone1Id = UAA;
         final String zone2Id = UUID.randomUUID().toString();
 
@@ -555,7 +555,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testUpdateIdpWithExistingAlias_ValidChange() throws MetadataProviderException {
+    void testUpdateIdpWithExistingAlias_ValidChange() /* throws MetadataProviderException */ {
         final String existingIdpId = UUID.randomUUID().toString();
         final String customZoneId = UUID.randomUUID().toString();
         final String aliasIdpId = UUID.randomUUID().toString();
@@ -623,7 +623,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testCreateIdentityProvider_AliasPropertiesInvalid() throws MetadataProviderException {
+    void testCreateIdentityProvider_AliasPropertiesInvalid() /* throws MetadataProviderException */ {
         // (1) aliasId is not empty
         IdentityProvider<?> idp = getExternalOAuthProvider();
         idp.setAliasId(UUID.randomUUID().toString());
@@ -659,7 +659,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testCreateIdentityProvider_AliasNotSupportedForType() throws MetadataProviderException {
+    void testCreateIdentityProvider_AliasNotSupportedForType() /* throws MetadataProviderException */ {
         final String customZoneId = UUID.randomUUID().toString();
 
         // alias IdP not supported for IdPs of type LDAP
@@ -671,7 +671,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testCreateIdentityProvider_ShouldRejectNonNullAliasZidIfAliasFeatureDisabled() throws MetadataProviderException {
+    void testCreateIdentityProvider_ShouldRejectNonNullAliasZidIfAliasFeatureDisabled() /* throws MetadataProviderException */ {
         arrangeAliasEntitiesEnabled(false);
 
         // create valid IdP with alias zid set
@@ -683,7 +683,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void testCreateIdentityProvider_ValidAliasProperties() throws MetadataProviderException {
+    void testCreateIdentityProvider_ValidAliasProperties() /* throws MetadataProviderException */ {
         // arrange custom zone exists
         final String customZoneId = UUID.randomUUID().toString();
         final IdentityZone customZone = new IdentityZone();

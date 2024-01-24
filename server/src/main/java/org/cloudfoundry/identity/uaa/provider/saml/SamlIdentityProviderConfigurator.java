@@ -8,11 +8,11 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-import org.opensaml.xml.parse.BasicParserPool;
+//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+//import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.saml.metadata.ExtendedMetadata;
-import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+//import org.springframework.security.saml.metadata.ExtendedMetadata;
+//import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -26,17 +26,17 @@ import static org.springframework.util.StringUtils.hasText;
 
 @Component("metaDataProviders")
 public class SamlIdentityProviderConfigurator {
-    private final BasicParserPool parserPool;
+//    private final BasicParserPool parserPool;
     private final IdentityProviderProvisioning providerProvisioning;
-    private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
+//    private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
 
     public SamlIdentityProviderConfigurator(
-            final BasicParserPool parserPool,
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
-            final FixedHttpMetaDataProvider fixedHttpMetaDataProvider) {
-        this.parserPool = parserPool;
+//            final BasicParserPool parserPool,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning
+           /* final FixedHttpMetaDataProvider fixedHttpMetaDataProvider*/) {
+//        this.parserPool = parserPool;
         this.providerProvisioning = providerProvisioning;
-        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
+//        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
@@ -73,8 +73,8 @@ public class SamlIdentityProviderConfigurator {
      * @param providerDefinition - the provider to be added
      * @throws MetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
-        ExtendedMetadataDelegate added, deleted = null;
+    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) /* throws MetadataProviderException */ {
+//        ExtendedMetadataDelegate added, deleted = null;
         if (providerDefinition == null) {
             throw new NullPointerException();
         }
@@ -85,61 +85,61 @@ public class SamlIdentityProviderConfigurator {
             throw new NullPointerException("IDP Zone Id must be set");
         }
         SamlIdentityProviderDefinition clone = providerDefinition.clone();
-        added = getExtendedMetadataDelegate(clone);
-        String entityIDToBeAdded = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
-        if (!StringUtils.hasText(entityIDToBeAdded)) {
-            throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
-        }
+//        added = getExtendedMetadataDelegate(clone);
+//        String entityIDToBeAdded = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
+//        if (!StringUtils.hasText(entityIDToBeAdded)) {
+//            throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
+//        }
 
         boolean entityIDexists = false;
 
-        for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
-            ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
-            if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
-                    !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
-                entityIDexists = true;
-                break;
-            }
-        }
+//        for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
+////            ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
+////            if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
+////                    !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
+////                entityIDexists = true;
+////                break;
+////            }
+//        }
 
-        if (entityIDexists) {
-            throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
-        }
+//        if (entityIDexists) {
+//            throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
+//        }
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        return getExtendedMetadataDelegate(def);
-    }
+//    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+//        return getExtendedMetadataDelegate(def);
+//    }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        ExtendedMetadataDelegate metadata;
-        switch (def.getType()) {
-            case DATA: {
-                metadata = configureXMLMetadata(def);
-                break;
-            }
-            case URL: {
-                metadata = configureURLMetadata(def);
-                break;
-            }
-            default: {
-                throw new MetadataProviderException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
-            }
-        }
-        return metadata;
-    }
+//    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+//        ExtendedMetadataDelegate metadata;
+//        switch (def.getType()) {
+//            case DATA: {
+//                metadata = configureXMLMetadata(def);
+//                break;
+//            }
+//            case URL: {
+//                metadata = configureURLMetadata(def);
+//                break;
+//            }
+//            default: {
+//                throw new MetadataProviderException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
+//            }
+//        }
+//        return metadata;
+//    }
 
-    protected ExtendedMetadataDelegate configureXMLMetadata(SamlIdentityProviderDefinition def) {
-        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), def.getMetaDataLocation());
-        configMetadataProvider.setParserPool(parserPool);
-        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-        extendedMetadata.setLocal(false);
-        extendedMetadata.setAlias(def.getIdpEntityAlias());
-        ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
-        delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
-
-        return delegate;
-    }
+//    protected ExtendedMetadataDelegate configureXMLMetadata(SamlIdentityProviderDefinition def) {
+//        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), def.getMetaDataLocation());
+//        configMetadataProvider.setParserPool(parserPool);
+//        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+//        extendedMetadata.setLocal(false);
+//        extendedMetadata.setAlias(def.getIdpEntityAlias());
+//        ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
+//        delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
+//
+//        return delegate;
+//    }
 
 
     protected String adjustURIForPort(String uri) throws URISyntaxException {
@@ -157,17 +157,17 @@ public class SamlIdentityProviderConfigurator {
         return uri;
     }
 
-    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        try {
-            def = def.clone();
-            String adjustedMetatadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
-
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetatadataURIForPort, def.isSkipSslValidation());
-
-            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
-            return configureXMLMetadata(def);
-        } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
-        }
-    }
+//    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
+//        try {
+//            def = def.clone();
+//            String adjustedMetatadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
+//
+//            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetatadataURIForPort, def.isSkipSslValidation());
+//
+//            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
+//            return configureXMLMetadata(def);
+//        } catch (URISyntaxException e) {
+//            throw new MetadataProviderException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
+//        }
+//    }
 }
