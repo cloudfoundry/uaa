@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
@@ -679,11 +680,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         );
 
         // check if the token contains the expected scopes
-        final Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken);
-        assertThat(claims).containsKey("scope");
-        assertThat(claims.get("scope")).isInstanceOf(List.class);
-        final List<String> resultingScopes = (List<String>) claims.get("scope");
-        assertThat(resultingScopes).hasSameElementsAs(scopesForZone);
+        final Claims claims = UaaTokenUtils.getClaimsFromTokenString(accessToken);
+        assertThat(claims.getScope()).hasSameElementsAs(scopesForZone);
 
         // cache the access token
         accessTokenCache.put(zoneId, accessToken);
