@@ -103,9 +103,9 @@ public abstract class JwtTokenSignedByThisUAA {
     private JwtTokenSignedByThisUAA(String token, KeyInfoService keyInfoService) {
         this.token = token;
 
-        this.claims = UaaTokenUtils.getClaims(token);
         this.tokenJwt = JwtHelper.decode(token);
         this.keyInfoService = keyInfoService;
+        this.claims = tokenJwt.getClaimSet().toType(UaaTokenUtils.getClaimsSetTransformer(Map.class));
     }
 
     private SignatureVerifier fetchSignatureVerifierFromToken(Jwt tokenJwt) {

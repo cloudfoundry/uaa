@@ -87,7 +87,7 @@ class SamlKeyRotationMockMvcTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/saml/idp/metadata", "/saml/metadata"})
+    @ValueSource(strings = {"/saml/metadata"})
     void key_rotation(String url) throws Exception {
         //default with three keys
         String metadata = getMetadata(url);
@@ -120,7 +120,7 @@ class SamlKeyRotationMockMvcTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"/saml/idp/metadata", "/saml/metadata"})
+    @ValueSource(strings = {"/saml/metadata"})
     void check_metadata_signature_key(String url) throws Exception {
         String metadata = getMetadata(url);
 

@@ -19,7 +19,6 @@
             <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint"/>
             <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter"/>
             <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter"/>
-            <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter"/>
             <security:filter-chain pattern="/saml/SSO/**"
                                    filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter"/>
             <security:filter-chain pattern="/saml/SingleLogout/**"
@@ -299,6 +298,8 @@
         <property name="legacyMetadataTrustCheck" value="${login.saml.metadataTrustCheck:true}"/>
         <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
     </bean>
+
+    <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
 
     <beans profile="fileMetadata">
         <bean id="metaDataUrl" class="java.lang.String">

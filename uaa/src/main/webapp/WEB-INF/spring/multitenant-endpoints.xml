@@ -126,34 +126,4 @@
         </aop:aspect>
     </aop:config>
 
-    <!-- Begin SAML SP Management -->
-
-    <bean id="serviceProviderProvisioning"
-          class="org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning">
-        <constructor-arg ref="jdbcTemplate"/>
-    </bean>
-
-    <http name="serviceProviderSecurity" pattern="/saml/service-providers/**" create-session="stateless"
-          entry-point-ref="oauthAuthenticationEntryPoint"
-          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
-          xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**"
-                       access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
-                       method="POST"/>
-        <intercept-url pattern="/**"
-                       access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
-                       method="PUT"/>
-        <intercept-url pattern="/**"
-                       access="#oauth2.hasScope('sps.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
-                       method="GET"/>
-        <intercept-url pattern="/**"
-                       access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
-                       method="DELETE"/>
-        <intercept-url pattern="/**" access="denyAll"/>
-        <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
-        <expression-handler ref="oauthWebExpressionHandler"/>
-        <csrf disabled="true"/>
-    </http>
-    <!-- End SAML SP Management -->
-
 </beans>

@@ -294,7 +294,7 @@ class UaaTokenServicesTests {
             OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(this.refreshToken.getValue(), new TokenRequest(new HashMap<>(), "jku_test", Lists.newArrayList("openid", "user_attributes"), GRANT_TYPE_REFRESH_TOKEN));
 
             assertThat(refreshedToken, is(notNullValue()));
-            Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue());
+            Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class);
             assertThat(claims, hasEntry(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
         }
 
@@ -361,7 +361,7 @@ class UaaTokenServicesTests {
 
                 assertThat(refreshedToken, is(notNullValue()));
 
-                Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue());
+                Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue(), Map.class);
                 assertThat(claims.size(), greaterThan(0));
                 assertThat(claims, hasKey(ClaimConstants.ACR));
                 assertThat(claims.get(ClaimConstants.ACR), notNullValue());
@@ -488,7 +488,7 @@ class UaaTokenServicesTests {
 
                 assertThat(refreshedToken, is(notNullValue()));
 
-                Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue());
+                Map<String, Object> claims = UaaTokenUtils.getClaims(refreshedToken.getIdTokenValue(), Map.class);
                 assertThat(claims.size(), greaterThan(0));
                 assertThat(claims, hasKey(ClaimConstants.AMR));
                 assertThat(claims.get(ClaimConstants.AMR), notNullValue());

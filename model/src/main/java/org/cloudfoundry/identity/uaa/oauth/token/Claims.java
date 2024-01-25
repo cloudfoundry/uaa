@@ -14,10 +14,13 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -362,5 +365,10 @@ public class Claims {
 
     public void setClientAuth(final String clientAuth) {
         this.clientAuth = clientAuth;
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getClaimMap() {
+        return JsonUtils.convertValue(this, HashMap.class);
     }
 }
