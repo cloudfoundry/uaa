@@ -206,6 +206,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
             final IdentityProvider<?> aliasIdp = retrieveAliasIdp(existing);
             if (aliasIdp == null) {
+                // ignore dangling reference to alias
                 logger.warn(
                         "Alias IdP referenced in IdentityProvider[origin={}; zone={}}] not found, skipping deletion of alias IdP.",
                         existing.getOriginKey(),
