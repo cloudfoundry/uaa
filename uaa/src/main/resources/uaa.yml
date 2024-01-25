@@ -553,6 +553,8 @@ uaa:
         - GET
         - HEAD
         - OPTIONS
+  features:
+#    aliasEntitiesEnabled: true
 
 #smtp:
 #  host: localhost
