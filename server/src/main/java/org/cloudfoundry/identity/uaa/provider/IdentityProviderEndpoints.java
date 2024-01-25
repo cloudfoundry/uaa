@@ -19,6 +19,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.provider.IdpAliasFailedException.Reason.ALIAS_ZONE_DOES_NOT_EXIST;
+import static org.cloudfoundry.identity.uaa.provider.IdpAliasFailedException.Reason.COULD_NOT_BREAK_REFERENCE_TO_ALIAS;
 import static org.cloudfoundry.identity.uaa.provider.IdpAliasFailedException.Reason.ORIGIN_KEY_ALREADY_USED_IN_ALIAS_ZONE;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -60,6 +61,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -159,7 +161,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             createdIdp = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
-                return ensureConsistencyOfAliasIdp(createdOriginalIdp);
+                return ensureConsistencyOfAliasIdp(createdOriginalIdp, null);
             });
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
@@ -266,7 +268,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             updatedIdp = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
-                return ensureConsistencyOfAliasIdp(updatedOriginalIdp);
+                return ensureConsistencyOfAliasIdp(updatedOriginalIdp, existing);
             });
         } catch (final IdpAliasFailedException e) {
             logger.warn("Could not create alias for {}", e.getMessage());
@@ -441,9 +443,13 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      * Ensure consistency during create or update operations with an alias IdP referenced in the original IdPs alias
      * properties. If the IdP has both its alias ID and alias ZID set, the existing alias IdP is updated. If only
      * the alias ZID is set, a new alias IdP is created.
-     * This method should be executed in a transaction together with the original create or update operation.
+     * This method should be executed in a transaction together with the original create or update operation. It is also
+     * assumed that {@link IdentityProviderEndpoints#aliasPropertiesAreValid} returned {@code true} for the combination
+     * of original IdP and existing IdP.
      *
-     * @param originalIdp the original IdP; must be persisted, i.e., have an ID, already
+     * @param originalIdp the original IdP; (changes to) it must already be persisted and its ID must therefore also be
+     *                    present already
+     * @param existingIdp the existing IdP before the update operation; for creation operations, this is {@code null}
      * @return the original IdP after the operation, with a potentially updated "aliasId" field
      * @throws IdpAliasFailedException if a new alias IdP needs to be created, but the zone referenced in 'aliasZid'
      *                                 does not exist
@@ -451,11 +457,60 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      *                                 alias IdP could not be found
      */
     private <T extends AbstractIdentityProviderDefinition> IdentityProvider<?> ensureConsistencyOfAliasIdp(
-            final IdentityProvider<T> originalIdp
+            @NonNull final IdentityProvider<T> originalIdp,
+            @Nullable final IdentityProvider<T> existingIdp
     ) throws IdpAliasFailedException {
+        /* If the IdP had an alias before the update and the alias feature is now turned off, we break the reference
+         * between the IdP and its alias by setting aliasId and aliasZid to null for both of them. Then, all other
+         * changes are only applied to the original IdP. */
+        final boolean idpHadAlias = existingIdp != null && hasText(existingIdp.getAliasZid());
+        final boolean referenceBreakRequired = idpHadAlias && !aliasEntitiesEnabled;
+        if (referenceBreakRequired) {
+            if (!hasText(existingIdp.getAliasId())) {
+                logger.warn(
+                        "The state of the IdP [id={},zid={}] before the update had an aliasZid set, but no aliasId.",
+                        existingIdp.getId(),
+                        existingIdp.getIdentityZoneId()
+                );
+                return originalIdp;
+            }
+
+            final IdentityProvider<?> aliasIdp = retrieveAliasIdp(existingIdp);
+            if (aliasIdp == null) {
+                logger.warn(
+                        "The referenced alias IdP [id='{}',zid='{}'] does not exist, therefore cannot break reference.",
+                        existingIdp.getAliasId(),
+                        existingIdp.getAliasZid()
+                );
+                return originalIdp;
+            }
+
+            aliasIdp.setAliasId(null);
+            aliasIdp.setAliasZid(null);
+
+            try {
+                identityProviderProvisioning.update(aliasIdp, aliasIdp.getIdentityZoneId());
+            } catch (final DataAccessException e) {
+                throw new IdpAliasFailedException(existingIdp, COULD_NOT_BREAK_REFERENCE_TO_ALIAS, e);
+            }
+
+            // no change required in the original IdP since its aliasId and aliasZid were already set to null
+            return originalIdp;
+        }
+
         if (!hasText(originalIdp.getAliasZid())) {
             // no alias creation/update is necessary
             return originalIdp;
+        }
+
+        if (!aliasEntitiesEnabled) {
+            /* Since we assume that the alias property validation was performed on the original IdP, both alias
+             * properties should be set to null whenever the alias feature is disabled. */
+            throw new IllegalStateException(String.format(
+                    "The IdP [id='%s',zid='%s'] has non-empty aliasZid, even though alias entities are disabled.",
+                    originalIdp.getId(),
+                    originalIdp.getIdentityZoneId()
+            ));
         }
 
         final IdentityProvider<T> aliasIdp = new IdentityProvider<>();
