@@ -1079,10 +1079,10 @@ class JdbcScimUserProvisioningTests {
     void canCreateUserWithValidOrigin() {
         String validOrigin = "validOrigin-"+randomString();
         addIdentityProvider(jdbcTemplate, currentIdentityZoneId, validOrigin);
-        String randomId = randomString();
-        ScimUser scimUser = new ScimUser("user-id-"+randomId, "user@example.com", "User", "Example");
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
-        email.setValue("user-"+randomId+"@example.com");
+        email.setValue(userId+"@example.com");
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setOrigin(validOrigin);
@@ -1099,10 +1099,10 @@ class JdbcScimUserProvisioningTests {
     @Test
     void cannotCreateUserWithInvalidOrigin() {
         String invalidOrigin = "invalidOrigin-"+randomString();
-        String randomId = randomString();
-        ScimUser scimUser = new ScimUser("user-id-"+randomId, "user@example.com", "User", "Example");
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
         ScimUser.Email email = new ScimUser.Email();
-        email.setValue("user-"+randomId+"@example.com");
+        email.setValue(userId+"@example.com");
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setOrigin(invalidOrigin);
@@ -1110,6 +1110,33 @@ class JdbcScimUserProvisioningTests {
         assertThrowsWithMessageThat(
             InvalidScimResourceException.class,
             () -> jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId),
+            containsString("Invalid origin")
+        );
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
+    }
+
+    @Test
+    void cannotUpdateUserWithInvalidOrigin() {
+        String validOrigin = "validOrigin-"+randomString();
+        String invalidOrigin = "invalidOrigin-"+randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, validOrigin);
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(userId+"@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword(randomString());
+        scimUser.setOrigin(validOrigin);
+        try {
+            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
+        } catch (Exception e) {
+            fail("Can't create test user");
+        }
+        scimUser.setOrigin(invalidOrigin);
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId),
             containsString("Invalid origin")
         );
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
