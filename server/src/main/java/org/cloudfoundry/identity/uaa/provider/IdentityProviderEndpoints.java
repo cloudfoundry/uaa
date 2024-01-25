@@ -93,7 +93,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      */
     private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
 
-    private final boolean aliasEntitiesEnabled;
+    @Value("${uaa.features.aliasEntitiesEnabled:false}")
+    private boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
@@ -119,8 +120,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
             final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
-            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
-            final @Value("${uaa.features.aliasEntitiesEnabled:false}") boolean aliasEntitiesEnabled
+            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -130,7 +130,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         this.identityZoneManager = identityZoneManager;
         this.identityZoneProvisioning = identityZoneProvisioning;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
-        this.aliasEntitiesEnabled = aliasEntitiesEnabled;
     }
 
     @RequestMapping(method = POST)

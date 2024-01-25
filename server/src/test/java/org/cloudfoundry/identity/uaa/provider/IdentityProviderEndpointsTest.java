@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
+import org.aspectj.util.Reflection;
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -56,6 +57,7 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -83,6 +85,7 @@ class IdentityProviderEndpointsTest {
     @BeforeEach
     void setup() {
         lenient().when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", true);
     }
 
     IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
