@@ -344,7 +344,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             status = BAD_REQUEST;
             exception = getExceptionString(x);
         } catch (Exception x) {
-            logger.warn("Identity provider validation failed.", x);
+            logger.error("Identity provider validation failed.", x);
             status = INTERNAL_SERVER_ERROR;
             exception = "check server logs";
         }finally {
