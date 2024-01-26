@@ -42,6 +42,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 //import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -622,17 +623,29 @@ class LoginInfoEndpointTests {
 
     @Test
     void generatePasscodeForKnownUaaPrincipal() {
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        Map<String, Object> model = new HashMap<>();
+        assertEquals("passcode", endpoint.generatePasscode(model, marissa));
+
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
+        assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
+    }
+
+    @Test
+    void generatePasscodeForKnownUaaPrincipalFromSamlToken() {
         fail();
 //        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 //        Map<String, Object> model = new HashMap<>();
-//        assertEquals("passcode", endpoint.generatePasscode(model, marissa));
-//        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
-//        assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
+//
 //        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa, "");
-//        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
-//        assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
 //        //token with a UaaPrincipal should always work
 //        assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
+//
+          // TODO: this doesn't test the code path in generatePasscode for LoginSamlAuthenticationToken because
+          // we're sending a UaaAuthentication instead.  Untested code path:
+          // https://github.com/cloudfoundry/uaa/blob/806ae16ba73a0e44d33b8e2561b766fe686b14a9/server/src/main/java/org/cloudfoundry/identity/uaa/login/LoginInfoEndpoint.java#L934
+//        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
+//        assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
     }
 
     @Test
