@@ -650,11 +650,10 @@ class LoginInfoEndpointTests {
 
     @Test
     void generatePasscodeForUnknownUaaPrincipal() {
-        fail();
-//        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-//        Map<String, Object> model = new HashMap<>();
-//        ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
-//        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
+        Map<String, Object> model = new HashMap<>();
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("princpal", "");
+        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
     }
 
     @Test
