@@ -42,6 +42,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -655,7 +656,7 @@ class LoginInfoEndpointTests {
     void generatePasscodeForUnknownUaaPrincipal() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         Map<String, Object> model = new HashMap<>();
-        ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("principal", "");
         assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
     }
 
