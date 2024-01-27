@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.util;
 import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.bouncycastle.openssl.PEMDecryptorProvider;
 import org.bouncycastle.openssl.PEMEncryptedKeyPair;
 import org.bouncycastle.openssl.PEMKeyPair;
@@ -19,6 +20,8 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
+import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms.DEFAULT_RSA;
 
 public class KeyWithCert {
     private X509Certificate certificate;
@@ -53,16 +56,8 @@ public class KeyWithCert {
     private boolean keysMatch(PublicKey publicKey, PrivateKey privateKey) {
         byte[] data = {42};
 
-        String privateKeyAlgorithm = privateKey.getAlgorithm();
-        String publicKeyAlgorithm = publicKey.getAlgorithm();
-
-        if (privateKeyAlgorithm.equals("EC")) {
-            privateKeyAlgorithm = "ECDSA";
-        }
-
-        if (publicKeyAlgorithm.equals("EC")) {
-            publicKeyAlgorithm = "ECDSA";
-        }
+        String privateKeyAlgorithm = getJavaAlgorithm(privateKey.getAlgorithm());
+        String publicKeyAlgorithm = getJavaAlgorithm(publicKey.getAlgorithm());
 
         try {
             Signature sig = Signature.getInstance(privateKeyAlgorithm);
@@ -81,10 +76,19 @@ public class KeyWithCert {
         }
     }
 
+    private static String getJavaAlgorithm(String publicKeyAlgorithm) {
+        if ("EC".equals(publicKeyAlgorithm)) {
+            publicKeyAlgorithm = "ECDSA";
+        } else if ("RSA".equals(publicKeyAlgorithm)) {
+            publicKeyAlgorithm = DEFAULT_RSA;
+        }
+        return publicKeyAlgorithm;
+    }
+
     private PrivateKey loadPrivateKey(String encodedPrivateKey, String passphrase) throws CertificateException {
         PrivateKey privateKey = null;
         try (PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedPrivateKey.getBytes())))) {
-            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider("BC");
+            JcaPEMKeyConverter converter = new JcaPEMKeyConverter().setProvider(BouncyCastleFipsProvider.PROVIDER_NAME);
 
             Object object = pemParser.readObject();
 
@@ -116,7 +120,7 @@ public class KeyWithCert {
         try (PEMParser pemParser = new PEMParser(new InputStreamReader(new ByteArrayInputStream(encodedCertificate.getBytes())))) {
             Object object = pemParser.readObject();
             if (object instanceof X509CertificateHolder) {
-                certificate = new JcaX509CertificateConverter().setProvider("BC").getCertificate((X509CertificateHolder) object);
+                certificate = new JcaX509CertificateConverter().setProvider(BouncyCastleFipsProvider.PROVIDER_NAME).getCertificate((X509CertificateHolder) object);
             } else {
                 throw new CertificateException("Unsupported certificate type, not an X509CertificateHolder.");
             }

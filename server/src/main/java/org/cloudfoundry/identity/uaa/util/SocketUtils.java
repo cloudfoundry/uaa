@@ -32,14 +32,14 @@ import java.util.Date;
 
 
 public class SocketUtils {
-    private static final String BC = org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME;
+    private static final String BC = org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider.PROVIDER_NAME;
 
     public static X509Certificate getSelfCertificate(KeyPair keyPair, String organisation, String orgUnit, String commonName, Date issueDate,
                                                      long validForSeconds,
                                                      String signatureAlgorithm)
             throws CertificateException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
         try {
-            Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+            Security.addProvider(new org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider());
 
             X500NameBuilder builder = new X500NameBuilder(BCStyle.INSTANCE);
             builder.addRDN(BCStyle.OU, orgUnit);

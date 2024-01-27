@@ -116,7 +116,7 @@ public class Saml2TokenGranterTest {
     MockHttpServletRequest request = new MockHttpServletRequest();
     ServletRequestAttributes attrs = new ServletRequestAttributes(request);
     RequestContextHolder.setRequestAttributes(attrs);
-    Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+    Security.addProvider(new org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider());
 
     userAuthentication = mock(UaaAuthentication.class);
     granter = new Saml2TokenGranter(

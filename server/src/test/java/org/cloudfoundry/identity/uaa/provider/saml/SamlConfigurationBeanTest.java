@@ -14,7 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.opensaml.DefaultBootstrap;
@@ -30,7 +30,7 @@ public class SamlConfigurationBeanTest {
 
     @BeforeClass
     public static void initVM() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleFipsProvider());
         DefaultBootstrap.bootstrap();
     }
 
