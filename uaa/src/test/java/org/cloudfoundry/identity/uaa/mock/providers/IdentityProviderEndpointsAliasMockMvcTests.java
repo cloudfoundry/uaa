@@ -966,6 +966,9 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         assertThat(aliasIdp.getOriginKey()).isEqualTo(idp.getOriginKey());
         assertThat(aliasIdp.getName()).isEqualTo(idp.getName());
         assertThat(aliasIdp.getType()).isEqualTo(idp.getType());
+        assertThat(aliasIdp.isActive()).isEqualTo(idp.isActive());
+
+        // it is expected that the two entities have differing values for 'lastmodified', 'created' and 'version'
     }
 
     private IdentityProvider<?> createIdpWithAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {

@@ -94,8 +94,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 int pos = 1;
                 ps.setString(pos++, id);
                 ps.setInt(pos++, identityProvider.getVersion());
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
-                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis()));
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis())); // created
+                ps.setTimestamp(pos++, new Timestamp(System.currentTimeMillis())); // lastmodified
                 ps.setString(pos++, identityProvider.getName());
                 ps.setString(pos++, identityProvider.getOriginKey());
                 ps.setString(pos++, identityProvider.getType());
