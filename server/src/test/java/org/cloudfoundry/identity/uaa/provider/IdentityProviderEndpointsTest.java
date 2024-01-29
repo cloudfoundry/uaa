@@ -449,12 +449,7 @@ class IdentityProviderEndpointsTest {
         Assertions.assertThat(idpUpdateCall2).isNotNull();
         Assertions.assertThat(idpUpdateCall2.getAliasId()).isBlank();
         Assertions.assertThat(idpUpdateCall2.getAliasZid()).isBlank();
-        // apart from the alias properties, the alias IdP should be left unchanged
-        aliasIdp.setAliasId(null);
-        idpUpdateCall2.setAliasId(null);
-        aliasIdp.setAliasZid(null);
-        idpUpdateCall2.setAliasZid(null);
-        Assertions.assertThat(idpUpdateCall2).isEqualTo(aliasIdp);
+        assertIdpsAreEqualApartFromAliasProperties(idpUpdateCall2, aliasIdp);
     }
 
     @Test
@@ -886,12 +881,7 @@ class IdentityProviderEndpointsTest {
         Assertions.assertThat(updateIdpParam).isNotNull();
         Assertions.assertThat(updateIdpParam.getAliasId()).isBlank();
         Assertions.assertThat(updateIdpParam.getAliasZid()).isBlank();
-        // apart from aliasId and aliasZid, the alias IdP should be left unchanged
-        aliasIdp.setAliasZid(null);
-        updateIdpParam.setAliasZid(null);
-        aliasIdp.setAliasId(null);
-        updateIdpParam.setAliasId(null);
-        Assertions.assertThat(updateIdpParam).isEqualTo(aliasIdp);
+        assertIdpsAreEqualApartFromAliasProperties(updateIdpParam, aliasIdp);
     }
 
     private Pair<IdentityProvider<?>, IdentityProvider<?>> arrangeOidcIdpWithAliasExists(
@@ -1003,5 +993,16 @@ class IdentityProviderEndpointsTest {
         Assertions.assertThat(cloneIdp).isEqualTo(idp);
 
         return cloneIdp;
+    }
+
+    private static void assertIdpsAreEqualApartFromAliasProperties(
+            final IdentityProvider<?> idp1,
+            final IdentityProvider<?> idp2
+    ) {
+        idp2.setAliasId(null);
+        idp1.setAliasId(null);
+        idp2.setAliasZid(null);
+        idp1.setAliasZid(null);
+        Assertions.assertThat(idp1).isEqualTo(idp2);
     }
 }
