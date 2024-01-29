@@ -93,7 +93,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
      */
     private static final Set<String> IDP_TYPES_ALIAS_SUPPORTED = Set.of(SAML, OAUTH20, OIDC10);
 
-    @Value("${uaa.features.aliasEntitiesEnabled:false}")
+    @Value("${login.aliasEntitiesEnabled:false}")
     private boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;

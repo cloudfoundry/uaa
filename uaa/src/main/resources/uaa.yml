@@ -369,6 +369,7 @@ login:
 #  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
+#  aliasEntitiesEnabled: true
 
 #  mfa:
 #    enabled: true
@@ -553,8 +554,6 @@ uaa:
         - GET
         - HEAD
         - OPTIONS
-  features:
-#    aliasEntitiesEnabled: true
 
 #smtp:
 #  host: localhost
