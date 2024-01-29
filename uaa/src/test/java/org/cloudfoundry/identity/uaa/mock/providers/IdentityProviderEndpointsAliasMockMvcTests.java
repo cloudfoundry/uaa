@@ -949,14 +949,14 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         assertThat(aliasIdpAfterDeletion.get().getAliasZid()).isBlank();
     }
 
-    private void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {
+    private static void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {
         assertThat(idp).isNotNull();
         assertThat(referencedIdp).isNotNull();
         assertThat(referencedIdp.getId()).isNotBlank().isEqualTo(idp.getAliasId());
         assertThat(referencedIdp.getIdentityZoneId()).isNotBlank().isEqualTo(idp.getAliasZid());
     }
 
-    private void assertOtherPropertiesAreEqual(final IdentityProvider<?> idp, final IdentityProvider<?> aliasIdp) {
+    private static void assertOtherPropertiesAreEqual(final IdentityProvider<?> idp, final IdentityProvider<?> aliasIdp) {
         // the configs should be identical
         final OIDCIdentityProviderDefinition originalIdpConfig = (OIDCIdentityProviderDefinition) idp.getConfig();
         final OIDCIdentityProviderDefinition aliasIdpConfig = (OIDCIdentityProviderDefinition) aliasIdp.getConfig();
@@ -1120,7 +1120,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         return Optional.of(idp);
     }
 
-    private void assertRelyingPartySecretIsRedacted(final IdentityProvider<?> identityProvider) {
+    private static void assertRelyingPartySecretIsRedacted(final IdentityProvider<?> identityProvider) {
         assertThat(identityProvider.getType()).isEqualTo(OIDC10);
         final Optional<AbstractExternalOAuthIdentityProviderDefinition<?>> config = Optional.ofNullable(identityProvider.getConfig())
                 .map(it -> (AbstractExternalOAuthIdentityProviderDefinition<?>) it);
@@ -1141,7 +1141,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, OIDC10);
     }
 
-    private IdentityProvider<?> buildUaaIdpWithAliasProperties(
+    private static IdentityProvider<?> buildUaaIdpWithAliasProperties(
             final String idzId,
             final String aliasId,
             final String aliasZid
