@@ -25,8 +25,7 @@ import org.slf4j.LoggerFactory;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 /**
- * Controller that sends login info (e.g. prompts) to clients wishing to
- * authenticate.
+ * Controller that generates passcodes
  */
 @Controller
 public class PasscodeEndpoint {
