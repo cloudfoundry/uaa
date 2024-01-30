@@ -915,7 +915,6 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
-    @RequestMapping(value = {"/passcode"}, method = GET)
     public String generatePasscode(Map<String, Object> model, Principal principal) {
         String username;
         String origin;
