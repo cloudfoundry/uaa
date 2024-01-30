@@ -166,11 +166,11 @@ class HomeControllerViewTests extends TestClassNullifier {
 
     @Test
     void error500WithClassException() throws Exception {
-        fail();
-//        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception("bad")))
-//            .andExpect(status().isOk())
-//            .andExpect(content().string(containsString(customFooterText)))
-//            .andExpect(content().string(containsString(base64ProductLogo)));
+        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception("bad")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString(customFooterText)))
+            .andExpect(content().string(containsString(base64ProductLogo)));
+        fail("SAML subtests are commented out");
 //        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new SAMLException("bad"))))
 //            .andExpect(status().isBadRequest())
 //            .andExpect(content().string(containsString(customFooterText)))
