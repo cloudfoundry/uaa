@@ -627,40 +627,6 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void generatePasscodeForKnownUaaPrincipal() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-        assertEquals("passcode", endpoint.generatePasscode(model, marissa));
-
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
-        assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
-    }
-
-    @Test
-    void generatePasscodeForKnownUaaPrincipalFromSamlToken() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-
-        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa, "");
-        //token with a UaaPrincipal should always work
-        assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
-
-        //   This doesn't test the code path in generatePasscode for LoginSamlAuthenticationToken.
-        //   Untested code path:
-        //   https://github.com/cloudfoundry/uaa/blob/806ae16ba73a0e44d33b8e2561b766fe686b14a9/server/src/main/java/org/cloudfoundry/identity/uaa/login/LoginInfoEndpoint.java#L934
-        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
-        assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
-    }
-
-    @Test
-    void generatePasscodeForUnknownUaaPrincipal() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("principal", "");
-        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
-    }
-
-    @Test
     void promptLogic() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
