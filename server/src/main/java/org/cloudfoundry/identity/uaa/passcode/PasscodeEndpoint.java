@@ -76,7 +76,8 @@ public class PasscodeEndpoint {
         ExpiringCode code = expiringCodeStore.generateCode(
                 JsonUtils.writeValueAsString(pi),
                 new Timestamp(System.currentTimeMillis() + CODE_EXPIRATION.toMillis()),
-                intent, IdentityZoneHolder.get().getId());
+                intent,
+                IdentityZoneHolder.get().getId());
 
         model.put(PASSCODE, code.getCode());
 
