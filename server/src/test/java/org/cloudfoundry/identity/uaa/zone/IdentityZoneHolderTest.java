@@ -46,15 +46,16 @@ class IdentityZoneHolderTest {
 //        setSamlKeyManagerFactory(new SamlKeyManagerFactory());
 //    }
 
+    // IdentityZoneHolder has a lot of SAML functionality built-in
+    // Also, note that it's deprecated and we should migrate the code to use IdentityZoneManager
     @Test
     void set() {
-        fail();
-//        IdentityZone mockIdentityZone = mock(IdentityZone.class);
+        IdentityZone mockIdentityZone = mock(IdentityZone.class);
 //        getKeyManagerThreadLocal().set(mock(KeyManager.class));
-//
-//        IdentityZoneHolder.set(mockIdentityZone);
-//
-//        assertThat(IdentityZoneHolder.get(), is(mockIdentityZone));
+
+        IdentityZoneHolder.set(mockIdentityZone);
+
+        assertThat(IdentityZoneHolder.get(), is(mockIdentityZone));
 //        assertThat(getKeyManagerThreadLocal().get(), is(nullValue()));
     }
 
