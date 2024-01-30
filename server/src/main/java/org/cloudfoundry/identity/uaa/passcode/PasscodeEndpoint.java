@@ -67,14 +67,14 @@ public class PasscodeEndpoint {
         origin = uaaPrincipal.getOrigin();
         userId = uaaPrincipal.getId();
 
-        PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
+        PasscodeInformation passcodeInformation = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
 
-        String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
+        String intent = ExpiringCodeType.PASSCODE + " " + passcodeInformation.getUserId();
 
         expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
 
         ExpiringCode code = expiringCodeStore.generateCode(
-                JsonUtils.writeValueAsString(pi),
+                JsonUtils.writeValueAsString(passcodeInformation),
                 new Timestamp(System.currentTimeMillis() + CODE_EXPIRATION.toMillis()),
                 intent,
                 IdentityZoneHolder.get().getId());
