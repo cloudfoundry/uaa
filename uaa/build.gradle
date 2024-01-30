@@ -80,7 +80,9 @@ dependencies {
     testImplementation(libraries.springTest)
     testImplementation(libraries.springSecurityJwt)
     testImplementation(libraries.springSecurityLdap)
-    testImplementation(libraries.springSecuritySaml)
+    testImplementation(libraries.springSecuritySaml) {
+        exclude(module: "xalan") // exclude vulnerable xalan 2.7.2 (see: CVE-2022-34169)
+    }
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)
