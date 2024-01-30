@@ -921,28 +921,24 @@ public class LoginInfoEndpoint {
         String userId;
         Map<String, Object> authorizationParameters = null;
 
+        UaaPrincipal uaaPrincipal;
         if (principal instanceof UaaPrincipal) {
-            UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
+            uaaPrincipal = (UaaPrincipal) principal;
             username = uaaPrincipal.getName();
-            origin = uaaPrincipal.getOrigin();
-            userId = uaaPrincipal.getId();
         } else if (principal instanceof UaaAuthentication) {
-            UaaPrincipal uaaPrincipal = ((UaaAuthentication) principal).getPrincipal();
+            uaaPrincipal = ((UaaAuthentication) principal).getPrincipal();
             username = uaaPrincipal.getName();
-            origin = uaaPrincipal.getOrigin();
-            userId = uaaPrincipal.getId();
-        } else if (principal instanceof LoginSamlAuthenticationToken) {
+        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
+            uaaPrincipal = samlTokenPrincipal.getUaaPrincipal();
             username = principal.getName();
-            origin = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getOrigin();
-            userId = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getId();
         } else if (principal instanceof Authentication && ((Authentication) principal).getPrincipal() instanceof UaaPrincipal) {
-            UaaPrincipal uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
+            uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
             username = uaaPrincipal.getName();
-            origin = uaaPrincipal.getOrigin();
-            userId = uaaPrincipal.getId();
         } else {
             throw new UnknownPrincipalException();
         }
+        origin = uaaPrincipal.getOrigin();
+        userId = uaaPrincipal.getId();
 
         PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
 
