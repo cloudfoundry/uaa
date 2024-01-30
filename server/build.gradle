@@ -27,6 +27,7 @@ dependencies {
     }
     implementation(libraries.springSecuritySaml) {
         exclude(module: "bcprov-ext-jdk15on")
+        exclude(module: "xalan") // exclude vulnerable xalan 2.7.2 (see: CVE-2022-34169)
     }
     implementation(libraries.springSessionJdbc)
 
