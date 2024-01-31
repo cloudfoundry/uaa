@@ -11,7 +11,6 @@ import org.springframework.security.providers.ExpiringUsernameAuthenticationToke
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
@@ -96,7 +95,7 @@ class PasscodeInformationTest {
     @Test
     void passcodeInformationThrowsExceptionOnUnknownPrincipal() {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("unknown principal type", "");
-        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () ->
+        assertThrows(PasscodeEndpoint.UnknownPrincipalException.class, () ->
                 new PasscodeInformation(token, authorizationParameters));
     }
 }
