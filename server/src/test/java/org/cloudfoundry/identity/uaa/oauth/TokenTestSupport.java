@@ -324,7 +324,7 @@ public class TokenTestSupport {
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
         Set<String> amr = new HashSet<>(Arrays.asList("ext", "mfa", "rba"));
         userAuthentication.setAuthenticationMethods(amr);
-        userAuthentication.setAuthContextClassRef(new HashSet<>(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX)));
+        userAuthentication.setAuthContextClassRef(new HashSet<>(Collections.singletonList("some test ACR")));
 
         HashMap<String, String> requestParams = Maps.newHashMap();
         requestParams.put("grant_type", GRANT_TYPE_PASSWORD);
