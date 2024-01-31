@@ -62,6 +62,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nullable;
+
 import static java.sql.Types.VARCHAR;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -192,11 +194,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user, String zoneId) {
-        validateUserLimit(zoneId);
+        UserConfig userConfig = getUserConfig(zoneId);
+        validateUserLimit(zoneId, userConfig);
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
-        if (isCheckOriginEnabled(zoneId)) {
+        if (isCheckOriginEnabled(userConfig)) {
             checkOrigin(user.getOrigin(), zoneId);
         }
         logger.debug("Creating new user: {}", UaaStringUtils.getCleanedUserControlString(user.getUserName()));
@@ -548,23 +551,22 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
     }
 
-    private int getAllowedUserLimit(String zoneId) {
+    @Nullable
+    private UserConfig getUserConfig(String zoneId) {
         try {
-            UserConfig userConfig;
             IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
-            userConfig = (currentZone.getId().equals(zoneId)) ?
+            return (currentZone.getId().equals(zoneId)) ?
                 currentZone.getConfig().getUserConfig() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
-            return userConfig.getMaxUsers();
         } catch (ZoneDoesNotExistsException e) {
             logger.debug("could not retrieve identity zone with id: {}", zoneId);
         }
-        return -1;
+        return null;
     }
 
-    private void validateUserLimit(String zoneId) {
+    private void validateUserLimit(String zoneId, UserConfig userConfig) {
         // get current limit of allowed users
-        long maxAllowedUsers = getAllowedUserLimit(zoneId);
+        long maxAllowedUsers = (userConfig == null) ? -1 : userConfig.getMaxUsers();
         // check, if there is a limit (>0), that the limit is not reached with one user more (getUsersCountForZone + 1)
         if (maxAllowedUsers > 0 && maxAllowedUsers < (getUsersCountForZone(zoneId) + 1)) {
             throw new InvalidScimResourceException("The maximum allowed numbers of users: " + maxAllowedUsers
@@ -573,17 +575,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     private boolean isCheckOriginEnabled(String zoneId) {
-        try {
-            UserConfig userConfig;
-            IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
-            userConfig = (currentZone.getId().equals(zoneId)) ?
-                currentZone.getConfig().getUserConfig() :
-                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
-            return userConfig.isCheckOriginEnabled();
-        } catch (ZoneDoesNotExistsException e) {
-            logger.debug("could not retrieve identity zone with id: {}", zoneId);
-        }
-        return false;
+        return isCheckOriginEnabled(getUserConfig(zoneId));
+    }
+
+    private boolean isCheckOriginEnabled(UserConfig userConfig) {
+        return (userConfig == null) ? false : userConfig.isCheckOriginEnabled();
     }
 
     private void checkOrigin(String origin, String zoneId) {
