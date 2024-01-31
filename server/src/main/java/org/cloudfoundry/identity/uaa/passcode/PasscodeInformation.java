@@ -15,13 +15,20 @@ package org.cloudfoundry.identity.uaa.passcode;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlUserAuthority;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+
+import org.springframework.security.core.Authentication;
 
 public class PasscodeInformation {
 
@@ -63,6 +70,30 @@ public class PasscodeInformation {
 
     public PasscodeInformation(String username) {
         this.username = username;
+    }
+
+    public PasscodeInformation(Principal principal, Map<String, Object> authorizationParameters) {
+        UaaPrincipal uaaPrincipal;
+        if (principal instanceof UaaPrincipal) {
+            uaaPrincipal = (UaaPrincipal) principal;
+            username = uaaPrincipal.getName();
+        } else if (principal instanceof UaaAuthentication) {
+            uaaPrincipal = ((UaaAuthentication) principal).getPrincipal();
+            username = uaaPrincipal.getName();
+        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
+            uaaPrincipal = samlTokenPrincipal.getUaaPrincipal();
+            username = principal.getName();
+        } else if (principal instanceof Authentication && ((Authentication) principal).getPrincipal() instanceof UaaPrincipal) {
+            uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
+            username = uaaPrincipal.getName();
+        } else {
+            throw new LoginInfoEndpoint.UnknownPrincipalException();
+        }
+        origin = uaaPrincipal.getOrigin();
+        userId = uaaPrincipal.getId();
+
+        passcode = null;
+        this.authorizationParameters = authorizationParameters;
     }
 
     public String getUsername() {
