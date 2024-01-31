@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mfa;
 
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService;
 import org.cloudfoundry.identity.uaa.cypto.EncryptionServiceException;
@@ -54,6 +55,7 @@ class JdbcUserGoogleMfaCredentialsProvisioningTest {
 
     @BeforeAll
     static void key() {
+        Security.addProvider(new BouncyCastleFipsProvider());
         Security.setProperty("crypto.policy", "unlimited");
     }
 

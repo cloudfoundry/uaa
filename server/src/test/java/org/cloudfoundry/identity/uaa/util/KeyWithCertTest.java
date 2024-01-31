@@ -12,8 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.encoders.DecoderException;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -26,7 +25,7 @@ public class KeyWithCertTest {
 
     @BeforeClass
     public static void addProvider() {
-        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     public static final String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -183,7 +182,7 @@ public class KeyWithCertTest {
         "y9mayfAcKPti4MbPR6ADAo9NxKbdsZjA138=\n" +
         "-----END PRIVATE KEY-----\n";
 
-    @Test(expected = DecoderException.class)
+    @Test(expected = CertificateException.class)
     public void testInvalidCert() throws Exception {
         new KeyWithCert(key, password, invalidCert);
     }
