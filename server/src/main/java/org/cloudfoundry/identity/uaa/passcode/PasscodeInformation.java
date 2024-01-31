@@ -17,7 +17,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlUserAuthority;
 
@@ -87,7 +86,7 @@ public class PasscodeInformation {
             uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
             username = uaaPrincipal.getName();
         } else {
-            throw new LoginInfoEndpoint.UnknownPrincipalException();
+            throw new PasscodeEndpoint.UnknownPrincipalException();
         }
         origin = uaaPrincipal.getOrigin();
         userId = uaaPrincipal.getId();
