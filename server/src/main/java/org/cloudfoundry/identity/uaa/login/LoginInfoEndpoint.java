@@ -64,7 +64,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.passcode.PasscodeInformation;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -73,7 +72,6 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.ColorHash;
@@ -914,47 +912,6 @@ public class LoginInfoEndpoint {
         }
 
         return "redirect:" + redirectLocation;
-    }
-
-    public String generatePasscode(Map<String, Object> model, Principal principal) {
-        String username;
-        String origin;
-        String userId;
-        Map<String, Object> authorizationParameters = null;
-
-        UaaPrincipal uaaPrincipal;
-        if (principal instanceof UaaPrincipal) {
-            uaaPrincipal = (UaaPrincipal) principal;
-            username = uaaPrincipal.getName();
-        } else if (principal instanceof UaaAuthentication) {
-            uaaPrincipal = ((UaaAuthentication) principal).getPrincipal();
-            username = uaaPrincipal.getName();
-        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
-            uaaPrincipal = samlTokenPrincipal.getUaaPrincipal();
-            username = principal.getName();
-        } else if (principal instanceof Authentication && ((Authentication) principal).getPrincipal() instanceof UaaPrincipal) {
-            uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
-            username = uaaPrincipal.getName();
-        } else {
-            throw new UnknownPrincipalException();
-        }
-        origin = uaaPrincipal.getOrigin();
-        userId = uaaPrincipal.getId();
-
-        PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
-
-        String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
-
-        expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
-
-        ExpiringCode code = expiringCodeStore.generateCode(
-                JsonUtils.writeValueAsString(pi),
-                new Timestamp(System.currentTimeMillis() + CODE_EXPIRATION.toMillis()),
-                intent, IdentityZoneHolder.get().getId());
-
-        model.put(PASSCODE, code.getCode());
-
-        return PASSCODE;
     }
 
     private Map<String, ?> getLinksInfo() {
