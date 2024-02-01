@@ -215,6 +215,24 @@ public class UserIdConversionEndpointsTests {
     }
 
     @Test
+    public void testBadFilter14() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+
+        // lhs valid, rhs invalid
+        endpoints.findUsers("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"", "ascending", 0, 100, false);
+    }
+
+    @Test
+    public void testBadFilter15() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+
+        // lhs valid, rhs invalid
+        endpoints.findUsers("origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")", "ascending", 0, 100, false);
+    }
+
+    @Test
     public void testDisabled() {
         endpoints = new UserIdConversionEndpoints(provisioning, mockSecurityContextAccessor, scimUserEndpoints, false);
         ResponseEntity<Object> response = endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);
