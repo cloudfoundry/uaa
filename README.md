@@ -197,7 +197,6 @@ List of relations
  public | schema_version                | table    | root
  public | sec_audit                     | table    | root
  public | sec_audit_id_seq              | sequence | root
- public | service_provider              | table    | root
  public | spring_session                | table    | root
  public | spring_session_attributes     | table    | root
  public | user_google_mfa_credentials   | table    | root
