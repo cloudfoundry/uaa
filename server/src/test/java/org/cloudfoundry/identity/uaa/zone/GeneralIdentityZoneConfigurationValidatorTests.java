@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.junit.After;
 import org.junit.Before;
@@ -202,7 +202,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     @BeforeClass
     public static void addBCProvider() {
         try {
-            Security.addProvider(new BouncyCastleProvider());
+            Security.addProvider(new BouncyCastleFipsProvider());
         } catch (SecurityException e) {
             e.printStackTrace();
             System.err.println("Ignoring provider error, may already be added.");

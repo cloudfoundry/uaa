@@ -2,8 +2,6 @@
 
 **Slack** [&#35;uaa](https://cloudfoundry.slack.com/archives/C03FXANBV)
 
-> **_Deprecation notice_**: _UAA can currently function as a SAML identity provider (IdP). This functionality will be removed in a future release. This will facilitate ongoing efforts to upgrade the Spring Boot library that UAA uses. However, UAA's ability to be a service provider (SP) that integrates with an external SAML-based IdP will still be supported._
- 
 > **_Deprecation notice_**: _The MFA feature in UAA is deprecated and will be removed in a future UAA version._
 
 # CloudFoundry User Account and Authentication (UAA) Server

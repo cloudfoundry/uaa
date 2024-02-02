@@ -1,5 +1,30 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import java.io.IOException;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.saml.context.SAMLMessageContext;
+import org.springframework.security.saml.key.KeyManager;
+import org.springframework.security.saml.metadata.ExtendedMetadata;
+import org.springframework.security.saml.metadata.MetadataGenerator;
+
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -9,20 +34,30 @@ import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
+import org.opensaml.common.SAMLObject;
 import org.opensaml.common.SAMLObjectBuilder;
 import org.opensaml.common.SAMLVersion;
-import org.opensaml.saml2.core.*;
+import org.opensaml.saml2.core.Assertion;
+import org.opensaml.saml2.core.Audience;
+import org.opensaml.saml2.core.AudienceRestriction;
+import org.opensaml.saml2.core.AuthnContext;
+import org.opensaml.saml2.core.AuthnContextClassRef;
+import org.opensaml.saml2.core.AuthnRequest;
+import org.opensaml.saml2.core.AuthnStatement;
+import org.opensaml.saml2.core.Conditions;
+import org.opensaml.saml2.core.Issuer;
+import org.opensaml.saml2.core.NameID;
+import org.opensaml.saml2.core.Subject;
+import org.opensaml.saml2.core.SubjectConfirmation;
+import org.opensaml.saml2.core.SubjectConfirmationData;
 import org.opensaml.saml2.core.impl.AssertionMarshaller;
 import org.opensaml.saml2.metadata.EntityDescriptor;
-import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObjectBuilderFactory;
@@ -33,31 +68,20 @@ import org.opensaml.xml.signature.Signature;
 import org.opensaml.xml.signature.Signer;
 import org.opensaml.xml.signature.impl.SignatureBuilder;
 import org.opensaml.xml.util.XMLHelper;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.security.saml.key.KeyManager;
-import org.springframework.security.saml.metadata.ExtendedMetadata;
-import org.springframework.security.saml.metadata.MetadataGenerator;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.*;
-import java.io.IOException;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
-
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
+// TODO this class seems to be used more broadly than what its location indicates (uaa as saml idp); need to move it
+// also remove unused code in here
 public class SamlTestUtils {
 
     public static final String PROVIDER_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -293,13 +317,6 @@ public class SamlTestUtils {
     SAMLMessageContext mockSamlMessageContext(AuthnRequest authnRequest) {
         SAMLMessageContext context = new SAMLMessageContext();
 
-        context.setLocalEntityId(IDP_ENTITY_ID);
-        context.setLocalEntityRole(IDPSSODescriptor.DEFAULT_ELEMENT_NAME);
-        EntityDescriptor idpMetadata = mockIdpMetadata();
-        context.setLocalEntityMetadata(idpMetadata);
-        IDPSSODescriptor idpDescriptor = idpMetadata.getIDPSSODescriptor(SAML20P_NS);
-        context.setLocalEntityRoleMetadata(idpDescriptor);
-
         context.setPeerEntityId(SP_ENTITY_ID);
         context.setPeerEntityRole(SPSSODescriptor.DEFAULT_ELEMENT_NAME);
         EntityDescriptor spMetadata = mockSpMetadata();
@@ -315,24 +332,6 @@ public class SamlTestUtils {
         KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
         context.setLocalSigningCredential(keyManager.getDefaultCredential());
         return context;
-    }
-
-    private EntityDescriptor mockIdpMetadata() {
-        return mockIdpMetadataGenerator().generateMetadata();
-    }
-
-    IdpMetadataGenerator mockIdpMetadataGenerator() {
-        IdpExtendedMetadata extendedMetadata = new IdpExtendedMetadata();
-
-        IdpMetadataGenerator metadataGenerator = new IdpMetadataGenerator();
-        metadataGenerator.setEntityId(IDP_ENTITY_ID);
-        metadataGenerator.setEntityBaseURL("http://localhost:8080/uaa/saml/idp");
-        metadataGenerator.setExtendedMetadata(extendedMetadata);
-
-        KeyManager keyManager = mock(KeyManager.class);
-        when(keyManager.getDefaultCredentialName()).thenReturn(null);
-        metadataGenerator.setKeyManager(keyManager);
-        return metadataGenerator;
     }
 
     private EntityDescriptor mockSpMetadata() {
@@ -354,34 +353,124 @@ public class SamlTestUtils {
         return mockAuthnRequest(null);
     }
 
-    public Assertion mockAssertion(
+    public String mockAssertionEncoded(Assertion assertion) throws Exception {
+        AssertionMarshaller marshaller = new AssertionMarshaller();
+        Element plaintextElement = marshaller.marshall(assertion);
+        String serializedElement = XMLHelper.nodeToString(plaintextElement);
+        return Base64.encodeBase64URLSafeString(serializedElement.getBytes(StandardCharsets.UTF_8));
+    }
+
+    public String mockAssertionEncoded(
             String issuerEntityId,
             String format,
             String username,
             String spEndpoint,
-            String audienceEntityID,
+            String audienceEntityID) throws Exception {
+        final Assertion assertion = mockAssertion(issuerEntityId, format, username, spEndpoint, audienceEntityID);
+        signAssertion(assertion, PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+        return mockAssertionEncoded(assertion);
+    }
+
+    private Assertion mockAssertion(
+            String issuerEntityId,
+            String format,
+            String username,
+            String spEndpoint,
+            String audienceEntityID) {
+        final DateTime now = new DateTime();
+        final DateTime until = now.plusHours(1);
+
+        Assertion assertion = (Assertion) buildSamlObject(Assertion.DEFAULT_ELEMENT_NAME);
+
+        {
+            assertion.setIssueInstant(now);
+        }
+
+        {
+            final Issuer issuer = (Issuer) buildSamlObject(Issuer.DEFAULT_ELEMENT_NAME);
+            issuer.setValue(issuerEntityId);
+            assertion.setIssuer(issuer);
+        }
+
+        {
+            final NameID nameId = (NameID) buildSamlObject(NameID.DEFAULT_ELEMENT_NAME);
+            nameId.setValue(username);
+            nameId.setNameQualifier(NameID.UNSPECIFIED);
+            nameId.setFormat(format);
+
+            final SubjectConfirmationData confirmationMethod = (SubjectConfirmationData) buildSamlObject(SubjectConfirmationData.DEFAULT_ELEMENT_NAME);
+            confirmationMethod.setNotOnOrAfter(until);
+            confirmationMethod.setRecipient(spEndpoint);
+
+            final SubjectConfirmation subjectConfirmation = (SubjectConfirmation) buildSamlObject(SubjectConfirmation.DEFAULT_ELEMENT_NAME);
+            subjectConfirmation.setSubjectConfirmationData(confirmationMethod);
+            subjectConfirmation.setMethod("urn:oasis:names:tc:SAML:2.0:cm:bearer");
+
+            final Subject subject = (Subject) buildSamlObject(Subject.DEFAULT_ELEMENT_NAME);
+            subject.setNameID(nameId);
+            subject.getSubjectConfirmations().add(subjectConfirmation);
+
+            subject.getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
+            subject.getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
+
+            assertion.setSubject(subject);
+        }
+
+        {
+            final Audience audience = (Audience) buildSamlObject(Audience.DEFAULT_ELEMENT_NAME);
+            audience.setAudienceURI(audienceEntityID);
+
+            final AudienceRestriction audienceRestriction = (AudienceRestriction) buildSamlObject(AudienceRestriction.DEFAULT_ELEMENT_NAME);
+            audienceRestriction.getAudiences().add(audience);
+
+            final Conditions conditions = (Conditions) buildSamlObject(Conditions.DEFAULT_ELEMENT_NAME);
+            conditions.getAudienceRestrictions().add(audienceRestriction);
+            conditions.setNotBefore(new DateTime().minusSeconds(2));
+            conditions.setNotOnOrAfter(until);
+
+            assertion.setConditions(conditions);
+        }
+
+        {
+            final AuthnContextClassRef authnContextClassRef = (AuthnContextClassRef) buildSamlObject(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
+            authnContextClassRef.setAuthnContextClassRef("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
+
+            final AuthnContext authnContext = (AuthnContext) buildSamlObject(AuthnContext.DEFAULT_ELEMENT_NAME);
+            authnContext.setAuthnContextClassRef(authnContextClassRef);
+
+            final AuthnStatement authnStatement = (AuthnStatement) buildSamlObject(AuthnStatement.DEFAULT_ELEMENT_NAME);
+            authnStatement.setAuthnInstant(now);
+            authnStatement.setSessionIndex("a358a06c15ja8d7a1idjaj07jb52gdi");
+            authnStatement.setSessionNotOnOrAfter(until);
+            authnStatement.setAuthnContext(authnContext);
+
+            assertion.getAuthnStatements().add(authnStatement);
+        }
+
+        return assertion;
+    }
+
+    private SAMLObject buildSamlObject(QName elementName) {
+        SAMLObjectBuilder issuerBuilder = (SAMLObjectBuilder) builderFactory.getBuilder(elementName);
+        return issuerBuilder.buildObject();
+    }
+
+    public void signAssertion(
+            Assertion assertion,
             String privateKey,
             String keyPassword,
             String certificate)
             throws Exception {
-        String authenticationId = UUID.randomUUID().toString();
-        Authentication authentication = mockUaaAuthentication(authenticationId);
-        SAMLMessageContext context = mockSamlMessageContext();
-        IdpWebSsoProfileImpl profile = mockSsoWebProfileImpl();
-        IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
-        options.setAssertionsSigned(false);
-        profile.buildResponse(authentication, context, options);
-        Response response = (Response) context.getOutboundSAMLMessage();
-        Assertion assertion = response.getAssertions().get(0);
-        DateTime until = new DateTime().plusHours(1);
-        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setRecipient(spEndpoint);
-        assertion.getConditions().getAudienceRestrictions().get(0).getAudiences().get(0).setAudienceURI(audienceEntityID);
-        assertion.getIssuer().setValue(issuerEntityId);
-        assertion.getSubject().getNameID().setValue(username);
-        assertion.getSubject().getNameID().setFormat(format);
-        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setInResponseTo(null);
-        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
-        assertion.getConditions().setNotOnOrAfter(until);
+
+        final Signature signature = generateSignature(privateKey, keyPassword, certificate);
+        assertion.setSignature(signature);
+        Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
+        marshaller.marshall(assertion);
+        Signer.signObject(signature);
+    }
+
+    private Signature generateSignature(String privateKey, String keyPassword, String certificate)
+            throws org.opensaml.xml.security.SecurityException {
         SamlConfig config = new SamlConfig();
         config.addAndActivateKey("active-key", new SamlKey(privateKey, keyPassword, certificate));
         KeyManager keyManager = new SamlKeyManagerFactory().getKeyManager(config);
@@ -390,22 +479,7 @@ public class SamlTestUtils {
         final Credential defaultCredential = keyManager.getDefaultCredential();
         signature.setSigningCredential(defaultCredential);
         SecurityHelper.prepareSignatureParams(signature, defaultCredential, null, null);
-        assertion.setSignature(signature);
-        Marshaller marshaller = Configuration.getMarshallerFactory().getMarshaller(assertion);
-        marshaller.marshall(assertion);
-        Signer.signObject(signature);
-        return assertion;
-    }
-
-    public String mockAssertionEncoded(Assertion assertion) throws Exception {
-        AssertionMarshaller marshaller = new AssertionMarshaller();
-        Element plaintextElement = marshaller.marshall(assertion);
-        String serializedElement = XMLHelper.nodeToString(plaintextElement);
-        return Base64.encodeBase64URLSafeString(serializedElement.getBytes(StandardCharsets.UTF_8));
-    }
-
-    public String mockAssertionEncoded(String issuerEntityID, String format, String username, String spEndpoint, String audienceEntityID) throws Exception {
-        return mockAssertionEncoded(mockAssertion(issuerEntityID, format, username, spEndpoint, audienceEntityID, PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE));
+        return signature;
     }
 
     AuthnRequest mockAuthnRequest(String nameIDFormat) {
@@ -442,12 +516,6 @@ public class SamlTestUtils {
         Issuer issuer = issuerBuilder.buildObject();
         issuer.setValue(localEntityId);
         return issuer;
-    }
-
-    UaaAuthentication mockUaaAuthenticationWithSamlMessageContext(SAMLMessageContext context) {
-        UaaAuthentication uaaAuthentication = mockUaaAuthentication();
-        when(uaaAuthentication.getSamlMessageContext()).thenReturn(context);
-        return uaaAuthentication;
     }
 
     private UaaAuthentication mockUaaAuthentication() {
@@ -960,26 +1028,5 @@ public class SamlTestUtils {
         documentBuilderFactory.setNamespaceAware(false);
         InputSource is = new InputSource(new StringReader(metadata));
         return documentBuilderFactory.newDocumentBuilder().parse(is);
-    }
-
-    private static IdpWebSsoProfileImpl mockSsoWebProfileImpl() {
-        IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
-        JdbcScimUserProvisioning scimUserProvisioning = mock(JdbcScimUserProvisioning.class);
-        profile.setScimUserProvisioning(scimUserProvisioning);
-        JdbcSamlServiceProviderProvisioning samlServiceProviderProvisioning = mock(JdbcSamlServiceProviderProvisioning.class);
-        profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
-
-        ScimUser user = new ScimUser(null, "johndoe", "John", "Doe");
-
-        SamlServiceProvider samlServiceProvider = new SamlServiceProvider();
-        SamlServiceProviderDefinition config = new SamlServiceProviderDefinition();
-        config.setAttributeMappings(new HashMap<>());
-        samlServiceProvider.setConfig(config);
-
-        when(scimUserProvisioning.retrieve(anyString(), anyString())).thenReturn(user);
-        when(samlServiceProviderProvisioning.retrieveByEntityId(any(), any())).thenReturn(samlServiceProvider);
-        profile.setScimUserProvisioning(scimUserProvisioning);
-        profile.setSamlServiceProviderProvisioning(samlServiceProviderProvisioning);
-        return profile;
     }
 }

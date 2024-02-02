@@ -238,7 +238,6 @@
                 <security:filter-chain pattern="/**" filters="
                     httpsHeaderFilter,
                     metadataGeneratorFilter,
-                    idpMetadataGeneratorFilter,
                     samlFilter"/>
             </util:list>
         </constructor-arg>
@@ -256,10 +255,8 @@
           entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
-        <custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter"/>
         <custom-filter ref="passwordChangeUiRequiredFilter" after="BASIC_AUTH_FILTER"/>
         <custom-filter ref="mfaUiRequiredFilter" after="FORM_LOGIN_FILTER"/>
-        <custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter"/>
         <csrf disabled="true"/>
     </http>
 
@@ -277,7 +274,6 @@
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
-        <security:custom-filter before="CHANNEL_FILTER" ref="idpMetadataGeneratorFilter"/>
         <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
         <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"

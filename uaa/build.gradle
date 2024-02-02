@@ -95,6 +95,10 @@ dependencies {
     testImplementation(libraries.tomcatJdbc)
     testImplementation(libraries.springRestdocs)
     testImplementation(libraries.greenmail)
+    testImplementation(libraries.jodaTime)
+    testImplementation(libraries.commonsIo)
+    testImplementation(libraries.commonsHttpClient)
+    testImplementation(libraries.owaspEsapi)
 }
 
 ext {

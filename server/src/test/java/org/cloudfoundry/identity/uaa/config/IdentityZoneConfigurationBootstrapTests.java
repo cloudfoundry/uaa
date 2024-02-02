@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -94,7 +94,7 @@ public class IdentityZoneConfigurationBootstrapTests {
         bootstrap.setValidator(validator);
 
         //For the SamlTestUtils keys we are using.
-        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     @Test

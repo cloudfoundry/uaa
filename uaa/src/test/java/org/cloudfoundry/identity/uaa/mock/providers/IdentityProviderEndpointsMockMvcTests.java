@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.providers;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.lang.RandomStringUtils;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
