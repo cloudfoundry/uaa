@@ -75,17 +75,20 @@ public class PasscodeInformation {
 
     public PasscodeInformation(Principal principal, Map<String, Object> authorizationParameters) {
         UaaPrincipal uaaPrincipal;
-        if (principal instanceof UaaPrincipal) {
-            uaaPrincipal = (UaaPrincipal) principal;
+        if (principal instanceof UaaPrincipal castUaaPrincipal) {
+            uaaPrincipal = castUaaPrincipal;
             username = uaaPrincipal.getName();
-        } else if (principal instanceof UaaAuthentication) {
-            uaaPrincipal = ((UaaAuthentication) principal).getPrincipal();
+        } else if (principal instanceof UaaAuthentication castUaaAuthentication) {
+            uaaPrincipal = castUaaAuthentication.getPrincipal();
             username = uaaPrincipal.getName();
         } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
             uaaPrincipal = samlTokenPrincipal.getUaaPrincipal();
             username = principal.getName();
-        } else if (principal instanceof Authentication && ((Authentication) principal).getPrincipal() instanceof UaaPrincipal) {
-            uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
+        } else if (
+                principal instanceof Authentication castAuthentication &&
+                  castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal
+        ) {
+            uaaPrincipal = castUaaPrincipal;
             username = uaaPrincipal.getName();
         } else {
             throw new PasscodeEndpoint.UnknownPrincipalException();
