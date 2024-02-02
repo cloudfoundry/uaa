@@ -39,20 +39,6 @@ public class PasscodeInformation {
     private Map<String, Object> authorizationParameters;
     private String origin;
 
-    public PasscodeInformation(
-        String userId,
-        String username,
-        String passcode,
-        String origin,
-        Map<String, Object> authorizationParameters) {
-
-        setUserId(userId);
-        setUsername(username);
-        setPasscode(passcode);
-        setAuthorizationParameters(authorizationParameters);
-        setOrigin(origin);
-    }
-
     @JsonCreator
     public PasscodeInformation(
         @JsonProperty("userId") String userId,
@@ -67,10 +53,6 @@ public class PasscodeInformation {
         authorizationParameters = new LinkedHashMap<>();
         setSamlAuthorities(authorities);
         setOrigin(origin);
-    }
-
-    public PasscodeInformation(String username) {
-        this.username = username;
     }
 
     public PasscodeInformation(Principal principal, Map<String, Object> authorizationParameters) {
