@@ -8,7 +8,7 @@ import java.util.Map;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -16,8 +16,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 /**
  * Controller that generates passcodes
@@ -35,7 +33,7 @@ public class PasscodeEndpoint {
         this.expiringCodeStore = expiringCodeStore;
     }
 
-    @RequestMapping(value = {"/passcode"}, method = GET)
+    @GetMapping(value = {"/passcode"})
     public String generatePasscode(Map<String, Object> model, Principal principal) {
         Map<String, Object> authorizationParameters = null;
 
