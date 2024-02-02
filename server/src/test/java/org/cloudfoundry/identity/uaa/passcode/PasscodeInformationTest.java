@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -20,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class PasscodeInformationTest {
     private UaaPrincipal uaaPrincipal;
@@ -98,5 +100,14 @@ class PasscodeInformationTest {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("unknown principal type", "");
         assertThrows(PasscodeEndpoint.UnknownPrincipalException.class, () ->
                 new PasscodeInformation(token, authorizationParameters));
+    }
+
+    @Test
+    void passcodeInformationThrowExceptionOnNonUaaPrincipal() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(mock(Principal.class));
+
+        assertThrows(PasscodeEndpoint.UnknownPrincipalException.class, () ->
+                new PasscodeInformation(authentication, authorizationParameters));
     }
 }
