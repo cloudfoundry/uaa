@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
@@ -32,7 +31,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -51,7 +49,6 @@ public class UserIdConversionEndpoints implements InitializingBean {
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final SecurityContextAccessor securityContextAccessor;
     private final ScimUserEndpoints scimUserEndpoints;
-    private final ScimUserProvisioning scimUserProvisioning;
 
     private boolean enabled;
 
@@ -59,14 +56,12 @@ public class UserIdConversionEndpoints implements InitializingBean {
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
             final SecurityContextAccessor securityContextAccessor,
             final ScimUserEndpoints scimUserEndpoints,
-            final @Qualifier("scimUserProvisioning") ScimUserProvisioning scimUserProvisioning,
             final @Value("${scim.userids_enabled:true}") boolean enabled
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.securityContextAccessor = securityContextAccessor;
         this.scimUserEndpoints = scimUserEndpoints;
         this.enabled = enabled;
-        this.scimUserProvisioning = scimUserProvisioning;
     }
 
     @RequestMapping(value = "/ids/Users")
@@ -127,25 +122,14 @@ public class UserIdConversionEndpoints implements InitializingBean {
             final String sortOrder,
             final boolean includeInactive
     ) {
-        final String idzId = IdentityZoneHolder.get().getId();
-
-        final List<ScimUser> filteredScimUsers;
-        try {
-            filteredScimUsers = scimUserProvisioning.query(filter, "userName", sortOrder.equals("ascending"), idzId);
-        } catch (final IllegalArgumentException e) {
-            String msg = "Invalid filter expression: [" + filter + "]";
-            if (StringUtils.hasText("userName")) {
-                msg += " [" + "userName" + "]";
-            }
-            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
-        }
+        final List<ScimUser> filteredScimUsers = scimUserEndpoints.getScimUsers(filter, "userName", sortOrder);
 
         if (includeInactive) {
             return filteredScimUsers;
         }
 
         // remove users from inactive IdPs
-        final List<IdentityProvider> activeIdentityProviders = identityProviderProvisioning.retrieveActive(idzId);
+        final List<IdentityProvider> activeIdentityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId());
         if (activeIdentityProviders.isEmpty()) {
             return emptyList();
         }

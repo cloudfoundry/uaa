@@ -38,7 +38,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -70,7 +69,6 @@ public class UserIdConversionEndpointsTests {
     private SecurityContextAccessor mockSecurityContextAccessor;
 
     private final ScimUserEndpoints scimUserEndpoints = mock(ScimUserEndpoints.class);
-    private final ScimUserProvisioning scimUserProvisioning = mock(ScimUserProvisioning.class);
 
     private final MockedStatic<IdentityZoneHolder> idzHolderMockedStatic;
 
@@ -86,7 +84,7 @@ public class UserIdConversionEndpointsTests {
     @Before
     public void init() {
         mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        endpoints = new UserIdConversionEndpoints(identityProviderProvisioning, mockSecurityContextAccessor, scimUserEndpoints, scimUserProvisioning, true);
+        endpoints = new UserIdConversionEndpoints(identityProviderProvisioning, mockSecurityContextAccessor, scimUserEndpoints, true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn(authorities);
         when(mockSecurityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
         when(scimUserEndpoints.getUserMaxCount()).thenReturn(10_000);
@@ -141,7 +139,7 @@ public class UserIdConversionEndpointsTests {
         scimUser6.setOrigin("idp1");
         allScimUsers.add(scimUser6);
         assertThat(allScimUsers).hasSize(6);
-        arrangeScimUsersForFilter(filter, idzId, allScimUsers);
+        arrangeScimUsersForFilter(filter, allScimUsers);
 
         // only IdP 1 is active
         arrangeActiveIdps(idzId, "idp1");
@@ -170,8 +168,7 @@ public class UserIdConversionEndpointsTests {
         final ScimUser scimUser6 = new ScimUser("bar", "foo", "Some", "Name");
         scimUser6.setOrigin("idp1");
         allScimUsers.add(scimUser6);
-        assertThat(allScimUsers).hasSize(6);
-        arrangeScimUsersForFilter(filter, idzId, allScimUsers);
+        arrangeScimUsersForFilter(filter, allScimUsers);
 
         // only IdP 1 is active -> only user 6 should be returned
         arrangeActiveIdps(idzId, "idp1");
@@ -316,7 +313,7 @@ public class UserIdConversionEndpointsTests {
     @Test
     public void testDisabled() {
         arrangeCurrentIdentityZone("uaa");
-        endpoints = new UserIdConversionEndpoints(identityProviderProvisioning, mockSecurityContextAccessor, scimUserEndpoints, scimUserProvisioning, false);
+        endpoints = new UserIdConversionEndpoints(identityProviderProvisioning, mockSecurityContextAccessor, scimUserEndpoints, false);
         ResponseEntity<Object> response = endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);
         Assert.assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals("Illegal Operation: Endpoint not enabled.", response.getBody());
@@ -346,8 +343,8 @@ public class UserIdConversionEndpointsTests {
         when(identityProviderProvisioning.retrieveActive(idzId)).thenReturn(idps);
     }
 
-    private void arrangeScimUsersForFilter(final String filter, final String idzId, final List<ScimUser> allScimUsers) {
-        when(scimUserProvisioning.query(filter, "userName", true, idzId))
+    private void arrangeScimUsersForFilter(final String filter, final List<ScimUser> allScimUsers) {
+        when(scimUserEndpoints.getScimUsers(filter, "userName", "ascending"))
                 .thenReturn(allScimUsers);
     }
 

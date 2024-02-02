@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
+
+import org.apache.commons.lang3.tuple.Pair;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -401,26 +403,18 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             count = userMaxCount;
         }
 
+        List<ScimUser> result = getScimUsers(filter, sortBy, sortOrder);
+
         List<ScimUser> input = new ArrayList<>();
-        List<ScimUser> result;
         Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
-        try {
-            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), identityZoneManager.getCurrentIdentityZoneId());
-            for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
-                if (attributes.isEmpty() || attributes.stream().anyMatch("groups"::equalsIgnoreCase)) {
-                    syncGroups(user);
-                }
-                if (attributes.isEmpty() || attributes.stream().anyMatch("approvals"::equalsIgnoreCase)) {
-                    syncApprovals(user);
-                }
-                input.add(user);
+        for (final ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
+            if (attributes.isEmpty() || attributes.stream().anyMatch("groups"::equalsIgnoreCase)) {
+                syncGroups(user);
             }
-        } catch (IllegalArgumentException e) {
-            String msg = "Invalid filter expression: [" + filter + "]";
-            if (StringUtils.hasText(sortBy)) {
-                msg += " [" + sortBy + "]";
+            if (attributes.isEmpty() || attributes.stream().anyMatch("approvals"::equalsIgnoreCase)) {
+                syncApprovals(user);
             }
-            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
+            input.add(user);
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
@@ -446,6 +440,24 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
+    }
+
+    public List<ScimUser> getScimUsers(
+            final String filter,
+            final String sortBy,
+            final String sortOrder
+    ) {
+        final List<ScimUser> result;
+        try {
+            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), identityZoneManager.getCurrentIdentityZoneId());
+        } catch (final IllegalArgumentException e) {
+            String msg = "Invalid filter expression: [" + filter + "]";
+            if (StringUtils.hasText(sortBy)) {
+                msg += " [" + sortBy + "]";
+            }
+            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
+        }
+        return result;
     }
 
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
