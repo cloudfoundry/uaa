@@ -93,6 +93,8 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.springframework.util.StringUtils.isEmpty;
 
+import lombok.Getter;
+
 /**
  * User provisioning and query endpoints. Implements the core API from the
  * Simple Cloud Identity Management (SCIM)
@@ -122,6 +124,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
     private final ApprovalStore approvalStore;
     private final ScimGroupMembershipManager membershipManager;
+    @Getter
     private final int userMaxCount;
     private final HttpMessageConverter<?>[] messageConverters;
     private final AtomicInteger scimUpdates;
