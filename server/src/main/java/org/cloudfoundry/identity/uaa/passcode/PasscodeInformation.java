@@ -58,20 +58,16 @@ public class PasscodeInformation {
     public PasscodeInformation(Principal principal, Map<String, Object> authorizationParameters) {
         UaaPrincipal uaaPrincipal;
         if (principal instanceof UaaPrincipal castUaaPrincipal) {
-            uaaPrincipal = castUaaPrincipal;
-            setUsername(uaaPrincipal.getName());
+            uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
         } else if (principal instanceof UaaAuthentication castUaaAuthentication) {
-            uaaPrincipal = castUaaAuthentication.getPrincipal();
-            setUsername(uaaPrincipal.getName());
+            uaaPrincipal = getUaaPrincipal(castUaaAuthentication.getPrincipal());
         } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
-            uaaPrincipal = samlTokenPrincipal.getUaaPrincipal();
-            setUsername(principal.getName());
+            uaaPrincipal = getUaaPrincipal(samlTokenPrincipal.getUaaPrincipal());
         } else if (
                 principal instanceof Authentication castAuthentication &&
                   castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal
         ) {
-            uaaPrincipal = castUaaPrincipal;
-            setUsername(uaaPrincipal.getName());
+            uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
         } else {
             throw new PasscodeEndpoint.UnknownPrincipalException();
         }
@@ -80,6 +76,11 @@ public class PasscodeInformation {
 
         setPasscode(null);
         setAuthorizationParameters(authorizationParameters);
+    }
+
+    private UaaPrincipal getUaaPrincipal(UaaPrincipal castUaaPrincipal) {
+        setUsername(castUaaPrincipal.getName());
+        return castUaaPrincipal;
     }
 
     public String getUsername() {
