@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.passcode;
 
 import java.security.Principal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Map;
 
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -32,6 +33,22 @@ class PasscodeInformationTest {
         uaaPrincipal = new UaaPrincipal(
                 "marissa-id", "marissa", "marissa@test.org", "origin", null, IdentityZoneHolder.get().getId()
         );
+    }
+
+    @Test
+    void buildPasscodeInformationForUserAttributes() {
+        final PasscodeInformation passcodeInformation =
+            new PasscodeInformation(uaaPrincipal.getId(),
+                uaaPrincipal.getName(),
+                null,
+                uaaPrincipal.getOrigin(),
+                Collections.emptyList());
+
+        assertNull(passcodeInformation.getPasscode());
+        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
+        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
+        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
+        assertEquals(Collections.emptyList(), passcodeInformation.getSamlAuthorities());
     }
 
     @Test
