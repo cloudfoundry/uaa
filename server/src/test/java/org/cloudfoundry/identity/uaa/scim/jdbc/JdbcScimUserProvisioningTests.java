@@ -1127,11 +1127,16 @@ class JdbcScimUserProvisioningTests {
         scimUser.setEmails(Collections.singletonList(email));
         scimUser.setPassword(randomString());
         scimUser.setOrigin(validOrigin);
+        ScimUser scimUserCreated = null;
         try {
-            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
+            scimUserCreated = jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
         } catch (Exception e) {
             fail("Can't create test user");
         }
+        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
+        scimUserCreated.setActive(false);
+        jdbcScimUserProvisioning.update(scimUserCreated.getId(), scimUserCreated, currentIdentityZoneId);
+        scimUser.setActive(true);
         scimUser.setOrigin(invalidOrigin);
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
         assertThrowsWithMessageThat(
