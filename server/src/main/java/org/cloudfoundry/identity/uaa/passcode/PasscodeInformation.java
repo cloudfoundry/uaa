@@ -59,27 +59,27 @@ public class PasscodeInformation {
         UaaPrincipal uaaPrincipal;
         if (principal instanceof UaaPrincipal castUaaPrincipal) {
             uaaPrincipal = castUaaPrincipal;
-            username = uaaPrincipal.getName();
+            setUsername(uaaPrincipal.getName());
         } else if (principal instanceof UaaAuthentication castUaaAuthentication) {
             uaaPrincipal = castUaaAuthentication.getPrincipal();
-            username = uaaPrincipal.getName();
+            setUsername(uaaPrincipal.getName());
         } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
             uaaPrincipal = samlTokenPrincipal.getUaaPrincipal();
-            username = principal.getName();
+            setUsername(principal.getName());
         } else if (
                 principal instanceof Authentication castAuthentication &&
                   castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal
         ) {
             uaaPrincipal = castUaaPrincipal;
-            username = uaaPrincipal.getName();
+            setUsername(uaaPrincipal.getName());
         } else {
             throw new PasscodeEndpoint.UnknownPrincipalException();
         }
-        origin = uaaPrincipal.getOrigin();
-        userId = uaaPrincipal.getId();
+        setOrigin(uaaPrincipal.getOrigin());
+        setUserId(uaaPrincipal.getId());
 
-        passcode = null;
-        this.authorizationParameters = authorizationParameters;
+        setPasscode(null);
+        setAuthorizationParameters(authorizationParameters);
     }
 
     public String getUsername() {
