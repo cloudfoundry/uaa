@@ -13,11 +13,11 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -37,7 +37,7 @@ class PasscodeInformationTest {
         final PasscodeInformation passcodeInformation =
                 new PasscodeInformation(uaaPrincipal, authorizationParameters);
 
-        assertEquals(passcodeInformation.getPasscode(), null);
+        assertNull(passcodeInformation.getPasscode());
         assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
         assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
         assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
@@ -54,7 +54,7 @@ class PasscodeInformationTest {
         final PasscodeInformation passcodeInformation =
                 new PasscodeInformation(uaaAuthentication, authorizationParameters);
 
-        assertEquals(passcodeInformation.getPasscode(), null);
+        assertNull(passcodeInformation.getPasscode());
         assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
         assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
         assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
@@ -68,7 +68,7 @@ class PasscodeInformationTest {
         final PasscodeInformation passcodeInformation =
                 new PasscodeInformation(expiringUsernameAuthenticationToken, authorizationParameters);
 
-        assertEquals(passcodeInformation.getPasscode(), null);
+        assertNull(passcodeInformation.getPasscode());
         assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
         assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
         assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
@@ -87,7 +87,7 @@ class PasscodeInformationTest {
         final PasscodeInformation passcodeInformation =
                 new PasscodeInformation(samlAuthenticationToken, authorizationParameters);
 
-        assertEquals(passcodeInformation.getPasscode(), null);
+        assertNull(passcodeInformation.getPasscode());
         assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
         assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
         assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
