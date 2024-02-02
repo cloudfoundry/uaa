@@ -24,6 +24,7 @@ import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,12 +59,12 @@ public class PasscodeInformation {
         @JsonProperty("username") String username,
         @JsonProperty("passcode") String passcode,
         @JsonProperty("origin") String origin,
-        @JsonProperty("samlAuthorities") ArrayList<SamlUserAuthority> authorities) {
+        @JsonProperty("samlAuthorities") List<SamlUserAuthority> authorities) {
 
         setUserId(userId);
         setUsername(username);
         setPasscode(passcode);
-        authorizationParameters = new LinkedHashMap<String, Object>();
+        authorizationParameters = new LinkedHashMap<>();
         setSamlAuthorities(authorities);
         setOrigin(origin);
     }
@@ -105,8 +106,8 @@ public class PasscodeInformation {
     }
 
     @JsonProperty("samlAuthorities")
-    public ArrayList<SamlUserAuthority> getSamlAuthorities() {
-        ArrayList<SamlUserAuthority> list = new ArrayList<SamlUserAuthority>();
+    public List<SamlUserAuthority> getSamlAuthorities() {
+        ArrayList<SamlUserAuthority> list = new ArrayList<>();
         if (authorizationParameters != null && authorizationParameters.containsKey(AUTHORITIES_KEY)) {
             Set<SamlUserAuthority> set = (Set<SamlUserAuthority>) authorizationParameters.get(AUTHORITIES_KEY);
             list.addAll(set);
@@ -114,7 +115,7 @@ public class PasscodeInformation {
         return list;
     }
 
-    public void setSamlAuthorities(ArrayList<SamlUserAuthority> authorities) {
+    public void setSamlAuthorities(List<SamlUserAuthority> authorities) {
         Set<SamlUserAuthority> set = new HashSet<>(authorities);
         authorizationParameters.put(AUTHORITIES_KEY, set);
     }
