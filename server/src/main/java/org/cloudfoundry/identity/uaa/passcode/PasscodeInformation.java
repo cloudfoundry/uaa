@@ -31,6 +31,7 @@ import org.springframework.security.core.Authentication;
 
 public class PasscodeInformation {
 
+    private static final String AUTHORITIES_KEY = "authorities";
     private String userId;
     private String username;
     private String passcode;
@@ -106,8 +107,8 @@ public class PasscodeInformation {
     @JsonProperty("samlAuthorities")
     public ArrayList<SamlUserAuthority> getSamlAuthorities() {
         ArrayList<SamlUserAuthority> list = new ArrayList<SamlUserAuthority>();
-        if (authorizationParameters != null && authorizationParameters.containsKey("authorities")) {
-            Set<SamlUserAuthority> set = (Set<SamlUserAuthority>) authorizationParameters.get("authorities");
+        if (authorizationParameters != null && authorizationParameters.containsKey(AUTHORITIES_KEY)) {
+            Set<SamlUserAuthority> set = (Set<SamlUserAuthority>) authorizationParameters.get(AUTHORITIES_KEY);
             list.addAll(set);
         }
         return list;
@@ -115,7 +116,7 @@ public class PasscodeInformation {
 
     public void setSamlAuthorities(ArrayList<SamlUserAuthority> authorities) {
         Set<SamlUserAuthority> set = new HashSet<>(authorities);
-        authorizationParameters.put("authorities", set);
+        authorizationParameters.put(AUTHORITIES_KEY, set);
     }
 
     @JsonIgnore
