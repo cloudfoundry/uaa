@@ -1,14 +1,26 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.unboundid.scim.sdk.SCIMException;
-import com.unboundid.scim.sdk.SCIMFilter;
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
+
+import javax.servlet.http.HttpServletRequest;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -20,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,61 +41,120 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.unboundid.scim.sdk.SCIMException;
+import com.unboundid.scim.sdk.SCIMFilter;
 
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final IdentityProviderProvisioning provisioning;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
     private final SecurityContextAccessor securityContextAccessor;
     private final ScimUserEndpoints scimUserEndpoints;
+    private final ScimUserProvisioning scimUserProvisioning;
 
     private boolean enabled;
 
-    public UserIdConversionEndpoints(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
-                                     final SecurityContextAccessor securityContextAccessor,
-                                     final ScimUserEndpoints scimUserEndpoints,
-                                     final @Value("${scim.userids_enabled:true}") boolean enabled) {
-        this.provisioning = provisioning;
+    public UserIdConversionEndpoints(
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
+            final SecurityContextAccessor securityContextAccessor,
+            final ScimUserEndpoints scimUserEndpoints,
+            final @Qualifier("scimUserProvisioning") ScimUserProvisioning scimUserProvisioning,
+            final @Value("${scim.userids_enabled:true}") boolean enabled
+    ) {
+        this.identityProviderProvisioning = identityProviderProvisioning;
         this.securityContextAccessor = securityContextAccessor;
         this.scimUserEndpoints = scimUserEndpoints;
         this.enabled = enabled;
+        this.scimUserProvisioning = scimUserProvisioning;
     }
 
     @RequestMapping(value = "/ids/Users")
     @ResponseBody
     public ResponseEntity<Object> findUsers(
             @RequestParam(defaultValue = "") String filter,
-            @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+            @RequestParam(required = false, defaultValue = "ascending") final String sortOrder,
             @RequestParam(required = false, defaultValue = "1") int startIndex,
             @RequestParam(required = false, defaultValue = "100") int count,
-            @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
+            @RequestParam(required = false, defaultValue = "false") final boolean includeInactive
+    ) {
         if (!enabled) {
             logger.info("Request from user {} received at disabled Id translation endpoint with filter:{}",
-                UaaStringUtils.getCleanedUserControlString(securityContextAccessor.getAuthenticationInfo()),
-                UaaStringUtils.getCleanedUserControlString(filter));
+                    UaaStringUtils.getCleanedUserControlString(securityContextAccessor.getAuthenticationInfo()),
+                    UaaStringUtils.getCleanedUserControlString(filter));
             return new ResponseEntity<>("Illegal Operation: Endpoint not enabled.", HttpStatus.BAD_REQUEST);
+        }
+
+        if (startIndex < 1) {
+            startIndex = 1;
+        }
+
+        if (count > scimUserEndpoints.getUserMaxCount()) {
+            count = scimUserEndpoints.getUserMaxCount();
         }
 
         filter = filter.trim();
         checkFilter(filter);
 
-        List<IdentityProvider> activeIdentityProviders = provisioning.retrieveActive(IdentityZoneHolder.get().getId());
+        // get all users for the given filter and the current page
+        final List<ScimUser> filteredUsers = getFilteredScimUsers(filter, sortOrder, includeInactive);
+        final List<ScimUser> usersCurrentPage = UaaPagingUtils.subList(filteredUsers, startIndex, count);
 
-        if (!includeInactive) {
-            if (activeIdentityProviders.isEmpty()) {
-                return new ResponseEntity<>(new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), new ArrayList<>(), startIndex, count, 0), HttpStatus.OK);
+        // map to result structure
+        final List<Map<String, String>> result = usersCurrentPage.stream()
+                .map(scimUser -> Map.of(
+                        "id", scimUser.getId(),
+                        "userName", scimUser.getUserName(),
+                        "origin", scimUser.getOrigin()
+                ))
+                .collect(toList());
+
+        return new ResponseEntity<>(
+                SearchResultsFactory.buildSearchResultFrom(
+                        result,
+                        startIndex,
+                        count,
+                        filteredUsers.size(),
+                        new String[]{"id", "userName", "origin"},
+                        Arrays.asList(ScimCore.SCHEMAS)
+                ),
+                HttpStatus.OK
+        );
+    }
+
+    private List<ScimUser> getFilteredScimUsers(
+            final String filter,
+            final String sortOrder,
+            final boolean includeInactive
+    ) {
+        final String idzId = IdentityZoneHolder.get().getId();
+
+        final List<ScimUser> filteredScimUsers;
+        try {
+            filteredScimUsers = scimUserProvisioning.query(filter, "userName", sortOrder.equals("ascending"), idzId);
+        } catch (final IllegalArgumentException e) {
+            String msg = "Invalid filter expression: [" + filter + "]";
+            if (StringUtils.hasText("userName")) {
+                msg += " [" + "userName" + "]";
             }
-            String originFilter = activeIdentityProviders.stream().map(identityProvider -> "".concat("origin eq \"" + identityProvider.getOriginKey() + "\"")).collect(Collectors.joining(" OR "));
-            filter += " AND (" + originFilter + " )";
+            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
         }
 
-        return new ResponseEntity<>(scimUserEndpoints.findUsers("id,userName,origin", filter, "userName", sortOrder, startIndex, count), HttpStatus.OK);
+        if (includeInactive) {
+            return filteredScimUsers;
+        }
+
+        // remove users from inactive IdPs
+        final List<IdentityProvider> activeIdentityProviders = identityProviderProvisioning.retrieveActive(idzId);
+        if (activeIdentityProviders.isEmpty()) {
+            return emptyList();
+        }
+        final Set<String> originsOfActiveIdps = activeIdentityProviders.stream()
+                .map(IdentityProvider::getOriginKey)
+                .collect(toSet());
+        return filteredScimUsers.stream()
+                .filter(scimUser -> originsOfActiveIdps.contains(scimUser.getOrigin()))
+                .collect(toList());
     }
 
     @ExceptionHandler

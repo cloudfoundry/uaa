@@ -385,7 +385,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @RequestMapping(value = "/Users", method = RequestMethod.GET)
     @ResponseBody
-    public SearchResults<?> findUsers(
+    public SearchResults findUsers(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
             @RequestParam(required = false, defaultValue = "id pr") String filter,
             @RequestParam(required = false, defaultValue = "created") String sortBy,
