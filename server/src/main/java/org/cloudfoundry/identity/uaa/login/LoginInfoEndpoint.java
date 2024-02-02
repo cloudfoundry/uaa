@@ -7,7 +7,6 @@ import java.net.URLEncoder;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -137,7 +136,6 @@ public class LoginInfoEndpoint {
     private final MfaChecker mfaChecker;
     private final String entityID;
 
-    private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
     private static final MapCollector<IdentityProvider, String, AbstractExternalOAuthIdentityProviderDefinition> idpsMapCollector =
             new MapCollector<>(
                     IdentityProvider::getOriginKey,

@@ -16,8 +16,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
@@ -28,7 +26,6 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 public class PasscodeEndpoint {
 
     public static final String PASSCODE = "passcode";
-    private static Logger logger = LoggerFactory.getLogger(PasscodeEndpoint.class);
     private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
 
     private final ExpiringCodeStore expiringCodeStore;
