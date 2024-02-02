@@ -38,9 +38,9 @@ class PasscodeInformationTest {
                 new PasscodeInformation(uaaPrincipal, authorizationParameters);
 
         assertNull(passcodeInformation.getPasscode());
-        assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
-        assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
-        assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
+        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
+        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
+        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
     }
 
     @Test
@@ -55,9 +55,9 @@ class PasscodeInformationTest {
                 new PasscodeInformation(uaaAuthentication, authorizationParameters);
 
         assertNull(passcodeInformation.getPasscode());
-        assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
-        assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
-        assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
+        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
+        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
+        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
     }
 
     @Test
@@ -69,9 +69,9 @@ class PasscodeInformationTest {
                 new PasscodeInformation(expiringUsernameAuthenticationToken, authorizationParameters);
 
         assertNull(passcodeInformation.getPasscode());
-        assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
-        assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
-        assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
+        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
+        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
+        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
     }
 
     @Test
@@ -88,9 +88,9 @@ class PasscodeInformationTest {
                 new PasscodeInformation(samlAuthenticationToken, authorizationParameters);
 
         assertNull(passcodeInformation.getPasscode());
-        assertEquals(passcodeInformation.getUsername(), uaaPrincipal.getName());
-        assertEquals(passcodeInformation.getOrigin(), uaaPrincipal.getOrigin());
-        assertEquals(passcodeInformation.getUserId(), uaaPrincipal.getId());
+        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
+        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
+        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
     }
 
     @Test
