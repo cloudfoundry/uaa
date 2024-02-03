@@ -10,40 +10,34 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login;
+package org.cloudfoundry.identity.uaa.passcode;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlUserAuthority;
 
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.springframework.security.core.Authentication;
+
 public class PasscodeInformation {
 
+    private static final String AUTHORITIES_KEY = "authorities";
     private String userId;
     private String username;
     private String passcode;
     private Map<String, Object> authorizationParameters;
     private String origin;
-
-    public PasscodeInformation(
-        String userId,
-        String username,
-        String passcode,
-        String origin,
-        Map<String, Object> authorizationParameters) {
-
-        setUserId(userId);
-        setUsername(username);
-        setPasscode(passcode);
-        setAuthorizationParameters(authorizationParameters);
-        setOrigin(origin);
-    }
 
     @JsonCreator
     public PasscodeInformation(
@@ -51,18 +45,42 @@ public class PasscodeInformation {
         @JsonProperty("username") String username,
         @JsonProperty("passcode") String passcode,
         @JsonProperty("origin") String origin,
-        @JsonProperty("samlAuthorities") ArrayList<SamlUserAuthority> authorities) {
+        @JsonProperty("samlAuthorities") List<SamlUserAuthority> authorities) {
 
         setUserId(userId);
         setUsername(username);
         setPasscode(passcode);
-        authorizationParameters = new LinkedHashMap<String, Object>();
+        authorizationParameters = new LinkedHashMap<>();
         setSamlAuthorities(authorities);
         setOrigin(origin);
     }
 
-    public PasscodeInformation(String username) {
-        this.username = username;
+    public PasscodeInformation(Principal principal, Map<String, Object> authorizationParameters) {
+        UaaPrincipal uaaPrincipal;
+        if (principal instanceof UaaPrincipal castUaaPrincipal) {
+            uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
+        } else if (principal instanceof UaaAuthentication castUaaAuthentication) {
+            uaaPrincipal = getUaaPrincipal(castUaaAuthentication.getPrincipal());
+        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
+            uaaPrincipal = getUaaPrincipal(samlTokenPrincipal.getUaaPrincipal());
+        } else if (
+                principal instanceof Authentication castAuthentication &&
+                  castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal
+        ) {
+            uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
+        } else {
+            throw new PasscodeEndpoint.UnknownPrincipalException();
+        }
+        setOrigin(uaaPrincipal.getOrigin());
+        setUserId(uaaPrincipal.getId());
+
+        setPasscode(null);
+        setAuthorizationParameters(authorizationParameters);
+    }
+
+    private UaaPrincipal getUaaPrincipal(UaaPrincipal castUaaPrincipal) {
+        setUsername(castUaaPrincipal.getName());
+        return castUaaPrincipal;
     }
 
     public String getUsername() {
@@ -74,18 +92,18 @@ public class PasscodeInformation {
     }
 
     @JsonProperty("samlAuthorities")
-    public ArrayList<SamlUserAuthority> getSamlAuthorities() {
-        ArrayList<SamlUserAuthority> list = new ArrayList<SamlUserAuthority>();
-        if (authorizationParameters != null && authorizationParameters.containsKey("authorities")) {
-            Set<SamlUserAuthority> set = (Set<SamlUserAuthority>) authorizationParameters.get("authorities");
+    public List<SamlUserAuthority> getSamlAuthorities() {
+        ArrayList<SamlUserAuthority> list = new ArrayList<>();
+        if (authorizationParameters != null && authorizationParameters.containsKey(AUTHORITIES_KEY)) {
+            Set<SamlUserAuthority> set = (Set<SamlUserAuthority>) authorizationParameters.get(AUTHORITIES_KEY);
             list.addAll(set);
         }
         return list;
     }
 
-    public void setSamlAuthorities(ArrayList<SamlUserAuthority> authorities) {
+    public void setSamlAuthorities(List<SamlUserAuthority> authorities) {
         Set<SamlUserAuthority> set = new HashSet<>(authorities);
-        authorizationParameters.put("authorities", set);
+        authorizationParameters.put(AUTHORITIES_KEY, set);
     }
 
     @JsonIgnore
