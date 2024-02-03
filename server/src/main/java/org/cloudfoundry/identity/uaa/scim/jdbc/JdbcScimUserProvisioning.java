@@ -579,7 +579,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     private boolean isCheckOriginEnabled(UserConfig userConfig) {
-        return (userConfig == null) ? false : userConfig.isCheckOriginEnabled();
+        return userConfig != null && userConfig.isCheckOriginEnabled();
     }
 
     private void checkOrigin(String origin, String zoneId) {
