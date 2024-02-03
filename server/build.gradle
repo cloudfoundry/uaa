@@ -119,6 +119,11 @@ dependencies {
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
 
+    testImplementation(libraries.springSecuritySaml) {
+        exclude(module: "bcprov-ext-jdk15on")
+        exclude(module: "xalan")
+    }
+
     implementation(libraries.commonsIo)
 }
 
