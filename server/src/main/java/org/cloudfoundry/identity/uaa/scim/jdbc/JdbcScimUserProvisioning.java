@@ -192,7 +192,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public ScimUser create(final ScimUser user, String zoneId) {
-        UserConfig userConfig = getUserConfig(zoneId); // throws ZoneDoesNotExistsException
+        UserConfig userConfig = getUserConfig(zoneId);
         validateUserLimit(zoneId, userConfig);
         if (!hasText(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
@@ -275,7 +275,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         user.setOrigin(origin);
-        UserConfig userConfig = getUserConfig(zoneId); // throws ZoneDoesNotExistsException
+        UserConfig userConfig = getUserConfig(zoneId);
         if (isCheckOriginEnabled(userConfig)) {
             checkOrigin(origin, zoneId);
         }
@@ -550,11 +550,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
     }
 
-    private UserConfig getUserConfig(String zoneId) throws ZoneDoesNotExistsException {
-        IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
-        return (currentZone.getId().equals(zoneId)) ?
-                currentZone.getConfig().getUserConfig() :
-                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
+    private UserConfig getUserConfig(String zoneId) throws InvalidScimResourceException {
+        try {
+            IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
+            return (currentZone.getId().equals(zoneId)) ?
+                    currentZone.getConfig().getUserConfig() :
+                    jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
+        } catch (ZoneDoesNotExistsException e) {
+            throw new InvalidScimResourceException(String.format("Invalid identity zone id: %s", zoneId));
+        }
     }
 
     private void validateUserLimit(String zoneId, UserConfig userConfig) {
