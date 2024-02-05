@@ -1145,6 +1145,41 @@ class JdbcScimUserProvisioningTests {
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
     }
 
+    @Test
+    void cannotCreateUserWithInvalidIdentityZone() {
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(userId+"@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword(randomString());
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> jdbcScimUserProvisioning.create(scimUser, "invalidZone-"+randomString()),
+            containsString("Invalid identity zone id")
+        );
+    }
+
+    @Test
+    void cannotUpdateUserWithInvalidIdentityZone() {
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(userId+"@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword(randomString());
+        try {
+            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
+        } catch (Exception e) {
+            fail("Can't create test user");
+        }
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> jdbcScimUserProvisioning.update(userId, scimUser, "invalidZone-"+randomString()),
+            containsString("Invalid identity zone id")
+        );
+    }
+
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
         String randomUserId = UUID.randomUUID().toString();
         addUser(jdbcTemplate, randomUserId, randomUserId, "password", randomUserId + "@delete.com", "ToDelete", "User", "+1-234-5678910", zoneId);
