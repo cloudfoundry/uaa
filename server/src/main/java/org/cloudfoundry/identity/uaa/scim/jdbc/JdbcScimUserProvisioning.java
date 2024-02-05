@@ -554,8 +554,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         try {
             IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
             return (currentZone.getId().equals(zoneId)) ?
-                    currentZone.getConfig().getUserConfig() :
-                    jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
+                currentZone.getConfig().getUserConfig() :
+                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
         } catch (ZoneDoesNotExistsException e) {
             throw new InvalidScimResourceException(String.format("Invalid identity zone id: %s", zoneId));
         }
