@@ -263,6 +263,9 @@ class JdbcScimUserProvisioningTests {
         @BeforeEach
         void setUp() {
             currentIdentityZoneId = "currentIdentityZoneId-nested-" + randomString();
+            IdentityZone idz = new IdentityZone();
+            idz.setId(currentIdentityZoneId);
+            idzManager.setCurrentIdentityZone(idz);
         }
 
         @Test
