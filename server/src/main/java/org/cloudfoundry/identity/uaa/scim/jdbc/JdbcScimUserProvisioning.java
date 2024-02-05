@@ -284,10 +284,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             throw new InvalidScimResourceException("Cannot change user's origin in update operation.");
         }
 
-        // check if the origin exists
-        if (isCheckOriginEnabled(zoneId)) {
-            checkOrigin(origin, zoneId);
-        }
         ScimUtils.validate(user);
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, ps -> {
             int pos = 1;
