@@ -66,6 +66,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
@@ -1066,6 +1067,23 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testUpdateUser_No_Username_Returns_400() throws Exception {
         updateUser(scimReadWriteToken, HttpStatus.BAD_REQUEST.value());
+    }
+
+    @Test
+    void testUpdateUser_ChangingOriginReturns400() throws Exception {
+        final ScimUser scimUser = setUpScimUser(IdentityZone.getUaa());
+
+        // change origin
+        final String initialOrigin = scimUser.getOrigin();
+        scimUser.setOrigin(UUID.randomUUID().toString());
+
+        scimUser.setName(new ScimUser.Name("Some New", "Name"));
+
+        updateUser(scimReadWriteToken, HttpStatus.BAD_REQUEST.value(), scimUser);
+
+        // should work again when origin was not changed
+        scimUser.setOrigin(initialOrigin);
+        updateUser(scimReadWriteToken, HttpStatus.OK.value(), scimUser);
     }
 
     @Test

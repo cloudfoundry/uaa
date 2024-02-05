@@ -540,6 +540,36 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
+    void updateCannotModifyOrigin() {
+        final String userId = UUID.randomUUID().toString();
+        addUser(
+                jdbcTemplate,
+                userId,
+                "john.doe",
+                "some-password",
+                "john.doe@example.com",
+                "John",
+                "Doe",
+                "12345",
+                currentIdentityZoneId,
+                "origin1"
+        );
+
+
+        final ScimUser scimUser = jdbcScimUserProvisioning.retrieve(userId, currentIdentityZoneId);
+
+        // change origin
+        scimUser.setOrigin("origin2");
+
+        final InvalidScimResourceException exception = assertThrows(InvalidScimResourceException.class, () ->
+                jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Cannot change user's origin in update operation.", exception.getMessage());
+    }
+
+    @Test
     void updateWithWrongVersionIsError() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
@@ -1167,6 +1197,30 @@ class JdbcScimUserProvisioningTests {
                 familyName,
                 phoneNumber,
                 identityZoneId);
+        jdbcTemplate.execute(addUserSql);
+    }
+
+    private static void addUser(final JdbcTemplate jdbcTemplate,
+                                final String id,
+                                final String username,
+                                final String password,
+                                final String email,
+                                final String givenName,
+                                final String familyName,
+                                final String phoneNumber,
+                                final String identityZoneId,
+                                final String origin) {
+        String addUserSql = String.format(
+                "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id, origin) values ('%s','%s','%s','%s','%s','%s','%s','%s', '%s')",
+                id,
+                username,
+                password,
+                email,
+                givenName,
+                familyName,
+                phoneNumber,
+                identityZoneId,
+                origin);
         jdbcTemplate.execute(addUserSql);
     }
 
