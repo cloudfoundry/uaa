@@ -253,7 +253,7 @@ class PasscodeMockMvcTests {
                 .session(session);
 
         mockMvc.perform(get)
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test

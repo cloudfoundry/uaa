@@ -59,7 +59,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
@@ -106,8 +105,6 @@ public class LoginInfoEndpoint {
 
     private static Logger logger = LoggerFactory.getLogger(LoginInfoEndpoint.class);
 
-    private static final String MFA_CODE = "mfaCode";
-
     private static final String CREATE_ACCOUNT_LINK = "createAccountLink";
     private static final String FORGOT_PASSWORD_LINK = "forgotPasswordLink";
     private static final String LINK_CREATE_ACCOUNT_SHOW = "linkCreateAccountShow";
@@ -133,7 +130,6 @@ public class LoginInfoEndpoint {
     private final IdentityProviderProvisioning providerProvisioning;
     private final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
     private final Links globalLinks;
-    private final MfaChecker mfaChecker;
     private final String entityID;
 
     private static final MapCollector<IdentityProvider, String, AbstractExternalOAuthIdentityProviderDefinition> idpsMapCollector =
@@ -147,7 +143,6 @@ public class LoginInfoEndpoint {
             final @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore,
             final @Value("${login.url:''}") String externalLoginUrl,
             final @Qualifier("uaaUrl") String baseUrl,
-            final @Qualifier("mfaChecker") MfaChecker mfaChecker,
             final @Qualifier("externalOAuthProviderConfigurator") ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator,
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
             final @Qualifier("samlEntityID") String entityID,
@@ -158,7 +153,6 @@ public class LoginInfoEndpoint {
         this.expiringCodeStore = expiringCodeStore;
         this.externalLoginUrl = externalLoginUrl;
         this.baseUrl = baseUrl;
-        this.mfaChecker = mfaChecker;
         this.externalOAuthProviderConfigurator = externalOAuthProviderConfigurator;
         this.providerProvisioning = providerProvisioning;
         this.entityID = entityID;
@@ -222,7 +216,7 @@ public class LoginInfoEndpoint {
 
         model.addAttribute("savedAccounts", savedAccounts);
 
-        return login(model, principal, Arrays.asList(PASSCODE, MFA_CODE), false, request);
+        return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
     private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
@@ -743,14 +737,6 @@ public class LoginInfoEndpoint {
             }
             map.put(prompt.getName(), details);
         }
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
-            Prompt p = new Prompt(
-                    MFA_CODE,
-                    "password",
-                    "MFA Code ( Register at " + addSubdomainToUrl(baseUrl + " )", IdentityZoneHolder.get().getSubdomain())
-            );
-            map.putIfAbsent(p.getName(), p.getDetails());
-        }
         for (String excludeThisPrompt : exclude) {
             map.remove(excludeThisPrompt);
         }
@@ -836,9 +822,6 @@ public class LoginInfoEndpoint {
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
                                                    @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
-            throw new BadCredentialsException("MFA is required");
-        }
 
         if (auth == null || (!auth.startsWith("Basic"))) {
             throw new BadCredentialsException("No basic authorization client information in request");
@@ -882,9 +865,6 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
-        if (mfaChecker.isMfaEnabled(IdentityZoneHolder.get())) {
-            throw new BadCredentialsException("MFA is required");
-        }
         String redirectLocation = "home";
         SavedRequest savedRequest = SessionUtils.getSavedRequestSession(session);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
