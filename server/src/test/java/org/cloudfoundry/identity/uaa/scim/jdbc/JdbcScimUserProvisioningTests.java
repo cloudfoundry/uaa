@@ -542,19 +542,14 @@ class JdbcScimUserProvisioningTests {
     @Test
     void updateCannotModifyOrigin() {
         final String userId = UUID.randomUUID().toString();
-        addUser(
-                jdbcTemplate,
-                userId,
-                "john.doe",
-                "some-password",
-                "john.doe@example.com",
-                "John",
-                "Doe",
-                "12345",
-                currentIdentityZoneId,
-                "origin1"
-        );
 
+        final ScimUser userToCreate = new ScimUser(userId, "john.doe", "John", "Doe");
+        userToCreate.setPassword("some-password");
+        userToCreate.setOrigin("origin1");
+        userToCreate.setZoneId(currentIdentityZoneId);
+        userToCreate.setPhoneNumbers(Collections.singletonList(new PhoneNumber("12345")));
+        userToCreate.setPrimaryEmail("john.doe@example.com");
+        addUser(jdbcTemplate, userToCreate);
 
         final ScimUser scimUser = jdbcScimUserProvisioning.retrieve(userId, currentIdentityZoneId);
 
@@ -1200,27 +1195,18 @@ class JdbcScimUserProvisioningTests {
         jdbcTemplate.execute(addUserSql);
     }
 
-    private static void addUser(final JdbcTemplate jdbcTemplate,
-                                final String id,
-                                final String username,
-                                final String password,
-                                final String email,
-                                final String givenName,
-                                final String familyName,
-                                final String phoneNumber,
-                                final String identityZoneId,
-                                final String origin) {
+    private static void addUser(final JdbcTemplate jdbcTemplate, final ScimUser scimUser) {
         String addUserSql = String.format(
                 "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id, origin) values ('%s','%s','%s','%s','%s','%s','%s','%s', '%s')",
-                id,
-                username,
-                password,
-                email,
-                givenName,
-                familyName,
-                phoneNumber,
-                identityZoneId,
-                origin);
+                scimUser.getId(),
+                scimUser.getUserName(),
+                scimUser.getPassword(),
+                scimUser.getPrimaryEmail(),
+                scimUser.getName().getGivenName(),
+                scimUser.getName().getFamilyName(),
+                scimUser.getPhoneNumbers().get(0),
+                scimUser.getZoneId(),
+                scimUser.getOrigin());
         jdbcTemplate.execute(addUserSql);
     }
 
