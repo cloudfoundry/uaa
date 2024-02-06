@@ -690,9 +690,9 @@ class ScimUserEndpointsMockMvcTests {
 
     @Test
     void testForcePasswordExpireAccountExternalUser() throws Exception {
-        ScimUser user = createUser(uaaAdminToken);
-        user.setOrigin("NOT_UAA");
-        updateUser(uaaAdminToken, HttpStatus.OK.value(), user);
+        ScimUser userToCreate = getScimUser();
+        userToCreate.setOrigin("NOT_UAA");
+        ScimUser user = createUser(userToCreate, uaaAdminToken, null);
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
 
