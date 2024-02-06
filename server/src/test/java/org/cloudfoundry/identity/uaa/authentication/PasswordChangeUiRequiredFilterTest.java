@@ -69,24 +69,6 @@ class PasswordChangeUiRequiredFilterTest {
     }
 
     @Test
-    void isIgnored() {
-        for (String s : Arrays.asList("/login/mfa", "/login/mfa/register", "/login/mfa/verify.do")) {
-            mockHttpServletRequest.setPathInfo(s);
-            assertThat("Is ignored:" + s, passwordChangeUiRequiredFilter.isIgnored(mockHttpServletRequest), is(true));
-        }
-    }
-
-    @Test
-    void requestToMfa() throws Exception {
-        SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
-        mockHttpServletRequest.setPathInfo("/login/mfa/register");
-        passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
-        verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
-        verifyNoInteractions(mockHttpServletResponse);
-        verifyNoInteractions(mockRequestCache);
-    }
-
-    @Test
     void notAuthenticated() throws Exception {
         passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
         verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));

@@ -89,14 +89,6 @@ public class IdentityZoneNotAvailableIT {
     }
 
     @Test
-    public void testMfaProvidersEndpoints() {
-        checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/mfa-providers");
-        checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/mfa-providers/id");
-        checkNotFoundForEndpoint(HttpMethod.POST,zoneUrl + "/mfa-providers");
-        checkNotFoundForEndpoint(HttpMethod.DELETE,zoneUrl + "/mfa-providers/id");
-    }
-
-    @Test
     public void testUsersEndpoints() {
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/Users/id");
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/Users");
@@ -109,7 +101,6 @@ public class IdentityZoneNotAvailableIT {
         checkNotFoundForEndpoint(HttpMethod.PATCH,zoneUrl + "/Users/id/status");
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/Users/id/verify-link");
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/Users/id/verify");
-        checkNotFoundForEndpoint(HttpMethod.DELETE,zoneUrl + "/Users/id/mfa");
         checkNotFoundForEndpoint(HttpMethod.GET,zoneUrl + "/ids/Users");
         checkNotFoundForEndpoint(HttpMethod.POST,zoneUrl + "/invite_users");
     }

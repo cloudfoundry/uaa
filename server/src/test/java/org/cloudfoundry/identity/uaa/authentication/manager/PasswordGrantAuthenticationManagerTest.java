@@ -479,7 +479,6 @@ class PasswordGrantAuthenticationManagerTest {
         when(auth.getCredentials()).thenReturn("koala");
         UaaAuthenticationDetails uaaAuthDetails = mock(UaaAuthenticationDetails.class);
         Map<String, String[]> params = new HashMap<>();
-        params.put("mfacode", new String[]{"123456"});
         params.put("multivalue", new String[]{"123456","654321"});
         params.put("emptyvalue", new String[0]);
         params.put("emptystring", new String[]{""});
@@ -492,7 +491,6 @@ class PasswordGrantAuthenticationManagerTest {
         prompts.add(new Prompt("username","text", "Email"));
         prompts.add(new Prompt("password","password", "Password"));
         prompts.add(new Prompt("passcode","password", "Temporary Authentication Code"));
-        prompts.add(new Prompt("mfacode","password", "TOTP-Code"));
         prompts.add(new Prompt("multivalue","password", "TOTP-Code"));
         prompts.add(new Prompt("emptyvalue","password", "TOTP-Code"));
         prompts.add(new Prompt("emptystring","password", "TOTP-Code"));
@@ -520,12 +518,11 @@ class PasswordGrantAuthenticationManagerTest {
         assertTrue(httpEntity.hasBody());
         assertTrue(httpEntity.getBody() instanceof MultiValueMap);
         MultiValueMap<String,String> body = (MultiValueMap<String, String>)httpEntity.getBody();
-        assertEquals(5, body.size());
+        assertEquals(4, body.size());
         assertEquals(Collections.singletonList("password"), body.get("grant_type"));
         assertEquals(Collections.singletonList("id_token"), body.get("response_type"));
         assertEquals(Collections.singletonList("marissa"), body.get("username"));
         assertEquals(Collections.singletonList("koala"), body.get("password"));
-        assertEquals(Collections.singletonList("123456"), body.get("mfacode"));
         assertNull(body.get("passcode"));
         assertNull(body.get("multivalue"));
         assertNull(body.get("emptyvalue"));

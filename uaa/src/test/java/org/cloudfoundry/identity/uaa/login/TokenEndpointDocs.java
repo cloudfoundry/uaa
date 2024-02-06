@@ -54,7 +54,6 @@ import org.opensaml.saml2.core.NameID;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMfaCodeFromCredentials;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
@@ -334,52 +333,6 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 clientAssertionType,
                 parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
                 parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
-                opaqueFormatParameter,
-                loginHintParameter
-        );
-
-        Snippet responseFields = responseFields(
-                accessTokenFieldDescriptor,
-                idTokenFieldDescriptor,
-                tokenTypeFieldDescriptor,
-                expiresInFieldDescriptor,
-                scopeFieldDescriptorWhenUserToken,
-                refreshTokenFieldDescriptor,
-                jtiFieldDescriptor
-        );
-
-        mockMvc.perform(postForToken)
-                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
-    }
-
-    @Test
-    void getTokenUsingMfaPasswordGrant() throws Exception {
-
-        setupForMfaPasswordGrant(user.getId());
-
-        MockHttpServletRequestBuilder postForToken = post("/oauth/token")
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param(CLIENT_ID, "app")
-                .param("client_secret", "appclientsecret")
-                .param("client_assertion", "eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImtpZCI6IjU4ZDU1YzUwMGNjNmI1ODM3OTYxN2UwNmU3ZGVjNmNhIn0.eyJzdWIiOiJsb2dpbiIsImlzcyI6ImxvZ2luIiwianRpIjoiNThkNTVjNTAwY2M2YjU4Mzc5NjE3ZTA2ZTdhZmZlZSIsImV4cCI6MTIzNDU2NzgsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC91YWEvb2F1dGgvdG9rZW4ifQ.jwWw0OKZecd4ZjtwQ_ievqBVrh2SieqMF6vY74Oo5H6v-Ibcmumq96NLNtoUEwaAEQQOHb8MWcC8Gwi9dVQdCrtpomC86b_LKkihRBSKuqpw0udL9RMH5kgtC04ctsN0yZNifUWMP85VHn97Ual5eZ2miaBFob3H5jUe98CcBj1TSRehr64qBFYuwt9vD19q6U-ONhRt0RXBPB7ayHAOMYtb1LFIzGAiKvqWEy9f-TBPXSsETjKkAtSuM-WVWi4EhACMtSvI6iJN15f7qlverRSkGIdh1j2vPXpKKBJoRhoLw6YqbgcUC9vAr17wfa_POxaRHvh9JPty0ZXLA4XPtA")
-                .param("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
-                .param(GRANT_TYPE, GRANT_TYPE_PASSWORD)
-                .param("username", user.getUserName())
-                .param("password", user.getPassword())
-                .param("mfaCode", String.valueOf(getMfaCodeFromCredentials(credentials)))
-                .param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-                .param("login_hint", "{\"origin\":\"uaa\"}");
-
-        Snippet requestParameters = requestParameters(
-                clientIdParameter,
-                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
-                clientSecretParameter,
-                clientAssertion,
-                clientAssertionType,
-                parameterWithName("username").required().type(STRING).description("the username for the user trying to get a token"),
-                parameterWithName("password").required().type(STRING).description("the password for the user trying to get a token"),
-                parameterWithName("mfaCode").required().type(NUMBER).description("A one time passcode from a registered multi-factor generator"),
                 opaqueFormatParameter,
                 loginHintParameter
         );

@@ -161,9 +161,6 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
     private static final String ALLOWED_ZONE_GROUPS_DESC = "Allowed groups in the zone. Defaults to null (all groups allowed)";
     private static final String SERVICE_PROVIDER_ID = "cloudfoundry-saml-login";
-    private static final String MFA_CONFIG_ENABLED_DESC = "Set `true` to enable Multi-factor Authentication (MFA) for the current zone. Defaults to `false`";
-    private static final String MFA_CONFIG_PROVIDER_NAME_DESC = "The unique `name` of the MFA provider to use for this zone.";
-    private static final String MFA_CONFIG_IDENTITY_PROVIDER_DESC = "Only trigger MFA when user is using an identity provider whose origin key matches one of these values";
     private static final String ZONE_ISSUER_DESC = "Issuer of this zone. Must be a valid URL.";
     private static final String DEFAULT_IDP_DESC = "This value can be set to the origin key of an identity provider. If set, the user will be directed to this identity provider automatically if no other identity provider is discovered or selected via login_hint.";
     private static final String DEFAULT_ISSUER_URI = "http://localhost:8080/uaa";
@@ -314,10 +311,6 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
-
-                fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
-                fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
@@ -481,10 +474,6 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("[].config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("optional")).optional().type(BOOLEAN),
 
-                fieldWithPath("[].config.mfaConfig.enabled").optional().description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.mfaConfig.providerName").optional().description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
-                fieldWithPath("[].config.mfaConfig.identityProviders").optional().description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
-
                 fieldWithPath("[].created").ignored(),
                 fieldWithPath("[].last_modified").ignored()
         );
@@ -630,10 +619,6 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
-
-                fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).attributes(key("constraints").value("Required when `config.mfaConfig.enabled` is `true`")).optional().type(STRING),
-                fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
@@ -818,9 +803,6 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).optional().type(BOOLEAN),
 
-                fieldWithPath("config.mfaConfig.enabled").description(MFA_CONFIG_ENABLED_DESC),
-                fieldWithPath("config.mfaConfig.providerName").description(MFA_CONFIG_PROVIDER_NAME_DESC).optional().type(STRING),
-                fieldWithPath("config.mfaConfig.identityProviders").description(MFA_CONFIG_IDENTITY_PROVIDER_DESC).optional().type(ARRAY),
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
         );

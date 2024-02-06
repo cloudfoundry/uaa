@@ -14,11 +14,7 @@ import java.util.regex.PatternSyntaxException;
 @Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
-    private final MfaConfigValidator mfaConfigValidator;
-
-    public GeneralIdentityZoneConfigurationValidator(final MfaConfigValidator mfaConfigValidator) {
-        this.mfaConfigValidator = mfaConfigValidator;
-    }
+    public GeneralIdentityZoneConfigurationValidator() {}
 
     @Override
     public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
@@ -84,10 +80,6 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
 
         if (config.getBranding() != null && config.getBranding().getBanner() != null) {
             BannerValidator.validate(config.getBranding().getBanner());
-        }
-
-        if (config.getMfaConfig() != null) {
-            mfaConfigValidator.validate(config.getMfaConfig(), zone.getId());
         }
 
         return config;

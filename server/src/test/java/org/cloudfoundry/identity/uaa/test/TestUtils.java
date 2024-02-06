@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
-import org.cloudfoundry.identity.uaa.mfa.MfaProviderBootstrap;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap;
@@ -108,7 +107,6 @@ public class TestUtils {
         tryCallAfterPropertiesSet(applicationContext, ScimExternalGroupBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, BootstrapSamlIdentityProviderData.class);
         tryCallAfterPropertiesSet(applicationContext, IdentityProviderBootstrap.class);
-        tryCallAfterPropertiesSet(applicationContext, MfaProviderBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, ScimGroupBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, ScimUserBootstrap.class);
 

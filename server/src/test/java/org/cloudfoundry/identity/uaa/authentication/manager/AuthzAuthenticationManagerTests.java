@@ -97,11 +97,6 @@ class AuthzAuthenticationManagerTests {
         mgr.setAccountLoginPolicy(mockAccountLoginPolicy);
     }
 
-    @AfterEach
-    void cleanUp() {
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(false);
-    }
-
     private UaaUserPrototype getPrototype() {
         String id = new RandomValueStringGenerator().generate();
         return new UaaUserPrototype()
