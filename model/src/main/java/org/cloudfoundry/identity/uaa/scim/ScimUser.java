@@ -772,6 +772,10 @@ public class ScimUser extends ScimCore<ScimUser> {
             }
         }
 
+        if (patch.getOrigin() != null && !patch.getOrigin().equals(getOrigin())) {
+            throw new IllegalArgumentException("Cannot change origin in patch of user.");
+        }
+
         //Merge simple Attributes, that are stored
         ofNullable(patch.getUserName()).ifPresent(this::setUserName);
 

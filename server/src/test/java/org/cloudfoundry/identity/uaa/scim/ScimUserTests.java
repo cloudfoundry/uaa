@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -581,6 +582,13 @@ public class ScimUserTests {
         user.patch(patch);
         assertNull(user.getName().getGivenName());
         assertNull(user.getName().getFamilyName());
+    }
+
+    @Test
+    public void testPatchUserRejectChangingOrigin() {
+        patch.setOrigin("some-new-origin");
+        Assertions.assertThatIllegalArgumentException().isThrownBy(() -> user.patch(patch))
+                        .withMessage("Cannot change origin in patch of user.");
     }
 
     @Test

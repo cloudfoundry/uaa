@@ -444,12 +444,7 @@ class ScimUserEndpointsMockMvcTests {
         user.setVerified(true);
         boolean active = true;
         user.setActive(active);
-        mockMvc.perform(
-                patch("/Users/" + user.getId())
-                        .header("Authorization", "Bearer " + scimReadWriteToken)
-                        .header("If-Match", "\"" + user.getVersion() + "\"")
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(user)))
+        patchUser(user, scimReadWriteToken, user.getVersion())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", equalTo(active)));
 
@@ -457,17 +452,31 @@ class ScimUserEndpointsMockMvcTests {
 
         active = false;
         user.setActive(active);
-        mockMvc.perform(
-                patch("/Users/" + user.getId())
-                        .header("Authorization", "Bearer " + scimReadWriteToken)
-                        .header("If-Match", "\"" + (user.getVersion() + 1) + "\"")
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(user)))
+        patchUser(user, scimReadWriteToken, user.getVersion() + 1)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", equalTo(active)));
 
         performAuthentication(user, false);
+    }
 
+    private ResultActions patchUser(final ScimUser user, final String token, final int version) throws Exception {
+        return mockMvc.perform(
+                patch("/Users/" + user.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .header("If-Match", "\"" + version + "\"")
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(user))
+        );
+    }
+
+    @Test
+    void testPatchUserShouldRejectChangingOrigin() throws Exception {
+        final ScimUser scimUser = setUpScimUser();
+        scimUser.setOrigin("some-new-origin");
+        patchUser(scimUser, scimReadWriteToken, scimUser.getVersion())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description", equalTo("Cannot change origin in patch of user.")))
+                .andExpect(jsonPath("$.error", equalTo("invalid_scim_resource")));
     }
 
     @Test
