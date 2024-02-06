@@ -275,10 +275,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         user.setOrigin(origin);
-        UserConfig userConfig = getUserConfig(zoneId);
-        if (isCheckOriginEnabled(userConfig)) {
-            checkOrigin(origin, zoneId);
-        }
+        // TODO check if the origin was changed
         ScimUtils.validate(user);
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, ps -> {
             int pos = 1;
