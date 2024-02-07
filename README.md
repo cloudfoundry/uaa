@@ -189,7 +189,6 @@ List of relations
  public | groups                        | table    | root
  public | identity_provider             | table    | root
  public | identity_zone                 | table    | root
- public | mfa_providers                 | table    | root
  public | oauth_client_details          | table    | root
  public | oauth_code                    | table    | root
  public | oauth_code_id_seq             | sequence | root
@@ -199,7 +198,6 @@ List of relations
  public | sec_audit_id_seq              | sequence | root
  public | spring_session                | table    | root
  public | spring_session_attributes     | table    | root
- public | user_google_mfa_credentials   | table    | root
  public | user_info                     | table    | root
  public | users                         | table    | root
 (23 rows)
