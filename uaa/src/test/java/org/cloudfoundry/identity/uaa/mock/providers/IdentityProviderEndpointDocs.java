@@ -65,8 +65,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections.map.HashedMap;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.collections4.map.HashedMap;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -284,7 +284,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
-    private FieldDescriptor[] ldapAllFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+    private FieldDescriptor[] ldapAllFields = ArrayUtils.addAll(commonProviderFields,
             LDAP_TYPE,
             LDAP_ORIGIN_KEY,
             LDAP_PROFILE_FILE,
@@ -318,11 +318,10 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             LDAP_ATTRIBUTE_MAPPING_LASTNAME,
             LDAP_ATTRIBUTE_MAPPING_PHONE,
             ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
-            EXTERNAL_GROUPS_WHITELIST
-    });
+            EXTERNAL_GROUPS_WHITELIST);
 
 
-    private FieldDescriptor[] ldap_SearchAndCompare_GroupsAsScopes = (FieldDescriptor[]) ArrayUtils.addAll(
+    private FieldDescriptor[] ldap_SearchAndCompare_GroupsAsScopes = ArrayUtils.addAll(
             commonProviderFields,
             ArrayUtils.addAll(
                     new FieldDescriptor[]{
@@ -365,7 +364,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             )
     );
 
-    private FieldDescriptor[] ldapSimpleBindFields = (FieldDescriptor[]) ArrayUtils.addAll(
+    private FieldDescriptor[] ldapSimpleBindFields = ArrayUtils.addAll(
             commonProviderFields,
             ArrayUtils.addAll(
                     new FieldDescriptor[]{
@@ -408,7 +407,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     );
 
 
-    private FieldDescriptor[] ldapSearchAndBind_GroupsToScopes = (FieldDescriptor[]) ArrayUtils.addAll(
+    private FieldDescriptor[] ldapSearchAndBind_GroupsToScopes = ArrayUtils.addAll(
             commonProviderFields,
             ArrayUtils.addAll(
                     new FieldDescriptor[]{
@@ -471,7 +470,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         IdentityProvider identityProvider = getSamlProvider("SAML");
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
                 fieldWithPath("type").required().description("`saml`"),
                 fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
                 SKIP_SSL_VALIDATION,
@@ -490,10 +489,10 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.attributeMappings.user_name").optional("NameID").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for SAML is `NameID`."),
         }, attributeMappingFields));
 
-        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, ALIAS_FIELDS_CREATE));
+        Snippet requestFields = requestFields(ArrayUtils.addAll(idempotentFields, ALIAS_FIELDS_CREATE));
 
         Snippet responseFields = responseFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
+                ArrayUtils.addAll(
                         idempotentFields,
                         ArrayUtils.addAll(
                                 new FieldDescriptor[]{
@@ -581,7 +580,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
                 fieldWithPath("type").required().description("`\"" + OAUTH20 + "\"`"),
                 fieldWithPath("originKey").required().description("A unique alias for a OAuth provider"),
                 fieldWithPath("config.authUrl").required().type(STRING).description("The OAuth 2.0 authorization endpoint URL"),
@@ -607,7 +606,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         }, attributeMappingFields));
 
         Snippet requestFields = requestFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
+                ArrayUtils.addAll(
                         idempotentFields,
                         ArrayUtils.add(
                                 ALIAS_FIELDS_CREATE,
@@ -616,7 +615,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 )
         );
         Snippet responseFields = responseFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
+                ArrayUtils.addAll(
                         idempotentFields,
                         ArrayUtils.addAll(
                                 new FieldDescriptor[]{
@@ -678,7 +677,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = ArrayUtils.addAll(commonProviderFields, ArrayUtils.addAll(new FieldDescriptor[]{
                 fieldWithPath("type").required().description("`\"" + OIDC10 + "\"`"),
                 fieldWithPath("originKey").required().description("A unique alias for the OIDC 1.0 provider"),
                 fieldWithPath("config.discoveryUrl").optional(null).type(STRING).description("The OpenID Connect Discovery URL, typically ends with /.well-known/openid-configurationmit "),
@@ -718,7 +717,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         }, attributeMappingFields));
 
         Snippet requestFields = requestFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
+                ArrayUtils.addAll(
                         idempotentFields,
                         ArrayUtils.add(
                                 ALIAS_FIELDS_CREATE,
@@ -727,7 +726,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 )
         );
         Snippet responseFields = responseFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
+                ArrayUtils.addAll(
                         idempotentFields,
                         ArrayUtils.addAll(
                                 new FieldDescriptor[]{
@@ -810,7 +809,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = (FieldDescriptor[]) ArrayUtils.add(ldapSearchAndBind_GroupsToScopes, LDAP_BIND_PASSWORD);
+        FieldDescriptor[] fields = ArrayUtils.add(ldapSearchAndBind_GroupsToScopes, LDAP_BIND_PASSWORD);
         createLDAPProvider(identityProvider, fields, "create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider");
 
     }
@@ -872,7 +871,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
         Snippet requestFields = requestFields(fields);
 
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(
+        Snippet responseFields = responseFields(ArrayUtils.addAll(
                 ldapAllFields,
                 ArrayUtils.addAll(
                         new FieldDescriptor[]{
@@ -995,7 +994,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(config);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        FieldDescriptor[] idempotentFields = ArrayUtils.addAll(commonProviderFields,
                 fieldWithPath("type").required().description("`uaa`"),
                 fieldWithPath("originKey").required().description("A unique identifier for the IDP. Cannot be updated."),
                 VERSION.required(),
@@ -1011,13 +1010,12 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.lockoutPolicy.lockoutPeriodSeconds").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds in which lockoutAfterFailures failures must occur in order for account to be locked (defaults to 3600).").optional(),
                 fieldWithPath("config.lockoutPolicy.lockoutAfterFailures").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of allowed failures before account is locked (defaults to 5).").optional(),
                 fieldWithPath("config.lockoutPolicy.countFailuresWithin").constrained("Required when `LockoutPolicy` in the config is not null").type(NUMBER).description("Number of seconds to lock out an account when lockoutAfterFailures failures is exceeded (defaults to 300).").optional(),
-                fieldWithPath("config.disableInternalUserManagement").optional(null).type(BOOLEAN).description("When set to true, user management is disabled for this provider, defaults to false").optional()
-        });
+                fieldWithPath("config.disableInternalUserManagement").optional(null).type(BOOLEAN).description("When set to true, user management is disabled for this provider, defaults to false").optional());
 
-        Snippet requestFields = requestFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, ALIAS_FIELDS_UPDATE));
+        Snippet requestFields = requestFields(ArrayUtils.addAll(idempotentFields, ALIAS_FIELDS_UPDATE));
 
         Snippet responseFields = responseFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(
+                ArrayUtils.addAll(
                         idempotentFields,
                         ArrayUtils.addAll(
                                 new FieldDescriptor[]{
@@ -1124,7 +1122,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     private FieldDescriptor[] getCommonProviderFieldsAnyType() {
-        return (FieldDescriptor[]) ArrayUtils.addAll(
+        return ArrayUtils.addAll(
                 commonProviderFields,
                 ArrayUtils.addAll(
                         new FieldDescriptor[]{

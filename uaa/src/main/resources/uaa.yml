@@ -369,6 +369,7 @@ login:
 #  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
+#  aliasEntitiesEnabled: true
 
 #  mfa:
 #    enabled: true

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import org.cloudfoundry.identity.uaa.oauth.AuthTimeDateConverter;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -155,5 +156,10 @@ public class IdToken {
     @JsonProperty(USER_ID)
     public String userId() {
         return sub;
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getClaimMap() {
+        return JsonUtils.convertValue(this, HashMap.class);
     }
 }

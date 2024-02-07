@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.user;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;

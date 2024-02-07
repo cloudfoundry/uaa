@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;

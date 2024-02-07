@@ -1,30 +1,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
-import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
-import org.cloudfoundry.identity.uaa.test.SnippetUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import java.net.URI;
+import java.util.Collections;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -47,8 +25,32 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.net.URI;
-import java.util.Collections;
+import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
+import org.cloudfoundry.identity.uaa.test.SnippetUtils;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.opensaml.saml2.core.NameID;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -441,20 +443,113 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     void getTokenUsingSaml2BearerGrant() throws Exception {
-        RandomValueStringGenerator generator = new RandomValueStringGenerator();
         SamlTestUtils samlTestUtils = new SamlTestUtils();
         samlTestUtils.initializeSimple();
 
-        String subdomain = generator.generate().toLowerCase();
+        final String subdomain = "68uexx";
         //all our SAML defaults use :8080/uaa/ so we have to use that here too
-        String host = subdomain + ".localhost";
-        String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
-        String origin = subdomain + ".cloudfoundry-saml-login";
+        final String host = subdomain + ".localhost";
+        final String fullPath = "/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login";
+        final String origin = subdomain + ".cloudfoundry-saml-login";
 
         MockMvcUtils.IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, this.webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
 
-        //create an actual IDP, so we can fetch metadata
-        String idpMetadata = MockMvcUtils.getIDPMetaData(mockMvc, subdomain);
+        //Mock an IDP metadata
+        String idpMetadata = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" ID=\"" + origin + "\"\n" +
+                "                     entityID=\"68uexx.cloudfoundry-saml-login\">\n" +
+                "    <ds:Signature xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
+                "        <ds:SignedInfo>\n" +
+                "            <ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
+                "            <ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\n" +
+                "            <ds:Reference URI=\"#" + origin + "\">\n" +
+                "                <ds:Transforms>\n" +
+                "                    <ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/>\n" +
+                "                    <ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
+                "                </ds:Transforms>\n" +
+                "                <ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/>\n" +
+                "                <ds:DigestValue>MNO5mOgijKliauTLhxL1pqT15s4=</ds:DigestValue>\n" +
+                "            </ds:Reference>\n" +
+                "        </ds:SignedInfo>\n" +
+                "        <ds:SignatureValue>\n" +
+                "            CwxB189hOth7P4g+jswYiG1XHyy0a8Pci6LahimDi0sSuWF5ui1Dw8MSamNDfi2GC5QGArrupPdxgX5F8BFFuio3XkmcQqRhsC01R2u1/NhpabGTgczrk1LYMpCaIOitaXRM2cEkqrmf/s6S3zXDQkQJTcJefc/0NrYgFN6Pisc=\n" +
+                "        </ds:SignatureValue>\n" +
+                "        <ds:KeyInfo>\n" +
+                "            <ds:X509Data>\n" +
+                "                <ds:X509Certificate>MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMF\n" +
+                "                    YXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAM\n" +
+                "                    BgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2\n" +
+                "                    MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UE\n" +
+                "                    ChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmEx\n" +
+                "                    HTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB\n" +
+                "                    gQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR\n" +
+                "                    4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCY\n" +
+                "                    xhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1sy\n" +
+                "                    GDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3\n" +
+                "                    MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQL\n" +
+                "                    EwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEA\n" +
+                "                    MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am\n" +
+                "                    2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3o\n" +
+                "                    ePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
+                "                </ds:X509Certificate>\n" +
+                "            </ds:X509Data>\n" +
+                "        </ds:KeyInfo>\n" +
+                "    </ds:Signature>\n" +
+                "    <md:IDPSSODescriptor WantAuthnRequestsSigned=\"false\"\n" +
+                "                         protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n" +
+                "        <md:KeyDescriptor use=\"signing\">\n" +
+                "            <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
+                "                <ds:X509Data>\n" +
+                "                    <ds:X509Certificate>MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMF\n" +
+                "                        YXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAM\n" +
+                "                        BgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2\n" +
+                "                        MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UE\n" +
+                "                        ChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmEx\n" +
+                "                        HTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB\n" +
+                "                        gQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR\n" +
+                "                        4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCY\n" +
+                "                        xhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1sy\n" +
+                "                        GDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3\n" +
+                "                        MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQL\n" +
+                "                        EwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEA\n" +
+                "                        MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am\n" +
+                "                        2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3o\n" +
+                "                        ePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
+                "                    </ds:X509Certificate>\n" +
+                "                </ds:X509Data>\n" +
+                "            </ds:KeyInfo>\n" +
+                "        </md:KeyDescriptor>\n" +
+                "        <md:KeyDescriptor use=\"encryption\">\n" +
+                "            <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
+                "                <ds:X509Data>\n" +
+                "                    <ds:X509Certificate>MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMF\n" +
+                "                        YXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEOMAwGA1UECxMFYXJ1YmExDjAM\n" +
+                "                        BgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5hcnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2\n" +
+                "                        MjdaFw0xNjExMTkyMjI2MjdaMHwxCzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UE\n" +
+                "                        ChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmEx\n" +
+                "                        HTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKB\n" +
+                "                        gQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39WqS9u0hnA+O7MCA/KlrAR\n" +
+                "                        4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCY\n" +
+                "                        xhMol6ZnTbSsFW6VZjFMjQIDAQABo4HaMIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1sy\n" +
+                "                        GDCBpwYDVR0jBIGfMIGcgBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3\n" +
+                "                        MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYDVQQL\n" +
+                "                        EwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyggEA\n" +
+                "                        MAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ0HOZbbHClXmGUjGs+GS+xC1FO/am\n" +
+                "                        2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxCKdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3o\n" +
+                "                        ePe84k8jm3A7EvH5wi5hvCkKRpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
+                "                    </ds:X509Certificate>\n" +
+                "                </ds:X509Data>\n" +
+                "            </ds:KeyInfo>\n" +
+                "        </md:KeyDescriptor>\n" +
+                "        <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>\n" +
+                "        <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:persistent</md:NameIDFormat>\n" +
+                "        <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>\n" +
+                "        <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\"\n" +
+                "                                Location=\"http://" + host + ":8080/uaa/saml/idp/SSO/alias/" + origin + "\"/>\n" +
+                "        <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\"\n" +
+                "                                Location=\"http://" + host + ":8080/uaa/saml/idp/SSO/alias/" + origin + "\"/>\n" +
+                "    </md:IDPSSODescriptor>\n" +
+                "</md:EntityDescriptor>";
 
         //create an IDP in the default zone
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(origin, zone.getIdentityZone().getId(), idpMetadata);
@@ -469,19 +564,17 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         identityProviderProvisioning.create(provider, zone.getIdentityZone().getId());
         IdentityZoneHolder.clear();
 
-        String assertion = samlTestUtils.mockAssertionEncoded(subdomain + ".cloudfoundry-saml-login",
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        String assertion = samlTestUtils.mockAssertionEncoded(
+                origin,
+                NameID.UNSPECIFIED,
                 "Saml2BearerIntegrationUser",
-                "http://" + subdomain + ".localhost:8080/uaa/oauth/token/alias/" + subdomain + ".cloudfoundry-saml-login",
-                subdomain + ".cloudfoundry-saml-login"
-        );
+                "http://" + host + ":8080/uaa/oauth/token/alias/" + origin,
+                origin);
 
         //create client in default zone
         String clientId = "testclient" + generator.generate();
         setUpClients(clientId, "uaa.none", "uaa.user,openid", GRANT_TYPE_SAML2_BEARER + ",password,refresh_token", true, TEST_REDIRECT_URI, null, 600, zone.getIdentityZone());
 
-
-        //String fullPath = "/uaa/oauth/token";
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post(fullPath)
                 .with(request -> {
                     request.setServerPort(8080);
@@ -797,7 +890,6 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
     }
 
-
     @Test
     void revokeAllTokens_forAUserClientCombination() throws Exception {
         String adminToken = getClientCredentialsOAuthAccessToken(
@@ -847,7 +939,6 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 get("/userinfo")
                         .header("Authorization", "Bearer " + userInfoTokenToRevoke))
                 .andExpect(status().isOk());
-
 
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/user/{userId}/client/{clientId}", user.getId(), client.getClientId());
 
@@ -919,7 +1010,6 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
-
 
         String userInfoToken = getUserOAuthAccessToken(
                 mockMvc,
@@ -1016,7 +1106,6 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 null,
                 true
         );
-
 
         getUserOAuthAccessToken(
                 mockMvc,

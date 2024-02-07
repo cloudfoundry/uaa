@@ -6,8 +6,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.text.ParseException;
+import java.util.Arrays;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IntrospectionClaimsTest {
@@ -36,5 +40,10 @@ class IntrospectionClaimsTest {
   @Test
   void testSerialize() {
     assertTrue(JsonUtils.writeValueAsString(INTROSPECTION_PAYLOAD).contains(TokenConstants.CLIENT_AUTH_NONE));
+    assertNotNull(INTROSPECTION_PAYLOAD.getClaimMap());
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("grant_type", "authorization_code"));
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("client_id", "login"));
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("aud", Arrays.asList("openid", "login")));
+    assertThat(INTROSPECTION_PAYLOAD.getClaimMap(), hasEntry("scope", Arrays.asList("openid")));
   }
 }

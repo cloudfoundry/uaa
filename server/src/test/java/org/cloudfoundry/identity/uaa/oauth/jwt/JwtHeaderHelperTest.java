@@ -14,6 +14,7 @@ import java.util.Arrays;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertThrows;
 
 @Tag("https://tools.ietf.org/html/rfc7519#section-5")
 @DisplayName("JOSE Header")
@@ -173,6 +174,11 @@ class JwtHeaderHelperTest {
                 JwtHeader header = JwtHeaderHelper.create(asBase64(objectNode.toString()));
 
                 assertThat(header.parameters.crit, hasItems("first-val", "value-2"));
+            }
+
+            @Test
+            void testInvalidHeader() {
+                assertThrows(IllegalArgumentException.class, () ->JwtHeaderHelper.create(""));
             }
         }
     }

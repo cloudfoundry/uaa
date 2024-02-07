@@ -249,30 +249,25 @@ public final class UaaTokenUtils {
     public static <T> T getClaims(String jwtToken, Class<T> toClazz) {
         Object claims;
         try {
-            JWTClaimsSetTransformer<T> claimsTransformer = claimsSet -> {
-                Map<String, Object> claimMap = claimsSet.toJSONObject();
-                Object audObject = claimsSet.getAudience();
-                if (isNotEmpty(audObject)) {
-                    claimMap.put(ClaimConstants.AUD, claimsSet.getAudience());
-                }
-                return JsonUtils.convertValue(claimMap, toClazz);
-            };
-            claims = JwtHelper.decode(jwtToken).getClaimSet().toType(claimsTransformer);
+            claims = JwtHelper.decode(jwtToken).getClaimSet().toType(getClaimsSetTransformer(toClazz));
         } catch (Exception ex) {
             throw new InvalidTokenException("Invalid token (could not decode): " + jwtToken, ex);
         }
         return claims != null ? (T) claims : (T) new Object();
     }
 
-    public static Map<String, Object> getClaims(String jwtToken) {
-        return getClaims(jwtToken, Map.class);
-    }
-
     public static Claims getClaimsFromTokenString(String jwtToken) {
         return getClaims(jwtToken, Claims.class);
     }
 
-    public static Map<String, Object> getMapFromClaims(Claims claims) {
-        return JsonUtils.convertValue(claims,  Map.class);
+    public static <T> JWTClaimsSetTransformer<T> getClaimsSetTransformer(Class<T> toClazz) {
+        return claimsSet -> {
+            Map<String, Object> claimMap = claimsSet.toJSONObject();
+            Object audObject = claimsSet.getAudience();
+            if (isNotEmpty(audObject)) {
+                claimMap.put(ClaimConstants.AUD, claimsSet.getAudience());
+            }
+            return JsonUtils.convertValue(claimMap, toClazz);
+        };
     }
 }

@@ -44,9 +44,12 @@ public class IdpAliasFailedException extends UaaException {
                 "An IdP with this origin already exists in the alias zone.",
                 HttpStatus.CONFLICT
         ),
-
         ALIAS_ZONE_DOES_NOT_EXIST(
                 "The referenced alias zone does not exist.",
+                HttpStatus.UNPROCESSABLE_ENTITY
+        ),
+        COULD_NOT_BREAK_REFERENCE_TO_ALIAS(
+                "Could not break reference to alias IdP.",
                 HttpStatus.UNPROCESSABLE_ENTITY
         );
 
