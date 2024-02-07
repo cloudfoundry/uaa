@@ -1090,13 +1090,11 @@ class ScimUserEndpointsMockMvcTests {
         Assertions.assertThat(response).isNotNull();
         Assertions.assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         final Map<String, Object> responseBody = JsonUtils.readValueAsMap(response.getContentAsString());
-        Assertions.assertThat(responseBody).isNotNull();
-        Assertions.assertThat(responseBody.get("error_description")).isNotNull().isInstanceOf(String.class)
-                .isEqualTo("Cannot change user's origin in update operation.");
-        Assertions.assertThat(responseBody.get("error")).isNotNull().isInstanceOf(String.class)
-                .isEqualTo("invalid_scim_resource");
-        Assertions.assertThat(responseBody.get("message")).isNotNull().isInstanceOf(String.class)
-                .isEqualTo("Cannot change user's origin in update operation.");
+        Assertions.assertThat(responseBody)
+                .isNotNull()
+                .containsEntry("error_description", "Cannot change user's origin in update operation.")
+                .containsEntry("error", "invalid_scim_resource")
+                .containsEntry("message", "Cannot change user's origin in update operation.");
     }
 
     @Test
