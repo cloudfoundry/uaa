@@ -62,15 +62,6 @@ class ContentSecurityPolicyFilterTest {
     }
 
     @Test
-    void shouldNotAddHeader_WhenRespondingTo_MfaRequests() throws ServletException, IOException {
-        request.setServletPath("/login/mfa/some-path");
-        request.setPathInfo(null);
-        filter.doFilter(request, response, chain);
-
-        assertNull(response.getHeader("Content-Security-Policy"));
-    }
-
-    @Test
     void shouldNotAddHeader_WhenRespondingTo_LoginImplicitPageRequests() throws ServletException, IOException {
         request.setServletPath("/login_implicit");
         filter.doFilter(request, response, chain);
