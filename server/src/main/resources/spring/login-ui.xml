@@ -503,10 +503,4 @@
         <constructor-arg index="0" value="#{activeKeyService.getActiveKey().getPassphrase()}"/>
     </bean>
 
-    <bean id="googleAuthenticatorConfig" class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig"
-          factory-bean="googleAuthenticatorConfigFactory"
-          factory-method="build"/>
-
-    <bean id="googleAuthenticatorConfigFactory"
-          class="com.warrenstrange.googleauth.GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder"/>
 </beans>
