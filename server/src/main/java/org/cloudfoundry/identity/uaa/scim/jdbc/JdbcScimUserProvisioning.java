@@ -271,15 +271,23 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
-    public ScimUser update(final String id, final ScimUser user, String zoneId) throws InvalidScimResourceException {
+    public ScimUser update(final String id, final ScimUser user, final String zoneId) throws InvalidScimResourceException {
         logger.debug("Updating user " + user.getUserName());
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         user.setOrigin(origin);
-        // TODO check if the origin was changed
+
+        // check if the origin was changed
+        final ScimUser existingUser = retrieve(id, zoneId);
+        if (!origin.equals(existingUser.getOrigin())) {
+            throw new InvalidScimResourceException("Cannot change user's origin in update operation.");
+        }
+
         ScimUtils.validate(user);
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, ps -> {
             int pos = 1;
             Timestamp t = new Timestamp(new Date().getTime());
+
+            // placeholders in UPDATE
             ps.setInt(pos++, user.getVersion() + 1);
             ps.setTimestamp(pos++, t);
             ps.setString(pos++, user.getUserName());
@@ -292,9 +300,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             ps.setString(pos++, origin);
             ps.setString(pos++, hasText(user.getExternalId())?user.getExternalId():null);
             ps.setString(pos++, user.getSalt());
+
+            // placeholders in WHERE
             ps.setString(pos++, id);
             ps.setInt(pos++, user.getVersion());
-            ps.setString(pos++, zoneId);
+            ps.setString(pos, zoneId);
         });
         ScimUser result = retrieve(id, zoneId);
         if (updated == 0) {

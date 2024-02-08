@@ -1,72 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.collect.Lists;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
-import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
-import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
-import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
-import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
-import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MfaConfig;
-import org.json.JSONObject;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.web.context.WebApplicationContext;
-
-import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -101,6 +34,77 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
+
+import java.nio.charset.Charset;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
+import org.assertj.core.api.Assertions;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
+import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
+import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
+import org.cloudfoundry.identity.uaa.mfa.exception.UserMfaConfigDoesNotExistException;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
+import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MfaConfig;
+import org.json.JSONObject;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.web.context.WebApplicationContext;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Lists;
 
 @ExtendWith(ZoneSeederExtension.class)
 @DefaultTestContext
@@ -440,12 +444,7 @@ class ScimUserEndpointsMockMvcTests {
         user.setVerified(true);
         boolean active = true;
         user.setActive(active);
-        mockMvc.perform(
-                patch("/Users/" + user.getId())
-                        .header("Authorization", "Bearer " + scimReadWriteToken)
-                        .header("If-Match", "\"" + user.getVersion() + "\"")
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(user)))
+        patchUser(user, scimReadWriteToken, user.getVersion())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", equalTo(active)));
 
@@ -453,17 +452,31 @@ class ScimUserEndpointsMockMvcTests {
 
         active = false;
         user.setActive(active);
-        mockMvc.perform(
-                patch("/Users/" + user.getId())
-                        .header("Authorization", "Bearer " + scimReadWriteToken)
-                        .header("If-Match", "\"" + (user.getVersion() + 1) + "\"")
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(user)))
+        patchUser(user, scimReadWriteToken, user.getVersion() + 1)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.active", equalTo(active)));
 
         performAuthentication(user, false);
+    }
 
+    private ResultActions patchUser(final ScimUser user, final String token, final int version) throws Exception {
+        return mockMvc.perform(
+                patch("/Users/" + user.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .header("If-Match", "\"" + version + "\"")
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(user))
+        );
+    }
+
+    @Test
+    void testPatchUserShouldRejectChangingOrigin() throws Exception {
+        final ScimUser scimUser = setUpScimUser();
+        scimUser.setOrigin("some-new-origin");
+        patchUser(scimUser, scimReadWriteToken, scimUser.getVersion())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error_description", equalTo("Cannot change origin in patch of user.")))
+                .andExpect(jsonPath("$.error", equalTo("invalid_scim_resource")));
     }
 
     @Test
@@ -686,9 +699,9 @@ class ScimUserEndpointsMockMvcTests {
 
     @Test
     void testForcePasswordExpireAccountExternalUser() throws Exception {
-        ScimUser user = createUser(uaaAdminToken);
-        user.setOrigin("NOT_UAA");
-        updateUser(uaaAdminToken, HttpStatus.OK.value(), user);
+        ScimUser userToCreate = getScimUser();
+        userToCreate.setOrigin("NOT_UAA");
+        ScimUser user = createUser(userToCreate, uaaAdminToken, null);
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
 
@@ -1066,6 +1079,22 @@ class ScimUserEndpointsMockMvcTests {
     @Test
     void testUpdateUser_No_Username_Returns_400() throws Exception {
         updateUser(scimReadWriteToken, HttpStatus.BAD_REQUEST.value());
+    }
+
+    @Test
+    void testUpdateUser_ChangingOriginReturns400() throws Exception {
+        final ScimUser scimUser = setUpScimUser(IdentityZone.getUaa());
+        scimUser.setOrigin(UUID.randomUUID().toString());
+        final MvcResult result = updateUserAndReturnResult(scimReadWriteToken, scimUser);
+        final MockHttpServletResponse response = result.getResponse();
+        Assertions.assertThat(response).isNotNull();
+        Assertions.assertThat(response.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+        final Map<String, Object> responseBody = JsonUtils.readValueAsMap(response.getContentAsString());
+        Assertions.assertThat(responseBody)
+                .isNotNull()
+                .containsEntry("error_description", "Cannot change user's origin in update operation.")
+                .containsEntry("error", "invalid_scim_resource")
+                .containsEntry("message", "Cannot change user's origin in update operation.");
     }
 
     @Test
@@ -1465,6 +1494,16 @@ class ScimUserEndpointsMockMvcTests {
                     .andExpect(status().is(status));
             return null;
         }
+    }
+
+    private MvcResult updateUserAndReturnResult(final String token, final ScimUser scimUser) throws Exception {
+        final MockHttpServletRequestBuilder request = put("/Users/" + scimUser.getId())
+                .header("Authorization", "Bearer " + token)
+                .header("If-Match", "\"" + scimUser.getVersion() + "\"")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsBytes(scimUser));
+        return mockMvc.perform(request).andReturn();
     }
 
     private ResultActions updateAccountStatus(ScimUser user, UserAccountStatus alteredAccountStatus) throws Exception {

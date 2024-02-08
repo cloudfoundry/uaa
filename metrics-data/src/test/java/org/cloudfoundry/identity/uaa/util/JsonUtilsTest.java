@@ -1,9 +1,14 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.metrics.UrlGroup;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +45,26 @@ class JsonUtilsTest {
   void testReadValueByteClass() {
     assertNotNull(JsonUtils.readValue(jsonTestObjectString.getBytes(), UrlGroup.class));
     assertNull(JsonUtils.readValue((byte[]) null, UrlGroup.class));
+  }
+
+  @Test
+  void testReadValueAsMap() {
+    final String jsonInput = "{\"prop1\":\"abc\",\"prop2\":{\"prop2a\":\"def\",\"prop2b\":\"ghi\"},\"prop3\":[\"jkl\",\"mno\"]}";
+    final Map<String, Object> map = JsonUtils.readValueAsMap(jsonInput);
+    Assertions.assertThat(map).isNotNull();
+    Assertions.assertThat(map.get("prop1")).isNotNull().isEqualTo("abc");
+    Assertions.assertThat(map.get("prop2")).isNotNull().isInstanceOf(Map.class);
+    Assertions.assertThat(((Map<String, Object>) map.get("prop2")).get("prop2a")).isNotNull().isEqualTo("def");
+    Assertions.assertThat(((Map<String, Object>) map.get("prop2")).get("prop2b")).isNotNull().isEqualTo("ghi");
+    Assertions.assertThat(map.get("prop3")).isNotNull().isInstanceOf(List.class);
+    Assertions.assertThat((List<String>) map.get("prop3")).containsExactly("jkl", "mno");
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"{", "}", "{\"prop1\":\"abc\","})
+  void testReadValueAsMap_Invalid(final String input) {
+    Assertions.assertThatExceptionOfType(JsonUtils.JsonUtilException.class)
+            .isThrownBy(() -> JsonUtils.readValueAsMap(input));
   }
 
   @Test
