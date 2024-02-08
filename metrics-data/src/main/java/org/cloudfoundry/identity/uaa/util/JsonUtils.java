@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -51,6 +52,15 @@ public class JsonUtils {
                 return null;
             }
         } catch (IOException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
+    public static Map<String, Object> readValueAsMap(final String input) {
+        try {
+            final JsonNode rootNode = objectMapper.readTree(input);
+            return getNodeAsMap(rootNode);
+        } catch (final JsonProcessingException e) {
             throw new JsonUtilException(e);
         }
     }

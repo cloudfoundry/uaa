@@ -6,6 +6,7 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.crypto.ECDSASigner;
 import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.bc.BouncyCastleFIPSProviderSingleton;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import com.nimbusds.jose.jwk.OctetSequenceKey;
@@ -81,6 +82,7 @@ public class KeyInfo {
             }
             this.verifierCertificate = getValidX509Certificate(signingCert);
             this.verifierKey = JsonWebKey.pemEncodePublicKey(keyPair.getPublic()).orElse(null);
+            this.signer.getJCAContext().setProvider(BouncyCastleFIPSProviderSingleton.getInstance());
         } else {
             jwk = new OctetSequenceKey.Builder(signingKey.getBytes()).build();
             algorithm = Optional.ofNullable(sigAlg).orElse(JWSAlgorithm.HS256.getName());

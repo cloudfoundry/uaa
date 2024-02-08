@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -169,7 +169,7 @@ public class SamlKeyManagerFactoryTests {
     @BeforeAll
     static void addBCProvider() {
         try {
-            Security.addProvider(new BouncyCastleProvider());
+            Security.addProvider(new BouncyCastleFipsProvider());
         } catch (SecurityException e) {
             e.printStackTrace();
             System.err.println("Ignoring provider error, may already be added.");

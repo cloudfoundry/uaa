@@ -1,5 +1,56 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import java.awt.Color;
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.security.Principal;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.util.UriComponentsBuilder;
+
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
@@ -18,7 +69,6 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.ColorHash;
@@ -36,59 +86,6 @@ import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.support.PropertiesLoaderUtils;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.util.UriComponentsBuilder;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import java.awt.*;
-import java.io.IOException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.security.Principal;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Base64.getDecoder;
@@ -139,7 +136,6 @@ public class LoginInfoEndpoint {
     private final MfaChecker mfaChecker;
     private final String entityID;
 
-    private static final Duration CODE_EXPIRATION = Duration.ofMinutes(5L);
     private static final MapCollector<IdentityProvider, String, AbstractExternalOAuthIdentityProviderDefinition> idpsMapCollector =
             new MapCollector<>(
                     IdentityProvider::getOriginKey,
@@ -914,52 +910,6 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
-    @RequestMapping(value = {"/passcode"}, method = GET)
-    public String generatePasscode(Map<String, Object> model, Principal principal) {
-        String username;
-        String origin;
-        String userId;
-        Map<String, Object> authorizationParameters = null;
-
-        if (principal instanceof UaaPrincipal) {
-            UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
-            username = uaaPrincipal.getName();
-            origin = uaaPrincipal.getOrigin();
-            userId = uaaPrincipal.getId();
-        } else if (principal instanceof UaaAuthentication) {
-            UaaPrincipal uaaPrincipal = ((UaaAuthentication) principal).getPrincipal();
-            username = uaaPrincipal.getName();
-            origin = uaaPrincipal.getOrigin();
-            userId = uaaPrincipal.getId();
-        } else if (principal instanceof LoginSamlAuthenticationToken) {
-            username = principal.getName();
-            origin = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getOrigin();
-            userId = ((LoginSamlAuthenticationToken) principal).getUaaPrincipal().getId();
-        } else if (principal instanceof Authentication && ((Authentication) principal).getPrincipal() instanceof UaaPrincipal) {
-            UaaPrincipal uaaPrincipal = (UaaPrincipal) ((Authentication) principal).getPrincipal();
-            username = uaaPrincipal.getName();
-            origin = uaaPrincipal.getOrigin();
-            userId = uaaPrincipal.getId();
-        } else {
-            throw new UnknownPrincipalException();
-        }
-
-        PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
-
-        String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
-
-        expiringCodeStore.expireByIntent(intent, IdentityZoneHolder.get().getId());
-
-        ExpiringCode code = expiringCodeStore.generateCode(
-                JsonUtils.writeValueAsString(pi),
-                new Timestamp(System.currentTimeMillis() + CODE_EXPIRATION.toMillis()),
-                intent, IdentityZoneHolder.get().getId());
-
-        model.put(PASSCODE, code.getCode());
-
-        return PASSCODE;
-    }
-
     private Map<String, ?> getLinksInfo() {
 
         Map<String, Object> model = new HashMap<>();
@@ -1010,9 +960,4 @@ public class LoginInfoEndpoint {
         }
         return selfServiceLinks;
     }
-
-    @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")
-    public static final class UnknownPrincipalException extends RuntimeException {
-    }
-
 }

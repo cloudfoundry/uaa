@@ -11,7 +11,7 @@
         <property name="targetClass" value="java.security.Security"/>
         <property name="targetMethod" value="addProvider"/>
         <property name="arguments">
-            <bean class="org.bouncycastle.jce.provider.BouncyCastleProvider"/>
+            <bean class="org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"/>
         </property>
     </bean>
 

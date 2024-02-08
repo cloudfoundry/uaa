@@ -59,7 +59,6 @@ public class TestUtils {
         jdbcTemplate.update("DELETE FROM oauth_code");
         jdbcTemplate.update("DELETE FROM revocable_tokens");
         jdbcTemplate.update("DELETE FROM sec_audit");
-        jdbcTemplate.update("DELETE FROM service_provider");
         jdbcTemplate.update("DELETE FROM user_info");
         jdbcTemplate.update("DELETE FROM users");
         jdbcTemplate.update("DELETE FROM mfa_providers");
