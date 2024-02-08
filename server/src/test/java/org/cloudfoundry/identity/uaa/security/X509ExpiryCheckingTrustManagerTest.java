@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.security;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.security.saml.trust.X509TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import java.security.cert.CertificateExpiredException;
 import java.security.cert.X509Certificate;
