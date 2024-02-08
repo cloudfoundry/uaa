@@ -39,11 +39,7 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         switch (auditEvent.getType()) {
-            case UserAuthenticationSuccess:
-            case PasswordChangeSuccess:
-                resetAuthenticationEvents(auditEvent, zoneId, UserAuthenticationFailure);
-                break;
-            case UserAccountUnlockedEvent:
+            case UserAuthenticationSuccess, PasswordChangeSuccess, UserAccountUnlockedEvent:
                 resetAuthenticationEvents(auditEvent, zoneId, UserAuthenticationFailure);
                 break;
             case UserAuthenticationFailure:
