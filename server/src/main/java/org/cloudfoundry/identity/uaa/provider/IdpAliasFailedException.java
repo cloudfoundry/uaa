@@ -15,24 +15,51 @@ public class IdpAliasFailedException extends UaaException {
             @NonNull final Reason reason,
             @Nullable final Throwable cause
     ) {
-        super(cause, ERROR, buildMessage(identityProvider, reason), reason.responseCode.value());
+        this(
+                identityProvider.getId(),
+                identityProvider.getIdentityZoneId(),
+                identityProvider.getAliasId(),
+                identityProvider.getAliasZid(),
+                reason,
+                cause
+        );
     }
 
-    private static String buildMessagePrefix(@NonNull final IdentityProvider<?> idp) {
+    public IdpAliasFailedException(
+            @Nullable final String idpId,
+            @Nullable final String idzId,
+            @Nullable final String aliasId,
+            @Nullable final String aliasZid,
+            @NonNull final Reason reason,
+            @Nullable final Throwable cause
+    ) {
+        super(cause, ERROR, buildMessage(idpId, idzId, aliasId, aliasZid, reason), reason.responseCode.value());
+    }
+
+    private static String buildMessagePrefix(
+            @Nullable final String idpId,
+            @Nullable final String idzId,
+            @Nullable final String aliasId,
+            @Nullable final String aliasZid
+    ) {
         return String.format(
                 "IdentityProvider[id=%s,zid=%s,aliasId=%s,aliasZid=%s]",
-                surroundWithSingleQuotesIfPresent(idp.getId()),
-                surroundWithSingleQuotesIfPresent(idp.getIdentityZoneId()),
-                surroundWithSingleQuotesIfPresent(idp.getAliasId()),
-                surroundWithSingleQuotesIfPresent(idp.getAliasZid())
+                surroundWithSingleQuotesIfPresent(idpId),
+                surroundWithSingleQuotesIfPresent(idzId),
+                surroundWithSingleQuotesIfPresent(aliasId),
+                surroundWithSingleQuotesIfPresent(aliasZid)
         );
     }
 
     private static String buildMessage(
-            @NonNull final IdentityProvider<?> idp,
+            @Nullable final String idpId,
+            @Nullable final String idzId,
+            @Nullable final String aliasId,
+            @Nullable final String aliasZid,
             @NonNull final Reason reason
     ) {
-        return String.format("%s - %s", buildMessagePrefix(idp), reason.message);
+        final String messagePrefix = buildMessagePrefix(idpId, idzId, aliasId, aliasZid);
+        return String.format("%s - %s", messagePrefix, reason.message);
     }
 
     private static String surroundWithSingleQuotesIfPresent(@Nullable final String input) {

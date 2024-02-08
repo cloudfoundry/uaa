@@ -541,11 +541,29 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return originalIdp;
         }
 
+        final IdentityProvider<?> persistedAliasIdp = createNewAliasIdp(aliasIdp, originalIdp.getAliasZid());
+
+        // update alias ID in original IdP
+        originalIdp.setAliasId(persistedAliasIdp.getId());
+        return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
+    }
+
+    /**
+     * Persist the given alias IdP in the given zone.
+     *
+     * @param aliasIdp the alias IdP to persist
+     * @param aliasZid the ID of the identity zone in which the alias should be persisted
+     * @return the persisted alias IdP
+     */
+    private <T extends AbstractIdentityProviderDefinition> IdentityProvider<?> createNewAliasIdp(
+            final IdentityProvider<T> aliasIdp,
+            final String aliasZid
+    ) throws IdpAliasFailedException {
         // check if IdZ referenced in 'aliasZid' exists
         try {
-            identityZoneProvisioning.retrieve(originalIdp.getAliasZid());
+            identityZoneProvisioning.retrieve(aliasZid);
         } catch (final ZoneDoesNotExistsException e) {
-            throw new IdpAliasFailedException(originalIdp, ALIAS_ZONE_DOES_NOT_EXIST, e);
+            throw new IdpAliasFailedException(aliasIdp.getAliasId(), aliasIdp.getAliasZid(), null, aliasZid, ALIAS_ZONE_DOES_NOT_EXIST, e);
         }
 
         // create new alias IdP in alias zid
@@ -553,15 +571,13 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             persistedAliasIdp = identityProviderProvisioning.create(
                     aliasIdp,
-                    originalIdp.getAliasZid()
+                    aliasZid
             );
         } catch (final IdpAlreadyExistsException e) {
-            throw new IdpAliasFailedException(originalIdp, ORIGIN_KEY_ALREADY_USED_IN_ALIAS_ZONE, e);
+            throw new IdpAliasFailedException(aliasIdp.getAliasId(), aliasIdp.getAliasZid(), null, aliasZid, ORIGIN_KEY_ALREADY_USED_IN_ALIAS_ZONE, e);
         }
 
-        // update alias ID in original IdP
-        originalIdp.setAliasId(persistedAliasIdp.getId());
-        return identityProviderProvisioning.update(originalIdp, originalIdp.getIdentityZoneId());
+        return persistedAliasIdp;
     }
 
     @Nullable
