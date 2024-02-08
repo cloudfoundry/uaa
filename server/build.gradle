@@ -13,7 +13,6 @@ dependencies {
     implementation(libraries.jsonPath) {
         exclude(module: "json-smart")
     }
-    implementation(libraries.zxing)
     implementation(libraries.springBeans)
     implementation(libraries.springContext)
     implementation(libraries.springContextSupport)
@@ -90,8 +89,6 @@ dependencies {
     implementation(libraries.velocity)
     implementation(libraries.xerces)
 
-    implementation(libraries.googleAuth)
-
     implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
 
@@ -100,6 +97,8 @@ dependencies {
 
     implementation(libraries.nimbusJwt)
     implementation(libraries.orgJson)
+
+    implementation(libraries.apacheHttpClient)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
