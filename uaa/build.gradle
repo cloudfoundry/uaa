@@ -65,7 +65,6 @@ dependencies {
         exclude(module: "slf4j-api")
     }
     testImplementation(libraries.flywayCore)
-    testImplementation(libraries.googleAuth)
     testImplementation(libraries.hibernateValidator)
     testImplementation(libraries.junit)
     testImplementation(libraries.selenium)
@@ -74,7 +73,6 @@ dependencies {
         exclude(module: "mail")
         exclude(module: "activation")
     }
-    testImplementation(libraries.zxing)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.unboundIdScimSdk) {
@@ -99,6 +97,7 @@ dependencies {
     testImplementation(libraries.commonsIo)
     testImplementation(libraries.commonsHttpClient)
     testImplementation(libraries.owaspEsapi)
+    testImplementation(libraries.apacheHttpClient)
 }
 
 ext {
