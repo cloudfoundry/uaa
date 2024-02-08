@@ -70,7 +70,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
-import static com.beust.jcommander.internal.Lists.newArrayList;
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -652,7 +651,7 @@ public abstract class AbstractLdapMockMvcTest {
 
         LdapIdentityProviderDefinition definition = provider.getConfig();
         // External groups will only appear as roles if they are whitelisted
-        definition.setExternalGroupsWhitelist(newArrayList("*"));
+        definition.setExternalGroupsWhitelist(Collections.singletonList("*"));
         // External groups are currently only stored in the db if StoreCustomAttributes is true
         definition.setStoreCustomAttributes(true);
         provider.setConfig(definition);
