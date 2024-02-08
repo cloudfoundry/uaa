@@ -398,31 +398,29 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
-    void validateOriginAndExternalIDDuringCreateAndUpdate() {
-        String origin = "test-"+randomString();
+    void validateExternalIdDuringCreateAndUpdate() {
+        final String origin = "test-"+randomString();
         addIdentityProvider(jdbcTemplate, IdentityZone.getUaaZoneId(), origin);
-        String externalId = "testId";
-        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        final String externalId = "testId";
+        final ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.setOrigin(origin);
         user.setExternalId(externalId);
         user.addEmail("jo@blah.com");
-        ScimUser created = jdbcScimUserProvisioning.createUser(user, "j7hyqpassX", currentIdentityZoneId);
+        final ScimUser created = jdbcScimUserProvisioning.createUser(user, "j7hyqpassX", currentIdentityZoneId);
         assertEquals("jo@foo.com", created.getUserName());
         assertNotNull(created.getId());
         assertNotSame(user.getId(), created.getId());
-        Map<String, Object> map = jdbcTemplate.queryForMap("select * from users where id=?", created.getId());
+        final Map<String, Object> map = jdbcTemplate.queryForMap("select * from users where id=?", created.getId());
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
         assertEquals(origin, created.getOrigin());
         assertEquals(externalId, created.getExternalId());
-        String origin2 = "test2-"+randomString();
-        addIdentityProvider(jdbcTemplate, IdentityZone.getUaaZoneId(), origin2);
-        String externalId2 = "testId2";
-        created.setOrigin(origin2);
+
+        // update external ID
+        final String externalId2 = "testId2";
         created.setExternalId(externalId2);
-        ScimUser updated = jdbcScimUserProvisioning.update(created.getId(), created, currentIdentityZoneId);
-        assertEquals(origin2, updated.getOrigin());
+        final ScimUser updated = jdbcScimUserProvisioning.update(created.getId(), created, currentIdentityZoneId);
         assertEquals(externalId2, updated.getExternalId());
     }
 
@@ -540,6 +538,31 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
+    void updateCannotModifyOrigin() {
+        final String userId = UUID.randomUUID().toString();
+
+        final ScimUser userToCreate = new ScimUser(userId, "john.doe", "John", "Doe");
+        userToCreate.setPassword("some-password");
+        userToCreate.setOrigin("origin1");
+        userToCreate.setZoneId(currentIdentityZoneId);
+        userToCreate.setPhoneNumbers(Collections.singletonList(new PhoneNumber("12345")));
+        userToCreate.setPrimaryEmail("john.doe@example.com");
+        addUser(jdbcTemplate, userToCreate);
+
+        final ScimUser scimUser = jdbcScimUserProvisioning.retrieve(userId, currentIdentityZoneId);
+
+        // change origin
+        scimUser.setOrigin("origin2");
+
+        final InvalidScimResourceException exception = assertThrows(InvalidScimResourceException.class, () ->
+                jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Cannot change user's origin in update operation.", exception.getMessage());
+    }
+
+    @Test
     void updateWithWrongVersionIsError() {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
@@ -556,12 +579,19 @@ class JdbcScimUserProvisioningTests {
 
     @Test
     void updateWithBadUsernameIsOk_For_Non_UAA() {
-        ScimUser jo = new ScimUser(null, "jo$ephine", "Jo", "NewUser");
-        jo.setOrigin(OriginKeys.LDAP);
-        jo.addEmail("jo@blah.com");
-        ScimUser joe = jdbcScimUserProvisioning.update(joeId, jo, currentIdentityZoneId);
-        assertEquals("jo$ephine", joe.getUserName());
-        assertEquals(OriginKeys.LDAP, joe.getOrigin());
+        final String id = UUID.randomUUID().toString();
+        final ScimUser user = new ScimUser(id, "josephine", "Jo", "NewUser");
+        user.setOrigin(OriginKeys.LDAP);
+        user.setZoneId(currentIdentityZoneId);
+        user.addEmail("jo@blah.com");
+        user.setPhoneNumbers(Collections.singletonList(new PhoneNumber("12345")));
+        addUser(jdbcTemplate, user);
+
+        final ScimUser updatePayload = jdbcScimUserProvisioning.retrieve(id, currentIdentityZoneId);
+        updatePayload.setUserName("jo$ephine");
+        final ScimUser userAfterUpdate = jdbcScimUserProvisioning.update(id, updatePayload, currentIdentityZoneId);
+        assertEquals("jo$ephine", userAfterUpdate.getUserName());
+        assertEquals(OriginKeys.LDAP, userAfterUpdate.getOrigin());
     }
 
     @Test
@@ -1115,33 +1145,6 @@ class JdbcScimUserProvisioningTests {
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
     }
 
-    @Test
-    void cannotUpdateUserWithInvalidOrigin() {
-        String validOrigin = "validOrigin-"+randomString();
-        String invalidOrigin = "invalidOrigin-"+randomString();
-        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, validOrigin);
-        String userId = "user-"+randomString();
-        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
-        ScimUser.Email email = new ScimUser.Email();
-        email.setValue(userId+"@example.com");
-        scimUser.setEmails(Collections.singletonList(email));
-        scimUser.setPassword(randomString());
-        scimUser.setOrigin(validOrigin);
-        try {
-            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
-        } catch (Exception e) {
-            fail("Can't create test user");
-        }
-        scimUser.setOrigin(invalidOrigin);
-        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(true);
-        assertThrowsWithMessageThat(
-            InvalidScimResourceException.class,
-            () -> jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId),
-            containsString("Invalid origin")
-        );
-        idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
-    }
-
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
         String randomUserId = UUID.randomUUID().toString();
         addUser(jdbcTemplate, randomUserId, randomUserId, "password", randomUserId + "@delete.com", "ToDelete", "User", "+1-234-5678910", zoneId);
@@ -1167,6 +1170,21 @@ class JdbcScimUserProvisioningTests {
                 familyName,
                 phoneNumber,
                 identityZoneId);
+        jdbcTemplate.execute(addUserSql);
+    }
+
+    private static void addUser(final JdbcTemplate jdbcTemplate, final ScimUser scimUser) {
+        String addUserSql = String.format(
+                "insert into users (id, username, password, email, givenName, familyName, phoneNumber, identity_zone_id, origin) values ('%s','%s','%s','%s','%s','%s','%s','%s', '%s')",
+                scimUser.getId(),
+                scimUser.getUserName(),
+                scimUser.getPassword(),
+                scimUser.getPrimaryEmail(),
+                scimUser.getName().getGivenName(),
+                scimUser.getName().getFamilyName(),
+                scimUser.getPhoneNumbers().get(0),
+                scimUser.getZoneId(),
+                scimUser.getOrigin());
         jdbcTemplate.execute(addUserSql);
     }
 
