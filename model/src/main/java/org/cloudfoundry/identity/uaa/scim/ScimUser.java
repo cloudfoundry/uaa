@@ -12,20 +12,27 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import static java.util.Optional.ofNullable;
+import static org.springframework.util.StringUtils.hasText;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
 import org.springframework.util.Assert;
 
-import java.util.*;
-
-import static java.util.Optional.ofNullable;
-import static org.springframework.util.StringUtils.hasText;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -770,6 +777,10 @@ public class ScimUser extends ScimCore<ScimUser> {
                 default:
                     throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
             }
+        }
+
+        if (hasText(patch.getOrigin()) && !patch.getOrigin().equals(getOrigin())) {
+            throw new IllegalArgumentException("Cannot change origin in patch of user.");
         }
 
         //Merge simple Attributes, that are stored

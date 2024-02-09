@@ -60,8 +60,8 @@ public enum AuditEventType {
     TokenRevocationEvent(36),
     IdentityProviderAuthenticationSuccess(37),
     IdentityProviderAuthenticationFailure(38),
-    MfaAuthenticationSuccess(39),
-    MfaAuthenticationFailure(40),
+    MfaAuthenticationSuccess(39), // This is unused, as MFA is feature is removed, but removing this event results in [this test failure](https://github.com/cloudfoundry/uaa/blob/8a4ca068aa6f4faeb3e83765ead5900ceb159121/server/src/test/java/org/cloudfoundry/identity/uaa/audit/AuditEventTypeTests.java); fixing the test would require changing the event code number, which [this comment](https://github.com/cloudfoundry/uaa/blob/8a4ca068aa6f4faeb3e83765ead5900ceb159121/server/src/main/java/org/cloudfoundry/identity/uaa/audit/AuditEventType.java#L23) says we cannot. So leaving this unused event here for now.
+    MfaAuthenticationFailure(40), // This is unused, as MFA is feature is removed, but removing this event results in [this test failure](https://github.com/cloudfoundry/uaa/blob/8a4ca068aa6f4faeb3e83765ead5900ceb159121/server/src/test/java/org/cloudfoundry/identity/uaa/audit/AuditEventTypeTests.java); fixing the test would require changing the event code number, which [this comment](https://github.com/cloudfoundry/uaa/blob/8a4ca068aa6f4faeb3e83765ead5900ceb159121/server/src/main/java/org/cloudfoundry/identity/uaa/audit/AuditEventType.java#L23) says we cannot. So leaving this unused event here for now.
     ClientJwtChangeSuccess(41),
     ClientJwtChangeFailure(42);
 

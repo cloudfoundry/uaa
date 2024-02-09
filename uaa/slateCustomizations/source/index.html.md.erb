@@ -230,26 +230,6 @@ _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md') %>
 
-### Password Grant with MFA
-
-<aside class="warning">
-  MFA support is in active development and is not ready for production use.
-</aside>
-
-A password grant can be completed when multi-factor authentication is enabled.
-
-
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-response.md') %>
-
-_Request Parameters_
-
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/request-parameters.md') %>
-
-_Response Fields_
-
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/response-fields.md') %>
 
 ### One-time Passcode
 
@@ -1223,134 +1203,6 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity - Invalid config                                 |
 
-# MFA Providers
-
-## Create
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-headers.md') %>
-
-_Request Fields_
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-fields.md') %>
-
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - JSON body was malformed or missing fields                                                |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
-
-
-## Update
-
-<aside class="warning">
-  Update is not supported for MFA provider.
-</aside>
-
-
-
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 405        | Method Not Allowed                                                                                     |
-
-
-## Get
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 404        | Not Found - Provider id not found                                                                      |
-
-
-## Delete
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 404        | Not Found - Provider id not found                                                                      |
-
-## List
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
 
 # Users
 
@@ -1794,27 +1646,6 @@ _Error Codes_
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 400        | Bad Request - Incorrect version supplied in If-Match header           |
-| 403        | Forbidden - Insufficient scope or internal user management disabled   |
-| 404        | Not Found - User not found                                            |
-
-## Delete MFA registration
-
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/http-request.md') %>
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/http-response.md') %>
-
-_Path Parameters_
-
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/path-parameters.md') %>
-
-_Request Headers_
-
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/request-headers.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
 

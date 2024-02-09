@@ -38,8 +38,7 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
         final String requestPath = UaaUrlUtils.getRequestPath(request);
         final List<String> pathsWithHtmlInlineScripts = Arrays.asList(
                 "/saml/",
-                "/login_implicit",
-                "/login/mfa/");
+                "/login_implicit");
 
         return pathsWithHtmlInlineScripts.stream()
                 .anyMatch(requestPath::startsWith);

@@ -31,7 +31,6 @@ import org.springframework.security.core.Authentication;
 
 import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.MfaAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
 import static org.hamcrest.CoreMatchers.is;
@@ -53,9 +52,7 @@ public class PeriodLockoutPolicyTests {
     private long now;
     private PeriodLockoutPolicy policy;
     private CommonLoginPolicy innerPolicy;
-    private CommonLoginPolicy mfaInnerPolicy;
     private LockoutPolicyRetriever policyRetriever;
-    private LockoutPolicyRetriever mfaPolicyRetriever;
     private IdentityProviderProvisioning providerProvisioning;
 
     @Before
@@ -71,14 +68,11 @@ public class PeriodLockoutPolicyTests {
         lockoutPolicy.setLockoutPeriodSeconds(ONE_HOUR);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(new IdentityProvider());
         policyRetriever = new UserLockoutPolicyRetriever(providerProvisioning);
-        mfaPolicyRetriever = new UserLockoutPolicyRetriever(providerProvisioning);
 
         innerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.UserAuthenticationSuccess, AuditEventType.UserAuthenticationFailure, timeService, true);
-        mfaInnerPolicy = new CommonLoginPolicy(as, policyRetriever, AuditEventType.MfaAuthenticationSuccess, AuditEventType.MfaAuthenticationFailure, timeService, true);
 
         policyRetriever.setDefaultLockoutPolicy(lockoutPolicy);
-        mfaPolicyRetriever.setDefaultLockoutPolicy(lockoutPolicy);
-        policy = new PeriodLockoutPolicy(innerPolicy, mfaInnerPolicy);
+        policy = new PeriodLockoutPolicy(innerPolicy);
     }
 
     @Test
@@ -91,18 +85,6 @@ public class PeriodLockoutPolicyTests {
 
         policyRetriever.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
         assertFalse(policy.isAllowed(joe, mock(Authentication.class)));
-    }
-
-    @Test
-    public void loginIsDeniedIfAllowedMFAFailuresIsExceeded() {
-        String zoneId = IdentityZoneHolder.get().getId();
-        when(as.find(eq("1"), anyLong(), eq(zoneId))).thenReturn(Arrays.asList(
-          new AuditEvent(MfaAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaaZoneId(), null, null),
-          new AuditEvent(MfaAuthenticationFailure, "joe", "", "", now - 2, IdentityZone.getUaaZoneId(), null, null)
-        ));
-
-        mfaPolicyRetriever.getDefaultLockoutPolicy().setLockoutAfterFailures(2);
-        assertThat(policy.isAllowed(joe, mock(Authentication.class)), is(false));
     }
 
     @Test

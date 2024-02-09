@@ -158,7 +158,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         SCIMFilter scimFilter;
         try {
             scimFilter = SCIMFilter.parse(filter);
-            if (!checkFilter(scimFilter)) {
+            if (!containsIdOrUserNameClause(scimFilter)) {
                 throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
             }
         } catch (SCIMException e) {
@@ -168,15 +168,15 @@ public class UserIdConversionEndpoints implements InitializingBean {
     }
 
     /**
-     * Returns true if the field 'id' or 'userName' are present in the query.
+     * Check if the given SCIM filter contains at least one clause involving either the "id" or "userName" property.
      */
-    private boolean checkFilter(SCIMFilter filter) {
+    private boolean containsIdOrUserNameClause(SCIMFilter filter) {
         switch (filter.getFilterType()) {
             case AND:
             case OR:
-                // both operands must be valid
-                final boolean resultLeftOperand = checkFilter(filter.getFilterComponents().get(0));
-                return checkFilter(filter.getFilterComponents().get(1)) && resultLeftOperand;
+                // one of the operands must contain a comparison with the "id" or "userName" property
+                final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().get(0));
+                return containsIdOrUserNameClause(filter.getFilterComponents().get(1)) || resultLeftOperand;
             case EQUALITY:
                 String name = filter.getFilterAttribute().getAttributeName();
                 if ("id".equalsIgnoreCase(name) ||

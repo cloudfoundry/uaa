@@ -870,57 +870,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    void testAuthorizeEndpointWithPromptNone_MfaRequired() throws Exception {
-        String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
-        clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
-        clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
-        clientDetailsService.addClientDetails(clientDetails);
-
-        String username = "testuser" + generator.generate();
-        String userScopes = "uaa.user,other.scope";
-        ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        super.setupForMfaPasswordGrant(developer.getId());
-
-        MockHttpSession session = getAuthenticatedSession(developer);
-
-        String state = generator.generate();
-
-        MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.RESPONSE_TYPE, "code")
-                .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-                .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
-                .andDo(print())
-                .andExpect(status().isFound())
-                .andReturn();
-
-        String url = result.getResponse().getHeader("Location");
-        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
-
-        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
-        result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.RESPONSE_TYPE, "code")
-                .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-                .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
-                .andDo(print())
-                .andExpect(status().isFound())
-                .andReturn();
-        url = result.getResponse().getHeader("Location");
-        assertThat(url, containsString(TEST_REDIRECT_URI));
-        assertThat(url, not(containsString("error")));
-        assertThat(url, not(containsString("login_required")));
-        assertThat(url, not(containsString("interaction_required")));
-    }
-
-    @Test
     void testAuthorizeEndpointWithPromptNone_ForcePasswordChangeRequired() throws Exception {
         String clientId = "testclient" + generator.generate();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
@@ -934,7 +883,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user,other.scope";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
         MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer, true, "pwd", "mfa", "otp");
+        setAuthentication(session, developer, true, "pwd", "otp");
 
         String state = generator.generate();
 
@@ -952,7 +901,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String url = result.getResponse().getHeader("Location");
         assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
 
-        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
+        setAuthentication(session, developer, false, "pwd", "otp");
         result = mockMvc.perform(get("/oauth/authorize")
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")

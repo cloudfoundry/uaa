@@ -2,8 +2,6 @@
 
 **Slack** [&#35;uaa](https://cloudfoundry.slack.com/archives/C03FXANBV)
 
-> **_Deprecation notice_**: _The MFA feature in UAA is deprecated and will be removed in a future UAA version._
-
 # CloudFoundry User Account and Authentication (UAA) Server
 
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
@@ -189,7 +187,6 @@ List of relations
  public | groups                        | table    | root
  public | identity_provider             | table    | root
  public | identity_zone                 | table    | root
- public | mfa_providers                 | table    | root
  public | oauth_client_details          | table    | root
  public | oauth_code                    | table    | root
  public | oauth_code_id_seq             | sequence | root
@@ -197,10 +194,8 @@ List of relations
  public | schema_version                | table    | root
  public | sec_audit                     | table    | root
  public | sec_audit_id_seq              | sequence | root
- public | service_provider              | table    | root
  public | spring_session                | table    | root
  public | spring_session_attributes     | table    | root
- public | user_google_mfa_credentials   | table    | root
  public | user_info                     | table    | root
  public | users                         | table    | root
 (23 rows)
