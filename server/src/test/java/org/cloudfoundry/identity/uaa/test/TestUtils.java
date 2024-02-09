@@ -92,7 +92,7 @@ public class TestUtils {
         for (String origin : origins) {
             String identityProviderId = UUID.randomUUID().toString();
             originMap.put(origin, identityProviderId);
-            jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,?,?,?,null,?)",identityProviderId, t, t, uaa.getId(),origin,origin,origin,true);
+            jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,?,?,?,null,?,null,null)",identityProviderId, t, t, uaa.getId(),origin,origin,origin,true);
         }
         jdbcTemplate.update("update oauth_client_details set identity_zone_id = ?",uaa.getId());
         List<String> clientIds = jdbcTemplate.queryForList("SELECT client_id from oauth_client_details", String.class);
